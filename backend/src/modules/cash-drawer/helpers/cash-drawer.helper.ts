@@ -22,6 +22,8 @@ type CashDrawerShiftSource = {
   instapay_operation_count?: number | string | null;
   cash_drawer_movement_total?: number | string | null;
   cash_drawer_cash_in_total?: number | string | null;
+  cash_drawer_delivery_cash_in_total?: number | string | null;
+  cash_drawer_manual_cash_in_total?: number | string | null;
   cash_drawer_cash_out_total?: number | string | null;
   supplier_payments_total?: number | string | null;
   expenses_total?: number | string | null;
@@ -38,6 +40,7 @@ type CashDrawerShiftSource = {
   counted_cash?: number | string | null;
   variance?: number | string | null;
   close_note?: string | null;
+  closed_by?: number | string | null;
   closed_by_name?: string | null;
   closed_at?: Date | string | null;
   created_at?: Date | string | null;
@@ -214,6 +217,8 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
     instapayOperationCount: Number(row.instapay_operation_count || 0),
     cashDrawerMovementTotal: Number(row.cash_drawer_movement_total || 0),
     cashDrawerCashInTotal: Number(row.cash_drawer_cash_in_total || 0),
+    cashDrawerDeliveryCashInTotal: Number(row.cash_drawer_delivery_cash_in_total || 0),
+    cashDrawerManualCashInTotal: Number(row.cash_drawer_manual_cash_in_total || 0),
     cashDrawerCashOutTotal: Number(row.cash_drawer_cash_out_total || 0),
     supplierPaymentsTotal: Number(row.supplier_payments_total || 0),
     expensesTotal: Number(row.expenses_total || 0),
@@ -251,6 +256,8 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
     managerReviewedByName: String(managerReview.reviewedByName || ''),
     managerReviewedAt: String(managerReview.reviewedAt || ''),
     closedBy: row.closed_by_name || '',
+    closedByName: row.closed_by_name || '',
+    closedById: row.closed_by ? String(row.closed_by) : '',
     closedAt: row.closed_at || '',
     openedAt: row.created_at || '',
     createdAt: row.created_at || '',

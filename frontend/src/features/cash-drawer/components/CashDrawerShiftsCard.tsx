@@ -358,10 +358,25 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                 🔄 الحركات والمسحوبات والمصروفات
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>إيداعات نقدية في الدرج:</span>
-                                  <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerCashInTotal || 0)}</strong>
-                                </div>
+                                {Number(row.cashDrawerDeliveryCashInTotal || 0) > 0 ? (
+                                  <>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                      <span style={{ color: '#64748b' }}>توريد وتحصيل مناديب (دليفري):</span>
+                                      <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerDeliveryCashInTotal || 0)}</strong>
+                                    </div>
+                                    {Number(row.cashDrawerManualCashInTotal || 0) > 0 && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#64748b' }}>إيداعات نقدية أخرى:</span>
+                                        <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerManualCashInTotal || 0)}</strong>
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>إيداعات نقدية في الدرج:</span>
+                                    <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerCashInTotal || 0)}</strong>
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                   <span style={{ color: '#64748b' }}>مسحوبات نقدية من الدرج:</span>
                                   <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.cashDrawerCashOutTotal || 0)}</strong>
@@ -462,6 +477,14 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                   <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>ملاحظة الإغلاق:</span>
                                   <span style={{ color: '#1e293b', fontWeight: 500 }}>{row.closeNote || '—'}</span>
                                 </div>
+                                {row.closedByName && row.openedByName && row.closedByName.trim().toLowerCase() !== row.openedByName.trim().toLowerCase() ? (
+                                  <div style={{ borderTop: '1px dashed #f59e0b', paddingTop: '6px', marginTop: '2px', background: '#fffbeb', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                                    <span style={{ color: '#b45309', display: 'block', marginBottom: '2px', fontWeight: 700 }}>⚠️ إغلاق إداري:</span>
+                                    <span style={{ color: '#92400e', fontWeight: 600 }}>
+                                      تم إغلاق الوردية بواسطة ({row.closedByName})
+                                    </span>
+                                  </div>
+                                ) : null}
                                 {row.managerReviewedByName ? (
                                   <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '4px' }}>
                                     <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>اعتماد ومراجعة المدير:</span>

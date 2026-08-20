@@ -65,7 +65,7 @@ export class ReportsService {
     ] = await Promise.all([
       this.db
         .selectFrom('sales')
-        .select(['id', 'total', 'discount', 'branch_id', 'location_id', 'created_at'])
+        .select(['id', 'total', 'discount', 'branch_id', 'location_id', 'created_by', 'created_at'])
         .where('status', '=', 'posted')
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
@@ -73,7 +73,7 @@ export class ReportsService {
         .execute(),
       this.db
         .selectFrom('purchases')
-        .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
+        .select(['id', 'total', 'branch_id', 'location_id', 'created_by', 'created_at'])
         .where('status', '=', 'posted')
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
@@ -81,7 +81,7 @@ export class ReportsService {
         .execute(),
       (this.db as any)
         .selectFrom('services')
-        .select(['id', 'amount as total', 'branch_id', 'location_id', 'service_date as created_at'])
+        .select(['id', 'amount as total', 'branch_id', 'location_id', 'created_by', 'service_date as created_at'])
         .where('is_active', '=', true)
         .where('service_date', '>=', fromDate!)
         .where('service_date', '<=', toDate!)
@@ -89,21 +89,21 @@ export class ReportsService {
         .execute(),
       this.db
         .selectFrom('expenses')
-        .select(['id', 'amount', 'branch_id', 'location_id', 'expense_date'])
+        .select(['id', 'amount', 'branch_id', 'location_id', 'created_by', 'expense_date'])
         .where('expense_date', '>=', fromDate)
         .where('expense_date', '<=', toDate)
         .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('return_documents')
-        .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_at'])
+        .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_by', 'created_at'])
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
         .where(this.tenantPredicate(auth))
         .execute(),
       this.db
         .selectFrom('treasury_transactions')
-        .select(['amount', 'branch_id', 'location_id', 'created_at'])
+        .select(['amount', 'branch_id', 'location_id', 'created_by', 'created_at'])
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
         .where(this.tenantPredicate(auth))
@@ -111,7 +111,7 @@ export class ReportsService {
       this.db
         .selectFrom('sale_items as si')
         .innerJoin('sales as s', 's.id', 'si.sale_id')
-        .select(['si.product_id', 'si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_at'])
+        .select(['si.product_id', 'si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_by', 's.created_at'])
         .where('s.status', '=', 'posted')
         .where('s.created_at', '>=', fromDate)
         .where('s.created_at', '<=', toDate)
@@ -130,6 +130,7 @@ export class ReportsService {
           (eb) => eb.fn.coalesce('si.cost_price', 'p.cost_price').as('cost_price'),
           'rd.branch_id',
           'rd.location_id',
+          'rd.created_by',
           'rd.created_at'
         ])
         .where('rd.return_type', '=', 'sale')

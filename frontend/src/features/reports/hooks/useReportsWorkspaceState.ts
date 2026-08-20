@@ -7,6 +7,9 @@ export function useReportsWorkspaceState() {
   const [to, setTo] = useState(defaultRange.to);
   const [submittedRange, setSubmittedRange] = useState(defaultRange);
   const [locationId, setLocationId] = useState<'all' | string>('all');
+  const [submittedLocationId, setSubmittedLocationId] = useState<'all' | string>('all');
+  const [userId, setUserId] = useState<'all' | string>('all');
+  const [submittedUserId, setSubmittedUserId] = useState<'all' | string>('all');
   const [inventoryPage, setInventoryPage] = useState(1);
   const [inventoryPageSize, setInventoryPageSize] = useState(10);
   const [inventorySearch, setInventorySearch] = useState('');
@@ -26,12 +29,30 @@ export function useReportsWorkspaceState() {
     setFrom(range.from);
     setTo(range.to);
     setSubmittedRange(range);
+    setSubmittedLocationId(locationId);
+    setSubmittedUserId(userId);
     setInventoryPage(1);
     setBalancesPage(1);
     setEmployeesPage(1);
   };
 
-  const resetRange = () => applyPresetRange(defaultRange);
+  const applyScope = () => {
+    setSubmittedRange({ from, to });
+    setSubmittedLocationId(locationId);
+    setSubmittedUserId(userId);
+    setInventoryPage(1);
+    setBalancesPage(1);
+    setEmployeesPage(1);
+  };
+
+  const resetRange = () => {
+    setLocationId('all');
+    setUserId('all');
+    setSubmittedLocationId('all');
+    setSubmittedUserId('all');
+    setSelectedEmployeeId('');
+    applyPresetRange(defaultRange);
+  };
 
   return {
     defaultRange,
@@ -39,6 +60,9 @@ export function useReportsWorkspaceState() {
     to,
     submittedRange,
     locationId,
+    submittedLocationId,
+    userId,
+    submittedUserId,
     inventoryPage,
     inventoryPageSize,
     inventorySearch,
@@ -57,6 +81,9 @@ export function useReportsWorkspaceState() {
     setTo,
     setSubmittedRange,
     setLocationId,
+    setSubmittedLocationId,
+    setUserId,
+    setSubmittedUserId,
     setInventoryPage,
     setInventoryPageSize,
     setInventorySearch,
@@ -74,6 +101,7 @@ export function useReportsWorkspaceState() {
     applyPresetDays: (days: number) => applyPresetRange(buildRange(days)),
     applyTodayPreset: () => applyPresetRange(buildTodayRange()),
     applyPresetRange,
+    applyScope,
     resetRange,
   };
 }

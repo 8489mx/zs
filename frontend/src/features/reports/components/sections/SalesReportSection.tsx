@@ -22,12 +22,12 @@ export function SalesReportSection({
   formatPercent
 }: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'accountingFinancialSummary' | 'salesDailyAverage' | 'purchaseDailyAverage' | 'returnRatePercent' | 'rangeDays' | 'topProducts' | 'exportTopProducts' | 'printTopProducts' | 'printSalesRegisterReport' | 'formatPercent'>) {
   const financial = accountingFinancialSummary?.cards;
-  const salesTotal = financial?.grossSales ?? report?.sales.total ?? 0;
-  const netSales = financial?.netSales ?? report?.sales.netSales ?? 0;
-  const returnsAndDiscounts = financial ? financial.salesReturns + financial.salesDiscounts : report?.returns.total || 0;
-  const cogs = financial?.cogs ?? report?.commercial.cogs ?? 0;
-  const grossProfit = financial?.grossProfit ?? report?.commercial.grossProfit ?? 0;
-  const netProfit = financial?.netProfit ?? report?.commercial.netOperatingProfit ?? 0;
+  const salesTotal = report?.sales.total ?? financial?.grossSales ?? 0;
+  const netSales = report?.sales.netSales ?? financial?.netSales ?? 0;
+  const returnsAndDiscounts = report?.returns.total ?? (financial ? financial.salesReturns + financial.salesDiscounts : 0);
+  const cogs = report?.commercial.cogs ?? financial?.cogs ?? 0;
+  const grossProfit = report?.commercial.grossProfit ?? financial?.grossProfit ?? 0;
+  const netProfit = report?.commercial.netOperatingProfit ?? financial?.netProfit ?? 0;
   const values = [salesTotal, netSales, returnsAndDiscounts, cogs, grossProfit, netProfit];
 
   return (

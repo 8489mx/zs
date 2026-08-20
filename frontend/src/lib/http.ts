@@ -72,7 +72,17 @@ export function normalizeApiBaseUrl(
   const isDevServer = runtimeLocation.port === '5173';
   const isPortableStaticServer = runtimeLocation.port === '8080';
   const isLoopbackRuntime = ['127.0.0.1', 'localhost'].includes(runtimeLocation.hostname);
-  const configuredUrl = normalized ? new URL(normalized, `${runtimeLocation.protocol}//${runtimeLocation.hostname}`) : null;
+  let configuredUrl: URL | null = null;
+  if (normalized) {
+    try {
+      const baseOrigin = runtimeLocation.protocol && runtimeLocation.hostname
+        ? `${runtimeLocation.protocol}//${runtimeLocation.hostname}`
+        : 'http://localhost';
+      configuredUrl = new URL(normalized, baseOrigin);
+    } catch {
+      configuredUrl = null;
+    }
+  }
   const configuredIsLoopbackApi = Boolean(
     configuredUrl
     && ['127.0.0.1', 'localhost'].includes(configuredUrl.hostname)

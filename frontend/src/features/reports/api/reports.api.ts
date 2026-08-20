@@ -195,7 +195,13 @@ async function listAllPages<T>(fetchPage: (page: number) => Promise<PagedResult<
 }
 
 export const reportsApi = {
-  summary: (from: string, to: string) => http<ReportSummary>(`/api/reports/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  summary: (from: string, to: string, options?: { branchId?: string; locationId?: string; userId?: string }) => {
+    const params: Record<string, string | number | undefined | null> = { from, to };
+    if (options?.branchId && options.branchId !== 'all') params.branchId = options.branchId;
+    if (options?.locationId && options.locationId !== 'all') params.locationId = options.locationId;
+    if (options?.userId && options.userId !== 'all') params.userId = options.userId;
+    return http<ReportSummary>(`/api/reports/summary${buildQueryString(params)}`);
+  },
   inventory: async () => unwrapByKey<InventoryReport>(await http<InventoryReport | { inventory: InventoryReport }>('/api/reports/inventory'), 'inventory', {} as InventoryReport),
   inventoryPage: async (params: ReportInventoryQueryParams) => {
     const response = await http<ReportInventoryPageResponse>(`/api/reports/inventory${buildQueryString(params as Record<string, string | number | undefined | null>)}`);

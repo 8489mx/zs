@@ -29,6 +29,8 @@ type ShiftRow = {
   instapay_operation_count?: number | string | null;
   cash_drawer_movement_total?: number | string | null;
   cash_drawer_cash_in_total?: number | string | null;
+  cash_drawer_delivery_cash_in_total?: number | string | null;
+  cash_drawer_manual_cash_in_total?: number | string | null;
   cash_drawer_cash_out_total?: number | string | null;
   supplier_payments_total?: number | string | null;
   expenses_total?: number | string | null;
@@ -127,10 +129,24 @@ export class CashDrawerService {
     await this.assertCurrentUserPassword(approvalSecret, auth);
   }
 
-  private async computeShiftCashDrawerMovements(shiftId: number, auth: AuthContext): Promise<{ cashInTotal: number; cashOutTotal: number; netMovementTotal: number }> {
+  private async computeShiftCashDrawerMovements(shiftId: number, auth: AuthContext): Promise<{
+    cashInTotal: number;
+    deliveryCashInTotal: number;
+    manualCashInTotal: number;
+    cashOutTotal: number;
+    netMovementTotal: number;
+  }> {
     const scope = this.scope(auth);
-    const result = await sql<{ cash_in_total?: number | string | null; cash_out_total?: number | string | null; net_total?: number | string | null }>`
+    const result = await sql<{
+      cash_in_total?: number | string | null;
+      delivery_cash_in_total?: number | string | null;
+      manual_cash_in_total?: number | string | null;
+      cash_out_total?: number | string | null;
+      net_total?: number | string | null;
+    }>`
       select coalesce(sum(case when tt.amount > 0 then tt.amount else 0 end), 0) as cash_in_total,
+             coalesce(sum(case when tt.amount > 0 and (tt.note like '%دليفري%' or tt.note like '%مندوب%') then tt.amount else 0 end), 0) as delivery_cash_in_total,
+             coalesce(sum(case when tt.amount > 0 and not (tt.note like '%دليفري%' or tt.note like '%مندوب%') then tt.amount else 0 end), 0) as manual_cash_in_total,
              coalesce(sum(case when tt.amount < 0 then abs(tt.amount) else 0 end), 0) as cash_out_total,
              coalesce(sum(tt.amount), 0) as net_total
       from treasury_transactions tt
@@ -143,6 +159,8 @@ export class CashDrawerService {
     const row = result.rows?.[0] || {};
     return {
       cashInTotal: this.toMoney(row.cash_in_total || 0),
+      deliveryCashInTotal: this.toMoney(row.delivery_cash_in_total || 0),
+      manualCashInTotal: this.toMoney(row.manual_cash_in_total || 0),
       cashOutTotal: this.toMoney(row.cash_out_total || 0),
       netMovementTotal: this.toMoney(row.net_total || 0),
     };
@@ -288,6 +306,8 @@ export class CashDrawerService {
       instapay_operation_count: salesBreakdown.instapayOperationCount,
       cash_drawer_movement_total: movements.netMovementTotal,
       cash_drawer_cash_in_total: movements.cashInTotal,
+      cash_drawer_delivery_cash_in_total: movements.deliveryCashInTotal,
+      cash_drawer_manual_cash_in_total: movements.manualCashInTotal,
       cash_drawer_cash_out_total: movements.cashOutTotal,
       supplier_payments_total: supplierPaymentsTotal,
       expenses_total: expensesTotal,

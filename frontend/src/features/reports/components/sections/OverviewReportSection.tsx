@@ -20,11 +20,11 @@ export function OverviewReportSection({
   const [chartPeriod, setChartPeriod] = useState<string>('6 شهور');
   const financial = accountingFinancialSummary?.cards;
   const cash = accountingCashMovement?.totals;
-  const salesTotal = financial?.grossSales ?? report?.sales.total ?? 0;
-  const netSales = financial?.netSales ?? report?.sales.netSales ?? 0;
-  const grossProfit = financial?.grossProfit ?? report?.commercial.grossProfit ?? 0;
-  const netCashMovement = cash?.netMovement ?? financial?.netCashMovement ?? report?.treasury.net ?? 0;
-  const grossMarginPercent = financial?.netSales ? (grossProfit / Math.max(1, financial.netSales)) * 100 : report?.commercial.grossMarginPercent || 0;
+  const salesTotal = report?.sales.total ?? financial?.grossSales ?? 0;
+  const netSales = report?.sales.netSales ?? financial?.netSales ?? 0;
+  const grossProfit = report?.commercial.grossProfit ?? financial?.grossProfit ?? 0;
+  const netCashMovement = report?.treasury.net ?? cash?.netMovement ?? financial?.netCashMovement ?? 0;
+  const grossMarginPercent = report?.commercial.grossMarginPercent ?? (financial?.netSales ? (grossProfit / Math.max(1, financial.netSales)) * 100 : 0);
   const statMax = Math.max(1, Math.abs(salesTotal), Math.abs(netSales), Math.abs(grossProfit), Math.abs(netCashMovement));
   const premiumStats = [
     { label: 'إجمالي البيع', value: salesTotal, helper: 'كل البيع المسجل', tone: 'primary', progress: Math.round((Math.abs(salesTotal) / statMax) * 100) },

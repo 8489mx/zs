@@ -8,10 +8,12 @@ import type { ReportsSectionKey } from '@/features/reports/pages/reports.page-co
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { referenceDataApi } from '@/services/reference-data.api';
+import { userDirectoryApi } from '@/shared/api/user-directory';
 
 export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSectionKey }) {
   const controller = useReportsWorkspaceController(currentSection);
   const locationsQuery = useQuery({ queryKey: queryKeys.locations, queryFn: referenceDataApi.locations });
+  const usersQuery = useQuery({ queryKey: queryKeys.settingsUsers, queryFn: userDirectoryApi.users });
 
   return (
     <div className="page-stack page-shell reports-workspace reports-animated-shell reports-workspace--compact" dir="rtl">
@@ -45,6 +47,9 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         locationId={controller.locationId}
         onLocationChange={controller.setLocationId}
         locations={locationsQuery.data}
+        userId={controller.userId}
+        onUserIdChange={controller.setUserId}
+        users={usersQuery.data}
       />
 
       <ReportsSectionContent

@@ -44,19 +44,19 @@ export function useReportsWorkspaceMetrics({
     : null;
 
   const executiveRows = useMemo<[string, number][]>(() => ([
-    ['إجمالي البيع', financialCards?.grossSales ?? report?.sales.total ?? 0],
-    ['صافي البيع', financialCards?.netSales ?? report?.sales.netSales ?? 0],
+    ['إجمالي البيع', report?.sales.total ?? financialCards?.grossSales ?? 0],
+    ['صافي البيع', report?.sales.netSales ?? financialCards?.netSales ?? 0],
     ['إيراد الخدمات', report?.services?.total || 0],
     ['إجمالي الشراء', report?.purchases.total || 0],
     ['صافي الشراء', report?.purchases.netPurchases || 0],
-    ['إجمالي المصروفات', financialCards?.operatingExpenses ?? report?.expenses.total ?? 0],
-    ['مردودات وخصومات', financialCards ? financialCards.salesReturns + financialCards.salesDiscounts : report?.returns.total || 0],
-    ['داخل النقدية والبنك', cashTotals?.totalIn ?? report?.treasury.cashIn ?? 0],
-    ['خارج النقدية والبنك', cashTotals?.totalOut ?? report?.treasury.cashOut ?? 0],
-    ['صافي حركة النقدية', cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0],
-    ['مجمل الربح', financialCards?.grossProfit ?? report?.commercial.grossProfit ?? 0],
-    ['هامش الربح %', accountingGrossMarginPercent ?? report?.commercial.grossMarginPercent ?? 0],
-    ['صافي الربح', financialCards?.netProfit ?? report?.commercial.netOperatingProfit ?? 0],
+    ['إجمالي المصروفات', report?.expenses.total ?? financialCards?.operatingExpenses ?? 0],
+    ['مردودات وخصومات', report?.returns.total ?? (financialCards ? financialCards.salesReturns + financialCards.salesDiscounts : 0)],
+    ['داخل النقدية والبنك', report?.treasury.cashIn ?? cashTotals?.totalIn ?? 0],
+    ['خارج النقدية والبنك', report?.treasury.cashOut ?? cashTotals?.totalOut ?? 0],
+    ['صافي حركة النقدية', report?.treasury.net ?? cashTotals?.netMovement ?? financialCards?.netCashMovement ?? 0],
+    ['مجمل الربح', report?.commercial.grossProfit ?? financialCards?.grossProfit ?? 0],
+    ['هامش الربح %', report?.commercial.grossMarginPercent ?? accountingGrossMarginPercent ?? 0],
+    ['صافي الربح', report?.commercial.netOperatingProfit ?? financialCards?.netProfit ?? 0],
   ]), [accountingGrossMarginPercent, cashTotals, financialCards, report]);
 
   const rangeDays = useMemo(() => {
@@ -78,16 +78,16 @@ export function useReportsWorkspaceMetrics({
       case 'sales':
         return [
           { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
-          { label: 'صافي المبيعات', value: formatCurrency(financialCards?.netSales ?? report?.sales.netSales ?? 0) },
+          { label: 'صافي المبيعات', value: formatCurrency(report?.sales.netSales ?? financialCards?.netSales ?? 0) },
           { label: 'عدد الفواتير', value: `${report?.sales.count ?? 0} فاتورة` },
-          { label: 'المرتجعات والخصم', value: formatCurrency(financialCards ? financialCards.salesReturns + financialCards.salesDiscounts : report?.returns.total ?? 0) },
+          { label: 'المرتجعات والخصم', value: formatCurrency(report?.returns.total ?? (financialCards ? financialCards.salesReturns + financialCards.salesDiscounts : 0)) },
         ];
       case 'treasury':
         return [
           { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
-          { label: 'المقبوضات الكاش', value: formatCurrency(cashTotals?.totalIn ?? report?.treasury.cashIn ?? 0) },
-          { label: 'المدفوعات والمصروفات', value: formatCurrency(cashTotals?.totalOut ?? report?.treasury.cashOut ?? 0) },
-          { label: 'صافي حركة النقدية', value: formatCurrency(cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0) },
+          { label: 'المقبوضات الكاش', value: formatCurrency(report?.treasury.cashIn ?? cashTotals?.totalIn ?? 0) },
+          { label: 'المدفوعات والمصروفات', value: formatCurrency(report?.treasury.cashOut ?? cashTotals?.totalOut ?? 0) },
+          { label: 'صافي حركة النقدية', value: formatCurrency(report?.treasury.net ?? cashTotals?.netMovement ?? financialCards?.netCashMovement ?? 0) },
         ];
       case 'purchases':
         return [
@@ -116,7 +116,7 @@ export function useReportsWorkspaceMetrics({
           { label: 'الأيام المغطاة', value: `${rangeDays} يوم` },
           { label: 'أصناف حرجة', value: `${inventoryQuery.data?.summary?.lowStock ?? 0} صنف` },
           { label: 'عملاء بمديونية', value: `${balancesQuery.data?.summary?.totalItems ?? 0} عميل` },
-          { label: 'صافي حركة النقدية', value: formatCurrency(cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0) },
+          { label: 'صافي حركة النقدية', value: formatCurrency(report?.treasury.net ?? cashTotals?.netMovement ?? financialCards?.netCashMovement ?? 0) },
         ];
     }
   }, [
@@ -138,10 +138,10 @@ export function useReportsWorkspaceMetrics({
   ]);
 
   const operatingSignalRows = useMemo(() => ([
-    { label: 'الفجوة بيع/شراء', value: formatCurrency((financialCards?.netSales ?? report?.sales.netSales ?? 0) - (report?.purchases.netPurchases || 0)) },
-    { label: 'صافي الربح', value: formatCurrency(financialCards?.netProfit ?? report?.commercial.netOperatingProfit ?? 0) },
-    { label: 'هامش الربح', value: formatPercent(accountingGrossMarginPercent ?? report?.commercial.grossMarginPercent ?? 0) },
-    { label: 'مردودات وخصومات', value: formatCurrency(financialCards ? financialCards.salesReturns + financialCards.salesDiscounts : report?.returns.total || 0) },
+    { label: 'الفجوة بيع/شراء', value: formatCurrency((report?.sales.netSales ?? financialCards?.netSales ?? 0) - (report?.purchases.netPurchases || 0)) },
+    { label: 'صافي الربح', value: formatCurrency(report?.commercial.netOperatingProfit ?? financialCards?.netProfit ?? 0) },
+    { label: 'هامش الربح', value: formatPercent(report?.commercial.grossMarginPercent ?? accountingGrossMarginPercent ?? 0) },
+    { label: 'مردودات وخصومات', value: formatCurrency(report?.returns.total ?? (financialCards ? financialCards.salesReturns + financialCards.salesDiscounts : 0)) },
   ]), [accountingGrossMarginPercent, financialCards, report]);
 
   const topProducts = useMemo(() => (Array.isArray(report?.topProducts) ? report.topProducts : []), [report]);
@@ -150,36 +150,36 @@ export function useReportsWorkspaceMetrics({
   const returnRatePercent = Number(report?.sales.netSales || 0) > 0 ? Number(((Number(report?.returns.total || 0) / Math.max(1, Number(report?.sales.total || 0))) * 100).toFixed(2)) : 0;
 
   const spotlightValues = useMemo(() => ([
-    financialCards?.netSales ?? report?.sales.netSales ?? 0,
-    financialCards?.grossProfit ?? report?.commercial.grossProfit ?? 0,
-    cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0,
-    accountingGrossMarginPercent ?? report?.commercial.grossMarginPercent ?? 0,
+    report?.sales.netSales ?? financialCards?.netSales ?? 0,
+    report?.commercial.grossProfit ?? financialCards?.grossProfit ?? 0,
+    report?.treasury.net ?? cashTotals?.netMovement ?? financialCards?.netCashMovement ?? 0,
+    report?.commercial.grossMarginPercent ?? accountingGrossMarginPercent ?? 0,
   ]), [accountingGrossMarginPercent, cashTotals?.netMovement, financialCards, report]);
 
   const spotlightCards = useMemo(() => ([
     {
       label: 'صافي البيع',
       helper: 'بعد المرتجعات والخصومات',
-      value: financialCards?.netSales ?? report?.sales.netSales ?? 0,
+      value: report?.sales.netSales ?? financialCards?.netSales ?? 0,
       tone: 'primary' as const,
       formatter: formatCurrency,
-      progress: relativePercent(financialCards?.netSales ?? report?.sales.netSales ?? 0, spotlightValues),
+      progress: relativePercent(report?.sales.netSales ?? financialCards?.netSales ?? 0, spotlightValues),
     },
     {
       label: 'مجمل الربح',
       helper: 'بعد تكلفة البضاعة',
-      value: financialCards?.grossProfit ?? report?.commercial.grossProfit ?? 0,
+      value: report?.commercial.grossProfit ?? financialCards?.grossProfit ?? 0,
       tone: 'success' as const,
       formatter: formatCurrency,
-      progress: relativePercent(financialCards?.grossProfit ?? report?.commercial.grossProfit ?? 0, spotlightValues),
+      progress: relativePercent(report?.commercial.grossProfit ?? financialCards?.grossProfit ?? 0, spotlightValues),
     },
     {
       label: 'صافي حركة النقدية',
       helper: 'داخل مطروحًا منه خارج خلال الفترة',
-      value: cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0,
-      tone: (cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0) >= 0 ? 'success' as const : 'danger' as const,
+      value: report?.treasury.net ?? cashTotals?.netMovement ?? financialCards?.netCashMovement ?? 0,
+      tone: (report?.treasury.net ?? cashTotals?.netMovement ?? financialCards?.netCashMovement ?? 0) >= 0 ? 'success' as const : 'danger' as const,
       formatter: formatCurrency,
-      progress: relativePercent(cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0, spotlightValues),
+      progress: relativePercent(report?.treasury.net ?? cashTotals?.netMovement ?? financialCards?.netCashMovement ?? 0, spotlightValues),
     },
     {
       label: 'هامش الربح',

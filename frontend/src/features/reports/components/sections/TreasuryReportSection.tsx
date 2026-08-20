@@ -14,13 +14,13 @@ export function TreasuryReportSection({
 }: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'accountingFinancialSummary' | 'accountingCashMovement' | 'operatingSignalRows' | 'formatPercent'>) {
   const financial = accountingFinancialSummary?.cards;
   const cash = accountingCashMovement?.totals;
-  const cashIn = cash?.totalIn ?? report?.treasury.cashIn ?? 0;
-  const cashOut = cash?.totalOut ?? report?.treasury.cashOut ?? 0;
-  const netCash = cash?.netMovement ?? financial?.netCashMovement ?? report?.treasury.net ?? 0;
-  const grossProfit = financial?.grossProfit ?? report?.commercial.grossProfit ?? 0;
-  const expenses = financial?.operatingExpenses ?? report?.expenses.total ?? 0;
-  const netProfit = financial?.netProfit ?? report?.commercial.netOperatingProfit ?? 0;
-  const grossMarginPercent = financial?.netSales ? (grossProfit / Math.max(1, financial.netSales)) * 100 : report?.commercial.grossMarginPercent || 0;
+  const cashIn = report?.treasury.cashIn ?? cash?.totalIn ?? 0;
+  const cashOut = report?.treasury.cashOut ?? cash?.totalOut ?? 0;
+  const netCash = report?.treasury.net ?? cash?.netMovement ?? financial?.netCashMovement ?? 0;
+  const grossProfit = report?.commercial.grossProfit ?? financial?.grossProfit ?? 0;
+  const expenses = report?.expenses.total ?? financial?.operatingExpenses ?? 0;
+  const netProfit = report?.commercial.netOperatingProfit ?? financial?.netProfit ?? 0;
+  const grossMarginPercent = report?.commercial.grossMarginPercent ?? (financial?.netSales ? (grossProfit / Math.max(1, financial.netSales)) * 100 : 0);
   const values = [cashIn, cashOut, netCash, grossProfit, expenses, netProfit];
 
   return (

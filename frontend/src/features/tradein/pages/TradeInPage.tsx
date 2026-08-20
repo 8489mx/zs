@@ -115,7 +115,7 @@ export function TradeInPage() {
 💰 المبلغ المتفق عليه: ${t.agreedPurchasePrice.toFixed(2)} ج.م
 📄 رقم الإقرار والتنازل: ${t.docNo}
 
-نشكرك لتعاملك الراقي ونسعد بزيارتك دائماً! ✨`;
+نشكرك لتعاملك الراقي ونسعد بزيارتك دائماً!`;
 
     const url = `https://api.whatsapp.com/send?phone=${phoneFormatted}&text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');

@@ -168,10 +168,11 @@ export function paginate<T>(rows: T[], query: ReportRangeQueryDto, defaultSize =
   };
 }
 
-export function filterScope<T extends { branch_id?: number | null; location_id?: number | null }>(rows: T[], query: ReportRangeQueryDto): T[] {
+export function filterScope<T extends { branch_id?: number | null; location_id?: number | null; created_by?: number | null }>(rows: T[], query: ReportRangeQueryDto): T[] {
   return rows.filter((row) => {
     if (query.branchId && Number(row.branch_id || 0) !== Number(query.branchId)) return false;
     if (query.locationId && Number(row.location_id || 0) !== Number(query.locationId)) return false;
+    if (query.userId && Number(row.created_by || 0) !== Number(query.userId)) return false;
     return true;
   });
 }

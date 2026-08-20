@@ -89,6 +89,9 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 <div className="cash-drawer-review-header-item"><strong>نهاية الوردية:</strong><span>{formatTimeOnly(shift.closedAt)}</span></div>
                 <div className="cash-drawer-review-header-item"><strong>مدة الوردية:</strong><span>{formatDuration(shift.createdAt, shift.closedAt)}</span></div>
                 <div className="cash-drawer-review-header-item"><strong>الفرع / المخزن:</strong><span>{`${shift.branchName || '—'} / ${shift.locationName || '—'}`}</span></div>
+                {shift.closedByName && shift.openedByName && shift.closedByName.trim().toLowerCase() !== shift.openedByName.trim().toLowerCase() ? (
+                  <div className="cash-drawer-review-header-item"><strong>أُغلقت بواسطة:</strong><span style={{ color: '#b45309', fontWeight: 700 }}>{shift.closedByName}</span></div>
+                ) : null}
               </div>
 
               <div className={`cash-drawer-review-banner cash-drawer-review-diff-${reviewMatched ? 'ok' : 'negative'}`}>

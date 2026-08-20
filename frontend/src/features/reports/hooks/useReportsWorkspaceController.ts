@@ -14,6 +14,8 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
   const state = useReportsWorkspaceState();
   const { reportQuery } = useReportsOverview(state.submittedRange.from, state.submittedRange.to, {
     enabled: ['overview', 'sales', 'purchases'].includes(currentSection),
+    locationId: state.submittedLocationId !== 'all' ? state.submittedLocationId : undefined,
+    userId: state.submittedUserId !== 'all' ? state.submittedUserId : undefined,
   });
   const accountingFinancialSummaryQuery = useQuery({
     queryKey: ['reports', 'accounting-financial-summary', state.submittedRange.from, state.submittedRange.to],
@@ -118,7 +120,7 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     applyPreset: state.applyPresetDays,
     applyTodayPreset: state.applyTodayPreset,
     resetRange: state.resetRange,
-    applyRange: () => state.setSubmittedRange({ from: state.from, to: state.to }),
+    applyRange: state.applyScope,
     onInventorySearchChange: (value: string) => { state.setInventorySearch(value); state.setInventoryPage(1); },
     onInventoryFilterChange: (value: 'all' | 'attention' | 'low' | 'out') => { state.setInventoryFilter(value); state.setInventoryPage(1); },
     onInventoryPageChange: state.setInventoryPage,
@@ -150,6 +152,8 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     formatPercent,
     locationId: state.locationId,
     setLocationId: state.setLocationId,
+    userId: state.userId,
+    setUserId: state.setUserId,
     ...actions,
   };
 }
