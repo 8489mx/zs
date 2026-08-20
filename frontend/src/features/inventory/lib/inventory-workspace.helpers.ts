@@ -1,5 +1,6 @@
 import type { InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
 import type { StockCountSession, StockTransfer } from '@/types/domain';
+import { formatCurrency } from '@/lib/format';
 
 export function selectInventoryTransfer(transfers: StockTransfer[], selectedTransferId: string) {
   return transfers.find((transfer) => String(transfer.id) === String(selectedTransferId)) || transfers[0] || null;
@@ -37,7 +38,7 @@ export function getInventorySectionDescription(currentSection: InventorySectionK
 
 export function buildInventorySectionSpotlightCards(params: {
   currentSection: InventorySectionKey;
-  inventory: { total: number; outOfStock: unknown[]; lowStock: unknown[] };
+  inventory: { total: number; outOfStock: unknown[]; lowStock: unknown[]; inventoryValue?: number | null };
   pendingTransfers: number;
   transferSummary: { totalItems: number };
   selectedTransfer: StockTransfer | null;
@@ -45,14 +46,16 @@ export function buildInventorySectionSpotlightCards(params: {
   damagedSummary: { totalItems: number; totalQty: number };
   damagedRecordsLength: number;
   stockMovementsLength: number;
+  inventoryValue?: number | null;
 }) {
-  const { currentSection, inventory, pendingTransfers, transferSummary, selectedTransfer, stockCountSummary, damagedSummary, damagedRecordsLength, stockMovementsLength } = params;
+  const { currentSection, inventory, pendingTransfers, transferSummary, selectedTransfer, stockCountSummary, damagedSummary, damagedRecordsLength, stockMovementsLength, inventoryValue } = params;
   if (currentSection === 'overview') {
+    const val = inventoryValue ?? inventory.inventoryValue;
     return [
-      { key: 'total', label: 'إجمالي الأصناف', value: `${inventory.total}` },
-      { key: 'out', label: 'نافد المخزون', value: `${inventory.outOfStock.length}` },
-      { key: 'low', label: 'منخفض المخزون', value: `${inventory.lowStock.length}` },
-      { key: 'action', label: 'الأولوية الآن', value: inventory.outOfStock.length ? 'راجع الأصناف النافدة أولًا' : inventory.lowStock.length ? 'ابدأ بالأصناف منخفضة المخزون' : 'الوضع الحالي مستقر' },
+      { key: 'total', label: 'إجمالي الأصناف', value: `${inventory.total} صنف` },
+      { key: 'out', label: 'نافد المخزون', value: `${inventory.outOfStock.length} صنف` },
+      { key: 'low', label: 'منخفض المخزون', value: `${inventory.lowStock.length} صنف` },
+      { key: 'value', label: 'قيمة المخزون', value: val !== null && val !== undefined ? formatCurrency(val) : 'بحسب الصلاحية' },
     ];
   }
   if (currentSection === 'transfers') {

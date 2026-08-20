@@ -145,6 +145,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     damagedSummary,
     damagedRecordsLength: damagedRecords.length,
     stockMovementsLength: stockMovements.length,
+    inventoryValue: canViewSensitivePricing ? inventory.inventoryValue : null,
   });
 
   const hasRows = currentSection === 'overview'

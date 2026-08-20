@@ -55,7 +55,7 @@ export function ProductsWorkspace() {
               </Button>
               {settingsQuery.data?.enableMobileStoreFeatures === true && (
                 <Button variant="secondary" onClick={() => setSerialLookupOpen(true)}>
-                  🔍 فحص سيريال / IMEI
+                  فحص سيريال / IMEI
                 </Button>
               )}
               {settingsQuery.data?.restaurantModuleEnabled === true && (
@@ -84,18 +84,16 @@ export function ProductsWorkspace() {
           </FormSection>
         ) : null}
 
-        <FormSection title="ملخص المخزون" description="نظرة سريعة على عدد الأصناف وقيمة المخزون والتنبيهات." actions={<span className="nav-pill">Inventory KPIs</span>}>
-          <ProductsStatsGrid
-            total={controller.metrics.total}
-            lowStockCount={controller.metrics.lowStockCount}
-            outOfStockCount={controller.metrics.outOfStockCount}
-            visibleCount={controller.visibleProducts.length}
-            inventoryCost={controller.inventoryCost}
-            inventorySaleValue={controller.inventorySaleValue}
-            activeOffersCount={controller.activeOffersCount}
-            customerPriceCount={controller.customerPriceCount}
-          />
-        </FormSection>
+        <ProductsStatsGrid
+          total={controller.metrics.total}
+          lowStockCount={controller.metrics.lowStockCount}
+          outOfStockCount={controller.metrics.outOfStockCount}
+          visibleCount={controller.visibleProducts.length}
+          inventoryCost={controller.inventoryCost}
+          inventorySaleValue={controller.inventorySaleValue}
+          activeOffersCount={controller.activeOffersCount}
+          customerPriceCount={controller.customerPriceCount}
+        />
 
         <ProductsTableCard
           search={controller.search}

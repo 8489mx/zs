@@ -4,8 +4,8 @@
   column-gap: 6px;
   justify-content: stretch;
   justify-items: stretch;
-  padding: 7px 10px 7px 8px;
-  min-height: 34px;
+  padding: 4px 8px 4px 6px;
+  min-height: 28px;
 }
 
 html[dir="rtl"] .sidebar-link.sidebar-link-sub {

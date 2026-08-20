@@ -4,7 +4,8 @@ import { StockTransferSuccessDialog } from '@/features/inventory/components/Stoc
 import { printTransferDocument } from '@/lib/inventory-printing';
 import { InventoryWorkspaceHeader } from '@/features/inventory/components/InventoryWorkspaceHeader';
 import { InventorySectionTabs } from '@/features/inventory/pages/InventorySectionTabs';
-import { InventoryMovementCard, InventoryOverviewStats, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, StockTransferComposerCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { InventoryMovementCard, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, StockTransferComposerCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
 import { InventoryPostSessionDialog, InventoryTransferActionDialog } from '@/features/inventory/components/InventoryWorkspaceDialogs';
 import { InventoryActionsPanel } from '@/features/inventory/components/InventoryActionsPanel';
 import { useInventoryWorkspaceController } from '@/features/inventory/hooks/useInventoryWorkspaceController';
@@ -49,26 +50,20 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
 
       <InventorySectionTabs currentSection={currentSection} />
 
-      <div className="inventory-spotlight-grid">
-        {inventory.sectionSpotlightCards.map((card: { key: string; label: string; value: string | number }) => (
-          <div key={card.key} className="inventory-spotlight-card">
-            <span>{card.label}</span>
-            <strong>{card.value}</strong>
-          </div>
-        ))}
+      <div style={{ marginBottom: '16px' }}>
+        <StatsGrid
+          items={inventory.sectionSpotlightCards.map((card: { key: string; label: string; value: string | number }) => ({
+            key: card.key,
+            label: card.label,
+            value: card.value,
+          }))}
+        />
       </div>
 
       {inventory.copyFeedback ? <div className={inventory.copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{inventory.copyFeedback.text}</div> : null}
 
       {currentSection === 'overview' ? (
         <div className="inventory-overview-stack">
-          <InventoryOverviewStats
-            total={inventory.inventory.total}
-            outOfStock={inventory.inventory.outOfStock.length}
-            lowStock={inventory.inventory.lowStock.length}
-            inventoryValue={inventory.canViewSensitivePricing ? inventory.inventory.inventoryValue : null}
-          />
-
           <InventoryStatusCard
             statusFilter={inventory.statusFilter}
             onStatusFilterChange={inventory.setStatusFilter}

@@ -115,7 +115,18 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   }
 
   return (
-    <FormSection title="قائمة الأصناف الحالية" description="يعرض السجل الآن الصنف الرئيسي مرة واحدة، ويمكن فتح الأصناف الفرعية تحته بدل تكرار كل لون أو رائحة أو مقاس كسطر أولي مستقل." actions={<div className="actions compact-actions"><span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span><Button variant="secondary" onClick={props.onExportCsv}>تصدير Excel</Button><Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button></div>} className="workspace-panel">
+    <FormSection 
+      title="قائمة الأصناف الحالية" 
+      description="إدارة وتسعير ومتابعة مخزون المنتجات والأصناف." 
+      actions={
+        <div className="actions compact-actions">
+          <span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span>
+          <Button variant="secondary" onClick={props.onExportCsv}>تصدير Excel</Button>
+          <Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button>
+        </div>
+      } 
+      className="workspace-panel"
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
         <div style={{ flex: '1 1 280px' }}>
           <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو الخاصية الفرعية" />
@@ -127,9 +138,9 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             className="purchase-prototype-field-input"
             style={{ minWidth: '180px', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 600, fontSize: '0.85rem', color: '#1e293b' }}
           >
-            <option value="">📁 كل الأقسام ({Object.keys(props.categoryNames).length})</option>
+            <option value="">كل الأقسام ({Object.keys(props.categoryNames).length})</option>
             {Object.entries(props.categoryNames).map(([id, name]) => (
-              <option key={id} value={id}>📁 {name}</option>
+              <option key={id} value={id}>{name}</option>
             ))}
           </select>
           {selectedCategoryId && (
@@ -193,7 +204,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 <th>الأسعار</th>
                 <th>المخزون</th>
                 <th>ملاحظات</th>
-                <th>إجراءات</th>
+                <th style={{ textAlign: 'center' }}>إجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -217,7 +228,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       <td>
                         <div>
                           <strong>{product.name}</strong>
-                          <div className="muted small">وحدات: {(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>
+                          <div className="muted small">{(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>
                         </div>
                       </td>
                       <td>{product.barcode || '—'}</td>
@@ -225,31 +236,32 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       <td>
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
-                          <div className="muted small" title="المورد">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
-                          <div className="muted small text-primary" title="أماكن التواجد">{activeLocationNames}</div>
+                          {activeLocationNames ? <div className="muted small">{activeLocationNames}</div> : null}
+                          {props.supplierNames[product.supplierId] ? <div className="muted small">{props.supplierNames[product.supplierId]}</div> : null}
                         </div>
                       </td>
                       <td>
-                        <div style={{ lineHeight: 1.4, fontSize: '12px' }}>
-                          <div className="muted">شراء: {formatCurrency(product.costPrice)}</div>
+                        <div style={{ lineHeight: 1.4 }}>
                           <div>بيع: <strong>{formatCurrency(product.retailPrice)}</strong></div>
-                          {product.wholesalePrice > 0 ? <div className="muted">جملة: {formatCurrency(product.wholesalePrice)}</div> : null}
+                          <div className="muted small">شراء: {formatCurrency(product.costPrice)}</div>
+                          {product.wholesalePrice > 0 ? <div className="muted small">جملة: {formatCurrency(product.wholesalePrice)}</div> : null}
                         </div>
                       </td>
-                      <td><span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span></td>
+                      <td>
+                        <span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>
+                          {product.stock}
+                        </span>
+                      </td>
                       <td>{product.notes || '—'}</td>
                       <td>
-                        <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                        <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>باركود</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(product)}>عروض</Button>
                           {props.mobileStoreEnabled && product.trackSerials && props.onOpenSerialsDialog ? (
-                            <Button variant="secondary" type="button" style={{ color: '#7e22ce', borderColor: '#d8b4fe', background: '#faf5ff' }} onClick={() => props.onOpenSerialsDialog?.(product)}>📱 سيريالات</Button>
-                          ) : (
-                            <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>+باركود</Button>
-                          )}
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'generate')}>توليد</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(product)} disabled={!props.canPrint}>ملصقات</Button>
-                          <Button variant="danger" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>
+                            <Button variant="secondary" type="button" onClick={() => props.onOpenSerialsDialog?.(product)}>سيريالات</Button>
+                          ) : null}
+                          <Button variant="secondary" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete} style={{ color: '#dc2626' }}>حذف</Button>
                         </div>
                       </td>
                     </tr>
@@ -288,26 +300,28 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       <td>
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[group.representative.categoryId] || 'عام'}</div>
-                          <div className="muted small" title="المورد">{props.supplierNames[group.representative.supplierId] || 'بدون مورد'}</div>
-                          <div className="muted small text-primary" title="أماكن التواجد">{groupActiveLocationNames}</div>
+                          {groupActiveLocationNames ? <div className="muted small">{groupActiveLocationNames}</div> : null}
+                          {props.supplierNames[group.representative.supplierId] ? <div className="muted small">{props.supplierNames[group.representative.supplierId]}</div> : null}
                         </div>
                       </td>
                       <td>
-                        <div style={{ lineHeight: 1.4, fontSize: '12px' }}>
-                          <div className="muted">شراء: {formatCurrency(group.representative.costPrice)}</div>
+                        <div style={{ lineHeight: 1.4 }}>
                           <div>بيع: <strong>{formatCurrency(group.representative.retailPrice)}</strong></div>
-                          {group.representative.wholesalePrice > 0 ? <div className="muted">جملة: {formatCurrency(group.representative.wholesalePrice)}</div> : null}
+                          <div className="muted small">شراء: {formatCurrency(group.representative.costPrice)}</div>
+                          {group.representative.wholesalePrice > 0 ? <div className="muted small">جملة: {formatCurrency(group.representative.wholesalePrice)}</div> : null}
                         </div>
                       </td>
-                      <td><span className={totalStock <= Number(group.representative.minStock || 0) ? 'low-stock-badge' : 'status-badge status-posted'}>{totalStock}</span></td>
+                      <td>
+                        <span className={totalStock <= Number(group.representative.minStock || 0) ? 'low-stock-badge' : 'status-badge status-posted'}>
+                          {totalStock}
+                        </span>
+                      </td>
                       <td>{group.representative.notes || '—'}</td>
                       <td>
-                        <div className="actions products-row-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                        <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(group.representative)}>تعديل</Button>
+                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'scan')}>باركود</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(group.representative)}>عروض</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'scan')}>+باركود</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'generate')}>توليد</Button>
-                          <Button variant="secondary" type="button" onClick={() => props.onOpenPrintDialog(group.representative)} disabled={!props.canPrint}>ملصقات</Button>
                         </div>
                       </td>
                     </tr>
@@ -339,24 +353,28 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <td>
                           <div style={{ lineHeight: 1.4 }}>
                             <div>{props.categoryNames[product.categoryId] || 'عام'}</div>
-                            <div className="muted small" title="المورد">{props.supplierNames[product.supplierId] || 'بدون مورد'}</div>
-                            <div className="muted small text-primary" title="أماكن التواجد">{getProductLocationDisplayName(product, props.locationNames)}</div>
+                            {getProductLocationDisplayName(product, props.locationNames) ? <div className="muted small">{getProductLocationDisplayName(product, props.locationNames)}</div> : null}
+                            {props.supplierNames[product.supplierId] ? <div className="muted small">{props.supplierNames[product.supplierId]}</div> : null}
                           </div>
                         </td>
                         <td>
-                          <div style={{ lineHeight: 1.4, fontSize: '12px' }}>
-                            <div className="muted">شراء: {formatCurrency(product.costPrice)}</div>
+                          <div style={{ lineHeight: 1.4 }}>
                             <div>بيع: <strong>{formatCurrency(product.retailPrice)}</strong></div>
-                            {product.wholesalePrice > 0 ? <div className="muted">جملة: {formatCurrency(product.wholesalePrice)}</div> : null}
+                            <div className="muted small">شراء: {formatCurrency(product.costPrice)}</div>
+                            {product.wholesalePrice > 0 ? <div className="muted small">جملة: {formatCurrency(product.wholesalePrice)}</div> : null}
                           </div>
                         </td>
-                        <td><span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span></td>
+                        <td>
+                          <span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>
+                            {product.stock}
+                          </span>
+                        </td>
                         <td>{product.notes || '—'}</td>
                         <td>
-                          <div className="actions products-row-actions" onClick={(event) => event.stopPropagation()} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                          <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                             <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
-                            <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>+باركود</Button>
-                            <Button variant="danger" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete}>حذف</Button>
+                            <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(product, 'scan')}>باركود</Button>
+                            <Button variant="secondary" type="button" onClick={() => props.onDeleteProduct(product)} disabled={!props.canDelete} style={{ color: '#dc2626' }}>حذف</Button>
                           </div>
                         </td>
                       </tr>
