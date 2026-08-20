@@ -251,14 +251,15 @@ export function WarehouseDetailsPage() {
                     width: '52px',
                     height: '52px',
                     borderRadius: '12px',
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#475569',
+                    color: '#d97706',
                   }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-9"/><path d="M15.17 2.38a2 2 0 0 0-1.66 0L4 6.78a2 2 0 0 0-1.12 1.84v6.76a2 2 0 0 0 1.12 1.84l9.5 4.38a2 2 0 0 0 1.66 0l9.5-4.38a2 2 0 0 0 1.12-1.84V8.62a2 2 0 0 0-1.12-1.84z"/><path d="m20 15-4-2.25M4 15l4-2.25M12 13l4-2.25M12 13l-4-2.25"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+                    </svg>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{cat.name}</h3>
