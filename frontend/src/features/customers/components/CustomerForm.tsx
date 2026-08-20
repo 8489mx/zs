@@ -13,7 +13,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 const DEFAULT_VALUES = { name: '', phone: '', address: '', balance: 0, type: 'cash' as const, creditLimit: 0, metadata: { currency: 'EGP' } };
 
-export function CustomerForm() {
+export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const settingsQuery = useSettingsQuery();
   const importModuleEnabled = settingsQuery.data?.importModuleEnabled === true;
 
@@ -24,6 +24,7 @@ export function CustomerForm() {
   const canNavigateAway = useUnsavedChangesGuard(form.formState.isDirty && !form.formState.isSubmitSuccessful && !form.formState.isSubmitting);
   const mutation = useCreateCustomerMutation(() => {
     form.reset(DEFAULT_VALUES);
+    onSuccess?.();
   });
   const watchedValues = useWatch({ control: form.control });
 

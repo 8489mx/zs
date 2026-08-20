@@ -29,11 +29,12 @@ interface CustomersRegisterCardProps {
   setPageSize: (value: number) => void;
   setSelectedCustomer: (customer: Customer | null) => void;
   setCustomerToDelete: (customer: Customer | null) => void;
+  onOpenCreate?: () => void;
 }
 
 export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
   return (
-    <FormSection title="العملاء الحاليون" description="فلترة سريعة مع ملخصات وطباعة للسجل الحالي." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => { props.setSearch(''); props.setFilterMode('all'); props.setPage(1); }}>إلغاء الفلاتر</Button><Button variant="secondary" onClick={() => void props.copyCustomersSummary()} disabled={!props.summary?.totalCustomers}>نسخ الملخص</Button><Button variant="secondary" onClick={props.printCustomersRegister} disabled={!props.rows.length || !props.canPrint}>طباعة السجل</Button><span className="nav-pill">السجل</span></div>}>
+    <FormSection title="العملاء الحاليون" description="فلترة سريعة مع ملخصات وإمكانية التعديل والإضافة المباشرة." actions={<div className="actions compact-actions">{props.onOpenCreate && <Button variant="primary" onClick={props.onOpenCreate}>+ إضافة عميل</Button>}<Button variant="secondary" onClick={() => { props.setSearch(''); props.setFilterMode('all'); props.setPage(1); }}>إلغاء الفلاتر</Button><Button variant="secondary" onClick={() => void props.copyCustomersSummary()} disabled={!props.summary?.totalCustomers}>نسخ الملخص</Button><Button variant="secondary" onClick={props.printCustomersRegister} disabled={!props.rows.length || !props.canPrint}>طباعة السجل</Button><span className="nav-pill">السجل</span></div>}>
       <SearchToolbar
         search={props.search}
         onSearchChange={(value) => { props.setSearch(value); props.setPage(1); }}

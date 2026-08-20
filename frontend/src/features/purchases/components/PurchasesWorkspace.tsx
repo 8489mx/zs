@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PurchaseDetailCard } from '@/features/purchases/components/PurchaseDetailCard';
 import { PurchaseEditDialog } from '@/features/purchases/components/PurchaseEditDialog';
@@ -17,36 +18,45 @@ export function PurchasesWorkspace() {
   const selectedPurchase = controller.selectedPurchase;
   const canEditSelectedPurchase = Boolean(controller.canEditInvoices && selectedPurchase && selectedPurchase.status !== 'cancelled');
 
-  // Auto-scroll to details when selection changes
-  const detailsRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (selectedPurchase && detailsRef.current) {
-      detailsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [selectedPurchase?.id]);
-
   return (
     <div className="page-stack page-shell purchases-workspace" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="المشتريات"
-          description="ابدأ بإنشاء فاتورة الشراء مباشرة، ثم راجع السجل والتفاصيل من نفس الصفحة."
+          description="إدارة فواتير الشراء، متابعة التوريدات وحسابات الموردين."
           badge={<span className="nav-pill">{controller.totalItems} فاتورة</span>}
-          actions={<div className="actions compact-actions"><Button variant="secondary" onClick={controller.resetPurchasesView}>إعادة الضبط</Button><Button variant="secondary" onClick={() => void controller.copyPurchasesSummary()} disabled={!controller.totalItems}>نسخ الملخص</Button><Button variant="secondary" onClick={() => void controller.exportPurchasesCsv()} disabled={!controller.totalItems}>تصدير Excel</Button><Button variant="secondary" onClick={() => void controller.printPurchasesRegister()} disabled={!controller.totalItems || !controller.canPrint}>طباعة السجل</Button></div>}
+          actions={
+            <div className="actions compact-actions">
+              <Link to="/purchases/new"><Button variant="primary">+ فاتورة شراء جديدة</Button></Link>
+              <Button variant="secondary" onClick={controller.resetPurchasesView}>إعادة الضبط</Button>
+              <Button variant="secondary" onClick={() => void controller.copyPurchasesSummary()} disabled={!controller.totalItems}>نسخ الملخص</Button>
+              <Button variant="secondary" onClick={() => void controller.exportPurchasesCsv()} disabled={!controller.totalItems}>تصدير Excel</Button>
+              <Button variant="secondary" onClick={() => void controller.printPurchasesRegister()} disabled={!controller.totalItems || !controller.canPrint}>طباعة السجل</Button>
+            </div>
+          }
         />
 
         <PurchasesKpiSection totalItems={controller.totalItems} summary={controller.summary || null} />
 
         <PurchasesRegisterCard {...controller} selectedPurchase={selectedPurchase} summary={controller.summary || null} />
 
-        <div ref={detailsRef}>
-          <PurchaseDetailCard
-            purchase={selectedPurchase || undefined}
-            onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase, settingsQuery.data) : undefined}
-            onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
-            onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
-          />
-        </div>
+        {/* Modal for Purchase Details */}
+        <DialogShell
+          open={Boolean(selectedPurchase)}
+          onClose={() => controller.setSelectedPurchaseId('')}
+          width="min(720px, 95vw)"
+          ariaLabel="تفاصيل فاتورة الشراء"
+          showCloseButton={true}
+        >
+          <div className="dialog-card">
+            <PurchaseDetailCard
+              purchase={selectedPurchase || undefined}
+              onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase, settingsQuery.data) : undefined}
+              onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
+              onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
+            />
+          </div>
+        </DialogShell>
 
         <TopSuppliersCard
           topSuppliers={controller.topSuppliers}

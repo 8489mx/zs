@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { useTreasuryPage } from '@/features/treasury/hooks/useTreasuryPage';
 import { useTreasuryPageActions } from '@/features/treasury/hooks/useTreasuryPageActions';
 import { useCreateExpenseMutation } from '@/features/treasury/hooks/useCreateExpenseMutation';
@@ -21,6 +22,7 @@ export function ExpensesPage() {
   const [expensePageSize, setExpensePageSize] = useState(20);
   const [expenseForm, setExpenseForm] = useState(initialExpenseForm);
   const [isExportingExpenses, setIsExportingExpenses] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   
   const { expensesQuery, branches, locations, expenses, expenseSummary, expensePagination } = useTreasuryPage(
     { page: 1, pageSize: 1, search: '', filter: 'all' }, // We don't need transactions data here
@@ -30,6 +32,7 @@ export function ExpensesPage() {
   const expenseMutation = useCreateExpenseMutation(() => {
     setExpenseForm(initialExpenseForm());
     setExpensePage(1);
+    setIsCreateOpen(false);
   });
 
   useEffect(() => setExpensePage(1), [expenseSearch]);
@@ -53,32 +56,23 @@ export function ExpensesPage() {
 
   return (
     <div className="page-stack page-shell treasury-workspace treasury-workspace--compact" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px', maxWidth: '1280px' }}>
         <PageHeader 
           title="المصروفات" 
           description="سجل مصاريف التشغيل اليومية والرواتب والإيجارات وغيرها." 
           badge={<span className="nav-pill">الخدمات والحسابات</span>}
           actions={
-            <>
-              <Button variant="secondary" onClick={exportExpenses} disabled={!expensePagination?.totalItems || isExportingExpenses}>تصدير المصروفات</Button>
+            <div className="actions compact-actions">
+              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ تسجيل مصروف جديد</Button>
+              <Button variant="secondary" onClick={exportExpenses} disabled={!expensePagination?.totalItems || isExportingExpenses}>تصدير Excel</Button>
               <Button variant="secondary" onClick={() => printMatchingExpenses(expenseSearch)} disabled={!expensePagination?.totalItems || isExportingExpenses}>طباعة النتائج</Button>
-              <Button onClick={() => printMatchingExpenses(expenseSearch)} disabled={!expensePagination?.totalItems}>طباعة الملخص</Button>
-            </>
+              <Button variant="secondary" onClick={() => printMatchingExpenses(expenseSearch)} disabled={!expensePagination?.totalItems}>طباعة الملخص</Button>
+            </div>
           }
         />
         <TreasuryExpenseSummaryCard
           expenseSummary={expenseSummary}
           expenses={expenses}
-        />
-        <TreasuryExpenseEntryCard
-          expenseForm={expenseForm}
-          setExpenseForm={setExpenseForm}
-          branches={branches}
-          locations={locations}
-          availableLocations={availableLocations}
-          expenseValidationErrors={expenseValidationErrors}
-          expenseMutation={expenseMutation}
-          onReset={() => setExpenseForm(initialExpenseForm())}
         />
         <TreasuryExpensesRegisterCard
           expenseSearch={expenseSearch}
@@ -91,7 +85,30 @@ export function ExpensesPage() {
           expensePageSize={expensePageSize}
           setExpensePage={setExpensePage}
           setExpensePageSize={setExpensePageSize}
+          onOpenCreate={() => setIsCreateOpen(true)}
         />
+
+        {/* Modal for Recording Expense */}
+        <DialogShell
+          open={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          width="min(680px, 95vw)"
+          ariaLabel="تسجيل مصروف جديد"
+          showCloseButton={true}
+        >
+          <div className="dialog-card">
+            <TreasuryExpenseEntryCard
+              expenseForm={expenseForm}
+              setExpenseForm={setExpenseForm}
+              branches={branches}
+              locations={locations}
+              availableLocations={availableLocations}
+              expenseValidationErrors={expenseValidationErrors}
+              expenseMutation={expenseMutation}
+              onReset={() => setExpenseForm(initialExpenseForm())}
+            />
+          </div>
+        </DialogShell>
       </main>
     </div>
   );

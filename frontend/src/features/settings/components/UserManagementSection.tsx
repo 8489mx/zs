@@ -81,6 +81,8 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
 
   useScrollIntoViewOnChange(selectedUserKey, userEditorSectionRef, { enabled: Boolean(selectedUserKey) && userInteracted });
 
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+
   return (
     <>
       <FormSection
@@ -88,6 +90,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         title="المستخدمون والصلاحيات"
         actions={(
           <div className="actions compact-actions">
+            {!setupMode ? <Button type="button" variant="primary" onClick={() => { startNewUser('cashier'); setIsEditorOpen(true); }}>+ مستخدم جديد</Button> : null}
             {!setupMode ? <Button type="button" variant="secondary" onClick={async () => { const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter }); exportUsersCsv('users-results.csv', payload.rows.map(normalizeUserRecord)); }}>تصدير النتائج</Button> : null}
             {!setupMode ? <Button type="button" variant="secondary" onClick={async () => { const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter }); printUsersList('قائمة المستخدمين', payload.rows.map(normalizeUserRecord)); }}>طباعة النتائج</Button> : null}
           </div>
@@ -113,14 +116,14 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               page={usersQuery.data?.pagination?.page || page}
               pageSize={usersQuery.data?.pagination?.pageSize || pageSize}
               totalItems={userSummary.totalItems}
-              onNewUser={() => { setUserInteracted(true); startNewUser(setupMode && setupStepKey === 'admin-user' ? 'admin' : 'cashier'); }}
+              onNewUser={() => { setUserInteracted(true); startNewUser(setupMode && setupStepKey === 'admin-user' ? 'admin' : 'cashier'); if (!setupMode) setIsEditorOpen(true); }}
               onApplyRolePermissions={() => applyDefaultPermissions(draft.role)}
               onApplyTemplate={applyTemplate}
               activeTemplate={activeTemplate}
               onCopyPermissions={() => void copyPermissions()}
               onUserSearchChange={setUserSearch}
               onUserFilterChange={setUserFilter}
-              onLoadUser={(user) => { setUserInteracted(true); loadUser(user); }}
+              onLoadUser={(user) => { setUserInteracted(true); loadUser(user); if (!setupMode) setIsEditorOpen(true); }}
               onSelectedIdsChange={setSelectedIds}
               onPageChange={setPage}
               onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
@@ -129,7 +132,56 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               onOpenDetails={(user) => setDetailsUserId(String(user.id || ''))}
               setupMode={setupMode}
             />
-            <div ref={userEditorSectionRef}><UserManagementEditorPanel
+            {setupMode && (
+              <div ref={userEditorSectionRef}>
+                <UserManagementEditorPanel
+                  branches={branches}
+                  draft={draft}
+                  currentUserRole={currentUserRole}
+                  isCurrentUserSelected={isCurrentUserSelected}
+                  selectedDraftDisableProtection={selectedDraftDisableProtection}
+                  canDirectlyDisableSelected={canDirectlyDisableSelected}
+                  canUnlockSelected={canUnlockSelected}
+                  canDeleteSelected={canDeleteSelected}
+                  isPending={actionMutation.isPending}
+                  isError={actionMutation.isError}
+                  isSuccess={actionMutation.isSuccess}
+                  error={actionMutation.error}
+                  statusMessage={statusMessage}
+                  onDraftChange={(updater) => setDraft((current) => updater(current))}
+                  onApplyRolePermissions={applyDefaultPermissions}
+                  onToggleBranch={toggleBranch}
+                  onTogglePermission={togglePermission}
+                  onReset={resetSelectedDraft}
+                  onUnlock={() => void unlockSelectedUser()}
+                  onDelete={() => setDeleteDialogOpen(true)}
+                  onSave={() => void saveCurrentDraft()}
+                  setupMode={setupMode}
+                  setupStepKey={setupStepKey}
+                />
+              </div>
+            )}
+          </div>
+        </QueryFeedback>
+      </FormSection>
+
+      {/* Modal for Editing/Creating User in Non-Setup Mode */}
+      {!setupMode && (
+        <DialogShell
+          open={isEditorOpen}
+          onClose={() => setIsEditorOpen(false)}
+          width="min(840px, 95vw)"
+          ariaLabel="تعديل المستخدم والصلاحيات"
+          showCloseButton={true}
+        >
+          <div className="dialog-card">
+            <div className="border-b pb-3 mb-4">
+              <h3 className="document-prototype-section-title">
+                {draft.id ? `تعديل المستخدم: ${draft.name || draft.username}` : 'إضافة مستخدم جديد'}
+              </h3>
+              <p className="text-muted-foreground">تحديد الدور، الفروع المتاحة، ومجموعات الصلاحيات التفصيلية.</p>
+            </div>
+            <UserManagementEditorPanel
               branches={branches}
               draft={draft}
               currentUserRole={currentUserRole}
@@ -149,14 +201,19 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
               onTogglePermission={togglePermission}
               onReset={resetSelectedDraft}
               onUnlock={() => void unlockSelectedUser()}
-              onDelete={() => setDeleteDialogOpen(true)}
-              onSave={() => void saveCurrentDraft()}
+              onDelete={() => { setDeleteDialogOpen(true); setIsEditorOpen(false); }}
+              onSave={async () => {
+                await saveCurrentDraft();
+                if (actionMutation.isSuccess) {
+                  setIsEditorOpen(false);
+                }
+              }}
               setupMode={setupMode}
               setupStepKey={setupStepKey}
-            /></div>
+            />
           </div>
-        </QueryFeedback>
-      </FormSection>
+        </DialogShell>
+      )}
 
       <UserDeleteDialog
         open={deleteDialogOpen}

@@ -3,6 +3,7 @@ import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { FilterChipGroup } from '@/shared/components/filter-chip-group';
@@ -16,7 +17,6 @@ import { ServicePresetDialog } from '@/features/services/components/ServicePrese
 import { useDeleteServiceMutation } from '@/features/services/hooks/useServiceMutations';
 import { useServicesPage } from '@/features/services/hooks/useServicesPage';
 import { useServicesPageActions } from '@/features/services/hooks/useServicesPageActions';
-import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
 import { serviceFilterOptions, type PresetServiceDraft, type ServiceCatalogItem, type ServicePresetKey } from '@/features/services/lib/services-page.constants';
 import { buildPresetDrafts, formatServicePaymentChannel, normalizeServiceName, printServiceReceipt, readServicesCatalog, writeServicesCatalog } from '@/features/services/lib/services-page.helpers';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
@@ -45,7 +45,6 @@ export function ServicesPage() {
   const [pageNotice, setPageNotice] = useState('');
   const [pageNoticeTone, setPageNoticeTone] = useState<'success' | 'error'>('success');
 
-  const serviceFormSectionRef = useRef<HTMLDivElement | null>(null);
   const customServiceNameInputRef = useRef<HTMLInputElement | null>(null);
   const query = useServicesPage({ page, pageSize, search, filter: viewFilter });
   const settingsQuery = useSettingsQuery();
@@ -54,8 +53,6 @@ export function ServicesPage() {
     setServiceToDelete(null);
   });
   const { exportServices, printServices } = useServicesPageActions({ search, filter: viewFilter });
-
-  useScrollIntoViewOnChange(selectedService?.id || '', serviceFormSectionRef, { enabled: Boolean(selectedService) });
 
   const rows = useMemo(() => query.data?.services || [], [query.data?.services]);
   const summary = query.data?.summary;
@@ -95,12 +92,7 @@ export function ServicesPage() {
 
   function openServiceFormForCreate() {
     setSelectedService(null);
-    window.setTimeout(() => {
-      const section = serviceFormSectionRef.current;
-      if (!section) return;
-      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      section.querySelector<HTMLElement>('input, textarea, select, button')?.focus();
-    }, 0);
+    setIsCreateOpen(true);
   }
 
   function openPresetDialog() {
@@ -199,22 +191,37 @@ export function ServicesPage() {
     </div>
   );
 
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   return (
     <div className="page-stack page-shell services-page" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
       <PageHeader
         title="الخدمات"
         description="أضف خدمات نشاطك وحدد أسعارها لتظهر في الكاشير عند الحاجة."
         badge={<span className="nav-pill">الخدمات</span>}
-        actions={<div className="actions compact-actions"><Button type="button" variant="secondary" onClick={openPresetDialog}>تخصيص الخدمات</Button><Button type="button" onClick={openServiceFormForCreate}>إضافة خدمة جديدة</Button></div>}
+        actions={
+          <div className="actions compact-actions">
+            <Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)}>+ إضافة خدمة جديدة</Button>
+            <Button type="button" variant="secondary" onClick={openPresetDialog}>تخصيص الخدمات</Button>
+            <Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير Excel</Button>
+            <Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة السجل</Button>
+          </div>
+        }
       />
       <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-3" />
       {pageNotice ? <div className={`notice-banner ${pageNoticeTone === 'error' ? 'is-error' : 'is-success'}`}>{pageNotice}</div> : null}
 
-      <FormSection title="سجل الخدمات">
-        <SearchToolbar search={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} searchPlaceholder="ابحث باسم الخدمة أو الملاحظات أو المنفذ" />
-        <FilterChipGroup value={viewFilter} options={serviceFilterOptions} onChange={(value) => { setViewFilter(value); setPage(1); }} className="filter-chip-row services-filter-row" />
-        <div className="actions compact-actions"><Button type="button" variant="secondary" onClick={() => { setSearch(''); setViewFilter('all'); setSelectedService(null); setPage(1); }}>إعادة الضبط</Button></div>
+      <FormSection title="سجل الخدمات" actions={<div className="actions compact-actions"><Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)}>+ إضافة خدمة</Button><Button type="button" variant="secondary" onClick={() => { setSearch(''); setViewFilter('all'); setSelectedService(null); setPage(1); }}>إلغاء الفلاتر</Button></div>}>
+        <SearchToolbar
+          search={search}
+          onSearchChange={(value) => { setSearch(value); setPage(1); }}
+          searchPlaceholder="ابحث باسم الخدمة أو الملاحظات أو المنفذ"
+          onReset={() => { setSearch(''); setViewFilter('all'); setSelectedService(null); setPage(1); }}
+          resetLabel="تفريغ"
+        >
+          <FilterChipGroup value={viewFilter} options={serviceFilterOptions} onChange={(value) => { setViewFilter(value); setPage(1); }} className="filter-chip-row services-filter-row" />
+        </SearchToolbar>
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
@@ -245,19 +252,53 @@ export function ServicesPage() {
         </QueryFeedback>
       </FormSection>
 
-        <div ref={serviceFormSectionRef}>
-          <FormSection title={selectedService ? `تعديل: ${selectedService.name}` : 'إضافة خدمة جديدة'} actions={<span className="nav-pill">النموذج</span>} description="أضف خدمة يقدمها نشاطك وحدد سعرها لتظهر في الكاشير عند الحاجة.">
-            <ServiceFormCard service={selectedService || undefined} onSaved={() => setSelectedService(null)} suggestions={serviceSuggestionOptions} />
-          </FormSection>
-        </div>
-        <FormSection title="مؤشرات سريعة" actions={<div className="actions compact-actions"><Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير Excel</Button><Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة السجل</Button></div>} description="النطاق الحالي يعتمد على نتائج البحث والفلاتر النشطة.">
-          <div className="metric-list services-insights-list">
-            <div className="metric-row"><span>خدمات مطابقة للبحث</span><strong>{insights.totalItems}</strong></div>
-            <div className="metric-row"><span>آخر خدمة</span><strong>{insights.latestServiceName}</strong></div>
-            <div className="metric-row"><span>آخر منفذ</span><strong>{insights.latestCreatedByName}</strong></div>
-            <div className="metric-row"><span>أعلى خدمة قيمة</span><strong>{insights.totalItems ? formatCurrency(insights.highestAmount) : '—'}</strong></div>
+      {/* Modal for Creating Service */}
+      <DialogShell
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        width="min(680px, 95vw)"
+        ariaLabel="إضافة خدمة جديدة"
+        showCloseButton={true}
+      >
+        <div className="dialog-card">
+          <div className="mb-4 border-b pb-3">
+            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">إضافة خدمة جديدة</h3>
+            <p className="text-xs text-muted-foreground mt-1">أضف خدمة يقدمها نشاطك وحدد سعرها لتظهر في الكاشير عند الحاجة.</p>
           </div>
-        </FormSection>
+          <ServiceFormCard onSaved={() => setIsCreateOpen(false)} suggestions={serviceSuggestionOptions} />
+        </div>
+      </DialogShell>
+
+      {/* Modal for Editing Service */}
+      <DialogShell
+        open={Boolean(selectedService)}
+        onClose={() => setSelectedService(null)}
+        width="min(680px, 95vw)"
+        ariaLabel="تعديل الخدمة"
+        showCloseButton={true}
+      >
+        <div className="dialog-card">
+          <div className="flex items-center justify-between mb-4 border-b pb-3">
+            <div>
+              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">تعديل: {selectedService?.name}</h3>
+              <p className="text-xs text-muted-foreground mt-1">تعديل بيانات الخدمة أو حذفها.</p>
+            </div>
+            {selectedService && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => {
+                  setServiceToDelete(selectedService);
+                  setSelectedService(null);
+                }}
+              >
+                حذف الخدمة
+              </Button>
+            )}
+          </div>
+          <ServiceFormCard service={selectedService || undefined} onSaved={() => setSelectedService(null)} suggestions={serviceSuggestionOptions} />
+        </div>
+      </DialogShell>
 
       <ServicePresetDialog
         open={isPresetDialogOpen}

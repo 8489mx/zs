@@ -68,7 +68,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
   const presetOptions = allPresets.map(preset => ({ id: preset, label: preset }));
 
   return (
-    <FormSection title="تسجيل مصروف" actions={<span className="nav-pill">مصروف</span>}>
+    <FormSection title="تسجيل مصروف جديد">
       <div className="form-grid">
         <SearchableCombobox
           label="نوع / اسم المصروف"
@@ -153,12 +153,6 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
             onChange={(e) => setExpenseForm((current) => ({ ...current, note: e.target.value }))}
           />
         </Field>
-
-        {expenseValidationErrors.length ? (
-          <div className="warning-box">
-            {expenseValidationErrors.map((message) => <div key={message}>{message}</div>)}
-          </div>
-        ) : null}
 
         <MutationFeedback
           isError={expenseMutation.isError}

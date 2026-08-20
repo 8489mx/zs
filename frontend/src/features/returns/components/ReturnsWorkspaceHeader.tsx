@@ -10,6 +10,7 @@ type Props = {
   onCopySummary: () => void | Promise<void>;
   onExportCsv: () => void | Promise<void>;
   onPrint: () => void | Promise<void>;
+  onOpenCreate?: () => void;
 };
 
 export function ReturnsWorkspaceHeader({
@@ -21,15 +22,17 @@ export function ReturnsWorkspaceHeader({
   onCopySummary,
   onExportCsv,
   onPrint,
+  onOpenCreate,
 }: Props) {
   return (
     <>
       <PageHeader
         title="المرتجعات"
-        description="ابدأ بالسجل أولًا، ثم اختر الفاتورة وسجل المرتجع مباشرة من نفس الصفحة."
+        description="إدارة ومتابعة مرتجعات المبيعات والمشتريات وتسجيل المرتجعات الجديدة."
         badge={<span className="nav-pill">بيع {salesReturns} / شراء {purchaseReturns}</span>}
         actions={(
           <div className="actions compact-actions">
+            {onOpenCreate && <Button variant="primary" onClick={onOpenCreate}>+ تسجيل مرتجع جديد</Button>}
             <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
             <Button variant="secondary" onClick={() => void onCopySummary()} disabled={!totalItems}>نسخ الملخص</Button>
             <Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>تصدير Excel</Button>

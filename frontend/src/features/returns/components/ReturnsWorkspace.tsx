@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { invalidateReturnsDomain } from '@/app/query-invalidation';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { returnsApi } from '@/features/returns/api/returns.api';
 import { useReturnsPage } from '@/features/returns/hooks/useReturnsPage';
 import { catalogApi } from '@/lib/api/catalog';
@@ -34,6 +36,7 @@ export function ReturnsWorkspace() {
   const [selectedReturnId, setSelectedReturnId] = useState('');
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [confirmReturn, setConfirmReturn] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState<ReturnFormState>(() => {
     const defaultForm = createEmptyReturnForm();
     if (isPurchaseMode) {
@@ -44,7 +47,6 @@ export function ReturnsWorkspace() {
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const detailsRef = useRef<HTMLDivElement>(null);
 
   const query = useReturnsPage({ page, pageSize, search, filter: viewFilter, employee: employeeFilter });
   const salesQuery = useQuery({ queryKey: ['sales'], queryFn: catalogApi.listSales });
@@ -95,7 +97,7 @@ export function ReturnsWorkspace() {
   const salesReturns = Number(summary?.salesReturns || 0);
   const purchaseReturns = Number(summary?.purchaseReturns || 0);
   const total = Number(summary?.totalAmount || 0);
-  const selectedReturn = rows.find((row) => String(row.id) === String(selectedReturnId)) || rows[0] || null;
+  const selectedReturn = rows.find((row) => String(row.id) === String(selectedReturnId)) || null;
 
   useEffect(() => {
     if (selectedReturnId && !rows.some((row) => String(row.id) === String(selectedReturnId))) {
@@ -137,6 +139,7 @@ export function ReturnsWorkspace() {
       setForm(createEmptyReturnForm());
       setSelectedItems({});
       setConfirmReturn(false);
+      setIsCreateOpen(false);
     }
   });
 
@@ -240,77 +243,110 @@ export function ReturnsWorkspace() {
     setPage(1);
   };
 
+  const stats = [
+    { key: 'total', label: 'إجمالي المرتجعات', value: summary?.totalItems || 0 },
+    { key: 'sales', label: 'مرتجع بيع', value: salesReturns },
+    { key: 'purchase', label: 'مرتجع شراء', value: purchaseReturns },
+    { key: 'amount', label: 'إجمالي القيمة', value: formatCurrency(total) },
+  ] as const;
+
   return (
     <div className="page-stack page-shell returns-workspace" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <ReturnsWorkspaceHeader
-        totalItems={summary?.totalItems || 0}
-        salesReturns={salesReturns}
-        purchaseReturns={purchaseReturns}
-        copyFeedback={copyFeedback}
-        onReset={resetReturnsView}
-        onCopySummary={copyReturnsSummary}
-        onExportCsv={() => exportReturnsCsv({ search, filter: viewFilter })}
-        onPrint={printReturns}
-      />
-
-      <ReturnsRegisterCard
-        search={search}
-        viewFilter={viewFilter}
-        page={page}
-        pageSize={pageSize}
-        rows={rows}
-        totalItems={summary?.totalItems || rows.length}
-        selectedReturnId={selectedReturn ? String(selectedReturn.id) : ''}
-        isLoading={query.isLoading}
-        onSearchChange={handleRegisterSearchChange}
-        onReset={resetReturnsView}
-        onFilterChange={handleFilterChange}
-        employeeFilter={employeeFilter}
-        onEmployeeFilterChange={(value) => { setEmployeeFilter(value); setPage(1); }}
-        onSelectReturn={(id) => {
-          setSelectedReturnId(id);
-          setTimeout(() => detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
-        }}
-        onPrintReturn={(row) => printReturnRecord(row, settingsQuery.data)}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-      />
-
-        <ReturnsCreateCard
-          form={form}
-          invoiceRows={invoiceRows}
-          selectedInvoice={selectedInvoice}
-          invoiceItems={invoiceItems}
-          selectedItems={selectedItems}
-          selectedItemsCount={selectedItemsCount}
-          canUseCreditSettlement={canUseCreditSettlement}
-          settlementNeedsRefundMethod={settlementNeedsRefundMethod}
-          isBusy={createMutation.isPending}
-          isError={createMutation.isError}
-          isSuccess={createMutation.isSuccess}
-          error={createMutation.error}
-          onFormChange={updateForm}
-          onResetForm={resetReturnForm}
-          onToggleItem={toggleItem}
-          onSetItemQty={setItemQty}
-          onOpenConfirm={() => setConfirmReturn(true)}
-          returnedQtyByProduct={returnedQtyByProduct}
+          totalItems={summary?.totalItems || 0}
+          salesReturns={salesReturns}
+          purchaseReturns={purchaseReturns}
+          copyFeedback={copyFeedback}
+          onReset={resetReturnsView}
+          onCopySummary={copyReturnsSummary}
+          onExportCsv={() => exportReturnsCsv({ search, filter: viewFilter })}
+          onPrint={printReturns}
+          onOpenCreate={() => setIsCreateOpen(true)}
         />
-        <ReturnsSelectedInvoiceCard
-            selectedInvoice={selectedInvoice}
-            selectedItemsCount={selectedItemsCount}
-            selectedQtyTotal={selectedQtyTotal}
-            expectedReturnValue={expectedReturnValue}
-          />
 
-        <div ref={detailsRef}>
-          <ReturnsSelectedReturnCard
-            selectedReturn={selectedReturn}
-            onPrint={() => selectedReturn ? printReturnRecord(selectedReturn, settingsQuery.data) : undefined}
-            onCopy={() => void copySelectedReturn()}
-          />
-        </div>
+        <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />
+
+        <ReturnsRegisterCard
+          search={search}
+          viewFilter={viewFilter}
+          page={page}
+          pageSize={pageSize}
+          rows={rows}
+          totalItems={summary?.totalItems || rows.length}
+          selectedReturnId={selectedReturnId}
+          isLoading={query.isLoading}
+          onSearchChange={handleRegisterSearchChange}
+          onReset={resetReturnsView}
+          onFilterChange={handleFilterChange}
+          employeeFilter={employeeFilter}
+          onEmployeeFilterChange={(value) => { setEmployeeFilter(value); setPage(1); }}
+          onSelectReturn={(id) => setSelectedReturnId(id)}
+          onPrintReturn={(row) => printReturnRecord(row, settingsQuery.data)}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+
+        {/* Modal for Creating Return */}
+        <DialogShell
+          open={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          width="min(820px, 95vw)"
+          ariaLabel="تسجيل مرتجع جديد"
+          showCloseButton={true}
+        >
+          <div className="dialog-card space-y-4">
+            <div className="border-b pb-3">
+              <h3 className="document-prototype-section-title">تسجيل مرتجع جديد</h3>
+              <p className="text-muted-foreground">اختر الفاتورة وحدد الأصناف والكميات المسترجعة.</p>
+            </div>
+            <ReturnsCreateCard
+              form={form}
+              invoiceRows={invoiceRows}
+              selectedInvoice={selectedInvoice}
+              invoiceItems={invoiceItems}
+              selectedItems={selectedItems}
+              selectedItemsCount={selectedItemsCount}
+              canUseCreditSettlement={canUseCreditSettlement}
+              settlementNeedsRefundMethod={settlementNeedsRefundMethod}
+              isBusy={createMutation.isPending}
+              isError={createMutation.isError}
+              isSuccess={createMutation.isSuccess}
+              error={createMutation.error}
+              onFormChange={updateForm}
+              onResetForm={resetReturnForm}
+              onToggleItem={toggleItem}
+              onSetItemQty={setItemQty}
+              onOpenConfirm={() => setConfirmReturn(true)}
+              returnedQtyByProduct={returnedQtyByProduct}
+            />
+            {selectedInvoice && (
+              <ReturnsSelectedInvoiceCard
+                selectedInvoice={selectedInvoice}
+                selectedItemsCount={selectedItemsCount}
+                selectedQtyTotal={selectedQtyTotal}
+                expectedReturnValue={expectedReturnValue}
+              />
+            )}
+          </div>
+        </DialogShell>
+
+        {/* Modal for Viewing Return Details */}
+        <DialogShell
+          open={Boolean(selectedReturnId && selectedReturn)}
+          onClose={() => setSelectedReturnId('')}
+          width="min(640px, 95vw)"
+          ariaLabel="تفاصيل المرتجع"
+          showCloseButton={true}
+        >
+          <div className="dialog-card">
+            <ReturnsSelectedReturnCard
+              selectedReturn={selectedReturn}
+              onPrint={() => selectedReturn ? printReturnRecord(selectedReturn, settingsQuery.data) : undefined}
+              onCopy={() => void copySelectedReturn()}
+            />
+          </div>
+        </DialogShell>
       </main>
 
       <ActionConfirmDialog

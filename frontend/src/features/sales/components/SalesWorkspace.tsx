@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { useSalesPage } from '@/features/sales/hooks/useSalesPage';
 import { useSaleActions } from '@/features/sales/hooks/useSaleActions';
 import { useSalesWorkspaceActions } from '@/features/sales/hooks/useSalesWorkspaceActions';
 import { SalesWorkspaceHeader } from '@/features/sales/components/SalesWorkspaceHeader';
 import { SalesRegisterCard, type SalesPaymentFilter } from '@/features/sales/components/SalesRegisterCard';
-import { SalesSidePanel } from '@/features/sales/components/SalesSidePanel';
+import { SaleDetailCard } from '@/features/sales/components/SaleDetailCard';
 import { SaleEditDialog } from '@/features/sales/components/SaleEditDialog';
 import {
   getSaleCancelDescription,
@@ -29,9 +30,9 @@ export function SalesWorkspace() {
   const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
   const [saleToEdit, setSaleToEdit] = useState<Sale | null>(null);
   const [editFeedback, setEditFeedback] = useState('');
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
-  const detailsRef = useRef<HTMLDivElement>(null);
 
   const { salesQuery, rows, pagination, summary } = useSalesPage({ page, pageSize, search, filter: viewFilter, cashier: cashierFilter });
   const { saleDetailQuery, cancelMutation, updateMutation } = useSaleActions(selectedSaleId);
@@ -79,10 +80,8 @@ export function SalesWorkspace() {
 
   const {
     exportSalesCsv,
-    exportTopCustomersCsv,
     resetSalesView,
     copySalesSummary,
-    printTopCustomers,
     printSalesRegister,
   } = useSalesWorkspaceActions({
     search,
@@ -107,7 +106,7 @@ export function SalesWorkspace() {
 
   return (
     <div className="page-stack page-shell sales-workspace" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px', maxWidth: '1280px' }}>
         <SalesWorkspaceHeader totalItems={totalItems} description={headerDescription} onCopySummary={copySalesSummary} />
         {editFeedback ? <div className="success-box">{editFeedback}</div> : null}
 
@@ -138,7 +137,7 @@ export function SalesWorkspace() {
           onReset={resetSalesView}
           onSelectSale={(id) => {
             setSelectedSaleId(id);
-            setTimeout(() => detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+            setIsDetailOpen(true);
           }}
           onEditSale={(sale) => {
             if (sale.status === 'cancelled') return;
@@ -154,24 +153,31 @@ export function SalesWorkspace() {
           onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
         />
 
-        <div ref={detailsRef}>
-          <SalesSidePanel
-            topCustomers={topCustomers}
-            canPrint={canPrint}
-            canEditInvoices={canEditInvoices}
-            selectedSale={selectedSale}
-            isLoading={saleDetailQuery.isLoading}
-            onExportTopCustomers={exportTopCustomersCsv}
-            onPrintTopCustomers={printTopCustomers}
-            onPrintSale={() => selectedSale ? printSaleDocument(selectedSale, printSettings, printSettings?.paperSize === 'receipt' ? 'receipt' : 'a4') : undefined}
-            onEditSale={() => {
-              if (!selectedSale || selectedSale.status === 'cancelled') return;
-              setSaleToEdit(selectedSale);
-              setEditFeedback('');
-            }}
-            onCancelSale={() => selectedSale ? setSaleToCancel(selectedSale) : undefined}
-          />
-        </div>
+        {/* Modal for Invoice Details */}
+        <DialogShell
+          open={isDetailOpen && Boolean(selectedSaleId)}
+          onClose={() => { setIsDetailOpen(false); }}
+          width="min(720px, 95vw)"
+          ariaLabel="تفاصيل الفاتورة"
+          showCloseButton={true}
+        >
+          <div className="dialog-card">
+            <SaleDetailCard
+              sale={selectedSale || undefined}
+              isLoading={saleDetailQuery.isLoading}
+              onPrint={canPrint && selectedSale ? () => selectedSale ? printSaleDocument(selectedSale, printSettings, printSettings?.paperSize === 'receipt' ? 'receipt' : 'a4') : undefined : undefined}
+              onEdit={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? () => {
+                setSaleToEdit(selectedSale);
+                setEditFeedback('');
+                setIsDetailOpen(false);
+              } : undefined}
+              onCancel={canEditInvoices && selectedSale && selectedSale.status !== 'cancelled' ? () => {
+                setSaleToCancel(selectedSale);
+                setIsDetailOpen(false);
+              } : undefined}
+            />
+          </div>
+        </DialogShell>
       </main>
 
       <SaleEditDialog
