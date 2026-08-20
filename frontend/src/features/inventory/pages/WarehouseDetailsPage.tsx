@@ -17,7 +17,7 @@ export function WarehouseDetailsPage() {
   const { locationsQuery, productsQuery, locationStocksQuery } = useInventoryActionCatalog();
   const location = locationsQuery.data?.find((l) => String(l.id) === String(id));
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [showZeroStock, setShowZeroStock] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -59,35 +59,40 @@ export function WarehouseDetailsPage() {
     ] as const;
   }, [locationProducts]);
 
-  const visibleCategories = useMemo(() => {
-    const categoriesMap = new Map<string, { id: string; name: string; assignedProductCount: number; positiveStockProductCount: number }>();
-    categories.forEach((cat: any) => {
-      categoriesMap.set(String(cat.id), { id: String(cat.id), name: cat.name, assignedProductCount: 0, positiveStockProductCount: 0 });
-    });
-    categoriesMap.set('uncategorized', { id: 'uncategorized', name: 'بدون قسم', assignedProductCount: 0, positiveStockProductCount: 0 });
+  const categoryList = useMemo(() => {
+    const categoriesMap = new Map<string, { id: string; name: string; count: number }>();
+    categoriesMap.set('all', { id: 'all', name: 'الكل', count: 0 });
 
+    categories.forEach((cat: any) => {
+      categoriesMap.set(String(cat.id), { id: String(cat.id), name: cat.name, count: 0 });
+    });
+    categoriesMap.set('uncategorized', { id: 'uncategorized', name: 'بدون قسم', count: 0 });
+
+    let totalCount = 0;
     locationProducts.forEach((p) => {
       if (!p.isAssignedToThisLocation) return;
+      if (!showZeroStock && p.stockQty <= 0) return;
+
+      totalCount++;
       const catId = p.categoryId ? String(p.categoryId) : 'uncategorized';
       const cat = categoriesMap.get(catId);
       if (cat) {
-        cat.assignedProductCount++;
-        if (p.stockQty > 0) cat.positiveStockProductCount++;
+        cat.count++;
       }
     });
 
-    return Array.from(categoriesMap.values()).filter((cat) => {
-      if (showZeroStock) return cat.assignedProductCount > 0;
-      return cat.positiveStockProductCount > 0;
-    });
+    const allCat = categoriesMap.get('all');
+    if (allCat) allCat.count = totalCount;
+
+    return Array.from(categoriesMap.values()).filter((c) => c.id === 'all' || c.count > 0);
   }, [locationProducts, categories, showZeroStock]);
 
   const visibleProducts = useMemo(() => {
     return locationProducts.filter((p) => {
       if (!p.isAssignedToThisLocation) return false;
-      if (selectedCategoryId !== null && selectedCategoryId !== 'all') {
+      if (selectedCategoryId !== 'all') {
         const pCatId = p.categoryId ? String(p.categoryId) : 'uncategorized';
-        if (pCatId !== String(selectedCategoryId)) return false;
+        if (pCatId !== selectedCategoryId) return false;
       }
       if (!showZeroStock && p.stockQty <= 0) return false;
       if (productSearch.trim()) {
@@ -102,17 +107,11 @@ export function WarehouseDetailsPage() {
 
   const isLoading = productsQuery.isLoading || locationStocksQuery.isLoading || categoriesQuery.isLoading;
 
-  const currentCategoryName = useMemo(() => {
-    if (selectedCategoryId === 'all') return 'جميع الأقسام';
-    if (!selectedCategoryId) return '';
-    return visibleCategories.find((c: any) => c.id === String(selectedCategoryId))?.name || 'القسم المختار';
-  }, [selectedCategoryId, visibleCategories]);
-
   return (
     <main className="document-prototype-column" dir="rtl" style={{ maxWidth: '1280px', paddingBottom: '32px' }}>
       <PageHeader 
         title={`مخزن: ${location?.name || '...'}`} 
-        description={`عرض تفصيلي لأقسام وأصناف ${location?.name || 'المخزن'} وأرصدتها الفعلية`} 
+        description={`عرض تفصيلي لأرصدة وأقسام ${location?.name || 'المخزن'} وقيمتها المالية`} 
         actions={(
           <div className="actions compact-actions page-header-actions">
             <Button variant="primary" onClick={() => setIsAssignModalOpen(true)}>
@@ -128,7 +127,55 @@ export function WarehouseDetailsPage() {
 
       <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />
 
-      {/* Toolbar */}
+      {/* Categories Filter Tabs */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        overflowX: 'auto',
+        padding: '6px 2px 12px 2px',
+        scrollbarWidth: 'thin',
+      }}>
+        {categoryList.map((cat) => {
+          const isActive = selectedCategoryId === cat.id;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategoryId(cat.id)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                border: isActive ? '1px solid var(--primary, #170c5c)' : '1px solid var(--border, #e2e8f0)',
+                background: isActive ? 'var(--primary, #170c5c)' : '#ffffff',
+                color: isActive ? '#ffffff' : '#334155',
+                fontSize: '13px',
+                fontWeight: isActive ? 700 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                boxShadow: isActive ? '0 2px 6px rgba(23, 12, 92, 0.2)' : '0 1px 3px rgba(0,0,0,0.02)',
+              }}
+            >
+              <span>{cat.name}</span>
+              <span style={{
+                fontSize: '11px',
+                padding: '2px 7px',
+                borderRadius: '10px',
+                background: isActive ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
+                color: isActive ? '#ffffff' : '#64748b',
+                fontWeight: 700,
+              }}>
+                {cat.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search & Filter Bar */}
       <div style={{
         background: '#ffffff',
         border: '1px solid var(--border, #e2e8f0)',
@@ -142,25 +189,24 @@ export function WarehouseDetailsPage() {
         gap: '12px',
         boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 300px' }}>
-          {selectedCategoryId !== null && (
-            <div style={{ position: 'relative', width: '260px' }}>
-              <input
-                type="text"
-                placeholder="بحث باسم الصنف أو الباركود..."
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border, #cbd5e1)',
-                  fontSize: '13px',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-          )}
+        <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
+          <input
+            type="text"
+            placeholder="بحث باسم الصنف أو الباركود..."
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border, #cbd5e1)',
+              fontSize: '13px',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', color: '#334155', userSelect: 'none' }}>
             <input 
               type="checkbox" 
@@ -170,174 +216,82 @@ export function WarehouseDetailsPage() {
             />
             إظهار الأرصدة الصفرية
           </label>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>
+            النتائج: <strong style={{ color: '#0f172a' }}>{visibleProducts.length}</strong> صنف
+          </span>
         </div>
-
-        {selectedCategoryId !== null && (
-          <Button variant="secondary" onClick={() => { setSelectedCategoryId(null); setProductSearch(''); }}>
-            ← العودة للأقسام
-          </Button>
-        )}
       </div>
 
       {isAssignModalOpen && (
         <AssignProductsModal locationId={locationId} locationName={location?.name} onClose={() => setIsAssignModalOpen(false)} />
       )}
 
-      {selectedCategoryId === null ? (
-        <FormSection title="أقسام المخزن">
-          {isLoading ? (
-            <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>جاري التحميل...</div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px', marginTop: '12px' }}>
-              {/* All Categories Card */}
-              <div 
-                className="surface-card hoverable-card"
-                style={{ 
-                  padding: '24px 20px', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: '12px',
-                  border: '1px solid var(--border, #e2e8f0)',
-                  borderRadius: '14px',
-                  backgroundColor: '#ffffff',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => setSelectedCategoryId('all')}
-              >
-                <div style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '12px',
-                  backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--primary, #170c5c)',
-                }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>كل الأقسام</h3>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>عرض شامل لكافة الأصناف</span>
-                </div>
-              </div>
+      <FormSection title="أصناف المخزن">
+        {isLoading ? (
+          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>جاري التحميل...</div>
+        ) : (
+          <div style={{ overflowX: 'auto', border: '1px solid var(--border, #e2e8f0)', borderRadius: '12px', background: '#ffffff', boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)' }}>
+            <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', textAlign: 'right' }}>
+              <thead style={{ backgroundColor: 'var(--surface-2, #f8fafc)', borderBottom: '1px solid var(--border, #e2e8f0)' }}>
+                <tr>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>اسم الصنف</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>الباركود</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>القسم</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>الرصيد في المخزن</th>
+                  <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>الرصيد الكلي للنظام</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleProducts.map((product: any) => {
+                  const isZero = Number(product.stockQty ?? 0) <= 0;
+                  const cat = categories.find((c: any) => String(c.id) === String(product.categoryId));
+                  const catName = cat ? cat.name : (product.categoryName || 'بدون قسم');
 
-              {/* Individual Category Cards */}
-              {visibleCategories.map((cat: any) => (
-                <div 
-                  key={cat.id} 
-                  className="surface-card hoverable-card"
-                  style={{ 
-                    padding: '24px 20px', 
-                    cursor: 'pointer', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '12px',
-                    border: '1px solid var(--border, #e2e8f0)',
-                    borderRadius: '14px',
-                    backgroundColor: '#ffffff',
-                    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onClick={() => setSelectedCategoryId(cat.id)}
-                >
-                  <div style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#d97706',
-                  }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-                    </svg>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{cat.name}</h3>
-                    <span style={{ 
-                      fontSize: '11.5px', 
-                      fontWeight: 700, 
-                      padding: '2px 8px', 
-                      borderRadius: '8px', 
-                      backgroundColor: '#f1f5f9', 
-                      color: '#475569' 
-                    }}>
-                      {showZeroStock ? cat.assignedProductCount : cat.positiveStockProductCount} صنف
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </FormSection>
-      ) : (
-        <FormSection title={`الأصناف — ${currentCategoryName}`}>
-          {isLoading ? (
-            <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>جاري التحميل...</div>
-          ) : (
-            <div style={{ overflowX: 'auto', border: '1px solid var(--border, #e2e8f0)', borderRadius: '12px', background: '#ffffff', boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)' }}>
-              <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'right' }}>
-                <thead style={{ backgroundColor: 'var(--surface-2, #f8fafc)', borderBottom: '1px solid var(--border, #e2e8f0)' }}>
-                  <tr>
-                    <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>اسم الصنف</th>
-                    <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px' }}>الباركود</th>
-                    <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>الرصيد في هذا المخزن</th>
-                    <th style={{ padding: '12px 18px', color: '#475569', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>الرصيد الإجمالي بالنظام</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleProducts.map((product: any) => {
-                    const isZero = Number(product.stockQty ?? 0) <= 0;
-                    return (
-                      <tr 
-                        key={product.id} 
-                        style={{ borderBottom: '1px solid var(--border, #f1f5f9)', transition: 'background 0.15s ease' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <td style={{ padding: '12px 18px', fontWeight: 600, color: '#0f172a' }}>{product.name}</td>
-                        <td style={{ padding: '12px 18px', color: '#64748b', fontFamily: 'monospace', fontSize: '12px' }}>{product.barcode || '—'}</td>
-                        <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                          <span style={{
-                            fontWeight: 800,
-                            fontSize: '13px',
-                            padding: '3px 10px',
-                            borderRadius: '6px',
-                            background: isZero ? '#fee2e2' : '#ecfdf5',
-                            color: isZero ? '#dc2626' : '#047857',
-                            border: `1px solid ${isZero ? '#fecaca' : '#a7f3d0'}`,
-                          }}>
-                            {product.stockQty ?? product.qty ?? 0}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 18px', textAlign: 'center', fontWeight: 700, color: '#64748b' }}>
-                          {product.globalStockQty ?? '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {visibleProducts.length === 0 && (
-                    <tr>
-                      <td colSpan={4} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
-                        {showZeroStock ? 'لا توجد أصناف مربوطة بهذا المخزن في هذا القسم' : 'لا توجد أصناف متاحة في هذا القسم برصيد إيجابي'}
+                  return (
+                    <tr 
+                      key={product.id} 
+                      style={{ borderBottom: '1px solid var(--border, #f1f5f9)', transition: 'background 0.15s ease' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td style={{ padding: '12px 18px', fontWeight: 600, color: '#0f172a' }}>{product.name}</td>
+                      <td style={{ padding: '12px 18px', color: '#64748b', fontFamily: 'monospace', fontSize: '12px' }}>{product.barcode || '—'}</td>
+                      <td style={{ padding: '12px 18px' }}>
+                        <span style={{ fontSize: '11.5px', padding: '2px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
+                          {catName}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 18px', textAlign: 'center' }}>
+                        <span style={{
+                          fontWeight: 800,
+                          fontSize: '13px',
+                          padding: '3px 10px',
+                          borderRadius: '6px',
+                          background: isZero ? '#fee2e2' : '#ecfdf5',
+                          color: isZero ? '#dc2626' : '#047857',
+                          border: `1px solid ${isZero ? '#fecaca' : '#a7f3d0'}`,
+                        }}>
+                          {product.stockQty ?? product.qty ?? 0}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 18px', textAlign: 'center', fontWeight: 700, color: '#64748b' }}>
+                        {product.globalStockQty ?? '—'}
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </FormSection>
-      )}
+                  );
+                })}
+                {visibleProducts.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                      {showZeroStock ? 'لا توجد أصناف مسجلة في هذا المخزن' : 'لا توجد أصناف متاحة برصيد إيجابي'}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </FormSection>
     </main>
   );
 }
