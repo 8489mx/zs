@@ -6,7 +6,6 @@ import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklis
 import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
-import { StatsGrid, type StatsGridItem } from '@/shared/components/stats-grid';
 import { DashboardExecutiveHero } from '@/features/dashboard/components/DashboardExecutiveHero';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
@@ -45,29 +44,6 @@ export function DashboardPage() {
   const smartAlerts = buildDashboardAlerts(overview.data);
   const totalStockAlerts = Number(overview.data.summary.lowStockCount || 0) + Number(overview.data.summary.outOfStockCount || 0);
 
-  const heroKpis: StatsGridItem[] = [
-    {
-      key: 'sales',
-      label: 'مبيعات اليوم',
-      value: formatCurrency(Number(stats.todaySalesAmount || 0)),
-    },
-    {
-      key: 'invoices',
-      label: 'فواتير البيع اليوم',
-      value: `${stats.todaySalesCount || 0} فاتورة`,
-    },
-    {
-      key: 'treasury',
-      label: 'صافي الخزينة',
-      value: formatCurrency(Number(summary.treasury.net || 0)),
-    },
-    {
-      key: 'stock_alerts',
-      label: 'تنبيهات المخزون',
-      value: totalStockAlerts > 0 ? `${totalStockAlerts} صنف` : 'المخزون مكتمل',
-    },
-  ];
-
   return (
     <div className="page-stack page-shell dashboard-premium-shell" dir="rtl">
       <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '100px' }}>
@@ -85,19 +61,15 @@ export function DashboardPage() {
 
         <FirstRunSetupChecklist />
 
-        {/* 1. البانر التنفيذي الفاخر والمخطط الانسيابي المتدرج */}
+        {/* 1. البانر التنفيذي الفاخر والمخطط الانسيابي المتدرج المدمج */}
         <DashboardExecutiveHero
           salesTrend={overview.data.trends?.sales}
           purchasesTrend={overview.data.trends?.purchases}
           todaySalesAmount={Number(stats.todaySalesAmount || 0)}
           todaySalesCount={Number(stats.todaySalesCount || 0)}
           treasuryNet={Number(summary.treasury.net || 0)}
+          totalStockAlerts={totalStockAlerts}
         />
-
-        {/* 2. المؤشرات القياسية العلوية */}
-        <div style={{ marginBottom: '16px' }}>
-          <StatsGrid items={heroKpis} />
-        </div>
 
         {/* 2. الهيكل الثنائي المتوازن للداشبورد */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(0, 1fr)', gap: '16px', alignItems: 'start', marginBottom: '16px' }}>

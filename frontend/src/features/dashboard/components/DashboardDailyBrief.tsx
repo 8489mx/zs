@@ -40,20 +40,22 @@ export function DashboardDailyBrief({
                 textDecoration: 'none',
                 display: 'flex',
                 flexDirection: 'column',
-                padding: '10px 12px',
+                padding: '10px 14px',
                 borderRadius: '8px',
-                border: '1px solid #fee2e2',
-                background: '#fff5f5',
+                border: '1px solid #fecaca',
+                borderInlineStart: '4px solid #ef4444',
+                background: '#ffffff',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                 transition: 'all 0.15s ease',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                <strong style={{ fontSize: '0.86rem', color: '#991b1b' }}>{action.title}</strong>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '1px 6px', borderRadius: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{action.title}</strong>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fee2e2', padding: '1px 6px', borderRadius: '4px' }}>
                   {managerActionSeverityLabels[action.severity]}
                 </span>
               </div>
-              <small style={{ fontSize: '0.74rem', color: '#7f1d1d' }}>{action.message}</small>
+              <small style={{ fontSize: '0.74rem', color: '#64748b' }}>{action.message}</small>
             </Link>
           ))
         ) : (
