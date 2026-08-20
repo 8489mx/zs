@@ -219,8 +219,8 @@ export function InventoryTreePage() {
             <Button variant="primary" onClick={() => navigate('/inventory/issue-order/new')}>
               + إذن صرف جديد
             </Button>
-            <Button variant="secondary" onClick={() => navigate('/inventory/warehouses-management')}>
-              ⚙️ إدارة المخازن
+            <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')}>
+              🏢 أماكن المخزون
             </Button>
           </div>
         )}

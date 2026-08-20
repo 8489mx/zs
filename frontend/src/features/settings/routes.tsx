@@ -5,7 +5,7 @@ import type { FeatureRouteModule } from '@/app/router/types';
 export const settingsRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'settings', element: <Navigate to="/settings/overview" replace /> },
-    { path: 'settings/locations', element: <Navigate to="/inventory/warehouses-management" replace /> },
+    { path: 'settings/locations', element: <Navigate to="/inventory/warehouses" replace /> },
     { path: 'settings/:section', element: createLazyRoute(() => import('@/features/settings/pages/SettingsPage').then((module) => ({ default: module.SettingsPage }))) }
   ],
   navigation: [{ key: 'settings', label: 'الإعدادات', to: '/settings' }]
