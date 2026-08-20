@@ -230,34 +230,6 @@ export function DashboardExecutiveHero({
             <h1 style={{ fontSize: '1.42rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: isDark ? '#ffffff' : '#0f172a' }}>
               {greeting.text}
             </h1>
-            
-            {/* Live Synchronized Badge */}
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: isDark ? 'rgba(34, 197, 94, 0.18)' : '#f0fdf4',
-                border: isDark ? '1px solid rgba(34, 197, 94, 0.45)' : '1px solid #bbf7d0',
-                color: isDark ? '#4ade80' : '#15803d',
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '999px',
-              }}
-            >
-              <span
-                style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  backgroundColor: '#22c55e',
-                  boxShadow: '0 0 8px #22c55e',
-                  display: 'inline-block',
-                }}
-              />
-              مباشر ومتزامن
-            </span>
 
             {/* Theme Toggle Button - Sleek Icon Only */}
             <button
@@ -377,18 +349,30 @@ export function DashboardExecutiveHero({
             <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
               صافي الخزينة
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '3px', justifyContent: 'center', direction: 'rtl' }}>
+              {treasuryNet < 0 && (
+                <span
+                  style={{
+                    fontSize: '1.05rem',
+                    color: isDark ? '#f87171' : '#dc2626',
+                    fontWeight: 800,
+                    lineHeight: 1,
+                  }}
+                >
+                  -
+                </span>
+              )}
               <strong
-                dir="ltr"
                 style={{
                   fontSize: '1.05rem',
                   color: isDark
                     ? (treasuryNet < 0 ? '#f87171' : '#ffffff')
                     : (treasuryNet < 0 ? '#dc2626' : '#0f172a'),
                   fontWeight: 800,
+                  lineHeight: 1,
                 }}
               >
-                {treasuryNet < 0 ? `-${formatCurrency(Math.abs(treasuryNet))}` : formatCurrency(treasuryNet)}
+                {formatCurrency(Math.abs(treasuryNet))}
               </strong>
               <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
             </div>
@@ -455,7 +439,7 @@ export function DashboardExecutiveHero({
               borderRadius: '8px',
               display: 'inline-flex',
               gap: '3px',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #e2e8f0',
             }}
           >
             <button
@@ -467,17 +451,21 @@ export function DashboardExecutiveHero({
                   : 'transparent',
                 color: timeframe === '7d'
                   ? (isDark ? '#ffffff' : '#0f172a')
-                  : (isDark ? '#cbd5e1' : '#64748b'),
+                  : (isDark ? '#94a3b8' : '#64748b'),
                 boxShadow: timeframe === '7d'
                   ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
                   : 'none',
                 border: timeframe === '7d' && !isDark ? '1px solid #cbd5e1' : 'none',
-                padding: '4px 10px',
+                padding: '5px 12px',
                 borderRadius: '6px',
-                fontSize: '0.72rem',
+                fontSize: '0.76rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                lineHeight: 1.2,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               آخر ٧ أيام
@@ -491,17 +479,21 @@ export function DashboardExecutiveHero({
                   : 'transparent',
                 color: timeframe === '30d'
                   ? (isDark ? '#ffffff' : '#0f172a')
-                  : (isDark ? '#cbd5e1' : '#64748b'),
+                  : (isDark ? '#94a3b8' : '#64748b'),
                 boxShadow: timeframe === '30d'
                   ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
                   : 'none',
                 border: timeframe === '30d' && !isDark ? '1px solid #cbd5e1' : 'none',
-                padding: '4px 10px',
+                padding: '5px 12px',
                 borderRadius: '6px',
-                fontSize: '0.72rem',
+                fontSize: '0.76rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                lineHeight: 1.2,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               آخر ٣٠ يوماً
@@ -515,9 +507,9 @@ export function DashboardExecutiveHero({
             background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
             padding: '3px',
             borderRadius: '8px',
-            display: 'flex',
+            display: 'inline-flex',
             gap: '3px',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #e2e8f0',
           }}
         >
           <button
@@ -525,11 +517,11 @@ export function DashboardExecutiveHero({
             onClick={() => setActiveMetric('sales')}
             style={{
               background: activeMetric === 'sales'
-                ? (isDark ? '#3b82f6' : '#ffffff')
+                ? (isDark ? '#0284c7' : '#ffffff')
                 : 'transparent',
               color: activeMetric === 'sales'
                 ? (isDark ? '#ffffff' : '#0f172a')
-                : (isDark ? '#cbd5e1' : '#64748b'),
+                : (isDark ? '#94a3b8' : '#64748b'),
               boxShadow: activeMetric === 'sales'
                 ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
                 : 'none',
@@ -540,6 +532,10 @@ export function DashboardExecutiveHero({
               fontWeight: 700,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              lineHeight: 1.2,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             المبيعات
@@ -549,11 +545,11 @@ export function DashboardExecutiveHero({
             onClick={() => setActiveMetric('both')}
             style={{
               background: activeMetric === 'both'
-                ? (isDark ? '#8b5cf6' : '#ffffff')
+                ? (isDark ? '#0284c7' : '#ffffff')
                 : 'transparent',
               color: activeMetric === 'both'
                 ? (isDark ? '#ffffff' : '#0f172a')
-                : (isDark ? '#cbd5e1' : '#64748b'),
+                : (isDark ? '#94a3b8' : '#64748b'),
               boxShadow: activeMetric === 'both'
                 ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
                 : 'none',
@@ -564,6 +560,10 @@ export function DashboardExecutiveHero({
               fontWeight: 700,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              lineHeight: 1.2,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             مقارنة الشراء والبيع
@@ -572,9 +572,9 @@ export function DashboardExecutiveHero({
       </div>
 
       {/* Large Glowing Animated Wave Area Chart with Highlighted Peak Point */}
-      <div style={{ width: '100%', height: 210, position: 'relative', zIndex: 1 }}>
+      <div style={{ width: '100%', height: 225, position: 'relative', zIndex: 1, paddingBottom: '6px' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 14, right: 12, left: 12, bottom: 12 }}>
             <defs>
               <linearGradient id="chartSalesGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={isDark ? '#38bdf8' : '#2563eb'} stopOpacity={isDark ? 0.45 : 0.25} />
@@ -592,14 +592,15 @@ export function DashboardExecutiveHero({
             />
             <XAxis
               dataKey="label"
-              stroke={isDark ? '#94a3b8' : '#64748b'}
-              tick={{ fill: isDark ? '#e2e8f0' : '#334155', fontSize: timeframe === '30d' ? 11 : 12, fontWeight: 700 }}
+              stroke={isDark ? 'rgba(255, 255, 255, 0.16)' : '#cbd5e1'}
+              tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 11, fontWeight: 600 }}
               tickLine={false}
-              minTickGap={timeframe === '30d' ? 18 : 8}
+              dy={8}
+              minTickGap={timeframe === '30d' ? 22 : 8}
               interval={timeframe === '30d' ? 'preserveStartEnd' : 0}
               axisLine={{ stroke: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0' }}
             />
-            <YAxis hide domain={['dataMin - 100', 'dataMax + 200']} />
+            <YAxis hide domain={[0, (dataMax: number) => Math.max(Math.ceil(dataMax * 1.2), 100)]} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
@@ -656,7 +657,7 @@ export function DashboardExecutiveHero({
               animationDuration={1200}
               animationEasing="ease-out"
               dot={(props: any) => {
-                const { cx, cy, index } = props;
+                const { cx, cy, index, value } = props;
                 // Highlight the last / current day point
                 if (index === chartData.length - 1 && cx != null && cy != null) {
                   return (
@@ -666,7 +667,10 @@ export function DashboardExecutiveHero({
                     </g>
                   );
                 }
-                return <circle key={`dot-${index ?? 0}`} cx={cx ?? 0} cy={cy ?? 0} r={3} fill={isDark ? '#38bdf8' : '#2563eb'} opacity={0.4} />;
+                if (value > 0 && cx != null && cy != null) {
+                  return <circle key={`dot-${index ?? 0}`} cx={cx} cy={cy} r={3} fill={isDark ? '#38bdf8' : '#2563eb'} opacity={0.6} />;
+                }
+                return <g key={`dot-empty-${index ?? 0}`} />;
               }}
             />
             {activeMetric === 'both' && (
@@ -683,8 +687,11 @@ export function DashboardExecutiveHero({
                 animationDuration={1200}
                 animationEasing="ease-out"
                 dot={(props: any) => {
-                  const { cx, cy, index } = props;
-                  return <circle key={`purch-dot-${index ?? 0}`} cx={cx ?? 0} cy={cy ?? 0} r={3} fill={isDark ? '#c084fc' : '#7c3aed'} opacity={0.4} />;
+                  const { cx, cy, index, value } = props;
+                  if (value > 0 && cx != null && cy != null) {
+                    return <circle key={`purch-dot-${index ?? 0}`} cx={cx} cy={cy} r={3} fill={isDark ? '#c084fc' : '#7c3aed'} opacity={0.6} />;
+                  }
+                  return <g key={`purch-dot-empty-${index ?? 0}`} />;
                 }}
               />
             )}
