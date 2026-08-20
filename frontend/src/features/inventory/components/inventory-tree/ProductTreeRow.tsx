@@ -23,24 +23,23 @@ function ProductTreeRow({
     ? product.locationStocks.filter((s) => s.locationId === filterLocationId)
     : product.locationStocks;
 
-  const totalInFilter = visibleStocks.reduce((sum, s) => sum + s.qty, 0);
   const isUnassigned = product.isUnassigned;
 
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '36px 1fr 110px 80px 1fr 130px',
+        gridTemplateColumns: '36px 1fr 110px 80px 1fr 140px',
         alignItems: 'center',
-        padding: '10px 16px',
+        padding: '10px 18px',
         gap: '8px',
-        transition: 'background 0.12s',
-        borderBottom: '1px solid var(--border-color, #e5e7eb)',
-        background: isSelected ? '#f3f0ff' : 'transparent',
+        transition: 'background 0.15s ease',
+        borderBottom: '1px solid var(--border, #f1f5f9)',
+        background: isSelected ? 'rgba(99, 102, 241, 0.05)' : 'transparent',
         cursor: 'pointer',
       }}
       onClick={() => onToggleSelect(product.id)}
-      onMouseEnter={(e) => !isSelected && (e.currentTarget.style.background = 'var(--surface-color, #f9fafb)')}
+      onMouseEnter={(e) => !isSelected && (e.currentTarget.style.background = '#f8fafc')}
       onMouseLeave={(e) => !isSelected && (e.currentTarget.style.background = 'transparent')}
     >
       {/* Checkbox */}
@@ -55,39 +54,38 @@ function ProductTreeRow({
 
       {/* Name + barcode */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        <span style={{ fontWeight: 500, fontSize: '13px' }}>{product.name}</span>
-        {product.barcode && <span style={{ fontSize: '11px', color: 'var(--text-secondary, #aaa)' }}>{product.barcode}</span>}
+        <span style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a' }}>{product.name}</span>
+        {product.barcode && <span style={{ fontSize: '11px', color: '#64748b' }}>{product.barcode}</span>}
         {isUnassigned && (
-          <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '20px', background: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', width: 'fit-content' }}>
-            غير مربوط ⚠️
+          <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', width: 'fit-content' }}>
+            غير مربوط بمخزن ⚠️
           </span>
         )}
       </div>
 
       {/* Category */}
-      <span style={{ fontSize: '11px', color: 'var(--text-secondary, #888)' }}>{product.categoryName || '—'}</span>
+      <span style={{ fontSize: '11.5px', color: '#64748b' }}>{product.categoryName || '—'}</span>
 
       {/* Global total qty */}
       <div style={{ textAlign: 'center' }}>
         <span style={{
           fontWeight: 800,
-          fontSize: '15px',
-          color: product.totalQty === 0 ? '#ef4444' : product.totalQty > 50 ? '#16a34a' : '#d97706',
+          fontSize: '14px',
+          color: product.totalQty === 0 ? '#ef4444' : product.totalQty > 50 ? '#059669' : '#d97706',
         }}>
           {product.totalQty}
         </span>
       </div>
 
       {/* Location stocks chips */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
         {visibleStocks.length === 0 ? (
-          <span style={{ fontSize: '12px', color: '#bbb' }}>—</span>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>—</span>
         ) : (
           visibleStocks.map((s) => (
-            <div key={s.locationId} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fff', border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-              <span>🏪</span>
-              <span style={{ fontWeight: 600 }}>{s.locationName}</span>
-              <span style={{ background: s.qty > 0 ? '#dcfce7' : '#fee2e2', color: s.qty > 0 ? '#16a34a' : '#dc2626', borderRadius: '10px', padding: '0px 6px', fontWeight: 700, fontSize: '11px' }}>
+            <div key={s.locationId} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '3px 8px', fontSize: '11.5px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+              <span style={{ fontWeight: 600, color: '#334155' }}>{s.locationName}:</span>
+              <span style={{ background: s.qty > 0 ? '#ecfdf5' : '#fef2f2', color: s.qty > 0 ? '#059669' : '#dc2626', borderRadius: '8px', padding: '1px 6px', fontWeight: 700, fontSize: '11px' }}>
                 {s.qty}
               </span>
               {s.qty === 0 && (
@@ -97,10 +95,10 @@ function ProductTreeRow({
                     e.stopPropagation();
                     onRemoveLocation(product.id, s.locationId);
                   }}
-                  style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 6px', fontSize: '14px', fontWeight: 'bold', marginLeft: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="حذف هذا المخزن"
+                  style={{ background: '#fee2e2', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '1px 5px', fontSize: '12px', fontWeight: 'bold', marginRight: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="حذف هذا المخزن من الصنف"
                 >
-                  ×
+                  ✕
                 </div>
               )}
             </div>
@@ -110,20 +108,28 @@ function ProductTreeRow({
 
       {/* Total + Action */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
-        <span style={{ fontWeight: 800, fontSize: '14px', color: (filterLocationId ? totalInFilter : product.totalQty) === 0 ? '#ef4444' : 'var(--text-primary, #111)', minWidth: '28px', textAlign: 'center' }}>
-          {filterLocationId ? totalInFilter : product.totalQty}
-        </span>
-
         {isUnassigned ? (
-          <button onClick={() => onAssign(product)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#92400e', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}>
+          <button 
+            type="button"
+            onClick={() => onAssign(product)} 
+            style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#b45309', fontSize: '11.5px', cursor: 'pointer', fontWeight: 700 }}
+          >
             ربط بمخزن
           </button>
         ) : (
           <>
-            <button onClick={() => onTransfer(product)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--primary, #170c5c)', background: 'transparent', color: 'var(--primary, #170c5c)', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}>
+            <button 
+              type="button"
+              onClick={() => onTransfer(product)} 
+              style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
+            >
               نقل ↔
             </button>
-            <button onClick={() => onConsolidate?.(product)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}>
+            <button 
+              type="button"
+              onClick={() => onConsolidate?.(product)} 
+              style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
+            >
               توحيد
             </button>
           </>
@@ -132,7 +138,5 @@ function ProductTreeRow({
     </div>
   );
 }
-
-// ─── Category section ─────────────────────────────────────────────────────────
 
 export { ProductTreeRow };

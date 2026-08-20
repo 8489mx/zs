@@ -30,7 +30,6 @@ function CategorySection({
   onTransferCategory: (categoryName: string, products: ProductRow[]) => void;
   onRemoveLocation: (productId: string, locationId: string) => void;
 }) {
-
   const totalQty = products.reduce((sum, p) => {
     if (filterLocationId) return sum + (p.locationStocks.find((s) => s.locationId === filterLocationId)?.qty ?? 0);
     return sum + p.totalQty;
@@ -49,33 +48,56 @@ function CategorySection({
   };
 
   return (
-    <div style={{ border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '12px', overflow: 'hidden', marginBottom: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+    <div style={{ border: '1px solid var(--border, #e2e8f0)', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px', background: '#ffffff', boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)' }}>
       {/* Header */}
       <div
         onClick={onToggleCollapse}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', cursor: 'pointer', background: 'linear-gradient(135deg, var(--primary, #170c5c) 0%, var(--primary2, #10003b) 100%)', color: '#fff', userSelect: 'none' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 18px',
+          cursor: 'pointer',
+          background: 'var(--surface-2, #f8fafc)',
+          borderBottom: collapsed ? 'none' : '1px solid var(--border, #e2e8f0)',
+          userSelect: 'none',
+          transition: 'background 0.15s ease',
+        }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <input
             type="checkbox"
             checked={allSelected}
             ref={(el) => { if (el) el.indeterminate = anySelected && !allSelected; }}
             onClick={toggleAll}
-            style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#fff' }}
+            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--primary, #170c5c)' }}
           />
-          <span style={{ fontSize: '16px' }}>{collapsed ? '▶' : '▼'}</span>
-          <span style={{ fontWeight: 700, fontSize: '14px' }}>{categoryName}</span>
-          <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '20px', padding: '1px 9px', fontSize: '11px', fontWeight: 600 }}>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>{collapsed ? '◀' : '▼'}</span>
+          <span style={{ fontWeight: 800, fontSize: '15px', color: '#0f172a' }}>{categoryName}</span>
+          <span style={{ background: '#e2e8f0', color: '#334155', borderRadius: '16px', padding: '2px 10px', fontSize: '11px', fontWeight: 700 }}>
             {products.length} صنف
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '8px', padding: '3px 10px', fontWeight: 700, fontSize: '13px' }}>
-            إجمالي: {totalQty.toLocaleString()}
+          <span style={{ background: '#eef2ff', color: 'var(--primary, #170c5c)', borderRadius: '8px', padding: '4px 12px', fontWeight: 800, fontSize: '13px', border: '1px solid #c7d2fe' }}>
+            الإجمالي: {totalQty.toLocaleString()}
           </span>
           <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onTransferCategory(categoryName, products); }}
-            style={{ padding: '4px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
+            style={{
+              padding: '5px 12px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#334155',
+              fontSize: '12px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
           >
             ↔ نقل القسم
           </button>
@@ -85,13 +107,13 @@ function CategorySection({
       {/* Sub-header */}
       {!collapsed && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 110px 80px 1fr 130px', gap: '8px', padding: '7px 16px', background: 'var(--surface-color, #f9fafb)', borderBottom: '1px solid var(--border-color, #e5e7eb)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 110px 80px 1fr 140px', gap: '8px', padding: '8px 18px', background: '#fafbfc', borderBottom: '1px solid var(--border, #e2e8f0)' }}>
             <span />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary, #999)', textTransform: 'uppercase' }}>الصنف</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary, #999)', textTransform: 'uppercase' }}>القسم</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary, #999)', textAlign: 'center', textTransform: 'uppercase' }}>الإجمالي</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary, #999)', textTransform: 'uppercase' }}>🏪 المخازن والرصيد</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary, #999)', textAlign: 'left', textTransform: 'uppercase' }}>إجراء</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>الصنف</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>القسم</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textAlign: 'center' }}>الرصيد الكلي</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>أماكن التخزين والرصيد</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textAlign: 'left' }}>إجراءات</span>
           </div>
           {products.map((product) => (
             <ProductTreeRow
@@ -101,8 +123,8 @@ function CategorySection({
               isSelected={selectedIds.has(product.id)}
               onToggleSelect={onToggleSelect}
               onTransfer={onTransfer}
-                onAssign={onAssign}
-                onConsolidate={onConsolidate}
+              onAssign={onAssign}
+              onConsolidate={onConsolidate}
               onRemoveLocation={onRemoveLocation}
             />
           ))}
@@ -111,7 +133,5 @@ function CategorySection({
     </div>
   );
 }
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export { CategorySection };

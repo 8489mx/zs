@@ -2,125 +2,160 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { Button } from '@/shared/ui/button';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { formatCurrency } from '@/lib/format';
+
+function formatLocationType(type?: string) {
+  if (!type) return 'مخزن نشط';
+  const map: Record<string, string> = {
+    internal_warehouse: 'مخزن داخلي',
+    store: 'محل / نقطة بيع',
+    main: 'مخزن رئيسي',
+    warehouse: 'مخزن',
+    transit: 'مخزن ترانزيت',
+    damaged: 'مخزن تالف',
+  };
+  return map[type] || type;
+}
 
 export function WarehousesGridPage() {
   const navigate = useNavigate();
   const { locationsQuery } = useInventoryActionCatalog();
   const locations = locationsQuery.data || [];
 
-  const { data: overviewData } = useQuery({
+  const { data: overviewData, isLoading: isOverviewLoading } = useQuery({
     queryKey: ['inventory', 'advanced-overview'],
     queryFn: inventoryApi.advancedOverview,
   });
 
   const totalValue = overviewData?.totalGlobalValue || 0;
+  const avgLocationValue = locations.length > 0 ? totalValue / locations.length : 0;
+  const uniqueBranches = new Set(locations.map((loc) => loc.branchName || loc.branchId).filter(Boolean)).size;
+
+  const stats = [
+    { key: 'total_value', label: 'إجمالي قيمة المخزون (Landed Cost)', value: formatCurrency(totalValue) },
+    { key: 'total_locations', label: 'إجمالي أماكن المخزون', value: locations.length },
+    { key: 'unique_branches', label: 'الفروع التابعة', value: uniqueBranches || 1 },
+    { key: 'avg_value', label: 'متوسط قيمة المخزن', value: formatCurrency(avgLocationValue) },
+  ] as const;
 
   return (
-    <main className="document-prototype-column">
+    <main className="document-prototype-column" dir="rtl" style={{ paddingBottom: '32px' }}>
       <PageHeader 
         title="أماكن المخزون" 
-        description="استعراض وتقسيم أماكن المخزون وعرض أرصدة الأصناف" 
+        description="استعراض وتقسيم أماكن المخزون وعرض أرصدة الأصناف وقيمتها المالية" 
         actions={(
           <div className="actions compact-actions page-header-actions">
-            <button 
-              className="btn btn-primary" 
+            <Button 
+              variant="primary"
               onClick={() => navigate('/inventory/tree')}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 4 7l8 4 8-4-8-4z"/><path d="M4 11l8 4 8-4"/><path d="M4 15l8 4 8-4"/></svg>
-              الإدارة من خلال شجرة أماكن المخزون المجمعة
-            </button>
-            <button className="btn" onClick={() => navigate('/inventory/warehouses-management')}>إدارة إعدادات أماكن المخزون</button>
+              🌳 شجرة أماكن المخزون المجمعة
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => navigate('/inventory/warehouses-management')}
+            >
+              ⚙️ إدارة إعدادات المخازن
+            </Button>
           </div>
         )}
       />
 
-      <div style={{ marginBottom: '24px' }}>
-        <div className="surface-card" style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '12px', borderLeft: '4px solid var(--primary-color)' }}>
-          <div>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: 'var(--text-secondary)' }}>إجمالي قيمة المخزون (Landed Cost)</h3>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
-              {formatCurrency(totalValue)}
-            </div>
-          </div>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--blue-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue-600)' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-          </div>
-        </div>
-      </div>
+      <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />
 
       <FormSection title="قائمة أماكن المخزون">
-        {locationsQuery.isLoading ? (
-          <div className="muted small" style={{ padding: 20, textAlign: 'center' }}>جاري التحميل...</div>
+        {locationsQuery.isLoading || isOverviewLoading ? (
+          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>جاري تحميل المخازن...</div>
         ) : locations.length === 0 ? (
-          <div className="muted small" style={{ padding: 20, textAlign: 'center' }}>لا توجد مخازن متاحة</div>
+          <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>لا توجد مخازن مسجلة حاليًا</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px', padding: '16px' }}>
-            {locations.map((loc) => (
-              <div 
-                key={loc.id} 
-                className="surface-card hoverable-card"
-                style={{ 
-                  padding: '24px', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: '16px',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  backgroundColor: 'var(--surface-color)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onClick={() => navigate(`/inventory/warehouses/${loc.id}`)}
-                onMouseEnter={(e) => { 
-                  e.currentTarget.style.borderColor = 'var(--primary-color)'; 
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.08)';
-                }}
-                onMouseLeave={(e) => { 
-                  e.currentTarget.style.borderColor = 'var(--border-color)'; 
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-                }}
-              >
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '16px',
-                  backgroundColor: 'var(--blue-50)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '4px'
-                }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--blue-600)' }}>
-                    <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                    <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
-                    <path d="M2 7h20"/>
-                    <path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/>
-                  </svg>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{loc.name}</h3>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginBottom: '8px' }}>
-                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success-color)' }}></span>
-                    مخزن نشط
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px', marginTop: '12px' }}>
+            {locations.map((loc) => {
+              const locValue = overviewData?.locations?.find((l: any) => String(l.id) === String(loc.id))?.totalValue || 0;
+
+              return (
+                <div 
+                  key={loc.id} 
+                  className="surface-card hoverable-card"
+                  style={{ 
+                    padding: '20px', 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '14px',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    backgroundColor: '#ffffff',
+                    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onClick={() => navigate(`/inventory/warehouses/${loc.id}`)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '10px',
+                      backgroundColor: '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--primary, #170c5c)',
+                    }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                        <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
+                        <path d="M2 7h20"/>
+                        <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
+                      </svg>
+                    </div>
+                    <span style={{ 
+                      fontSize: '11.5px', 
+                      fontWeight: 700, 
+                      padding: '3px 10px', 
+                      borderRadius: '12px', 
+                      backgroundColor: '#ecfdf5', 
+                      color: '#059669',
+                      border: '1px solid #a7f3d0'
+                    }}>
+                      {formatLocationType(loc.locationType)}
+                    </span>
                   </div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary-color)' }}>
-                    قيمة المخزون: {formatCurrency(overviewData?.locations?.find((l: any) => String(l.id) === String(loc.id))?.totalValue || 0)}
+
+                  <div>
+                    <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
+                      {loc.name}
+                    </h3>
+                    <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                      {loc.branchName ? `الفرع: ${loc.branchName}` : loc.code ? `كود المخزن: ${loc.code}` : 'موقع تخزين رئيسي'}
+                    </div>
+                  </div>
+
+                  <div style={{ 
+                    marginTop: 'auto', 
+                    paddingTop: '14px', 
+                    borderTop: '1px solid #f1f5f9', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between' 
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>قيمة المخزون</span>
+                      <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary, #170c5c)' }}>
+                        {formatCurrency(locValue)}
+                      </strong>
+                    </div>
+                    <span style={{ fontSize: '12.5px', color: 'var(--primary, #170c5c)', fontWeight: 700 }}>
+                      عرض الأصناف ←
+                    </span>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </FormSection>

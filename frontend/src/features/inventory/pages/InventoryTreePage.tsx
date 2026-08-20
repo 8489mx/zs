@@ -2,6 +2,9 @@ import { useState, useMemo, useCallback } from 'react';
 import { systemAlert } from '@/shared/components/system-alert';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { Button } from '@/shared/ui/button';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { catalogApi } from '@/shared/api/catalog';
 import type { ProductRow, SortMode } from '../components/inventory-tree/inventoryTree.types';
@@ -197,85 +200,142 @@ export function InventoryTreePage() {
   const openCategoryTransfer = (name: string, products: ProductRow[]) => { setCategoryTransferData({ name, products }); setActiveModal('categoryTransfer'); };
   const openConsolidate = (products: ProductRow[]) => { setModalProducts(products); setActiveModal('consolidate'); };
 
+  const statsItems = [
+    { key: 'total_products', label: 'إجمالي الأصناف', value: stats.totalProducts },
+    { key: 'with_stock', label: 'أصناف بها رصيد', value: stats.withStock },
+    { key: 'unassigned', label: 'أصناف غير مربوطة', value: stats.unassigned },
+    { key: 'total_units', label: 'إجمالي الوحدات بالمخازن', value: stats.totalQty.toLocaleString() },
+    { key: 'total_locations', label: 'عدد أماكن المخزون', value: locations.length },
+  ] as const;
+
   return (
-    <main className="document-prototype-column" style={{ maxWidth: '1200px' }} dir="rtl">
+    <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '32px' }} dir="rtl">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 800 }}>🌳 شجرة المخازن الشاملة</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-secondary, #666)', fontSize: '13px' }}>
-            عرض تفصيلي لكل الأصناف ورصيدها — اضغط على أي صنف لتحديده، أو حدد عدة أصناف لعمليات جماعية
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button onClick={() => navigate('/inventory/issue-order/new')} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: 'var(--primary, #170c5c)', color: '#fff', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
-            + إذن صرف
-          </button>
-          <button onClick={() => navigate('/inventory/warehouses-management')} style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border-color, #e5e7eb)', background: 'transparent', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
-            ⚙️ إدارة المخازن
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="شجرة المخازن الشاملة"
+        description="عرض تفصيلي لأرصدة الأصناف وتوزيعها على أماكن التخزين وإجراء عمليات المناقلة والتعيين الجماعية"
+        actions={(
+          <div className="actions compact-actions page-header-actions">
+            <Button variant="primary" onClick={() => navigate('/inventory/issue-order/new')}>
+              + إذن صرف جديد
+            </Button>
+            <Button variant="secondary" onClick={() => navigate('/inventory/warehouses-management')}>
+              ⚙️ إدارة المخازن
+            </Button>
+          </div>
+        )}
+      />
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: '10px', marginBottom: '20px' }}>
-        {[
-          { label: 'إجمالي الأصناف', value: stats.totalProducts, icon: '📦', color: 'var(--primary, #170c5c)' },
-          { label: 'أصناف بها رصيد', value: stats.withStock, icon: '✅', color: '#16a34a' },
-          { label: 'غير مربوطة', value: stats.unassigned, icon: '⚠️', color: '#d97706', onClick: () => setShowUnassigned(true) },
-          { label: 'إجمالي الوحدات', value: stats.totalQty.toLocaleString(), icon: '🔢', color: '#7c3aed' },
-          { label: 'عدد المخازن', value: locations.length, icon: '🏪', color: '#0891b2' },
-        ].map((c) => (
-          <div key={c.label} onClick={c.onClick} style={{ background: '#fff', border: `1px solid ${c.color}22`, borderRadius: '10px', padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', cursor: c.onClick ? 'pointer' : 'default' }}>
-            <div style={{ fontSize: '20px', marginBottom: '5px' }}>{c.icon}</div>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: c.color }}>{c.value}</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary, #888)', marginTop: '2px' }}>{c.label}</div>
-          </div>
-        ))}
-      </div>
+      <StatsGrid items={statsItems} className="stats-grid compact-grid" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }} />
 
-      {/* Filters */}
-      <div style={{ background: '#fff', border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '10px', padding: '14px 16px', marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: '1 1 200px' }}>
-          <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}>🔍</span>
-          <input type="text" placeholder="بحث باسم الصنف أو الباركود..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '8px 32px 8px 12px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', fontSize: '13px', boxSizing: 'border-box' }} />
+      {/* Filters Toolbar */}
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid var(--border, #e2e8f0)',
+        borderRadius: '12px',
+        padding: '14px 18px',
+        marginBottom: '16px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '12px',
+        alignItems: 'center',
+        boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)',
+      }}>
+        <div style={{ position: 'relative', flex: '1 1 220px' }}>
+          <input
+            type="text"
+            placeholder="ابحث باسم الصنف أو الباركود..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid var(--border, #cbd5e1)',
+              fontSize: '13px',
+              boxSizing: 'border-box',
+            }}
+          />
         </div>
-        <select value={filterLocationId} onChange={(e) => { setFilterLocationId(e.target.value); setShowUnassigned(false); }} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', fontSize: '13px', flex: '1 1 150px' }}>
+        <select
+          value={filterLocationId}
+          onChange={(e) => { setFilterLocationId(e.target.value); setShowUnassigned(false); }}
+          style={{
+            padding: '8px 12px',
+            borderRadius: '8px',
+            border: '1px solid var(--border, #cbd5e1)',
+            fontSize: '13px',
+            flex: '1 1 150px',
+            background: '#ffffff',
+          }}
+        >
           <option value="">كل المخازن</option>
           {locations.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color, #ddd)', fontSize: '13px', flex: '1 1 150px' }}>
+        <select
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value as SortMode)}
+          style={{
+            padding: '8px 12px',
+            borderRadius: '8px',
+            border: '1px solid var(--border, #cbd5e1)',
+            fontSize: '13px',
+            flex: '1 1 150px',
+            background: '#ffffff',
+          }}
+        >
           <option value="default">ترتيب افتراضي</option>
           <option value="qtyDesc">الأعلى رصيداً أولاً</option>
           <option value="qtyAsc">الأقل رصيداً أولاً</option>
         </select>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
-          <input type="checkbox" checked={showOnlyWithStock} onChange={(e) => { setShowOnlyWithStock(e.target.checked); if (e.target.checked) setShowUnassigned(false); }} />
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap', userSelect: 'none', color: '#334155' }}>
+          <input
+            type="checkbox"
+            checked={showOnlyWithStock}
+            onChange={(e) => { setShowOnlyWithStock(e.target.checked); if (e.target.checked) setShowUnassigned(false); }}
+            style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
+          />
           بها رصيد فقط
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
-          <input type="checkbox" checked={showUnassigned} onChange={(e) => { setShowUnassigned(e.target.checked); if (e.target.checked) setShowOnlyWithStock(false); }} />
-          غير مربوطة ⚠️
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap', userSelect: 'none', color: '#334155' }}>
+          <input
+            type="checkbox"
+            checked={showUnassigned}
+            onChange={(e) => { setShowUnassigned(e.target.checked); if (e.target.checked) setShowOnlyWithStock(false); }}
+            style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
+          />
+          غير مربوطة بمخزن ⚠️
         </label>
         {(search || filterLocationId || showOnlyWithStock || showUnassigned || sortMode !== 'default') && (
-          <button onClick={() => { setSearch(''); setFilterLocationId(''); setShowOnlyWithStock(false); setShowUnassigned(false); setSortMode('default'); }} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: '12px', cursor: 'pointer' }}>
-            ✕ مسح الفلاتر
-          </button>
+          <Button
+            variant="secondary"
+            onClick={() => { setSearch(''); setFilterLocationId(''); setShowOnlyWithStock(false); setShowUnassigned(false); setSortMode('default'); }}
+          >
+            تفريغ الفلاتر
+          </Button>
         )}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary, #888)' }}>
-          عرض {filteredRows.length} صنف من أصل {productRows.length}
-          {selectedIds.size > 0 && <span style={{ marginRight: '8px', color: 'var(--primary, #170c5c)', fontWeight: 700 }}>— {selectedIds.size} صنف محدد</span>}
+      {/* List Sub-header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ fontSize: '13px', color: '#64748b' }}>
+          عرض <strong style={{ color: '#0f172a' }}>{filteredRows.length}</strong> صنف من أصل {productRows.length}
+          {selectedIds.size > 0 && <span style={{ marginInlineStart: '8px', color: 'var(--primary, #170c5c)', fontWeight: 800 }}>— ({selectedIds.size} صنف محدد)</span>}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={handleSelectAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--primary, #170c5c)', background: allSelected ? 'var(--primary, #170c5c)' : 'transparent', color: allSelected ? '#fff' : 'var(--primary, #170c5c)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
-            {allSelected ? 'إلغاء التحديد ⬜' : 'تحديد الكل ☑️'}
-          </button>
-          <button onClick={toggleExpandCollapseAll} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border-color, #ccc)', background: '#fff', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
-            {isAllExpanded ? 'ضم الأقسام ▶' : 'فرد الأقسام ▼'}
-          </button>
+          <Button
+            variant={allSelected ? 'primary' : 'secondary'}
+            onClick={handleSelectAll}
+          >
+            {allSelected ? 'إلغاء التحديد' : 'تحديد الكل'}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={toggleExpandCollapseAll}
+          >
+            {isAllExpanded ? 'ضم كافة الأقسام ◀' : 'فرد كافة الأقسام ▼'}
+          </Button>
         </div>
       </div>
 
