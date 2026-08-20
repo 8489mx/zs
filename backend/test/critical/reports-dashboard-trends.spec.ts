@@ -31,8 +31,8 @@ class FakeDb {
   today.setUTCHours(10, 0, 0, 0);
   const oneDayAgo = new Date(today);
   oneDayAgo.setUTCDate(oneDayAgo.getUTCDate() - 1);
-  const eightDaysAgo = new Date(today);
-  eightDaysAgo.setUTCDate(eightDaysAgo.getUTCDate() - 8);
+  const thirtyFiveDaysAgo = new Date(today);
+  thirtyFiveDaysAgo.setUTCDate(thirtyFiveDaysAgo.getUTCDate() - 35);
 
   const products = Array.from({ length: 10 }, (_, index) => ({
     id: index + 1,
@@ -49,7 +49,7 @@ class FakeDb {
     sales: [
       { id: 1, total: 100, branch_id: 1, location_id: 1, created_at: today.toISOString() },
       { id: 2, total: 50, branch_id: 1, location_id: 1, created_at: oneDayAgo.toISOString() },
-      { id: 3, total: 999, branch_id: 1, location_id: 1, created_at: eightDaysAgo.toISOString() },
+      { id: 3, total: 999, branch_id: 1, location_id: 1, created_at: thirtyFiveDaysAgo.toISOString() },
     ],
     purchases: [
       { id: 1, total: 80, branch_id: 1, location_id: 1, created_at: today.toISOString() },
@@ -89,11 +89,11 @@ class FakeDb {
   const trends = (result.trends as any).sales as Array<{ key: string; value: number }>;
   const todayKey = dateKey(today, businessTimezone);
   const oneDayAgoKey = dateKey(oneDayAgo, businessTimezone);
-  const eightDaysAgoKey = dateKey(eightDaysAgo, businessTimezone);
+  const thirtyFiveDaysAgoKey = dateKey(thirtyFiveDaysAgo, businessTimezone);
 
   assert.equal(trends.find((item) => item.key === todayKey)?.value, 100);
   assert.equal(trends.find((item) => item.key === oneDayAgoKey)?.value, 50);
-  assert.equal(trends.some((item) => item.key === eightDaysAgoKey), false);
+  assert.equal(trends.some((item) => item.key === thirtyFiveDaysAgoKey), false);
   assert.equal((result.stats as any).todaySalesAmount, 100);
   assert.equal((result.summary as any).activeOffers, 1);
   assert.equal((result.summary as any).lowStockCount, 9);

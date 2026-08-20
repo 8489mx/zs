@@ -287,7 +287,7 @@ export class ReportsSummaryService {
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
-    const dayKeys = buildLastNDays(7);
+    const dayKeys = buildLastNDays(30);
     const salesTrend: TrendPoint[] = buildTrendMap(recentSalesRows, dayKeys, (row) => dateKey(row.created_at), (row) => row.total);
     const purchasesTrend: TrendPoint[] = buildTrendMap(recentPurchasesRows, dayKeys, (row) => dateKey(row.created_at), (row) => row.total);
 

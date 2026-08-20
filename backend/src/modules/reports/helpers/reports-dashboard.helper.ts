@@ -62,7 +62,7 @@ export type DashboardScope = {
 export function buildDashboardScope(now: Date, businessTimezone: string): DashboardScope {
   const today = getBusinessDayBounds(now, businessTimezone);
   const trendStart = new Date(today.start);
-  trendStart.setUTCDate(trendStart.getUTCDate() - 6);
+  trendStart.setUTCDate(trendStart.getUTCDate() - 29);
 
   return {
     businessTimezone,
@@ -223,7 +223,7 @@ export function buildSevenDayTrends(
   recentPurchasesRows: TimedMoneyRow[],
   businessTimezone: string,
 ): { sales: TrendPoint[]; purchases: TrendPoint[] } {
-  const dayKeys = buildLastNDays(7, businessTimezone, new Date());
+  const dayKeys = buildLastNDays(30, businessTimezone, new Date());
   const sales: TrendPoint[] = buildTrendMap(recentSalesRows, dayKeys, (row) => dateKey(row.created_at, businessTimezone), (row) => row.total);
   const purchases: TrendPoint[] = buildTrendMap(recentPurchasesRows, dayKeys, (row) => dateKey(row.created_at, businessTimezone), (row) => row.total);
   return { sales, purchases };

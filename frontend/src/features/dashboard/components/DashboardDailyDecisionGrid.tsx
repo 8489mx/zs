@@ -21,13 +21,17 @@ interface DashboardDailyDecisionGridProps {
 }
 
 function formatNumber(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(Number(value))) return 'غير متاح';
-  return new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 1 }).format(Number(value));
+  if (value == null || !Number.isFinite(Number(value))) return '0';
+  const num = Number(value);
+  if (num === 0) return '0';
+  return new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 1 }).format(num);
 }
 
 function formatPercent(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(Number(value))) return 'غير متاح';
-  return `${formatNumber(value)}%`;
+  if (value == null || !Number.isFinite(Number(value))) return '0%';
+  const num = Number(value);
+  if (num === 0) return '0%';
+  return `${formatNumber(num)}%`;
 }
 
 function MetricTile({ label, value }: { label: string; value: string }) {

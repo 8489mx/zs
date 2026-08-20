@@ -21,6 +21,18 @@ interface DashboardExecutiveHeroProps {
   totalStockAlerts: number;
 }
 
+const THEME_STORAGE_KEY = 'dashboard_hero_card_theme';
+
+function getInitialTheme(): 'dark' | 'light' {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {}
+  }
+  return 'dark';
+}
+
 export function DashboardExecutiveHero({
   salesTrend = [],
   purchasesTrend = [],
@@ -30,16 +42,40 @@ export function DashboardExecutiveHero({
   totalStockAlerts,
 }: DashboardExecutiveHeroProps) {
   const [activeMetric, setActiveMetric] = useState<'sales' | 'both'>('sales');
-  const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
+  const [timeframe, setTimeframe] = useState<'7d' | '30d'>('7d');
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>(getInitialTheme);
 
   const user = useAuthStore((state) => state.user);
-  const userName = user?.displayName?.trim() || user?.username?.trim() || '';
-  const userGreetingPart = userName ? ` يا ${userName}` : '';
+
+  const handleToggleTheme = () => {
+    setThemeMode((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(THEME_STORAGE_KEY, next);
+        } catch {}
+      }
+      return next;
+    });
+  };
+  
+  // Format username gracefully: replace system placeholders like Bootstrap Administrator with Arabic title
+  const formattedUserName = useMemo(() => {
+    const raw = user?.displayName?.trim() || user?.username?.trim() || '';
+    if (!raw) return 'مدير النظام';
+    const lower = raw.toLowerCase();
+    if (lower.includes('bootstrap') || lower === 'admin' || lower === 'administrator' || lower === 'root') {
+      return 'مدير النظام';
+    }
+    return raw;
+  }, [user]);
+
+  const userGreetingPart = formattedUserName ? ` يا ${formattedUserName}` : '';
 
   // Compute time-based greeting
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return { text: `صباح الخير${userGreetingPart}`, sub: 'نتمنى لك يوماً تجارياً مباركاً وموفقاً' };
+    if (hour >= 5 && hour < 12) return { text: `صباح الخير والبركة${userGreetingPart}`, sub: 'نتمنى لك يوماً تجارياً مباركاً وموفقاً' };
     if (hour >= 12 && hour < 17) return { text: `طاب يومك بكل خير${userGreetingPart}`, sub: 'متابعة حية ومستمرة لعمليات متجرك اليوم' };
     return { text: `مساء الخير والازدهار${userGreetingPart}`, sub: 'إليك ملخص أداء النظام والنتائج المحققة اليوم' };
   }, [userGreetingPart]);
@@ -58,47 +94,57 @@ export function DashboardExecutiveHero({
     }
   }, []);
 
-  // Prepare chart data (last 7 points)
+  // Prepare chart data (7 points or 30 points)
   const chartData = useMemo(() => {
-    if (!salesTrend.length && !purchasesTrend.length) {
-      return [
-        { label: 'السبت', sales: 0, purchases: 0 },
-        { label: 'الأحد', sales: 0, purchases: 0 },
-        { label: 'الإثنين', sales: 0, purchases: 0 },
-        { label: 'الثلاثاء', sales: 0, purchases: 0 },
-        { label: 'الأربعاء', sales: 0, purchases: 0 },
-        { label: 'الخميس', sales: 0, purchases: 0 },
-        { label: 'اليوم', sales: todaySalesAmount || 0, purchases: 0 },
-      ];
+    const pointsCount = Math.max(salesTrend.length, purchasesTrend.length);
+    if (!pointsCount) {
+      const dummyCount = timeframe === '7d' ? 7 : 30;
+      const dummy = [];
+      const weekdays = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+      for (let i = 0; i < dummyCount; i++) {
+        dummy.push({
+          label: timeframe === '7d' ? weekdays[i % 7] : `${i + 1}`,
+          fullDate: `يوم ${i + 1}`,
+          sales: i === dummyCount - 1 ? (todaySalesAmount || 0) : 0,
+          purchases: 0,
+        });
+      }
+      return dummy;
     }
 
-    const pointsCount = Math.max(salesTrend.length, purchasesTrend.length);
     const result = [];
-
     for (let i = 0; i < pointsCount; i++) {
       const s = salesTrend[i];
       const p = purchasesTrend[i];
       const rawKey = s?.key || p?.key || `يوم ${i + 1}`;
       
       let label = rawKey;
+      let fullDate = rawKey;
       try {
         if (rawKey.includes('-')) {
           const d = new Date(rawKey);
-          label = new Intl.DateTimeFormat('ar-EG', { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+          if (timeframe === '7d') {
+            label = new Intl.DateTimeFormat('ar-EG', { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+          } else {
+            label = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short' }).format(d);
+          }
+          fullDate = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
         }
       } catch {
         label = rawKey;
+        fullDate = rawKey;
       }
 
       result.push({
         label,
+        fullDate,
         sales: Number(s?.value || 0),
         purchases: Number(p?.value || 0),
       });
     }
 
-    return result.slice(-7);
-  }, [salesTrend, purchasesTrend, todaySalesAmount]);
+    return timeframe === '7d' ? result.slice(-7) : result.slice(-30);
+  }, [salesTrend, purchasesTrend, todaySalesAmount, timeframe]);
 
   const isDark = themeMode === 'dark';
 
@@ -180,8 +226,8 @@ export function DashboardExecutiveHero({
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: isDark ? '#ffffff' : '#0f172a' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '1.42rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: isDark ? '#ffffff' : '#0f172a' }}>
               {greeting.text}
             </h1>
             
@@ -213,150 +259,182 @@ export function DashboardExecutiveHero({
               مباشر ومتزامن
             </span>
 
-            {/* Theme Toggle Button */}
+            {/* Theme Toggle Button - Sleek Icon Only */}
             <button
               type="button"
-              onClick={() => setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-              title={isDark ? 'تحويل للمظهر الفاتح' : 'تحويل للمظهر الليلي'}
+              onClick={handleToggleTheme}
+              title={isDark ? 'التبديل إلى المظهر الفاتح' : 'التبديل إلى المظهر الليلي'}
+              aria-label={isDark ? 'التبديل إلى المظهر الفاتح' : 'التبديل إلى المظهر الليلي'}
               style={{
-                background: isDark ? 'rgba(255, 255, 255, 0.1)' : '#ffffff',
-                border: isDark ? '1px solid rgba(255, 255, 255, 0.22)' : '1px solid #cbd5e1',
-                color: isDark ? '#f8fafc' : '#334155',
-                padding: '3px 10px',
-                borderRadius: '999px',
-                fontSize: '0.72rem',
-                fontWeight: 700,
+                background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #cbd5e1',
+                color: isDark ? '#f59e0b' : '#475569',
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
+                justifyContent: 'center',
                 boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
                 transition: 'all 0.2s ease',
+                padding: 0,
               }}
             >
-              {isDark ? '☀️ المظهر الفاتح' : '🌙 المظهر الليلي'}
+              {isDark ? (
+                // Sun Icon for Dark Mode (switch to light)
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4" fill="#fbbf24" fillOpacity="0.25" />
+                  <line x1="12" y1="2" x2="12" y2="4" />
+                  <line x1="12" y1="20" x2="12" y2="22" />
+                  <line x1="4.93" y1="4.93" x2="6.34" y2="6.34" />
+                  <line x1="17.66" y1="17.66" x2="19.07" y2="19.07" />
+                  <line x1="2" y1="12" x2="4" y2="12" />
+                  <line x1="20" y1="12" x2="22" y2="12" />
+                  <line x1="4.93" y1="19.07" x2="6.34" y2="17.66" />
+                  <line x1="17.66" y1="6.34" x2="19.07" y2="4.93" />
+                </svg>
+              ) : (
+                // Moon Icon for Light Mode (switch to dark)
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#475569" fillOpacity="0.15" />
+                </svg>
+              )}
             </button>
           </div>
           
-          <p style={{ margin: 0, fontSize: '0.86rem', color: isDark ? '#cbd5e1' : '#475569' }}>
-            {greeting.sub} · <strong style={{ color: isDark ? '#ffffff' : '#0f172a' }}>{todayFormatted}</strong>
+          <p style={{ margin: 0, fontSize: '0.86rem', color: isDark ? '#94a3b8' : '#64748b' }}>
+            {greeting.sub} · <strong style={{ color: isDark ? '#e2e8f0' : '#0f172a' }}>{todayFormatted}</strong>
           </p>
         </div>
 
-        {/* 4 Frosted Glass Top-Shine KPI Badges */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        {/* 4 Unified, Calming, Glassmorphic KPI Cards */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {/* Card 1: Sales */}
           <div
             style={{
-              background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #e2e8f0',
+              background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
               backdropFilter: 'blur(12px)',
               padding: '8px 14px',
               borderRadius: '10px',
               textAlign: 'center',
               minWidth: '110px',
-              boxShadow: isDark
-                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0,0,0,0.25)'
-                : '0 1px 3px rgba(0,0,0,0.03)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              transition: 'all 0.2s ease',
             }}
           >
-            <div style={{ fontSize: '0.74rem', color: isDark ? '#e2e8f0' : '#64748b', fontWeight: 600, marginBottom: '2px' }}>مبيعات اليوم</div>
-            <strong style={{ fontSize: '1.05rem', color: isDark ? '#60a5fa' : '#2563eb', fontWeight: 800 }}>
-              {formatCurrency(todaySalesAmount)}
-            </strong>
+            <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
+              مبيعات اليوم
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+              <strong style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
+                {formatCurrency(todaySalesAmount)}
+              </strong>
+              <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
+            </div>
           </div>
 
           {/* Card 2: Invoices */}
           <div
             style={{
-              background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #e2e8f0',
+              background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
               backdropFilter: 'blur(12px)',
               padding: '8px 14px',
               borderRadius: '10px',
               textAlign: 'center',
               minWidth: '95px',
-              boxShadow: isDark
-                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0,0,0,0.25)'
-                : '0 1px 3px rgba(0,0,0,0.03)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              transition: 'all 0.2s ease',
             }}
           >
-            <div style={{ fontSize: '0.74rem', color: isDark ? '#e2e8f0' : '#64748b', fontWeight: 600, marginBottom: '2px' }}>فواتير اليوم</div>
-            <strong style={{ fontSize: '1.05rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 800 }}>
-              {todaySalesCount} فاتورة
-            </strong>
+            <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
+              فواتير اليوم
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+              <strong style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
+                {todaySalesCount}
+              </strong>
+              <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>فاتورة</span>
+            </div>
           </div>
 
           {/* Card 3: Treasury */}
           <div
             style={{
-              background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #e2e8f0',
+              background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
               backdropFilter: 'blur(12px)',
               padding: '8px 14px',
               borderRadius: '10px',
               textAlign: 'center',
-              minWidth: '110px',
-              boxShadow: isDark
-                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0,0,0,0.25)'
-                : '0 1px 3px rgba(0,0,0,0.03)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              minWidth: '115px',
+              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              transition: 'all 0.2s ease',
             }}
           >
-            <div style={{ fontSize: '0.74rem', color: isDark ? '#e2e8f0' : '#64748b', fontWeight: 600, marginBottom: '2px' }}>صافي الخزينة</div>
-            <strong
-              style={{
-                fontSize: '1.05rem',
-                color: isDark
-                  ? (treasuryNet >= 0 ? '#38bdf8' : '#f87171')
-                  : (treasuryNet >= 0 ? '#0284c7' : '#dc2626'),
-                fontWeight: 800,
-              }}
-            >
-              {formatCurrency(treasuryNet)}
-            </strong>
+            <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
+              صافي الخزينة
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+              <strong
+                dir="ltr"
+                style={{
+                  fontSize: '1.05rem',
+                  color: isDark
+                    ? (treasuryNet < 0 ? '#f87171' : '#ffffff')
+                    : (treasuryNet < 0 ? '#dc2626' : '#0f172a'),
+                  fontWeight: 800,
+                }}
+              >
+                {treasuryNet < 0 ? `-${formatCurrency(Math.abs(treasuryNet))}` : formatCurrency(treasuryNet)}
+              </strong>
+              <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
+            </div>
           </div>
 
           {/* Card 4: Inventory Alerts */}
           <div
             style={{
-              background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #e2e8f0',
+              background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
               backdropFilter: 'blur(12px)',
               padding: '8px 14px',
               borderRadius: '10px',
               textAlign: 'center',
               minWidth: '105px',
-              boxShadow: isDark
-                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0,0,0,0.25)'
-                : '0 1px 3px rgba(0,0,0,0.03)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              transition: 'all 0.2s ease',
             }}
           >
-            <div style={{ fontSize: '0.74rem', color: isDark ? '#e2e8f0' : '#64748b', fontWeight: 600, marginBottom: '2px' }}>تنبيهات المخزون</div>
-            <strong
-              style={{
-                fontSize: '1.05rem',
-                color: isDark
-                  ? (totalStockAlerts > 0 ? '#fb7185' : '#4ade80')
-                  : (totalStockAlerts > 0 ? '#dc2626' : '#16a34a'),
-                fontWeight: 800,
-              }}
-            >
-              {totalStockAlerts > 0 ? `${totalStockAlerts} صنف` : 'مكتمل'}
-            </strong>
+            <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
+              تنبيهات المخزون
+            </div>
+            {totalStockAlerts > 0 ? (
+              <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+                <strong style={{ fontSize: '1.05rem', color: isDark ? '#fb7185' : '#e11d48', fontWeight: 800 }}>
+                  {totalStockAlerts}
+                </strong>
+                <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>صنف</span>
+              </div>
+            ) : (
+              <strong style={{ fontSize: '0.92rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 700 }}>
+                مستقر ✓
+              </strong>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Chart Section Header & Mode Toggle */}
+      {/* Chart Section Header: Title + Timeframe Switcher & Mode Toggle */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
           borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #e2e8f0',
           paddingTop: '16px',
           marginBottom: '10px',
@@ -364,10 +442,74 @@ export function DashboardExecutiveHero({
           zIndex: 1,
         }}
       >
-        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}>
-          حركة المبيعات وتدفق النشاط (آخر ٧ أيام)
-        </span>
+        {/* Title + Timeframe Pill Switcher */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}>
+            حركة المبيعات وتدفق النشاط
+          </span>
 
+          <div
+            style={{
+              background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
+              padding: '3px',
+              borderRadius: '8px',
+              display: 'inline-flex',
+              gap: '3px',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setTimeframe('7d')}
+              style={{
+                background: timeframe === '7d'
+                  ? (isDark ? '#0284c7' : '#ffffff')
+                  : 'transparent',
+                color: timeframe === '7d'
+                  ? (isDark ? '#ffffff' : '#0f172a')
+                  : (isDark ? '#cbd5e1' : '#64748b'),
+                boxShadow: timeframe === '7d'
+                  ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
+                  : 'none',
+                border: timeframe === '7d' && !isDark ? '1px solid #cbd5e1' : 'none',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              آخر ٧ أيام
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeframe('30d')}
+              style={{
+                background: timeframe === '30d'
+                  ? (isDark ? '#0284c7' : '#ffffff')
+                  : 'transparent',
+                color: timeframe === '30d'
+                  ? (isDark ? '#ffffff' : '#0f172a')
+                  : (isDark ? '#cbd5e1' : '#64748b'),
+                boxShadow: timeframe === '30d'
+                  ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
+                  : 'none',
+                border: timeframe === '30d' && !isDark ? '1px solid #cbd5e1' : 'none',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              آخر ٣٠ يوماً
+            </button>
+          </div>
+        </div>
+
+        {/* Metric Mode Filter */}
         <div
           style={{
             background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
@@ -375,6 +517,7 @@ export function DashboardExecutiveHero({
             borderRadius: '8px',
             display: 'flex',
             gap: '3px',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
           }}
         >
           <button
@@ -387,8 +530,10 @@ export function DashboardExecutiveHero({
               color: activeMetric === 'sales'
                 ? (isDark ? '#ffffff' : '#0f172a')
                 : (isDark ? '#cbd5e1' : '#64748b'),
-              boxShadow: activeMetric === 'sales' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              border: 'none',
+              boxShadow: activeMetric === 'sales'
+                ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
+                : 'none',
+              border: activeMetric === 'sales' && !isDark ? '1px solid #cbd5e1' : 'none',
               padding: '5px 12px',
               borderRadius: '6px',
               fontSize: '0.76rem',
@@ -409,8 +554,10 @@ export function DashboardExecutiveHero({
               color: activeMetric === 'both'
                 ? (isDark ? '#ffffff' : '#0f172a')
                 : (isDark ? '#cbd5e1' : '#64748b'),
-              boxShadow: activeMetric === 'both' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              border: 'none',
+              boxShadow: activeMetric === 'both'
+                ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
+                : 'none',
+              border: activeMetric === 'both' && !isDark ? '1px solid #cbd5e1' : 'none',
               padding: '5px 12px',
               borderRadius: '6px',
               fontSize: '0.76rem',
@@ -446,14 +593,17 @@ export function DashboardExecutiveHero({
             <XAxis
               dataKey="label"
               stroke={isDark ? '#94a3b8' : '#64748b'}
-              tick={{ fill: isDark ? '#e2e8f0' : '#334155', fontSize: 12, fontWeight: 700 }}
+              tick={{ fill: isDark ? '#e2e8f0' : '#334155', fontSize: timeframe === '30d' ? 11 : 12, fontWeight: 700 }}
               tickLine={false}
+              minTickGap={timeframe === '30d' ? 18 : 8}
+              interval={timeframe === '30d' ? 'preserveStartEnd' : 0}
               axisLine={{ stroke: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0' }}
             />
             <YAxis hide domain={['dataMin - 100', 'dataMax + 200']} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
+                  const fullDate = payload[0]?.payload?.fullDate || label;
                   return (
                     <div
                       style={{
@@ -465,10 +615,10 @@ export function DashboardExecutiveHero({
                         color: isDark ? '#fff' : '#0f172a',
                         boxShadow: isDark ? '0 10px 25px rgba(0,0,0,0.5)' : '0 6px 16px rgba(0,0,0,0.08)',
                         direction: 'rtl',
-                        minWidth: '140px',
+                        minWidth: '150px',
                       }}
                     >
-                      <div style={{ fontSize: '0.78rem', color: isDark ? '#94a3b8' : '#64748b', marginBottom: '6px', fontWeight: 600 }}>{label}</div>
+                      <div style={{ fontSize: '0.78rem', color: isDark ? '#94a3b8' : '#64748b', marginBottom: '6px', fontWeight: 600 }}>{fullDate}</div>
                       {payload.map((entry) => (
                         <div
                           key={entry.name}
@@ -485,7 +635,7 @@ export function DashboardExecutiveHero({
                           }}
                         >
                           <span>{entry.name === 'sales' ? 'المبيعات:' : 'المشتريات:'}</span>
-                          <span>{formatCurrency(Number(entry.value || 0))}</span>
+                          <span dir="ltr">{formatCurrency(Number(entry.value || 0))} ج.م</span>
                         </div>
                       ))}
                     </div>
@@ -516,7 +666,7 @@ export function DashboardExecutiveHero({
                     </g>
                   );
                 }
-                return <circle key={`dot-${index ?? 0}`} cx={cx ?? 0} cy={cy ?? 0} r={0} />;
+                return <circle key={`dot-${index ?? 0}`} cx={cx ?? 0} cy={cy ?? 0} r={3} fill={isDark ? '#38bdf8' : '#2563eb'} opacity={0.4} />;
               }}
             />
             {activeMetric === 'both' && (
@@ -532,6 +682,10 @@ export function DashboardExecutiveHero({
                 isAnimationActive={true}
                 animationDuration={1200}
                 animationEasing="ease-out"
+                dot={(props: any) => {
+                  const { cx, cy, index } = props;
+                  return <circle key={`purch-dot-${index ?? 0}`} cx={cx ?? 0} cy={cy ?? 0} r={3} fill={isDark ? '#c084fc' : '#7c3aed'} opacity={0.4} />;
+                }}
               />
             )}
           </AreaChart>
@@ -540,3 +694,4 @@ export function DashboardExecutiveHero({
     </section>
   );
 }
+

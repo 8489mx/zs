@@ -120,7 +120,7 @@ import {
   const scope = buildDashboardScope(new Date('2026-02-10T12:00:00.000Z'), 'UTC');
   assert.equal(scope.today.key, '2026-02-10');
   assert.equal(scope.activeOfferDate, '2026-02-10');
-  assert.equal(scope.trendStart.toISOString(), '2026-02-04T00:00:00.000Z');
+  assert.equal(scope.trendStart.toISOString(), '2026-01-12T00:00:00.000Z');
 
   const state = buildDashboardComputedState({
     productsRows: [
@@ -159,7 +159,7 @@ import {
   assert.equal(state.partnerExposure.highSupplierBalances, 1);
   assert.equal(state.todayOperations.todaySalesCount, 1);
   assert.equal(state.todayOperations.todayPurchasesAmount, 60);
-  assert.equal(state.trends.sales.length, 7);
+  assert.equal(state.trends.sales.length, 30);
 
   console.log('reports-dashboard.helper.spec: ok');
 })();
