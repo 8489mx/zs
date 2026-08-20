@@ -54,6 +54,7 @@ const baseSettingsMutationValues = {
   printDeliveryRepOnReceipt: false,
   clothingModuleEnabled: false,
   enableMobileStoreFeatures: false,
+  enableEnterpriseFeatures: false,
   technicianCommissionRate: 30,
   defaultProductKind: 'standard' as const,
   defaultPosMode: 'scanner' as const,

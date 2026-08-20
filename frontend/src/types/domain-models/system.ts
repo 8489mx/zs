@@ -60,6 +60,8 @@ export interface CashierShift {
   instapayOperationCount?: number;
   cashDrawerMovementTotal?: number;
   cashDrawerCashInTotal?: number;
+  cashDrawerDeliveryCashInTotal?: number;
+  cashDrawerManualCashInTotal?: number;
   cashDrawerCashOutTotal?: number;
   supplierPaymentsTotal?: number;
   expensesTotal?: number;
@@ -170,6 +172,7 @@ export interface AppSettings {
   posShowCartMeta?: boolean;
   clothingModuleEnabled?: boolean;
   enableMobileStoreFeatures?: boolean;
+  enableEnterpriseFeatures?: boolean;
   technicianCommissionRate?: number;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;

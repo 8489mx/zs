@@ -5,7 +5,7 @@ import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { useTranslation } from '../../utils/i18n-purchase-prototype';
-import { formatMoney, searchSupplier, searchContact, searchWarehouse } from './newPurchaseOrder.helpers';
+import { formatMoney, searchSupplier, searchContact } from './newPurchaseOrder.helpers';
 import type { SupplierOption, ContactOption, WarehouseOption, QuickCreateState, ValidationErrors } from './newPurchaseOrder.types';
 
 interface HeaderSectionProps {
@@ -160,8 +160,22 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
         }
       />
       <section className="document-prototype-section">
-        <h3 className="document-prototype-section-title">{t('basic_info')}</h3>
-        <div className="document-prototype-grid compact-grid-3">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+          <h3 className="document-prototype-section-title" style={{ margin: 0 }}>{t('basic_info')}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label className="button button-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', height: '30px', margin: 0 }}>
+              <input type="file" multiple onChange={props.onFileUpload} style={{ display: 'none' }} />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                <path d="M21 12.5 12.8 20.7a5 5 0 0 1-7.1-7.1L14.2 5.1a3.5 3.5 0 0 1 4.9 4.9L9.9 19.2" />
+              </svg>
+              <span>{props.isUploading ? 'جاري الرفع...' : 'إرفاق مستندات'}</span>
+              {props.attachments.length > 0 && <span className="nav-pill" style={{ fontSize: '0.7rem', padding: '1px 5px' }}>{props.attachments.length}</span>}
+            </label>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.65rem' }}>
+          {/* Row 1: المورد - التليفون - طريقة الدفع */}
           <SearchableCombobox
             label={t('supplier')}
             placeholder={t('search_supplier')}
@@ -183,6 +197,40 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
             dropdownClassName={props.purchaseDropdownClassName}
             error={props.validationErrors.supplier}
           />
+          <SearchableCombobox
+            label={t('phone_number') || 'رقم التليفون'}
+            placeholder="ابحث عن رقم تليفون..."
+            value={props.contact}
+            onChange={(value) => {
+              props.markDocumentDirty();
+              props.setContact(value);
+            }}
+            options={props.contactsList}
+            search={searchContact}
+            getLabel={(option) => option.name}
+            getMeta={(option) => [option.phone, option.supplierName].filter(Boolean).join(' · ')}
+            onSelect={props.onContactSelect}
+            onCreate={(query) => props.onOpenQuickCreate('contact', query)}
+            createLabel={(query) => `+ إنشاء جهة اتصال جديدة "${query}"`}
+            inputRef={props.contactInputRef}
+            inputClassName="purchase-prototype-field-input purchase-prototype-contact-input"
+            dropdownClassName={props.purchaseDropdownClassName}
+          />
+          <Field label="طريقة الدفع">
+            <select
+              className="purchase-prototype-field-input purchase-prototype-meta-input"
+              value={props.paymentType}
+              onChange={(event) => {
+                props.markDocumentDirty();
+                props.setPaymentType(event.target.value as 'cash' | 'credit');
+              }}
+            >
+              <option value="credit">آجل (يضاف لمديونية المورد)</option>
+              <option value="cash">كاش (دفع فوري من الخزينة)</option>
+            </select>
+          </Field>
+
+          {/* Row 2: التاريخ - التاريخ المطلوب - العملة */}
           <Field label={t('date')} error={props.validationErrors.date}>
             <input
               ref={props.dateInputRef}
@@ -225,90 +273,15 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
               ))}
             </select>
           </Field>
-          <Field label="طريقة الدفع">
-            <select
-              className="purchase-prototype-field-input purchase-prototype-meta-input"
-              value={props.paymentType}
-              onChange={(event) => {
-                props.markDocumentDirty();
-                props.setPaymentType(event.target.value as 'cash' | 'credit');
-              }}
-            >
-              <option value="credit">آجل (يضاف لمديونية المورد)</option>
-              <option value="cash">كاش (دفع فوري من الخزينة)</option>
-            </select>
-          </Field>
-          <SearchableCombobox
-            label={t('phone_number') || 'رقم التليفون'}
-            placeholder="ابحث عن رقم تليفون..."
-            value={props.contact}
-            onChange={(value) => {
-              props.markDocumentDirty();
-              props.setContact(value);
-            }}
-            options={props.contactsList}
-            search={searchContact}
-            getLabel={(option) => option.name}
-            getMeta={(option) => [option.phone, option.supplierName].filter(Boolean).join(' · ')}
-            onSelect={props.onContactSelect}
-            onCreate={(query) => props.onOpenQuickCreate('contact', query)}
-            createLabel={(query) => `+ إنشاء جهة اتصال جديدة "${query}"`}
-            inputRef={props.contactInputRef}
-            inputClassName="purchase-prototype-field-input purchase-prototype-contact-input"
-            dropdownClassName={props.purchaseDropdownClassName}
-          />
         </div>
-      </section>
-
-      <section className="document-prototype-section">
-        <h3 className="document-prototype-section-title">الشحن والاستلام</h3>
-        <div className="document-prototype-grid compact-grid-1">
-          <SearchableCombobox
-            label={t('shipping_address') || 'وجهة الاستلام (المخزن أو الفرع)'}
-            placeholder="اختر المخزن أو الفرع..."
-            value={props.shippingAddress}
-            onChange={(value) => {
-              props.markDocumentDirty();
-              props.setShippingAddress(value);
-            }}
-            options={props.deliveryDestinations}
-            search={searchWarehouse}
-            getLabel={(option) => option.name}
-            getMeta={(option) => option.code}
-            onSelect={(option) => {
-              props.markDocumentDirty();
-              props.setShippingAddress(option.name);
-            }}
-            createLabel={(query) => `Create Warehouse "${query}"`}
-            onCreate={(query: string) => props.onSetQuickCreateState({ kind: 'warehouse', query, lineId: null })}
-            inputRef={props.shippingInputRef}
-            inputClassName="purchase-prototype-field-input purchase-prototype-address-input"
-            dropdownClassName={props.purchaseDropdownClassName}
-          />
-        </div>
-      </section>
-
-      <section className="document-prototype-section">
-        <h3 className="document-prototype-section-title">{t('attach_docs')}</h3>
-        <label className="document-prototype-upload" style={{ display: 'flex', cursor: 'pointer', padding: '12px' }}>
-          <input type="file" multiple onChange={props.onFileUpload} style={{ display: 'none' }} />
-          <span aria-hidden="true" className="document-prototype-upload-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.5 12.8 20.7a5 5 0 0 1-7.1-7.1L14.2 5.1a3.5 3.5 0 0 1 4.9 4.9L9.9 19.2" />
-            </svg>
-          </span>
-          <span>{props.isUploading ? 'جاري الرفع...' : t('drag_drop_docs')}</span>
-        </label>
 
         {props.attachments.length > 0 && (
-          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {props.attachments.map((att, index) => (
-              <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', border: '1px solid var(--border-light)', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '13px' }}>{att.fileName}</span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{(att.fileSize / 1024).toFixed(1)} KB</span>
-                </div>
-                <button type="button" onClick={() => props.onRemoveAttachment(index)} style={{ color: 'var(--danger-color)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}>حذف</button>
+              <div key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: '#f8fafc', border: '1px solid var(--border-light)', borderRadius: '6px', fontSize: '0.78rem' }}>
+                <span>📎 {att.fileName}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>({(att.fileSize / 1024).toFixed(0)} KB)</span>
+                <button type="button" onClick={() => props.onRemoveAttachment(index)} style={{ color: 'var(--danger-color)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}>✕</button>
               </div>
             ))}
           </div>

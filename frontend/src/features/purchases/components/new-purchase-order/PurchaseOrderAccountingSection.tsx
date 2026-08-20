@@ -1,8 +1,8 @@
 import type { RefObject } from 'react';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { useTranslation } from '../../utils/i18n-purchase-prototype';
-import { normalizeSearchText, includesNormalized, searchCostCenter, searchProject } from './newPurchaseOrder.helpers';
-import type { CostCenterOption, ProjectOption, QuickCreateState } from './newPurchaseOrder.types';
+import { normalizeSearchText, includesNormalized, searchCostCenter, searchProject, searchWarehouse } from './newPurchaseOrder.helpers';
+import type { CostCenterOption, ProjectOption, WarehouseOption, QuickCreateState } from './newPurchaseOrder.types';
 
 interface AccountingSectionProps {
   costCenter: string;
@@ -15,7 +15,12 @@ interface AccountingSectionProps {
   onProjectSelect: (p: ProjectOption) => void;
   termsTemplate: string;
   setTermsTemplate: (val: string) => void;
+  shippingAddress?: string;
+  setShippingAddress?: (val: string) => void;
+  deliveryDestinations?: WarehouseOption[];
+  shippingInputRef?: RefObject<HTMLInputElement | null>;
   onOpenQuickCreate: (kind: Exclude<QuickCreateState, null>['kind'], query: string) => void;
+  onSetQuickCreateState?: (state: QuickCreateState) => void;
   markDocumentDirty: () => void;
   costCenterInputRef: RefObject<HTMLInputElement | null>;
   projectInputRef: RefObject<HTMLInputElement | null>;
@@ -28,8 +33,32 @@ export function PurchaseOrderAccountingSection(props: AccountingSectionProps) {
   return (
     <>
       <section className="document-prototype-section">
-        <h3 className="document-prototype-section-title">{t('accounting_section')}</h3>
-        <div className="document-prototype-grid compact-grid-2">
+        <h3 className="document-prototype-section-title">موديول الشركات والعمليات المتقدمة</h3>
+        <div className="document-prototype-grid compact-grid-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          {props.setShippingAddress && (
+            <SearchableCombobox
+              label={t('shipping_address') || 'وجهة الاستلام (المخزن أو الفرع)'}
+              placeholder="اختر المخزن أو الفرع..."
+              value={props.shippingAddress || ''}
+              onChange={(value) => {
+                props.markDocumentDirty();
+                props.setShippingAddress?.(value);
+              }}
+              options={props.deliveryDestinations || []}
+              search={searchWarehouse}
+              getLabel={(option) => option.name}
+              getMeta={(option) => option.code}
+              onSelect={(option) => {
+                props.markDocumentDirty();
+                props.setShippingAddress?.(option.name);
+              }}
+              createLabel={(query) => `إنشاء مخزن "${query}"`}
+              onCreate={(query: string) => props.onSetQuickCreateState?.({ kind: 'warehouse', query, lineId: null })}
+              inputRef={props.shippingInputRef}
+              inputClassName="purchase-prototype-field-input purchase-prototype-address-input"
+              dropdownClassName={props.purchaseDropdownClassName}
+            />
+          )}
           <SearchableCombobox
             label={t('cost_center')}
             placeholder={t('search_cost_center')}

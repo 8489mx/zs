@@ -19,7 +19,7 @@ export function PurchaseOrderSummaryCard(props: SummaryCardProps) {
         <h3 className="document-prototype-section-title">{t('notes_section')}</h3>
         <textarea
           className="purchase-prototype-notes-textarea"
-          rows={5}
+          rows={2}
           value={props.notes}
           onChange={(event) => props.setNotes(event.target.value)}
           placeholder={t('additional_notes')}

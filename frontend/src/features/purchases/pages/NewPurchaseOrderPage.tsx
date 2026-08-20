@@ -21,7 +21,7 @@ export function NewPurchaseOrderPage() {
         onClose={ctrl.handleNewPurchaseOrder}
       />
 
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px', maxWidth: '1280px' }}>
         <PurchaseOrderHeaderSection
           documentStatus={ctrl.documentStatus}
           total={ctrl.total}
@@ -107,23 +107,30 @@ export function NewPurchaseOrderPage() {
           enableMobileStoreFeatures={ctrl.rawSettings?.enableMobileStoreFeatures === true}
         />
 
-        <PurchaseOrderAccountingSection
-          costCenter={ctrl.costCenter}
-          setCostCenter={ctrl.setCostCenter}
-          costCenters={ctrl.costCenters}
-          onCostCenterSelect={ctrl.handleCostCenterSelect}
-          project={ctrl.project}
-          setProject={ctrl.setProject}
-          projects={ctrl.projects}
-          onProjectSelect={ctrl.handleProjectSelect}
-          termsTemplate={ctrl.termsTemplate}
-          setTermsTemplate={ctrl.setTermsTemplate}
-          onOpenQuickCreate={ctrl.openQuickCreate}
-          markDocumentDirty={ctrl.markDocumentDirty}
-          costCenterInputRef={ctrl.costCenterInputRef}
-          projectInputRef={ctrl.projectInputRef}
-          purchaseDropdownClassName={ctrl.purchaseDropdownClassName}
-        />
+        {ctrl.rawSettings?.enableEnterpriseFeatures === true && (
+          <PurchaseOrderAccountingSection
+            costCenter={ctrl.costCenter}
+            setCostCenter={ctrl.setCostCenter}
+            costCenters={ctrl.costCenters}
+            onCostCenterSelect={ctrl.handleCostCenterSelect}
+            project={ctrl.project}
+            setProject={ctrl.setProject}
+            projects={ctrl.projects}
+            onProjectSelect={ctrl.handleProjectSelect}
+            termsTemplate={ctrl.termsTemplate}
+            setTermsTemplate={ctrl.setTermsTemplate}
+            shippingAddress={ctrl.shippingAddress}
+            setShippingAddress={ctrl.setShippingAddress}
+            deliveryDestinations={ctrl.deliveryDestinations}
+            shippingInputRef={ctrl.shippingInputRef}
+            onOpenQuickCreate={ctrl.openQuickCreate}
+            onSetQuickCreateState={ctrl.setQuickCreateState}
+            markDocumentDirty={ctrl.markDocumentDirty}
+            costCenterInputRef={ctrl.costCenterInputRef}
+            projectInputRef={ctrl.projectInputRef}
+            purchaseDropdownClassName={ctrl.purchaseDropdownClassName}
+          />
+        )}
 
         <PurchaseOrderSummaryCard
           notes={ctrl.notes}

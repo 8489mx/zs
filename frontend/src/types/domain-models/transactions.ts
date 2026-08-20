@@ -162,6 +162,8 @@ export interface CashierShift {
   closedAt?: string;
   openedByName?: string;
   closedByName?: string;
+  closedBy?: string;
+  closedById?: string;
   cashSalesTotal?: number;
   cardSalesTotal?: number;
   walletSalesTotal?: number;
@@ -173,6 +175,8 @@ export interface CashierShift {
   serviceTotal?: number;
   cashDrawerMovementTotal?: number;
   cashDrawerCashInTotal?: number;
+  cashDrawerDeliveryCashInTotal?: number;
+  cashDrawerManualCashInTotal?: number;
   cashDrawerCashOutTotal?: number;
   supplierPaymentsTotal?: number;
   expensesTotal?: number;

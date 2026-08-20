@@ -37,6 +37,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     currentLocationId: cleanText(values.currentLocationId),
     clothingModuleEnabled,
     enableMobileStoreFeatures: values.enableMobileStoreFeatures === true,
+    enableEnterpriseFeatures: values.enableEnterpriseFeatures === true,
     technicianCommissionRate: Number(values.technicianCommissionRate ?? 30),
     defaultProductKind,
     defaultPosMode,

@@ -104,6 +104,13 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('weightedBarcodeEnabled')} disabled={disabled} />
             </label>
+            <label style={premiumCardStyle}>
+              <div style={premiumCardTextStyle}>
+                <strong>🏢 موديول الشركات والمحاسبة المتقدمة</strong>
+                <small className="muted">يفعّل مراكز التكلفة، ربط الفواتير بالمشاريع، وشروط التعاقد في فواتير الشراء والبيع</small>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enableEnterpriseFeatures')} disabled={disabled} />
+            </label>
           </div>
 
           {form.watch('enableMobileStoreFeatures') ? (

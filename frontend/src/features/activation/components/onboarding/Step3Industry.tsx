@@ -15,7 +15,7 @@ export function Step3Industry({ extraData, updateExtra, onNext, onBack }: Step3P
     { id: 'tech', name: 'تكنولوجيا وبرمجيات', icon: '💻' },
     { id: 'logistics', name: 'نقل وخدمات لوجستية', icon: '🚚' },
     { id: 'construction', name: 'مقاولات وبناء', icon: '🏗️' },
-    { id: 'other', name: 'أخرى', icon: '✨' },
+    { id: 'other', name: 'أخرى', icon: '🌐' },
   ];
 
   return (
