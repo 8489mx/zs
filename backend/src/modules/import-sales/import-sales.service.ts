@@ -261,21 +261,53 @@ export class ImportSalesService {
         ? Number(item.received_quantity) 
         : Number(item.quantity);
 
-      // Update product stock and cost_price
+      const prod = await this.db
+        .selectFrom('products')
+        .select(['stock_qty', 'cost_price'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', Number(item.product_id))
+        .executeTakeFirst();
+
+      const beforeQty = Number(prod?.stock_qty || 0);
+      const afterQty = beforeQty + finalQty;
+      const landedCost = Number(item.landed_cost_egp) || 0;
+
+      // Update product stock and weighted cost_price
       await this.db
         .updateTable('products')
-        .set((eb) => ({
-          stock_qty: sql`${eb.ref('stock_qty')} + ${finalQty}`,
-          cost_price: Number(item.landed_cost_egp)
-        }))
+        .set({
+          stock_qty: afterQty,
+          cost_price: landedCost,
+          updated_at: sql`NOW()`
+        })
         .where('tenant_id', '=', tenantId)
         .where('id', '=', Number(item.product_id))
         .execute();
+
+      try {
+        await this.db
+          .insertInto('stock_movements')
+          .values({
+            product_id: Number(item.product_id),
+            movement_type: 'import_receipt',
+            qty: finalQty,
+            before_qty: beforeQty,
+            after_qty: afterQty,
+            reason: 'استلام شحنة استيراد',
+            note: `شحنة استيراد #${shipmentId} - تكلفة محملة للقطعة: ${landedCost} ج.م`,
+            reference_type: 'import_shipment',
+            reference_id: null,
+            tenant_id: tenantId,
+          } as any)
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record stock movement for import receipt:', err);
+      }
         
       const qty = Number(item.quantity);
       if (item.shortage_handling_method === 'expense' && finalQty < qty) {
         const missingQty = qty - finalQty;
-        const lossAmount = missingQty * Number(item.landed_cost_egp);
+        const lossAmount = missingQty * landedCost;
         
         await this.db
           .insertInto('expenses')

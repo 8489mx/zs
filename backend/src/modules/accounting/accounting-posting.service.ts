@@ -1736,10 +1736,40 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!account) {
+      const knownAccounts: Record<string, { name_ar: string; name_en: string; type: string; group: string; balance: string }> = {
+        '5400': { name_ar: 'مصاريف صناعية غير مباشرة محملة', name_en: 'Manufacturing Overhead', type: 'expense', group: 'expenses', balance: 'debit' },
+        '1140': { name_ar: 'مخزون بضاعة ومواد خام', name_en: 'Inventory', type: 'asset', group: 'current_assets', balance: 'debit' },
+      };
+      const known = knownAccounts[code];
+      if (known) {
+        const created = await queryable
+          .insertInto('accounting_accounts')
+          .values({
+            tenant_id: tenantId,
+            code,
+            name_ar: known.name_ar,
+            name_en: known.name_en,
+            account_type: known.type,
+            account_group: known.group,
+            normal_balance: known.balance,
+            is_active: true,
+            is_system: true,
+            created_at: sql`NOW()`,
+            updated_at: sql`NOW()`,
+          } as any)
+          .onConflict((oc) => oc.columns(['tenant_id', 'code']).doUpdateSet({ is_active: true, updated_at: sql`NOW()` }))
+          .returning('id')
+          .executeTakeFirst();
+        if (created?.id) return Number(created.id);
+      }
       throw new Error(`Required system account ${code} not found for tenant ${tenantId}. Accounting integration failed.`);
     }
     if (!account.is_active) {
-      throw new Error(`System account ${code} is inactive for tenant ${tenantId}.`);
+      await queryable
+        .updateTable('accounting_accounts')
+        .set({ is_active: true, updated_at: sql`NOW()` })
+        .where('id', '=', Number(account.id))
+        .execute();
     }
     return Number(account.id);
   }

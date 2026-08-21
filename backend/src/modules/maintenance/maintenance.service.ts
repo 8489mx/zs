@@ -183,13 +183,13 @@ export class MaintenanceService {
         account_id: scope.accountId,
         ticket_no: ticketNo,
         customer_id: payload.customerId ?? null,
-        customer_name: payload.customerName.trim(),
-        customer_phone: payload.customerPhone.trim(),
+        customer_name: (payload.customerName || (payload as any).name || 'عميل نقدي').trim(),
+        customer_phone: (payload.customerPhone || (payload as any).phone || '').trim(),
         device_brand: payload.deviceBrand?.trim() ?? null,
-        device_model: payload.deviceModel.trim(),
+        device_model: (payload.deviceModel || (payload as any).model || 'جهاز عام').trim(),
         serial_number: payload.serialNumber?.trim() ?? null,
         passcode: payload.passcode?.trim() ?? null,
-        problem_description: payload.problemDescription.trim(),
+        problem_description: (payload.problemDescription || (payload as any).customerProblem || (payload as any).problem || 'صيانة عامة').trim(),
         device_condition: payload.deviceCondition?.trim() ?? null,
         expected_cost: payload.expectedCost ?? 0,
         final_cost: payload.finalCost ?? payload.expectedCost ?? 0,
@@ -220,7 +220,7 @@ export class MaintenanceService {
             account_id: scope.accountId,
             txn_type: 'revenue',
             amount: Number(payload.advancePayment),
-            note: `عربون صيانة تذكرة ${ticketNo} - العميل: ${payload.customerName.trim()}`,
+            note: `عربون صيانة تذكرة ${ticketNo} - العميل: ${(payload.customerName || '').trim()}`,
             reference_type: 'maintenance_ticket',
             reference_id: Number(result.id),
             branch_id: payload.branchId ?? null,
@@ -254,13 +254,13 @@ export class MaintenanceService {
       .updateTable('maintenance_tickets')
       .set({
         customer_id: payload.customerId ?? null,
-        customer_name: payload.customerName.trim(),
-        customer_phone: payload.customerPhone.trim(),
+        customer_name: (payload.customerName || (payload as any).name || 'عميل نقدي').trim(),
+        customer_phone: (payload.customerPhone || (payload as any).phone || '').trim(),
         device_brand: payload.deviceBrand?.trim() ?? null,
-        device_model: payload.deviceModel.trim(),
+        device_model: (payload.deviceModel || (payload as any).model || 'جهاز عام').trim(),
         serial_number: payload.serialNumber?.trim() ?? null,
         passcode: payload.passcode?.trim() ?? null,
-        problem_description: payload.problemDescription.trim(),
+        problem_description: (payload.problemDescription || (payload as any).customerProblem || (payload as any).problem || 'صيانة عامة').trim(),
         device_condition: payload.deviceCondition?.trim() ?? null,
         expected_cost: payload.expectedCost ?? 0,
         final_cost: payload.finalCost ?? 0,
@@ -383,7 +383,7 @@ export class MaintenanceService {
       .returning('id')
       .executeTakeFirst();
 
-    // Automatically deduct inventory from products table
+    // Automatically deduct inventory from products table & record stock movement
     const prod = await this.db
       .selectFrom('products')
       .select(['stock_qty'])
@@ -393,12 +393,37 @@ export class MaintenanceService {
 
     if (prod) {
       const currentQty = Number(prod.stock_qty || 0);
+      const deductQty = Number(payload.qty);
+      const afterQty = Math.max(0, currentQty - deductQty);
       await this.db
         .updateTable('products')
-        .set({ stock_qty: Math.max(0, currentQty - Number(payload.qty)) })
+        .set({ stock_qty: afterQty })
         .where('tenant_id', '=', scope.tenantId)
         .where('id', '=', payload.productId)
         .execute();
+
+      try {
+        await this.db
+          .insertInto('stock_movements')
+          .values({
+            product_id: payload.productId,
+            movement_type: 'maintenance_consumption',
+            qty: -deductQty,
+            before_qty: currentQty,
+            after_qty: afterQty,
+            reason: 'صرف قطعة غيار لتذكرة صيانة',
+            note: `تذكرة صيانة #${ticketId} - قطعة: ${payload.productName.trim()}`,
+            reference_type: 'maintenance_ticket',
+            reference_id: ticketId,
+            location_id: payload.locationId ?? null,
+            created_by: auth.userId ? Number(auth.userId) : null,
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          })
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record stock movement for maintenance part:', err);
+      }
     }
 
     // If ticket has 0 cost set initially, initialize it to the part price.
@@ -438,7 +463,7 @@ export class MaintenanceService {
       .where('id', '=', partId)
       .execute();
 
-    // Return stock back to products table
+    // Return stock back to products table & record stock movement
     const prod = await this.db
       .selectFrom('products')
       .select(['stock_qty'])
@@ -448,12 +473,36 @@ export class MaintenanceService {
 
     if (prod) {
       const currentQty = Number(prod.stock_qty || 0);
+      const returnQty = Number(part.qty);
+      const afterQty = currentQty + returnQty;
       await this.db
         .updateTable('products')
-        .set({ stock_qty: currentQty + Number(part.qty) })
+        .set({ stock_qty: afterQty })
         .where('tenant_id', '=', scope.tenantId)
         .where('id', '=', part.product_id)
         .execute();
+
+      try {
+        await this.db
+          .insertInto('stock_movements')
+          .values({
+            product_id: Number(part.product_id),
+            movement_type: 'maintenance_return',
+            qty: returnQty,
+            before_qty: currentQty,
+            after_qty: afterQty,
+            reason: 'إلغاء صرف قطعة غيار من تذكرة صيانة',
+            note: `إلغاء من تذكرة صيانة #${ticketId}`,
+            reference_type: 'maintenance_ticket',
+            reference_id: ticketId,
+            created_by: auth.userId ? Number(auth.userId) : null,
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          })
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record stock movement for maintenance part return:', err);
+      }
     }
 
     return { ok: true };

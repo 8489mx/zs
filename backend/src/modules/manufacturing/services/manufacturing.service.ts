@@ -261,7 +261,8 @@ export class ManufacturingService {
 
       // Deduct raw materials
       for (const line of lines) {
-        const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
+        const wastePct = Math.max(0, Math.min(99.9, Number(line.waste_percentage || 0)));
+        const wasteFactor = 1 / (1 - (wastePct / 100));
         const lineMultiplier = Number(line.unit_multiplier || 1);
         const quantityConsumedInSelectedUnit = Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity);
         const requiredQty = Number((quantityConsumedInSelectedUnit * lineMultiplier).toFixed(3));

@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateBomLineDto {
@@ -23,6 +23,7 @@ export class CreateBomLineDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  @Max(99.9, { message: 'نسبة الهالك يجب ألا تتجاوز 99.9%' })
   wastePercentage?: number;
 }
 
