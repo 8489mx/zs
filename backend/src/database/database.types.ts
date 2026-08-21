@@ -596,6 +596,10 @@ export interface DeliveryRepresentativeTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   name: string;
   phone: string | null;
+  full_name: string | null;
+  national_id: string | null;
+  address: string | null;
+  vehicle_plate: string | null;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;

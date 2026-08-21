@@ -69,38 +69,39 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
       {/* Header and Bulk Settlement */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', gap: '16px', fontSize: '15px', color: '#475569', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#475569', background: '#ffffff', padding: '12px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>إجمالي الطلبات</span>
-            <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{summaryQuery.data?.totalOrders || 0}</span>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي الطلبات</span>
+            <strong style={{ fontWeight: 800, color: '#0f172a', fontSize: '16px' }}>{summaryQuery.data?.totalOrders || 0}</strong>
           </div>
-          <div style={{ width: '1px', background: '#cbd5e1' }}></div>
+          <div style={{ width: '1px', background: '#e2e8f0' }}></div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>تم تحصيله</span>
-            <span style={{ fontWeight: 'bold', color: '#16a34a' }}>{formatCurrency(summaryQuery.data?.collectedAmount || 0)}</span>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>تم تحصيله</span>
+            <strong style={{ fontWeight: 800, color: '#15803d', fontSize: '16px' }}>{formatCurrency(summaryQuery.data?.collectedAmount || 0)}</strong>
           </div>
-          <div style={{ width: '1px', background: '#cbd5e1' }}></div>
+          <div style={{ width: '1px', background: '#e2e8f0' }}></div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>متبقي للتحصيل</span>
-            <span style={{ fontWeight: 'bold', color: '#dc2626', fontSize: '18px' }}>{formatCurrency(summaryQuery.data?.pendingAmount || 0)}</span>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>متبقي للتحصيل (العهدة)</span>
+            <strong style={{ fontWeight: 800, color: '#dc2626', fontSize: '17px' }}>{formatCurrency(summaryQuery.data?.pendingAmount || 0)}</strong>
           </div>
         </div>
 
-        <div style={{ background: '#fef2f2', padding: '16px', borderRadius: '8px', border: '1px solid #fca5a5' }}>
-          <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#991b1b' }}>تسوية سريعة لكل الطلبات المعلقة</h4>
-          <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ background: '#fef2f2', padding: '12px 16px', borderRadius: '10px', border: '1px solid #fecaca', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#991b1b' }}>تسوية سريعة لكل الطلبات المعلقة</h4>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <input 
               type="number" 
               placeholder="المبلغ المستلم من المندوب"
               value={expectedAmountInput}
               onChange={(e) => setExpectedAmountInput(e.target.value)}
-              style={{ padding: '6px 12px', border: '1px solid #fca5a5', borderRadius: '4px', width: '200px' }}
+              style={{ padding: '6px 12px', border: '1px solid #fca5a5', borderRadius: '8px', width: '230px', minHeight: '36px', background: '#ffffff', fontSize: '13px' }}
             />
             <Button 
               variant="primary"
               onClick={() => settleAllMutation.mutate({ id: repId, amount: Number(expectedAmountInput) })}
               disabled={!expectedAmountInput || settleAllMutation.isPending || !summaryQuery.data?.pendingAmount}
+              style={{ minHeight: '36px', padding: '0 16px', fontSize: '13px', fontWeight: 700 }}
             >
               {settleAllMutation.isPending ? 'جاري التسوية...' : 'تسوية الكل'}
             </Button>
@@ -108,31 +109,70 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
         </div>
       </div>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-        <div style={{ fontWeight: 'bold', color: '#64748b', fontSize: '14px' }}>فلترة الطلبات:</div>
-        <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="purchase-prototype-field-input" style={{ width: 'auto' }} />
-        <span style={{ color: '#64748b' }}>إلى</span>
-        <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="purchase-prototype-field-input" style={{ width: 'auto' }} />
+      {/* Filters Bar */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'row',
+          flexWrap: 'nowrap',
+          alignItems: 'center', 
+          gap: '8px', 
+          background: '#f8fafc', 
+          padding: '8px 12px', 
+          borderRadius: '8px', 
+          border: '1px solid #e2e8f0',
+          width: '100%',
+          overflowX: 'auto',
+        }}
+      >
+        <span style={{ fontWeight: 700, color: '#475569', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          فلترة الطلبات:
+        </span>
         
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="purchase-prototype-field-input" style={{ width: 'auto' }}>
+        <input 
+          type="date" 
+          value={filterDateFrom} 
+          onChange={(e) => setFilterDateFrom(e.target.value)} 
+          style={{ width: '135px', minWidth: '125px', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '12px', background: '#ffffff', minHeight: '34px', flexShrink: 0 }} 
+        />
+
+        <span style={{ color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>إلى</span>
+
+        <input 
+          type="date" 
+          value={filterDateTo} 
+          onChange={(e) => setFilterDateTo(e.target.value)} 
+          style={{ width: '135px', minWidth: '125px', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '12px', background: '#ffffff', minHeight: '34px', flexShrink: 0 }} 
+        />
+        
+        <select 
+          value={filterStatus} 
+          onChange={(e) => setFilterStatus(e.target.value)} 
+          style={{ width: '130px', minWidth: '110px', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '12px', background: '#ffffff', minHeight: '34px', cursor: 'pointer', flexShrink: 0 }}
+        >
           <option value="">كل الحالات</option>
           <option value="settled">تمت التسوية</option>
           <option value="unsettled">معلق (لم يسدد)</option>
         </select>
 
-        <Button 
-          variant="secondary" 
-          onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus('unsettled'); }}
-          style={{ background: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe' }}
-        >
-          عرض كل الطلبات المعلقة
-        </Button>
-        {(filterDateFrom || filterDateTo || filterStatus) && (
-          <Button variant="secondary" onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus(''); }}>
-            مسح الفلاتر
+        <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '6px', flexShrink: 0 }}>
+          <Button 
+            variant="secondary" 
+            onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus('unsettled'); }}
+            style={{ background: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe', fontSize: '11px', minHeight: '32px', padding: '0 10px', whiteSpace: 'nowrap' }}
+          >
+            الطلبات المعلقة
           </Button>
-        )}
+          {(filterDateFrom || filterDateTo || filterStatus) && (
+            <Button 
+              variant="secondary" 
+              onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus(''); }} 
+              style={{ fontSize: '11px', minHeight: '32px', padding: '0 10px', whiteSpace: 'nowrap' }}
+            >
+              مسح الفلاتر
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Orders Table */}

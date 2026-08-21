@@ -47,12 +47,26 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
               const delay = getDelayStatus(settlement.orderDate, settlement.createdAt);
               return (
                 <tr key={settlement.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '8px 4px', fontWeight: 'bold' }}>{settlement.docNo}</td>
-                  <td style={{ padding: '8px 4px', direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', color: '#64748b', fontSize: '12px' }}>{new Date(settlement.orderDate).toLocaleString('ar-EG')}</td>
-                  <td style={{ padding: '8px 4px', direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 'bold' }}>{settlement.createdAt ? new Date(settlement.createdAt).toLocaleString('ar-EG') : '-'}</td>
-                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap', color: delay.color, fontWeight: 'bold' }}>{delay.text}</td>
-                  <td style={{ padding: '8px 4px', fontWeight: 'bold', color: '#16a34a', whiteSpace: 'nowrap' }}>{formatCurrency(settlement.amount)}</td>
-                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{settlement.settledByName || 'غير معروف'}</td>
+                  <td style={{ padding: '10px 8px', fontWeight: 800, color: '#0f172a' }}>{settlement.docNo}</td>
+                  <td style={{ padding: '10px 8px', direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', color: '#64748b', fontSize: '12px' }}>{new Date(settlement.orderDate).toLocaleString('ar-EG')}</td>
+                  <td style={{ padding: '10px 8px', direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600, color: '#334155' }}>{settlement.createdAt ? new Date(settlement.createdAt).toLocaleString('ar-EG') : '-'}</td>
+                  <td style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>
+                    <span 
+                      style={{ 
+                        color: delay.color, 
+                        background: delay.color === '#16a34a' ? '#f0fdf4' : delay.color === '#ea580c' ? '#fff7ed' : '#fef2f2',
+                        border: `1px solid ${delay.color === '#16a34a' ? '#bbf7d0' : delay.color === '#ea580c' ? '#fed7aa' : '#fecaca'}`,
+                        padding: '2px 8px', 
+                        borderRadius: '6px', 
+                        fontSize: '11px',
+                        fontWeight: 700 
+                      }}
+                    >
+                      {delay.text}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 8px', fontWeight: 800, color: '#15803d', whiteSpace: 'nowrap' }}>{formatCurrency(settlement.amount)}</td>
+                  <td style={{ padding: '10px 8px', whiteSpace: 'nowrap', color: '#64748b' }}>{settlement.settledByName || 'غير معروف'}</td>
                 </tr>
               );
             })}

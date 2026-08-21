@@ -64,6 +64,10 @@ export class DeliveryRepsService {
       .values({
         name,
         phone: payload.phone || null,
+        full_name: payload.fullName || null,
+        national_id: payload.nationalId || null,
+        address: payload.address || null,
+        vehicle_plate: payload.vehiclePlate || null,
         is_active: payload.isActive !== false,
         ...this.tenantFields(actor),
       } as any)
@@ -91,9 +95,13 @@ export class DeliveryRepsService {
       .set({
         name,
         phone: payload.phone || null,
-        is_active: payload.isActive !== false,
+        full_name: payload.fullName !== undefined ? (payload.fullName || null) : undefined,
+        national_id: payload.nationalId !== undefined ? (payload.nationalId || null) : undefined,
+        address: payload.address !== undefined ? (payload.address || null) : undefined,
+        vehicle_plate: payload.vehiclePlate !== undefined ? (payload.vehiclePlate || null) : undefined,
+        is_active: payload.isActive !== undefined ? payload.isActive : undefined,
         updated_at: sql`NOW()`,
-      })
+      } as any)
       .where('id', '=', id)
       .where(this.tenantPredicate(actor))
       .execute();

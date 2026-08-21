@@ -9,6 +9,22 @@ export class UpsertDeliveryRepDto {
   @IsOptional()
   phone?: string;
 
+  @IsString()
+  @IsOptional()
+  fullName?: string;
+
+  @IsString()
+  @IsOptional()
+  nationalId?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  vehiclePlate?: string;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

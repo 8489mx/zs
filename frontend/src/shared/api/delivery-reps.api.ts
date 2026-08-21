@@ -4,7 +4,21 @@ export interface DeliveryRep {
   id: number;
   name: string;
   phone: string | null;
+  full_name?: string | null;
+  national_id?: string | null;
+  address?: string | null;
+  vehicle_plate?: string | null;
   is_active: boolean;
+}
+
+export interface UpsertDeliveryRepPayload {
+  name: string;
+  phone?: string;
+  fullName?: string;
+  nationalId?: string;
+  address?: string;
+  vehiclePlate?: string;
+  isActive?: boolean;
 }
 
 export interface DeliveryOrder {
@@ -39,10 +53,10 @@ export const deliveryRepsApi = {
   list: async (): Promise<DeliveryRep[]> =>
     unwrapArray<DeliveryRep>(await http<DeliveryRep[] | { deliveryReps: DeliveryRep[] }>('/api/delivery-reps'), 'deliveryReps'),
 
-  create: async (data: { name: string; phone?: string }): Promise<DeliveryRep> =>
+  create: async (data: UpsertDeliveryRepPayload): Promise<DeliveryRep> =>
     http<DeliveryRep>('/api/delivery-reps', { method: 'POST', body: JSON.stringify(data) }),
 
-  update: async (id: number, data: { name: string; phone?: string; isActive?: boolean }): Promise<DeliveryRep> =>
+  update: async (id: number, data: UpsertDeliveryRepPayload): Promise<DeliveryRep> =>
     http<DeliveryRep>(`/api/delivery-reps/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
   remove: async (id: number): Promise<unknown> =>
