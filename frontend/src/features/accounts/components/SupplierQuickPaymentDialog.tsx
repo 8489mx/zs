@@ -5,12 +5,82 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { accountsApi } from '@/features/accounts/api/accounts.api';
-import { supplierBalanceScheduleApi } from '@/features/accounts/api/supplier-balance-schedule.api';
 import { formatCurrency, formatDateTimeArabic, formatWhatsAppNumber } from '@/lib/format';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { SupplierBalanceScheduleCard } from '@/features/accounts/components/SupplierBalanceScheduleCard';
 import type { Customer, Supplier } from '@/types/domain';
+
+function BuildingOfficeIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h.01" />
+      <path d="M16 6h.01" />
+      <path d="M12 6h.01" />
+      <path d="M12 10h.01" />
+      <path d="M12 14h.01" />
+      <path d="M16 10h.01" />
+      <path d="M16 14h.01" />
+      <path d="M8 10h.01" />
+      <path d="M8 14h.01" />
+    </svg>
+  );
+}
+
+function UsersIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function MagnifyingGlassIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function PhoneIcon({ size = 13, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  );
+}
+
+function ZapIcon({ size = 14, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
 
 type QuickPartyTab = 'suppliers' | 'customers';
 
@@ -40,41 +110,50 @@ export function SupplierQuickPaymentDialog() {
   } | null>(null);
 
   const suppliersQuery = useQuery({
-    queryKey: [...queryKeys.suppliers, 'debt-lookup'],
-    queryFn: () => supplierBalanceScheduleApi.listSuppliersWithDebt(),
+    queryKey: [...queryKeys.suppliers, 'quick-payment-lookup'],
+    queryFn: () => accountsApi.suppliers(),
     enabled: isOpen && activeTab === 'suppliers',
   });
 
   const customersQuery = useQuery({
-    queryKey: [...queryKeys.customers, 'debt-lookup'],
-    queryFn: () => accountsApi.listCustomersWithDebt(),
+    queryKey: [...queryKeys.customers, 'quick-payment-lookup'],
+    queryFn: () => accountsApi.customers(),
     enabled: isOpen && activeTab === 'customers',
   });
 
   const suppliers = useMemo(() => suppliersQuery.data || [], [suppliersQuery.data]);
   const customers = useMemo(() => customersQuery.data || [], [customersQuery.data]);
 
+  const selectedSupplier = useMemo(() => suppliers.find((supplier) => String(supplier.id) === selectedSupplierId) || null, [suppliers, selectedSupplierId]);
+  const selectedCustomer = useMemo(() => customers.find((customer) => String(customer.id) === selectedCustomerId) || null, [customers, selectedCustomerId]);
+
   const filteredSuppliers = useMemo(() => {
     const query = supplierSearchText.trim().toLowerCase();
     if (!query) return suppliers;
+    if (selectedSupplier && query === String(selectedSupplier.name || '').trim().toLowerCase()) {
+      return suppliers;
+    }
     const cleanDigits = query.replace(/\D/g, '');
     return suppliers.filter((s: Supplier) => {
       const matchName = String(s.name || '').toLowerCase().includes(query);
       const matchPhone = cleanDigits && String(s.phone || '').replace(/\D/g, '').includes(cleanDigits);
       return matchName || matchPhone;
     });
-  }, [suppliers, supplierSearchText]);
+  }, [suppliers, supplierSearchText, selectedSupplier]);
 
   const filteredCustomers = useMemo(() => {
     const query = customerSearchText.trim().toLowerCase();
     if (!query) return customers;
+    if (selectedCustomer && query === String(selectedCustomer.name || '').trim().toLowerCase()) {
+      return customers;
+    }
     const cleanDigits = query.replace(/\D/g, '');
     return customers.filter((c: Customer) => {
       const matchName = String(c.name || '').toLowerCase().includes(query);
       const matchPhone = cleanDigits && String(c.phone || '').replace(/\D/g, '').includes(cleanDigits);
       return matchName || matchPhone;
     });
-  }, [customers, customerSearchText]);
+  }, [customers, customerSearchText, selectedCustomer]);
 
   const topSuppliers = useMemo(() => {
     return [...suppliers]
@@ -89,9 +168,6 @@ export function SupplierQuickPaymentDialog() {
       .sort((a: Customer, b: Customer) => Number(b.balance || 0) - Number(a.balance || 0))
       .slice(0, 5);
   }, [customers]);
-
-  const selectedSupplier = useMemo(() => suppliers.find((supplier) => String(supplier.id) === selectedSupplierId) || null, [suppliers, selectedSupplierId]);
-  const selectedCustomer = useMemo(() => customers.find((customer) => String(customer.id) === selectedCustomerId) || null, [customers, selectedCustomerId]);
 
   function handleSelectSupplier(s: Supplier) {
     setSelectedSupplierId(String(s.id));
@@ -303,7 +379,9 @@ export function SupplierQuickPaymentDialog() {
               className={`quick-party-tab ${activeTab === 'suppliers' ? 'quick-party-tab--suppliers-active' : ''}`}
               onClick={() => setActiveTab('suppliers')}
             >
-              <span className="quick-party-tab-icon">🏢</span>
+              <span className="quick-party-tab-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <BuildingOfficeIcon size={18} />
+              </span>
               <span className="quick-party-tab-title">الموردون (سداد وجدولة)</span>
               <span className="quick-party-tab-kbd">Ctrl+Alt+D</span>
             </button>
@@ -314,7 +392,9 @@ export function SupplierQuickPaymentDialog() {
               className={`quick-party-tab ${activeTab === 'customers' ? 'quick-party-tab--customers-active' : ''}`}
               onClick={() => setActiveTab('customers')}
             >
-              <span className="quick-party-tab-icon">👥</span>
+              <span className="quick-party-tab-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <UsersIcon size={18} />
+              </span>
               <span className="quick-party-tab-title">العملاء (استقبال وتحصيل)</span>
               <span className="quick-party-tab-kbd">Ctrl+Alt+C</span>
             </button>
@@ -327,7 +407,9 @@ export function SupplierQuickPaymentDialog() {
                   <Field label="ابحث عن المورد (بالاسم أو برقم الهاتف)">
                     <div className="quick-searchable-combobox">
                       <div className="quick-searchable-input-wrapper">
-                        <span className="quick-searchable-icon">🔍</span>
+                        <span className="quick-searchable-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                          <MagnifyingGlassIcon size={16} />
+                        </span>
                         <input
                           type="text"
                           className="quick-searchable-input"
@@ -340,7 +422,10 @@ export function SupplierQuickPaymentDialog() {
                               setSelectedSupplierId('');
                             }
                           }}
-                          onFocus={() => setIsSupplierDropdownOpen(true)}
+                          onFocus={(e) => {
+                            e.target.select();
+                            setIsSupplierDropdownOpen(true);
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === 'ArrowDown') {
                               e.preventDefault();
@@ -363,12 +448,22 @@ export function SupplierQuickPaymentDialog() {
                           }}
                           placeholder="اكتب اسم المورد أو رقم الهاتف للبحث السريع..."
                         />
-                        {supplierSearchText ? (
+                        {supplierSearchText || selectedSupplierId ? (
                           <button
                             type="button"
                             className="quick-searchable-clear"
-                            onClick={handleClearSupplier}
-                            title="مسح البحث"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleClearSupplier();
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleClearSupplier();
+                            }}
+                            title="إلغاء اختيار المورد ومسح البحث"
+                            aria-label="مسح البحث"
                           >
                             ✕
                           </button>
@@ -382,13 +477,19 @@ export function SupplierQuickPaymentDialog() {
                               <button
                                 key={supplier.id}
                                 type="button"
-                                className={`quick-searchable-item ${index === supplierFocusedIndex ? 'quick-searchable-item--active' : ''}`}
+                                className={`quick-searchable-item ${index === supplierFocusedIndex ? 'quick-searchable-item--active' : ''} ${String(supplier.id) === selectedSupplierId ? 'quick-searchable-item--selected' : ''}`}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  handleSelectSupplier(supplier);
+                                }}
                                 onClick={() => handleSelectSupplier(supplier)}
                               >
                                 <div className="quick-searchable-item-info">
                                   <span className="quick-searchable-item-name">{supplier.name}</span>
                                   {supplier.phone ? (
-                                    <span className="quick-searchable-item-phone">📞 {supplier.phone}</span>
+                                    <span className="quick-searchable-item-phone" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <PhoneIcon size={12} /> {supplier.phone}
+                                    </span>
                                   ) : null}
                                 </div>
                                 <span className="quick-searchable-item-balance">
@@ -406,28 +507,54 @@ export function SupplierQuickPaymentDialog() {
                     </div>
                   </Field>
                   {selectedSupplier ? (
-                    <div className="supplier-quick-payment-summary">
-                      <span>رصيد المورد الحالي</span>
-                      <strong>{formatCurrency(Number(selectedSupplier.balance || 0))}</strong>
+                    <div className="supplier-quick-payment-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <span>رصيد المورد الحالي ({selectedSupplier.name})</span>
+                        <strong>{formatCurrency(Number(selectedSupplier.balance || 0))}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSupplier}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        ✕ ترك المورد
+                      </button>
                     </div>
                   ) : null}
                 </div>
 
-                {topSuppliers.length > 0 && !selectedSupplier ? (
+                {topSuppliers.length > 0 ? (
                   <div className="quick-debtors-preview">
-                    <span className="quick-debtors-label">⚡ اختيار سريع للموردين الأكثر مديونية:</span>
+                    <span className="quick-debtors-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <ZapIcon size={14} style={{ color: '#d97706' }} /> اختيار سريع للموردين الأكثر مديونية:
+                    </span>
                     <div className="quick-debtors-chips">
-                      {topSuppliers.map((s: Supplier) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          className="quick-debtor-chip"
-                          onClick={() => handleSelectSupplier(s)}
-                        >
-                          <strong>{s.name}</strong>
-                          <span>{formatCurrency(Number(s.balance || 0))}</span>
-                        </button>
-                      ))}
+                      {topSuppliers.map((s: Supplier) => {
+                        const isSelected = selectedSupplierId === String(s.id);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            className={`quick-debtor-chip ${isSelected ? 'quick-debtor-chip--active' : ''}`}
+                            onClick={() => handleSelectSupplier(s)}
+                          >
+                            <strong>{s.name}</strong>
+                            <span>{formatCurrency(Number(s.balance || 0))}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : null}
@@ -439,7 +566,9 @@ export function SupplierQuickPaymentDialog() {
                 </div>
               ) : (
                 <div className="quick-empty-guide">
-                  <div className="quick-empty-icon">🏢</div>
+                  <div className="quick-empty-icon" style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(23, 12, 92, 0.08)', color: 'var(--primary, #170c5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                    <BuildingOfficeIcon size={28} />
+                  </div>
                   <div className="quick-empty-title">اختر مورداً لبدء المتابعة</div>
                   <div className="quick-empty-hint">
                     يمكنك كتابة اسم المورد أو رقم هاتفه في مربع البحث بالأعلى، أو الضغط على أحد أزرار الاختيار السريع لعرض تفاصيل الجدولة وتسديد الأقساط.
@@ -454,7 +583,9 @@ export function SupplierQuickPaymentDialog() {
                   <Field label="ابحث عن العميل (بالاسم أو برقم الهاتف)">
                     <div className="quick-searchable-combobox">
                       <div className="quick-searchable-input-wrapper">
-                        <span className="quick-searchable-icon">🔍</span>
+                        <span className="quick-searchable-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                          <MagnifyingGlassIcon size={16} />
+                        </span>
                         <input
                           type="text"
                           className="quick-searchable-input"
@@ -467,7 +598,10 @@ export function SupplierQuickPaymentDialog() {
                               setSelectedCustomerId('');
                             }
                           }}
-                          onFocus={() => setIsCustomerDropdownOpen(true)}
+                          onFocus={(e) => {
+                            e.target.select();
+                            setIsCustomerDropdownOpen(true);
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === 'ArrowDown') {
                               e.preventDefault();
@@ -491,12 +625,22 @@ export function SupplierQuickPaymentDialog() {
                           placeholder="اكتب اسم العميل أو رقم الهاتف للبحث السريع..."
                           disabled={customerPaymentMutation.isPending}
                         />
-                        {customerSearchText ? (
+                        {customerSearchText || selectedCustomerId ? (
                           <button
                             type="button"
                             className="quick-searchable-clear"
-                            onClick={handleClearCustomer}
-                            title="مسح البحث"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleClearCustomer();
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleClearCustomer();
+                            }}
+                            title="إلغاء اختيار العميل ومسح البحث"
+                            aria-label="مسح البحث"
                           >
                             ✕
                           </button>
@@ -510,13 +654,19 @@ export function SupplierQuickPaymentDialog() {
                               <button
                                 key={customer.id}
                                 type="button"
-                                className={`quick-searchable-item ${index === customerFocusedIndex ? 'quick-searchable-item--active' : ''}`}
+                                className={`quick-searchable-item ${index === customerFocusedIndex ? 'quick-searchable-item--active' : ''} ${String(customer.id) === selectedCustomerId ? 'quick-searchable-item--selected' : ''}`}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  handleSelectCustomer(customer);
+                                }}
                                 onClick={() => handleSelectCustomer(customer)}
                               >
                                 <div className="quick-searchable-item-info">
                                   <span className="quick-searchable-item-name">{customer.name}</span>
                                   {customer.phone ? (
-                                    <span className="quick-searchable-item-phone">📞 {customer.phone}</span>
+                                    <span className="quick-searchable-item-phone" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <PhoneIcon size={12} /> {customer.phone}
+                                    </span>
                                   ) : null}
                                 </div>
                                 <span className="quick-searchable-item-balance quick-searchable-item-balance--customer">
@@ -534,28 +684,54 @@ export function SupplierQuickPaymentDialog() {
                     </div>
                   </Field>
                   {selectedCustomer ? (
-                    <div className="supplier-quick-payment-summary">
-                      <span>رصيد العميل المستحق</span>
-                      <strong>{formatCurrency(Number(selectedCustomer.balance || 0))}</strong>
+                    <div className="supplier-quick-payment-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <span>رصيد العميل المستحق ({selectedCustomer.name})</span>
+                        <strong>{formatCurrency(Number(selectedCustomer.balance || 0))}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearCustomer}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        ✕ ترك العميل
+                      </button>
                     </div>
                   ) : null}
                 </div>
 
-                {topCustomers.length > 0 && !selectedCustomer ? (
+                {topCustomers.length > 0 ? (
                   <div className="quick-debtors-preview">
-                    <span className="quick-debtors-label">⚡ اختيار سريع للعملاء الأكثر مديونية:</span>
+                    <span className="quick-debtors-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <ZapIcon size={14} style={{ color: '#d97706' }} /> اختيار سريع للعملاء الأكثر مديونية:
+                    </span>
                     <div className="quick-debtors-chips">
-                      {topCustomers.map((c: Customer) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className="quick-debtor-chip quick-debtor-chip--customer"
-                          onClick={() => handleSelectCustomer(c)}
-                        >
-                          <strong>{c.name}</strong>
-                          <span>{formatCurrency(Number(c.balance || 0))}</span>
-                        </button>
-                      ))}
+                      {topCustomers.map((c: Customer) => {
+                        const isSelected = selectedCustomerId === String(c.id);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className={`quick-debtor-chip quick-debtor-chip--customer ${isSelected ? 'quick-debtor-chip--customer-active' : ''}`}
+                            onClick={() => handleSelectCustomer(c)}
+                          >
+                            <strong>{c.name}</strong>
+                            <span>{formatCurrency(Number(c.balance || 0))}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : null}
@@ -629,7 +805,9 @@ export function SupplierQuickPaymentDialog() {
                 </div>
               ) : (
                 <div className="quick-empty-guide">
-                  <div className="quick-empty-icon">👥</div>
+                  <div className="quick-empty-icon" style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(23, 12, 92, 0.08)', color: 'var(--primary, #170c5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                    <UsersIcon size={28} />
+                  </div>
                   <div className="quick-empty-title">اختر عميلاً لتسجيل التحصيل</div>
                   <div className="quick-empty-hint">
                     يمكنك اختيار العميل من القائمة بالأعلى أو الضغط على أحد أزرار الاختيار السريع لتسجيل استلام النقدية وإرسال إيصال السداد الفوري عبر واتساب.
@@ -653,7 +831,9 @@ export function SupplierQuickPaymentDialog() {
         >
           <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم تسجيل التحصيل بنجاح">
             <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
+                <CheckCircleIcon size={52} />
+              </div>
               <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل التحصيل بنجاح</h3>
               <p className="muted" style={{ marginBottom: '1.5rem' }}>
                 تم استلام {formatCurrency(customerSuccessReceipt.amountPaid)} من العميل {customerSuccessReceipt.customer.name} (الرصيد المتبقي: {formatCurrency(customerSuccessReceipt.remainingBalance)}).
@@ -678,7 +858,9 @@ export function SupplierQuickPaymentDialog() {
                     setCustomerSuccessReceipt(null);
                   }}
                 >
-                  إرسال إيصال للعميل عبر واتساب 💬
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <WhatsAppIcon size={16} /> إرسال إيصال للعميل عبر واتساب
+                  </span>
                 </Button>
                 <Button type="button" variant="secondary" onClick={() => setCustomerSuccessReceipt(null)}>
                   إغلاق

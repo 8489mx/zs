@@ -12,6 +12,23 @@ import { openWhatsApp } from '@/lib/whatsapp';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Supplier } from '@/types/domain';
 
+function CheckCircleIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -382,7 +399,9 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
         <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setSuccessReceipt(null); }}>
           <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم الدفع بنجاح">
             <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
+                <CheckCircleIcon size={52} />
+              </div>
               <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل الدفعة بنجاح</h3>
               <p className="muted" style={{ marginBottom: '1.5rem' }}>
                 تم سداد {formatCurrency(successReceipt.amountPaid)} لصالح {supplierName} (المتبقي: {formatCurrency(successReceipt.remainingBalance)}).
@@ -407,7 +426,9 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                     setSuccessReceipt(null);
                   }}
                 >
-                  إرسال للمورد عبر واتساب 💬
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <WhatsAppIcon size={16} /> إرسال للمورد عبر واتساب
+                  </span>
                 </Button>
                 <Button type="button" variant="secondary" onClick={() => setSuccessReceipt(null)}>إغلاق النافذة</Button>
               </div>

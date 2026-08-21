@@ -6,7 +6,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { hrApi } from '@/features/hr/api/hr.api';
 import { useHrMutations } from '@/features/hr/hooks/useHr';
 import type { HrAttendanceRecord, HrEmployee } from '@/types/domain';
-import { ClockIcon, CheckCircleIcon } from '@/features/hr/components/HrIcons';
+import { ClockIcon, CheckCircleIcon, MagnifyingGlassIcon, ZapIcon } from '@/features/hr/components/HrIcons';
 
 export const QUICK_ATTENDANCE_SHORTCUT = 'Ctrl + Alt + H';
 
@@ -257,7 +257,9 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
         {/* Search Combobox & Quick Chips Card */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '1rem' }}>🔍</span>
+            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', display: 'inline-flex', alignItems: 'center' }}>
+              <MagnifyingGlassIcon size={16} />
+            </span>
             <input
               data-autofocus
               value={search}
@@ -289,9 +291,11 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
           </div>
 
           {topQuickEmployees.length > 0 && !search && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>⚡ اختيار سريع:</span>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                <ZapIcon size={14} style={{ color: '#d97706' }} /> اختيار سريع:
+              </span>
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: '2px', scrollbarWidth: 'none' }}>
                 {topQuickEmployees.map((e) => {
                   const isSel = selectedEmployeeId === String(e.id);
                   return (
@@ -308,6 +312,8 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                         fontSize: '0.75rem',
                         fontWeight: 700,
                         cursor: 'pointer',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {e.displayName || e.firstName}
@@ -372,6 +378,26 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>تاريخ اليوم:</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '6px' }}>{dateFormatted}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEmployeeId('')}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="إلغاء اختيار الموظف والعودة"
+                  >
+                    ✕ ترك الموظف
+                  </button>
                 </div>
               </div>
 
