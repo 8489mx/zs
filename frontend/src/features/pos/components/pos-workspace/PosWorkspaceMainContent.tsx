@@ -84,7 +84,7 @@ export function PosWorkspaceMainContent({
         <div className="pos-grid-premium" style={gridStyle}>
 
           {/* Products column: startup issues banner + products panel stacked */}
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', overflow: 'hidden', flex: 1 }}>
             <PosWorkspaceStartupIssues pos={pos} onRequestOpenShift={onRequestOpenShift} />
             <PosProductsPanel
             search={pos.search}

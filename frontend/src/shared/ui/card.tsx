@@ -5,6 +5,7 @@ interface CardProps {
   description?: string;
   actions?: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }
 
 const reportSectionTitleStyle: CSSProperties = {
@@ -24,11 +25,11 @@ const reportSectionTitleStyle: CSSProperties = {
   width: 'fit-content',
 };
 
-export function Card({ title, description, actions, className = '', children }: PropsWithChildren<CardProps>) {
+export function Card({ title, description, actions, className = '', style, children }: PropsWithChildren<CardProps>) {
   const isReportSectionCard = className.split(/\s+/).includes('hr-report-section-card');
 
   return (
-    <section className={`card ${className}`.trim()}>
+    <section className={`card ${className}`.trim()} style={style}>
       {(title || description || actions) && (
         <div className="section-title">
           <div className="section-heading-copy">

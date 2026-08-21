@@ -244,12 +244,12 @@ function PosProductsPanelComponent({
     favoriteKeys: favoriteKeySet,
     recentKeys: recentGroupKeys,
   }), [favoriteKeySet, groupedProducts, recentGroupKeys, shelf]);
-  const visibleTouchGroupCount = isTouchMode ? Math.min(touchVisibleCount, visibleGroups.length) : visibleGroups.length;
+  const visibleTouchGroupCount = Math.min(touchVisibleCount, visibleGroups.length);
   const displayedGroups = useMemo(
-    () => (canShowScannerResults ? (isScannerMode ? visibleGroups.slice(0, 12) : visibleGroups.slice(0, visibleTouchGroupCount)) : []),
-    [canShowScannerResults, isScannerMode, visibleGroups, visibleTouchGroupCount],
+    () => (canShowScannerResults ? visibleGroups.slice(0, visibleTouchGroupCount) : []),
+    [canShowScannerResults, visibleGroups, visibleTouchGroupCount],
   );
-  const hasMoreTouchGroups = isTouchMode && visibleGroups.length > displayedGroups.length;
+  const hasMoreTouchGroups = visibleGroups.length > displayedGroups.length;
   const visibleRecentGroups = useMemo(
     () => recentGroupKeys
       .map((key) => groupedProducts.find((group) => group.key === key))
@@ -392,8 +392,9 @@ function PosProductsPanelComponent({
   return (
     <Card
       className={`workspace-panel pos-products-card pos-products-card-compact pos-products-card-density-compact pos-products-card-mode-${posMode}`.trim()}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden', flex: 1 }}
     >
-      <div className="pos-products-static">
+      <div className="pos-products-static" style={{ flexShrink: 0 }}>
 
         <div className="pos-toolbar-shell pos-toolbar-shell-compact">
           <div className="pos-products-toolbar-stack" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -500,7 +501,17 @@ function PosProductsPanelComponent({
         ) : null}
       </div>
 
-      <div className="pos-products-scroll">
+      <div
+        className="pos-products-scroll"
+        style={{
+          flex: '1 1 0%',
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
+      >
         {!canShowScannerResults ? (
           <div className="pos-scanner-ready-panel">
             <div className="pos-scanner-ready-copy">
