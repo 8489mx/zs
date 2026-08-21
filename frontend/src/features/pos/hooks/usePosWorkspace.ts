@@ -16,7 +16,7 @@ const posReferenceStaleTime = 45_000;
 
 export type PaymentType = 'cash' | 'credit';
 export type PaymentChannel = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit' | 'mixed';
-export type PosProductFilter = 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials';
+export type PosProductFilter = 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials' | 'services';
 
 export interface PosDraftSnapshot {
   cart: PosItem[];

@@ -164,6 +164,8 @@ export function getAvailableSaleProducts(products: Product[], search: string, fi
 
     if (filter === 'raw_materials') {
       if (type !== 'raw_material') return false;
+    } else if (filter === 'services') {
+      if (type !== 'service') return false;
     } else {
       if (type === 'raw_material') return false;
     }
@@ -193,7 +195,8 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
   const isWeighted = options.isWeighted === true;
   const minQty = getMinimumSaleQuantity(isWeighted);
   const requestedQty = normalizeSaleQuantity(options.quantity ?? 1, isWeighted);
-  const stockLimit = options.allowNegativeStockSales ? UNBOUNDED_STOCK_LIMIT : getResolvedStockLimit(product, unit, isWeighted);
+  const isService = product.itemType === 'service' || (product as any).item_type === 'service';
+  const stockLimit = (options.allowNegativeStockSales || isService) ? UNBOUNDED_STOCK_LIMIT : getResolvedStockLimit(product, unit, isWeighted);
   if (stockLimit < minQty) {
     const globalStock = Number((product as any).globalStock || 0);
     if (globalStock >= minQty && stockLimit <= 0) {

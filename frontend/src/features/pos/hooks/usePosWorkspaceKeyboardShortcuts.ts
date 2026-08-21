@@ -18,6 +18,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
     canOpenCheckout: boolean;
   };
   focusBarcodeEntry: () => void;
+  onOpenQuickService?: () => void;
   printCurrentDraft: () => void;
   onRequestClearCart: () => void;
   onRequestLineDelete: (lineKey: string) => void;
@@ -29,6 +30,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
 export function usePosWorkspaceKeyboardShortcuts({
   pos,
   focusBarcodeEntry,
+  onOpenQuickService,
   printCurrentDraft,
   onRequestClearCart,
   onRequestLineDelete,
@@ -42,6 +44,11 @@ export function usePosWorkspaceKeyboardShortcuts({
       const isTypingTarget = Boolean(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable));
 
       if (event.key === 'F3') {
+        event.preventDefault();
+        onOpenHeldDrafts();
+        return;
+      }
+      if (event.key === 'F6') {
         event.preventDefault();
         focusBarcodeEntry();
         return;
@@ -63,7 +70,7 @@ export function usePosWorkspaceKeyboardShortcuts({
         }
         return;
       }
-      if (isTypingTarget && !['F2', 'F4', 'F6', 'F8', 'F9', 'F12'].includes(event.key)) return;
+      if (isTypingTarget && !['F2', 'F3', 'F4', 'F6', 'F8', 'F9', 'F12'].includes(event.key)) return;
       if (!isTypingTarget && pos.selectedLineKey) {
         if (event.key === 'ArrowDown') {
           event.preventDefault();
@@ -105,12 +112,9 @@ export function usePosWorkspaceKeyboardShortcuts({
         } else {
           void pos.holdDraft();
         }
-      } else if (event.key === 'F6') {
-        event.preventDefault();
-        pos.reprintLastSale();
       } else if (event.key === 'F8') {
         event.preventDefault();
-        printCurrentDraft();
+        onOpenQuickService?.();
       } else if (event.key === 'F9') {
         if (event.altKey || event.ctrlKey || event.shiftKey || event.metaKey) return;
         event.preventDefault();
@@ -122,5 +126,5 @@ export function usePosWorkspaceKeyboardShortcuts({
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [focusBarcodeEntry, onOpenHeldDrafts, onRecallHeldDraftByIndex, onRequestCheckout, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
+  }, [focusBarcodeEntry, onOpenHeldDrafts, onOpenQuickService, onRecallHeldDraftByIndex, onRequestCheckout, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
 }

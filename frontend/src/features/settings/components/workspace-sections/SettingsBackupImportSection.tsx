@@ -83,7 +83,7 @@ function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
     <QueryCard
       className="settings-admin-card"
       title="صيانة وتسريع قاعدة البيانات"
-      actions={<span className="nav-pill">أداء النظام ⚡</span>}
+      actions={<span className="nav-pill">أداء النظام</span>}
     >
       <div className="page-stack">
         <p className="muted small">
@@ -105,7 +105,7 @@ function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
               optimizeMutation.mutate();
             }}
           >
-            {optimizeMutation.isPending ? 'جاري تحسين قاعدة البيانات...' : '⚡ تحسين وسرعة قاعدة البيانات الآن'}
+            {optimizeMutation.isPending ? 'جاري تحسين قاعدة البيانات...' : 'تحسين وسرعة قاعدة البيانات الآن'}
           </Button>
         </div>
 

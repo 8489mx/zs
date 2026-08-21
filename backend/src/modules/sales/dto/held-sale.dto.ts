@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsIn, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 class HeldSaleItemDto {
@@ -112,17 +112,32 @@ export class HeldSaleDto {
   @IsIn(['retail', 'wholesale'])
   priceType?: 'retail' | 'wholesale';
 
-  @Type(() => Number)
+  @Transform(({ value }: { value: unknown }) => (value && Number(value) > 0 ? Number(value) : undefined))
   @IsOptional()
   @IsNumber()
   @Min(1)
   branchId?: number;
 
-  @Type(() => Number)
+  @Transform(({ value }: { value: unknown }) => (value && Number(value) > 0 ? Number(value) : undefined))
   @IsOptional()
   @IsNumber()
   @Min(1)
   locationId?: number;
+
+  @Transform(({ value }: { value: unknown }) => (value && Number(value) > 0 ? Number(value) : undefined))
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  deliveryRepId?: number;
+
+  @IsOptional()
+  @IsString()
+  deliveryStatus?: string;
+
+  @Transform(({ value }: { value: unknown }) => (value ? String(value) : undefined))
+  @IsOptional()
+  @IsIn(['cod', 'prepaid_by_rep', 'prepaid_online'])
+  collectionStatus?: 'cod' | 'prepaid_by_rep' | 'prepaid_online';
 
   @IsArray()
   @ArrayMinSize(1)

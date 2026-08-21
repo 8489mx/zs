@@ -24,8 +24,8 @@ interface PosProductsPanelProps {
   products: Product[];
   recentProducts: Product[];
   onAddProduct: (product: Product) => void;
-  productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials';
-  onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials') => void;
+  productFilter: 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials' | 'services';
+  onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials' | 'services') => void;
   searchInputRef: RefObject<HTMLInputElement | null>;
   posMode: PosSaleMode;
 }
@@ -483,7 +483,15 @@ function PosProductsPanelComponent({
         </div>
 
         {categories.length > 0 && (
-          <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '6px', marginTop: '10px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
+          <div
+            className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
+            style={{ gap: '6px', marginTop: '10px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
+            onWheel={(e) => {
+              if (e.deltaY !== 0) {
+                e.currentTarget.scrollLeft += e.deltaY;
+              }
+            }}
+          >
             <button
               type="button"
               onClick={() => {
@@ -532,7 +540,15 @@ function PosProductsPanelComponent({
           </div>
         )}
 
-        <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '6px', marginTop: '6px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
+        <div
+          className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
+          style={{ gap: '6px', marginTop: '6px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
+          onWheel={(e) => {
+            if (e.deltaY !== 0) {
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
+          }}
+        >
           <button
             type="button"
             onClick={() => {

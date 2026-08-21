@@ -140,8 +140,10 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     locationId: input.locationId || null,
     source: input.source || 'pos',
     orderType: input.orderType || 'direct',
-    deliveryRepId: input.deliveryRepId ? Number(input.deliveryRepId) : null,
-    collectionStatus: input.collectionStatus || null,
+    ...(input.deliveryRepId && Number(input.deliveryRepId) > 0 ? {
+      deliveryRepId: Number(input.deliveryRepId),
+      collectionStatus: input.collectionStatus || 'cod',
+    } : {}),
     items: normalizeCart(input.cart)
   };
 }
@@ -181,8 +183,10 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     locationId: input.locationId || null,
     source: input.source || 'pos',
     orderType: input.orderType || 'direct',
-    deliveryRepId: input.deliveryRepId ? Number(input.deliveryRepId) : null,
-    collectionStatus: input.collectionStatus || null,
+    ...(input.deliveryRepId && Number(input.deliveryRepId) > 0 ? {
+      deliveryRepId: Number(input.deliveryRepId),
+      collectionStatus: input.collectionStatus || 'cod',
+    } : {}),
     items: normalizedItems.map((item) => ({
       productId: item.productId,
       qty: item.qty,

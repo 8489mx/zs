@@ -10,6 +10,7 @@ import { PosItemModifiersModal } from '@/features/pos/components/pos-cart-panel/
 import { PosDraftSwitcherOverlay } from '@/features/pos/components/pos-workspace/PosDraftSwitcherOverlay';
 import { PosOpenShiftModal } from '@/features/pos/components/pos-workspace/PosOpenShiftModal';
 import { SerialLookupModal } from '@/features/products/components/SerialLookupModal';
+import { QuickProductModal } from '@/shared/components/QuickProductModal';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -37,6 +38,7 @@ export function PosWorkspace() {
   const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
   const [openShiftModalOpen, setOpenShiftModalOpen] = useState(false);
   const [serialLookupOpen, setSerialLookupOpen] = useState(false);
+  const [quickServiceOpen, setQuickServiceOpen] = useState(false);
   const [modifiersModalLineKey, setModifiersModalLineKey] = useState<string>('');
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
@@ -295,6 +297,7 @@ export function PosWorkspace() {
   usePosWorkspaceKeyboardShortcuts({
     pos,
     focusBarcodeEntry,
+    onOpenQuickService: () => setQuickServiceOpen(true),
     printCurrentDraft,
     onRequestClearCart: requestClearCart,
     onRequestLineDelete: requestLineDelete,
@@ -310,6 +313,8 @@ export function PosWorkspace() {
         posMode={posMode}
         onModeChange={setPosMode}
         onFocusSearch={focusBarcodeEntry}
+        onOpenHeldDrafts={() => setHeldDraftsDialogOpen(true)}
+        onOpenQuickService={() => setQuickServiceOpen(true)}
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenSerialLookup={() => setSerialLookupOpen(true)}
@@ -470,6 +475,16 @@ export function PosWorkspace() {
         open={serialLookupOpen}
         onClose={() => {
           setSerialLookupOpen(false);
+          focusBarcodeEntry();
+        }}
+      />
+
+      <QuickProductModal
+        isOpen={quickServiceOpen}
+        onClose={() => setQuickServiceOpen(false)}
+        itemType="service"
+        onSuccess={(newServiceProduct) => {
+          pos.handleAddProduct(newServiceProduct);
           focusBarcodeEntry();
         }}
       />

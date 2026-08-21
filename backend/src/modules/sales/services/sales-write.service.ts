@@ -366,7 +366,7 @@ export class SalesWriteService {
         }
         const product = await trx.selectFrom('products as p')
           .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-          .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'b.id as bom_id'])
+          .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.item_type', 'b.id as bom_id'])
           .where('p.id', '=', item.productId)
           .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
           .where('p.is_active', '=', true)
@@ -956,7 +956,7 @@ export class SalesWriteService {
         }
         const product = await trx.selectFrom('products as p')
           .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-          .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'b.id as bom_id'])
+          .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.item_type', 'b.id as bom_id'])
           .where('p.id', '=', item.productId)
           .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
           .where('p.is_active', '=', true)
@@ -995,10 +995,10 @@ export class SalesWriteService {
         const preparedItem = buildPreparedSaleItem(
           { ...product, name: finalProductName, stock_qty: availableStockQty }, 
           item, 
-          { allowNegativeStockSales: allowNegativeStockSales || hasBOM }
+          { allowNegativeStockSales: allowNegativeStockSales || hasBOM || (product as any).item_type === 'service' }
         );
         subtotal += preparedItem.lineTotal;
-        preparedItems.push(preparedItem);
+        preparedItems.push({ ...preparedItem, isService: (product as any).item_type === 'service' });
         
         if (hasBOM) {
           autoProduceItems.push({
@@ -1097,6 +1097,10 @@ export class SalesWriteService {
               .where(sql<boolean>`LOWER(serial_number) in (${sql.join(cleanSerials)})`)
               .execute();
           }
+        }
+
+        if (item.isService) {
+          continue;
         }
 
         let remainingQty = item.requiredQty;

@@ -10,11 +10,14 @@ export class FileMigrationProvider implements KyselyMigrationProvider {
       return {};
     }
 
+    const isTsRuntime = __filename.endsWith('.ts');
+
     const files = readdirSync(this.migrationsPath)
       .filter(
         (name) =>
           !name.endsWith('.d.ts') &&
-          (name.endsWith('.ts') || name.endsWith('.js'))
+          !name.endsWith('.map') &&
+          (isTsRuntime ? (name.endsWith('.ts') || name.endsWith('.js')) : name.endsWith('.js'))
       )
       .sort();
 
@@ -22,10 +25,20 @@ export class FileMigrationProvider implements KyselyMigrationProvider {
 
     for (const fileName of files) {
       const fullPath = join(this.migrationsPath, fileName);
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const migrationModule = require(fullPath) as { migration: Migration };
-      const key = fileName.replace(/\.(ts|js)$/, '');
-      migrations[key] = migrationModule.migration;
+      if (!existsSync(fullPath)) continue;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const migrationModule = require(fullPath) as { migration?: Migration; default?: Migration };
+        const key = fileName.replace(/\.(ts|js)$/, '');
+        if (migrationModule.migration) {
+          migrations[key] = migrationModule.migration;
+        } else if (migrationModule.default) {
+          migrations[key] = migrationModule.default;
+        }
+      } catch (err) {
+        // If a file is being written or missing during hot reload, throw clear error
+        throw new Error(`Failed to load migration file at ${fullPath}: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
     return migrations;

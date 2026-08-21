@@ -302,8 +302,10 @@ export function createPosWorkspaceAsyncActions(
         paymentChannel: params.paymentChannel,
         orderType: params.orderType,
         tableNumber: params.tableNumber,
-        deliveryRepId: params.deliveryRepId,
-        collectionStatus: params.collectionStatus,
+        ...(params.deliveryRepId && Number(params.deliveryRepId) > 0 ? {
+          deliveryRepId: Number(params.deliveryRepId),
+          collectionStatus: params.collectionStatus || 'cod',
+        } : {}),
         items: sanitizedItems,
       });
       base.resetPosDraft();

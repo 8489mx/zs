@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 class SalePaymentDto {
@@ -124,7 +124,7 @@ export class UpsertSaleDto {
   @IsString()
   orderType?: string;
 
-  @Type(() => Number)
+  @Transform(({ value }: { value: unknown }) => (value && Number(value) > 0 ? Number(value) : undefined))
   @IsOptional()
   @IsNumber()
   @Min(1)
@@ -134,17 +134,18 @@ export class UpsertSaleDto {
   @IsString()
   deliveryStatus?: string;
 
+  @Transform(({ value }: { value: unknown }) => (value ? String(value) : undefined))
   @IsOptional()
   @IsIn(['cod', 'prepaid_by_rep', 'prepaid_online'])
   collectionStatus?: 'cod' | 'prepaid_by_rep' | 'prepaid_online';
 
-  @Type(() => Number)
+  @Transform(({ value }: { value: unknown }) => (value && Number(value) > 0 ? Number(value) : undefined))
   @IsOptional()
   @IsNumber()
   @Min(1)
   branchId?: number;
 
-  @Type(() => Number)
+  @Transform(({ value }: { value: unknown }) => (value && Number(value) > 0 ? Number(value) : undefined))
   @IsOptional()
   @IsNumber()
   @Min(1)

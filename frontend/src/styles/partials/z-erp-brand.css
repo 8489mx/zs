@@ -162,11 +162,7 @@
   font-weight: 900;
   margin-top: 2px;
   line-height: 1.1;
-  background: linear-gradient(120deg, #1e293b 0%, #4338ca 35%, #06b6d4 50%, #4338ca 65%, #1e293b 100%);
-  background-size: 250% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: zShineText 4s linear infinite;
+  color: #1e293b;
   transition: all 0.25s ease;
 }
 
@@ -182,7 +178,11 @@
 }
 
 .brand-sub-interactive:hover .brand-powered-name {
-  animation: zShineText 1s linear infinite;
+  background: linear-gradient(120deg, #1e293b 0%, #4338ca 35%, #06b6d4 50%, #4338ca 65%, #1e293b 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: zShineText 1.2s linear infinite;
   filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.45));
 }
 

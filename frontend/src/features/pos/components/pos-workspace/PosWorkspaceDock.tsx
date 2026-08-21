@@ -59,7 +59,7 @@ export function PosWorkspaceDock({
         <div className="pos-workspace-dock-actions pos-workspace-dock-actions-inline" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, padding: '0' }}>
           <Button type="button" variant="secondary" onClick={onHoldDraft} disabled={itemsCount === 0 || isPending}>تعليق F4</Button>
           <Button type="button" variant="secondary" onClick={onOpenHeldDrafts}>
-            {settings?.restaurantModuleEnabled ? `طاولات مفتوحة (${heldDraftsCount})` : `الفواتير المعلقة (${heldDraftsCount})`}
+            {settings?.restaurantModuleEnabled ? `طاولات مفتوحة (${heldDraftsCount}) F3` : `معلقة (${heldDraftsCount}) F3`}
           </Button>
           <Button
             type="button"

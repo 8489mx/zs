@@ -1032,7 +1032,7 @@ export class CatalogProductService {
     return {
       name: normalizeArabicInput(payload.name),
       barcode: String(payload.barcode || '').trim(),
-      itemType: payload.itemType === 'raw_material' ? 'raw_material' : 'product',
+      itemType: payload.itemType === 'raw_material' ? 'raw_material' : payload.itemType === 'service' ? 'service' : 'product',
       itemKind: payload.itemKind === 'fashion' ? 'fashion' : 'standard',
       styleCode: String(payload.styleCode || '').trim(),
       color: normalizeArabicInput(payload.color),
@@ -1140,7 +1140,33 @@ export class CatalogProductService {
   }
 
   private async ensureCategoryAndSupplierInTenant(payload: NormalizedUpsertProduct, actor: AuthContext): Promise<void> {
-    if (payload.categoryId) {
+    if (payload.itemType === 'service' && !payload.categoryId) {
+      const existingCategory = await this.db
+        .selectFrom('product_categories')
+        .select('id')
+        .where(sql`LOWER(name)`, '=', 'خدمات')
+        .where('is_active', '=', true)
+        .where(this.tenantPredicate(actor))
+        .executeTakeFirst();
+
+      if (existingCategory) {
+        payload.categoryId = Number(existingCategory.id);
+      } else {
+        const createdCategory = await this.db
+          .insertInto('product_categories')
+          .values({
+            name: 'خدمات',
+            is_active: true,
+            ...this.tenantFields(actor),
+          })
+          .returning('id')
+          .executeTakeFirst();
+
+        if (createdCategory) {
+          payload.categoryId = Number(createdCategory.id);
+        }
+      }
+    } else if (payload.categoryId) {
       const category = await this.db
         .selectFrom('product_categories')
         .select('id')
