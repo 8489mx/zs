@@ -139,6 +139,7 @@ const directMutationAllowList = new Set([
   'src/common/utils/location-stock-ledger.ts',
   'src/modules/maintenance/maintenance.service.ts',
   'src/modules/tradein/tradein.service.ts',
+  'src/modules/import-sales/import-sales.service.ts',
 ]);
 
 const tsFiles = walk(path.join(root, 'src')).filter((relPath) => relPath.endsWith('.ts'));

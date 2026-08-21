@@ -14,7 +14,7 @@ type ProductRow = {
   id: number;
   name: string;
   barcode: string | null;
-  item_type?: 'product' | 'raw_material';
+  item_type?: 'product' | 'raw_material' | 'service';
   item_kind: 'standard' | 'fashion' | null;
   style_code: string | null;
   color: string | null;
@@ -640,7 +640,7 @@ export class CatalogProductService {
       id: String(product.id),
       name: product.name || '',
       barcode: product.barcode || '',
-      itemType: product.item_type === 'raw_material' ? 'raw_material' : 'product',
+      itemType: product.item_type === 'raw_material' ? 'raw_material' : product.item_type === 'service' ? 'service' : 'product',
       itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
       styleCode: product.style_code || '',
       color: product.color || '',
@@ -909,7 +909,7 @@ export class CatalogProductService {
         barcode: product.barcode || '',
         categoryId: product.category_id ? String(product.category_id) : '',
         supplierId: product.supplier_id ? String(product.supplier_id) : '',
-        itemType: product.item_type === 'raw_material' ? 'raw_material' : 'product',
+        itemType: product.item_type === 'raw_material' ? 'raw_material' : product.item_type === 'service' ? 'service' : 'product',
         itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
         styleCode: product.style_code || '',
         color: product.color || '',
@@ -1300,7 +1300,7 @@ export class CatalogProductService {
           .values({
             name: draft.name,
             barcode: draft.barcode || null,
-            item_type: draft.itemType || 'product',
+            item_type: draft.itemType === 'service' ? 'service' : draft.itemType === 'raw_material' ? 'raw_material' : 'product',
             item_kind: draft.itemKind,
             style_code: draft.styleCode || null,
             color: draft.color || null,
@@ -1373,7 +1373,7 @@ export class CatalogProductService {
       await trx.updateTable('products').set({
         name: normalized.name,
         barcode: normalized.barcode || null,
-        item_type: normalized.itemType || 'product',
+        item_type: normalized.itemType === 'service' ? 'service' : normalized.itemType === 'raw_material' ? 'raw_material' : 'product',
         item_kind: normalized.itemKind,
         style_code: normalized.styleCode || null,
         color: normalized.color || null,

@@ -654,14 +654,15 @@ export function NewProductPage() {
           )}
 
           <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
-            {manufacturingModuleEnabled ? (
-              <Field label="تصنيف الصنف">
-                <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
-                  <option value="product">منتج نهائي للبيع</option>
+            <Field label="نوع الصنف">
+              <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
+                <option value="product">منتج تام للبيع (مخزني)</option>
+                <option value="service">خدمة / مصنعية (بدون مخزون)</option>
+                {manufacturingModuleEnabled ? (
                   <option value="raw_material">مادة خام / مكون تصنيع</option>
-                </select>
-              </Field>
-            ) : null}
+                ) : null}
+              </select>
+            </Field>
 
             <ProductNameField
               label={watchedItemKind === 'fashion' ? 'اسم الموديل الأساسي' : groupedEntryEnabled ? 'اسم الصنف الأساسي' : 'اسم الصنف'}

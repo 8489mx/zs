@@ -37,6 +37,7 @@ export type PreparedSaleItem = {
   afterQty: number;
   notes: string;
   modifiers: unknown;
+  isService?: boolean;
   serials?: any;
 };
 
@@ -73,6 +74,7 @@ export function buildPreparedSaleItem(
     afterQty: Number((beforeQty - requiredQty).toFixed(3)),
     notes: item.notes || '',
     modifiers: item.modifiers,
+    isService: (product as any)?.item_type === 'service',
     ...(item.serials !== undefined ? { serials: item.serials } : {}),
   };
 }

@@ -426,10 +426,10 @@ export class SalesWriteService {
         const preparedItem = buildPreparedSaleItem(
           { ...product, name: finalProductName, stock_qty: availableStockQty }, 
           item, 
-          { allowNegativeStockSales: allowNegativeStockSales || hasBOM }
+          { allowNegativeStockSales: allowNegativeStockSales || hasBOM || (product as any).item_type === 'service' }
         );
         subtotal += preparedItem.lineTotal;
-        preparedItems.push(preparedItem);
+        preparedItems.push({ ...preparedItem, isService: (product as any).item_type === 'service' });
         
         if (hasBOM) {
           autoProduceItems.push({
@@ -592,6 +592,10 @@ export class SalesWriteService {
               .where(sql<boolean>`LOWER(serial_number) in (${sql.join(cleanSerials)})`)
               .execute();
           }
+        }
+
+        if (item.isService) {
+          continue;
         }
 
         let remainingQty = item.requiredQty;
