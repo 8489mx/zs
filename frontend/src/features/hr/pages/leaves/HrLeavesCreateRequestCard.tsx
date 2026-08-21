@@ -1,4 +1,3 @@
-﻿import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import type { HrEmployee, HrLeaveType } from '@/types/domain';
 import {
@@ -40,26 +39,39 @@ export function HrLeavesCreateRequestCard({
   onClose,
 }: Props) {
   return (
-    <FormSection title="إضافة طلب إجازة">
-      <div className="form-grid">
-        <label className="field">
-          <span>الموظف</span>
-          <select value={leaveForm.employeeId} onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, employeeId: normalizeArabicDigits(event.target.value) }))}>
-            <option value="">اختر الموظف</option>
+    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+        <strong style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a' }}>📝 إضافة طلب إجازة جديد</strong>
+        <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>✕ إغلاق</Button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '10px' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>الموظف <span style={{ color: '#dc2626' }}>*</span></label>
+          <select
+            value={leaveForm.employeeId}
+            onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, employeeId: normalizeArabicDigits(event.target.value) }))}
+            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
+          >
+            <option value="">اختر الموظف...</option>
             {employees.map((employee) => <option key={employee.id} value={employee.id}>{employeeDisplay(employee)}</option>)}
           </select>
-          {errors.employeeId ? <small className="field-error">{errors.employeeId}</small> : null}
-        </label>
-        <label className="field">
-          <span>نوع الإجازة</span>
-          <select value={leaveForm.leaveTypeId} onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, leaveTypeId: normalizeArabicDigits(event.target.value) }))}>
-            <option value="">اختر النوع</option>
+          {errors.employeeId ? <small style={{ color: '#dc2626', fontSize: '0.725rem', marginTop: '2px', display: 'block' }}>{errors.employeeId}</small> : null}
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>نوع الإجازة <span style={{ color: '#dc2626' }}>*</span></label>
+          <select
+            value={leaveForm.leaveTypeId}
+            onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, leaveTypeId: normalizeArabicDigits(event.target.value) }))}
+            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
+          >
+            <option value="">اختر النوع...</option>
             {leaveTypes.map((type) => <option key={type.id} value={type.id}>{text(type.name) || '—'}</option>)}
           </select>
-          {errors.leaveTypeId ? <small className="field-error">{errors.leaveTypeId}</small> : null}
-        </label>
-        <label className="field">
-          <span>من تاريخ</span>
+          {errors.leaveTypeId ? <small style={{ color: '#dc2626', fontSize: '0.725rem', marginTop: '2px', display: 'block' }}>{errors.leaveTypeId}</small> : null}
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>من تاريخ <span style={{ color: '#dc2626' }}>*</span></label>
           <input
             type="date"
             value={leaveForm.startDate}
@@ -67,11 +79,12 @@ export function HrLeavesCreateRequestCard({
               const startDate = normalizeArabicDigits(event.target.value);
               onLeaveFormChange((prev) => ({ ...prev, startDate, daysCount: calculateInclusiveDays(startDate, prev.endDate) || prev.daysCount }));
             }}
+            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
           />
-          {errors.startDate ? <small className="field-error">{errors.startDate}</small> : null}
-        </label>
-        <label className="field">
-          <span>إلى تاريخ</span>
+          {errors.startDate ? <small style={{ color: '#dc2626', fontSize: '0.725rem', marginTop: '2px', display: 'block' }}>{errors.startDate}</small> : null}
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>إلى تاريخ <span style={{ color: '#dc2626' }}>*</span></label>
           <input
             type="date"
             value={leaveForm.endDate}
@@ -79,26 +92,43 @@ export function HrLeavesCreateRequestCard({
               const endDate = normalizeArabicDigits(event.target.value);
               onLeaveFormChange((prev) => ({ ...prev, endDate, daysCount: calculateInclusiveDays(prev.startDate, endDate) || prev.daysCount }));
             }}
+            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
           />
-          {errors.endDate ? <small className="field-error">{errors.endDate}</small> : null}
-        </label>
-        <label className="field">
-          <span>عدد الأيام</span>
-          <input inputMode="decimal" value={leaveForm.daysCount} onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, daysCount: normalizeArabicDigits(event.target.value) }))} />
-        </label>
-        <label className="field field-wide">
-          <span>السبب</span>
-          <input value={leaveForm.reason} onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, reason: event.target.value }))} />
-        </label>
-        <label className="field field-wide">
-          <span>ملاحظات</span>
-          <input value={leaveForm.notes} onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, notes: event.target.value }))} />
-        </label>
+          {errors.endDate ? <small style={{ color: '#dc2626', fontSize: '0.725rem', marginTop: '2px', display: 'block' }}>{errors.endDate}</small> : null}
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>عدد الأيام</label>
+          <input
+            inputMode="decimal"
+            value={leaveForm.daysCount}
+            onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, daysCount: normalizeArabicDigits(event.target.value) }))}
+            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
+          />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>سبب الإجازة</label>
+          <input
+            value={leaveForm.reason}
+            onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, reason: event.target.value }))}
+            placeholder="السبب..."
+            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
+          />
+        </div>
+        <div style={{ gridColumn: 'span 2' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>ملاحظات إدارية</label>
+          <input
+            value={leaveForm.notes}
+            onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, notes: event.target.value }))}
+            placeholder="أي ملاحظات إضافية..."
+            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
+          />
+        </div>
       </div>
-      <div className="actions compact-actions" style={{ marginTop: 12 }}>
-        <Button type="button" onClick={onCreate} disabled={isPending}>{isPending ? 'جاري الحفظ...' : 'حفظ الطلب'}</Button>
-        <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
+
+      <div className="actions compact-actions" style={{ justifyContent: 'flex-start', gap: '8px' }}>
+        <Button type="button" onClick={onCreate} disabled={isPending} style={{ padding: '4px 14px', fontSize: '0.8rem' }}>{isPending ? 'جاري الحفظ...' : 'حفظ الطلب'}</Button>
+        <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '4px 14px', fontSize: '0.8rem' }}>إلغاء</Button>
       </div>
-    </FormSection>
+    </div>
   );
 }

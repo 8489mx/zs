@@ -2005,13 +2005,28 @@ export class HrService {
     
     let runId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
-      let existingQuery = sql<{ id: number }>`SELECT id FROM hr_payroll_runs WHERE tenant_id = ${auth.tenantId} AND period_month = ${periodMonth} AND status <> 'cancelled' AND pay_frequency = ${payFreq}`;
-      if (clean(payload.startDate)) {
-         existingQuery = sql<{ id: number }>`SELECT id FROM hr_payroll_runs WHERE tenant_id = ${auth.tenantId} AND period_month = ${periodMonth} AND status <> 'cancelled' AND pay_frequency = ${payFreq} AND start_date = ${sDate}`;
+      const existing = await sql<{ id: number; status: string }>`
+        SELECT id, status
+        FROM hr_payroll_runs
+        WHERE tenant_id = ${auth.tenantId}
+          AND period_month = ${periodMonth}
+          AND status <> 'cancelled'
+          AND pay_frequency = ${payFreq}
+        ORDER BY id DESC
+        LIMIT 1
+      `.execute(trx);
+
+      if (existing.rows.length > 0) {
+        const row = existing.rows[0];
+        if (row.status === 'paid') {
+          throw new AppError('مسير الرواتب لهذه الفترة تم صرفه وإغلاقه بالفعل', 'HR_PAYROLL_ALREADY_PAID', 400);
+        }
+        if (row.status === 'approved') {
+          throw new AppError('مسير الرواتب لهذه الفترة معتمد بالفعل وجاهز للصرف', 'HR_PAYROLL_ALREADY_APPROVED', 400);
+        }
+        runId = Number(row.id);
       }
-      
-      const existing = await sql<{ id: number }>`${existingQuery} ORDER BY id DESC LIMIT 1`.execute(trx);
-      runId = Number(existing.rows[0]?.id || 0);
+
       if (!runId) {
         const eDate = clean(payload.endDate);
         let finalEndDate = eDate;
@@ -2406,7 +2421,8 @@ export class HrService {
       LEFT JOIN hr_departments d ON d.id = e.department_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
       LEFT JOIN hr_attendance_records a ON a.employee_id = e.id AND a.work_date = ${workDate}::date
-      WHERE e.status IN ('active', 'inactive')
+      WHERE ${this.tenantPredicate(auth, 'e')}
+        AND e.status IN ('active', 'inactive')
       ORDER BY e.display_name ASC, e.id ASC
     `.execute(this.db);
 
@@ -2874,7 +2890,8 @@ export class HrService {
           ex.actual_time AS actual_time_text
         FROM hr_attendance_exceptions ex
         JOIN hr_employees e ON e.id = ex.employee_id
-        WHERE (${workDate || ''} = '' OR ex.work_date = ${workDate || null}::date)
+        WHERE ${this.tenantPredicate(auth, 'e')}
+          AND (${workDate || ''} = '' OR ex.work_date = ${workDate || null}::date)
           AND ${monthCondition}
         ORDER BY ex.work_date DESC, e.display_name ASC, ex.id DESC
       `.execute(this.db);
@@ -2974,16 +2991,17 @@ export class HrService {
     const description = clean(payload.description);
     const isPaid = payload.isPaid !== false;
     const isActive = payload.isActive !== false;
+    const deductsFromBalance = (payload as any).deductsFromBalance === true || (payload as any).deducts_from_balance === true;
     if (id) {
       await sql`
         UPDATE hr_leave_types
-        SET name = ${name}, code = ${code || null}, description = ${description || null}, is_paid = ${isPaid}, is_active = ${isActive}, updated_by = ${auth.userId}, updated_at = NOW()
+        SET name = ${name}, code = ${code || null}, description = ${description || null}, is_paid = ${isPaid}, is_active = ${isActive}, deducts_from_balance = ${deductsFromBalance}, updated_by = ${auth.userId}, updated_at = NOW()
         WHERE id = ${id}
       `.execute(this.db);
     } else {
       await sql`
-        INSERT INTO hr_leave_types (name, deducts_from_balance, code, description, is_paid, is_active, created_by, updated_by, created_at, updated_at)
-        VALUES (${name}, ${code || null}, ${description || null}, ${isPaid}, ${isActive}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
+        INSERT INTO hr_leave_types (tenant_id, account_id, name, deducts_from_balance, code, description, is_paid, is_active, created_by, updated_by, created_at, updated_at)
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${name}, ${deductsFromBalance}, ${code || null}, ${description || null}, ${isPaid}, ${isActive}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
       `.execute(this.db);
     }
     await this.audit.log(`${id ? 'Update' : 'Create'} HR leave type`, `Leave type ${name} saved by ${auth.username}`, auth);
@@ -3497,10 +3515,10 @@ export class HrService {
     requireTenantScope(auth);
     const result = await sql<{ employee_count: string; active_count: string; open_loans: string; outstanding_amount: string }>`
       SELECT
-        (SELECT COUNT(*) FROM hr_employees) AS employee_count,
-        (SELECT COUNT(*) FROM hr_employees WHERE status = 'active') AS active_count,
-        (SELECT COUNT(*) FROM hr_employee_loans WHERE status IN ('paid','partially_repaid')) AS open_loans,
-        (SELECT COALESCE(SUM(remaining_amount), 0) FROM hr_employee_loans WHERE status IN ('paid','partially_repaid')) AS outstanding_amount
+        (SELECT COUNT(*) FROM hr_employees WHERE tenant_id = ${auth.tenantId}) AS employee_count,
+        (SELECT COUNT(*) FROM hr_employees WHERE tenant_id = ${auth.tenantId} AND status = 'active') AS active_count,
+        (SELECT COUNT(*) FROM hr_employee_loans WHERE tenant_id = ${auth.tenantId} AND status IN ('paid','partially_repaid','disbursed') AND remaining_amount > 0) AS open_loans,
+        (SELECT COALESCE(SUM(remaining_amount), 0) FROM hr_employee_loans WHERE tenant_id = ${auth.tenantId} AND status IN ('paid','partially_repaid','disbursed')) AS outstanding_amount
     `.execute(this.db);
     const row = result.rows[0];
     const canSeeLoans = hasHrPermission(auth, 'hrLoans');
@@ -3532,17 +3550,19 @@ export class HrService {
           COUNT(*) AS employee_count,
           COUNT(*) FILTER (WHERE status = 'active') AS active_count
         FROM hr_employees
+        WHERE tenant_id = ${auth.tenantId}
       `.execute(this.db),
       sql<Record<string, unknown>>`
         SELECT
-          COALESCE(SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END), 0) AS present_count,
-          COALESCE(SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_count,
-          COALESCE(SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END), 0) AS late_count,
-          COALESCE(SUM(CASE WHEN status = 'half_day' THEN 1 ELSE 0 END), 0) AS half_day_count,
-          COALESCE(SUM(CASE WHEN status = 'leave' THEN 1 ELSE 0 END), 0) AS leave_count
-        FROM hr_attendance_records
-        WHERE work_date >= ${range.from}::date
-          AND work_date <= ${range.to}::date
+          COALESCE(SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END), 0) AS present_count,
+          COALESCE(SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END), 0) AS absent_count,
+          COALESCE(SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END), 0) AS late_count,
+          COALESCE(SUM(CASE WHEN a.status = 'half_day' THEN 1 ELSE 0 END), 0) AS half_day_count,
+          COALESCE(SUM(CASE WHEN a.status = 'leave' THEN 1 ELSE 0 END), 0) AS leave_count
+        FROM hr_attendance_records a
+        WHERE a.tenant_id = ${auth.tenantId}
+          AND a.work_date >= ${range.from}::date
+          AND a.work_date <= ${range.to}::date
       `.execute(this.db),
       sql<Record<string, unknown>>`
         SELECT
@@ -3552,8 +3572,10 @@ export class HrService {
           COALESCE(SUM(CASE WHEN lr.status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_count,
           COALESCE(SUM(CASE WHEN lr.status = 'approved' AND (COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid') THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
         FROM hr_leave_requests lr
+        JOIN hr_employees e ON e.id = lr.employee_id
         LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
-        WHERE lr.start_date <= ${range.to}::date
+        WHERE e.tenant_id = ${auth.tenantId}
+          AND lr.start_date <= ${range.to}::date
           AND lr.end_date >= ${range.from}::date
       `.execute(this.db),
       sql<Record<string, unknown>>`
@@ -3561,6 +3583,7 @@ export class HrService {
           COALESCE(SUM(CASE WHEN status IN ('paid', 'partially_repaid', 'disbursed') AND remaining_amount > 0 THEN 1 ELSE 0 END), 0) AS open_loan_count,
           COALESCE(SUM(CASE WHEN status IN ('paid', 'partially_repaid', 'disbursed') THEN remaining_amount ELSE 0 END), 0) AS outstanding_amount
         FROM hr_employee_loans
+        WHERE tenant_id = ${auth.tenantId}
       `.execute(this.db),
       sql<Record<string, unknown>>`
         SELECT
@@ -3569,6 +3592,7 @@ export class HrService {
           COALESCE(SUM(CASE WHEN status = 'lost' THEN 1 ELSE 0 END), 0) AS lost_count,
           COALESCE(SUM(CASE WHEN status = 'damaged' THEN 1 ELSE 0 END), 0) AS damaged_count
         FROM hr_employee_assets
+        WHERE tenant_id = ${auth.tenantId}
       `.execute(this.db),
       sql<Record<string, unknown>>`
         SELECT
@@ -3577,7 +3601,8 @@ export class HrService {
           COALESCE(SUM(i.net_pay), 0) AS total_net_pay
         FROM hr_payroll_runs r
         LEFT JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.status <> 'excluded'
-        WHERE r.period_month >= ${fromMonth}
+        WHERE r.tenant_id = ${auth.tenantId}
+          AND r.period_month >= ${fromMonth}
           AND r.period_month <= ${toMonth}
       `.execute(this.db),
     ]);

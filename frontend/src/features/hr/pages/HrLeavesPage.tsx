@@ -1,10 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
-import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrLeaveRequest, HrLeaveType } from '@/types/domain';
@@ -198,164 +195,218 @@ export function HrLeavesPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
-      <PageHeader
-        title="الإجازات"
-        description="راجع الطلبات قيد المراجعة أولًا، ثم تابع الإجازات غير المدفوعة لأنها تؤثر على المرتبات."
-        actions={(
-          <div className="compact-actions">
-            <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-              {showCreate ? 'إغلاق نموذج الطلب' : 'إضافة طلب إجازة'}
-            </Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
-          </div>
-        )}
-      />
-{showCreate ? (
-        <HrLeavesCreateRequestCard
-          leaveForm={leaveForm}
-          employees={employees}
-          leaveTypes={leaveTypes}
-          errors={errors}
-          isPending={mutations.createLeaveRequest.isPending}
-          onLeaveFormChange={(updater) => setLeaveForm((prev) => updater(prev))}
-          onCreate={() => {
-            void createLeaveRequest();
-          }}
-          onClose={() => {
-            setShowCreate(false);
-            setLeaveForm((prev) => ({ ...prev, startDate: todayDate(), endDate: todayDate() }));
-          }}
+      <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
+        <PageHeader
+          title="الإجازات"
+          description="إدارة ومراجعة طلبات الإجازات ومتابعة الإجازات غير المدفوعة المؤثرة على المرتبات."
+          actions={
+            <div className="actions compact-actions">
+              <Button type="button" onClick={() => setShowCreate((current) => !current)}>
+                {showCreate ? 'إغلاق نموذج الطلب' : 'إضافة طلب إجازة'}
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+            </div>
+          }
         />
-      ) : null}
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
 
-      <FormSection title="ملخص الطلبات" description="اضغط على الكروت لتصفية الجدول مباشرة.">
-        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('all'); setPage(1); }} style={{ textAlign: 'right' }}><span>إجمالي الطلبات</span><strong>{summary.total}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>قيد المراجعة</span><strong>{summary.pending}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>معتمدة</span><strong>{summary.approved}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>مرفوضة</span><strong>{summary.rejected}</strong></button>
-          <button className="stat-card" type="button" onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }} style={{ textAlign: 'right' }}><span>إجازات غير مدفوعة</span><strong>{summary.unpaid}</strong></button>
-          <div className="stat-card"><span>ظاهر حاليًا</span><strong>{summary.visible}</strong></div>
-        </div>
-      </FormSection>
+          {showCreate ? (
+            <div style={{ marginBottom: '16px' }}>
+              <HrLeavesCreateRequestCard
+                leaveForm={leaveForm}
+                employees={employees}
+                leaveTypes={leaveTypes}
+                errors={errors}
+                isPending={mutations.createLeaveRequest.isPending}
+                onLeaveFormChange={(updater) => setLeaveForm((prev) => updater(prev))}
+                onCreate={() => {
+                  void createLeaveRequest();
+                }}
+                onClose={() => {
+                  setShowCreate(false);
+                  setLeaveForm((prev) => ({ ...prev, startDate: todayDate(), endDate: todayDate() }));
+                }}
+              />
+            </div>
+          ) : null}
 
-      <FormSection title="فلاتر الطلبات" description="الفلاتر هنا تضيق النتائج الظاهرة فقط، ويمكن تصفيرها بزر واحد.">
-        <div className="compact-actions" style={{ marginBottom: 12 }}>
-          <Button type="button" variant={quickFilter === 'pending' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }}>قيد المراجعة</Button>
-          <Button type="button" variant={quickFilter === 'unpaid' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }}>غير مدفوعة</Button>
-          <Button type="button" variant={quickFilter === 'all' ? 'primary' : 'secondary'} onClick={() => { setQuickFilter('all'); setPage(1); }}>كل الطلبات</Button>
-          <Button type="button" variant="secondary" onClick={resetFilters}>مسح الفلاتر</Button>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '250px' }}>
-            <SearchToolbar
-              search={search}
-              onSearchChange={(value) => {
-                setSearch(value);
-                setPage(1);
-              }}
-              searchPlaceholder="بحث باسم الموظف أو كود الموظف"
-              inputAriaLabel="بحث طلبات الإجازات"
-            />
+          {/* Compact Single-Row KPI Summary Bar */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>ملخص طلبات الإجازات</span>
+              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر لتصفية الطلبات فوراً</span>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '8px' }}>
+              {[
+                { label: 'إجمالي الطلبات', value: summary.total, onClick: () => { setQuickFilter('all'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'all' && !statusFilter },
+                { label: 'قيد المراجعة', value: summary.pending, onClick: () => { setQuickFilter('pending'); setStatusFilter(''); setPage(1); }, isAlert: summary.pending > 0, active: quickFilter === 'pending' },
+                { label: 'معتمدة', value: summary.approved, onClick: () => { setQuickFilter('approved'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'approved' },
+                { label: 'مرفوضة', value: summary.rejected, onClick: () => { setQuickFilter('rejected'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'rejected' },
+                { label: 'غير مدفوعة', value: summary.unpaid, onClick: () => { setQuickFilter('unpaid'); setStatusFilter(''); setPage(1); }, isAlert: false, active: quickFilter === 'unpaid' },
+                { label: 'ظاهر حالياً', value: summary.visible, onClick: () => {}, isAlert: false, active: false },
+              ].map((stat, idx) => (
+                <div
+                  key={idx}
+                  onClick={stat.onClick}
+                  style={{
+                    background: stat.active ? '#eff6ff' : '#ffffff',
+                    border: `1px solid ${stat.active ? '#3b82f6' : stat.isAlert ? '#fca5a5' : '#e2e8f0'}`,
+                    borderRadius: '6px',
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                    minWidth: 0,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#94a3b8'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = stat.active ? '#3b82f6' : stat.isAlert ? '#fca5a5' : '#e2e8f0'; }}
+                >
+                  <span style={{ fontSize: '0.725rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.label}>
+                    {stat.label}
+                  </span>
+                  <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : stat.active ? '#1d4ed8' : '#0f172a', lineHeight: 1.2 }}>
+                    {stat.value}
+                  </strong>
+                </div>
+              ))}
+            </div>
           </div>
-          <select style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setQuickFilter('all'); setPage(1); }}>
-              <option value="">الكل</option>
-              <option value="pending">قيد المراجعة</option>
-              <option value="approved">معتمدة</option>
-              <option value="rejected">مرفوضة</option>
-              <option value="cancelled">ملغاة</option>
-            </select>
-          <select style={{ width: '150px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} value={leaveTypeFilter} onChange={(event) => { setLeaveTypeFilter(event.target.value); setPage(1); }}>
-              <option value="all">الكل</option>
+
+          {/* Integrated Toolbar - Single Row */}
+          <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '14px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <input
+              value={search}
+              onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+              placeholder="بحث باسم الموظف أو الكود..."
+              style={{ width: '190px', minWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+            />
+
+            <select
+              value={leaveTypeFilter}
+              onChange={(event) => { setLeaveTypeFilter(event.target.value); setPage(1); }}
+              style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+            >
+              <option value="all">كل أنواع الإجازات</option>
               {leaveTypes.map((type) => <option key={type.id} value={String(type.id)}>{text(type.name) || '—'}</option>)}
             </select>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span className="muted small">من</span>
-            <input style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} type="date" value={fromDateFilter} onChange={(event) => { setFromDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span className="muted small">إلى</span>
-            <input style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} />
-          </div>
-        </div>
-      </FormSection>
 
-      <FormSection title="طلبات الإجازة" description="الطلبات قيد المراجعة تظهر افتراضيًا حتى يكون القرار واضحًا وسريعًا.">
-        <QueryFeedback
-          isLoading={leaveRequestsQuery.isLoading}
-          isError={leaveRequestsQuery.isError}
-          error={leaveRequestsQuery.error}
-          isEmpty={!requests.length || !visibleRequests.length}
-          loadingText="جاري تحميل طلبات الإجازة..."
-          errorTitle="تعذر تحميل طلبات الإجازة."
-          emptyTitle={isSearchOrFilterActive ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد طلبات إجازة حتى الآن.'}
-          emptyHint={isSearchOrFilterActive ? 'جرّب تعديل الفلاتر أو إزالة البحث.' : 'ابدأ بإضافة طلب إجازة جديد من الزر أعلى الصفحة.'}
-        >
-          <DataTable
-            rows={visibleRequests}
-            rowKey={(row) => String(row.id)}
-            density="compact"
-            pagination={{
-              page,
-              pageSize,
-              totalItems: visibleRequests.length,
-              onPageChange: setPage,
-              onPageSizeChange: (next) => {
-                setPageSize(next);
-                setPage(1);
-              },
-              itemLabel: 'طلب',
-            }}
-            columns={[
-              { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) || '—' },
-              { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) || '—' },
-              { key: 'leaveType', header: 'نوع الإجازة', cell: (row) => text(row.leaveTypeName || row.leaveType) || '—' },
-              { key: 'startDate', header: 'من تاريخ', cell: (row) => toDateOnly(row.startDate) || '—' },
-              { key: 'endDate', header: 'إلى تاريخ', cell: (row) => toDateOnly(row.endDate) || '—' },
-              { key: 'daysCount', header: 'عدد الأيام', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
-              { key: 'status', header: 'الحالة', cell: (row) => leaveStatusLabel(row.status) },
-              { key: 'isPaid', header: 'مدفوعة / غير مدفوعة', cell: (row) => (!isUnpaidLeave(row) ? 'مدفوعة أو غير محددة' : 'غير مدفوعة') },
-              { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes || row.reason || '') || '—' },
-              {
-                key: 'actions',
-                header: 'إجراء',
-                cell: (row) => {
-                  const rowId = String(row.id);
-                  const isUnpaid = isUnpaidLeave(row);
-                  return (
-                    <div className="actions compact-actions">
-                      {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending}>اعتماد</Button> : null}
-                      {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending}>رفض</Button> : null}
-                      {row.status !== 'cancelled' ? <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending}>إلغاء</Button> : null}
-                      {isUnpaid ? <span className="muted small">تؤثر على المرتبات.</span> : null}
-                    </div>
-                  );
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>من:</span>
+              <input type="date" value={fromDateFilter} onChange={(event) => { setFromDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' }} />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>إلى:</span>
+              <input type="date" value={toDateFilter} onChange={(event) => { setToDateFilter(normalizeArabicDigits(event.target.value)); setPage(1); }} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', marginRight: 'auto' }}>
+              {[
+                { label: 'الكل', value: 'all' },
+                { label: 'قيد المراجعة', value: 'pending' },
+                { label: 'معتمدة', value: 'approved' },
+                { label: 'مرفوضة', value: 'rejected' },
+                { label: 'غير مدفوعة', value: 'unpaid' },
+              ].map((tab) => (
+                <Button
+                  key={tab.value}
+                  type="button"
+                  variant={quickFilter === tab.value ? 'primary' : 'secondary'}
+                  onClick={() => { setQuickFilter(tab.value as any); setStatusFilter(''); setPage(1); }}
+                  style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                >
+                  {tab.label}
+                </Button>
+              ))}
+
+              {isSearchOrFilterActive && (
+                <Button type="button" variant="secondary" onClick={resetFilters} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
+                  مسح
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <QueryFeedback
+            isLoading={leaveRequestsQuery.isLoading}
+            isError={leaveRequestsQuery.isError}
+            error={leaveRequestsQuery.error}
+            isEmpty={!requests.length || !visibleRequests.length}
+            loadingText="جاري تحميل طلبات الإجازة..."
+            errorTitle="تعذر تحميل طلبات الإجازة."
+            emptyTitle={isSearchOrFilterActive ? 'لا توجد نتائج مطابقة للفلاتر الحالية.' : 'لا توجد طلبات إجازة حتى الآن.'}
+            emptyHint={isSearchOrFilterActive ? 'جرّب تعديل الفلاتر أو إزالة البحث.' : 'ابدأ بإضافة طلب إجازة جديد من الزر أعلى الصفحة.'}
+          >
+            <DataTable
+              rows={visibleRequests}
+              rowKey={(row) => String(row.id)}
+              density="compact"
+              pagination={{
+                page,
+                pageSize,
+                totalItems: visibleRequests.length,
+                onPageChange: setPage,
+                onPageSizeChange: (next) => {
+                  setPageSize(next);
+                  setPage(1);
                 },
-              },
-            ]}
-          />
-        </QueryFeedback>
-      </FormSection>
+                itemLabel: 'طلب',
+              }}
+              columns={[
+                { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) || '—' },
+                { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) || '—' },
+                { key: 'leaveType', header: 'نوع الإجازة', cell: (row) => text(row.leaveTypeName || row.leaveType) || '—' },
+                { key: 'startDate', header: 'من تاريخ', cell: (row) => toDateOnly(row.startDate) || '—' },
+                { key: 'endDate', header: 'إلى تاريخ', cell: (row) => toDateOnly(row.endDate) || '—' },
+                { key: 'daysCount', header: 'عدد الأيام', cell: (row) => Number(row.daysCount || 0).toFixed(2) },
+                { key: 'status', header: 'الحالة', cell: (row) => leaveStatusLabel(row.status) },
+                { key: 'isPaid', header: 'النوع المالي', cell: (row) => (!isUnpaidLeave(row) ? 'مدفوعة' : 'غير مدفوعة') },
+                { key: 'notes', header: 'ملاحظات', cell: (row) => text(row.notes || row.reason || '') || '—' },
+                {
+                  key: 'actions',
+                  header: 'إجراء',
+                  cell: (row) => {
+                    const rowId = String(row.id);
+                    const isUnpaid = isUnpaidLeave(row);
+                    return (
+                      <div className="actions compact-actions">
+                        {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => void approveRequest(rowId)} disabled={mutations.approveLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>اعتماد</Button> : null}
+                        {row.status === 'pending' ? <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(rowId); setRejectNotes(''); }} disabled={mutations.rejectLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>رفض</Button> : null}
+                        {row.status !== 'cancelled' ? <Button type="button" variant="secondary" onClick={() => void cancelRequest(rowId)} disabled={mutations.cancelLeaveRequest.isPending} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>إلغاء</Button> : null}
+                        {isUnpaid ? <span className="muted small" style={{ fontSize: '0.7rem' }}>تؤثر بالمرتب</span> : null}
+                      </div>
+                    );
+                  },
+                },
+              ]}
+            />
+          </QueryFeedback>
 
-      {rejectTargetId ? (
-        <FormSection title="سبب رفض الطلب">
-          <div className="form-grid">
-            <label className="field field-wide">
-              <span>سبب الرفض</span>
-              <textarea rows={2} value={rejectNotes} onChange={(event) => setRejectNotes(event.target.value)} />
-              {errors.reject ? <small className="field-error">{errors.reject}</small> : null}
-            </label>
-          </div>
-          <div className="actions compact-actions">
-            <Button type="button" onClick={() => void rejectRequest(rejectTargetId)} disabled={mutations.rejectLeaveRequest.isPending}>
-              {mutations.rejectLeaveRequest.isPending ? 'جاري الرفض...' : 'تأكيد الرفض'}
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }}>إلغاء</Button>
-          </div>
-        </FormSection>
-      ) : null}
+          {rejectTargetId ? (
+            <div style={{ marginTop: '16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px' }}>
+              <div style={{ fontWeight: 700, color: '#991b1b', marginBottom: '8px', fontSize: '0.85rem' }}>سبب رفض طلب الإجازة:</div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={rejectNotes}
+                  onChange={(event) => setRejectNotes(event.target.value)}
+                  placeholder="اكتب سبب الرفض هنا..."
+                  style={{ flex: 1, padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                />
+                <Button type="button" onClick={() => void rejectRequest(rejectTargetId)} disabled={mutations.rejectLeaveRequest.isPending} style={{ padding: '4px 12px', fontSize: '0.85rem' }}>
+                  {mutations.rejectLeaveRequest.isPending ? 'جاري الرفض...' : 'تأكيد الرفض'}
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => { setRejectTargetId(''); setRejectNotes(''); }} style={{ padding: '4px 12px', fontSize: '0.85rem' }}>إلغاء</Button>
+              </div>
+              {errors.reject ? <small style={{ color: '#dc2626', display: 'block', marginTop: '4px' }}>{errors.reject}</small> : null}
+            </div>
+          ) : null}
+        </div>
       </main>
     </div>
   );

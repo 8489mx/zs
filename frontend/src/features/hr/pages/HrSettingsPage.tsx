@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/shared/components/page-header';
 
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { FormSection } from '@/shared/components/form-section';
-import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
@@ -13,10 +12,10 @@ import { HrSettingsOrganizationSection } from '@/features/hr/pages/settings/HrSe
 import {
   HrSettingsAttendanceSection,
   HrSettingsDocumentsSection,
-  HrSettingsOperationalNote,
   HrSettingsPayrollSection,
   HrSettingsHolidaysSection,
 } from '@/features/hr/pages/settings/HrSettingsStaticSections';
+import { CalendarIcon } from '@/features/hr/components/HrIcons';
 import { normalize, paidLabel, stats, statusLabel, text, toId } from '@/features/hr/pages/settings/hr-settings.helpers';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
@@ -109,74 +108,94 @@ export function HrSettingsPage() {
     reviewItems: positions.filter((row) => !normalize(row.departmentName) || !normalize(row.jobTitleName)).length,
   }), [departmentStats, jobTitleStats, positionStats, leaveTypeStats, positions]);
 
-  const setupChecklist = [
-    { title: 'الأقسام', status: departments.length ? `${departments.length} قسم جاهز للاستخدام.` : 'لم يتم إنشاء أقسام بعد. ابدأ هنا قبل إضافة الموظفين.', ok: departments.length > 0, section: 'organization' as SettingsSection },
-    { title: 'المسميات الوظيفية', status: jobTitles.length ? `${jobTitles.length} مسمى وظيفي جاهز.` : 'لم يتم إنشاء مسميات وظيفية بعد.', ok: jobTitles.length > 0, section: 'organization' as SettingsSection },
-    { title: 'أنواع الإجازات', status: leaveTypes.length ? `${leaveTypes.length} نوع إجازة جاهز.` : 'أنواع الإجازات مطلوبة قبل تشغيل طلبات الإجازة بشكل صحيح.', ok: leaveTypes.length > 0, section: 'leaves' as SettingsSection },
-    { title: 'الموظفون', status: departments.length && jobTitles.length ? 'يمكنك الآن إضافة موظف ببيانات منظمة.' : 'استكمل الأقسام والمسميات أولًا لتقليل الملفات الناقصة.', ok: departments.length > 0 && jobTitles.length > 0, section: 'organization' as SettingsSection, action: () => navigate('/hr/employees/new') },
-  ];
-
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
-      <PageHeader
-        title="إعدادات الموارد البشرية"
-        description="ابدأ من الهيكل الوظيفي وأنواع الإجازات، ثم انتقل لإضافة الموظفين وتشغيل الحضور والمرتبات."
-        actions={(
-          <div className="actions compact-actions">
-            <Button variant="secondary" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
-          </div>
-        )}
-      />
-
-
-
-      <FormSection title="أقسام الإعدادات" description="اختر القسم الذي تريد تعديله بدل التمرير داخل صفحة طويلة.">
-        <div className="compact-actions" style={{ marginBottom: 12 }}>{SETTINGS_SECTIONS.map((section) => <Button key={section.key} type="button" variant={activeSection === section.key ? 'primary' : 'secondary'} onClick={() => setActiveSection(section.key)}>{section.label}</Button>)}</div>
-        <div className="form-grid"><label className="field"><span>بحث داخل الإعدادات</span><input value={settingsSearch} onChange={(event) => setSettingsSearch(event.target.value)} placeholder="ابحث بالاسم أو الكود أو الوصف" /></label></div>
-      </FormSection>
-
-      <HrSettingsHealthSummaryCard healthSummary={healthSummary} />
-
-      <QueryFeedback isLoading={workspace.departments.isLoading || workspace.jobTitles.isLoading || workspace.positions.isLoading || leaveTypesQuery.isLoading} isError={workspace.departments.isError || workspace.jobTitles.isError || workspace.positions.isError || leaveTypesQuery.isError} error={workspace.departments.error || workspace.jobTitles.error || workspace.positions.error || leaveTypesQuery.error} isEmpty={false} loadingText="جاري تحميل إعدادات الموارد البشرية..." errorTitle="تعذر تحميل إعدادات الموارد البشرية">
-        {shouldShowSection(activeSection, 'organization') ? <HrSettingsOrganizationSection departmentStatsTotal={departmentStats.total} jobTitleStatsTotal={jobTitleStats.total} positionStatsTotal={positionStats.total} departmentDraft={departmentDraft} jobTitleDraft={jobTitleDraft} positionDraft={positionDraft} errors={{ departments: errors.departments, 'job-titles': errors['job-titles'], positions: errors.positions }} isBusy={isBusy} departments={departments} jobTitles={jobTitles} filteredDepartments={filteredDepartments} filteredJobTitles={filteredJobTitles} filteredPositions={filteredPositions} onDepartmentDraftChange={setDepartmentDraft} onJobTitleDraftChange={setJobTitleDraft} onPositionDraftChange={setPositionDraft} onSaveDepartment={() => { void saveKind('departments'); }} onSaveJobTitle={() => { void saveKind('job-titles'); }} onSavePosition={() => { void saveKind('positions'); }} /> : null}
-
-        {shouldShowSection(activeSection, 'leaves') ? (
-          <FormSection title="الإجازات" description="إدارة أنواع الإجازات المعتمدة. هذا يؤثر على صفحة الإجازات وعلى مراجعة المرتبات إذا كانت الإجازة غير مدفوعة.">
-            <div className="form-grid">
-              <div className="field"><span>الاسم *</span><input value={leaveTypeDraft.name} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, name: e.target.value }))} /></div>
-              <div className="field"><span>الكود</span><input value={leaveTypeDraft.code} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, code: e.target.value }))} /></div>
-              <div className="field"><span>النوع</span><select value={leaveTypeDraft.isPaid} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, isPaid: e.target.value as 'paid' | 'unpaid' }))}><option value="paid">مدفوعة</option><option value="unpaid">غير مدفوعة</option></select></div>
-              <div className="field field-wide"><span>الوصف</span><input value={leaveTypeDraft.description} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, description: e.target.value }))} /></div>
+      <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
+        <PageHeader
+          title="إعدادات الموارد البشرية"
+          description="إدارة الهيكل التنظيمي، أنواع الإجازات، العطلات، وسياسات الحضور والمرتبات."
+          actions={
+            <div className="actions compact-actions">
+              <Button variant="secondary" onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
             </div>
-            {errors['leave-types'] ? <div className="error-box" style={{ marginTop: 12 }}>{errors['leave-types']}</div> : null}
-            <div className="actions compact-actions" style={{ marginTop: 12 }}><Button onClick={() => { void saveLeaveType(); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ نوع الإجازة'}</Button><Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')}>فتح صفحة الإجازات</Button></div>
-            {filteredLeaveTypes.length ? <DataTable rows={filteredLeaveTypes} rowKey={(row) => String(row.id)} density="compact" columns={[{ key: 'name', header: 'الاسم', cell: (row) => text(row.name) }, { key: 'code', header: 'الكود', cell: (row) => text(row.code) }, { key: 'paid', header: 'مدفوعة / غير مدفوعة', cell: (row) => paidLabel(row.isPaid) }, { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) }, { key: 'description', header: 'الوصف', cell: (row) => text(row.description) }]} /> : <p className="muted">لا توجد أنواع إجازات حتى الآن.</p>}
-          </FormSection>
-        ) : null}
+          }
+        />
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
 
-        {shouldShowSection(activeSection, 'holidays') ? <HrSettingsHolidaysSection /> : null}
-        {shouldShowSection(activeSection, 'documents') ? <HrSettingsDocumentsSection navigate={navigate} /> : null}
-        {shouldShowSection(activeSection, 'attendance') ? <HrSettingsAttendanceSection navigate={navigate} /> : null}
-        {shouldShowSection(activeSection, 'payroll') ? <HrSettingsPayrollSection navigate={navigate} /> : null}
-        <HrSettingsOperationalNote />
-      </QueryFeedback>
-      <FormSection title="ترتيب الإعداد الصحيح" description="هذه هي نقطة البداية قبل إضافة الموظفين وتشغيل الحضور والمرتبات.">
-        <div className="compact-actions" style={{ flexWrap: 'wrap', gap: '16px' }}>
-          {setupChecklist.map((item) => (
-            <span key={item.title} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <strong>{item.ok ? '✓' : '•'} {item.title}:</strong>
-              <span className="muted">{item.status}</span>
-              {item.action ? (
-                <Button type="button" variant="secondary" onClick={item.action} disabled={!item.ok}>إضافة موظف</Button>
-              ) : (
-                <Button type="button" variant="secondary" onClick={() => setActiveSection(item.section)}>فتح الإعداد</Button>
-              )}
-            </span>
-          ))}
+          {/* Compact Single-Row KPI Summary Bar */}
+          <HrSettingsHealthSummaryCard healthSummary={healthSummary} />
+
+          {/* Section Switcher Tabs & Search Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '16px', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {SETTINGS_SECTIONS.map((section) => (
+                <Button
+                  key={section.key}
+                  type="button"
+                  variant={activeSection === section.key ? 'primary' : 'secondary'}
+                  onClick={() => setActiveSection(section.key)}
+                  style={{ padding: '3px 10px', fontSize: '0.8rem' }}
+                >
+                  {section.label}
+                </Button>
+              ))}
+            </div>
+            <div style={{ minWidth: '180px' }}>
+              <input
+                value={settingsSearch}
+                onChange={(event) => setSettingsSearch(event.target.value)}
+                placeholder="بحث داخل الإعدادات..."
+                style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+              />
+            </div>
+          </div>
+
+          <QueryFeedback isLoading={workspace.departments.isLoading || workspace.jobTitles.isLoading || workspace.positions.isLoading || leaveTypesQuery.isLoading} isError={workspace.departments.isError || workspace.jobTitles.isError || workspace.positions.isError || leaveTypesQuery.isError} error={workspace.departments.error || workspace.jobTitles.error || workspace.positions.error || leaveTypesQuery.error} isEmpty={false} loadingText="جاري تحميل إعدادات الموارد البشرية..." errorTitle="تعذر تحميل إعدادات الموارد البشرية">
+            {shouldShowSection(activeSection, 'organization') ? <HrSettingsOrganizationSection departmentStatsTotal={departmentStats.total} jobTitleStatsTotal={jobTitleStats.total} positionStatsTotal={positionStats.total} departmentDraft={departmentDraft} jobTitleDraft={jobTitleDraft} positionDraft={positionDraft} errors={{ departments: errors.departments, 'job-titles': errors['job-titles'], positions: errors.positions }} isBusy={isBusy} departments={departments} jobTitles={jobTitles} filteredDepartments={filteredDepartments} filteredJobTitles={filteredJobTitles} filteredPositions={filteredPositions} onDepartmentDraftChange={setDepartmentDraft} onJobTitleDraftChange={setJobTitleDraft} onPositionDraftChange={setPositionDraft} onSaveDepartment={() => { void saveKind('departments'); }} onSaveJobTitle={() => { void saveKind('job-titles'); }} onSavePosition={() => { void saveKind('positions'); }} /> : null}
+
+            {shouldShowSection(activeSection, 'leaves') ? (
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
+                <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: '#0f172a', marginBottom: '4px' }}>
+                  <CalendarIcon size={18} style={{ color: 'var(--primary, #170c5c)' }} />
+                  <span>أنواع الإجازات</span>
+                </strong>
+                <small style={{ display: 'block', color: '#64748b', marginBottom: '12px', fontSize: '0.8rem' }}>إدارة أنواع الإجازات المعتمدة وتأثيرها على الخصومات والمرتبات.</small>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '10px' }}>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>الاسم *</label><input value={leaveTypeDraft.name} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, name: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>الكود</label><input value={leaveTypeDraft.code} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, code: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>النوع</label><select value={leaveTypeDraft.isPaid} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, isPaid: e.target.value as 'paid' | 'unpaid' }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}><option value="paid">مدفوعة</option><option value="unpaid">غير مدفوعة</option></select></div>
+                  <div style={{ gridColumn: 'span 2' }}><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '2px' }}>الوصف</label><input value={leaveTypeDraft.description} onChange={(e) => setLeaveTypeDraft((current) => ({ ...current, description: e.target.value }))} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} /></div>
+                </div>
+                {errors['leave-types'] ? <div style={{ color: '#dc2626', fontSize: '0.8rem', marginBottom: '8px' }}>{errors['leave-types']}</div> : null}
+                <div className="compact-actions" style={{ marginBottom: '12px' }}>
+                  <Button onClick={() => { void saveLeaveType(); }} disabled={isBusy} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>{isBusy ? 'جاري الحفظ...' : 'حفظ نوع الإجازة'}</Button>
+                  <Button type="button" variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>فتح صفحة الإجازات</Button>
+                </div>
+                {filteredLeaveTypes.length ? (
+                  <DataTable
+                    rows={filteredLeaveTypes}
+                    rowKey={(row) => String(row.id)}
+                    density="compact"
+                    columns={[
+                      { key: 'name', header: 'الاسم', cell: (row) => text(row.name) },
+                      { key: 'code', header: 'الكود', cell: (row) => text(row.code) },
+                      { key: 'paid', header: 'مدفوعة / غير مدفوعة', cell: (row) => paidLabel(row.isPaid) },
+                      { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.isActive) },
+                      { key: 'description', header: 'الوصف', cell: (row) => text(row.description) },
+                    ]}
+                  />
+                ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا توجد أنواع إجازات حتى الآن.</p>}
+              </div>
+            ) : null}
+
+            {shouldShowSection(activeSection, 'holidays') ? <HrSettingsHolidaysSection /> : null}
+            {shouldShowSection(activeSection, 'documents') ? <HrSettingsDocumentsSection navigate={navigate} /> : null}
+            {shouldShowSection(activeSection, 'attendance') ? <HrSettingsAttendanceSection navigate={navigate} /> : null}
+            {shouldShowSection(activeSection, 'payroll') ? <HrSettingsPayrollSection navigate={navigate} /> : null}
+          </QueryFeedback>
         </div>
-      </FormSection>
       </main>
     </div>
   );

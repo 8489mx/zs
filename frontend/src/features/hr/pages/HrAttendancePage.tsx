@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
-import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { getErrorMessage } from '@/lib/errors';
 import type { HrAttendanceException, HrAttendanceRecord } from '@/types/domain';
 import { useHrAttendance, useHrAttendanceExceptions, useHrMutations } from '@/features/hr/hooks/useHr';
 import { ImportWorkbench } from '@/shared/components/ImportWorkbench';
@@ -44,7 +41,9 @@ function normalizeTime(value: string) {
 function toDateTime(workDate: string, timeValue: string) {
   if (!workDate || !timeValue) return undefined;
   const safeTime = normalizeTime(timeValue);
-  return safeTime ? `${workDate}T${safeTime}:00Z` : undefined;
+  if (!safeTime) return undefined;
+  const localDate = new Date(`${workDate}T${safeTime}:00`);
+  return !isNaN(localDate.getTime()) ? localDate.toISOString() : `${workDate}T${safeTime}:00`;
 }
 
 function exceptionTypeLabel(value: string) {
@@ -110,6 +109,7 @@ export function HrAttendancePage() {
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'unmarked' | 'recorded'>('all');
   const [draftByEmployeeId, setDraftByEmployeeId] = useState<Record<string, DraftRow>>({});
   const [importOpen, setImportOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'attendance' | 'exceptions'>('attendance');
   const [manualPrompt, setManualPrompt] = useState<ManualAttendancePrompt>(null);
   const [manualTimeInput, setManualTimeInput] = useState('');
 
@@ -218,321 +218,401 @@ export function HrAttendancePage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
-      <PageHeader
-        title="الحضور والانصراف"
-        description="ابدأ بتحديد اليوم، راجع الاستثناءات التي تؤثر على الراتب، ثم احفظ أي تعديل على سجل الحضور."
-        actions={(
-          <div className="compact-actions">
-            <Button variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen(!importOpen)}>استيراد إكسيل</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>سجل المرتبات</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع</Button>
-          </div>
-        )}
-      />
+      <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
+        <PageHeader
+          title="الحضور والانصراف"
+          description="تسجيل الحضور اليومي، مراجعة الاستثناءات والتأخير والأوفر تايم في شاشة واحدة."
+          actions={
+            <div className="actions compact-actions">
+              <Button variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen(!importOpen)}>استيراد إكسيل</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>سجل المرتبات</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع</Button>
+            </div>
+          }
+        />
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
 
-      {importOpen && (
-        <FormSection title="استيراد الحضور من إكسيل" description="ارفع شيت الإكسيل الصادر من جهاز البصمة هنا.">
-          <ImportWorkbench
-            title="استيراد الحضور من إكسيل"
-            description="يدعم الأعمدة العربية أو الإنجليزية المكافئة."
-            defaultCollapsed={false}
-            requiredColumns={['كود الموظف', 'التاريخ']}
-            fieldMappings={[
-              { key: 'employeeNo', label: 'كود الموظف (مطلوب)' },
-              { key: 'workDate', label: 'التاريخ (مطلوب)' },
-              { key: 'checkInAt', label: 'وقت الحضور' },
-              { key: 'checkOutAt', label: 'وقت الانصراف' },
-            ]}
-            isPending={mutations.bulkImportAttendanceRecords.isPending}
-            onDownloadTemplate={() => {
-              const csv = 'كود الموظف,التاريخ,وقت الحضور,وقت الانصراف\n101,2026-07-25,09:00,17:00';
-              const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: 'text/csv;charset=utf-8;' });
-              const link = document.createElement('a');
-              link.href = URL.createObjectURL(blob);
-              link.download = 'نموذج_الحضور.csv';
-              link.click();
-            }}
-            onImportRows={async (rows) => {
-              const records = rows.map((row) => {
-                const workDate = String(row['التاريخ'] || row.workDate || '');
-                return {
-                  employeeNo: String(row['كود الموظف'] || row.employeeNo || ''),
-                  workDate,
-                  checkInAt: toDateTime(workDate, row['وقت الحضور'] || row.checkInAt || ''),
-                  checkOutAt: toDateTime(workDate, row['وقت الانصراف'] || row.checkOutAt || ''),
-                };
-              }).filter(r => r.employeeNo && r.workDate);
-              return mutations.bulkImportAttendanceRecords.mutateAsync({ records });
-            }}
-          />
-        </FormSection>
-      )}
+          {importOpen && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', marginBottom: '16px' }}>
+              <ImportWorkbench
+                title="استيراد الحضور من إكسيل"
+                description="يدعم الأعمدة العربية أو الإنجليزية المكافئة."
+                defaultCollapsed={false}
+                requiredColumns={['كود الموظف', 'التاريخ']}
+                fieldMappings={[
+                  { key: 'employeeNo', label: 'كود الموظف (مطلوب)' },
+                  { key: 'workDate', label: 'التاريخ (مطلوب)' },
+                  { key: 'checkInAt', label: 'وقت الحضور' },
+                  { key: 'checkOutAt', label: 'وقت الانصراف' },
+                ]}
+                isPending={mutations.bulkImportAttendanceRecords.isPending}
+                onDownloadTemplate={() => {
+                  const csv = 'كود الموظف,التاريخ,وقت الحضور,وقت الانصراف\n101,2026-07-25,09:00,17:00';
+                  const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+                  link.href = URL.createObjectURL(blob);
+                  link.download = 'نموذج_الحضور.csv';
+                  link.click();
+                }}
+                onImportRows={async (rows) => {
+                  const records = rows.map((row) => {
+                    const workDate = String(row['التاريخ'] || row.workDate || '');
+                    return {
+                      employeeNo: String(row['كود الموظف'] || row.employeeNo || ''),
+                      workDate,
+                      checkInAt: toDateTime(workDate, row['وقت الحضور'] || row.checkInAt || ''),
+                      checkOutAt: toDateTime(workDate, row['وقت الانصراف'] || row.checkOutAt || ''),
+                    };
+                  }).filter(r => r.employeeNo && r.workDate);
+                  return mutations.bulkImportAttendanceRecords.mutateAsync({ records });
+                }}
+              />
+            </div>
+          )}
 
-      <FormSection title="ملخص اليوم" description="اضغط على أرقام الاستثناءات لتصفية قائمة المراجعة بالأسفل.">
-        <div className="stats-grid">
-          <div className="stat-card"><span>إجمالي الموظفين</span><strong>{summary.total}</strong></div>
-          <div className="stat-card"><span>حاضر</span><strong>{summary.present}</strong></div>
-          <div className="stat-card"><span>غائب</span><strong>{summary.absent}</strong></div>
-          <div className="stat-card"><span>متأخر</span><strong>{summary.late}</strong></div>
-          <div className="stat-card"><span>غير مسجل / يحتاج مراجعة</span><strong>{summary.unmarked}</strong></div>
-          <button className="stat-card" type="button" onClick={() => setExceptionFilter('needs_action')} style={{ textAlign: 'right' }}><span>استثناءات تحتاج إجراء</span><strong>{summary.needsAction}</strong></button>
-          <button className="stat-card" type="button" onClick={() => setExceptionFilter('overtime')} style={{ textAlign: 'right' }}><span>وقت إضافي محتمل</span><strong>{summary.overtime}</strong></button>
-          <button className="stat-card" type="button" onClick={() => setExceptionFilter('deduction')} style={{ textAlign: 'right' }}><span>خصم/نقص محتمل</span><strong>{summary.deduction}</strong></button>
-        </div>
-      </FormSection>
-
-      <FormSection title="سجل الحضور اليومي" description="اختر تاريخ اليوم لعرض السجل وتسجيل الحضور والانصراف.">
-        <div className="form-grid">
-          <label className="field">
-            <span>التاريخ</span>
-            <input type="date" value={date} onChange={(e) => setDate(normalizeArabicDigits(e.target.value || todayDate()))} />
-          </label>
-          <div className="field field-wide">
-            <span>بحث الموظف (لليوم والاستثناءات)</span>
-            <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث باسم الموظف أو الكود" />
-          </div>
-        </div>
-      </FormSection>
-
-      <FormSection title="استثناءات تحتاج مراجعة" description="يتم عرض الاستثناءات بالشهر. الاستثناءات المعتمدة هنا ستؤثر على المرتب تلقائيًا.">
-        <div className="form-grid" style={{ marginBottom: 12 }}>
-          <label className="field">
-            <span>شهر الاستثناءات</span>
-            <input type="month" value={exceptionMonth} onChange={(e) => setExceptionMonth(normalizeArabicDigits(e.target.value || todayDate().slice(0, 7)))} />
-          </label>
-        </div>
-        {summary.needsAction > 0 && (
-          <div style={{ background: '#fef2f2', border: '1px solid #f87171', color: '#991b1b', padding: '12px 16px', borderRadius: 8, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <div>
-              <strong>تنبيه هام!</strong> يوجد <strong>{summary.needsAction}</strong> استثناء أو أكثر بحاجة لمراجعتك وتدخل منك.
+          {/* Compact Single-Row KPI Summary Bar */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>ملخص حضور اليوم والاستثناءات</span>
+              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر للتبديل والتصفية الفورية</span>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
+              {[
+                { label: 'إجمالي اليوم', value: summary.total, onClick: () => { setActiveTab('attendance'); setAttendanceFilter('all'); }, isAlert: false, active: activeTab === 'attendance' && attendanceFilter === 'all' },
+                { label: 'حاضر', value: summary.present, onClick: () => { setActiveTab('attendance'); setAttendanceFilter('recorded'); }, isAlert: false, active: activeTab === 'attendance' && attendanceFilter === 'recorded' },
+                { label: 'غائب', value: summary.absent, onClick: () => { setActiveTab('exceptions'); setExceptionFilter('needs_action'); }, isAlert: summary.absent > 0 },
+                { label: 'متأخر', value: summary.late, onClick: () => { setActiveTab('exceptions'); setExceptionFilter('deduction'); }, isAlert: summary.late > 0 },
+                { label: 'غير مسجل', value: summary.unmarked, onClick: () => { setActiveTab('attendance'); setAttendanceFilter('unmarked'); }, isAlert: summary.unmarked > 0, active: activeTab === 'attendance' && attendanceFilter === 'unmarked' },
+                { label: 'تحتاج إجراء', value: summary.needsAction, onClick: () => { setActiveTab('exceptions'); setExceptionFilter('needs_action'); }, isAlert: summary.needsAction > 0, active: activeTab === 'exceptions' && exceptionFilter === 'needs_action' },
+                { label: 'إضافي محتمل', value: summary.overtime, onClick: () => { setActiveTab('exceptions'); setExceptionFilter('overtime'); }, isAlert: false, active: activeTab === 'exceptions' && exceptionFilter === 'overtime' },
+                { label: 'خصم محتمل', value: summary.deduction, onClick: () => { setActiveTab('exceptions'); setExceptionFilter('deduction'); }, isAlert: summary.deduction > 0, active: activeTab === 'exceptions' && exceptionFilter === 'deduction' },
+              ].map((stat, idx) => (
+                <div
+                  key={idx}
+                  onClick={stat.onClick}
+                  style={{
+                    background: stat.active ? '#eff6ff' : '#ffffff',
+                    border: `1px solid ${stat.active ? '#3b82f6' : stat.isAlert ? '#fca5a5' : '#e2e8f0'}`,
+                    borderRadius: '6px',
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                    minWidth: 0,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#94a3b8')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = stat.active ? '#3b82f6' : stat.isAlert ? '#fca5a5' : '#e2e8f0')}
+                >
+                  <span style={{ fontSize: '0.725rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.label}>
+                    {stat.label}
+                  </span>
+                  <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : stat.active ? '#1d4ed8' : '#0f172a', lineHeight: 1.2 }}>
+                    {stat.value}
+                  </strong>
+                </div>
+              ))}
             </div>
           </div>
-        )}
-        <div className="compact-actions" style={{ marginBottom: 12 }}>
-          <Button type="button" variant={exceptionFilter === 'needs_action' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('needs_action')}>يحتاج إجراء</Button>
-          <Button type="button" variant={exceptionFilter === 'overtime' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('overtime')}>وقت إضافي محتمل</Button>
-          <Button type="button" variant={exceptionFilter === 'deduction' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('deduction')}>خصم/نقص محتمل</Button>
-          <Button type="button" variant={exceptionFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('all')}>كل الاستثناءات</Button>
-        </div>
-        <QueryFeedback
-          isLoading={exceptions.isLoading}
-          isError={exceptions.isError}
-          error={exceptions.error}
-          isEmpty={!exceptionRows.length}
-          loadingText="جاري تحميل الاستثناءات..."
-          errorTitle="تعذر تحميل الاستثناءات."
-          emptyTitle="لا توجد استثناءات مطابقة لهذا الفلتر."
-        >
-          <DataTable
-            rows={exceptionRows}
-            rowKey={(row) => row.id}
-            density="compact"
-            columns={[
-              { key: 'workDate', header: 'التاريخ', className: 'col-fit', cell: (row) => row.workDate || '—' },
-              { key: 'employeeNo', header: 'كود الموظف', className: 'col-fit', cell: (row) => row.employeeNo || '—' },
-              { key: 'employeeName', header: 'اسم الموظف', className: 'col-main', cell: (row) => row.employeeName || '—' },
-              { key: 'exceptionType', header: 'نوع الاستثناء', className: 'col-fit', cell: (row) => {
-                  const label = exceptionTypeLabel(row.exceptionType);
-                  const isRed = row.status === 'needs_review' || row.status === 'pending' || isOvertimeException(row.exceptionType);
-                  return isRed ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{label}</span> : <span>{label}</span>;
-              } },
-              { key: 'scheduledTime', header: 'المجدول', className: 'col-fit', cell: (row) => row.scheduledTime || '?' },
-              { key: 'actualTime', header: 'الفعلي', className: 'col-fit', cell: (row) => row.actualTime || '?' },
-              { key: 'durationMinutes', header: 'المدة', className: 'col-fit', cell: (row) => `${row.durationMinutes || 0} د` },
-              { key: 'status', header: 'الحالة', className: 'col-fit', cell: (row) => {
-                  const label = exceptionStatusLabel(row.status);
-                  const isRed = row.status === 'needs_review' || row.status === 'pending';
-                  return isRed ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{label}</span> : <span>{label}</span>;
-              } },
-              {
-                key: 'actions',
-                header: 'الإجراء',
-                className: 'col-fit',
-                cell: (row) => {
-                  if (row.status !== 'pending') return <span className="muted">{exceptionStatusLabel(row.status)}</span>;
 
-                  const isMissingCheckIn = row.exceptionType === 'missing_check_in';
-                  const isMissingCheckOut = row.exceptionType === 'missing_check_out';
-                  const isLateIn = row.exceptionType === 'late_check_in';
-                  const isEarlyOut = row.exceptionType === 'early_check_out';
-                  const isAbsent = row.exceptionType === 'absent';
-
-                  if (isOvertimeException(row.exceptionType)) {
-                    return (
-                      <div className="compact-actions-vertical">
-                        <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>اعتماد كوقت إضافي</Button>
-                        <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
-                      </div>
-                    );
-                  }
-
-                  if (isMissingCheckIn || isMissingCheckOut) {
-                    return (
-                      <div className="compact-actions-vertical">
-                        <Button type="button" variant="secondary" onClick={() => {
-                          setManualTimeInput(isMissingCheckIn ? '09:00' : '17:00');
-                          setManualPrompt({
-                            rowId: String(row.id),
-                            employeeId: Number(row.employeeId || row.employeeNo),
-                            workDate: String(row.workDate),
-                            type: isMissingCheckIn ? 'check_in' : 'check_out',
-                            defaultTime: isMissingCheckIn ? '09:00' : '17:00'
-                          });
-                        }}>تسجيل {isMissingCheckIn ? 'حضور' : 'انصراف'} يدوي</Button>
-                        <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي / خصم</Button>
-                      </div>
-                    );
-                  }
-
-                  if (isLateIn || isEarlyOut) {
-                    return (
-                      <div className="compact-actions-vertical">
-                        <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>تأكيد الخصم</Button>
-                        <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تجاهل (عذر مقبول)</Button>
-                      </div>
-                    );
-                  }
-
-                  if (isAbsent) {
-                    return (
-                      <div className="compact-actions-vertical">
-                        <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending} onClick={() => { void approveException(row.id); }}>تأكيد الغياب</Button>
-                        <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }}>تخطي</Button>
-                      </div>
-                    );
-                  }
-
-                  return <span className="muted">{exceptionStatusLabel(row.status)}</span>;
-                },
-              },
-            ]}
-          />
-        </QueryFeedback>
-        {(mutations.approveAttendanceException.isError || mutations.skipAttendanceException.isError)
-          ? <p className="muted">{getErrorMessage(mutations.approveAttendanceException.error || mutations.skipAttendanceException.error, 'تعذر تحديث حالة الاستثناء.')}</p>
-          : null}
-      </FormSection>
-
-      <FormSection title="سجل الحضور اليومي" description="استخدمه للتعديل اليدوي عند نسيان الحضور أو الانصراف، ثم اضغط حفظ اليوم.">
-        <div className="compact-actions" style={{ marginBottom: 12 }}>
-          <Button type="button" variant={attendanceFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('all')}>الكل</Button>
-          <Button type="button" variant={attendanceFilter === 'unmarked' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('unmarked')}>لم يُسجل بعد</Button>
-          <Button type="button" variant={attendanceFilter === 'recorded' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('recorded')}>مُسجل</Button>
-        </div>
-        <QueryFeedback
-          isLoading={attendance.isLoading}
-          isError={attendance.isError}
-          error={attendance.error}
-          isEmpty={!filteredAttendanceRows.length}
-          loadingText="جاري تحميل سجلات الحضور..."
-          errorTitle="تعذر تحميل سجلات الحضور."
-          emptyTitle="لا توجد سجلات مطابقة للفلتر."
-        >
-          <DataTable
-            rows={filteredAttendanceRows}
-            rowKey={(row) => String(row.employeeId)}
-            density="compact"
-            columns={[
-              { key: 'employeeNo', header: 'كود الموظف', className: 'col-fit', cell: (row) => row.employeeNo || '—' },
-              { key: 'employeeName', header: 'اسم الموظف', className: 'col-main', cell: (row) => row.employeeName || '—' },
-              { key: 'departmentName', header: 'القسم', className: 'col-fit', cell: (row) => row.departmentName || '—' },
-              {
-                key: 'checkInAt',
-                header: 'وقت الحضور',
-                className: 'col-fit',
-                cell: (row) => (
-                  <input
-                    type="time"
-                    value={draftByEmployeeId[String(row.employeeId)]?.checkInAt || ''}
-                    onChange={(e) => updateDraft(String(row.employeeId), { checkInAt: normalizeTime(e.target.value) })}
-                  />
-                ),
-              },
-              {
-                key: 'checkOutAt',
-                header: 'وقت الانصراف',
-                className: 'col-fit',
-                cell: (row) => (
-                  <input
-                    type="time"
-                    value={draftByEmployeeId[String(row.employeeId)]?.checkOutAt || ''}
-                    onChange={(e) => updateDraft(String(row.employeeId), { checkOutAt: normalizeTime(e.target.value) })}
-                  />
-                ),
-              },
-              {
-                key: 'status',
-                header: 'الحالة',
-                className: 'col-fit',
-                cell: (row) => (
-                  <select
-                    value={draftByEmployeeId[String(row.employeeId)]?.status || ''}
-                    onChange={(e) => updateDraft(String(row.employeeId), { status: e.target.value })}
-                  >
-                    <option value="">غير مسجل</option>
-                    <option value="present">حاضر</option>
-                    <option value="absent">غائب</option>
-                    <option value="late">متأخر</option>
-                    <option value="early_leave">انصراف مبكر</option>
-                    <option value="leave">إجازة</option>
-                    <option value="half_day">نصف يوم</option>
-                    <option value="excused">بعذر</option>
-                  </select>
-                ),
-              },
-              {
-                key: 'notes',
-                header: 'ملاحظات',
-                className: 'col-main',
-                cell: (row) => (
-                  <input
-                    value={draftByEmployeeId[String(row.employeeId)]?.notes || ''}
-                    onChange={(e) => updateDraft(String(row.employeeId), { notes: e.target.value })}
-                  />
-                ),
-              },
-              {
-                key: 'actions',
-                header: 'إجراء',
-                className: 'col-fit',
-                cell: (row) => (
-                  <div className="compact-actions-vertical">
-                    <Button type="button" onClick={() => saveRow(String(row.employeeId))}>حفظ</Button>
-                  </div>
-                ),
-              },
-            ]}
-          />
-        </QueryFeedback>
-      </FormSection>
-
-      {manualPrompt && (
-        <DialogShell open={true} onClose={() => setManualPrompt(null)} width="400px">
-          <form className="document-prototype-section" onSubmit={(e) => { void submitManualTime(e); }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '1.25rem' }}>
-              تسجيل {manualPrompt.type === 'check_in' ? 'حضور' : 'انصراف'} يدوي
-            </h3>
-            <div className="form-grid">
-              <label className="field field-wide">
-                <span>أدخل الوقت</span>
-                <input
-                  type="time"
-                  required
-                  autoFocus
-                  value={manualTimeInput}
-                  onChange={(e) => setManualTimeInput(e.target.value)}
-                />
-              </label>
+          {/* Unified Navigation & Toolbar - Single Row */}
+          <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '14px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <Button
+                type="button"
+                variant={activeTab === 'attendance' ? 'primary' : 'secondary'}
+                onClick={() => setActiveTab('attendance')}
+                style={{ padding: '5px 12px', fontSize: '0.825rem' }}
+              >
+                سجل الحضور اليومي
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === 'exceptions' ? 'primary' : 'secondary'}
+                onClick={() => setActiveTab('exceptions')}
+                style={{ padding: '5px 12px', fontSize: '0.825rem', position: 'relative' }}
+              >
+                استثناءات الشهر
+                {summary.needsAction > 0 && (
+                  <span style={{ marginRight: '6px', background: '#dc2626', color: '#ffffff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.7rem', fontWeight: 800 }}>
+                    {summary.needsAction}
+                  </span>
+                )}
+              </Button>
             </div>
-            <div className="actions compact-actions" style={{ marginTop: 24, justifyContent: 'flex-end' }}>
-              <Button type="button" variant="secondary" onClick={() => setManualPrompt(null)}>إلغاء</Button>
-              <Button type="submit" disabled={mutations.saveAttendanceRecord.isPending}>تسجيل</Button>
-            </div>
-          </form>
-        </DialogShell>
-      )}
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث بالاسم أو الكود..."
+              style={{ width: '190px', minWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+            />
+
+            {activeTab === 'attendance' ? (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>التاريخ:</span>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(normalizeArabicDigits(e.target.value || todayDate()))}
+                    style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <Button type="button" variant={attendanceFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('all')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>الكل</Button>
+                  <Button type="button" variant={attendanceFilter === 'unmarked' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('unmarked')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>لم يسجل</Button>
+                  <Button type="button" variant={attendanceFilter === 'recorded' ? 'primary' : 'secondary'} onClick={() => setAttendanceFilter('recorded')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>مسجل</Button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>الشهر:</span>
+                  <input
+                    type="month"
+                    value={exceptionMonth}
+                    onChange={(e) => setExceptionMonth(normalizeArabicDigits(e.target.value || todayDate().slice(0, 7)))}
+                    style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <Button type="button" variant={exceptionFilter === 'needs_action' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('needs_action')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>يحتاج إجراء</Button>
+                  <Button type="button" variant={exceptionFilter === 'overtime' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('overtime')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>إضافي</Button>
+                  <Button type="button" variant={exceptionFilter === 'deduction' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('deduction')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>خصم</Button>
+                  <Button type="button" variant={exceptionFilter === 'all' ? 'primary' : 'secondary'} onClick={() => setExceptionFilter('all')} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>الكل</Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Active View Content */}
+          {activeTab === 'attendance' ? (
+            <QueryFeedback
+              isLoading={attendance.isLoading}
+              isError={attendance.isError}
+              error={attendance.error}
+              isEmpty={!filteredAttendanceRows.length}
+              loadingText="جاري تحميل سجلات الحضور..."
+              errorTitle="تعذر تحميل سجلات الحضور."
+              emptyTitle="لا توجد سجلات مطابقة للفلتر الحالي."
+            >
+              <DataTable
+                rows={filteredAttendanceRows}
+                rowKey={(row) => String(row.employeeId)}
+                density="compact"
+                columns={[
+                  { key: 'employeeNo', header: 'كود الموظف', className: 'col-fit', cell: (row) => row.employeeNo || '—' },
+                  { key: 'employeeName', header: 'اسم الموظف', className: 'col-main', cell: (row) => row.employeeName || '—' },
+                  { key: 'departmentName', header: 'القسم', className: 'col-fit', cell: (row) => row.departmentName || '—' },
+                  {
+                    key: 'checkInAt',
+                    header: 'وقت الحضور',
+                    className: 'col-fit',
+                    cell: (row) => (
+                      <input
+                        type="time"
+                        value={draftByEmployeeId[String(row.employeeId)]?.checkInAt || ''}
+                        onChange={(e) => updateDraft(String(row.employeeId), { checkInAt: normalizeTime(e.target.value) })}
+                        style={{ padding: '2px 6px', fontSize: '0.85rem' }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'checkOutAt',
+                    header: 'وقت الانصراف',
+                    className: 'col-fit',
+                    cell: (row) => (
+                      <input
+                        type="time"
+                        value={draftByEmployeeId[String(row.employeeId)]?.checkOutAt || ''}
+                        onChange={(e) => updateDraft(String(row.employeeId), { checkOutAt: normalizeTime(e.target.value) })}
+                        style={{ padding: '2px 6px', fontSize: '0.85rem' }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: 'الحالة',
+                    className: 'col-fit',
+                    cell: (row) => (
+                      <select
+                        value={draftByEmployeeId[String(row.employeeId)]?.status || ''}
+                        onChange={(e) => updateDraft(String(row.employeeId), { status: e.target.value })}
+                        style={{ padding: '2px 6px', fontSize: '0.85rem' }}
+                      >
+                        <option value="">غير مسجل</option>
+                        <option value="present">حاضر</option>
+                        <option value="absent">غائب</option>
+                        <option value="late">متأخر</option>
+                        <option value="early_leave">انصراف مبكر</option>
+                        <option value="leave">إجازة</option>
+                        <option value="half_day">نصف يوم</option>
+                        <option value="excused">بعذر</option>
+                      </select>
+                    ),
+                  },
+                  {
+                    key: 'notes',
+                    header: 'ملاحظات',
+                    className: 'col-main',
+                    cell: (row) => (
+                      <input
+                        value={draftByEmployeeId[String(row.employeeId)]?.notes || ''}
+                        onChange={(e) => updateDraft(String(row.employeeId), { notes: e.target.value })}
+                        placeholder="ملاحظات..."
+                        style={{ padding: '2px 6px', fontSize: '0.85rem', width: '100%' }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'actions',
+                    header: 'إجراء',
+                    className: 'col-fit',
+                    cell: (row) => (
+                      <Button type="button" onClick={() => saveRow(String(row.employeeId))} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>حفظ</Button>
+                    ),
+                  },
+                ]}
+              />
+            </QueryFeedback>
+          ) : (
+            <QueryFeedback
+              isLoading={exceptions.isLoading}
+              isError={exceptions.isError}
+              error={exceptions.error}
+              isEmpty={!exceptionRows.length}
+              loadingText="جاري تحميل الاستثناءات..."
+              errorTitle="تعذر تحميل الاستثناءات."
+              emptyTitle="لا توجد استثناءات مطابقة لهذا الفلتر."
+            >
+              <DataTable
+                rows={exceptionRows}
+                rowKey={(row) => row.id}
+                density="compact"
+                columns={[
+                  { key: 'workDate', header: 'التاريخ', className: 'col-fit', cell: (row) => row.workDate || '—' },
+                  { key: 'employeeNo', header: 'كود الموظف', className: 'col-fit', cell: (row) => row.employeeNo || '—' },
+                  { key: 'employeeName', header: 'اسم الموظف', className: 'col-main', cell: (row) => row.employeeName || '—' },
+                  {
+                    key: 'exceptionType',
+                    header: 'نوع الاستثناء',
+                    className: 'col-fit',
+                    cell: (row) => {
+                      const label = exceptionTypeLabel(row.exceptionType);
+                      const isRed = row.status === 'needs_review' || row.status === 'pending' || isOvertimeException(row.exceptionType);
+                      return isRed ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{label}</span> : <span>{label}</span>;
+                    },
+                  },
+                  { key: 'scheduledTime', header: 'المجدول', className: 'col-fit', cell: (row) => row.scheduledTime || '?' },
+                  { key: 'actualTime', header: 'الفعلي', className: 'col-fit', cell: (row) => row.actualTime || '?' },
+                  { key: 'durationMinutes', header: 'المدة', className: 'col-fit', cell: (row) => `${row.durationMinutes || 0} د` },
+                  {
+                    key: 'status',
+                    header: 'الحالة',
+                    className: 'col-fit',
+                    cell: (row) => {
+                      const label = exceptionStatusLabel(row.status);
+                      const isRed = row.status === 'needs_review' || row.status === 'pending';
+                      return isRed ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{label}</span> : <span>{label}</span>;
+                    },
+                  },
+                  {
+                    key: 'actions',
+                    header: 'الإجراء',
+                    className: 'col-fit',
+                    cell: (row) => {
+                      if (row.status !== 'pending') return <span className="muted">{exceptionStatusLabel(row.status)}</span>;
+
+                      const isMissingCheckIn = row.exceptionType === 'missing_check_in';
+                      const isMissingCheckOut = row.exceptionType === 'missing_check_out';
+                      const isLateIn = row.exceptionType === 'late_check_in';
+                      const isEarlyOut = row.exceptionType === 'early_check_out';
+                      const isAbsent = row.exceptionType === 'absent';
+
+                      if (isOvertimeException(row.exceptionType)) {
+                        return (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void approveException(row.id); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>اعتماد كإضافي</Button>
+                            <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending || mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تخطي</Button>
+                          </div>
+                        );
+                      }
+
+                      if (isMissingCheckIn || isMissingCheckOut) {
+                        return (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <Button type="button" variant="secondary" onClick={() => {
+                              setManualTimeInput(isMissingCheckIn ? '09:00' : '17:00');
+                              setManualPrompt({
+                                rowId: String(row.id),
+                                employeeId: Number(row.employeeId || row.employeeNo),
+                                workDate: String(row.workDate),
+                                type: isMissingCheckIn ? 'check_in' : 'check_out',
+                                defaultTime: isMissingCheckIn ? '09:00' : '17:00',
+                              });
+                            }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تسجيل {isMissingCheckIn ? 'حضور' : 'انصراف'}</Button>
+                            <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تخطي</Button>
+                          </div>
+                        );
+                      }
+
+                      if (isLateIn || isEarlyOut) {
+                        return (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending} onClick={() => { void approveException(row.id); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تأكيد الخصم</Button>
+                            <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تجاهل (عذر)</Button>
+                          </div>
+                        );
+                      }
+
+                      if (isAbsent) {
+                        return (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <Button type="button" variant="secondary" disabled={mutations.approveAttendanceException.isPending} onClick={() => { void approveException(row.id); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تأكيد الغياب</Button>
+                            <Button type="button" variant="secondary" disabled={mutations.skipAttendanceException.isPending} onClick={() => { void skipException(row.id); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تخطي</Button>
+                          </div>
+                        );
+                      }
+
+                      return <span className="muted">{exceptionStatusLabel(row.status)}</span>;
+                    },
+                  },
+                ]}
+              />
+            </QueryFeedback>
+          )}
+
+          {manualPrompt && (
+            <DialogShell open={true} onClose={() => setManualPrompt(null)} width="400px">
+              <form className="document-prototype-section" onSubmit={(e) => { void submitManualTime(e); }}>
+                <h3 style={{ margin: '0 0 16px', fontSize: '1.25rem' }}>
+                  تسجيل {manualPrompt.type === 'check_in' ? 'حضور' : 'انصراف'} يدوي
+                </h3>
+                <div className="form-grid">
+                  <label className="field field-wide">
+                    <span>أدخل الوقت</span>
+                    <input
+                      type="time"
+                      required
+                      autoFocus
+                      value={manualTimeInput}
+                      onChange={(e) => setManualTimeInput(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="actions compact-actions" style={{ marginTop: 24, justifyContent: 'flex-end' }}>
+                  <Button type="button" variant="secondary" onClick={() => setManualPrompt(null)}>إلغاء</Button>
+                  <Button type="submit" disabled={mutations.saveAttendanceRecord.isPending}>تسجيل</Button>
+                </div>
+              </form>
+            </DialogShell>
+          )}
+        </div>
       </main>
     </div>
   );

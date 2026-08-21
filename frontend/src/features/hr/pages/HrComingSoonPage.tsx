@@ -2,11 +2,21 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { HrAttendanceException, HrEmployee, HrEmployeeAsset, HrLeaveRequest, HrLoan, HrPayrollRun } from '@/types/domain';
+import {
+  UsersIcon,
+  ClockIcon,
+  CalendarIcon,
+  WalletIcon,
+  BriefcaseIcon,
+  BanknotesIcon,
+  FileTextIcon,
+  ChartBarIcon,
+  CogIcon,
+} from '@/features/hr/components/HrIcons';
 import {
   useHrAttendance,
   useHrAttendanceExceptions,
@@ -145,77 +155,158 @@ export function HrComingSoonPage() {
   const isError = (canViewEmployees && workspace.employees.isError) || attendance.isError;
   const error = (canViewEmployees ? workspace.employees.error : null) || attendance.error;
 
-  const navCards = [
-    canViewEmployees ? { title: 'الموظفون', body: 'إضافة وتعديل ملفات الموظفين واستكمال البيانات.', to: '/hr/employees', action: 'فتح الموظفين' } : null,
-    useHasAnyPermission('hrAttendance') ? { title: 'الحضور والانصراف', body: 'تسجيل اليوم ومراجعة التأخير والأوفر تايم.', to: '/hr/attendance', action: 'فتح الحضور' } : null,
-    useHasAnyPermission('hrLeaves') ? { title: 'الإجازات', body: 'مراجعة طلبات الإجازة وأنواع الإجازات.', to: '/hr/leaves', action: 'فتح الإجازات' } : null,
-    canViewLoans ? { title: 'السلف والخصومات', body: 'إدارة السلف وأقساط السداد الشهرية.', to: '/hr/loans', action: 'فتح السلف' } : null,
-    canViewPayroll ? { title: 'المرتبات', body: 'مراجعة المرتبات والخصومات قبل الاعتماد.', to: '/hr/payroll', action: 'فتح المرتبات' } : null,
-    useHasAnyPermission(['hrSettings', 'hr']) ? { title: 'الإعدادات', body: 'الأقسام والمسميات وأنواع الإجازات الأساسية.', to: '/hr/settings', action: 'فتح الإعدادات' } : null,
-  ].filter(Boolean) as Array<{ title: string; body: string; to: string; action: string }>;
-
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
-      <PageHeader
-        title="الموارد البشرية"
-        description="نظرة تشغيلية مختصرة: ابدأ من العناصر التي تحتاج إجراء، أو انتقل مباشرة للقسم المطلوب."
-        actions={(
-          <div className="compact-actions">
-            {canViewEmployees && <Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>}
-            {useHasAnyPermission('hrAttendance') && <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>}
-          </div>
-        )}
-      />
+      <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
+        <PageHeader
+          title="الموارد البشرية"
+          description="نظرة تشغيلية مختصرة: ابدأ من العناصر التي تحتاج إجراء، أو انتقل مباشرة للقسم المطلوب."
+          actions={
+            <div className="actions compact-actions">
+              {canViewEmployees && <Button onClick={() => navigate('/hr/employees/new')}>إضافة موظف</Button>}
+              {useHasAnyPermission('hrAttendance') && <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>فتح الحضور</Button>}
+            </div>
+          }
+        />
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <QueryFeedback
+            isLoading={loading}
+            isError={isError}
+            error={error}
+            isEmpty={false}
+            loadingText="جاري تحميل نظرة الموارد البشرية..."
+            errorTitle="تعذر تحميل نظرة الموارد البشرية"
+          >
+            {/* Compact Single-Row KPI Summary Bar */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>ملخص تشغيلي سريع</span>
+                <span style={{ fontSize: '0.725rem', color: '#64748b' }}>مؤشرات اليوم لجميع أقسام الموارد البشرية</span>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
+                {[
+                  { label: 'إجمالي الموظفين', value: totalEmployees, to: '/hr/employees', isAlert: false },
+                  { label: 'نشط', value: activeEmployees, to: '/hr/employees', isAlert: false },
+                  { label: 'حاضر اليوم', value: presentToday, to: '/hr/attendance', isAlert: false },
+                  { label: 'طلبات إجازة', value: pendingLeaves.length, to: '/hr/leaves', isAlert: pendingLeaves.length > 0 },
+                  { label: 'استثناءات حضور', value: exceptionRows.length, to: '/hr/attendance', isAlert: exceptionRows.length > 0 },
+                  { label: 'عُهد للمراجعة', value: assetsNeedReview, to: '/hr/assets', isAlert: assetsNeedReview > 0 },
+                  { label: 'أقساط مستحقة', value: money(dueLoanAmount), to: '/hr/loans', isAlert: false },
+                  { label: 'مرتبات للمراجعة', value: payrollReviewCount, to: '/hr/payroll', isAlert: payrollReviewCount > 0 },
+                ].map((stat, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => navigate(stat.to)}
+                    style={{
+                      background: '#ffffff',
+                      border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`,
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      minWidth: 0,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#94a3b8')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = stat.isAlert ? '#fca5a5' : '#e2e8f0')}
+                  >
+                    <span style={{ fontSize: '0.725rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.label}>
+                      {stat.label}
+                    </span>
+                    <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : '#0f172a', lineHeight: 1.2 }}>
+                      {stat.value}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-      <QueryFeedback
-        isLoading={loading}
-        isError={isError}
-        error={error}
-        isEmpty={false}
-        loadingText="جاري تحميل نظرة الموارد البشرية..."
-        errorTitle="تعذر تحميل نظرة الموارد البشرية"
-      >
-        <div className="compact-actions" style={{ marginBottom: '24px', flexWrap: 'wrap' }}>
-          {navCards.map((card) => (
-            <Button key={card.to} type="button" variant="secondary" onClick={() => navigate(card.to)}>فتح {card.title}</Button>
-          ))}
+            {/* Quick Actions Shortcuts Row */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+              {[
+                { label: 'إضافة موظف', icon: <UsersIcon size={15} />, to: '/hr/employees/new', variant: 'primary' as const },
+                { label: 'تسجيل الحضور', icon: <ClockIcon size={15} />, to: '/hr/attendance', variant: 'secondary' as const },
+                { label: 'طلب إجازة', icon: <CalendarIcon size={15} />, to: '/hr/leaves', variant: 'secondary' as const },
+                { label: 'سلفة جديدة', icon: <WalletIcon size={15} />, to: '/hr/loans', variant: 'secondary' as const },
+                { label: 'تسليم عهدة', icon: <BriefcaseIcon size={15} />, to: '/hr/assets', variant: 'secondary' as const },
+                { label: 'مسير المرتبات', icon: <BanknotesIcon size={15} />, to: '/hr/payroll', variant: 'secondary' as const },
+                { label: 'المستندات', icon: <FileTextIcon size={15} />, to: '/hr/documents', variant: 'secondary' as const },
+                { label: 'التقارير', icon: <ChartBarIcon size={15} />, to: '/hr/reports', variant: 'secondary' as const },
+                { label: 'الإعدادات', icon: <CogIcon size={15} />, to: '/hr/settings', variant: 'secondary' as const },
+              ].map((act, i) => (
+                <Button
+                  key={i}
+                  type="button"
+                  variant={act.variant}
+                  onClick={() => navigate(act.to)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                >
+                  {act.icon}
+                  <span>{act.label}</span>
+                </Button>
+              ))}
+            </div>
+
+            {/* Tasks that need immediate action */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0f172a' }}>مهام تحتاج إجراء ومتابعة</span>
+                <span style={{ fontSize: '0.725rem', color: '#64748b' }}>أهم العناصر التي تستحق المتابعة الفورية</span>
+              </div>
+              
+              <DataTable
+                rows={reviewItems}
+                rowKey={(row) => row.id}
+                density="compact"
+                onRowClick={(row) => navigate(row.to)}
+                columns={[
+                  {
+                    key: 'priority',
+                    header: 'الأولوية',
+                    className: 'col-fit',
+                    cell: (row) => (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          background: row.priority === 'عاجل' ? '#fee2e2' : row.priority === 'مراجعة' ? '#fef3c7' : '#e0f2fe',
+                          color: row.priority === 'عاجل' ? '#b91c1c' : row.priority === 'مراجعة' ? '#b45309' : '#0369a1',
+                        }}
+                      >
+                        {row.priority}
+                      </span>
+                    ),
+                  },
+                  { key: 'type', header: 'النوع', className: 'col-fit', cell: (row) => <strong>{row.type}</strong> },
+                  { key: 'description', header: 'الوصف', cell: (row) => row.description },
+                  {
+                    key: 'action',
+                    header: 'الإجراء',
+                    className: 'col-fit',
+                    cell: (row) => (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={(event) => { event.stopPropagation(); navigate(row.to); }}
+                        style={{ padding: '2px 10px', fontSize: '0.775rem' }}
+                      >
+                        فتح
+                      </Button>
+                    ),
+                  },
+                ]}
+              />
+              {!reviewItems.length ? <p className="muted" style={{ margin: '8px 0 0', fontSize: '0.825rem' }}>لا توجد عناصر عاجلة ظاهرة حاليًا، كل الأمور تحت السيطرة.</p> : null}
+            </div>
+          </QueryFeedback>
         </div>
-
-        <FormSection title="ملخص سريع" description="الأرقام المهمة اليوم بدون ازدحام.">
-          <div className="stats-grid">
-            <div className="stat-card"><span>إجمالي الموظفين</span><strong>{totalEmployees}</strong></div>
-            <div className="stat-card"><span>نشط</span><strong>{activeEmployees}</strong></div>
-            <div className="stat-card"><span>حاضر اليوم</span><strong>{presentToday}</strong></div>
-            <div className="stat-card"><span>طلبات إجازة</span><strong>{pendingLeaves.length}</strong></div>
-            <div className="stat-card"><span>استثناءات حضور</span><strong>{exceptionRows.length}</strong></div>
-            <div className="stat-card"><span>عُهد تحتاج مراجعة</span><strong>{assetsNeedReview}</strong></div>
-            <div className="stat-card"><span>أقساط سلف مستحقة</span><strong>{money(dueLoanAmount)}</strong></div>
-            <div className="stat-card"><span>مرتبات تحتاج مراجعة</span><strong>{payrollReviewCount}</strong></div>
-          </div>
-        </FormSection>
-
-
-        <FormSection title="يحتاج إجراء" description="أهم العناصر التي تستحق المتابعة الآن.">
-          <DataTable
-            rows={reviewItems}
-            rowKey={(row) => row.id}
-            density="compact"
-            onRowClick={(row) => navigate(row.to)}
-            columns={[
-              { key: 'priority', header: 'الأولوية', cell: (row) => row.priority },
-              { key: 'type', header: 'النوع', cell: (row) => row.type },
-              { key: 'description', header: 'الوصف', cell: (row) => row.description },
-              {
-                key: 'action',
-                header: 'الإجراء',
-                cell: (row) => <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); navigate(row.to); }}>فتح</Button>,
-              },
-            ]}
-          />
-          {!reviewItems.length ? <p className="muted" style={{ margin: '12px 0 0' }}>لا توجد عناصر عاجلة ظاهرة حاليًا.</p> : null}
-        </FormSection>
-      </QueryFeedback>
       </main>
     </div>
   );

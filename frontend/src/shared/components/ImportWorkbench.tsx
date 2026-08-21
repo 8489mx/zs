@@ -173,22 +173,51 @@ export function ImportWorkbench({
         <>
           <div className="inline-create-grid">
             <div className="field">
-          <span>ملف (Excel/CSV)</span>
-          <input
-            type="file"
-            accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-            onChange={async (event) => {
-              const input = event.currentTarget;
-              await handleFileSelect(input.files?.[0]);
-              input.value = '';
-            }}
-          />
-        </div>
-        <div className="field">
-          <span>الأعمدة المطلوبة</span>
-          <div className="required-columns-wrap">{requiredColumns.map((column) => <span key={column} className="nav-pill">{column}</span>)}</div>
-        </div>
-      </div>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>ملف البيانات (Excel / CSV)</span>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: '#ffffff',
+                  border: '1px dashed #94a3b8',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  fontSize: '0.825rem',
+                  color: fileName ? '#166534' : '#475569',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600 }}>
+                  {fileName ? 'تغيير الملف' : 'اختر ملف من جهازك'}
+                </span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {fileName || 'لم يتم اختيار ملف بعد (يدعم xlsx, xls, csv)'}
+                </span>
+                <input
+                  type="file"
+                  style={{ display: 'none' }}
+                  accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  onChange={async (event) => {
+                    const input = event.currentTarget;
+                    await handleFileSelect(input.files?.[0]);
+                    input.value = '';
+                  }}
+                />
+              </label>
+            </div>
+            <div className="field">
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الأعمدة المطلوبة في الملف</span>
+              <div className="required-columns-wrap" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {requiredColumns.map((column) => (
+                  <span key={column} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', color: '#334155' }}>
+                    {column}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
 
       <div className="mini-stats-grid import-stats-grid">
         <div className="stat-card compact-stat-card"><span>اسم الملف</span><strong>{fileName || '—'}</strong></div>

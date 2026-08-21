@@ -2,7 +2,6 @@ import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { DataTable } from '@/shared/ui/data-table';
@@ -78,12 +77,7 @@ export function HrPayrollPage() {
   const selectedRun = (payrollRunDetails.data?.run || selectedRunFromList) as HrPayrollRun | undefined;
   const runItems = useMemo(() => {
     const items = (selectedRun?.items || []) as HrPayrollRunItem[];
-    return items.filter((item) => {
-      const base = Number(item.baseSalary || 0);
-      const hourly = Number(item.hourlyRate || 0);
-      const net = Number(item.netPay || 0);
-      return base > 0 || hourly > 0 || net > 0;
-    });
+    return items.filter((item) => item.status !== 'excluded');
   }, [selectedRun?.items]);
 
   const departmentOptions = useMemo(() => {
@@ -518,297 +512,351 @@ export function HrPayrollPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
-      <PageHeader
-        title="المرتبات"
-        description="مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة."
-        actions={
-          <div className="actions compact-actions">
-            {hasCreatePayrollRun && canManagePayroll ? <Button variant="secondary" onClick={() => { setDraft((current) => ({ ...current, periodMonth: current.periodMonth || monthFilter })); setShowCreateRun(true); }}>إنشاء مسير الشهر</Button> : null}
-            <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>مراجعة الحضور</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
-          </div>
-        }
-      />
-
-      {!canViewPayroll ? (
-        <FormSection title="الوصول للمرتبات">
-          <p className="muted" style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى هذه الصفحة.</p>
-          <p className="muted" style={{ marginBottom: 0 }}>تواصل مع مسؤول النظام لتحديث الصلاحيات.</p>
-        </FormSection>
-      ) : (
-        <>
-<HrPayrollTopSections
-            monthFilter={monthFilter}
-            search={search}
-            departmentFilter={departmentFilter}
-            reviewStatusFilter={reviewStatusFilter}
-            runStatusFilter={runStatusFilter}
-            departmentOptions={departmentOptions}
-            runStatusOptions={runStatusOptions}
-            summary={summary}
-            canViewSalaryAmounts={canViewSalaryAmounts}
-            dueLoanInstallmentRows={dueLoanInstallmentRows}
-            draft={draft}
-            formError={formError}
-            canManagePayroll={canManagePayroll}
-            hasCreatePayrollRun={hasCreatePayrollRun}
-            isCreatePending={mutations.createPayrollRun.isPending}
-            onMonthFilterChange={(value) => { setMonthFilter(value); setPage(1); }}
-            onSearchChange={setSearch}
-            onDepartmentFilterChange={setDepartmentFilter}
-            onReviewStatusFilterChange={setReviewStatusFilter}
-            onRunStatusFilterChange={setRunStatusFilter}
-            onDraftChange={setDraft}
-            onCreateRun={(event) => { void handleCreateRun(event); }}
-          />
-
-          {showCreateRun && (
-            <DialogShell open={true} onClose={() => setShowCreateRun(false)} width="500px">
-              <div style={{ padding: '24px' }}>
-                <h2 style={{ marginTop: 0 }}>تجهيز مسير المرتبات</h2>
-                {hasCreatePayrollRun && canManagePayroll ? (
-                  <form className="form-grid" onSubmit={(e) => void handleCreateRun(e)}>
-                    <label className="field field-wide"><span>شهر مسير المرتبات (كمرجع) *</span><input type="month" value={draft.periodMonth} onChange={(event) => setDraft((current) => ({ ...current, periodMonth: event.target.value }))} required /></label>
-                    <label className="field"><span>دورة القبض المستهدفة</span><select value={draft.payFrequency} onChange={(event) => setDraft((current) => ({ ...current, payFrequency: event.target.value as any }))}><option value="monthly">شهري</option><option value="weekly">أسبوعي</option><option value="biweekly">نصف شهري (كل أسبوعين)</option><option value="daily">يومي</option></select></label>
-                    <div className="form-grid field-wide" style={{ gap: '12px', display: 'flex' }}>
-                      <label className="field" style={{ flex: 1 }}><span>تاريخ البداية (اختياري)</span><input type="date" value={draft.startDate} onChange={(event) => setDraft((current) => ({ ...current, startDate: event.target.value }))} /></label>
-                      <label className="field" style={{ flex: 1 }}><span>تاريخ النهاية (اختياري)</span><input type="date" value={draft.endDate} onChange={(event) => setDraft((current) => ({ ...current, endDate: event.target.value }))} /></label>
-                    </div>
-                    <label className="field field-wide"><span>ملاحظات</span><input value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
-                    {formError ? <div className="field-wide error-box">{formError}</div> : null}
-                    <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
-                      <Button type="submit" disabled={mutations.createPayrollRun.isPending}>{mutations.createPayrollRun.isPending ? 'جارٍ التجهيز...' : 'تجهيز المسير'}</Button>
-                      <Button type="button" variant="secondary" onClick={() => setShowCreateRun(false)}>إلغاء</Button>
-                    </div>
-                  </form>
-                ) : (
-                  <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
-                )}
-              </div>
-            </DialogShell>
-          )}
-
-          {showPayRun && (
-            <DialogShell open={true} onClose={() => setShowPayRun(false)} width="500px">
-              <div style={{ padding: '24px' }}>
-                <h2 style={{ marginTop: 0 }}>صرف المرتبات</h2>
-                {canApprovePayroll && mutations.payPayrollRun ? (
-                  <form className="form-grid" onSubmit={(e) => void handlePayRun(e)}>
-                    <p style={{ marginBottom: '16px' }}>أنت على وشك صرف المرتبات للمسير المعتمد الخاص بشهر {text(selectedRun?.periodMonth)}. سيتم إنشاء قيد يومية محاسبي بالصرف.</p>
-                    <label className="field field-wide">
-                      <span>طريقة الصرف *</span>
-                      <select value={payChannel} onChange={(event) => setPayChannel(event.target.value as 'cash' | 'bank')} required>
-                        <option value="cash">نقداً (من الخزينة)</option>
-                        <option value="bank">تحويل بنكي</option>
-                      </select>
-                    </label>
-                    {formError ? <div className="field-wide error-box">{formError}</div> : null}
-                    <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
-                      <Button type="submit" disabled={mutations.payPayrollRun.isPending}>{mutations.payPayrollRun.isPending ? 'جارٍ الصرف...' : 'تأكيد الصرف'}</Button>
-                      <Button type="button" variant="secondary" onClick={() => setShowPayRun(false)}>إلغاء</Button>
-                    </div>
-                  </form>
-                ) : (
-                  <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
-                )}
-              </div>
-            </DialogShell>
-          )}
-
-          <FormSection title="كشوف المرتبات الشهرية">
-            <QueryFeedback isLoading={workspace.payrollRuns.isLoading} isError={workspace.payrollRuns.isError} error={workspace.payrollRuns.error} isEmpty={!filteredRuns.length} loadingText="جارٍ تحميل كشوف المرتبات..." errorTitle="تعذر تحميل كشوف المرتبات" emptyTitle="لا توجد بيانات مرتبات لهذه الفترة.">
-              <DataTable
-                rows={filteredRuns}
-                rowKey={(row) => String(row.id)}
-                onRowClick={(row) => setSelectedRunId(String(row.id))}
-                density="compact"
-                pagination={{ page, pageSize, totalItems, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'كشف' }}
-                columns={[
-                  { key: 'periodMonth', header: 'الشهر', cell: (row) => text(row.periodMonth) },
-                  { key: 'payFrequency', header: 'الدورة', cell: (row) => row.payFrequency === 'weekly' ? 'أسبوعي' : row.payFrequency === 'biweekly' ? 'نصف شهري' : row.payFrequency === 'daily' ? 'يومي' : 'شهري' },
-                  { key: 'startDate', header: 'من', cell: (row) => row.startDate ? text(row.startDate) : 'أول الشهر' },
-                  { key: 'endDate', header: 'إلى', cell: (row) => row.endDate ? text(row.endDate) : 'آخر الشهر' },
-                  { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                  { key: 'itemCount', header: 'عدد الموظفين', cell: (row) => text(row.itemCount || (row.items?.length ?? 0)) },
-                  { key: 'totalNetPay', header: 'صافي المرتبات', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : 'لا تملك صلاحية عرض هذه البيانات.' },
-                  { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => text(row.createdAt) },
-                  { key: 'actions', header: 'إجراء', cell: (row) => <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>{canManagePayroll && mutations.recalculatePayrollRun && normalize(row.status) !== 'approved' && normalize(row.status) !== 'paid' ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }}>مراجعة</Button> : null}{canManagePayroll && mutations.reviewPayrollRun && normalize(row.status) === 'draft' ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'review')}>اعتماد</Button> : null}{canApprovePayroll && mutations.approvePayrollRun && normalize(row.status) === 'reviewed' ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'approve')}>اعتماد نهائي</Button> : null}{canApprovePayroll && mutations.payPayrollRun && normalize(row.status) === 'approved' ? <Button variant="primary" onClick={() => { setSelectedRunId(String(row.id)); setShowPayRun(true); }}>صرف</Button> : null}{canManagePayroll && mutations.cancelPayrollRun && normalize(row.status) !== 'paid' && normalize(row.status) !== 'cancelled' ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }}>إلغاء</Button> : null}</div> },
-                ]}
-              />
-            </QueryFeedback>
-          </FormSection>
-
-          <FormSection title="مراجعة قبل الاعتماد" description="قائمة مختصرة تمنع نسيان الحضور أو السلف.">
-            <div className="form-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-              {payrollChecklist.map((item) => (
-                <div key={item.key} className="field" style={{ alignItems: 'flex-start', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '6px', background: item.ok ? 'var(--surface-50)' : 'var(--surface-color)' }}>
-                  <strong>{item.ok ? '✓' : '•'} {item.title}</strong>
-                  <span className="muted" style={{ fontSize: '13px', margin: '8px 0', flex: 1 }}>{item.status}</span>
-                  {item.onClick ? <Button type="button" variant={item.ok ? 'secondary' : 'primary'} onClick={item.onClick} style={{ width: '100%', fontSize: '13px' }}>{item.action}</Button> : null}
-                </div>
-              ))}
+      <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
+        <PageHeader
+          title="المرتبات"
+          description="مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة."
+          actions={
+            <div className="actions compact-actions">
+              {hasCreatePayrollRun && canManagePayroll ? (
+                <Button onClick={() => { setDraft((current) => ({ ...current, periodMonth: current.periodMonth || monthFilter })); setShowCreateRun(true); }}>
+                  إنشاء مسير الشهر
+                </Button>
+              ) : null}
+              <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>مراجعة الحضور</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/loans')}>مراجعة السلف</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
             </div>
-          </FormSection>
+          }
+        />
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
 
-          <FormSection title="تفاصيل ومراجعة المسير">
-            {!selectedRunId ? <p className="muted">اختر كشفًا من الجدول لعرض تفاصيل الموظفين.</p> : (
-              <QueryFeedback isLoading={payrollRunDetails.isLoading} isError={payrollRunDetails.isError} error={payrollRunDetails.error} isEmpty={false} loadingText="جارٍ تحميل تفاصيل المسير..." errorTitle="تعذر تحميل تفاصيل المسير">
-                {!selectedRun ? <p className="muted">تفاصيل المسير غير متاحة من الواجهة الحالية.</p> : filteredRunItems.length ? (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <p className="muted" style={{ margin: 0 }}>الخصومات المقترحة للمراجعة فقط، ولا يتم تطبيقها تلقائيًا إلا بعد اعتماد المسؤول.</p>
-                      {runIsFinal && (
-                        <Button variant="secondary" onClick={() => printPayrollSignatureSheet()}>طباعة كشف تسليم الرواتب</Button>
-                      )}
-                    </div>
-                    <DataTable
-                      rows={filteredRunItems}
-                      rowKey={(row) => String(row.id)}
-                      density="compact"
-                      columns={[
-                        { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
-                        { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) },
-                        { key: 'baseSalary', header: 'الراتب الأساسي', cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
-                        { key: 'allowanceAmount', header: 'البدلات (إضافي وغيره)', cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
-                        { key: 'deductionAmount', header: 'الخصومات (تأخير وغياب)', cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
-                        { key: 'loanDeductionAmount', header: 'السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },
-                        { key: 'netPay', header: 'صافي الراتب', cell: (row) => canViewSalaryAmounts ? money(row.netPay) : '—' },
-                        { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                        { key: 'details', header: 'التفاصيل', cell: (row) => <Button variant="secondary" onClick={() => setSelectedReviewItem(row)}>تفاصيل</Button> },
-                      ]}
-                    />
+          {!canViewPayroll ? (
+            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', textAlign: 'center', color: '#64748b' }}>
+              <p style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى بيانات المرتبات.</p>
+            </div>
+          ) : (
+            <>
+              <HrPayrollTopSections
+                monthFilter={monthFilter}
+                search={search}
+                departmentFilter={departmentFilter}
+                reviewStatusFilter={reviewStatusFilter}
+                runStatusFilter={runStatusFilter}
+                departmentOptions={departmentOptions}
+                runStatusOptions={runStatusOptions}
+                summary={summary}
+                canViewSalaryAmounts={canViewSalaryAmounts}
+                dueLoanInstallmentRows={dueLoanInstallmentRows}
+                draft={draft}
+                formError={formError}
+                canManagePayroll={canManagePayroll}
+                hasCreatePayrollRun={hasCreatePayrollRun}
+                isCreatePending={mutations.createPayrollRun.isPending}
+                onMonthFilterChange={(value) => { setMonthFilter(value); setPage(1); }}
+                onSearchChange={setSearch}
+                onDepartmentFilterChange={setDepartmentFilter}
+                onReviewStatusFilterChange={setReviewStatusFilter}
+                onRunStatusFilterChange={setRunStatusFilter}
+                onDraftChange={setDraft}
+                onCreateRun={(event) => { void handleCreateRun(event); }}
+              />
 
-                    {selectedReviewItem && (
-                      <DialogShell open={true} onClose={() => setSelectedReviewItem(null)} width="500px">
-                        <div style={{ padding: '24px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                            <h2 style={{ margin: 0, color: 'var(--text-color)', fontSize: '20px' }}>تفاصيل المرتب</h2>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                              <p style={{ margin: 0, fontWeight: 'bold', fontSize: '15px', color: 'var(--text-color)' }}>{text(selectedReviewItem.employeeName)}</p>
-                              <span className="muted" style={{ fontSize: '13px' }}>كود: {text(selectedReviewItem.employeeNo)}</span>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '16px', background: '#f8fafc' }}>
-                              <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', color: 'var(--text-color)' }}>الحساب النهائي</h3>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                                  <span className="muted">الراتب الأساسي:</span>
-                                  <span style={{ fontWeight: '500' }}>{canViewSalaryAmounts ? money(selectedReviewItem.baseSalary) : '—'}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                                  <span className="muted">البدلات والإضافي:</span>
-                                  <span style={{ fontWeight: '500' }}>{canViewSalaryAmounts ? money(selectedReviewItem.allowanceAmount) : '—'}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                                  <span className="muted">الخصومات (تأخير وغياب):</span>
-                                  <span style={{ fontWeight: '500', color: 'var(--red-600)' }}>{canViewSalaryAmounts ? money(selectedReviewItem.deductionAmount) : '—'}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                                  <span className="muted">السلف والأقساط:</span>
-                                  <span style={{ fontWeight: '500', color: 'var(--red-600)' }}>{canViewSalaryAmounts ? money(selectedReviewItem.loanDeductionAmount) : '—'}</span>
-                                </div>
-                              </div>
-                              
-                              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>صافي الراتب المستحق:</span>
-                                <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--green-700)' }}>{canViewSalaryAmounts ? money(selectedReviewItem.netPay) : '—'}</span>
-                              </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                              <div>
-                                <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>نوع الأجر</div>
-                                <div style={{ fontWeight: '500', fontSize: '14px' }}>{normalize(selectedReviewItem.compensationType) === 'hourly' ? 'أجر بالساعة/اليوم' : 'راتب شهري'}</div>
-                              </div>
-                              {normalize(selectedReviewItem.compensationType) === 'hourly' && (
-                                <>
-                                  <div>
-                                    <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>أجر الساعة/اليوم</div>
-                                    <div style={{ fontWeight: '500', fontSize: '14px' }}>{canViewSalaryAmounts ? money(selectedReviewItem.hourlyRate || 0) : '—'}</div>
-                                  </div>
-                                  <div>
-                                    <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>ساعات العمل اليومية</div>
-                                    <div style={{ fontWeight: '500', fontSize: '14px' }}>{selectedReviewItem.expectedDailyHours || 0}</div>
-                                  </div>
-                                </>
-                              )}
-                              <div>
-                                <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>تنبيهات عامة</div>
-                                <div style={{ fontWeight: '500', fontSize: '14px', color: reviewFlagText(selectedReviewItem) ? 'var(--orange-600)' : 'inherit' }}>
-                                  {reviewFlagText(selectedReviewItem) || 'لا يوجد'}
-                                </div>
-                              </div>
-                            </div>
-
-                            {(selectedReviewItem.payrollReviewNotes || selectedReviewItem.notes) && (
-                              <div style={{ background: 'var(--yellow-50)', padding: '16px', borderRadius: '8px', borderRight: '4px solid var(--yellow-400)' }}>
-                                {selectedReviewItem.payrollReviewNotes && (
-                                  <div style={{ marginBottom: selectedReviewItem.notes ? '12px' : '0' }}>
-                                    <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--yellow-800)', fontSize: '13px' }}>ملاحظات مراجعة الحضور:</strong>
-                                    <span style={{ color: 'var(--yellow-900)', fontSize: '14px' }}>{text(selectedReviewItem.payrollReviewNotes)}</span>
-                                  </div>
-                                )}
-                                {selectedReviewItem.notes && (
-                                  <div>
-                                    <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--yellow-800)', fontSize: '13px' }}>ملاحظات إضافية:</strong>
-                                    <span style={{ color: 'var(--yellow-900)', fontSize: '14px' }}>{text(selectedReviewItem.notes)}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <Button variant="primary" onClick={() => setSelectedReviewItem(null)}>إغلاق</Button>
-                            </div>
-                            {runIsFinal && (
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <Button variant="secondary" onClick={() => printPayslipSummary(selectedReviewItem)}>ملخص (A4)</Button>
-                                <Button variant="secondary" onClick={() => printPayslipDetailed(selectedReviewItem)}>تفصيلي (A4)</Button>
-                              </div>
-                            )}
-                          </div>
+              {showCreateRun && (
+                <DialogShell open={true} onClose={() => setShowCreateRun(false)} width="500px">
+                  <div style={{ padding: '24px' }}>
+                    <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>تجهيز مسير المرتبات</h2>
+                    {hasCreatePayrollRun && canManagePayroll ? (
+                      <form className="form-grid" onSubmit={(e) => void handleCreateRun(e)}>
+                        <label className="field field-wide"><span>شهر مسير المرتبات (كمرجع) *</span><input type="month" value={draft.periodMonth} onChange={(event) => setDraft((current) => ({ ...current, periodMonth: event.target.value }))} required /></label>
+                        <label className="field"><span>دورة القبض المستهدفة</span><select value={draft.payFrequency} onChange={(event) => setDraft((current) => ({ ...current, payFrequency: event.target.value as any }))}><option value="monthly">شهري</option><option value="weekly">أسبوعي</option><option value="biweekly">نصف شهري (كل أسبوعين)</option><option value="daily">يومي</option></select></label>
+                        <div className="form-grid field-wide" style={{ gap: '12px', display: 'flex' }}>
+                          <label className="field" style={{ flex: 1 }}><span>تاريخ البداية (اختياري)</span><input type="date" value={draft.startDate} onChange={(event) => setDraft((current) => ({ ...current, startDate: event.target.value }))} /></label>
+                          <label className="field" style={{ flex: 1 }}><span>تاريخ النهاية (اختياري)</span><input type="date" value={draft.endDate} onChange={(event) => setDraft((current) => ({ ...current, endDate: event.target.value }))} /></label>
                         </div>
-                      </DialogShell>
+                        <label className="field field-wide"><span>ملاحظات</span><input value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
+                        {formError ? <div className="field-wide error-box">{formError}</div> : null}
+                        <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
+                          <Button type="submit" disabled={mutations.createPayrollRun.isPending}>{mutations.createPayrollRun.isPending ? 'جارٍ التجهيز...' : 'تجهيز المسير'}</Button>
+                          <Button type="button" variant="secondary" onClick={() => setShowCreateRun(false)}>إلغاء</Button>
+                        </div>
+                      </form>
+                    ) : (
+                      <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
                     )}
-                  </>
-                ) : <p className="muted">لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p>}
-              </QueryFeedback>
-            )}
-          </FormSection>
+                  </div>
+                </DialogShell>
+              )}
 
-          {pendingApprovalAction && (
-            <DialogShell open={true} onClose={() => setPendingApprovalAction(null)} width="600px">
-              <div style={{ padding: '24px' }}>
-                <h2 style={{ marginTop: 0, color: 'var(--error-color)' }}>تنبيه: استثناءات معلقة</h2>
-                <p>يوجد استثناءات حضور وانصراف معلقة للموظفين التاليين بحاجة للمراجعة. هل أنت متأكد من رغبتك بالاستمرار دون معالجتها؟</p>
-                <div style={{ maxHeight: '200px', overflowY: 'auto', background: 'var(--surface-color)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
-                  <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                    {filteredRunItems.filter(i => Number(i.unresolvedExceptionsCount || 0) > 0).map(i => (
-                      <li key={i.id} style={{ marginBottom: '4px' }}>
-                        {text(i.employeeName)} ({text(i.employeeNo)})
-                      </li>
+              {showPayRun && (
+                <DialogShell open={true} onClose={() => setShowPayRun(false)} width="500px">
+                  <div style={{ padding: '24px' }}>
+                    <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>صرف المرتبات</h2>
+                    {canApprovePayroll && mutations.payPayrollRun ? (
+                      <form className="form-grid" onSubmit={(e) => void handlePayRun(e)}>
+                        <p style={{ marginBottom: '16px', fontSize: '0.9rem' }}>أنت على وشك صرف المرتبات للمسير المعتمد الخاص بشهر {text(selectedRun?.periodMonth)}. سيتم إنشاء قيد يومية محاسبي بالصرف.</p>
+                        <label className="field field-wide">
+                          <span>طريقة الصرف *</span>
+                          <select value={payChannel} onChange={(event) => setPayChannel(event.target.value as 'cash' | 'bank')} required>
+                            <option value="cash">نقداً (من الخزينة)</option>
+                            <option value="bank">تحويل بنكي</option>
+                          </select>
+                        </label>
+                        {formError ? <div className="field-wide error-box">{formError}</div> : null}
+                        <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
+                          <Button type="submit" disabled={mutations.payPayrollRun.isPending}>{mutations.payPayrollRun.isPending ? 'جارٍ الصرف...' : 'تأكيد الصرف'}</Button>
+                          <Button type="button" variant="secondary" onClick={() => setShowPayRun(false)}>إلغاء</Button>
+                        </div>
+                      </form>
+                    ) : (
+                      <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
+                    )}
+                  </div>
+                </DialogShell>
+              )}
+
+              {/* Compact Smart Audit Strip */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: '0.8rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>فحص التدقيق المحاسبي:</span>
+                  </strong>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {payrollChecklist.map((item) => (
+                      <span
+                        key={item.key}
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: item.ok ? '#f0fdf4' : '#fefce8',
+                          color: item.ok ? '#166534' : '#854d0e',
+                          border: `1px solid ${item.ok ? '#bbf7d0' : '#fef08a'}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                        }}
+                        title={item.status}
+                      >
+                        {item.ok ? '✓' : '•'} {item.title}
+                      </span>
                     ))}
-                  </ul>
+                  </div>
                 </div>
-                <div className="actions">
-                  <Button variant="secondary" onClick={() => setPendingApprovalAction(null)}>إلغاء الأمر ومراجعة الاستثناءات</Button>
-                  <Button variant="danger" onClick={() => executeRunAction(pendingApprovalAction.runId, pendingApprovalAction.type)}>نعم، تابع الاعتماد</Button>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {payrollChecklist.filter((item) => item.onClick && (!item.ok || item.key === 'status')).map((item) => (
+                    <Button key={item.key} type="button" variant={item.ok ? 'secondary' : 'primary'} onClick={item.onClick} style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
+                      {item.action}
+                    </Button>
+                  ))}
                 </div>
               </div>
-            </DialogShell>
-          )}
-        </>
-      )}
 
+              {/* Runs Table */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', marginBottom: '8px' }}>كشوف المرتبات المسجلة</div>
+                <QueryFeedback isLoading={workspace.payrollRuns.isLoading} isError={workspace.payrollRuns.isError} error={workspace.payrollRuns.error} isEmpty={!filteredRuns.length} loadingText="جارٍ تحميل كشوف المرتبات..." errorTitle="تعذر تحميل كشوف المرتبات" emptyTitle="لا توجد بيانات مرتبات لهذه الفترة.">
+                  <DataTable
+                    rows={filteredRuns}
+                    rowKey={(row) => String(row.id)}
+                    onRowClick={(row) => setSelectedRunId(String(row.id))}
+                    density="compact"
+                    pagination={{ page, pageSize, totalItems, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'كشف' }}
+                    columns={[
+                      { key: 'periodMonth', header: 'الشهر', cell: (row) => text(row.periodMonth) },
+                      { key: 'payFrequency', header: 'الدورة', cell: (row) => row.payFrequency === 'weekly' ? 'أسبوعي' : row.payFrequency === 'biweekly' ? 'نصف شهري' : row.payFrequency === 'daily' ? 'يومي' : 'شهري' },
+                      { key: 'startDate', header: 'من', cell: (row) => row.startDate ? text(row.startDate) : 'أول الشهر' },
+                      { key: 'endDate', header: 'إلى', cell: (row) => row.endDate ? text(row.endDate) : 'آخر الشهر' },
+                      { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+                      { key: 'itemCount', header: 'عدد الموظفين', cell: (row) => text(row.itemCount || (row.items?.length ?? 0)) },
+                      { key: 'totalNetPay', header: 'صافي المرتبات', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : '—' },
+                      { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => text(row.createdAt) },
+                      {
+                        key: 'actions',
+                        header: 'إجراء',
+                        cell: (row) => (
+                          <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
+                            {canManagePayroll && mutations.recalculatePayrollRun && normalize(row.status) !== 'approved' && normalize(row.status) !== 'paid' ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>مراجعة</Button> : null}
+                            {canManagePayroll && mutations.reviewPayrollRun && normalize(row.status) === 'draft' ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'review')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>اعتماد</Button> : null}
+                            {canApprovePayroll && mutations.approvePayrollRun && normalize(row.status) === 'reviewed' ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'approve')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>اعتماد نهائي</Button> : null}
+                            {canApprovePayroll && mutations.payPayrollRun && normalize(row.status) === 'approved' ? <Button variant="primary" onClick={() => { setSelectedRunId(String(row.id)); setShowPayRun(true); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>صرف</Button> : null}
+                            {canManagePayroll && mutations.cancelPayrollRun && normalize(row.status) !== 'paid' && normalize(row.status) !== 'cancelled' ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>إلغاء</Button> : null}
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
+                </QueryFeedback>
+              </div>
+
+              {/* Selected Run Details Table */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                    تفاصيل ومراجعة موظفي المسير {selectedRun ? `(${text(selectedRun.periodMonth)})` : ''}
+                  </div>
+                  {runIsFinal && (
+                    <Button variant="secondary" onClick={() => printPayrollSignatureSheet()} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>طباعة كشف تسليم الرواتب</Button>
+                  )}
+                </div>
+
+                {!selectedRunId ? (
+                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                    اضغط على أي كشف من الجدول أعلاه لعرض وتفصيل رواتب الموظفين الخاصة به.
+                  </div>
+                ) : (
+                  <QueryFeedback isLoading={payrollRunDetails.isLoading} isError={payrollRunDetails.isError} error={payrollRunDetails.error} isEmpty={false} loadingText="جارٍ تحميل تفاصيل المسير..." errorTitle="تعذر تحميل تفاصيل المسير">
+                    {!selectedRun ? (
+                      <p className="muted">تفاصيل المسير غير متاحة.</p>
+                    ) : filteredRunItems.length ? (
+                      <>
+                        <DataTable
+                          rows={filteredRunItems}
+                          rowKey={(row) => String(row.id)}
+                          density="compact"
+                          columns={[
+                            { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
+                            { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) },
+                            { key: 'baseSalary', header: 'الراتب الأساسي', cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
+                            { key: 'allowanceAmount', header: 'البدلات والإضافي', cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
+                            { key: 'deductionAmount', header: 'الخصومات', cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
+                            { key: 'loanDeductionAmount', header: 'السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },
+                            { key: 'netPay', header: 'صافي الراتب', cell: (row) => canViewSalaryAmounts ? money(row.netPay) : '—' },
+                            { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+                            { key: 'details', header: 'التفاصيل', cell: (row) => <Button variant="secondary" onClick={() => setSelectedReviewItem(row)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تفاصيل</Button> },
+                          ]}
+                        />
+
+                        {selectedReviewItem && (
+                          <DialogShell open={true} onClose={() => setSelectedReviewItem(null)} width="500px">
+                            <div style={{ padding: '24px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+                                <h2 style={{ margin: 0, fontSize: '20px' }}>تفاصيل المرتب</h2>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '15px' }}>{text(selectedReviewItem.employeeName)}</p>
+                                  <span className="muted" style={{ fontSize: '13px' }}>كود: {text(selectedReviewItem.employeeNo)}</span>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', background: '#f8fafc' }}>
+                                  <h3 style={{ margin: '0 0 16px 0', fontSize: '15px' }}>الحساب النهائي</h3>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
+                                      <span className="muted">الراتب الأساسي:</span>
+                                      <span style={{ fontWeight: '500' }}>{canViewSalaryAmounts ? money(selectedReviewItem.baseSalary) : '—'}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
+                                      <span className="muted">البدلات والإضافي:</span>
+                                      <span style={{ fontWeight: '500' }}>{canViewSalaryAmounts ? money(selectedReviewItem.allowanceAmount) : '—'}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
+                                      <span className="muted">الخصومات (تأخير وغياب):</span>
+                                      <span style={{ fontWeight: '500', color: '#dc2626' }}>{canViewSalaryAmounts ? money(selectedReviewItem.deductionAmount) : '—'}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
+                                      <span className="muted">السلف والأقساط:</span>
+                                      <span style={{ fontWeight: '500', color: '#dc2626' }}>{canViewSalaryAmounts ? money(selectedReviewItem.loanDeductionAmount) : '—'}</span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '16px', fontWeight: 'bold' }}>صافي الراتب المستحق:</span>
+                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#16a34a' }}>{canViewSalaryAmounts ? money(selectedReviewItem.netPay) : '—'}</span>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                  <div>
+                                    <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>نوع الأجر</div>
+                                    <div style={{ fontWeight: '500', fontSize: '14px' }}>{normalize(selectedReviewItem.compensationType) === 'hourly' ? 'أجر بالساعة/اليوم' : 'راتب شهري'}</div>
+                                  </div>
+                                  {normalize(selectedReviewItem.compensationType) === 'hourly' && (
+                                    <>
+                                      <div>
+                                        <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>أجر الساعة/اليوم</div>
+                                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{canViewSalaryAmounts ? money(selectedReviewItem.hourlyRate || 0) : '—'}</div>
+                                      </div>
+                                      <div>
+                                        <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>ساعات العمل اليومية</div>
+                                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{selectedReviewItem.expectedDailyHours || 0}</div>
+                                      </div>
+                                    </>
+                                  )}
+                                  <div>
+                                    <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>تنبيهات عامة</div>
+                                    <div style={{ fontWeight: '500', fontSize: '14px', color: reviewFlagText(selectedReviewItem) ? '#ea580c' : 'inherit' }}>
+                                      {reviewFlagText(selectedReviewItem) || 'لا يوجد'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {(selectedReviewItem.payrollReviewNotes || selectedReviewItem.notes) && (
+                                  <div style={{ background: '#fefce8', padding: '16px', borderRadius: '8px', borderRight: '4px solid #facc15' }}>
+                                    {selectedReviewItem.payrollReviewNotes && (
+                                      <div style={{ marginBottom: selectedReviewItem.notes ? '12px' : '0' }}>
+                                        <strong style={{ display: 'block', marginBottom: '4px', color: '#854d0e', fontSize: '13px' }}>ملاحظات مراجعة الحضور:</strong>
+                                        <span style={{ color: '#713f12', fontSize: '14px' }}>{text(selectedReviewItem.payrollReviewNotes)}</span>
+                                      </div>
+                                    )}
+                                    {selectedReviewItem.notes && (
+                                      <div>
+                                        <strong style={{ display: 'block', marginBottom: '4px', color: '#854d0e', fontSize: '13px' }}>ملاحظات إضافية:</strong>
+                                        <span style={{ color: '#713f12', fontSize: '14px' }}>{text(selectedReviewItem.notes)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                  <Button variant="primary" onClick={() => setSelectedReviewItem(null)}>إغلاق</Button>
+                                </div>
+                                {runIsFinal && (
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <Button variant="secondary" onClick={() => printPayslipSummary(selectedReviewItem)}>ملخص (A4)</Button>
+                                    <Button variant="secondary" onClick={() => printPayslipDetailed(selectedReviewItem)}>تفصيلي (A4)</Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </DialogShell>
+                        )}
+                      </>
+                    ) : (
+                      <p className="muted" style={{ padding: '16px', textAlign: 'center' }}>لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p>
+                    )}
+                  </QueryFeedback>
+                )}
+              </div>
+
+              {pendingApprovalAction && (
+                <DialogShell open={true} onClose={() => setPendingApprovalAction(null)} width="600px">
+                  <div style={{ padding: '24px' }}>
+                    <h2 style={{ marginTop: 0, color: '#dc2626' }}>تنبيه: استثناءات معلقة</h2>
+                    <p>يوجد استثناءات حضور وانصراف معلقة للموظفين التاليين بحاجة للمراجعة. هل أنت متأكد من رغبتك بالاستمرار دون معالجتها؟</p>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', background: '#f8fafc', padding: '12px', borderRadius: '4px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                      <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                        {filteredRunItems.filter(i => Number(i.unresolvedExceptionsCount || 0) > 0).map(i => (
+                          <li key={i.id} style={{ marginBottom: '4px' }}>
+                            {text(i.employeeName)} ({text(i.employeeNo)})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="actions">
+                      <Button variant="secondary" onClick={() => setPendingApprovalAction(null)}>إلغاء الأمر ومراجعة الاستثناءات</Button>
+                      <Button variant="danger" onClick={() => executeRunAction(pendingApprovalAction.runId, pendingApprovalAction.type)}>نعم، تابع الاعتماد</Button>
+                    </div>
+                  </div>
+                </DialogShell>
+              )}
+            </>
+          )}
+        </div>
       </main>
     </div>
   );
 }
-
-
-

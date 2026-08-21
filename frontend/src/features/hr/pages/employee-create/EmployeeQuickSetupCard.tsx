@@ -39,8 +39,16 @@ export function EmployeeQuickSetupCard({
       <div className="form-grid">
         <label className="field" style={{ gridColumn: 'auto' }}>
           <span>إضافة قسم سريع</span>
-          <input value={quickDepartmentName} onChange={(event) => onQuickDepartmentNameChange(event.target.value)} placeholder="مثال: المبيعات" />
-          <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('departments', quickDepartmentName)} disabled={isBusy}>إضافة القسم</Button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input 
+              value={quickDepartmentName} 
+              onChange={(event) => onQuickDepartmentNameChange(event.target.value)} 
+              placeholder="مثال: المبيعات" 
+              disabled={isBusy}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onCreateQuickMaster('departments', quickDepartmentName); } }}
+            />
+            <Button type="button" variant="secondary" onClick={() => onCreateQuickMaster('departments', quickDepartmentName)} disabled={isBusy}>إضافة</Button>
+          </div>
         </label>
         <label className="field" style={{ gridColumn: 'auto' }}>
           <span>إضافة مسمى وظيفي جديد</span>

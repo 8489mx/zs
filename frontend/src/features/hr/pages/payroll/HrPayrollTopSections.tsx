@@ -1,6 +1,5 @@
 import type { FormEvent } from 'react';
-import { FormSection } from '@/shared/components/form-section';
-import { money, reviewStatusOptions, text, type PayrollReviewStatus } from '@/features/hr/pages/payroll/hr-payroll.helpers';
+import { money, reviewStatusOptions, type PayrollReviewStatus } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 
 type Summary = {
   totalEmployees: number;
@@ -51,7 +50,6 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
     runStatusOptions,
     summary,
     canViewSalaryAmounts,
-    dueLoanInstallmentRows,
     onMonthFilterChange,
     onSearchChange,
     onDepartmentFilterChange,
@@ -61,38 +59,93 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
 
   return (
     <>
-      <FormSection title="فترة التشغيل والفلاتر">
-        <div className="form-grid">
-          <label className="field"><span>الشهر</span><input type="month" value={monthFilter} onChange={(event) => onMonthFilterChange(event.target.value)} /></label>
-          <label className="field"><span>السنة</span><input value={monthFilter.split('-')[0] || ''} readOnly /></label>
-          <label className="field field-wide"><span>بحث الموظف (اسم/كود)</span><input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="اكتب اسم الموظف أو كوده" /></label>
-          <label className="field"><span>القسم</span><select value={departmentFilter} onChange={(event) => onDepartmentFilterChange(event.target.value)}><option value="all">الكل</option>{departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="field"><span>حالة المراجعة</span><select value={reviewStatusFilter} onChange={(event) => onReviewStatusFilterChange(event.target.value as PayrollReviewStatus)}>{reviewStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="field"><span>حالة المسير</span><select value={runStatusFilter} onChange={(event) => onRunStatusFilterChange(event.target.value)}><option value="all">الكل</option>{runStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+      {/* Compact Single-Row KPI Summary Bar */}
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>ملخص مسير المرتبات ({monthFilter})</span>
+          <span style={{ fontSize: '0.725rem', color: '#64748b' }}>مؤشرات الحسابات الإجمالية للشهر المحدد</span>
         </div>
-      </FormSection>
-
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-        <FormSection title="إجمالي الموظفين"><strong>{summary.totalEmployees || 0}</strong></FormSection>
-        <FormSection title="إجمالي الرواتب الأساسية"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalBaseSalary) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
-        <FormSection title="إجمالي الخصومات"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalDeductions) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
-        <FormSection title="إجمالي السلف / الأقساط"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalLoanDeduction) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
-        <FormSection title="صافي المرتبات"><strong>{canViewSalaryAmounts ? (summary.totalEmployees ? money(summary.totalNet) : 'غير متاح') : 'لا تملك صلاحية عرض هذه البيانات.'}</strong></FormSection>
-        <FormSection title="يحتاج مراجعة"><strong>{summary.needsReview}</strong></FormSection>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '8px' }}>
+          {[
+            { label: 'إجمالي الموظفين', value: summary.totalEmployees || 0, isAlert: false },
+            { label: 'الرواتب الأساسية', value: canViewSalaryAmounts ? `${money(summary.totalBaseSalary)}` : '—', isAlert: false },
+            { label: 'إجمالي الخصومات', value: canViewSalaryAmounts ? `${money(summary.totalDeductions)}` : '—', isAlert: summary.totalDeductions > 0 },
+            { label: 'السلف والأقساط', value: canViewSalaryAmounts ? `${money(summary.totalLoanDeduction)}` : '—', isAlert: false },
+            { label: 'صافي المرتبات', value: canViewSalaryAmounts ? `${money(summary.totalNet)}` : '—', isAlert: false, isPrimary: true },
+            { label: 'يحتاج مراجعة', value: summary.needsReview, isAlert: summary.needsReview > 0 },
+          ].map((stat, idx) => (
+            <div
+              key={idx}
+              style={{
+                background: '#ffffff',
+                border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`,
+                borderRadius: '6px',
+                padding: '8px 10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                minWidth: 0,
+              }}
+            >
+              <span style={{ fontSize: '0.725rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.label}>
+                {stat.label}
+              </span>
+              <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : stat.isPrimary ? '#1d4ed8' : '#0f172a', lineHeight: 1.2 }}>
+                {stat.value}
+              </strong>
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* Integrated Filters Toolbar - Single Row */}
+      <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '14px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        <input
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="بحث باسم أو كود الموظف..."
+          style={{ width: '200px', minWidth: '160px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+        />
 
-      <FormSection title={`أقساط سلف مستحقة هذا الشهر (${monthFilter})`}>
-        {!canViewSalaryAmounts ? (
-          <p className="muted" style={{ margin: 0 }}>لا تملك صلاحية عرض هذه البيانات.</p>
-        ) : dueLoanInstallmentRows.length ? (
-          <div className="table-wrap"><table className="data-table"><thead><tr><th>كود الموظف</th><th>اسم الموظف</th><th>قيمة الأقساط المستحقة</th><th>حالة المراجعة</th></tr></thead><tbody>{dueLoanInstallmentRows.map((row) => (<tr key={String(row.id)}><td>{text(row.employeeNo)}</td><td>{text(row.employeeName)}</td><td>{money(row.loanDeductionAmount)}</td><td>يحتاج مراجعة</td></tr>))}</tbody></table></div>
-        ) : (
-          <p className="muted" style={{ margin: 0 }}>لا توجد أقساط مستحقة لهذه الفترة.</p>
-        )}
-      </FormSection>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>الشهر:</span>
+          <input
+            type="month"
+            value={monthFilter}
+            onChange={(event) => onMonthFilterChange(event.target.value)}
+            style={{ width: '130px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff', boxSizing: 'border-box' }}
+          />
+        </div>
 
+        <select
+          value={departmentFilter}
+          onChange={(event) => onDepartmentFilterChange(event.target.value)}
+          style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+        >
+          <option value="all">كل الأقسام</option>
+          {departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
 
+        <select
+          value={reviewStatusFilter}
+          onChange={(event) => onReviewStatusFilterChange(event.target.value as PayrollReviewStatus)}
+          style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+        >
+          {reviewStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+
+        <select
+          value={runStatusFilter}
+          onChange={(event) => onRunStatusFilterChange(event.target.value)}
+          style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+        >
+          <option value="all">كل حالات المسير</option>
+          {runStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </div>
     </>
   );
 }
+
