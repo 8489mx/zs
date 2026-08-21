@@ -33,6 +33,7 @@ interface PosWorkspaceMainContentProps {
   onPrintCurrentDraft: () => void;
   onFocusBarcodeEntry: () => void;
   onRequestOpenShift?: () => void;
+  onOpenNewProduct?: (params?: { name?: string; barcode?: string }) => void;
 }
 
 export function PosWorkspaceMainContent({
@@ -58,6 +59,7 @@ export function PosWorkspaceMainContent({
   onPrintCurrentDraft,
   onFocusBarcodeEntry,
   onRequestOpenShift,
+  onOpenNewProduct,
 }: PosWorkspaceMainContentProps) {
   const user = useAuthStore((state) => state.user);
   const defaultLeft = posMode === 'scanner' ? 75 : 65;
@@ -99,6 +101,7 @@ export function PosWorkspaceMainContent({
             onAddProduct={pos.handleAddProduct}
             searchInputRef={searchInputRef}
             posMode={posMode}
+            onOpenNewProduct={onOpenNewProduct}
           />
           </div>
 

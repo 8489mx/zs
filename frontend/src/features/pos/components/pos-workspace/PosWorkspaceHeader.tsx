@@ -25,6 +25,7 @@ interface PosWorkspaceHeaderProps {
   posMode: PosSaleMode;
   onModeChange: (mode: PosSaleMode) => void;
   onFocusSearch: () => void;
+  onOpenNewProduct?: () => void;
   onOpenQuickService?: () => void;
   onOpenHeldDrafts?: () => void;
   onPrintDraft: () => void;
@@ -32,7 +33,7 @@ interface PosWorkspaceHeaderProps {
   onOpenSerialLookup?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onRequestOpenShift }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenNewProduct, onOpenQuickService, onRequestOpenShift }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
 
   return (
@@ -64,7 +65,8 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
                <span>{(pos.currentBranch as any).salesStockMode === 'all_operational_locations' ? 'كل المخازن' : 'مخزن أساسي'}</span>
              </div>
           )}
-          <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F6</Button>
+           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F6</Button>
+          <Button type="button" variant="secondary" onClick={onOpenNewProduct} style={{ fontWeight: 700, color: '#1e3a8a' }}>+ صنف جديد</Button>
           <Button type="button" variant="secondary" onClick={onOpenQuickService}>خدمة سريعة F8</Button>
           <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
@@ -100,6 +102,7 @@ function areEqual(prev: PosWorkspaceHeaderProps, next: PosWorkspaceHeaderProps) 
     && prev.pos.settingsQuery.data?.enableMobileStoreFeatures === next.pos.settingsQuery.data?.enableMobileStoreFeatures
     && prev.posMode === next.posMode
     && prev.onFocusSearch === next.onFocusSearch
+    && prev.onOpenNewProduct === next.onOpenNewProduct
     && prev.onOpenQuickService === next.onOpenQuickService
     && prev.onOpenHeldDrafts === next.onOpenHeldDrafts
     && prev.onModeChange === next.onModeChange

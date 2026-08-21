@@ -18,6 +18,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
     canOpenCheckout: boolean;
   };
   focusBarcodeEntry: () => void;
+  onOpenNewProduct?: () => void;
   onOpenQuickService?: () => void;
   printCurrentDraft: () => void;
   onRequestClearCart: () => void;
@@ -30,6 +31,7 @@ interface PosWorkspaceKeyboardShortcutsParams {
 export function usePosWorkspaceKeyboardShortcuts({
   pos,
   focusBarcodeEntry,
+  onOpenNewProduct,
   onOpenQuickService,
   printCurrentDraft,
   onRequestClearCart,
@@ -98,6 +100,11 @@ export function usePosWorkspaceKeyboardShortcuts({
           return;
         }
       }
+      if ((event.ctrlKey || event.metaKey) && event.altKey && (event.key === 'n' || event.key === 'N' || event.key === 'ى')) {
+        event.preventDefault();
+        onOpenNewProduct?.();
+        return;
+      }
       if (event.key === 'F2') {
         event.preventDefault();
         if (pos.canShowLastSaleActions) {
@@ -126,5 +133,5 @@ export function usePosWorkspaceKeyboardShortcuts({
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [focusBarcodeEntry, onOpenHeldDrafts, onOpenQuickService, onRecallHeldDraftByIndex, onRequestCheckout, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
+  }, [focusBarcodeEntry, onOpenHeldDrafts, onOpenNewProduct, onOpenQuickService, onRecallHeldDraftByIndex, onRequestCheckout, onRequestClearCart, onRequestLineDelete, pos, printCurrentDraft]);
 }

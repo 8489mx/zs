@@ -11,6 +11,7 @@ import { PosDraftSwitcherOverlay } from '@/features/pos/components/pos-workspace
 import { PosOpenShiftModal } from '@/features/pos/components/pos-workspace/PosOpenShiftModal';
 import { SerialLookupModal } from '@/features/products/components/SerialLookupModal';
 import { QuickProductModal } from '@/shared/components/QuickProductModal';
+import { PosNewProductModal } from '@/features/pos/components/pos-workspace/PosNewProductModal';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -39,10 +40,19 @@ export function PosWorkspace() {
   const [openShiftModalOpen, setOpenShiftModalOpen] = useState(false);
   const [serialLookupOpen, setSerialLookupOpen] = useState(false);
   const [quickServiceOpen, setQuickServiceOpen] = useState(false);
+  const [newProductModalOpen, setNewProductModalOpen] = useState(false);
+  const [newProductInitialName, setNewProductInitialName] = useState('');
+  const [newProductInitialBarcode, setNewProductInitialBarcode] = useState('');
   const [modifiersModalLineKey, setModifiersModalLineKey] = useState<string>('');
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
+
+  const handleOpenNewProduct = useCallback((params?: { name?: string; barcode?: string }) => {
+    setNewProductInitialName(params?.name || '');
+    setNewProductInitialBarcode(params?.barcode || '');
+    setNewProductModalOpen(true);
+  }, []);
   const allowNegativeStockSales = isNegativeStockSalesAllowed(pos.settingsQuery.data);
 
   const catalogsLoading = pos.productsQuery.isLoading || pos.customersQuery.isLoading || pos.branchesQuery.isLoading || pos.locationsQuery.isLoading || pos.settingsQuery.isLoading;
@@ -297,6 +307,7 @@ export function PosWorkspace() {
   usePosWorkspaceKeyboardShortcuts({
     pos,
     focusBarcodeEntry,
+    onOpenNewProduct: () => handleOpenNewProduct(),
     onOpenQuickService: () => setQuickServiceOpen(true),
     printCurrentDraft,
     onRequestClearCart: requestClearCart,
@@ -313,6 +324,7 @@ export function PosWorkspace() {
         posMode={posMode}
         onModeChange={setPosMode}
         onFocusSearch={focusBarcodeEntry}
+        onOpenNewProduct={() => handleOpenNewProduct()}
         onOpenQuickService={() => setQuickServiceOpen(true)}
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
@@ -342,6 +354,7 @@ export function PosWorkspace() {
         onPrintCurrentDraft={printCurrentDraft}
         onFocusBarcodeEntry={focusBarcodeEntry}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
+        onOpenNewProduct={handleOpenNewProduct}
       />
 
       <PosCheckoutDialog
@@ -484,6 +497,22 @@ export function PosWorkspace() {
         itemType="service"
         onSuccess={(newServiceProduct) => {
           pos.handleAddProduct(newServiceProduct);
+          focusBarcodeEntry();
+        }}
+      />
+
+      <PosNewProductModal
+        isOpen={newProductModalOpen}
+        onClose={() => {
+          setNewProductModalOpen(false);
+          focusBarcodeEntry();
+        }}
+        initialName={newProductInitialName}
+        initialBarcode={newProductInitialBarcode}
+        onSuccess={(newProduct) => {
+          setNewProductModalOpen(false);
+          pos.handleAddProduct(newProduct);
+          pos.setSearch('');
           focusBarcodeEntry();
         }}
       />

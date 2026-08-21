@@ -28,6 +28,7 @@ interface PosProductsPanelProps {
   onProductFilterChange: (value: 'all' | 'offers' | 'priced' | 'low' | 'recent' | 'raw_materials' | 'services') => void;
   searchInputRef: RefObject<HTMLInputElement | null>;
   posMode: PosSaleMode;
+  onOpenNewProduct?: (params: { name?: string; barcode?: string }) => void;
 }
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
@@ -224,6 +225,7 @@ function PosProductsPanelComponent({
   onProductFilterChange,
   searchInputRef,
   posMode,
+  onOpenNewProduct,
 }: PosProductsPanelProps) {
   const [shelf, setShelf] = useState<PosGroupShelf>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -739,7 +741,46 @@ function PosProductsPanelComponent({
           </div>
         ) : null}
 
-        {canShowScannerResults && !displayedGroups.length ? <div className="surface-note pos-compact-empty">لا توجد مجموعات مطابقة الآن. جرّب بحثًا آخر أو ألغِ الفلاتر.</div> : null}
+        {canShowScannerResults && !displayedGroups.length ? (
+          <div
+            className="surface-note pos-compact-empty"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              padding: '24px 16px',
+              textAlign: 'center',
+              background: '#f8fafc',
+              border: '1px dashed #cbd5e1',
+              borderRadius: '10px',
+              margin: '12px 0',
+            }}
+          >
+            <div style={{ fontSize: '0.92rem', color: '#64748b' }}>
+              لم يتم العثور على أي صنف مطابق لـ <strong style={{ color: '#0f172a' }}>"{search}"</strong>
+            </div>
+            {onOpenNewProduct ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  const query = search.trim();
+                  const isBarcode = /^\d{4,}$/.test(query);
+                  onOpenNewProduct(isBarcode ? { barcode: query } : { name: query });
+                }}
+                style={{
+                  fontWeight: 700,
+                  padding: '8px 18px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                + إضافة صنف جديد باسم / باركود "{search}"
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         {canShowScannerResults ? (
           <>
@@ -957,7 +998,8 @@ function arePropsEqual(prev: PosProductsPanelProps, next: PosProductsPanelProps)
     && prev.products === next.products
     && prev.recentProducts === next.recentProducts
     && prev.productFilter === next.productFilter
-    && prev.posMode === next.posMode;
+    && prev.posMode === next.posMode
+    && prev.onOpenNewProduct === next.onOpenNewProduct;
 }
 
 export const PosProductsPanel = memo(PosProductsPanelComponent, arePropsEqual);

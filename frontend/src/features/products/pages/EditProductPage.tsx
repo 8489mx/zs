@@ -269,7 +269,7 @@ export function EditProductPage() {
             <span className="muted small">المعلومات الأساسية وقائمة الأسعار</span>
           </div>
 
-          <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
+          <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
             <Field label="نوع الصنف">
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
                 <option value="product">منتج تام للبيع (مخزني)</option>
