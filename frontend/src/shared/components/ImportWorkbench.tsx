@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { parseImportFile } from '@/lib/browser';
 
 export function normalizeHeader(value: string) {
@@ -46,6 +45,7 @@ interface ImportWorkbenchProps {
   requiredFieldKeys?: string[];
   fieldMappings?: ImportFieldMapping[];
   onDownloadTemplate: () => void;
+  onExportData?: () => void | Promise<void>;
   onImportRows: (rows: CsvRow[]) => Promise<unknown>;
   isPending?: boolean;
   defaultCollapsed?: boolean;
@@ -58,11 +58,13 @@ export function ImportWorkbench({
   requiredFieldKeys,
   fieldMappings,
   onDownloadTemplate,
+  onExportData,
   onImportRows,
   isPending = false,
   defaultCollapsed = false,
 }: ImportWorkbenchProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [isExporting, setIsExporting] = useState(false);
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -152,18 +154,101 @@ export function ImportWorkbench({
     }
   }
 
+  async function handleExport() {
+    if (!onExportData) return;
+    try {
+      setIsExporting(true);
+      await onExportData();
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
-    <div className="inline-create-panel page-stack">
-      <div 
-        onClick={() => setIsCollapsed(!isCollapsed)} 
-        style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-      >
+    <div style={{
+      background: '#ffffff',
+      border: '1px solid #e2e8f0',
+      borderRadius: '12px',
+      padding: '18px 20px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '14px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+      transition: 'all 0.15s ease',
+    }}>
+      {/* Card Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <strong>{title}</strong>
-          {description ? <div className="muted small" style={{ marginTop: 6 }}>{description}</div> : null}
+          <strong style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', display: 'block' }}>
+            {title}
+          </strong>
+          {description && <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>{description}</div>}
         </div>
-        <div>
-          <button type="button" className="nav-pill" style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {onExportData && (
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={isExporting}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                borderRadius: '6px',
+                border: '1px solid #0f172a',
+                background: '#0f172a',
+                color: '#ffffff',
+                cursor: isExporting ? 'wait' : 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#1e293b'; }}
+              onMouseLeave={(e) => { if (!isExporting) e.currentTarget.style.background = '#0f172a'; }}
+            >
+              {isExporting ? 'جاري التصدير...' : 'تصدير البيانات الحالية'}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onDownloadTemplate}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              background: '#f8fafc',
+              color: '#1e293b',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+          >
+            تحميل قالب فارغ
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{
+              padding: '6px 10px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              borderRadius: '6px',
+              border: 'none',
+              background: '#f1f5f9',
+              color: '#64748b',
+              cursor: 'pointer',
+            }}
+          >
             {isCollapsed ? 'فتح' : 'طي'}
           </button>
         </div>
@@ -171,86 +256,180 @@ export function ImportWorkbench({
 
       {!isCollapsed && (
         <>
-          <div className="inline-create-grid">
-            <div className="field">
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>ملف البيانات (Excel / CSV)</span>
-              <label
+          {/* Required Fields Pill Tags */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '0.78rem', color: '#64748b' }}>
+            <span style={{ fontWeight: 700, color: '#475569' }}>الأعمدة المطلوبة:</span>
+            {requiredColumns.map((col) => (
+              <span
+                key={col}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: '#ffffff',
-                  border: '1px dashed #94a3b8',
-                  borderRadius: '6px',
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  fontSize: '0.825rem',
-                  color: fileName ? '#166534' : '#475569',
-                  transition: 'all 0.15s ease',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '4px',
+                  padding: '2px 8px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#334155',
                 }}
               >
-                <span style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600 }}>
-                  {fileName ? 'تغيير الملف' : 'اختر ملف من جهازك'}
-                </span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {fileName || 'لم يتم اختيار ملف بعد (يدعم xlsx, xls, csv)'}
-                </span>
-                <input
-                  type="file"
-                  style={{ display: 'none' }}
-                  accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-                  onChange={async (event) => {
-                    const input = event.currentTarget;
-                    await handleFileSelect(input.files?.[0]);
-                    input.value = '';
-                  }}
-                />
-              </label>
-            </div>
-            <div className="field">
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الأعمدة المطلوبة في الملف</span>
-              <div className="required-columns-wrap" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                {requiredColumns.map((column) => (
-                  <span key={column} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', color: '#334155' }}>
-                    {column}
-                  </span>
-                ))}
-              </div>
-            </div>
+                {col}
+              </span>
+            ))}
           </div>
 
-      <div className="mini-stats-grid import-stats-grid">
-        <div className="stat-card compact-stat-card"><span>اسم الملف</span><strong>{fileName || '—'}</strong></div>
-        <div className="stat-card compact-stat-card"><span>عدد الصفوف</span><strong>{rows.length}</strong></div>
-        <div className="stat-card compact-stat-card"><span>أعمدة مكتشفة</span><strong>{headers.length}</strong></div>
-      </div>
+          {/* File Upload Dropzone */}
+          <div>
+            <label
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                background: fileName ? '#f8fafc' : '#ffffff',
+                border: fileName ? '1.5px solid #0f172a' : '1.5px dashed #cbd5e1',
+                borderRadius: '10px',
+                padding: '16px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { if (!fileName) { e.currentTarget.style.borderColor = '#0f172a'; e.currentTarget.style.background = '#fafafa'; } }}
+              onMouseLeave={(e) => { if (!fileName) { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#ffffff'; } }}
+            >
+              <input
+                type="file"
+                style={{ display: 'none' }}
+                accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                onChange={async (event) => {
+                  const input = event.currentTarget;
+                  await handleFileSelect(input.files?.[0]);
+                  input.value = '';
+                }}
+              />
 
-      {missingRequiredFields.length ? <div className="warning-box">{missingRequiredFields.map((field) => <div key={field.key}>العمود المطلوب غير موجود: {field.label}</div>)}</div> : null}
-      {rowIssueCount ? <div className="warning-box">يوجد {rowIssueCount} صف يفتقد قيمة واحدة أو أكثر من الحقول المطلوبة.</div> : null}
-      {status.text ? <div className={status.kind === 'error' || status.kind === 'warning' ? 'warning-box' : 'success-box'}>{status.text}</div> : null}
+              {fileName ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      background: '#0f172a',
+                      color: '#ffffff',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '5px',
+                    }}>
+                      ملف محدد
+                    </div>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
+                      {fileName}
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>
+                      {rows.length} صف
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#2563eb' }}>
+                    انقر لتغيير الملف
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#1e293b' }}>
+                    اضغط هنا لاختيار ملف Excel أو CSV
+                  </span>
+                  <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                    يدعم ملفات (.xlsx, .xls, .csv)
+                  </span>
+                </>
+              )}
+            </label>
+          </div>
 
-      {previewRows.length ? (
-        <div className="table-wrap import-preview-table">
-          <table>
-            <thead>
-              <tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr>
-            </thead>
-            <tbody>
-              {previewRows.map((row, index) => (
-                <tr key={`${fileName}-${index}`}>
-                  {headers.map((header) => <td key={`${header}-${index}`}>{row[header] || '—'}</td>)}
-                </tr>
+          {/* Validation Warnings (ONLY IF FILE IS UPLOADED) */}
+          {rows.length > 0 && missingRequiredFields.length > 0 && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
+              {missingRequiredFields.map((field) => (
+                <div key={field.key}>العمود المطلوب غير موجود: {field.label}</div>
               ))}
-            </tbody>
-          </table>
-        </div>
-      ) : <EmptyState title="لا توجد معاينة للملف بعد" hint="اختر ملفًا وسيظهر أول 5 صفوف هنا قبل تنفيذ الاستيراد." />}
+            </div>
+          )}
 
-      <div className="actions compact-actions">
-        <Button type="button" variant="secondary" onClick={onDownloadTemplate}>تحميل القالب</Button>
-        <Button type="button" variant="secondary" onClick={() => { setFileName(''); setRows([]); setHeaders([]); setStatus({ kind: '', text: '' }); }}>مسح المعاينة</Button>
-        <Button type="button" onClick={() => void handleImport()} disabled={isPending || !rows.length || !!missingRequiredFields.length}>{isPending ? 'جارٍ الاستيراد...' : 'استيراد الآن'}</Button>
-      </div>
+          {rows.length > 0 && rowIssueCount > 0 && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
+              يوجد {rowIssueCount} صف يفتقد قيمة واحدة أو أكثر من الحقول المطلوبة.
+            </div>
+          )}
+
+          {status.text && (
+            <div style={{
+              background: status.kind === 'error' ? '#fef2f2' : status.kind === 'warning' ? '#fffbeb' : '#ecfdf5',
+              border: status.kind === 'error' ? '1px solid #fca5a5' : status.kind === 'warning' ? '1px solid #fde68a' : '1px solid #a7f3d0',
+              color: status.kind === 'error' ? '#b91c1c' : status.kind === 'warning' ? '#92400e' : '#047857',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+            }}>
+              {status.text}
+            </div>
+          )}
+
+          {/* Preview Table if file loaded */}
+          {previewRows.length > 0 && (
+            <div style={{ borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden', maxHeight: '180px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'right' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    {headers.map((header) => (
+                      <th key={header} style={{ padding: '8px 10px', fontWeight: 700, color: '#334155' }}>
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.map((row, index) => (
+                    <tr key={`${fileName}-${index}`} style={{ borderBottom: index < previewRows.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                      {headers.map((header) => (
+                        <td key={`${header}-${index}`} style={{ padding: '7px 10px', color: '#475569' }}>
+                          {row[header] || '—'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+            {rows.length > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => { setFileName(''); setRows([]); setHeaders([]); setStatus({ kind: '', text: '' }); }}
+                style={{ fontSize: '0.82rem', padding: '6px 14px' }}
+              >
+                مسح المعاينة
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              onClick={() => void handleImport()}
+              disabled={isPending || !rows.length || !!missingRequiredFields.length}
+              style={{
+                fontSize: '0.82rem',
+                padding: '7px 20px',
+                fontWeight: 700,
+                background: rows.length && !missingRequiredFields.length ? '#0f172a' : undefined,
+                color: rows.length && !missingRequiredFields.length ? '#ffffff' : undefined,
+              }}
+            >
+              {isPending ? 'جارٍ الاستيراد...' : 'استيراد الآن'}
+            </Button>
+          </div>
         </>
       )}
     </div>

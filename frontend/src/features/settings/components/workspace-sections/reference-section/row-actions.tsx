@@ -1,124 +1,139 @@
-import { MutationFeedback } from '@/shared/components/mutation-feedback';
-import { Button } from '@/shared/ui/button';
-import { Field } from '@/shared/ui/field';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, Location } from '@/types/domain';
 
-export function BranchRowActions({ branch, locations, isEditing, onStartEdit, onCancelEdit, onChange, onSave, onDelete, canManageSettings, isBusy, mutationError, setupMode }: {
+export function BranchRowActions({ branch, onStartEdit, onDelete, canManageSettings, isBusy, setupMode }: {
   branch: Branch;
   locations?: Location[];
-  isEditing: boolean;
+  isEditing?: boolean;
   onStartEdit: (branch: Branch) => void;
-  onCancelEdit: () => void;
-  onChange: (field: 'name' | 'code' | 'defaultStockLocationId' | 'salesStockMode' | 'allowExternalSalesStock', value: any) => void;
-  onSave: () => void;
+  onCancelEdit?: () => void;
+  onChange?: (field: 'name' | 'code' | 'defaultStockLocationId' | 'salesStockMode' | 'allowExternalSalesStock', value: any) => void;
+  onSave?: () => void;
   onDelete: (branch: Branch) => void;
   canManageSettings: boolean;
   isBusy: boolean;
   mutationError?: unknown;
   setupMode?: boolean;
 }) {
-  if (isEditing) {
-    const eligibleLocations = locations?.filter((loc) => !loc.branchId || loc.branchId === branch.id) || [];
-    return (
-      <div className="list-row settings-reference-row editing-row">
-        <div className="form-grid" style={{ flex: 1 }}>
-          <Field label={SINGLE_STORE_MODE ? 'اسم النشاط' : 'اسم الفرع'}><input value={branch.name} onChange={(event) => onChange('name', event.target.value)} disabled={isBusy} /></Field>
-          <Field label={SINGLE_STORE_MODE ? 'كود المتجر' : 'كود الفرع'}><input value={branch.code || ''} onChange={(event) => onChange('code', event.target.value)} disabled={isBusy} /></Field>
-          <Field label="مخزن البيع الأساسي">
-            <select value={branch.defaultStockLocationId || ''} onChange={(e) => onChange('defaultStockLocationId', e.target.value || null)} disabled={isBusy}>
-              <option value="">-- غير محدد --</option>
-              {eligibleLocations.map((loc) => (
-                <option key={loc.id} value={loc.id}>{loc.name}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="مصدر مخزون البيع">
-            <select value={branch.salesStockMode || 'single_location'} onChange={(e) => onChange('salesStockMode', e.target.value)} disabled={isBusy}>
-              <option value="single_location">مخزن محدد</option>
-              <option value="all_operational_locations">كل المخازن التشغيلية</option>
-            </select>
-          </Field>
-          {branch.salesStockMode === 'all_operational_locations' && (
-             <Field label="مخزون خارجي">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input type="checkbox" checked={branch.allowExternalSalesStock || false} onChange={(e) => onChange('allowExternalSalesStock', e.target.checked)} disabled={isBusy} />
-                <span>السماح بالبيع من المخازن الخارجية</span>
-              </label>
-            </Field>
-          )}
-        </div>
-        <div className="actions compact-actions">
-          <Button variant="primary" onClick={onSave} disabled={isBusy || !branch.name.trim()}>{isBusy ? 'جارٍ الحفظ...' : 'حفظ'}</Button>
-          <Button variant="secondary" onClick={onCancelEdit} disabled={isBusy}>إلغاء</Button>
-        </div>
-        <MutationFeedback isError={Boolean(mutationError)} isSuccess={false} error={mutationError} errorFallback={SINGLE_STORE_MODE ? 'تعذر تحديث بيانات النشاط' : 'تعذر تحديث الفرع'} />
-      </div>
-    );
-  }
   return (
-    <div className="list-row" key={branch.id}>
-      <div>
-        <strong>{branch.name}</strong>
-        <div className="muted small">{branch.code || (SINGLE_STORE_MODE ? 'المعرف الداخلي غير محدد' : 'بدون كود')}</div>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 12px',
+      background: '#ffffff',
+      border: '1px solid #f1f5f9',
+      borderRadius: '8px',
+      transition: 'all 0.15s ease',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{branch.name}</strong>
+        {branch.code ? (
+          <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
+            {branch.code}
+          </span>
+        ) : (
+          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>بدون كود</span>
+        )}
         {setupMode && branch.defaultStockLocationId && (
-          <div className="status-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1', marginTop: '4px' }}>
-            تم إنشاء المخزون الافتراضي للفرع بنجاح
-          </div>
+          <span style={{ fontSize: '0.7rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+            تم تعيين المخزن
+          </span>
         )}
       </div>
-      {canManageSettings ? <div className="actions compact-actions"><Button variant="secondary" onClick={() => onStartEdit(branch)} disabled={isBusy}>تعديل</Button>{!SINGLE_STORE_MODE ? <Button variant="danger" onClick={() => onDelete(branch)} disabled={isBusy}>حذف</Button> : null}</div> : null}
+
+      {canManageSettings ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => onStartEdit(branch)}
+            disabled={isBusy}
+            style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#1e293b', cursor: 'pointer' }}
+          >
+            تعديل
+          </button>
+          {!SINGLE_STORE_MODE && (
+            <button
+              type="button"
+              onClick={() => onDelete(branch)}
+              disabled={isBusy}
+              style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '5px', border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}
+            >
+              حذف
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-export function LocationRowActions({ location, branches, isEditing, onStartEdit, onCancelEdit, onChange, onSave, onDelete, canManageSettings, isBusy, mutationError }: {
+export function LocationRowActions({ location, onStartEdit, onDelete, canManageSettings, isBusy }: {
   location: Location;
-  branches: Branch[];
-  isEditing: boolean;
+  branches?: Branch[];
+  isEditing?: boolean;
   onStartEdit: (location: Location) => void;
-  onCancelEdit: () => void;
-  onChange: (field: 'name' | 'code' | 'branchId' | 'locationType', value: string) => void;
-  onSave: () => void;
+  onCancelEdit?: () => void;
+  onChange?: (field: 'name' | 'code' | 'branchId' | 'locationType', value: string) => void;
+  onSave?: () => void;
   onDelete: (location: Location) => void;
   canManageSettings: boolean;
   isBusy: boolean;
   mutationError?: unknown;
 }) {
-  if (isEditing) {
-    return (
-      <div className="list-row settings-reference-row editing-row">
-        <div className="form-grid" style={{ flex: 1 }}>
-          <Field label={SINGLE_STORE_MODE ? 'اسم المخزن' : 'اسم المخزن'}><input value={location.name} onChange={(event) => onChange('name', event.target.value)} disabled={isBusy} /></Field>
-          <Field label={SINGLE_STORE_MODE ? 'كود المخزن' : 'كود المخزن'}><input value={location.code || ''} onChange={(event) => onChange('code', event.target.value)} disabled={isBusy} /></Field>
-          {!SINGLE_STORE_MODE ? <Field label="الفرع المرتبط"><select value={location.branchId || ''} onChange={(event) => onChange('branchId', event.target.value)} disabled={isBusy}><option value="">بدون ربط</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></Field> : null}
-          <Field label="نوع المخزن">
-            <select value={location.locationType || 'internal_warehouse'} onChange={(event) => onChange('locationType', event.target.value)} disabled={isBusy}>
-              <option value="internal_warehouse">مخزن داخلي (لا يظهر كأرصدة فروع)</option>
-              <option value="branch_stock">رصيد فرع (متاح للبيع)</option>
-            </select>
-          </Field>
-        </div>
-        <div className="actions compact-actions">
-          <Button variant="primary" onClick={onSave} disabled={isBusy || !location.name.trim()}>{isBusy ? 'جارٍ الحفظ...' : 'حفظ'}</Button>
-          <Button variant="secondary" onClick={onCancelEdit} disabled={isBusy}>إلغاء</Button>
-        </div>
-        <MutationFeedback isError={Boolean(mutationError)} isSuccess={false} error={mutationError} errorFallback="تعذر تحديث المخزن" />
-      </div>
-    );
-  }
   return (
-    <div className="list-row" key={location.id}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 12px',
+      background: '#ffffff',
+      border: '1px solid #f1f5f9',
+      borderRadius: '8px',
+      transition: 'all 0.15s ease',
+    }}>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <strong>{location.name}</strong>
-          {location.locationType === 'branch_stock' ? <span className="status-badge" style={{ backgroundColor: '#e0f2fe', color: '#0369a1' }}>رصيد فرع</span> : <span className="status-badge" style={{ backgroundColor: '#f1f5f9', color: '#475569' }}>مخزن داخلي</span>}
+          <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{location.name}</strong>
+          {location.locationType === 'branch_stock' ? (
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: '4px' }}>
+              رصيد فرع
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, backgroundColor: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', padding: '1px 6px', borderRadius: '4px' }}>
+              مخزن داخلي
+            </span>
+          )}
         </div>
-        <div className="muted small">{SINGLE_STORE_MODE ? (location.code || 'المخزن الأساسي') : (location.branchName || 'بدون فرع')}</div>
+        <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+          {location.branchName ? `الفرع: ${location.branchName}` : 'بدون فرع'}
+          {location.code ? ` · الكود: ${location.code}` : ''}
+        </div>
       </div>
-      <div className="actions compact-actions">
-        <span className="muted small">{location.code || 'بدون كود'}</span>
-        {canManageSettings ? <><Button variant="secondary" onClick={() => onStartEdit(location)} disabled={isBusy}>تعديل</Button>{!SINGLE_STORE_MODE ? <Button variant="danger" onClick={() => onDelete(location)} disabled={isBusy}>حذف</Button> : null}</> : null}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {canManageSettings && (
+          <>
+            <button
+              type="button"
+              onClick={() => onStartEdit(location)}
+              disabled={isBusy}
+              style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '5px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#1e293b', cursor: 'pointer' }}
+            >
+              تعديل
+            </button>
+            {!SINGLE_STORE_MODE && (
+              <button
+                type="button"
+                onClick={() => onDelete(location)}
+                disabled={isBusy}
+                style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '5px', border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}
+              >
+                حذف
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

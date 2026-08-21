@@ -84,62 +84,161 @@ export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 
     downloadExcelFile('suppliers-template.xlsx', ['اسم المورد (إجباري)', 'رقم الموبايل', 'العنوان', 'رصيد افتتاحي', 'ملاحظات'], [['مورد جديد', '01011111111', 'الجيزة', 2500, 'ملاحظات']]);
     return;
   }
+  if (kind === 'opening-stock') {
+    downloadExcelFile('opening-stock-template.xlsx', ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'], [['123456789012', 'منتج جديد', 24, 'المخزن الرئيسي']]);
+    return;
+  }
+}
+
+export async function exportSettingsData(kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') {
+  const { http } = await import('@/lib/http');
+  const dateStr = new Date().toISOString().split('T')[0];
+
+  if (kind === 'products') {
+    let page = 1;
+    const allRows: any[][] = [];
+    while (true) {
+      const res = await http<any>(`/api/products?page=${page}&pageSize=1000`);
+      const items = res.products || [];
+      for (const p of items) {
+        allRows.push([
+          p.name || '',
+          p.barcode || '',
+          p.category?.name || p.categoryName || '',
+          p.supplier?.name || p.supplierName || '',
+          p.costPrice ?? '',
+          p.retailPrice ?? '',
+          p.wholesalePrice ?? '',
+          p.minStock ?? p.minStockQty ?? 0,
+          p.stock ?? p.stockQty ?? 0,
+          'المخزن الرئيسي',
+          p.unit?.name || p.unitName || 'قطعة',
+          p.saleUnit?.name || p.unit?.name || 'قطعة',
+          p.purchaseUnit?.name || p.unit?.name || 'قطعة',
+          '',
+          '',
+          '',
+          p.description || p.notes || '',
+        ]);
+      }
+      if (items.length < 1000) break;
+      page += 1;
+    }
+
+    downloadExcelFile(
+      `products-export-${dateStr}.xlsx`,
+      ['اسم الصنف (إجباري)', 'الباركود', 'القسم', 'المورد', 'سعر التكلفة', 'سعر البيع', 'سعر الجملة', 'الحد الأدنى', 'الكمية', 'المخزن', 'وحدة القياس الأساسية', 'وحدة البيع', 'وحدة الشراء', 'اسم وحدة إضافية', 'معامل الوحدة الإضافية', 'باركود الوحدة الإضافية', 'ملاحظات'],
+      allRows.length ? allRows : [['لا توجد أصناف مسجلة', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']],
+    );
+    return;
+  }
+
+  if (kind === 'customers') {
+    let page = 1;
+    const allRows: any[][] = [];
+    while (true) {
+      const res = await http<any>(`/api/customers?page=${page}&pageSize=1000`);
+      const items = res.customers || [];
+      for (const c of items) {
+        allRows.push([
+          c.name || '',
+          c.phone || '',
+          c.address || '',
+          c.type || 'cash',
+          c.creditLimit ?? 0,
+          c.openingBalance ?? 0,
+          c.storeCreditBalance ?? 0,
+          c.companyName || '',
+          c.taxNumber || '',
+        ]);
+      }
+      if (items.length < 1000) break;
+      page += 1;
+    }
+
+    downloadExcelFile(
+      `customers-export-${dateStr}.xlsx`,
+      ['اسم العميل (إجباري)', 'رقم الموبايل', 'العنوان', 'نوع العميل', 'الحد الائتماني', 'رصيد افتتاحي', 'رصيد محفظة', 'اسم الشركة', 'الرقم الضريبي'],
+      allRows.length ? allRows : [['لا يوجد عملاء مسجلين', '', '', '', 0, 0, 0, '', '']],
+    );
+    return;
+  }
+
+  if (kind === 'suppliers') {
+    let page = 1;
+    const allRows: any[][] = [];
+    while (true) {
+      const res = await http<any>(`/api/suppliers?page=${page}&pageSize=1000`);
+      const items = res.suppliers || [];
+      for (const s of items) {
+        allRows.push([
+          s.name || '',
+          s.phone || '',
+          s.address || '',
+          s.openingBalance ?? 0,
+          s.notes || '',
+        ]);
+      }
+      if (items.length < 1000) break;
+      page += 1;
+    }
+
+    downloadExcelFile(
+      `suppliers-export-${dateStr}.xlsx`,
+      ['اسم المورد (إجباري)', 'رقم الموبايل', 'العنوان', 'رصيد افتتاحي', 'ملاحظات'],
+      allRows.length ? allRows : [['لا يوجد موردين مسجلين', '', '', 0, '']],
+    );
+    return;
+  }
 
   if (kind === 'opening-stock') {
+    let locationsRes: any = { locations: [] };
+    let stocksRes: any = { stocks: [] };
     try {
-      const { http } = await import('@/lib/http');
-      
-      let locationsRes: any = { locations: [] };
-      let stocksRes: any = { stocks: [] };
-      try {
-        locationsRes = await http<any>('/api/locations');
-        stocksRes = await http<any>('/api/location-stocks');
-      } catch (e) {
-        console.warn('Could not fetch location stocks for template', e);
-      }
-
-      const locationMap = new Map(
-        (locationsRes.locations || []).map((loc: any) => [String(loc.id), loc.name || ''])
-      );
-
-      const stocksByProduct = new Map<string, any[]>();
-      for (const st of stocksRes.stocks || []) {
-        const pId = String(st.productId);
-        if (!stocksByProduct.has(pId)) stocksByProduct.set(pId, []);
-        stocksByProduct.get(pId)!.push(st);
-      }
-
-      let page = 1;
-      const allRows: any[][] = [];
-      while (true) {
-        const res = await http<any>(`/api/products?page=${page}&pageSize=1000`);
-        const items = res.products || [];
-        for (const p of items) {
-          const pId = String(p.id);
-          const pStocks = stocksByProduct.get(pId);
-          
-          if (pStocks && pStocks.length > 0) {
-            for (const st of pStocks) {
-              const locName = locationMap.get(String(st.locationId)) || 'المخزن الرئيسي';
-              allRows.push([p.barcode || '', p.name || '', st.qty || 0, locName]);
-            }
-          } else {
-            allRows.push([p.barcode || '', p.name || '', p.stock || 0, 'المخزن الرئيسي']);
-          }
-        }
-        if (items.length < 1000) break;
-        page += 1;
-      }
-      
-      if (allRows.length > 0) {
-        downloadExcelFile('opening-stock-template.xlsx', ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'], allRows);
-        return;
-      }
+      locationsRes = await http<any>('/api/locations');
+      stocksRes = await http<any>('/api/location-stocks');
     } catch (e) {
-      console.error('Failed to export existing products for opening stock', e);
+      console.warn('Could not fetch location stocks for export', e);
     }
-    // Fallback if no products or error
-    downloadExcelFile('opening-stock-template.xlsx', ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'], [['123456789012', 'منتج جديد', 24, 'المخزن الرئيسي']]);
+
+    const locationMap = new Map(
+      (locationsRes.locations || []).map((loc: any) => [String(loc.id), loc.name || ''])
+    );
+
+    const stocksByProduct = new Map<string, any[]>();
+    for (const st of stocksRes.stocks || []) {
+      const pId = String(st.productId);
+      if (!stocksByProduct.has(pId)) stocksByProduct.set(pId, []);
+      stocksByProduct.get(pId)!.push(st);
+    }
+
+    let page = 1;
+    const allRows: any[][] = [];
+    while (true) {
+      const res = await http<any>(`/api/products?page=${page}&pageSize=1000`);
+      const items = res.products || [];
+      for (const p of items) {
+        const pId = String(p.id);
+        const pStocks = stocksByProduct.get(pId);
+        
+        if (pStocks && pStocks.length > 0) {
+          for (const st of pStocks) {
+            const locName = locationMap.get(String(st.locationId)) || 'المخزن الرئيسي';
+            allRows.push([p.barcode || '', p.name || '', st.qty || 0, locName]);
+          }
+        } else {
+          allRows.push([p.barcode || '', p.name || '', p.stock || 0, 'المخزن الرئيسي']);
+        }
+      }
+      if (items.length < 1000) break;
+      page += 1;
+    }
+
+    downloadExcelFile(
+      `opening-stock-export-${dateStr}.xlsx`,
+      ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'],
+      allRows.length ? allRows : [['', 'لا توجد بيانات مخزون', 0, 'المخزن الرئيسي']],
+    );
   }
 }
 

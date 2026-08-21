@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
-import { Field } from '@/shared/ui/field';
 import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench';
 import { SnapshotList, type BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import type { BackupConfigResponse } from '@/features/settings/api/settings.api';
@@ -52,6 +51,7 @@ interface SettingsBackupImportSectionProps {
   importSuppliers: (rows: Record<string, string>[]) => Promise<unknown>;
   importOpeningStock: (rows: Record<string, string>[]) => Promise<unknown>;
   downloadTemplate: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => void;
+  onExportData?: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => Promise<void> | void;
 }
 
 import { http } from '@/lib/http';
@@ -66,6 +66,8 @@ function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
     staleTime: 30_000,
   });
 
+  const dbSize = statsQuery.data?.database_size_mb ? `${statsQuery.data.database_size_mb} MB` : '—';
+
   const optimizeMutation = useMutation({
     mutationFn: () => http<{ ok: boolean; message: string; database_size_mb?: number }>('/api/health/optimize-db', { method: 'POST' }),
     onSuccess: (data) => {
@@ -77,45 +79,70 @@ function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
     },
   });
 
-  const dbSize = statsQuery.data?.database_size_mb ? `${statsQuery.data.database_size_mb} MB` : '...';
-
   return (
-    <QueryCard
-      className="settings-admin-card"
-      title="صيانة وتسريع قاعدة البيانات"
-      actions={<span className="nav-pill">أداء النظام</span>}
-    >
-      <div className="page-stack">
-        <p className="muted small">
-          يقوم هذا الإجراء بتنظيف البيانات المؤقتة المنتهية، إعادة ترتيب الفهارس (Indexes)، وضغط مساحة قاعدة البيانات (VACUUM ANALYZE) لتحسين سرعة واستجابة النظام.
+    <div style={{
+      background: '#ffffff',
+      border: '1px solid #e2e8f0',
+      borderRadius: '12px',
+      padding: '14px 18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: '12px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+    }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 800 }}>صيانة وتسريع قاعدة البيانات</strong>
+          <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>أداء النظام</span>
+        </div>
+        <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+          تنظيف البيانات المؤقتة، إعادة بناء الفهارس، وضغط المساحة (VACUUM ANALYZE) لتحسين سرعة واستجابة النظام.
         </p>
+      </div>
 
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
-          <div style={{ background: 'var(--bg-card, #f8fafc)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '8px', padding: '10px 16px', minWidth: '140px' }}>
-            <div className="muted small" style={{ fontSize: '11px' }}>حجم قاعدة البيانات</div>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', marginTop: '2px' }}>{dbSize}</div>
-          </div>
-
-          <Button
-            type="button"
-            variant="primary"
-            disabled={!canManage || optimizeMutation.isPending}
-            onClick={() => {
-              setFeedback(null);
-              optimizeMutation.mutate();
-            }}
-          >
-            {optimizeMutation.isPending ? 'جاري تحسين قاعدة البيانات...' : 'تحسين وسرعة قاعدة البيانات الآن'}
-          </Button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ textAlign: 'center', padding: '4px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+          <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block' }}>حجم البيانات</span>
+          <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{dbSize}</strong>
         </div>
 
-        {feedback ? (
-          <div className={feedback.kind === 'success' ? 'form-feedback success' : 'form-feedback error'} style={{ marginTop: '12px' }}>
-            {feedback.message}
-          </div>
-        ) : null}
+        <Button
+          type="button"
+          disabled={!canManage || optimizeMutation.isPending}
+          onClick={() => {
+            setFeedback(null);
+            optimizeMutation.mutate();
+          }}
+          style={{
+            fontSize: '0.82rem',
+            padding: '7px 16px',
+            background: '#0f172a',
+            color: '#ffffff',
+            fontWeight: 700,
+          }}
+        >
+          {optimizeMutation.isPending ? 'جاري التحسين...' : 'تحسين وتسريع الآن'}
+        </Button>
       </div>
-    </QueryCard>
+
+      {feedback && (
+        <div style={{
+          width: '100%',
+          marginTop: '4px',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          fontSize: '0.8rem',
+          fontWeight: 600,
+          background: feedback.kind === 'success' ? '#ecfdf5' : '#fef2f2',
+          color: feedback.kind === 'success' ? '#047857' : '#b91c1c',
+          border: feedback.kind === 'success' ? '1px solid #a7f3d0' : '1px solid #fca5a5',
+        }}>
+          {feedback.message}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -164,7 +191,7 @@ export function SettingsBackupImportSection({
   setBackupTimeDraft,
   backupWeeklyDayDraft,
   setBackupWeeklyDayDraft,
-  backupSelectedFileName,
+  backupSelectedFileName: _backupSelectedFileName,
   backupMessage,
   backupMessageKind,
   backupResult,
@@ -186,7 +213,8 @@ export function SettingsBackupImportSection({
   importCustomers,
   importSuppliers,
   importOpeningStock,
-  downloadTemplate
+  downloadTemplate,
+  onExportData,
 }: SettingsBackupImportSectionProps) {
   const [isSnapshotsOpen, setIsSnapshotsOpen] = useState(false);
   const summaryPairs = formatSummaryPairs(backupResult);
@@ -195,165 +223,225 @@ export function SettingsBackupImportSection({
   const weeklyDays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
   return (
-    <div className="page-stack">
-      <QueryCard className="settings-admin-card settings-backup-card" title="النسخ والاسترداد" actions={<span className="nav-pill">نسخ احتياطي</span>}>
-        <div className="actions" style={{ marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
-          <Button type="button" onClick={handleBackupDownload} disabled={backupBusy || !canManageBackups}>تنزيل نسخة احتياطية الآن</Button>
-          <Button type="button" onClick={handleSupportBundleDownload} variant="secondary" disabled={backupBusy || !canManageBackups}>
-            تنزيل حزمة الدعم
-          </Button>
-        </div>
-        
-        <div style={{ padding: '0 12px 16px', fontSize: '13px', color: 'var(--text-color)' }}>
-          <span style={{ color: 'var(--warning-color)', fontWeight: 'bold' }}>ملاحظة هامة: </span>
-          حزمة الدعم لا تحتوي على كلمات مرور أو أسرار، وتُستخدم فقط لمراجعة الأعطال ومشاكل النظام.
-        </div>
-
-        <div className="surface-card" style={{ marginBottom: 16, padding: 12 }}>
-          <strong>مجلد النسخ الاحتياطية</strong>
-          <div className="muted small" style={{ marginTop: 6 }}>المسار الحالي: {resolvedFolder}</div>
-          <div className="form-grid two-col-form" style={{ marginTop: 10 }}>
-            <Field label="المسار">
-              <input
-                value={backupFolderPathDraft}
-                placeholder="اختيار المسار"
-                onChange={(event) => setBackupFolderPathDraft(event.target.value)}
-                disabled={backupBusy || !canManageBackups}
-              />
-            </Field>
-            <div className="actions compact-actions" style={{ alignSelf: 'end', marginBottom: 4 }}>
-              <Button type="button" variant="secondary" onClick={() => void testBackupFolder()} disabled={backupBusy || !canManageBackups}>اختبار المسار</Button>
-              <Button type="button" variant="secondary" onClick={() => void saveBackupConfig()} disabled={backupBusy || !canManageBackups}>حفظ المسار</Button>
-              <Button type="button" onClick={() => void saveBackupFileToFolderNow()} disabled={backupBusy || !canManageBackups}>حفظ نسخة في المجلد الآن</Button>
-            </div>
+    <div className="page-stack" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Backup & System Health Section */}
+      <QueryCard
+        className="settings-admin-card"
+        title="النسخ الاحتياطي والأمان"
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="nav-pill" style={{ background: autoBackupEnabled ? '#ecfdf5' : '#f1f5f9', color: autoBackupEnabled ? '#047857' : '#64748b', border: autoBackupEnabled ? '1px solid #a7f3d0' : '1px solid #e2e8f0', fontSize: '0.74rem', fontWeight: 700 }}>
+              النسخ التلقائي: {autoBackupEnabled ? 'مفعّل' : 'متوقف'}
+            </span>
           </div>
-        </div>
-
-        <div className="surface-card" style={{ marginBottom: 16, padding: 12 }}>
-          <strong>إعدادات النسخ التلقائي</strong>
-          <div className="form-grid three-col-form" style={{ marginTop: 10 }}>
-            <Field label="تفعيل النسخ التلقائي">
-              <select
-                value={backupAutoEnabledDraft ? 'on' : 'off'}
-                onChange={(event) => setBackupAutoEnabledDraft(event.target.value === 'on')}
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Top Quick Actions Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Button
+                type="button"
+                onClick={handleBackupDownload}
                 disabled={backupBusy || !canManageBackups}
+                style={{ background: '#0f172a', color: '#ffffff', fontSize: '0.84rem', padding: '8px 18px', fontWeight: 700 }}
               >
-                <option value="on">مفعّل</option>
-                <option value="off">متوقف</option>
-              </select>
-            </Field>
-            <Field label="التكرار">
-              <select value={backupFrequencyDraft} onChange={(event) => setBackupFrequencyDraft(event.target.value === 'weekly' ? 'weekly' : 'daily')} disabled={backupBusy || !canManageBackups}>
-                <option value="daily">يومي</option>
-                <option value="weekly">أسبوعي</option>
-              </select>
-            </Field>
-            <Field label="وقت النسخ">
-              <input type="time" value={backupTimeDraft || '03:00'} onChange={(event) => setBackupTimeDraft(event.target.value || '03:00')} disabled={backupBusy || !canManageBackups} />
-            </Field>
-            {backupFrequencyDraft === 'weekly' ? (
-              <Field label="يوم النسخ الأسبوعي">
-                <select value={backupWeeklyDayDraft} onChange={(event) => setBackupWeeklyDayDraft(Number(event.target.value || 0))} disabled={backupBusy || !canManageBackups}>
-                  {weeklyDays.map((label, index) => <option key={label} value={index}>{label}</option>)}
-                </select>
-              </Field>
-            ) : null}
-          </div>
-          <div className="actions compact-actions" style={{ marginTop: 10 }}>
-            <Button type="button" variant="secondary" onClick={() => void saveBackupConfig()} disabled={backupBusy || !canManageBackups}>حفظ إعدادات النسخ التلقائي</Button>
+                تنزيل نسخة احتياطية الآن
+              </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void saveBackupFileToFolderNow()}
+                disabled={backupBusy || !canManageBackups}
+                style={{ fontSize: '0.84rem', padding: '8px 16px' }}
+              >
+                حفظ نسخة في المجلد الآن
+              </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSupportBundleDownload}
+                disabled={backupBusy || !canManageBackups}
+                style={{ fontSize: '0.84rem', padding: '8px 16px' }}
+              >
+                تنزيل حزمة الدعم
+              </Button>
+            </div>
+
+            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+              المسار الافتراضي: <strong style={{ color: '#0f172a' }}>{resolvedFolder}</strong>
+            </span>
           </div>
 
-          <hr className="divider" />
-          <div className="form-grid two-col-form">
-            <div className="list-row" style={{ justifyContent: 'space-between' }}>
-              <span className="muted small">آخر نسخة تلقائية ناجحة</span>
-              <strong>{autoState?.lastSuccessAt ? new Date(autoState.lastSuccessAt).toLocaleString('ar-EG') : 'لا توجد نسخ تلقائية محفوظة حتى الآن'}</strong>
-            </div>
-            <div className="list-row" style={{ justifyContent: 'space-between' }}>
-              <span className="muted small">آخر محاولة</span>
-              <strong>{autoState?.lastAttemptAt ? new Date(autoState.lastAttemptAt).toLocaleString('ar-EG') : '—'}</strong>
-            </div>
-            <div className="list-row" style={{ justifyContent: 'space-between' }}>
-              <span className="muted small">حالة آخر محاولة</span>
-              <strong>{autoState?.lastAttemptStatus === 'success' ? 'ناجحة' : autoState?.lastAttemptStatus === 'failed' ? 'فشلت' : '—'}</strong>
-            </div>
-            <div className="list-row" style={{ justifyContent: 'space-between' }}>
-              <span className="muted small">آخر خطأ</span>
-              <strong>{autoState?.lastError || '—'}</strong>
-            </div>
-          </div>
-        </div>
+          {/* 2-Column Balanced Controls */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '14px' }}>
+            {/* Column 1: Automated Backups & Folder Config */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
+                إعدادات النسخ التلقائي ومجلد الحفظ
+              </strong>
 
-        {/* فحص واستعادة من ملف */}
-        <div className="surface-card" style={{ marginBottom: 16, padding: 14 }}>
-          <strong>فحص واستعادة نسخة احتياطية من ملف</strong>
-          <div className="muted small" style={{ marginTop: 4, marginBottom: 12 }}>
-            يمكنك فحص محتويات ملف النسخة للتأكد من سلامته قبل الاستعادة، أو بدء الاستعادة مباشرة.
-          </div>
-          <div className="form-grid two-col-form">
-            <Field label="تحقق من ملف نسخة احتياطية">
-              <input type="file" accept=".zip,application/zip,application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBackupFile(file, 'verify'); e.currentTarget.value = ''; }} />
-            </Field>
-            <Field label="استعادة من ملف نسخة احتياطية">
-              <input type="file" accept=".zip,application/zip,application/json,.json" disabled={!canManageBackups || backupBusy} onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }} />
-            </Field>
-          </div>
+              {/* Folder Path Row */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                  مسار مجلد النسخ الاحتياطية على السيرفر
+                </label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    value={backupFolderPathDraft}
+                    placeholder="مثال: D:\ZS Backups"
+                    onChange={(event) => setBackupFolderPathDraft(event.target.value)}
+                    disabled={backupBusy || !canManageBackups}
+                    style={{ flex: 1, padding: '7px 12px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', outline: 'none' }}
+                  />
+                  <Button type="button" variant="secondary" onClick={() => void testBackupFolder()} disabled={backupBusy || !canManageBackups} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
+                    اختبار
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => void saveBackupConfig()} disabled={backupBusy || !canManageBackups} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
+                    حفظ
+                  </Button>
+                </div>
+              </div>
 
-          <div className="muted small" style={{ marginTop: 10 }}>الاستعادة تستبدل البيانات الحالية.</div>
-          {backupSelectedFileName ? <div className="muted small" style={{ marginTop: 6, fontWeight: '500' }}>آخر ملف تم اختياره: {backupSelectedFileName}</div> : null}
-          {backupMessage ? <div className={backupMessageKind === 'error' ? 'error-box' : 'success-box'} style={{ marginTop: 10 }}>{backupMessage}</div> : null}
+              {/* Automation Schedule Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: backupFrequencyDraft === 'weekly' ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>الحالة</label>
+                  <select
+                    value={backupAutoEnabledDraft ? 'on' : 'off'}
+                    onChange={(event) => setBackupAutoEnabledDraft(event.target.value === 'on')}
+                    disabled={backupBusy || !canManageBackups}
+                    style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
+                  >
+                    <option value="on">مفعّل</option>
+                    <option value="off">متوقف</option>
+                  </select>
+                </div>
 
-          {summaryPairs.length ? (
-            <div className="surface-card" style={{ marginTop: 12, padding: 12, border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--surface-color-subtle, #f8fafc)' }}>
-              <strong style={{ display: 'block', marginBottom: 8 }}>نتيجة آخر فحص / استعادة</strong>
-              <div className="form-grid two-col-form">
-                {summaryPairs.map((item) => (
-                  <div key={item.label} className="list-row" style={{ justifyContent: 'space-between', gap: 12, padding: '4px 0' }}>
-                    <span className="muted small">{item.label}</span>
-                    <strong style={{ fontSize: '13px' }}>{item.value}</strong>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>التكرار</label>
+                  <select
+                    value={backupFrequencyDraft}
+                    onChange={(event) => setBackupFrequencyDraft(event.target.value === 'weekly' ? 'weekly' : 'daily')}
+                    disabled={backupBusy || !canManageBackups}
+                    style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
+                  >
+                    <option value="daily">يومي</option>
+                    <option value="weekly">أسبوعي</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>وقت النسخ</label>
+                  <input
+                    type="time"
+                    value={backupTimeDraft || '03:00'}
+                    onChange={(event) => setBackupTimeDraft(event.target.value || '03:00')}
+                    disabled={backupBusy || !canManageBackups}
+                    style={{ width: '100%', padding: '5px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {backupFrequencyDraft === 'weekly' && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>اليوم</label>
+                    <select
+                      value={backupWeeklyDayDraft}
+                      onChange={(event) => setBackupWeeklyDayDraft(Number(event.target.value || 0))}
+                      disabled={backupBusy || !canManageBackups}
+                      style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
+                    >
+                      {weeklyDays.map((label, index) => <option key={label} value={index}>{label}</option>)}
+                    </select>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          ) : null}
-        </div>
 
-        {/* ملخص النسخ التلقائية (قابل للطي) */}
-        <div className="surface-card" style={{ marginBottom: 16, padding: 12 }}>
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => setIsSnapshotsOpen((prev) => !prev)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsSnapshotsOpen((prev) => !prev); } }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              userSelect: 'none'
-            }}
-          >
-            <div>
-              <strong style={{ fontSize: '14px' }}>ملخص النسخ التلقائية واللقطات السابقة</strong>
-              <div className="muted small" style={{ marginTop: 4 }}>
-                اللقطات المحفوظة داخل النظام: {snapshots.length} · النسخ التلقائي: {autoBackupEnabled ? 'مفعّل' : 'متوقف'}
+              {/* Status Row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', color: '#64748b', background: '#ffffff', border: '1px solid #f1f5f9', borderRadius: '6px', padding: '6px 10px', marginTop: 'auto' }}>
+                <span>آخر نسخة ناجحة: <strong style={{ color: '#0f172a' }}>{autoState?.lastSuccessAt ? new Date(autoState.lastSuccessAt).toLocaleString('ar-EG') : 'لا يوجد'}</strong></span>
+                <span>الحالة: <strong style={{ color: autoState?.lastAttemptStatus === 'success' ? '#16a34a' : autoState?.lastAttemptStatus === 'failed' ? '#dc2626' : '#64748b' }}>{autoState?.lastAttemptStatus === 'success' ? 'ناجحة' : autoState?.lastAttemptStatus === 'failed' ? 'فشلت' : '—'}</strong></span>
               </div>
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsSnapshotsOpen((prev) => !prev);
-              }}
-              style={{ fontSize: '12px', padding: '4px 10px' }}
-            >
-              {isSnapshotsOpen ? 'إخفاء النسخ ▲' : `عرض النسخ السابقة (${snapshots.length}) ▼`}
-            </Button>
+
+            {/* Column 2: Restore, Verification & Optimization */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <strong style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 800 }}>
+                  فحص واستعادة النسخ الاحتياطية
+                </strong>
+                <button
+                  type="button"
+                  onClick={() => setIsSnapshotsOpen(!isSnapshotsOpen)}
+                  style={{ fontSize: '0.76rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#1e293b', cursor: 'pointer' }}
+                >
+                  {isSnapshotsOpen ? 'إخفاء سجل اللقطات ▲' : `سجل اللقطات (${snapshots.length}) ▼`}
+                </button>
+              </div>
+
+              {/* Custom File Action Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s ease' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>فحص ملف نسخة</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>للتأكد من سلامة الملف</span>
+                  <input
+                    type="file"
+                    style={{ display: 'none' }}
+                    accept=".zip,application/zip,application/json,.json"
+                    disabled={!canManageBackups || backupBusy}
+                    onChange={(e) => { const file = e.target.files?.[0]; if (file) void handleBackupFile(file, 'verify'); e.currentTarget.value = ''; }}
+                  />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#ffffff', border: '1px dashed #fca5a5', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s ease' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#b91c1c' }}>استعادة من ملف</span>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>تستبدل البيانات الحالية</span>
+                  <input
+                    type="file"
+                    style={{ display: 'none' }}
+                    accept=".zip,application/zip,application/json,.json"
+                    disabled={!canManageBackups || backupBusy}
+                    onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }}
+                  />
+                </label>
+              </div>
+
+              {/* Backup Message feedback */}
+              {backupMessage && (
+                <div style={{
+                  background: backupMessageKind === 'error' ? '#fef2f2' : '#ecfdf5',
+                  border: backupMessageKind === 'error' ? '1px solid #fca5a5' : '1px solid #a7f3d0',
+                  color: backupMessageKind === 'error' ? '#b91c1c' : '#047857',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                }}>
+                  {backupMessage}
+                </div>
+              )}
+
+              {/* Summary Pairs if verified */}
+              {summaryPairs.length > 0 && (
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', maxHeight: '120px', overflowY: 'auto' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '0.75rem' }}>
+                    {summaryPairs.map((item) => (
+                      <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', borderBottom: '1px solid #f8fafc' }}>
+                        <span style={{ color: '#64748b' }}>{item.label}:</span>
+                        <strong style={{ color: '#0f172a' }}>{item.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {isSnapshotsOpen ? (
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-color, #e2e8f0)', maxHeight: '380px', overflowY: 'auto' }}>
+          {/* Snapshots Drawer if open */}
+          {isSnapshotsOpen && (
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', maxHeight: '280px', overflowY: 'auto' }}>
               <SnapshotList
                 snapshots={snapshots}
                 onDownload={handleSnapshotDownload}
@@ -361,20 +449,27 @@ export function SettingsBackupImportSection({
                 restoringId={restoreSnapshotId}
               />
             </div>
-          ) : null}
+          )}
         </div>
       </QueryCard>
 
+      {/* Database Maintenance Strip */}
       <DatabaseOptimizationCard canManage={canManageBackups} />
 
-      <QueryCard className="settings-admin-card settings-import-card" title="استيراد CSV" actions={<span className="nav-pill">ملفات CSV</span>}>
-        <div className="two-column-grid">
+      {/* Import / Export Workbench 2x2 Grid */}
+      <QueryCard
+        className="settings-admin-card settings-import-card"
+        title="استيراد وتصدير البيانات"
+        actions={<span className="nav-pill">ملفات Excel / CSV</span>}
+      >
+        <div className="two-column-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
           {!canManageBackups ? <div className="muted small" style={{ gridColumn: '1 / -1' }}>إدارة النسخ الاحتياطي والاسترداد غير متاحة لهذا الحساب.</div> : null}
           <ImportWorkbench
             title="استيراد الأصناف"
-            requiredColumns={['name']}
+            requiredColumns={['اسم الصنف']}
+            requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: 'الاسم', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
+              { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'الاسم', 'name'] },
               { key: 'categoryName', label: 'الصنف', aliases: ['القسم', 'category'] },
               { key: 'itemType', label: 'النوع', aliases: ['النوع', 'تصنيف', 'type', 'itemType', 'item_type'] },
               { key: 'barcode', label: 'الباركود', aliases: ['barcode', 'كود'] },
@@ -385,12 +480,14 @@ export function SettingsBackupImportSection({
               { key: 'warehouseName', label: 'المخزن', aliases: ['المخزن', 'warehouse', 'store'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('products')}
+            onExportData={onExportData ? () => onExportData('products') : undefined}
             onImportRows={importProducts}
             isPending={importProductsPending || !canManageBackups}
           />
           <ImportWorkbench
             title="استيراد/تعديل المخزون"
-            requiredColumns={['qty']}
+            requiredColumns={['الكمية']}
+            requiredFieldKeys={['qty']}
             fieldMappings={[
               { key: 'barcode', label: 'الباركود', aliases: ['الباركود', 'barcode'] },
               { key: 'name', label: 'اسم الصنف', aliases: ['اسم الصنف (إجباري)', 'اسم الصنف', 'name'] },
@@ -398,14 +495,16 @@ export function SettingsBackupImportSection({
               { key: 'warehouseName', label: 'المخزن', aliases: ['المخزن', 'warehouse', 'store'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('opening-stock')}
+            onExportData={onExportData ? () => onExportData('opening-stock') : undefined}
             onImportRows={importOpeningStock}
             isPending={importOpeningStockPending || !canManageBackups}
           />
           <ImportWorkbench
             title="استيراد العملاء"
-            requiredColumns={['name']}
+            requiredColumns={['اسم العميل']}
+            requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: 'الاسم', aliases: ['اسم العميل (إجباري)', 'اسم العميل', 'name'] },
+              { key: 'name', label: 'اسم العميل', aliases: ['اسم العميل (إجباري)', 'اسم العميل', 'الاسم', 'name'] },
               { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'phone'] },
               { key: 'address', label: 'العنوان', aliases: ['العنوان', 'address'] },
               { key: 'type', label: 'النوع', aliases: ['نوع العميل', 'type'] },
@@ -416,20 +515,23 @@ export function SettingsBackupImportSection({
               { key: 'taxNumber', label: 'الرقم الضريبي', aliases: ['الرقم الضريبي', 'taxNumber'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('customers')}
+            onExportData={onExportData ? () => onExportData('customers') : undefined}
             onImportRows={importCustomers}
             isPending={importCustomersPending || !canManageBackups}
           />
           <ImportWorkbench
             title="استيراد الموردين"
-            requiredColumns={['name']}
+            requiredColumns={['اسم المورد']}
+            requiredFieldKeys={['name']}
             fieldMappings={[
-              { key: 'name', label: 'الاسم', aliases: ['اسم المورد (إجباري)', 'اسم المورد', 'name'] },
+              { key: 'name', label: 'اسم المورد', aliases: ['اسم المورد (إجباري)', 'اسم المورد', 'الاسم', 'name'] },
               { key: 'phone', label: 'الموبايل', aliases: ['رقم الموبايل', 'phone'] },
               { key: 'address', label: 'العنوان', aliases: ['العنوان', 'address'] },
               { key: 'openingBalance', label: 'رصيد افتتاحي', aliases: ['رصيد افتتاحي', 'openingBalance'] },
               { key: 'notes', label: 'ملاحظات', aliases: ['ملاحظات', 'notes'] },
             ]}
             onDownloadTemplate={() => downloadTemplate('suppliers')}
+            onExportData={onExportData ? () => onExportData('suppliers') : undefined}
             onImportRows={importSuppliers}
             isPending={importSuppliersPending || !canManageBackups}
           />

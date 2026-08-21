@@ -6,7 +6,7 @@ import { isSettingsSection, settingsSections, settingsStandaloneLinks, type Sett
 import { downloadJsonFile } from '@/lib/browser';
 import { SettingsPageShell } from '@/features/settings/components/SettingsPageShell';
 import { SettingsSectionErrorBoundary } from '@/features/settings/components/SettingsSectionErrorBoundary';
-import { downloadSettingsTemplate, getSettingsSectionDescription } from '@/features/settings/pages/settings-page.helpers';
+import { downloadSettingsTemplate, exportSettingsData, getSettingsSectionDescription } from '@/features/settings/pages/settings-page.helpers';
 import { useSettingsPageController } from '@/features/settings/pages/useSettingsPageController';
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import { useAuthStore } from '@/stores/auth-store';
@@ -136,6 +136,7 @@ export function SettingsPage() {
           importSuppliers={(rows) => page.importSuppliersMutation.mutateAsync(rows)}
           importOpeningStock={(rows) => page.importOpeningStockMutation.mutateAsync(rows)}
           downloadTemplate={downloadSettingsTemplate}
+          onExportData={exportSettingsData}
           onDownloadJson={(data, filename) => downloadJsonFile(data, filename)}
           setupMode={page.setupMode}
           setupStepKey={page.setupFlow.currentStep?.key || null}

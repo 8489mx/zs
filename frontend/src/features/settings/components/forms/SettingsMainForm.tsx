@@ -400,11 +400,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
         {/* التابات */}
         {!form.formState.isValid && form.formState.isSubmitted && Object.keys(form.formState.errors).length > 0 && (
-          <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', borderRadius: 8, marginBottom: 16 }}>
-            يوجد حقول مطلوبة لم يتم إدخالها بشكل صحيح في تبويبات أخرى (مثل اسم النشاط في تبويب "عام"). يرجى مراجعتها ثم المحاولة مرة أخرى.
+          <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', borderRadius: 8, marginBottom: 12, fontSize: '0.82rem' }}>
+            يوجد حقول مطلوبة لم يتم إدخالها بشكل صحيح في تبويبات أخرى (مثل اسم النشاط في تبويب &quot;عام&quot;). يرجى مراجعتها ثم المحاولة مرة أخرى.
           </div>
         )}
-        <div className="settings-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border, #dbe2ea)', paddingBottom: '8px', overflowX: 'auto' }}>
+        <div className="settings-tabs" style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px', overflowX: 'auto' }}>
           {[
             { id: 'general', label: 'عام' },
             { id: 'sales_inventory', label: 'البيع والمخزون' },
@@ -417,15 +417,17 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
               style={{
-                background: activeTab === tab.id ? 'var(--primary, #170c5c)' : 'transparent',
-                color: activeTab === tab.id ? '#fff' : 'var(--text, #1e293b)',
-                border: activeTab === tab.id ? '1px solid var(--primary, #170c5c)' : '1px solid transparent',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontWeight: activeTab === tab.id ? 700 : 500,
+                background: activeTab === tab.id ? '#0f172a' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 16px',
+                borderRadius: '7px',
+                fontSize: '0.84rem',
+                fontWeight: activeTab === tab.id ? 800 : 600,
                 cursor: 'pointer',
-                transition: 'all 0.2s',
+                transition: 'all 0.15s ease',
                 whiteSpace: 'nowrap',
+                boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               }}
             >
               {tab.label}

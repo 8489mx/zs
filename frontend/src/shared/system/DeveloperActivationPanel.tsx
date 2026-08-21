@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation,  } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { FormSection } from '@/shared/components/form-section';
-import { Field } from '@/shared/ui/field';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
 import { useAuthStore } from '@/stores/auth-store';
@@ -110,88 +108,300 @@ export function DeveloperActivationPanel() {
   const selectedPlanFeatures = featurePlans.find(p => String(p.id) === planId)?.features || [];
 
   return (
-    <DialogShell open={open} onClose={() => setOpen(false)} ariaLabel="إعدادات ترخيص النظام (وضع المطور)">
-      <FormSection 
-        title="إعدادات ترخيص النظام (للمطورين فقط)"
-        actions={
-          <>
-            <button type="button" className="button button-secondary" onClick={() => setOpen(false)} disabled={updateMutation.isPending}>إغلاق</button>
-            <button 
-              type="button" 
-              className="button button-primary" 
-              onClick={() => updateMutation.mutate()} 
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? 'جاري التفعيل...' : 'تفعيل'}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-6">
-          {error && <div className="warning-box">{error}</div>}
-          {successMsg && <div className="success-box" style={{ background: '#dcfce7', color: '#166534', padding: '12px', borderRadius: '4px' }}>{successMsg}</div>}
-          
-          <div className="grid-1">
-            <Field label="كلمة مرور المطور (Master Password)">
-              <input 
-                type="text" 
-                className="secure-password-field"
-                name="developer_master_password_no_save"
-                autoComplete="off"
-                autoCorrect="off" 
-                autoCapitalize="off" 
-                spellCheck={false}
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-form-type="other"
-                value={masterPassword} 
-                onChange={(e) => setMasterPassword(e.target.value)} 
-                placeholder="أدخل كلمة المرور السرية" 
-              />
-            </Field>
+    <DialogShell open={open} onClose={() => setOpen(false)} width="min(720px, 95vw)" zIndex={9999} ariaLabel="إعدادات ترخيص النظام">
+      <div style={{ padding: '24px 28px', direction: 'rtl', background: '#ffffff', borderRadius: '16px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
+                إعدادات ترخيص النظام
+              </h2>
+              <span style={{
+                background: '#0f172a',
+                color: '#ffffff',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '5px',
+                letterSpacing: '0.04em',
+              }}>
+                DEV CONSOLE
+              </span>
+            </div>
+            <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+              التحكم في الباقات وتفعيل / تعطيل الوحدات والميزات للمستأجر الحالي
+            </p>
           </div>
 
-          <div className="grid-2">
-            <Field label="الباقة (الميزات الأساسية)">
-              <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
-                <option value="">-- بدون باقة --</option>
-                {featurePlans.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </Field>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: '#94a3b8',
+              width: '32px',
+              height: '32px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#f1f5f9'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Alerts */}
+        {error && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: 600 }}>
+            {error}
+          </div>
+        )}
+        {successMsg && (
+          <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.88rem', fontWeight: 700 }}>
+            {successMsg}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {/* Master Password Input */}
+          <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+              كلمة مرور المطور (Master Password) <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <input 
+              type="text" 
+              className="secure-password-field"
+              name="developer_master_pwd_nosave"
+              autoComplete="off"
+              autoCorrect="off" 
+              autoCapitalize="off" 
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
+              value={masterPassword} 
+              onChange={(e) => setMasterPassword(e.target.value)} 
+              placeholder="أدخل كلمة المرور السرية لتأكيد التعديلات..." 
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                borderRadius: '7px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.9rem',
+                outline: 'none',
+                background: '#ffffff',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.15s ease',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = '#0f172a'; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
+            />
           </div>
 
-          <div style={{ marginTop: '1rem' }}>
-            <h3 className="font-bold mb-3">الميزات الإضافية المستثناة:</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          {/* Segmented Plan Selector */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+              باقة الترخيص الأساسية:
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setPlanId('')}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: planId === '' ? '1.5px solid #0f172a' : '1px solid #e2e8f0',
+                  background: planId === '' ? '#0f172a' : '#f8fafc',
+                  color: planId === '' ? '#ffffff' : '#475569',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                بدون باقة (مخصص)
+              </button>
+
+              {featurePlans.map((p) => {
+                const isActive = String(p.id) === planId;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPlanId(String(p.id))}
+                    style={{
+                      padding: '7px 16px',
+                      borderRadius: '8px',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: isActive ? '1.5px solid #0f172a' : '1px solid #e2e8f0',
+                      background: isActive ? '#0f172a' : '#f8fafc',
+                      color: isActive ? '#ffffff' : '#334155',
+                      boxShadow: isActive ? '0 2px 8px rgba(15,23,42,0.12)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {p.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Features Module Switchboard */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
+                تخصيص الوحدات البرمجية المتاحة:
+              </span>
+              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                اضغط على أي وحدة للتبديل بين التفعيل والإيقاف
+              </span>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '8px',
+              maxHeight: '36vh',
+              overflowY: 'auto',
+              padding: '2px',
+            }}>
               {AVAILABLE_FEATURES.map((feat) => {
                 const isBaseIncluded = selectedPlanFeatures.includes(feat.id);
                 const isExcluded = extraFeatures.includes(`-${feat.id}`);
                 const isExtraIncluded = extraFeatures.includes(feat.id);
-                
                 const isChecked = (isBaseIncluded && !isExcluded) || isExtraIncluded;
                 
                 return (
-                  <label key={feat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', opacity: isExcluded ? 0.6 : 1 }}>
-                    <input 
-                      type="checkbox" 
-                      checked={isChecked}
-                      onChange={() => toggleFeature(feat.id)}
-                      style={{ width: '16px', height: '16px' }}
-                    />
-                    <span>
-                      {feat.name}{' '}
-                      {isBaseIncluded && !isExcluded && <small className="muted">(متوفرة في الباقة)</small>}
-                      {isBaseIncluded && isExcluded && <small style={{ color: 'var(--danger)' }}>(مستثناة من الباقة)</small>}
-                    </span>
-                  </label>
+                  <div
+                    key={feat.id}
+                    onClick={() => toggleFeature(feat.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '9px 14px',
+                      borderRadius: '8px',
+                      border: isChecked ? '1px solid #cbd5e1' : '1px solid #f1f5f9',
+                      background: isChecked ? '#ffffff' : '#fafafa',
+                      boxShadow: isChecked ? '0 1px 3px rgba(0,0,0,0.03)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      opacity: isExcluded ? 0.6 : 1,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#94a3b8'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isChecked ? '#cbd5e1' : '#f1f5f9'; }}
+                  >
+                    {/* Feature Name & Mini Badge */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.86rem', fontWeight: 700, color: isChecked ? '#0f172a' : '#64748b' }}>
+                        {feat.name}
+                      </span>
+                      {isBaseIncluded && isExcluded && (
+                        <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '0.68rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', border: '1px solid #fee2e2' }}>
+                          مستثناة
+                        </span>
+                      )}
+                      {!isBaseIncluded && isExtraIncluded && (
+                        <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.68rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', border: '1px solid #dbeafe' }}>
+                          إضافية
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Modern iOS/macOS Style Toggle Switch */}
+                    <div style={{
+                      width: '32px',
+                      height: '18px',
+                      borderRadius: '10px',
+                      background: isChecked ? '#0f172a' : '#cbd5e1',
+                      position: 'relative',
+                      transition: 'background 0.2s ease',
+                      flexShrink: 0,
+                    }}>
+                      <div style={{
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        position: 'absolute',
+                        top: '2px',
+                        right: isChecked ? '16px' : '2px',
+                        transition: 'right 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                      }} />
+                    </div>
+                  </div>
                 );
               })}
             </div>
           </div>
         </div>
-      </FormSection>
+
+        {/* Footer Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            disabled={updateMutation.isPending}
+            style={{
+              padding: '8px 20px',
+              fontSize: '0.84rem',
+              fontWeight: 600,
+              borderRadius: '7px',
+              border: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              color: '#334155',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+          >
+            إغلاق
+          </button>
+          <button
+            type="button"
+            onClick={() => updateMutation.mutate()}
+            disabled={updateMutation.isPending || !masterPassword}
+            style={{
+              padding: '8px 24px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              borderRadius: '7px',
+              border: '1px solid #0f172a',
+              background: '#0f172a',
+              color: '#ffffff',
+              cursor: updateMutation.isPending || !masterPassword ? 'not-allowed' : 'pointer',
+              opacity: updateMutation.isPending || !masterPassword ? 0.6 : 1,
+              transition: 'all 0.15s ease',
+              boxShadow: '0 2px 6px rgba(15,23,42,0.15)',
+            }}
+            onMouseEnter={(e) => {
+              if (!updateMutation.isPending && masterPassword) {
+                e.currentTarget.style.background = '#1e293b';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!updateMutation.isPending && masterPassword) {
+                e.currentTarget.style.background = '#0f172a';
+              }
+            }}
+          >
+            {updateMutation.isPending ? 'جاري التفعيل...' : 'تفعيل الترخيص'}
+          </button>
+        </div>
+      </div>
     </DialogShell>
   );
 }

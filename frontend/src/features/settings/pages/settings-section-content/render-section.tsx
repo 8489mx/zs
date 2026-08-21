@@ -82,6 +82,7 @@ export interface SharedSettingsSectionProps {
   importSuppliers: (rows: Record<string, string>[]) => Promise<unknown>;
   importOpeningStock: (rows: Record<string, string>[]) => Promise<unknown>;
   downloadTemplate: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => void;
+  onExportData?: (kind: 'products' | 'customers' | 'suppliers' | 'opening-stock') => Promise<void> | void;
   setupMode?: boolean;
   setupStepKey?: SetupStepKey | null;
   onSetupAdvance?: () => void;
@@ -195,6 +196,7 @@ export function renderBackupSection(props: SharedSettingsSectionProps) {
       importSuppliers={props.importSuppliers}
       importOpeningStock={props.importOpeningStock}
       downloadTemplate={props.downloadTemplate}
+      onExportData={props.onExportData}
     />
   );
 }

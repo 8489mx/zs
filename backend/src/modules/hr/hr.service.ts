@@ -2539,10 +2539,52 @@ export class HrService {
       throw new AppError('Employee is not active', 'HR_EMPLOYEE_NOT_ACTIVE', 400);
     }
 
-    const existingCheck = await sql<{ check_in_at: Date | null }>`SELECT check_in_at FROM hr_attendance_records WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    const existingCheck = await sql<{ check_in_at: Date | null; check_out_at: Date | null; notes: string | null }>`
+      SELECT check_in_at, check_out_at, notes FROM hr_attendance_records 
+      WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
+    `.execute(this.db);
     const hasExisting = existingCheck.rows.length > 0;
+    const existingRow = hasExisting ? existingCheck.rows[0] : null;
 
-    if (checkInAt && !checkOutAt && hasExisting && existingCheck.rows[0].check_in_at) {
+    if (payload.mode === 'cancel_checkout' && hasExisting) {
+      await sql`
+        UPDATE hr_attendance_records
+        SET
+          check_out_at = NULL,
+          status = 'present',
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+        WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
+      `.execute(this.db);
+      await this.refreshAttendanceExceptionForEmployeeDate(this.db, employeeId, workDate);
+      await this.audit.log('Cancel HR attendance checkout', `Checkout cancelled for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
+      return this.listAttendance({ date: workDate }, auth);
+    }
+
+    if ((payload.mode === 'new_session' || payload.allowRecheckin) && hasExisting && existingRow?.check_in_at && existingRow?.check_out_at) {
+      const prevCheckIn = new Date(existingRow.check_in_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const prevCheckOut = new Date(existingRow.check_out_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const sessionNote = `وردية سابقة (${prevCheckIn} إلى ${prevCheckOut})`;
+      const combinedNotes = combineNotes(existingRow.notes, sessionNote);
+
+      await sql`
+        UPDATE hr_attendance_records
+        SET
+          check_in_at = ${checkInAt ? checkInAt.toISOString() : new Date().toISOString()},
+          check_out_at = NULL,
+          status = 'present',
+          notes = ${combinedNotes},
+          source = ${normalizeAttendanceSource(payload.source)},
+          updated_by = ${auth.userId},
+          updated_at = NOW()
+        WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
+      `.execute(this.db);
+      await this.refreshAttendanceExceptionForEmployeeDate(this.db, employeeId, workDate);
+      await this.audit.log('New attendance session for HR employee', `New session started for employee #${employeeId} on ${workDate} by ${auth.username}`, auth);
+      return this.listAttendance({ date: workDate }, auth);
+    }
+
+    if (checkInAt && !checkOutAt && hasExisting && existingCheck.rows[0].check_in_at && !existingCheck.rows[0].check_out_at) {
       throw new AppError('Already checked in', 'HR_ATTENDANCE_ALREADY_CHECKED_IN', 400);
     }
 

@@ -4,7 +4,6 @@ import { Button } from '@/shared/ui/button';
 import { downloadEntityListCsv, printEntityList } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import type { Branch, Location } from '@/types/domain';
 import { BranchRowActions, LocationRowActions } from './row-actions';
-import { ReferenceSearchToolbar, ReferenceStats } from './shared';
 import type { BranchActionState, LocationActionState, ReferenceDeleteConfirmState } from './types';
 
 export function BranchReferenceCard(props: {
@@ -29,13 +28,119 @@ export function BranchReferenceCard(props: {
   onShowAddBranch?: () => void;
   setupMode?: boolean;
 }) {
-  const { locations, branches, branchList, filteredCount, branchSearch, branchFilter, setBranchSearch, setBranchFilter, resetBranchFilters, copyVisibleBranches, branchesQuery, canManageSettings, editingBranch, setEditingBranch, setDeleteConfirm, branchActionBusy, branchActionError, onUpdateBranch, onShowAddBranch, setupMode } = props;
+  const { branches, branchList, filteredCount, branchSearch, branchFilter, setBranchSearch, setBranchFilter, resetBranchFilters, copyVisibleBranches: _copyVisibleBranches, branchesQuery, canManageSettings, setEditingBranch, setDeleteConfirm, branchActionBusy, setupMode, onShowAddBranch } = props;
+
   return (
-    <QueryCard title="الفروع" className="settings-reference-card" description="" actions={<div className="actions compact-actions">{canManageSettings && onShowAddBranch && <Button variant="primary" onClick={onShowAddBranch}>+ إضافة فرع</Button>}<Button variant="secondary" onClick={resetBranchFilters}>إعادة الضبط</Button><Button variant="secondary" onClick={() => void copyVisibleBranches()}>نسخ</Button><Button variant="secondary" onClick={() => downloadEntityListCsv('branches.csv', ['name', 'code'], branchList.map((branch) => [branch.name || '', branch.code || '']))}>تصدير Excel</Button><Button variant="secondary" onClick={() => printEntityList('الفروع الحالية', ['الاسم', 'الكود'], branchList.map((branch) => [branch.name || '', branch.code || '']))}>طباعة</Button></div>} isLoading={branchesQuery.isLoading} isError={branchesQuery.isError} error={branchesQuery.error} isEmpty={!filteredCount} loadingText="جاري تحميل الفروع الحالية..." emptyTitle="لا توجد فروع مطابقة" emptyHint="جرّب تغيير البحث أو الفلترة أو أضف فرعًا جديدًا.">
-      <ReferenceSearchToolbar search={branchSearch} onSearchChange={setBranchSearch} title="بحث الفروع" searchPlaceholder="ابحث باسم الفرع أو الكود" countLabel={`${filteredCount} نتيجة`} metaItems={[`إجمالي الفروع: ${branches.length}`, `بكود: ${branches.filter((branch) => Boolean(branch.code)).length}`, `الفلتر: ${branchFilter === 'all' ? 'الكل' : branchFilter === 'with-code' ? 'بكود' : 'بدون كود'}`]} filterValue={branchFilter} filterOptions={[['all', 'الكل'], ['with-code', 'بكود'], ['without-code', 'بدون كود']]} onFilterChange={(value) => setBranchFilter(value as 'all' | 'with-code' | 'without-code')} onReset={resetBranchFilters} />
-      <ReferenceStats items={[[ 'النتائج', filteredCount ], [ 'بكود', branches.filter((branch) => Boolean(branch.code)).length ], [ 'بدون كود', branches.filter((branch) => !branch.code).length ]]} />
-      <div className="list-stack">
-        {branchList.map((branch) => <BranchRowActions key={branch.id} branch={branch} locations={locations} isEditing={editingBranch?.branchId === branch.id} onStartEdit={(currentBranch) => setEditingBranch({ branchId: currentBranch.id, values: { name: currentBranch.name || '', code: currentBranch.code || '', defaultStockLocationId: currentBranch.defaultStockLocationId || undefined, salesStockMode: currentBranch.salesStockMode || 'single_location', allowExternalSalesStock: currentBranch.allowExternalSalesStock || false } })} onCancelEdit={() => setEditingBranch(null)} onChange={(field, value) => setEditingBranch((current) => current && current.branchId === branch.id ? { ...current, values: { ...current.values, [field]: value } } : current)} onSave={async () => { if (!editingBranch || editingBranch.branchId !== branch.id) return; await onUpdateBranch(branch.id, editingBranch.values as any); setEditingBranch(null); }} onDelete={(currentBranch) => setDeleteConfirm({ kind: 'branch', id: currentBranch.id, name: currentBranch.name || 'هذا الفرع' })} canManageSettings={canManageSettings} isBusy={branchActionBusy} mutationError={branchActionError} setupMode={setupMode} />)}
+    <QueryCard
+      title={`الفروع (${branches.length})`}
+      className="settings-reference-card"
+      actions={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          {canManageSettings && onShowAddBranch && (
+            <Button variant="primary" onClick={onShowAddBranch} style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#0f172a' }}>
+              + إضافة فرع
+            </Button>
+          )}
+          <Button variant="secondary" onClick={() => downloadEntityListCsv('branches.csv', ['name', 'code'], branchList.map((branch) => [branch.name || '', branch.code || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+            تصدير
+          </Button>
+          <Button variant="secondary" onClick={() => printEntityList('الفروع الحالية', ['الاسم', 'الكود'], branchList.map((branch) => [branch.name || '', branch.code || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+            طباعة
+          </Button>
+        </div>
+      }
+      isLoading={branchesQuery.isLoading}
+      isError={branchesQuery.isError}
+      error={branchesQuery.error}
+      isEmpty={!branches.length}
+      loadingText="جاري تحميل الفروع الحالية..."
+      emptyTitle="لم تتم إضافة فروع بعد"
+      emptyHint="أضف فرعًا جديدًا للبدء."
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Compact Search & Filter Strip */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <input
+            value={branchSearch}
+            placeholder="بحث باسم الفرع أو الكود..."
+            onChange={(e) => setBranchSearch(e.target.value)}
+            style={{ flex: 1, minWidth: '140px', padding: '5px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', outline: 'none' }}
+          />
+
+          <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
+            {(['all', 'with-code', 'without-code'] as const).map((mode) => {
+              const label = mode === 'all' ? 'الكل' : mode === 'with-code' ? 'بكود' : 'بدون كود';
+              const active = branchFilter === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setBranchFilter(mode)}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '0.72rem',
+                    fontWeight: active ? 700 : 500,
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: active ? '#ffffff' : 'transparent',
+                    color: active ? '#0f172a' : '#64748b',
+                    cursor: 'pointer',
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {(branchSearch || branchFilter !== 'all') && (
+            <button
+              type="button"
+              onClick={resetBranchFilters}
+              style={{ fontSize: '0.72rem', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              إعادة ضبط
+            </button>
+          )}
+        </div>
+
+        {/* Branch List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '420px', overflowY: 'auto' }}>
+          {filteredCount === 0 ? (
+            <div style={{ padding: '20px 14px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>لا توجد فروع مطابقة للبحث أو الفلتر</div>
+              <button
+                type="button"
+                onClick={resetBranchFilters}
+                style={{ fontSize: '0.76rem', color: '#0369a1', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+              >
+                إظهار كل الفروع
+              </button>
+            </div>
+          ) : (
+            branchList.map((branch) => (
+              <BranchRowActions
+                key={branch.id}
+                branch={branch}
+                onStartEdit={(currentBranch) => setEditingBranch({
+                  branchId: currentBranch.id,
+                  values: {
+                    name: currentBranch.name || '',
+                    code: currentBranch.code || '',
+                    defaultStockLocationId: currentBranch.defaultStockLocationId || undefined,
+                    salesStockMode: currentBranch.salesStockMode || 'single_location',
+                    allowExternalSalesStock: currentBranch.allowExternalSalesStock || false,
+                  }
+                })}
+                onDelete={(currentBranch) => setDeleteConfirm({ kind: 'branch', id: currentBranch.id, name: currentBranch.name || 'هذا الفرع' })}
+                canManageSettings={canManageSettings}
+                isBusy={branchActionBusy}
+                setupMode={setupMode}
+              />
+            ))
+          )}
+        </div>
       </div>
     </QueryCard>
   );
@@ -62,13 +167,117 @@ export function LocationReferenceCard(props: {
   onUpdateLocation: (locationId: string, values: { name: string; code: string; branchId: string }) => Promise<void>;
   onShowAddLocation?: () => void;
 }) {
-  const { branches, locations, locationList, filteredCount, locationSearch, locationFilter, setLocationSearch, setLocationFilter, resetLocationFilters, copyVisibleLocations, locationsQuery, canManageSettings, editingLocation, setEditingLocation, setDeleteConfirm, locationActionBusy, locationActionError, onUpdateLocation, onShowAddLocation } = props;
+  const { locations, locationList, filteredCount, locationSearch, locationFilter, setLocationSearch, setLocationFilter, resetLocationFilters, locationsQuery, canManageSettings, setEditingLocation, setDeleteConfirm, locationActionBusy, onShowAddLocation } = props;
+
   return (
-    <QueryCard title="المواقع" className="settings-reference-card" description="" actions={<div className="actions compact-actions">{canManageSettings && onShowAddLocation && <Button variant="primary" onClick={onShowAddLocation}>+ إضافة مخزن</Button>}<Button variant="secondary" onClick={resetLocationFilters}>إعادة الضبط</Button><Button variant="secondary" onClick={() => void copyVisibleLocations()}>نسخ</Button><Button variant="secondary" onClick={() => downloadEntityListCsv('locations.csv', ['name', 'code', 'branch'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))}>تصدير Excel</Button><Button variant="secondary" onClick={() => printEntityList('المخازن الحالية', ['الاسم', 'الكود', 'الفرع'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))}>طباعة</Button></div>} isLoading={locationsQuery.isLoading} isError={locationsQuery.isError} error={locationsQuery.error} isEmpty={!filteredCount} loadingText="جاري تحميل المخازن..." emptyTitle="لا توجد مخازن مطابقة" emptyHint="جرّب تغيير البحث أو الفلترة أو أضف مخزنًا جديدًا.">
-      <ReferenceSearchToolbar search={locationSearch} onSearchChange={setLocationSearch} title="بحث المخازن" searchPlaceholder="ابحث باسم المخزن أو الكود أو الفرع" countLabel={`${filteredCount} نتيجة`} metaItems={[`إجمالي المخازن: ${locations.length}`, `مرتبطة بفرع: ${locations.filter((location) => Boolean(location.branchName)).length}`, `الفلتر: ${locationFilter === 'all' ? 'الكل' : locationFilter === 'with-branch' ? 'بفرع' : 'بدون فرع'}`]} filterValue={locationFilter} filterOptions={[['all', 'الكل'], ['with-branch', 'بفرع'], ['without-branch', 'بدون فرع']]} onFilterChange={(value) => setLocationFilter(value as 'all' | 'with-branch' | 'without-branch')} onReset={resetLocationFilters} />
-      <ReferenceStats items={[[ 'النتائج', filteredCount ], [ 'بفرع', locations.filter((location) => Boolean(location.branchName)).length ], [ 'بدون فرع', locations.filter((location) => !location.branchName).length ]]} />
-      <div className="list-stack">
-        {locationList.map((location) => <LocationRowActions key={location.id} location={location} branches={branches} isEditing={editingLocation?.locationId === location.id} onStartEdit={(currentLocation) => setEditingLocation({ locationId: currentLocation.id, values: { name: currentLocation.name || '', code: currentLocation.code || '', branchId: currentLocation.branchId || '', locationType: currentLocation.locationType || 'internal_warehouse' } })} onCancelEdit={() => setEditingLocation(null)} onChange={(field, value) => setEditingLocation((current) => current && current.locationId === location.id ? { ...current, values: { ...current.values, [field]: value } } : current)} onSave={async () => { if (!editingLocation || editingLocation.locationId !== location.id) return; await onUpdateLocation(location.id, editingLocation.values as any); setEditingLocation(null); }} onDelete={(currentLocation) => setDeleteConfirm({ kind: 'location', id: currentLocation.id, name: currentLocation.name || 'هذا المخزن' })} canManageSettings={canManageSettings} isBusy={locationActionBusy} mutationError={locationActionError} />)}
+    <QueryCard
+      title={`المخازن والمواقع (${locations.length})`}
+      className="settings-reference-card"
+      actions={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          {canManageSettings && onShowAddLocation && (
+            <Button variant="primary" onClick={onShowAddLocation} style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#0f172a' }}>
+              + إضافة مخزن
+            </Button>
+          )}
+          <Button variant="secondary" onClick={() => downloadEntityListCsv('locations.csv', ['name', 'code', 'branch'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+            تصدير
+          </Button>
+          <Button variant="secondary" onClick={() => printEntityList('المخازن الحالية', ['الاسم', 'الكود', 'الفرع'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+            طباعة
+          </Button>
+        </div>
+      }
+      isLoading={locationsQuery.isLoading}
+      isError={locationsQuery.isError}
+      error={locationsQuery.error}
+      isEmpty={!locations.length}
+      loadingText="جاري تحميل المخازن..."
+      emptyTitle="لم تتم إضافة مخازن بعد"
+      emptyHint="أضف مخزنًا جديدًا للبدء."
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Compact Search & Filter Strip */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <input
+            value={locationSearch}
+            placeholder="بحث باسم المخزن أو الكود أو الفرع..."
+            onChange={(e) => setLocationSearch(e.target.value)}
+            style={{ flex: 1, minWidth: '140px', padding: '5px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', outline: 'none' }}
+          />
+
+          <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
+            {(['all', 'with-branch', 'without-branch'] as const).map((mode) => {
+              const label = mode === 'all' ? 'الكل' : mode === 'with-branch' ? 'بفرع' : 'بدون فرع';
+              const active = locationFilter === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setLocationFilter(mode)}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '0.72rem',
+                    fontWeight: active ? 700 : 500,
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: active ? '#ffffff' : 'transparent',
+                    color: active ? '#0f172a' : '#64748b',
+                    cursor: 'pointer',
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {(locationSearch || locationFilter !== 'all') && (
+            <button
+              type="button"
+              onClick={resetLocationFilters}
+              style={{ fontSize: '0.72rem', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              إعادة ضبط
+            </button>
+          )}
+        </div>
+
+        {/* Location List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '420px', overflowY: 'auto' }}>
+          {filteredCount === 0 ? (
+            <div style={{ padding: '20px 14px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>لا توجد مخازن مطابقة للبحث أو الفلتر</div>
+              <button
+                type="button"
+                onClick={resetLocationFilters}
+                style={{ fontSize: '0.76rem', color: '#0369a1', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+              >
+                إظهار كل المخازن
+              </button>
+            </div>
+          ) : (
+            locationList.map((location) => (
+              <LocationRowActions
+                key={location.id}
+                location={location}
+                onStartEdit={(currentLocation) => setEditingLocation({
+                  locationId: currentLocation.id,
+                  values: {
+                    name: currentLocation.name || '',
+                    code: currentLocation.code || '',
+                    branchId: currentLocation.branchId || '',
+                    locationType: currentLocation.locationType || 'internal_warehouse',
+                  }
+                })}
+                onDelete={(currentLocation) => setDeleteConfirm({ kind: 'location', id: currentLocation.id, name: currentLocation.name || 'هذا المخزن' })}
+                canManageSettings={canManageSettings}
+                isBusy={locationActionBusy}
+              />
+            ))
+          )}
+        </div>
       </div>
     </QueryCard>
   );

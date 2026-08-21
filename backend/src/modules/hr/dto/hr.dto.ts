@@ -471,6 +471,14 @@ export class UpsertAttendanceRecordDto {
 
   @IsOptional()
   @IsString()
+  mode?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  allowRecheckin?: boolean;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(1000)
   notes?: string;
 }

@@ -1,10 +1,9 @@
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { Branch, Location } from '@/types/domain';
-import { FormSection } from '@/shared/components/form-section';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
-import { BrandPreview, readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboCreateStyle } from '@/features/settings/components/forms/settings-forms.shared';
+import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboCreateStyle } from '@/features/settings/components/forms/settings-forms.shared';
 
 interface GeneralTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -76,282 +75,509 @@ export function GeneralSettingsTab({
   locations = [],
   onUpdateBranch,
 }: GeneralTabProps) {
+  const storeName = form.watch('storeName');
+  const brandName = form.watch('brandName');
+  const accentColor = form.watch('accentColor') || '#170c5c';
+  const logoData = form.watch('logoData');
 
+  if (activeTab !== 'general') return null;
 
   return (
-    <div style={{ display: activeTab === 'general' ? 'block' : 'none' }}>
-          {/* معاينة الهوية التجارية */}
-          <FormSection title="الهوية التجارية">
-            <BrandPreview form={form} />
-          </FormSection>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Top 2-Column Balanced Dashboard */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' }}>
+        
+        {/* Card 1: الهوية وبيانات النشاط (Store Identity & Basic Info) */}
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '16px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+            <div>
+              <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+                الهوية وبيانات النشاط
+              </strong>
+              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>الاسم والشعار وبيانات التواصل المطبوعة</span>
+            </div>
+            <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
+              الهوية
+            </span>
+          </div>
 
-        {/* ===== اللغة والمنطقة ===== */}
-        <FormSection title="اللغة والمنطقة" description={<>اضبط لغة الواجهة والعملة والمنطقة الزمنية المستخدمة في شاشة النظام والتقارير.</>}>
-          <div className="document-prototype-grid compact-grid-2">
-            <div className="field">
-              <label>لغة النظام</label>
-              <select className="purchase-prototype-field-input" {...form.register('uiLanguage')} disabled={disabled}>
-                <option value="ar">العربية</option>
-                <option value="en" disabled>English (قريباً)</option>
-              </select>
+          {/* Interactive Logo & Brand Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '10px 14px',
+          }}>
+            {/* Logo Preview box */}
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '8px',
+              border: `2px solid ${accentColor}`,
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}>
+              {logoData ? (
+                <img src={logoData} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                <span style={{ fontSize: '1.4rem', fontWeight: 900, color: accentColor }}>
+                  {(storeName || brandName || 'Z').slice(0, 1).toUpperCase()}
+                </span>
+              )}
             </div>
-            <div className="field">
-              <label>العملة</label>
-              <select className="purchase-prototype-field-input" {...form.register('currency')} disabled={disabled}>
-                {SUPPORTED_CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>المنطقة الزمنية</label>
-              <select className="purchase-prototype-field-input" {...form.register('timezone')} disabled={disabled}>
-                <option value="Africa/Cairo">Africa/Cairo</option>
-                <option value="Asia/Riyadh">Asia/Riyadh</option>
-                <option value="Asia/Dubai">Asia/Dubai</option>
-                <option value="UTC">UTC</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>صيغة التاريخ</label>
-              <select className="purchase-prototype-field-input" {...form.register('dateFormat')} disabled={disabled}>
-                <option value="yyyy-MM-dd">2026-06-07</option>
-                <option value="dd/MM/yyyy">07/06/2026</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>صيغة الوقت</label>
-              <select className="purchase-prototype-field-input" {...form.register('timeFormat')} disabled={disabled}>
-                <option value="24h">24 ساعة</option>
-                <option value="12h">12 ساعة</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>رابط إرسال الواتساب</label>
-              <select className="purchase-prototype-field-input" {...form.register('whatsappLinkMode')} disabled={disabled}>
-                <option value="wa_me">افتراضي (يسأل المستخدم)</option>
-                <option value="web">واتساب ويب مباشرة</option>
-                <option value="app">تطبيق الواتساب مباشرة</option>
-              </select>
-              <div className="muted small" style={{ marginTop: 4 }}>اختر الطريقة الأسرع لك عند إرسال الرسائل.</div>
+
+            {/* Brand details + upload trigger */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {storeName || 'اسم النشاط / المتجر'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                {brandName || 'Z Systems'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <label style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '5px',
+                  padding: '2px 8px',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                }}>
+                  {logoData ? 'تغيير الشعار' : 'رفع شعار'}
+                  <input
+                    type="file"
+                    style={{ display: 'none' }}
+                    accept="image/*"
+                    disabled={disabled}
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        form.setValue('logoData', await readFileAsDataUrl(file), { shouldDirty: true, shouldValidate: true });
+                      } finally {
+                        event.currentTarget.value = '';
+                      }
+                    }}
+                  />
+                </label>
+
+                {logoData && (
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => form.setValue('logoData', '', { shouldDirty: true, shouldValidate: true })}
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      color: '#b91c1c',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '2px 6px',
+                    }}
+                  >
+                    حذف
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </FormSection>
 
-        {/* ===== الإعدادات المطلوبة ===== */}
-        <FormSection title="الإعدادات المطلوبة للتشغيل" description={<>
-            أكمل هذه البيانات أولًا حتى تعمل المبيعات والمخزون والقيود بشكل صحيح. الحقول المميزة بـ <span style={{ color: '#dc2626', fontWeight: 700 }}>*</span> مطلوبة.
-          </>}>
-          <div className="document-prototype-grid compact-grid-2">
+          {/* Form Fields */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <RequiredField label="اسم النشاط / المتجر" error={form.formState.errors.storeName?.message}>
-              <input className="purchase-prototype-field-input" {...form.register('storeName')} disabled={disabled} />
+              <input
+                className="purchase-prototype-field-input"
+                placeholder="مثال: محلات رجب العطار"
+                {...form.register('storeName')}
+                disabled={disabled}
+                style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              />
             </RequiredField>
 
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div className="field">
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>الهاتف</label>
+                <input
+                  className="purchase-prototype-field-input"
+                  placeholder="010xxxxxxxx"
+                  {...form.register('phone')}
+                  disabled={disabled}
+                  style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+
+              <div className="field">
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>العنوان</label>
+                <input
+                  className="purchase-prototype-field-input"
+                  placeholder="المدينة - الشارع"
+                  {...form.register('address')}
+                  disabled={disabled}
+                  style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+            </div>
+
+            {/* Color Selection Inline */}
+            <div className="field">
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>لون الواجهة المخصص</label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => form.setValue('accentColor', e.target.value, { shouldDirty: true })}
+                  disabled={disabled}
+                  style={{ width: '38px', height: '36px', padding: '2px', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  placeholder="#170c5c"
+                  {...form.register('accentColor')}
+                  disabled={disabled}
+                  style={{ flex: 1, padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', direction: 'ltr' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => form.setValue('accentColor', '#170c5c', { shouldDirty: true })}
+                  disabled={disabled}
+                  style={{ padding: '7px 10px', fontSize: '0.75rem', fontWeight: 600, borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  الافتراضي
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: إعدادات التشغيل والفرع والمخزون (Store Operations & Stock) */}
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '16px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+            <div>
+              <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+                إعدادات التشغيل والمخزون
+              </strong>
+              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>الفرع الرئيسي ومخازن ونمط الكاشير</span>
+            </div>
+            <span style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '4px', border: '1px solid #a7f3d0', fontWeight: 600 }}>
+              التشغيل
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Branch Selector */}
             {SINGLE_STORE_MODE ? (
-              <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
-                <input className="purchase-prototype-field-input" value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ بيانات النشاط الرئيسي'} disabled readOnly />
-              </RequiredField>
-            ) : (
               <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
                 <input
                   className="purchase-prototype-field-input"
-                  value={branchQuery}
-                  placeholder="ابحث أو اكتب اسم فرع جديد لإضافته"
-                  disabled={disabled}
-                  onFocus={() => setBranchMenuOpen(true)}
-                  onChange={(event) => {
-                    setBranchQuery(event.target.value);
-                    setBranchMenuOpen(true);
-                    form.clearErrors('currentBranchId');
-                    form.clearErrors('currentLocationId');
-                    form.clearErrors('root.serverError');
-                  }}
-                  onBlur={() => {
-                    window.setTimeout(() => setBranchMenuOpen(false), 120);
-                  }}
+                  value={selectedBranch?.name || 'سيتم الربط تلقائيًا بعد حفظ بيانات النشاط الرئيسي'}
+                  disabled
+                  readOnly
+                  style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
                 />
-                {branchMenuOpen && branchMenuHasContent ? (
-                  <div style={comboListStyle}>
-                    {filteredBranches.map((branch) => (
-                      <button
-                        key={branch.id}
-                        type="button"
-                        style={comboRowStyle}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          commitSelectedBranch(String(branch.id), String(branch.name || ''));
-                        }}
-                      >
-                        {branch.name}
-                      </button>
-                    ))}
-                    {branchCreateOptionVisible ? (
-                      <button
-                        type="button"
-                        style={comboCreateStyle}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          setBranchPrefillName(branchQuery.trim());
-                          setShowBranchQuickAdd(true);
-                          setBranchMenuOpen(false);
-                        }}
-                      >
-                        + إضافة فرع جديد: &quot;{branchQuery.trim()}&quot;
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
+              </RequiredField>
+            ) : (
+              <RequiredField label="الفرع الرئيسي" error={form.formState.errors.currentBranchId?.message}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="purchase-prototype-field-input"
+                    value={branchQuery}
+                    placeholder="ابحث أو اكتب اسم فرع جديد لإضافته"
+                    disabled={disabled}
+                    onFocus={() => setBranchMenuOpen(true)}
+                    onChange={(event) => {
+                      setBranchQuery(event.target.value);
+                      setBranchMenuOpen(true);
+                      form.clearErrors('currentBranchId');
+                      form.clearErrors('currentLocationId');
+                      form.clearErrors('root.serverError');
+                    }}
+                    onBlur={() => {
+                      window.setTimeout(() => setBranchMenuOpen(false), 120);
+                    }}
+                    style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%', boxSizing: 'border-box' }}
+                  />
+                  {branchMenuOpen && branchMenuHasContent ? (
+                    <div style={{ ...comboListStyle, position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20 }}>
+                      {filteredBranches.map((branch) => (
+                        <button
+                          key={branch.id}
+                          type="button"
+                          style={comboRowStyle}
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            commitSelectedBranch(String(branch.id), String(branch.name || ''));
+                          }}
+                        >
+                          {branch.name}
+                        </button>
+                      ))}
+                      {branchCreateOptionVisible ? (
+                        <button
+                          type="button"
+                          style={comboCreateStyle}
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            setBranchPrefillName(branchQuery.trim());
+                            setShowBranchQuickAdd(true);
+                            setBranchMenuOpen(false);
+                          }}
+                        >
+                          + إضافة فرع جديد: &quot;{branchQuery.trim()}&quot;
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </RequiredField>
             )}
 
-            <RequiredField label="مكان الاستلام الافتراضي" error={form.formState.errors.currentLocationId?.message}>
-              {visibleLocations.length === 0 ? (
-                <div style={{ padding: '10px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.875rem' }}>
-                  لا توجد أماكن مخزون متاحة. أنشئ مكان مخزون أولاً من صفحة أماكن المخزون.
-                </div>
-              ) : (
-                <select className="purchase-prototype-field-input" {...form.register('currentLocationId')} disabled={disabled}>
-                  <option value="">-- اختر مكان الاستلام الافتراضي --</option>
-                  {visibleLocations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                  ))}
-                </select>
-              )}
-              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>يُستخدم فقط عند عدم تحديد مكان للصنف أو للسطر.</div>
-            </RequiredField>
+            {/* Receiving Location & Cashier Mode Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <RequiredField label="مكان الاستلام الافتراضي" error={form.formState.errors.currentLocationId?.message}>
+                {visibleLocations.length === 0 ? (
+                  <div style={{ padding: '6px 8px', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.78rem' }}>
+                    لا توجد أماكن مخزون.
+                  </div>
+                ) : (
+                  <select
+                    className="purchase-prototype-field-input"
+                    {...form.register('currentLocationId')}
+                    disabled={disabled}
+                    style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  >
+                    <option value="">-- اختر المخزن --</option>
+                    {visibleLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>{loc.name}</option>
+                    ))}
+                  </select>
+                )}
+              </RequiredField>
 
-            <RequiredField label="نمط الكاشير الافتراضي">
-              <select className="purchase-prototype-field-input" {...form.register('defaultPosMode')} disabled={disabled}>
-                <option value="scanner">سكانر</option>
-                <option value="touch">تاتش</option>
-              </select>
-            </RequiredField>
-          </div>
-        </FormSection>
-
-        {/* ===== مصدر مخزون البيع ===== */}
-        {selectedBranch && onUpdateBranch && (
-          <FormSection title="مصدر مخزون البيع" description={`إعدادات مخزون البيع للفرع: ${selectedBranch.name}`}>
-            <div className="document-prototype-grid compact-grid-2">
               <div className="field">
-                <label>مصدر المخزون</label>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>نمط الكاشير الافتراضي</label>
                 <select
                   className="purchase-prototype-field-input"
-                  value={stockMode}
-                  disabled={!canManageSettings || branchStockSaving}
-                  onChange={(e) => { setStockMode(e.target.value as any); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                  {...form.register('defaultPosMode')}
+                  disabled={disabled}
+                  style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                 >
-                  <option value="single_location">مخزن محدد</option>
-                  <option value="all_operational_locations">كل المخازن التشغيلية</option>
+                  <option value="scanner">سكانر باركود</option>
+                  <option value="touch">لمس (تاتش)</option>
                 </select>
               </div>
-              <div className="field">
-                <label>مخزن البيع الأساسي</label>
-                <select
-                  className="purchase-prototype-field-input"
-                  value={defaultStockLocationId}
-                  disabled={!canManageSettings || branchStockSaving}
-                  onChange={(e) => { setDefaultStockLocationId(e.target.value); setBranchStockDirty(true); setBranchStockSaved(false); }}
-                >
-                  <option value="">-- غير محدد --</option>
-                  {locations.filter((loc) => !loc.branchId || loc.branchId === selectedBranch.id).map((loc) => (
-                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                  ))}
-                </select>
-              </div>
-              {stockMode === 'all_operational_locations' && (
-                <div className="field" style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: canManageSettings ? 'pointer' : 'default' }}>
-                    <input
-                      type="checkbox"
-                      checked={allowExternalSalesStock}
-                      disabled={!canManageSettings || branchStockSaving}
-                      onChange={(e) => { setAllowExternalSalesStock(e.target.checked); setBranchStockDirty(true); setBranchStockSaved(false); }}
-                    />
-                    السماح بالبيع من المخازن الخارجية
-                  </label>
-                </div>
-              )}
             </div>
-            {branchStockDirty && canManageSettings && (
-              <div className="actions compact-actions" style={{ marginTop: 12 }}>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={branchStockSaving}
-                  onClick={async () => {
-                    if (!selectedBranch) return;
-                    setBranchStockSaving(true);
-                    setBranchStockError(null);
-                    try {
-                      await onUpdateBranch(selectedBranch.id, {
-                        name: selectedBranch.name || '',
-                        code: selectedBranch.code || '',
-                        defaultStockLocationId: defaultStockLocationId || undefined,
-                        salesStockMode: stockMode,
-                        allowExternalSalesStock,
-                      });
-                      setBranchStockSaved(true);
-                      setBranchStockDirty(false);
-                    } catch {
-                      setBranchStockError('تعذر حفظ إعدادات المخزون.');
-                    } finally {
-                      setBranchStockSaving(false);
-                    }
-                  }}
-                >
-                  {branchStockSaving ? 'جارٍ الحفظ...' : 'حفظ إعدادات المخزون'}
-                </button>
+
+            {/* Sales Stock Source (Branch-level stock settings) */}
+            {selectedBranch && onUpdateBranch && (
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                marginTop: '4px',
+              }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
+                  مصدر مخزون البيع للفرع ({selectedBranch.name})
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>نطاق المخزون</label>
+                    <select
+                      value={stockMode}
+                      disabled={!canManageSettings || branchStockSaving}
+                      onChange={(e) => { setStockMode(e.target.value as any); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                      style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
+                    >
+                      <option value="single_location">مخزن محدد</option>
+                      <option value="all_operational_locations">كل المخازن التشغيلية</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>مخزن البيع الأساسي</label>
+                    <select
+                      value={defaultStockLocationId}
+                      disabled={!canManageSettings || branchStockSaving}
+                      onChange={(e) => { setDefaultStockLocationId(e.target.value); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                      style={{ width: '100%', padding: '6px 8px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff' }}
+                    >
+                      <option value="">-- غير محدد --</option>
+                      {locations.filter((loc) => !loc.branchId || loc.branchId === selectedBranch.id).map((loc) => (
+                        <option key={loc.id} value={loc.id}>{loc.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {stockMode === 'all_operational_locations' && (
+                  <div style={{ marginTop: '6px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#334155', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={allowExternalSalesStock}
+                        disabled={!canManageSettings || branchStockSaving}
+                        onChange={(e) => { setAllowExternalSalesStock(e.target.checked); setBranchStockDirty(true); setBranchStockSaved(false); }}
+                      />
+                      السماح بالبيع من المخازن الخارجية
+                    </label>
+                  </div>
+                )}
+
+                {branchStockDirty && canManageSettings && (
+                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      disabled={branchStockSaving}
+                      onClick={async () => {
+                        if (!selectedBranch) return;
+                        setBranchStockSaving(true);
+                        setBranchStockError(null);
+                        try {
+                          await onUpdateBranch(selectedBranch.id, {
+                            name: selectedBranch.name || '',
+                            code: selectedBranch.code || '',
+                            defaultStockLocationId: defaultStockLocationId || undefined,
+                            salesStockMode: stockMode,
+                            allowExternalSalesStock,
+                          });
+                          setBranchStockSaved(true);
+                          setBranchStockDirty(false);
+                        } catch {
+                          setBranchStockError('تعذر حفظ إعدادات المخزون.');
+                        } finally {
+                          setBranchStockSaving(false);
+                        }
+                      }}
+                      style={{
+                        padding: '5px 12px',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        background: '#0f172a',
+                        color: '#ffffff',
+                        border: 'none',
+                        cursor: branchStockSaving ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {branchStockSaving ? 'جارٍ الحفظ...' : 'حفظ إعدادات مخزون الفرع'}
+                    </button>
+                  </div>
+                )}
+
+                {branchStockSaved && <div style={{ color: '#16a34a', marginTop: '4px', fontSize: '0.75rem', fontWeight: 600 }}>✓ تم حفظ إعدادات مخزون البيع بنجاح.</div>}
+                {branchStockError && <div style={{ color: '#dc2626', marginTop: '4px', fontSize: '0.75rem', fontWeight: 600 }}>{branchStockError}</div>}
               </div>
             )}
-            {branchStockSaved && <div style={{ color: '#16a34a', marginTop: 8, fontSize: '0.875rem' }}>✓ تم حفظ إعدادات مخزون البيع بنجاح.</div>}
-            {branchStockError && <div style={{ color: '#dc2626', marginTop: 8, fontSize: '0.875rem' }}>{branchStockError}</div>}
-          </FormSection>
-        )}
-
-        {/* ===== بيانات النشاط ===== */}
-        <FormSection title="بيانات النشاط">
-          <div className="document-prototype-grid compact-grid-2">
-
-            <div className="field">
-              <label>الهاتف</label>
-              <input className="purchase-prototype-field-input" {...form.register('phone')} disabled={disabled} />
-            </div>
-            <div className="field">
-              <label>العنوان</label>
-              <input className="purchase-prototype-field-input" {...form.register('address')} disabled={disabled} />
-            </div>
-            <div className="field">
-              <label>رفع الشعار</label>
-              <input
-                className="purchase-prototype-field-input"
-                style={{ paddingTop: 8 }}
-                type="file"
-                accept="image/*"
-                disabled={disabled}
-                onChange={async (event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  try {
-                    form.setValue('logoData', await readFileAsDataUrl(file), { shouldDirty: true, shouldValidate: true });
-                  } finally {
-                    event.currentTarget.value = '';
-                  }
-                }}
-              />
-            </div>
-            <div className="field">
-              <label>لون الواجهة</label>
-              <div
-                style={{
-                  display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input className="purchase-prototype-field-input" style={{ height: 42, padding: 4, flexShrink: 0, width: '60px' }} type="color" value={form.watch('accentColor') || '#170c5c'} onChange={(e) => form.setValue('accentColor', e.target.value, { shouldDirty: true })} disabled={disabled} />
-                <input className="purchase-prototype-field-input" style={{ height: 42, fontFamily: 'monospace', direction: 'ltr' }} type="text" placeholder="#170c5c" {...form.register('accentColor')} disabled={disabled} />
-                <button type="button" className="btn-secondary" style={{ height: 42, whiteSpace: 'nowrap' }} onClick={() => form.setValue('accentColor', '#170c5c', { shouldDirty: true })} disabled={disabled}>اللون الافتراضي</button>
-              </div>
-            </div>
           </div>
-        </FormSection>
         </div>
+      </div>
+
+      {/* Card 3: التفضيلات والمنطقة والتواصل (Regional & Preferences) */}
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '16px 18px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+          <div>
+            <strong style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+              اللغة والمنطقة والتواصل
+            </strong>
+            <span style={{ fontSize: '0.76rem', color: '#64748b' }}>العملة، التوقيت، وتنسيق التواريخ والواتساب</span>
+          </div>
+          <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
+            التفضيلات
+          </span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          <div className="field">
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>لغة النظام</label>
+            <select className="purchase-prototype-field-input" {...form.register('uiLanguage')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
+              <option value="ar">العربية</option>
+              <option value="en" disabled>English (قريباً)</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>العملة</label>
+            <select className="purchase-prototype-field-input" {...form.register('currency')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
+              {SUPPORTED_CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>المنطقة الزمنية</label>
+            <select className="purchase-prototype-field-input" {...form.register('timezone')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
+              <option value="Africa/Cairo">Africa/Cairo</option>
+              <option value="Asia/Riyadh">Asia/Riyadh</option>
+              <option value="Asia/Dubai">Asia/Dubai</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>صيغة التاريخ</label>
+            <select className="purchase-prototype-field-input" {...form.register('dateFormat')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
+              <option value="yyyy-MM-dd">2026-06-07 (ISO)</option>
+              <option value="dd/MM/yyyy">07/06/2026</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>صيغة الوقت</label>
+            <select className="purchase-prototype-field-input" {...form.register('timeFormat')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
+              <option value="24h">24 ساعة</option>
+              <option value="12h">12 ساعة (ص/م)</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>رابط إرسال الواتساب</label>
+            <select className="purchase-prototype-field-input" {...form.register('whatsappLinkMode')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
+              <option value="wa_me">افتراضي (يسأل المستخدم)</option>
+              <option value="web">واتساب ويب مباشرة</option>
+              <option value="app">تطبيق الواتساب مباشرة</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
