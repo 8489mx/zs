@@ -72,12 +72,25 @@ export function DashboardExecutiveHero({
 
   const userGreetingPart = formattedUserName ? ` يا ${formattedUserName}` : '';
 
-  // Compute time-based greeting
+  // Compute time-based greeting (طابع البركة والرزق للتجار)
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return { text: `صباح الخير والبركة${userGreetingPart}`, sub: 'نتمنى لك يوماً تجارياً مباركاً وموفقاً' };
-    if (hour >= 12 && hour < 17) return { text: `طاب يومك بكل خير${userGreetingPart}`, sub: 'متابعة حية ومستمرة لعمليات متجرك اليوم' };
-    return { text: `مساء الخير والازدهار${userGreetingPart}`, sub: 'إليك ملخص أداء النظام والنتائج المحققة اليوم' };
+    if (hour >= 5 && hour < 12) {
+      return {
+        text: `صباح الرزق والبركة${userGreetingPart}`,
+        sub: 'يا فتاح يا عليم.. يوم موفق وتجارة رابحة بإذن الله',
+      };
+    }
+    if (hour >= 12 && hour < 17) {
+      return {
+        text: `طاب يومك ورزقك${userGreetingPart}`,
+        sub: 'متابعة حية ومباشرة لحركة البيع والشغل على مدار اليوم',
+      };
+    }
+    return {
+      text: `مساء الخير والخيرات${userGreetingPart}`,
+      sub: 'ملخص حسابات وأرباح اليوم والنتائج المحققة',
+    };
   }, [userGreetingPart]);
 
   // Formatted date
@@ -170,17 +183,17 @@ export function DashboardExecutiveHero({
       aria-label="الموجز التنفيذي التفاعلي"
     >
       {/* High-Tech Subtle Dot Grid for Depth */}
-      {isDark && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: isDark
+            ? 'radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px)'
+            : 'radial-gradient(rgba(15, 23, 42, 0.045) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Ambient background glows */}
       <div
@@ -286,13 +299,15 @@ export function DashboardExecutiveHero({
           <div
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
               backdropFilter: 'blur(12px)',
               padding: '8px 14px',
               borderRadius: '10px',
               textAlign: 'center',
               minWidth: '110px',
-              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              boxShadow: isDark
+                ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)'
+                : '0 2px 6px -1px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
               transition: 'all 0.2s ease',
             }}
           >
@@ -311,13 +326,15 @@ export function DashboardExecutiveHero({
           <div
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
               backdropFilter: 'blur(12px)',
               padding: '8px 14px',
               borderRadius: '10px',
               textAlign: 'center',
               minWidth: '95px',
-              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              boxShadow: isDark
+                ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)'
+                : '0 2px 6px -1px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
               transition: 'all 0.2s ease',
             }}
           >
@@ -336,13 +353,15 @@ export function DashboardExecutiveHero({
           <div
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
               backdropFilter: 'blur(12px)',
               padding: '8px 14px',
               borderRadius: '10px',
               textAlign: 'center',
               minWidth: '115px',
-              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              boxShadow: isDark
+                ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)'
+                : '0 2px 6px -1px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
               transition: 'all 0.2s ease',
             }}
           >
@@ -382,13 +401,15 @@ export function DashboardExecutiveHero({
           <div
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
               backdropFilter: 'blur(12px)',
               padding: '8px 14px',
               borderRadius: '10px',
               textAlign: 'center',
               minWidth: '105px',
-              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              boxShadow: isDark
+                ? '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)'
+                : '0 2px 6px -1px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)',
               transition: 'all 0.2s ease',
             }}
           >

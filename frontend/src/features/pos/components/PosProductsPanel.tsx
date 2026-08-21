@@ -31,7 +31,17 @@ interface PosProductsPanelProps {
 }
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
+const cardDensityStorageKey = 'pos-card-density-preference-v1';
 const touchModeVisibleStep = 60;
+
+function readCardDensityPreference(): 'comfortable' | 'compact' {
+  if (typeof window === 'undefined') return 'comfortable';
+  try {
+    const val = window.localStorage.getItem(cardDensityStorageKey);
+    if (val === 'compact' || val === 'comfortable') return val;
+  } catch {}
+  return 'comfortable';
+}
 
 function readFavoriteKeys() {
   if (typeof window === 'undefined') return [] as string[];
@@ -220,7 +230,20 @@ function PosProductsPanelComponent({
   const [favoriteKeys, setFavoriteKeys] = useState<string[]>(readFavoriteKeys);
   const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
   const [touchVisibleCount, setTouchVisibleCount] = useState(touchModeVisibleStep);
+  const [cardDensity, setCardDensity] = useState<'comfortable' | 'compact'>(readCardDensityPreference);
   const groupRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  
+  const toggleCardDensity = () => {
+    setCardDensity((prev) => {
+      const next = prev === 'comfortable' ? 'compact' : 'comfortable';
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(cardDensityStorageKey, next);
+        } catch {}
+      }
+      return next;
+    });
+  };
   
   const { data: categories = [] } = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -414,17 +437,41 @@ function PosProductsPanelComponent({
             </div>
 
             <div className="pos-price-toggle-container" style={{ width: '100%' }}>
-              <div className="pos-price-toggle-buttons" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div className="pos-price-toggle-buttons" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '4px' }}>
                 <button
                   type="button"
-                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: priceType === 'retail' ? 'bold' : 'normal', borderRadius: '8px', border: 'none', background: priceType === 'retail' ? 'var(--primary, #170c5c)' : 'transparent', color: priceType === 'retail' ? '#ffffff' : '#64748b', boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: priceType === 'retail' ? '#0f172a' : 'transparent',
+                    color: priceType === 'retail' ? '#ffffff' : '#475569',
+                    boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
                   onClick={() => onPriceTypeChange('retail')}
                 >
                   سعر القطاعي
                 </button>
                 <button
                   type="button"
-                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: priceType === 'wholesale' ? 'bold' : 'normal', borderRadius: '8px', border: 'none', background: priceType === 'wholesale' ? '#b91c1c' : 'transparent', color: priceType === 'wholesale' ? '#ffffff' : '#64748b', boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: priceType === 'wholesale' ? '#dc2626' : 'transparent',
+                    color: priceType === 'wholesale' ? '#ffffff' : '#475569',
+                    boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(220,38,38,0.3)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
                   onClick={() => onPriceTypeChange('wholesale')}
                 >
                   سعر الجملة
@@ -436,14 +483,25 @@ function PosProductsPanelComponent({
         </div>
 
         {categories.length > 0 && (
-          <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '8px', marginTop: '12px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
+          <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '6px', marginTop: '10px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
             <button
               type="button"
               onClick={() => {
                 setSelectedCategoryId(null);
                 setSelectedIndex(0);
               }}
-              style={{ padding: '6px 14px', fontSize: '14px', borderRadius: '8px', border: selectedCategoryId === null ? '1px solid #0f172a' : '1px solid #cbd5e1', background: selectedCategoryId === null ? '#0f172a' : '#ffffff', color: selectedCategoryId === null ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s', fontWeight: '500' }}
+              style={{
+                padding: '6px 14px',
+                fontSize: '13px',
+                borderRadius: '8px',
+                border: selectedCategoryId === null ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                background: selectedCategoryId === null ? '#0f172a' : '#ffffff',
+                color: selectedCategoryId === null ? '#ffffff' : '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: selectedCategoryId === null ? 'bold' : '600',
+                transition: 'all 0.15s ease',
+              }}
             >
               كل الأقسام
             </button>
@@ -455,7 +513,18 @@ function PosProductsPanelComponent({
                   setSelectedCategoryId(cat.id);
                   setSelectedIndex(0);
                 }}
-                style={{ padding: '6px 14px', fontSize: '14px', borderRadius: '8px', border: selectedCategoryId === String(cat.id) ? '1px solid #0f172a' : '1px solid #cbd5e1', background: selectedCategoryId === String(cat.id) ? '#0f172a' : '#ffffff', color: selectedCategoryId === String(cat.id) ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s', fontWeight: '500' }}
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '13px',
+                  borderRadius: '8px',
+                  border: selectedCategoryId === String(cat.id) ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                  background: selectedCategoryId === String(cat.id) ? '#0f172a' : '#ffffff',
+                  color: selectedCategoryId === String(cat.id) ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontWeight: selectedCategoryId === String(cat.id) ? 'bold' : '600',
+                  transition: 'all 0.15s ease',
+                }}
               >
                 {cat.name}
               </button>
@@ -463,7 +532,7 @@ function PosProductsPanelComponent({
           </div>
         )}
 
-        <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '8px', marginTop: '8px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
+        <div className="filter-chip-row pos-filter-row-compact pos-filter-row-single" style={{ gap: '6px', marginTop: '6px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
           <button
             type="button"
             onClick={() => {
@@ -471,21 +540,132 @@ function PosProductsPanelComponent({
               onProductFilterChange('all');
               setSelectedIndex(0);
             }}
-            style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: shelf === 'all' && productFilter === 'all' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'all' && productFilter === 'all' ? '#0f172a' : '#ffffff', color: shelf === 'all' && productFilter === 'all' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
+            style={{
+              padding: '5px 12px',
+              fontSize: '12px',
+              borderRadius: '7px',
+              border: shelf === 'all' && productFilter === 'all' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+              background: shelf === 'all' && productFilter === 'all' ? '#0f172a' : '#ffffff',
+              color: shelf === 'all' && productFilter === 'all' ? '#ffffff' : '#334155',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontWeight: shelf === 'all' && productFilter === 'all' ? 'bold' : '500',
+              transition: 'all 0.15s ease',
+            }}
           >
             الكل
           </button>
-          <button type="button" onClick={() => { setShelf('favorites'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: shelf === 'favorites' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'favorites' ? '#0f172a' : '#ffffff', color: shelf === 'favorites' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setShelf('favorites');
+              onProductFilterChange('all');
+              setSelectedIndex(0);
+            }}
+            style={{
+              padding: '5px 12px',
+              fontSize: '12px',
+              borderRadius: '7px',
+              border: shelf === 'favorites' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+              background: shelf === 'favorites' ? '#0f172a' : '#ffffff',
+              color: shelf === 'favorites' ? '#ffffff' : '#334155',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontWeight: shelf === 'favorites' ? 'bold' : '500',
+              transition: 'all 0.15s ease',
+            }}
+          >
             المفضلة
           </button>
-          <button type="button" onClick={() => { onProductFilterChange('offers'); setShelf('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: productFilter === 'offers' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: productFilter === 'offers' ? '#0f172a' : '#ffffff', color: productFilter === 'offers' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+          <button
+            type="button"
+            onClick={() => {
+              onProductFilterChange('offers');
+              setShelf('all');
+              setSelectedIndex(0);
+            }}
+            style={{
+              padding: '5px 12px',
+              fontSize: '12px',
+              borderRadius: '7px',
+              border: productFilter === 'offers' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+              background: productFilter === 'offers' ? '#0f172a' : '#ffffff',
+              color: productFilter === 'offers' ? '#ffffff' : '#334155',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontWeight: productFilter === 'offers' ? 'bold' : '500',
+              transition: 'all 0.15s ease',
+            }}
+          >
             بعروض
           </button>
-          <button type="button" onClick={() => { setShelf('recent'); onProductFilterChange('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: shelf === 'recent' ? '#0f172a' : '#ffffff', color: shelf === 'recent' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setShelf('recent');
+              onProductFilterChange('all');
+              setSelectedIndex(0);
+            }}
+            style={{
+              padding: '5px 12px',
+              fontSize: '12px',
+              borderRadius: '7px',
+              border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+              background: shelf === 'recent' ? '#0f172a' : '#ffffff',
+              color: shelf === 'recent' ? '#ffffff' : '#334155',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontWeight: shelf === 'recent' ? 'bold' : '500',
+              transition: 'all 0.15s ease',
+            }}
+          >
             آخر استخدام
           </button>
-          <button type="button" onClick={() => { onProductFilterChange('raw_materials'); setShelf('all'); setSelectedIndex(0); }} style={{ padding: '6px 14px', fontSize: '13px', borderRadius: '8px', border: productFilter === 'raw_materials' ? '1px solid #0f172a' : '1px solid #cbd5e1', background: productFilter === 'raw_materials' ? '#0f172a' : '#ffffff', color: productFilter === 'raw_materials' ? '#ffffff' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+          <button
+            type="button"
+            onClick={() => {
+              onProductFilterChange('raw_materials');
+              setShelf('all');
+              setSelectedIndex(0);
+            }}
+            style={{
+              padding: '5px 12px',
+              fontSize: '12px',
+              borderRadius: '7px',
+              border: productFilter === 'raw_materials' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+              background: productFilter === 'raw_materials' ? '#0f172a' : '#ffffff',
+              color: productFilter === 'raw_materials' ? '#ffffff' : '#334155',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontWeight: productFilter === 'raw_materials' ? 'bold' : '500',
+              transition: 'all 0.15s ease',
+            }}
+          >
             مواد خام
+          </button>
+
+          {/* Density Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleCardDensity}
+            title={cardDensity === 'comfortable' ? 'التبديل إلى كروت مضغوطة' : 'التبديل إلى كروت موسعة'}
+            style={{
+              marginInlineStart: 'auto',
+              padding: '4px 10px',
+              fontSize: '11px',
+              borderRadius: '7px',
+              border: '1px solid #cbd5e1',
+              background: cardDensity === 'compact' ? '#0f172a' : '#ffffff',
+              color: cardDensity === 'compact' ? '#ffffff' : '#334155',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {cardDensity === 'compact' ? 'كروت مضغوطة' : 'كروت موسعة'}
           </button>
         </div>
 
@@ -547,29 +727,78 @@ function PosProductsPanelComponent({
 
         {canShowScannerResults ? (
           <>
-            <div className="product-pick-grid pos-product-group-grid pos-product-group-grid-density-compact">
+            <div className={`product-pick-grid pos-product-group-grid ${cardDensity === 'compact' ? 'pos-product-group-grid-density-compact' : ''}`}>
             {displayedGroups.map((group, index) => {
               const isSelected = index === selectedIndex;
               const isFavorite = favoriteKeySet.has(group.key);
               const priceLabel = group.minPrice === group.maxPrice
                 ? formatCurrency(group.minPrice)
                 : `${formatCurrency(group.minPrice)} - ${formatCurrency(group.maxPrice)}`;
-              return (
-                <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
-                  <div className="pos-group-card-top">
-                    <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
-                      {group.hasVariants ? `${group.products.length} فرع` : 'مباشر'}
-                    </span>
-                    <button
-                      type="button"
-                      className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
-                      onClick={() => toggleFavorite(group.key)}
-                      aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
-                    >
-                      ★
-                    </button>
-                  </div>
 
+              if (cardDensity === 'comfortable') {
+                // Classic Comfortable Card (Default)
+                return (
+                  <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
+                    <div className="pos-group-card-top">
+                      <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
+                        {group.hasVariants ? `${group.products.length} فرع` : 'مباشر'}
+                      </span>
+                      <button
+                        type="button"
+                        className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
+                        onClick={() => toggleFavorite(group.key)}
+                        aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                      >
+                        ★
+                      </button>
+                    </div>
+
+                    <button
+                      ref={(node) => { groupRefs.current[index] = node; }}
+                      type="button"
+                      className="pos-group-card-action"
+                      onClick={() => {
+                        setSelectedIndex(index);
+                        activateGroup(group);
+                      }}
+                      onFocus={() => setSelectedIndex(index)}
+                    >
+                      <strong>{group.title}</strong>
+                      <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
+                      {group.hasVariants ? (
+                        <div className="pos-group-tags">
+                          {group.colors.slice(0, 3).map((color) => <span key={`${group.key}-${color}`} className="pos-group-tag">{color}</span>)}
+                          {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
+                        </div>
+                      ) : null}
+                      <div className="pick-meta-row pos-pick-meta-row">
+                        <span>{priceLabel}</span>
+                        <span className="small muted">{group.hasVariants ? 'افتح الاختيارات' : 'أضف الآن'}</span>
+                      </div>
+                    </button>
+                  </article>
+                );
+              }
+
+              // Refined Soothing Compact Card
+              return (
+                <article
+                  key={group.key}
+                  className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}
+                  style={{
+                    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                    border: isSelected ? '2px solid #0f172a' : '1px solid rgba(148, 163, 184, 0.28)',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    boxShadow: isSelected ? '0 4px 12px rgba(15, 23, 42, 0.12)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: '94px',
+                    transition: 'all 0.15s ease',
+                    position: 'relative',
+                  }}
+                >
                   <button
                     ref={(node) => { groupRefs.current[index] = node; }}
                     type="button"
@@ -579,18 +808,97 @@ function PosProductsPanelComponent({
                       activateGroup(group);
                     }}
                     onFocus={() => setSelectedIndex(index)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'right',
+                      padding: 0,
+                      width: '100%',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      flex: 1,
+                      justifyContent: 'space-between',
+                    }}
                   >
-                    <strong>{group.title}</strong>
-                    <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
-                    {group.hasVariants ? (
-                      <div className="pos-group-tags">
-                        {group.colors.slice(0, 3).map((color) => <span key={`${group.key}-${color}`} className="pos-group-tag">{color}</span>)}
-                        {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <strong
+                          style={{
+                            fontSize: '0.88rem',
+                            fontWeight: 800,
+                            color: '#0f172a',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {group.title}
+                        </strong>
+                        {group.hasVariants ? (
+                          <div style={{ marginTop: '3px' }}>
+                            <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
+                              {group.products.length} مقاسات
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                    <div className="pick-meta-row pos-pick-meta-row">
-                      <span>{priceLabel}</span>
-                      <span className="small muted">{group.hasVariants ? 'افتح الاختيارات' : 'أضف الآن'}</span>
+
+                      <button
+                        type="button"
+                        className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(group.key);
+                        }}
+                        aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: isFavorite ? '#f59e0b' : '#cbd5e1',
+                          fontSize: '1rem',
+                          cursor: 'pointer',
+                          padding: 0,
+                          lineHeight: 1,
+                          flexShrink: 0,
+                        }}
+                      >
+                        ★
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderTop: '1px solid rgba(148, 163, 184, 0.16)',
+                        paddingTop: '5px',
+                        marginTop: 'auto',
+                        width: '100%',
+                      }}
+                    >
+                      <strong style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
+                        {priceLabel}
+                      </strong>
+
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: '5px',
+                          background: group.hasVariants ? '#eff6ff' : '#ecfdf5',
+                          color: group.hasVariants ? '#1d4ed8' : '#047857',
+                          border: group.hasVariants ? '1px solid #dbeafe' : '1px solid #a7f3d0',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {group.hasVariants ? 'خيارات ▾' : '+ أضف'}
+                      </span>
                     </div>
                   </button>
                 </article>

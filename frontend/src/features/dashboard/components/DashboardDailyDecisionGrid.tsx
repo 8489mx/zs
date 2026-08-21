@@ -9,12 +9,15 @@ import type {
   DashboardBuyingItem,
   DashboardCollectionItem,
   DashboardManagerOverviewPayload,
+  DashboardPartnerItem,
   DashboardProfitItem,
   DashboardStagnantItem,
 } from '@/features/dashboard/api/dashboard.types';
 
 interface DashboardDailyDecisionGridProps {
   data?: DashboardManagerOverviewPayload;
+  topSuppliers?: DashboardPartnerItem[];
+  totalSupplierDebt?: number;
   isLoading: boolean;
   isError: boolean;
   error: unknown;
@@ -101,7 +104,7 @@ function ProfitList({ rows, emptyLabel, valueType }: { rows: DashboardProfitItem
 }
 
 function CustomerList({ rows }: { rows: DashboardCollectionItem[] }) {
-  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px' }}>لا توجد أرصدة تحتاج متابعة الآن</div>;
+  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px' }}>لا توجد أرصدة عملاء تحتاج متابعة الآن</div>;
 
   return (
     <div className="manager-overview-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -120,13 +123,35 @@ function CustomerList({ rows }: { rows: DashboardCollectionItem[] }) {
   );
 }
 
+function SupplierList({ rows }: { rows: DashboardPartnerItem[] }) {
+  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#15803d', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.84rem', fontWeight: 600 }}>لا توجد مديونيات مستحقة للموردين حالياً ✓</div>;
+
+  return (
+    <div className="manager-overview-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {rows.slice(0, 6).map((row) => (
+        <div className="manager-overview-row" key={row.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <div>
+            <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{row.name}</strong>
+            <span style={{ display: 'block', fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>مستحقات للمورد واجبة السداد</span>
+          </div>
+          <span style={{ fontSize: '0.82rem', color: '#c2410c', fontWeight: 700, background: '#fff7ed', border: '1px solid #ffedd5', padding: '3px 8px', borderRadius: '6px' }}>
+            {formatCurrency(row.total)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function DashboardDailyDecisionGrid({
   data,
+  topSuppliers = [],
+  totalSupplierDebt = 0,
   isLoading,
   isError,
   error,
 }: DashboardDailyDecisionGridProps) {
-  const [activeTab, setActiveTab] = useState<'buying' | 'stagnant' | 'profit' | 'collection'>('buying');
+  const [activeTab, setActiveTab] = useState<'buying' | 'stagnant' | 'profit' | 'collection' | 'payables'>('buying');
 
   if (isLoading && !data) {
     return <LoadingState title="جاري تحميل قرارات اليوم..." hint="نراجع الراكد والشراء والتحصيل من بياناتك المحلية." className="status-surface-block" />;
@@ -150,6 +175,7 @@ export function DashboardDailyDecisionGrid({
           {activeTab === 'stagnant' && <Link className="button button-secondary" to="/inventory">إدارة الراكد</Link>}
           {activeTab === 'profit' && <Link className="button button-secondary" to="/reports/profit">تقرير الأرباح</Link>}
           {activeTab === 'collection' && <Link className="button button-secondary" to="/accounts">كشف الحسابات</Link>}
+          {activeTab === 'payables' && <Link className="button button-secondary" to="/suppliers">سجل الموردين</Link>}
         </div>
       }
       className="dashboard-premium-card"
@@ -238,6 +264,24 @@ export function DashboardDailyDecisionGrid({
         >
           متابعة التحصيل {data.collection.topDebts.length > 0 ? `(${data.collection.topDebts.length})` : ''}
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('payables')}
+          style={{
+            background: activeTab === 'payables' ? '#ffffff' : 'transparent',
+            color: activeTab === 'payables' ? '#0f172a' : '#64748b',
+            boxShadow: activeTab === 'payables' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            border: 'none',
+            padding: '7px 14px',
+            borderRadius: '8px',
+            fontSize: '0.82rem',
+            fontWeight: activeTab === 'payables' ? 700 : 500,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          مستحقات الموردين {topSuppliers.length > 0 ? `(${topSuppliers.length})` : ''}
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -291,6 +335,17 @@ export function DashboardDailyDecisionGrid({
             <MetricTile label="عملاء قاربوا الحد" value={formatNumber(data.collection.nearCreditLimit.length)} />
           </div>
           <CustomerList rows={data.collection.topDebts} />
+        </div>
+      )}
+
+      {activeTab === 'payables' && (
+        <div className="page-stack" style={{ gap: '12px' }}>
+          <div className="manager-overview-mini-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+            <MetricTile label="إجمالي ديون الموردين" value={formatCurrency(totalSupplierDebt)} />
+            <MetricTile label="أعلى مورد مستحق" value={topSuppliers[0] ? formatCurrency(topSuppliers[0].total) : '0 ج.م'} />
+            <MetricTile label="عدد الموردين الدائنين" value={formatNumber(topSuppliers.length)} />
+          </div>
+          <SupplierList rows={topSuppliers} />
         </div>
       )}
     </FormSection>

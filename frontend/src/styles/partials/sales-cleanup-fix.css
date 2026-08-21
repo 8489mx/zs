@@ -1,56 +1,74 @@
 /* Sales register toolbar */
 .sales-workspace .sales-register-card .toolbar-grid {
-  grid-template-columns: minmax(320px, 1fr) auto !important;
-  gap: 10px !important;
-  align-items: start !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  gap: 12px !important;
+  width: 100% !important;
 }
 
-.sales-workspace .sales-register-card .toolbar-grid > .field {
+.sales-workspace .sales-register-card .toolbar-grid > div:first-child {
+  flex: 1.6 !important;
+  min-width: 260px !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-grid .field {
   margin-bottom: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
 }
 
-.sales-workspace .sales-register-card .toolbar-grid > .field input {
-  margin-top: 0 !important;
+.sales-workspace .sales-register-card .toolbar-grid .field > span,
+.sales-workspace .sales-register-card .toolbar-grid .field > label {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-grid input,
+.sales-workspace .sales-register-card .toolbar-grid select {
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 6px 10px !important;
+  line-height: 1.5 !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  font-size: 13px !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+.sales-workspace .sales-register-card .toolbar-grid select {
+  padding-inline-start: 10px !important;
+  padding-inline-end: 24px !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  cursor: pointer !important;
 }
 
 .sales-workspace .sales-register-card .toolbar-extra {
   display: flex !important;
   align-items: flex-end !important;
-  gap: 8px !important;
-  min-height: 66px !important;
-}
-
-.sales-workspace .sales-register-card .toolbar-chip-row {
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  gap: 8px !important;
-  margin: 0 !important;
-  align-items: center !important;
+  gap: 12px !important;
+  flex: 1.4 !important;
 }
 
 .sales-workspace .sales-register-card .sales-register-toolbar-filters {
+  display: flex !important;
   align-items: flex-end !important;
+  gap: 12px !important;
   width: 100% !important;
-  justify-content: flex-start !important;
+  margin: 0 !important;
 }
 
 .sales-workspace .sales-register-card .sales-toolbar-filter-field {
-  min-width: 170px;
-  max-width: 230px;
-  flex: 1 1 190px;
+  flex: 1 !important;
+  min-width: 140px !important;
   margin-bottom: 0 !important;
-}
-
-.sales-workspace .sales-register-card .sales-toolbar-filter-field > span,
-.sales-workspace .sales-register-card .sales-toolbar-filter-field > label {
-  margin-bottom: 4px;
-  font-size: 12px;
-  color: var(--muted-text, #6b7280);
-}
-
-.sales-workspace .sales-register-card .toolbar-chip-row .btn,
-.sales-workspace .sales-register-card .toolbar-chip-row .button {
-  white-space: nowrap;
 }
 
 /* Quick customer card */

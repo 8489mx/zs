@@ -104,10 +104,10 @@ export function SalesRegisterCard(props: Props) {
         actions={<span className="nav-pill">{activeFilterLabel}</span>}
         meta={(
           <>
-            <span className="toolbar-meta-pill">{t('sales.79fb9c')}{totalItems}</span>
-            <span className="toolbar-meta-pill">{t('sales.86c80e')}{rangeStart}-{rangeEnd}</span>
-            <span className="toolbar-meta-pill">{t('sales.327511')}{formatCurrency(totalSales)}</span>
-            <span className="toolbar-meta-pill">{t('sales.1b3184')}{selectedSale ? (selectedSale.docNo || selectedSale.id) : t('sales.9d7155')}</span>
+            <span className="toolbar-meta-pill">إجمالي الفواتير: {totalItems}</span>
+            <span className="toolbar-meta-pill">المعروض: {rangeStart}-{rangeEnd}</span>
+            <span className="toolbar-meta-pill">الإجمالي: {formatCurrency(totalSales)}</span>
+            <span className="toolbar-meta-pill">المحدد: {selectedSale ? (selectedSale.docNo || selectedSale.id) : 'لا يوجد'}</span>
           </>
         )}
         onReset={onReset}

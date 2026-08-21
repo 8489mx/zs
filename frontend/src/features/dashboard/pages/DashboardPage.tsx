@@ -79,6 +79,8 @@ export function DashboardPage() {
             {/* مركز اتخاذ القرارات التفاعلي */}
             <DashboardDailyDecisionGrid
               data={managerOverview.data}
+              topSuppliers={overview.data.topSuppliers}
+              totalSupplierDebt={Number(stats.supplierDebt || 0)}
               isLoading={managerOverview.isLoading}
               isError={managerOverview.isError}
               error={managerOverview.error}
