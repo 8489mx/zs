@@ -171,15 +171,14 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
           employeeId: Number(selectedEmployee.id),
           workDate: todayDate(),
           status: String(current?.status || 'present'),
-          checkInAt: current?.checkInAt || undefined,
           checkOutAt: nowIso(),
           source: 'manual',
         });
         setFeedback({ type: 'success', message: `تم تسجيل انصراف "${selectedEmployee.displayName || selectedEmployee.firstName}" بنجاح في ${now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true })}` });
         await attendanceQuery.refetch();
       }
-    } catch {
-      setFeedback({ type: 'error', message: 'تعذر تسجيل الحضور أو الانصراف. يرجى المحاولة مرة أخرى.' });
+    } catch (err) {
+      setFeedback({ type: 'error', message: getErrorMessage(err, 'تعذر تسجيل الحضور أو الانصراف. يرجى المحاولة مرة أخرى.') });
     }
   }
 

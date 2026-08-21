@@ -2542,7 +2542,7 @@ export class HrService {
     const existingCheck = await sql<{ check_in_at: Date | null }>`SELECT check_in_at FROM hr_attendance_records WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}`.execute(this.db);
     const hasExisting = existingCheck.rows.length > 0;
 
-    if (checkInAt && hasExisting && existingCheck.rows[0].check_in_at) {
+    if (checkInAt && !checkOutAt && hasExisting && existingCheck.rows[0].check_in_at) {
       throw new AppError('Already checked in', 'HR_ATTENDANCE_ALREADY_CHECKED_IN', 400);
     }
 
