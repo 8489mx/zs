@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
-import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
+import { formatSalePaymentText } from '@/lib/pos-printing/shared';
 import type { AppSettings, Customer, Sale } from '@/types/domain';
 
 interface PosSaleSuccessDialogProps {
@@ -54,8 +54,12 @@ export function PosSaleSuccessDialog({
   const showManualPhone = !customerPhone;
   const changeAmount = Number(sale?.changeAmount || 0);
   const tenderedAmount = Number(sale?.tenderedAmount || 0);
-  const changeOrRemain = sale?.paymentType === 'credit' ? Number(sale?.total || 0) : changeAmount;
-  const changeOrRemainLabel = sale?.paymentType === 'credit' ? 'المتبقي' : 'الباقي';
+  const paidAmount = Number(sale?.paidAmount || 0);
+  const total = Number(sale?.total || 0);
+  const remainingDebt = Math.max(0, total - paidAmount);
+  const isCreditOrPartial = sale?.paymentType === 'credit' || remainingDebt > 0.009;
+  const changeOrRemain = isCreditOrPartial ? remainingDebt : changeAmount;
+  const changeOrRemainLabel = isCreditOrPartial ? 'المتبقي على العميل' : 'الباقي';
 
   function safePrint(printAction: () => void) {
     setPrintError('');
@@ -180,7 +184,7 @@ export function PosSaleSuccessDialog({
         <div className="pos-sale-success-metrics">
           <span><b>رقم الفاتورة</b>{sale.docNo || sale.id}</span>
           <span><b>الإجمالي</b>{formatCurrency(Number(sale.total || 0))}</span>
-          <span><b>طريقة الدفع</b>{paymentLabel((sale.paymentType === 'credit' ? 'credit' : 'cash'), String(sale.paymentChannel || 'cash'))}</span>
+          <span><b>طريقة الدفع</b>{formatSalePaymentText(sale.paymentType, sale.paymentChannel, sale.paidAmount, sale.total)}</span>
           {tenderedAmount > 0 && <span><b>المستلم نقديًا</b>{formatCurrency(tenderedAmount)}</span>}
           <span><b>{changeOrRemainLabel}</b>{formatCurrency(changeOrRemain)}</span>
           <span><b>العميل</b>{sale.customerName || customer?.name || 'عميل نقدي'}</span>

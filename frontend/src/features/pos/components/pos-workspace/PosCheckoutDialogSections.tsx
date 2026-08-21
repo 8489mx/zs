@@ -11,9 +11,15 @@ export type PaymentPreset = 'cash' | 'card' | 'wallet' | 'instapay' | 'credit';
 
 type CustomerOption = { id: string | number; name: string; phone?: string | null; address?: string | null };
 
-function getBalancePreview(pos: Pick<PosWorkspaceState, 'paymentType' | 'amountDue' | 'changeAmount'>) {
-  if (pos.paymentType === 'credit') {
-    return { label: 'المتبقي على العميل', value: -Math.abs(Number(pos.amountDue || 0)), tone: 'danger' as const };
+function getBalancePreview(pos: Pick<PosWorkspaceState, 'paymentType' | 'amountDue' | 'changeAmount' | 'totals' | 'paidAmount' | 'customerId'>) {
+  const paid = Number(pos.paidAmount || 0);
+  const total = Number(pos.totals?.total || 0);
+  const remainingDebt = Math.max(0, total - paid);
+
+  if (pos.paymentType === 'credit' || (pos.customerId && paid < total)) {
+    if (remainingDebt > 0.009) {
+      return { label: 'المتبقي على العميل (آجل)', value: -remainingDebt, tone: 'danger' as const };
+    }
   }
   if (Number(pos.amountDue || 0) > 0.009) {
     return { label: 'المتبقي', value: -Math.abs(Number(pos.amountDue || 0)), tone: 'danger' as const };
@@ -340,10 +346,10 @@ export function PosCheckoutPaymentSection({
 
       {/* Row 2: Payment amounts + كامل button */}
       <div className="pos-checkout-payment-inputs" style={{ marginBottom: '8px' }}>
-        <label className="field"><span>نقدي</span><input ref={cashAmountInputRef} data-autofocus={!customerPickerOpen ? true : undefined} type="number" step="0.01" value={pos.cashAmount} onChange={(event) => pos.setCashAmount(Number(event.target.value || 0))} disabled={isCreditSale || transferSelected} /></label>
-        <label className="field"><span>فيزا</span><input type="number" step="0.01" value={pos.cardAmount} onChange={(event) => pos.setCardAmount(Number(event.target.value || 0))} disabled={isCreditSale || transferSelected} /></label>
-        {transferSelected ? <label className="field"><span>{pos.paymentChannel === 'instapay' ? 'مدفوع InstaPay' : 'مدفوع محفظة'}</span><input type="number" step="0.01" value={pos.transferAmount} onChange={(event) => pos.setTransferAmount(Number(event.target.value || 0))} disabled={isCreditSale} /></label> : null}
-        {!isCreditSale ? <Button type="button" variant="secondary" onClick={pos.fillPaidAmount}>كامل</Button> : null}
+        <label className="field"><span>نقدي</span><input ref={cashAmountInputRef} data-autofocus={!customerPickerOpen ? true : undefined} type="number" step="0.01" value={pos.cashAmount} onChange={(event) => pos.setCashAmount(Number(event.target.value || 0))} disabled={transferSelected} /></label>
+        <label className="field"><span>فيزا</span><input type="number" step="0.01" value={pos.cardAmount} onChange={(event) => pos.setCardAmount(Number(event.target.value || 0))} disabled={transferSelected} /></label>
+        {transferSelected ? <label className="field"><span>{pos.paymentChannel === 'instapay' ? 'مدفوع InstaPay' : 'مدفوع محفظة'}</span><input type="number" step="0.01" value={pos.transferAmount} onChange={(event) => pos.setTransferAmount(Number(event.target.value || 0))} /></label> : null}
+        <Button type="button" variant="secondary" onClick={pos.fillPaidAmount}>كامل</Button>
       </div>
 
       {/* Row 3: Payment method buttons */}

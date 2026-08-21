@@ -490,7 +490,9 @@ export class SalesWriteService {
       const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
       const paidAmount = calculatePaidAmount(payments);
       const isCodDelivery = String(normalized.orderType || '').trim() === 'delivery' && String((payload as any).collectionStatus || '').trim() === 'cod';
-      if (normalized.paymentType !== 'credit' && !isCodDelivery && paidAmount + 0.0001 < collectibleTotal) {
+      const isPartialCredit = Boolean(normalized.customerId) && paidAmount + 0.0001 < collectibleTotal;
+      const effectivePaymentType = (isPartialCredit || normalized.paymentType === 'credit') ? 'credit' : 'cash';
+      if (effectivePaymentType !== 'credit' && !isCodDelivery && paidAmount + 0.0001 < collectibleTotal) {
         throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
       }
 
@@ -508,8 +510,8 @@ export class SalesWriteService {
           customer_name: customer?.name || 'عميل نقدي',
           customer_phone: payload.customerPhone || null,
           customer_address: payload.customerAddress || null,
-          payment_type: normalized.paymentType,
-          payment_channel: resolvePostedSalePaymentChannel(normalized.paymentType, payments),
+          payment_type: effectivePaymentType,
+          payment_channel: resolvePostedSalePaymentChannel(effectivePaymentType, payments),
           subtotal: Number(subtotal.toFixed(2)),
           discount: normalized.discount,
           delivery_fee: normalized.deliveryFee,
@@ -685,12 +687,30 @@ export class SalesWriteService {
           .execute();
       }
 
-      if (normalized.paymentType === 'credit' && customer && collectibleTotal > 0) {
-        await this.finance.createCustomerLedgerEntry(trx, customer.id, collectibleTotal, `فاتورة بيع S-${id}`, id, auth);
-      } else if (!isCodDelivery) {
+      const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
+      if (customer && remainingDebt > 0) {
+        await this.finance.createCustomerLedgerEntry(
+          trx,
+          customer.id,
+          remainingDebt,
+          `فاتورة بيع S-${id}${paidAmount > 0 ? ' (متبقي آجل)' : ''}`,
+          id,
+          auth,
+        );
+      }
+
+      if (!isCodDelivery) {
         for (const payment of payments) {
           if (payment.paymentChannel !== 'cash') continue;
-          await this.finance.addTreasuryTransaction(trx, payment.amount, `فاتورة بيع S-${id} - نقدي`, id, auth, normalized.branchId, normalized.locationId);
+          await this.finance.addTreasuryTransaction(
+            trx,
+            payment.amount,
+            `فاتورة بيع S-${id} - نقدي`,
+            id,
+            auth,
+            normalized.branchId,
+            normalized.locationId,
+          );
         }
       }
 
@@ -1028,15 +1048,17 @@ export class SalesWriteService {
 
       const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
       const paidAmount = calculatePaidAmount(payments);
-      if (normalized.paymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
+      const isPartialCredit = Boolean(normalized.customerId) && paidAmount + 0.0001 < collectibleTotal;
+      const effectivePaymentType = (isPartialCredit || normalized.paymentType === 'credit') ? 'credit' : 'cash';
+      if (effectivePaymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
 
       await trx.updateTable('sales').set({
         customer_id: normalized.customerId,
         customer_name: customer?.name || 'عميل نقدي',
         customer_phone: payload.customerPhone || null,
         customer_address: payload.customerAddress || null,
-        payment_type: normalized.paymentType,
-        payment_channel: resolvePostedSalePaymentChannel(normalized.paymentType, payments),
+        payment_type: effectivePaymentType,
+        payment_channel: resolvePostedSalePaymentChannel(effectivePaymentType, payments),
         subtotal: Number(subtotal.toFixed(2)),
         discount: normalized.discount,
         delivery_fee: normalized.deliveryFee,
@@ -1266,13 +1288,21 @@ export class SalesWriteService {
         }).where('id', '=', customer.id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       }
 
-      if (normalized.paymentType === 'credit' && customer && collectibleTotal > 0) {
-        await this.finance.createCustomerLedgerEntry(trx, customer.id, collectibleTotal, `تعديل فاتورة بيع S-${saleId}`, saleId, auth);
-      } else {
-        for (const payment of payments) {
-          if (payment.paymentChannel !== 'cash') continue;
-          await this.finance.addTreasuryTransaction(trx, payment.amount, `تعديل فاتورة بيع S-${saleId}`, saleId, auth, normalized.branchId, normalized.locationId);
-        }
+      const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
+      if (customer && remainingDebt > 0) {
+        await this.finance.createCustomerLedgerEntry(
+          trx,
+          customer.id,
+          remainingDebt,
+          `تعديل فاتورة بيع S-${saleId}${paidAmount > 0 ? ' (متبقي آجل)' : ''}`,
+          saleId,
+          auth,
+        );
+      }
+
+      for (const payment of payments) {
+        if (payment.paymentChannel !== 'cash') continue;
+        await this.finance.addTreasuryTransaction(trx, payment.amount, `تعديل فاتورة بيع S-${saleId}`, saleId, auth, normalized.branchId, normalized.locationId);
       }
 
       await this.accountingPosting.postSaleEdit(trx, saleId, auth);

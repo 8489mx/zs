@@ -32,10 +32,8 @@ interface PosWorkspaceHeaderProps {
   onOpenSerialLookup?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onOpenHeldDrafts, onRequestOpenShift }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onRequestOpenShift }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
-  const isRestaurant = Boolean(pos.settingsQuery.data?.restaurantModuleEnabled);
-  const heldCount = pos.heldDraftSummaries.length;
 
   return (
     <PageHeader
@@ -66,9 +64,6 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
                <span>{(pos.currentBranch as any).salesStockMode === 'all_operational_locations' ? 'كل المخازن' : 'مخزن أساسي'}</span>
              </div>
           )}
-          <Button type="button" variant="secondary" onClick={onOpenHeldDrafts}>
-            {isRestaurant ? `طاولات مفتوحة (${heldCount}) F3` : `معلقة (${heldCount}) F3`}
-          </Button>
           <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F6</Button>
           <Button type="button" variant="secondary" onClick={onOpenQuickService}>خدمة سريعة F8</Button>
           <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>

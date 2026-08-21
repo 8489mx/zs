@@ -163,26 +163,25 @@ export function createPosWorkspaceAsyncActions(
           : params.paymentChannel;
     const effectiveCustomerId = String(params.customerId || '').trim();
     const effectiveCashAmount = effectivePaymentType === 'credit'
-      ? 0
+      ? initialCashAmount
       : (effectivePaymentChannel === 'card' ? 0 : (settleAsCash ? total : initialCashAmount));
     const effectiveCardAmount = effectivePaymentType === 'credit'
-      ? 0
+      ? initialCardAmount
       : (effectivePaymentChannel === 'card' ? total : (settleAsCard ? total : initialCardAmount));
     const effectiveTransferAmount = effectivePaymentType === 'credit'
-      ? 0
+      ? initialTransferAmount
       : (effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay')
         ? (settleAsTransfer ? total : initialTransferAmount)
         : 0;
-    const effectivePaidAmount = effectivePaymentType === 'credit'
-      ? 0
-      : Number((
-        effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay'
-          ? effectiveTransferAmount
-          : effectiveCashAmount + effectiveCardAmount
-      ).toFixed(2));
-    const isUnderpaid = effectivePaymentType !== 'credit' && !isCodDelivery && effectivePaidAmount < total;
+    const effectivePaidAmount = Number((
+      effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay'
+        ? effectiveTransferAmount
+        : effectiveCashAmount + effectiveCardAmount
+    ).toFixed(2));
+    const isPartialCreditWithCustomer = Boolean(effectiveCustomerId) && effectivePaidAmount < total;
+    const isUnderpaid = effectivePaymentType !== 'credit' && !isPartialCreditWithCustomer && !isCodDelivery && effectivePaidAmount < total;
 
-    if (effectivePaymentType === 'credit' && !effectiveCustomerId) {
+    if ((effectivePaymentType === 'credit' || isPartialCreditWithCustomer) && !effectiveCustomerId) {
       params.setSubmitMessage('اختر عميلًا أولًا لأن البيع الآجل يجب أن يسجل على حساب العميل.');
       params.requestBarcodeFocus();
       return;
@@ -222,21 +221,19 @@ export function createPosWorkspaceAsyncActions(
         customerId: effectiveCustomerId,
         customerPhone: params.quickCustomerPhone,
         customerAddress: params.quickCustomerAddress,
-        paymentType: effectivePaymentType,
+        paymentType: (effectivePaymentType === 'credit' || isPartialCreditWithCustomer) ? 'credit' : 'cash',
         paymentChannel: effectivePaymentChannel,
         discount: params.totals.discountValue,
         deliveryFee: params.totals.deliveryFee,
         note: params.note,
         paidAmount: effectivePaidAmount,
         tenderedAmount: effectiveCashAmount,
-        payments: effectivePaymentType === 'credit'
-          ? []
-          : (effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay')
-            ? [{ paymentChannel: effectivePaymentChannel, amount: effectiveTransferAmount }]
-            : [
-              ...(effectiveCashAmount > 0 ? [{ paymentChannel: 'cash' as const, amount: effectiveCashAmount }] : []),
-              ...(effectiveCardAmount > 0 ? [{ paymentChannel: 'card' as const, amount: effectiveCardAmount }] : []),
-            ],
+        payments: (effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay')
+          ? (effectiveTransferAmount > 0 ? [{ paymentChannel: effectivePaymentChannel, amount: effectiveTransferAmount }] : [])
+          : [
+            ...(effectiveCashAmount > 0 ? [{ paymentChannel: 'cash' as const, amount: effectiveCashAmount }] : []),
+            ...(effectiveCardAmount > 0 ? [{ paymentChannel: 'card' as const, amount: effectiveCardAmount }] : []),
+          ],
         taxRate: params.totals.taxRate,
         pricesIncludeTax: params.totals.pricesIncludeTax,
         expectedTotal: total,

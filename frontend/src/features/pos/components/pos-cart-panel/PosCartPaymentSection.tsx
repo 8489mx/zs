@@ -83,14 +83,13 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
               step="0.01"
               value={props.cashAmount}
               onChange={(event) => props.onCashAmountChange(Number(event.target.value || 0))}
-              disabled={isCreditSale || transferSelected}
+              disabled={transferSelected}
             />
             <Button
               type="button"
               variant="secondary"
               className="pos-payment-fill-inline"
               onClick={props.onFillPaidAmount}
-              disabled={isCreditSale}
             >
               كامل
             </Button>
@@ -104,7 +103,7 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
             step="0.01"
             value={props.cardAmount}
             onChange={(event) => props.onCardAmountChange(Number(event.target.value || 0))}
-            disabled={isCreditSale || transferSelected}
+            disabled={transferSelected}
           />
         </label>
 

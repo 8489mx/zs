@@ -117,6 +117,7 @@ assert.deepEqual(prepared, {
   afterQty: 7,
   notes: '',
   modifiers: [],
+  isService: false,
 });
 
 assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail' }), 100);
@@ -133,10 +134,13 @@ assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 8
 assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-04-14T23:30:00.000Z', end_date: '2026-04-14T01:30:00.000Z' }], todayIso: '2026-04-14' }), 90);
 
 assert.equal(calculateCollectibleTotal(120, 20), 100);
-assert.deepEqual(resolveSalePayments('credit', [{ paymentChannel: 'cash', amount: 10 }], 100), []);
+assert.deepEqual(resolveSalePayments('credit', [{ paymentChannel: 'cash', amount: 10 }], 100), [{ paymentChannel: 'cash', amount: 10 }]);
+assert.deepEqual(resolveSalePayments('credit', [], 100), []);
 assert.deepEqual(resolveSalePayments('cash', [], 55), [{ paymentChannel: 'cash', amount: 55 }]);
 assert.equal(calculatePaidAmount([{ amount: 10 }, { amount: 5.255 }]), 15.26);
 assert.equal(resolvePostedSalePaymentChannel('credit', []), 'credit');
+assert.equal(resolvePostedSalePaymentChannel('credit', [{ paymentChannel: 'cash' }]), 'cash');
+assert.equal(resolvePostedSalePaymentChannel('credit', [{ paymentChannel: 'cash' }, { paymentChannel: 'card' }]), 'mixed');
 assert.equal(resolvePostedSalePaymentChannel('cash', [{ paymentChannel: 'card' }]), 'card');
 assert.equal(resolvePostedSalePaymentChannel('cash', [{ paymentChannel: 'cash' }, { paymentChannel: 'card' }]), 'mixed');
 assert.deepEqual(calculateRestoredStockQuantity('4', '2', '1.5'), { restoreQty: 3, beforeQty: 4, afterQty: 7 });
@@ -167,6 +171,7 @@ assert.deepEqual(
     afterQty: -1,
     notes: '',
     modifiers: [],
+    isService: false,
   },
 );
 

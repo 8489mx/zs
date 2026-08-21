@@ -53,18 +53,16 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
   // Guard against stale POS state: if the cashier selected "فيزا" but the
   // payment input still arrived as a single cash line, trust the explicit
   // selected channel and keep the sale out of the cash drawer.
-  const correctedPayments = paymentType === 'credit'
-    ? []
-    : (
-      ['card', 'wallet', 'instapay'].includes(requestedPaymentChannel)
-      && normalizedPayments.length > 0
-      && normalizedPayments.every((entry) => entry.paymentChannel === 'cash')
-        ? normalizedPayments.map((entry) => ({
-          ...entry,
-          paymentChannel: requestedPaymentChannel as 'card' | 'wallet' | 'instapay',
-        }))
-        : normalizedPayments
-    );
+  const correctedPayments = (
+    ['card', 'wallet', 'instapay'].includes(requestedPaymentChannel)
+    && normalizedPayments.length > 0
+    && normalizedPayments.every((entry) => entry.paymentChannel === 'cash')
+      ? normalizedPayments.map((entry) => ({
+        ...entry,
+        paymentChannel: requestedPaymentChannel as 'card' | 'wallet' | 'instapay',
+      }))
+      : normalizedPayments
+  );
 
   const fallbackChannel = requestedPaymentChannel === 'card'
     ? 'card'
@@ -73,9 +71,9 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
       : requestedPaymentChannel === 'instapay'
         ? 'instapay'
         : 'cash';
-  const payments = paymentType === 'credit' ? [] : correctedPayments;
+  const payments = correctedPayments;
   const paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = paymentType === 'credit'
-    ? 'credit'
+    ? (payments.length ? (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || 'credit')) : 'credit')
     : (requestedPaymentChannel === 'mixed'
       ? (payments.length ? 'mixed' : fallbackChannel)
       : (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || fallbackChannel)));

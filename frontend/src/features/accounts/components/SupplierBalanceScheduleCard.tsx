@@ -6,11 +6,13 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { accountsApi } from '@/features/accounts/api/accounts.api';
+import { purchasesApi } from '@/features/purchases/api/purchases.api';
 import { supplierBalanceScheduleApi, type SupplierPaymentScheduleItem } from '@/features/accounts/api/supplier-balance-schedule.api';
 import { formatCurrency, formatDateOnly, formatDateTimeArabic, formatWhatsAppNumber } from '@/lib/format';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import type { Supplier } from '@/types/domain';
+import type { Purchase, Supplier, SupplierLedgerEntry } from '@/types/domain';
 
 function CheckCircleIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
   return (
@@ -25,6 +27,31 @@ function WhatsAppIcon({ size = 16, style }: { size?: number; style?: React.CSSPr
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ size = 14, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function ChevronUpIcon({ size = 14, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+}
+
+function EyeIcon({ size = 14, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   );
 }
@@ -63,7 +90,132 @@ function formatDateTime(value?: string | null) {
   return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
+function formatLedgerDate(value?: string | null) {
+  if (!value) return '—';
+  try {
+    return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function extractPurchaseId(entry: any): string | null {
+  const refType = String(entry.referenceType || entry.reference_type || '');
+  const refId = String(entry.referenceId || entry.reference_id || '');
+  if ((refType === 'purchase' || refType === 'purchases' || !refType) && refId && /^\d+$/.test(refId)) {
+    return refId;
+  }
+  const note = String(entry.note || entry.doc_no || '');
+  const match = note.match(/P-(\d+)/i) || note.match(/فاتورة(?:\s+شراء|\s+مشتريات)?\s*(?:P-)?(\d+)/i);
+  if (match && match[1]) {
+    return match[1];
+  }
+  if (entry.doc_no && /^\d+$/.test(entry.doc_no)) {
+    return entry.doc_no;
+  }
+  return null;
+}
+
+function PurchaseItemsExpandable({ purchaseId, onSelectAmount }: { purchaseId: string; onSelectAmount?: (amount: number, invoiceDocNo: string) => void }) {
+  const { data: purchase, isLoading, error } = useQuery<Purchase>({
+    queryKey: queryKeys.purchaseDetail(purchaseId),
+    queryFn: () => purchasesApi.getById(purchaseId),
+    staleTime: 60 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '6px', fontSize: '0.85rem', color: '#64748b' }}>
+        جاري جلب تفاصيل وأصناف فاتورة المشتريات #{purchaseId}...
+      </div>
+    );
+  }
+
+  if (error || !purchase) {
+    return (
+      <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '6px', fontSize: '0.85rem', color: '#b91c1c' }}>
+        تعذر تحميل تفاصيل فاتورة المشتريات #{purchaseId}
+      </div>
+    );
+  }
+
+  const items = purchase.items || [];
+  const total = Number(purchase.total || 0);
+  const docNumber = purchase.docNo || `P-${purchase.id}`;
+
+  return (
+    <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', margin: '6px 0 10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>
+            أصناف فاتورة المشتريات: {docNumber}
+          </strong>
+          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+            ({items.length} أصناف)
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem' }}>
+          <span>إجمالي الفاتورة: <b>{formatCurrency(total)}</b></span>
+          <span>طريقة الدفع: <b>{purchase.paymentType === 'credit' ? 'آجل' : 'نقدي'}</b></span>
+          {total > 0 && onSelectAmount ? (
+            <button
+              type="button"
+              onClick={() => onSelectAmount(total, docNumber)}
+              style={{
+                background: '#eff6ff',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              سداد قيمة هذه الفاتورة ({formatCurrency(total)})
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', borderRadius: '6px', overflow: 'hidden' }}>
+          <thead>
+            <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'right' }}>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الصنف</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الوحدة</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الكمية</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>سعر الشراء</th>
+              <th style={{ padding: '6px 10px', fontWeight: 600 }}>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item: any, idx: number) => {
+              const name = item.productName || item.name || item.product?.name || 'صنف';
+              const unit = item.unitName || item.unit || '—';
+              const qty = Number(item.qty || item.quantity || 1);
+              const price = Number(item.costPrice ?? item.price ?? item.unitCost ?? 0);
+              const lineTotal = Number(item.lineTotal ?? item.total ?? (qty * price));
+              return (
+                <tr key={item.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '6px 10px', fontWeight: 600, color: '#1e293b' }}>{name}</td>
+                  <td style={{ padding: '6px 10px', color: '#64748b' }}>{unit}</td>
+                  <td style={{ padding: '6px 10px', fontWeight: 600 }}>{qty}</td>
+                  <td style={{ padding: '6px 10px', color: '#475569' }}>{formatCurrency(price)}</td>
+                  <td style={{ padding: '6px 10px', fontWeight: 700, color: '#0f172a' }}>{formatCurrency(lineTotal)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+type SupplierSubTab = 'invoices' | 'schedule';
 type ScheduleFilter = 'all' | 'pending' | 'partial' | 'paid' | 'overdue';
+type LedgerFilter = 'all' | 'purchases' | 'payments';
 
 const FILTER_OPTIONS: Array<{ key: ScheduleFilter; label: string }> = [
   { key: 'all', label: 'الكل' },
@@ -92,6 +244,21 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const supplierId = String(supplier?.id || '');
   const supplierName = String(supplier?.name || 'المورد');
   const supplierBalance = Number(supplier?.balance || 0);
+
+  const [activeSubTab, setActiveSubTab] = useState<SupplierSubTab>('invoices');
+
+  // Ledger & Invoices state
+  const [ledgerFilter, setLedgerFilter] = useState<LedgerFilter>('all');
+  const [expandedPurchaseIds, setExpandedPurchaseIds] = useState<Record<string, boolean>>({});
+  const [directPaymentAmount, setDirectPaymentAmount] = useState('');
+  const [directPaymentNote, setDirectPaymentNote] = useState('');
+  const [directSuccessReceipt, setDirectSuccessReceipt] = useState<{
+    amountPaid: number;
+    remainingBalance: number;
+    note?: string;
+  } | null>(null);
+
+  // Schedule state
   const [mode, setMode] = useState<'count' | 'amount'>('count');
   const [scheduleAmount, setScheduleAmount] = useState('');
   const [installmentCount, setInstallmentCount] = useState('3');
@@ -106,27 +273,97 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const [paymentNote, setPaymentNote] = useState('');
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('all');
   const [showAppendForm, setShowAppendForm] = useState(false);
-  const [successReceipt, setSuccessReceipt] = useState<{ row: SupplierPaymentScheduleItem; amountPaid: number; remainingBalance: number } | null>(null);
+  const [successReceipt, setSuccessReceipt] = useState<{ row: SupplierPaymentScheduleItem; amountPaid: number; remainingBalance: number; note?: string } | null>(null);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if ((paymentTarget || successReceipt) && (event.key === 'Escape' || event.key === 'Esc')) {
+      if ((paymentTarget || successReceipt || directSuccessReceipt) && (event.key === 'Escape' || event.key === 'Esc')) {
         event.preventDefault();
         setPaymentTarget(null);
         setSuccessReceipt(null);
+        setDirectSuccessReceipt(null);
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [paymentTarget, successReceipt]);
+  }, [paymentTarget, successReceipt, directSuccessReceipt]);
 
   function refreshAccounts() {
     queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances });
     queryClient.invalidateQueries({ queryKey: queryKeys.suppliers });
     queryClient.invalidateQueries({ queryKey: queryKeys.treasury });
-    if (supplierId) queryClient.invalidateQueries({ queryKey: queryKeys.supplierLedger(supplierId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.cashierShifts });
+    if (supplierId) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.supplierLedger(supplierId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.supplierPaymentSchedule(supplierId) });
+    }
   }
 
+  // Supplier Ledger Query
+  const ledgerQuery = useQuery({
+    queryKey: queryKeys.supplierLedger(supplierId),
+    queryFn: () => accountsApi.supplierLedger(supplierId),
+    enabled: Boolean(supplierId),
+  });
+
+  const ledgerEntries: SupplierLedgerEntry[] = useMemo(() => {
+    return ledgerQuery.data?.entries || [];
+  }, [ledgerQuery.data]);
+
+  const filteredLedgerEntries = useMemo(() => {
+    return ledgerEntries.filter((entry: any) => {
+      const amt = Number(entry.amount ?? (Number(entry.credit || 0) > 0 ? entry.credit : -Number(entry.debit || 0)));
+      const credit = amt > 0 ? amt : Number(entry.credit || 0);
+      const debit = amt < 0 ? Math.abs(amt) : Number(entry.debit || 0);
+      const purchaseId = extractPurchaseId(entry);
+      const isPurchase = Boolean(purchaseId) || credit > 0 || String(entry.note || '').includes('فاتورة');
+      const isPayment = debit > 0 || String(entry.note || '').includes('سداد') || String(entry.note || '').includes('صرف');
+      if (ledgerFilter === 'purchases') return isPurchase;
+      if (ledgerFilter === 'payments') return isPayment;
+      return true;
+    });
+  }, [ledgerEntries, ledgerFilter]);
+
+  function togglePurchaseDetails(purchaseId: string) {
+    setExpandedPurchaseIds((prev) => ({ ...prev, [purchaseId]: !prev[purchaseId] }));
+  }
+
+  function handleSelectInvoiceAmount(amount: number, invoiceDocNo?: string) {
+    setDirectPaymentAmount(String(amount));
+    if (invoiceDocNo) {
+      setDirectPaymentNote(`سداد فاتورة مشتريات رقم ${invoiceDocNo}`);
+    }
+  }
+
+  // Direct Supplier Payment Mutation
+  const directPaymentMutation = useMutation({
+    mutationFn: () => {
+      if (!supplier) throw new Error('اختر المورد أولًا');
+      const amount = Number(directPaymentAmount || 0);
+      if (!(amount > 0)) throw new Error('المبلغ المدفوع يجب أن يكون أكبر من الصفر');
+      return accountsApi.supplierPaymentCreate({
+        supplierId: Number(supplier.id),
+        amount,
+        note: directPaymentNote || `صرف مستحقات للمورد ${supplierName}`,
+      });
+    },
+    onSuccess: () => {
+      const amountPaid = Number(directPaymentAmount || 0);
+      const newRemaining = Math.max(0, supplierBalance - amountPaid);
+
+      setDirectSuccessReceipt({
+        amountPaid,
+        remainingBalance: newRemaining,
+        note: directPaymentNote || 'صرف نقدي من الرصيد العام',
+      });
+
+      refreshAccounts();
+      setDirectPaymentAmount('');
+      setDirectPaymentNote('');
+    },
+  });
+
+  // Schedule Query & Mutations
   const scheduleQuery = useQuery({
     queryKey: queryKeys.supplierPaymentSchedule(supplierId),
     queryFn: () => supplierBalanceScheduleApi.list(supplierId),
@@ -166,6 +403,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
         row: variables.row,
         amountPaid: variables.amount || variables.row.remainingAmount || 0,
         remainingBalance: nextRemaining,
+        note: variables.paymentNote || '',
       });
       setPaymentTarget(null);
       setPaymentAmount('');
@@ -202,240 +440,554 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
 
   if (!supplier) {
     return (
-      <FormSection title="جدولة مستحقات المورد" description="اختر موردًا أولًا لعرض أو إنشاء جدول دفعات لمستحقاته.">
-        <EmptyState title="لم يتم اختيار مورد" hint="اختر المورد من كشف حساب الموردين حتى تظهر أداة الجدولة." />
+      <FormSection title="مستحقات وحساب المورد" description="اختر موردًا أولًا لعرض فواتيره أو جدول دفعاته.">
+        <EmptyState title="لم يتم اختيار مورد" hint="اختر المورد من القائمة بالأعلى لعرض كشف حسابه وفواتيره." />
       </FormSection>
     );
   }
 
   return (
-    <FormSection
-      title={`مستحقات المورد: ${supplierName}`}
-      description="قسّم رصيد المورد الحالي أو جزءًا منه إلى دفعات مستحقة وتابع المدفوع والمتبقي."
-      actions={<span className="nav-pill">{rows.length ? `${rows.length} دفعات` : 'رصيد المورد'}</span>}
-    >
-      <div className="stats-grid compact-grid">
-        <div className="stat-card"><span>رصيد المورد الحالي</span><strong>{formatCurrency(supplierBalance)}</strong></div>
-        <div className="stat-card"><span>إجمالي الجدول</span><strong>{formatCurrency(summary.total)}</strong></div>
-        <div className="stat-card"><span>مدفوع من الجدول</span><strong>{formatCurrency(summary.paid)}</strong></div>
-        <div className="stat-card"><span>متبقي مجدول</span><strong>{formatCurrency(summary.remaining)}</strong></div>
-      </div>
-
-      {nextDue ? (
-        <div className="supplier-schedule-next-payment">
-          <div>
-            <span>الدفعة القادمة إلى {supplierName}</span>
-            <strong>{formatCurrency(nextDue.remainingAmount || nextDue.amount)}</strong>
-            <small>تستحق في {formatDateOnly(nextDue.dueDate)}</small>
+    <div className="supplier-balance-schedule-card">
+      <FormSection
+        title={`مستحقات وحساب المورد: ${supplierName}`}
+        description="استعرض فواتير المشتريات وتفاصيل الأصناف وسداد المستحقات أو قسّم المديونية لدفعات مجدولة."
+        actions={
+          <div className="actions compact-actions">
+            <span className="nav-pill" style={{ background: supplierBalance > 0 ? '#fef2f2' : '#f0fdf4', color: supplierBalance > 0 ? '#dc2626' : '#16a34a', fontWeight: 700 }}>
+              المستحق: {formatCurrency(supplierBalance)}
+            </span>
           </div>
-          <Button type="button" variant="secondary" disabled={disabled || settleMutation.isPending} onClick={() => openPaymentDialog(nextDue)}>تسجيل دفع</Button>
+        }
+      >
+        {/* Top Summary Stats */}
+        <div className="stats-grid compact-grid" style={{ marginBottom: '14px' }}>
+          <div className="stat-card">
+            <span>رصيد المورد المستحق</span>
+            <strong style={{ color: supplierBalance > 0 ? '#dc2626' : '#16a34a' }}>
+              {formatCurrency(supplierBalance)}
+            </strong>
+          </div>
+          <div className="stat-card">
+            <span>إجمالي المجدول</span>
+            <strong>{formatCurrency(summary.total)}</strong>
+          </div>
+          <div className="stat-card">
+            <span>مدفوع من الجدول</span>
+            <strong>{formatCurrency(summary.paid)}</strong>
+          </div>
+          <div className="stat-card">
+            <span>متبقي مجدول</span>
+            <strong>{formatCurrency(summary.remaining)}</strong>
+          </div>
         </div>
-      ) : null}
 
-      {canSchedule && (!rows.length || showAppendForm) ? (
-        <div className="form-grid" style={{ marginTop: 12 }}>
-          <Field label="المبلغ المراد جدولته">
-            <input type="number" min="1" max={unscheduledBalance} step="0.01" value={scheduleAmount} onChange={(event) => setScheduleAmount(event.target.value)} placeholder={String(unscheduledBalance || '')} />
-          </Field>
-          <Field label="طريقة التقسيم">
-            <select value={mode} onChange={(event) => setMode(event.target.value as 'count' | 'amount')}>
-              <option value="count">حسب عدد الدفعات</option>
-              <option value="amount">حسب مبلغ الدفعة</option>
-            </select>
-          </Field>
-          {mode === 'count' ? (
-            <Field label="عدد الدفعات"><input type="number" min="1" value={installmentCount} onChange={(event) => setInstallmentCount(event.target.value)} /></Field>
-          ) : (
-            <Field label="مبلغ كل دفعة"><input type="number" min="1" step="0.01" value={installmentAmount} onChange={(event) => setInstallmentAmount(event.target.value)} /></Field>
-          )}
-          <Field label="تاريخ أول دفعة"><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></Field>
-          <Field label="تكرار الاستحقاق كل كام يوم"><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
-          <Field label="تقريب الدفعات لأقرب"><input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} /></Field>
-          <Field label="ملاحظة"><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="مثال: اتفاق سداد رصيد المورد" /></Field>
-          <div className="field"><span>إنشاء الجدول</span><Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>جدولة المستحقات</Button></div>
+        {/* Sub-Tabs Switcher */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+          <Button
+            type="button"
+            variant={activeSubTab === 'invoices' ? 'primary' : 'secondary'}
+            onClick={() => setActiveSubTab('invoices')}
+            style={{ fontWeight: 700 }}
+          >
+            📋 فواتير المشتريات والمعاملات ({ledgerEntries.length})
+          </Button>
+          <Button
+            type="button"
+            variant={activeSubTab === 'schedule' ? 'primary' : 'secondary'}
+            onClick={() => setActiveSubTab('schedule')}
+            style={{ fontWeight: 700 }}
+          >
+            📅 جدول الأقساط والدفعات ({rows.length})
+          </Button>
         </div>
-      ) : null}
 
-      {canSchedule && rows.length && !showAppendForm ? (
-        <div className="surface-note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>يوجد رصيد غير مجدول بقيمة {formatCurrency(unscheduledBalance)}. يمكنك إضافته كدفعات إضافية.</span>
-          <Button type="button" variant="secondary" onClick={() => setShowAppendForm(true)}>إضافة دفعات للرصيد المتبقي</Button>
-        </div>
-      ) : null}
-
-      {!canSchedule && supplierBalance <= 0 ? <div className="surface-note">لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.</div> : null}
-      {!canSchedule && supplierBalance > 0 && unscheduledBalance <= 0 ? <div className="surface-note">تمت جدولة جميع مستحقات هذا المورد بالكامل.</div> : null}
-
-      <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback={((createMutation.error as any)?.message) || ((settleMutation.error as any)?.message) || "تعذر تنفيذ عملية جدولة المورد"} successText="تم تحديث جدول مستحقات المورد." />
-
-      {rows.length ? (
-        <div className="supplier-schedule-filter-bar" aria-label="فلترة دفعات المورد">
-          {FILTER_OPTIONS.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              className={`supplier-schedule-filter-chip ${scheduleFilter === option.key ? 'supplier-schedule-filter-chip--active' : ''}`}
-              onClick={() => setScheduleFilter(option.key)}
-            >
-              {option.label}
-              <span>{filterCounts[option.key]}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="table-wrap supplier-schedule-table-wrap" style={{ marginTop: 12 }}>
-        {filteredRows.length ? (
-          <table className="supplier-schedule-table">
-            <thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الإجراء</th></tr></thead>
-            <tbody>
-              {filteredRows.map((row) => {
-                const isSettled = row.status === 'paid' || row.status === 'cancelled';
-                const payments = row.payments || [];
-                const isExpanded = Boolean(expandedRows[row.id]);
-                return (
-                  <Fragment key={row.id}>
-                    <tr
-                      className={`supplier-schedule-row ${isExpanded ? 'supplier-schedule-row--expanded' : ''}`}
-                      tabIndex={0}
-                      onClick={() => toggleRow(row.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          toggleRow(row.id);
-                        }
-                      }}
-                    >
-                      <td>
-                        <span className="supplier-schedule-installment-label">دفعة {row.installmentNo} {isExpanded ? '▴' : '▾'}</span>
-                      </td>
-                      <td>{formatDateOnly(row.dueDate)}</td>
-                      <td>{formatCurrency(row.amount)}</td>
-                      <td className="muted">{formatCurrency(row.paidAmount)}</td>
-                      <td><strong>{formatCurrency(row.remainingAmount)}</strong></td>
-                      <td><span className={statusClass(row.status)}>{statusLabel(row.status)}</span></td>
-                      <td>
-                        {isSettled ? (
-                          <span className="supplier-schedule-completed-label">مكتملة</span>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            disabled={disabled || settleMutation.isPending}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openPaymentDialog(row);
-                            }}
-                          >
-                            تسجيل دفع
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                    {isExpanded ? (
-                      <tr className="supplier-schedule-details-row">
-                        <td colSpan={7}>
-                          <div className="supplier-schedule-details-panel">
-                            <div className="supplier-schedule-details-heading">
-                              <strong>سجل دفع الدفعة {row.installmentNo}</strong>
-                              <span>{payments.length ? `${payments.length} عملية` : 'لا يوجد دفع مسجل'}</span>
-                            </div>
-                            {payments.length ? (
-                              <div className="supplier-schedule-payment-log">
-                                {payments.map((payment) => (
-                                  <div key={payment.id} className="supplier-schedule-payment-log-item">
-                                    <strong>{formatCurrency(payment.amount)}</strong>
-                                    <span>{formatDateTime(payment.createdAt)}</span>
-                                    <span>تم تسجيل الدفع بواسطة المستخدم: {payment.createdByName || payment.createdBy || '—'}</span>
-                                    {payment.note ? <em>ملاحظة: {payment.note}</em> : null}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : <div className="muted small">لم يتم تسجيل أي دفع على هذه الدفعة بعد.</div>}
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : rows.length ? (
-          <EmptyState title="لا توجد دفعات مطابقة للفلتر" hint="غيّر فلتر الحالة لعرض باقي دفعات المورد." />
-        ) : (
-          <EmptyState title="لا يوجد جدول مستحقات لهذا المورد" hint="استخدم نموذج الجدولة لتقسيم رصيد المورد أو جزء منه على دفعات." />
-        )}
-      </div>
-
-      {paymentTarget ? (
-        <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setPaymentTarget(null); }}>
-          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label={`تأكيد تسليم الدفعة إلى ${supplierName}`}>
-            <div className="dialog-card supplier-payment-dialog-card">
-              <div className="supplier-payment-dialog-header supplier-payment-dialog-header--centered">
-                <div>
-                  <h3>تأكيد تسليم الدفعة إلى ${supplierName}</h3>
-                  <p className="muted">دفعة {paymentTarget.installmentNo} — المتبقي {formatCurrency(paymentTarget.remainingAmount)}</p>
+        {/* SUB-TAB 1: Invoices & Ledger View */}
+        {activeSubTab === 'invoices' ? (
+          <div>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>سجل فواتير المشتريات والمعاملات</strong>
+                  {ledgerQuery.isLoading ? <span style={{ fontSize: '0.78rem', color: '#64748b' }}>(جاري التحميل...)</span> : null}
+                </div>
+                <div className="actions compact-actions">
+                  <Button
+                    type="button"
+                    variant={ledgerFilter === 'all' ? 'primary' : 'secondary'}
+                    onClick={() => setLedgerFilter('all')}
+                  >
+                    الكل ({ledgerEntries.length})
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={ledgerFilter === 'purchases' ? 'primary' : 'secondary'}
+                    onClick={() => setLedgerFilter('purchases')}
+                  >
+                    فواتير الشراء
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={ledgerFilter === 'payments' ? 'primary' : 'secondary'}
+                    onClick={() => setLedgerFilter('payments')}
+                  >
+                    سندات الصرف
+                  </Button>
                 </div>
               </div>
-              <div className="form-grid supplier-payment-dialog-form">
-                <Field label="المبلغ المدفوع">
-                  <input type="number" min="0.01" step="0.01" max={paymentTarget.remainingAmount} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} />
-                </Field>
-                <Field label="ملاحظات اختيارية">
-                  <textarea rows={3} value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} placeholder="مثال: تم التسليم لمندوب المورد / رقم إيصال / ملاحظة داخلية" />
-                </Field>
-              </div>
-              <div className="actions compact-actions supplier-payment-dialog-actions">
-                <Button type="button" onClick={() => settleMutation.mutate({ row: paymentTarget, amount: paymentAmount ? Number(paymentAmount) : undefined, paymentNote })} disabled={settleMutation.isPending}>تأكيد تسليم الدفعة للمورد</Button>
-                <Button type="button" variant="secondary" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending}>إلغاء</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
-      {successReceipt ? (
-        <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setSuccessReceipt(null); }}>
-          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم الدفع بنجاح">
-            <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
-                <CheckCircleIcon size={52} />
+              {filteredLedgerEntries.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 12px', color: '#64748b', fontSize: '0.85rem' }}>
+                  {ledgerQuery.isLoading ? 'جاري تحميل كشف الحساب...' : 'لا توجد حركات مسجلة لهذا المورد في هذه التصفية.'}
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '2px solid #e2e8f0', textAlign: 'right' }}>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>التاريخ</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>نوع الحركة / البيان</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>دائن (فاتورة شراء)</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>مدين (صرف وسداد)</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600 }}>الرصيد بعد الحركة</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 600, textAlign: 'center' }}>الأصناف</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredLedgerEntries.map((entry: any, index: number) => {
+                        const purchaseId = extractPurchaseId(entry);
+                        const isExpanded = Boolean(purchaseId && expandedPurchaseIds[purchaseId]);
+                        const amt = Number(entry.amount ?? (Number(entry.credit || 0) > 0 ? entry.credit : -Number(entry.debit || 0)));
+                        const credit = amt > 0 ? amt : Number(entry.credit || 0);
+                        const debit = amt < 0 ? Math.abs(amt) : Number(entry.debit || 0);
+                        const balanceAfter = entry.balanceAfter != null ? Number(entry.balanceAfter) : (entry.balance_after != null ? Number(entry.balance_after) : null);
+                        const dateValue = entry.createdAt || entry.created_at || entry.date;
+                        const isPurchase = Boolean(purchaseId) || credit > 0 || String(entry.note || '').includes('فاتورة');
+
+                        return (
+                          <Fragment key={entry.id || entry.doc_no || index}>
+                            <tr
+                              style={{
+                                borderBottom: isExpanded ? 'none' : '1px solid #f1f5f9',
+                                background: isExpanded ? '#f8fafc' : (index % 2 === 0 ? '#ffffff' : '#fafafa'),
+                                cursor: purchaseId ? 'pointer' : 'default',
+                              }}
+                              onClick={() => {
+                                if (purchaseId) togglePurchaseDetails(purchaseId);
+                              }}
+                            >
+                              <td style={{ padding: '8px 10px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                                {formatLedgerDate(dateValue)}
+                              </td>
+                              <td style={{ padding: '8px 10px', fontWeight: 600, color: '#1e293b' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span>{entry.note || entry.doc_no || (isPurchase ? 'فاتورة مشتريات' : 'سداد/صرف')}</span>
+                                  {purchaseId ? (
+                                    <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#2563eb', padding: '1px 5px', borderRadius: '4px' }}>
+                                      #{purchaseId}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td style={{ padding: '8px 10px', fontWeight: 700, color: credit > 0 ? '#dc2626' : '#94a3b8' }}>
+                                {credit > 0 ? formatCurrency(credit) : '—'}
+                              </td>
+                              <td style={{ padding: '8px 10px', fontWeight: 700, color: debit > 0 ? '#16a34a' : '#94a3b8' }}>
+                                {debit > 0 ? formatCurrency(debit) : '—'}
+                              </td>
+                              <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0f172a' }}>
+                                {balanceAfter != null ? formatCurrency(balanceAfter) : '—'}
+                              </td>
+                              <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                                {purchaseId ? (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      togglePurchaseDetails(purchaseId);
+                                    }}
+                                    style={{
+                                      background: isExpanded ? '#1e293b' : '#ffffff',
+                                      color: isExpanded ? '#ffffff' : '#1e293b',
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      padding: '3px 8px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <EyeIcon size={13} />
+                                    {isExpanded ? 'إخفاء' : 'عرض الأصناف'}
+                                    {isExpanded ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
+                                  </button>
+                                ) : (
+                                  <span style={{ color: '#cbd5e1' }}>—</span>
+                                )}
+                              </td>
+                            </tr>
+
+                            {isExpanded && purchaseId ? (
+                              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <td colSpan={6} style={{ padding: '0 10px 10px' }}>
+                                  <PurchaseItemsExpandable
+                                    purchaseId={purchaseId}
+                                    onSelectAmount={handleSelectInvoiceAmount}
+                                  />
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Direct Payment Panel */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+              <strong style={{ display: 'block', marginBottom: '10px', fontSize: '0.94rem', color: '#0f172a' }}>
+                تسجيل صرف وسداد مستحقات للمورد {supplierName}
+              </strong>
+
+              <div className="form-grid">
+                <Field label="المبلغ المدفوع للمورد (ج.م)">
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={directPaymentAmount}
+                    onChange={(event) => setDirectPaymentAmount(event.target.value)}
+                    placeholder={`مثال: ${supplierBalance > 0 ? supplierBalance : '0.00'}`}
+                    disabled={directPaymentMutation.isPending || disabled}
+                  />
+                  <div className="customer-quick-amount-shortcuts" style={{ marginTop: '6px' }}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setDirectPaymentAmount(String(supplierBalance > 0 ? supplierBalance : ''))}
+                      disabled={directPaymentMutation.isPending || disabled || supplierBalance <= 0}
+                    >
+                      سداد كامل الرصيد المستحق ({formatCurrency(supplierBalance)})
+                    </Button>
+                  </div>
+                </Field>
+
+                <Field label="ملاحظات الصرف (اختياري)">
+                  <textarea
+                    rows={2}
+                    value={directPaymentNote}
+                    onChange={(event) => setDirectPaymentNote(event.target.value)}
+                    placeholder="مثال: تم التسليم نقداً لمندوب المورد / سداد فاتورة مشتريات محددة"
+                    disabled={directPaymentMutation.isPending || disabled}
+                  />
+                </Field>
               </div>
-              <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل الدفعة بنجاح</h3>
-              <p className="muted" style={{ marginBottom: '1.5rem' }}>
-                تم سداد {formatCurrency(successReceipt.amountPaid)} لصالح {supplierName} (المتبقي: {formatCurrency(successReceipt.remainingBalance)}).
-              </p>
-              
-              <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button 
-                  type="button" 
-                  onClick={() => {
-                    const rawPhone = supplier?.phone || ''; 
-                    const phone = formatWhatsAppNumber(rawPhone);
-                    const remaining = successReceipt.remainingBalance;
-                    const text = `مرحباً ${supplierName}،\nتم سداد دفعة نقدية لكم بقيمة: *${formatCurrency(successReceipt.amountPaid)} ج.م* (تسوية للدفعة رقم ${successReceipt.row.installmentNo})\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ج.م*\nشكراً لتعاملكم معنا.`;
-                    const encodedText = encodeURIComponent(text);
-                    let url = `https://wa.me/${phone}?text=${encodedText}`;
-                    if (settings?.whatsappLinkMode === 'web') {
-                      url = `https://web.whatsapp.com/send/?phone=${phone}&text=${encodedText}`;
-                    } else if (settings?.whatsappLinkMode === 'app') {
-                      url = `whatsapp://send?phone=${phone}&text=${encodedText}`;
-                    }
-                    openWhatsApp(url);
-                    setSuccessReceipt(null);
-                  }}
+
+              <div className="actions compact-actions supplier-payment-dialog-actions" style={{ marginTop: '12px' }}>
+                <Button
+                  type="button"
+                  onClick={() => directPaymentMutation.mutate()}
+                  disabled={directPaymentMutation.isPending || !(Number(directPaymentAmount) > 0) || disabled}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <WhatsAppIcon size={16} /> إرسال للمورد عبر واتساب
-                  </span>
+                  {directPaymentMutation.isPending ? 'جاري تسجيل الدفع...' : 'تأكيد صرف المبلغ للمورد'}
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setSuccessReceipt(null)}>إغلاق النافذة</Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setDirectPaymentAmount('');
+                    setDirectPaymentNote('');
+                  }}
+                  disabled={directPaymentMutation.isPending}
+                >
+                  إعادة ضبط
+                </Button>
+              </div>
+
+              <MutationFeedback
+                isError={directPaymentMutation.isError}
+                isSuccess={false}
+                error={directPaymentMutation.error}
+                errorFallback="تعذر تسجيل صرف المبلغ للمورد"
+                successText=""
+              />
+            </div>
+          </div>
+        ) : (
+          /* SUB-TAB 2: Schedule View */
+          <div>
+            {nextDue ? (
+              <div className="supplier-schedule-next-payment">
+                <div>
+                  <span>الدفعة القادمة إلى {supplierName}</span>
+                  <strong>{formatCurrency(nextDue.remainingAmount || nextDue.amount)}</strong>
+                  <small>تستحق في {formatDateOnly(nextDue.dueDate)}</small>
+                </div>
+                <Button type="button" variant="secondary" disabled={disabled || settleMutation.isPending} onClick={() => openPaymentDialog(nextDue)}>تسجيل دفع</Button>
+              </div>
+            ) : null}
+
+            {canSchedule && (!rows.length || showAppendForm) ? (
+              <div className="form-grid" style={{ marginTop: 12 }}>
+                <Field label="المبلغ المراد جدولته">
+                  <input type="number" min="1" max={unscheduledBalance} step="0.01" value={scheduleAmount} onChange={(event) => setScheduleAmount(event.target.value)} placeholder={String(unscheduledBalance || '')} />
+                </Field>
+                <Field label="طريقة التقسيم">
+                  <select value={mode} onChange={(event) => setMode(event.target.value as 'count' | 'amount')}>
+                    <option value="count">حسب عدد الدفعات</option>
+                    <option value="amount">حسب مبلغ الدفعة</option>
+                  </select>
+                </Field>
+                {mode === 'count' ? (
+                  <Field label="عدد الدفعات"><input type="number" min="1" value={installmentCount} onChange={(event) => setInstallmentCount(event.target.value)} /></Field>
+                ) : (
+                  <Field label="مبلغ كل دفعة"><input type="number" min="1" step="0.01" value={installmentAmount} onChange={(event) => setInstallmentAmount(event.target.value)} /></Field>
+                )}
+                <Field label="تاريخ أول دفعة"><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></Field>
+                <Field label="تكرار الاستحقاق كل كام يوم"><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
+                <Field label="تقريب الدفعات لأقرب"><input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} /></Field>
+                <Field label="ملاحظة"><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="مثال: اتفاق سداد رصيد المورد" /></Field>
+                <div className="field"><span>إنشاء الجدول</span><Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>جدولة المستحقات</Button></div>
+              </div>
+            ) : null}
+
+            {canSchedule && rows.length && !showAppendForm ? (
+              <div className="surface-note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>يوجد رصيد غير مجدول بقيمة {formatCurrency(unscheduledBalance)}. يمكنك إضافته كدفعات إضافية.</span>
+                <Button type="button" variant="secondary" onClick={() => setShowAppendForm(true)}>إضافة دفعات للرصيد المتبقي</Button>
+              </div>
+            ) : null}
+
+            {!canSchedule && supplierBalance <= 0 ? <div className="surface-note">لا توجد مستحقات موجبة على هذا المورد يمكن جدولتها حاليًا.</div> : null}
+            {!canSchedule && supplierBalance > 0 && unscheduledBalance <= 0 ? <div className="surface-note">تمت جدولة جميع مستحقات هذا المورد بالكامل.</div> : null}
+
+            <MutationFeedback isError={createMutation.isError || settleMutation.isError} isSuccess={createMutation.isSuccess || settleMutation.isSuccess} error={createMutation.error || settleMutation.error} errorFallback={((createMutation.error as any)?.message) || ((settleMutation.error as any)?.message) || "تعذر تنفيذ عملية جدولة المورد"} successText="تم تحديث جدول مستحقات المورد." />
+
+            {rows.length ? (
+              <div className="supplier-schedule-filter-bar" aria-label="فلترة دفعات المورد" style={{ marginTop: 16 }}>
+                {FILTER_OPTIONS.map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    className={`supplier-schedule-filter-chip ${scheduleFilter === option.key ? 'supplier-schedule-filter-chip--active' : ''}`}
+                    onClick={() => setScheduleFilter(option.key)}
+                  >
+                    {option.label}
+                    <span>{filterCounts[option.key]}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="table-wrap supplier-schedule-table-wrap" style={{ marginTop: 12 }}>
+              {filteredRows.length ? (
+                <table className="supplier-schedule-table">
+                  <thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الإجراء</th></tr></thead>
+                  <tbody>
+                    {filteredRows.map((row) => {
+                      const isSettled = row.status === 'paid' || row.status === 'cancelled';
+                      const payments = row.payments || [];
+                      const isExpanded = Boolean(expandedRows[row.id]);
+                      return (
+                        <Fragment key={row.id}>
+                          <tr
+                            className={`supplier-schedule-row ${isExpanded ? 'supplier-schedule-row--expanded' : ''}`}
+                            tabIndex={0}
+                            onClick={() => toggleRow(row.id)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                toggleRow(row.id);
+                              }
+                            }}
+                          >
+                            <td>
+                              <span className="supplier-schedule-installment-label">دفعة {row.installmentNo} {isExpanded ? '▴' : '▾'}</span>
+                            </td>
+                            <td>{formatDateOnly(row.dueDate)}</td>
+                            <td>{formatCurrency(row.amount)}</td>
+                            <td className="muted">{formatCurrency(row.paidAmount)}</td>
+                            <td><strong>{formatCurrency(row.remainingAmount)}</strong></td>
+                            <td><span className={statusClass(row.status)}>{statusLabel(row.status)}</span></td>
+                            <td>
+                              {isSettled ? (
+                                <span className="supplier-schedule-completed-label">مكتملة</span>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  disabled={disabled || settleMutation.isPending}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openPaymentDialog(row);
+                                  }}
+                                >
+                                  تسجيل دفع
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                          {isExpanded ? (
+                            <tr className="supplier-schedule-details-row">
+                              <td colSpan={7}>
+                                <div className="supplier-schedule-details-panel">
+                                  <div className="supplier-schedule-details-heading">
+                                    <strong>سجل دفع الدفعة {row.installmentNo}</strong>
+                                    <span>{payments.length ? `${payments.length} عملية` : 'لا يوجد دفع مسجل'}</span>
+                                  </div>
+                                  {payments.length ? (
+                                    <div className="supplier-schedule-payment-log">
+                                      {payments.map((payment) => (
+                                        <div key={payment.id} className="supplier-schedule-payment-log-item">
+                                          <strong>{formatCurrency(payment.amount)}</strong>
+                                          <span>{formatDateTime(payment.createdAt)}</span>
+                                          <span>تم تسجيل الدفع بواسطة المستخدم: {payment.createdByName || payment.createdBy || '—'}</span>
+                                          {payment.note ? <em>ملاحظة: {payment.note}</em> : null}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : <div className="muted small">لم يتم تسجيل أي دفع على هذه الدفعة بعد.</div>}
+                                </div>
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : rows.length ? (
+                <EmptyState title="لا توجد دفعات مطابقة للفلتر" hint="غيّر فلتر الحالة لعرض باقي دفعات المورد." />
+              ) : (
+                <EmptyState title="لا يوجد جدول مستحقات لهذا المورد" hint="استخدم نموذج الجدولة لتقسيم رصيد المورد أو جزء منه على دفعات." />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Schedule Installment Payment Modal */}
+        {paymentTarget ? (
+          <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setPaymentTarget(null); }}>
+            <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label={`تأكيد تسليم الدفعة إلى ${supplierName}`}>
+              <div className="dialog-card supplier-payment-dialog-card">
+                <div className="supplier-payment-dialog-header supplier-payment-dialog-header--centered">
+                  <div>
+                    <h3>تأكيد تسليم الدفعة إلى {supplierName}</h3>
+                    <p className="muted">دفعة {paymentTarget.installmentNo} — المتبقي {formatCurrency(paymentTarget.remainingAmount)}</p>
+                  </div>
+                </div>
+                <div className="form-grid supplier-payment-dialog-form">
+                  <Field label="المبلغ المدفوع">
+                    <input type="number" min="0.01" step="0.01" max={paymentTarget.remainingAmount} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} />
+                  </Field>
+                  <Field label="ملاحظات اختيارية">
+                    <textarea rows={3} value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} placeholder="مثال: تم التسليم لمندوب المورد / رقم إيصال / ملاحظة داخلية" />
+                  </Field>
+                </div>
+                <div className="actions compact-actions supplier-payment-dialog-actions">
+                  <Button type="button" onClick={() => settleMutation.mutate({ row: paymentTarget, amount: paymentAmount ? Number(paymentAmount) : undefined, paymentNote })} disabled={settleMutation.isPending}>تأكيد تسليم الدفعة للمورد</Button>
+                  <Button type="button" variant="secondary" onClick={() => setPaymentTarget(null)} disabled={settleMutation.isPending}>إلغاء</Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ) : null}
-    </FormSection>
+        ) : null}
+
+        {/* Schedule Installment Success WhatsApp Receipt */}
+        {successReceipt ? (
+          <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setSuccessReceipt(null); }}>
+            <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم الدفع بنجاح">
+              <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
+                  <CheckCircleIcon size={52} />
+                </div>
+                <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل الدفعة بنجاح</h3>
+                <p className="muted" style={{ marginBottom: '1.5rem' }}>
+                  تم سداد {formatCurrency(successReceipt.amountPaid)} لصالح {supplierName} (المتبقي: {formatCurrency(successReceipt.remainingBalance)}).
+                </p>
+                
+                <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Button 
+                    type="button" 
+                    onClick={() => {
+                      const rawPhone = supplier?.phone || ''; 
+                      const phone = formatWhatsAppNumber(rawPhone);
+                      const remaining = successReceipt.remainingBalance;
+                      const noteSuffix = successReceipt.note ? ` (${successReceipt.note})` : '';
+                      const text = `مرحباً ${supplierName}،\nتم سداد دفعة نقدية لكم بقيمة: *${formatCurrency(successReceipt.amountPaid)} ج.م*\n• البيان: *تسوية القسط رقم (${successReceipt.row.installmentNo}) من جدول المستحقات*${noteSuffix}\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ج.م*\nشكراً لتعاملكم معنا.`;
+                      const encodedText = encodeURIComponent(text);
+                      let url = `https://wa.me/${phone}?text=${encodedText}`;
+                      if (settings?.whatsappLinkMode === 'web') {
+                        url = `https://web.whatsapp.com/send/?phone=${phone}&text=${encodedText}`;
+                      } else if (settings?.whatsappLinkMode === 'app') {
+                        url = `whatsapp://send?phone=${phone}&text=${encodedText}`;
+                      }
+                      openWhatsApp(url);
+                      setSuccessReceipt(null);
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <WhatsAppIcon size={16} /> إرسال للمورد عبر واتساب
+                    </span>
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setSuccessReceipt(null)}>إغلاق النافذة</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Direct Supplier Payment Success WhatsApp Receipt */}
+        {directSuccessReceipt ? (
+          <div className="dialog-overlay supplier-payment-dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setDirectSuccessReceipt(null); }}>
+            <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم تسجيل السداد بنجاح">
+              <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
+                  <CheckCircleIcon size={52} />
+                </div>
+                <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل صرف المبلغ بنجاح</h3>
+                <p className="muted" style={{ marginBottom: '1.5rem' }}>
+                  تم سداد {formatCurrency(directSuccessReceipt.amountPaid)} لصالح المورد {supplierName} (الرصيد المتبقي له: {formatCurrency(directSuccessReceipt.remainingBalance)}).
+                </p>
+
+                <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const rawPhone = supplier?.phone || '';
+                      const phone = formatWhatsAppNumber(rawPhone);
+                      const remaining = directSuccessReceipt.remainingBalance;
+                      const noteLine = directSuccessReceipt.note ? `\n• البيان: *${directSuccessReceipt.note}*` : '';
+                      const text = `مرحباً ${supplierName}،\nتم تسجيل صرف دفعة نقدية لكم بقيمة: *${formatCurrency(directSuccessReceipt.amountPaid)} ج.م*${noteLine}\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي لكم: *${formatCurrency(remaining)} ج.م*\nشكراً لتعاملكم معنا.`;
+                      const encodedText = encodeURIComponent(text);
+                      let url = `https://wa.me/${phone}?text=${encodedText}`;
+                      if (settings?.whatsappLinkMode === 'web') {
+                        url = `https://web.whatsapp.com/send/?phone=${phone}&text=${encodedText}`;
+                      } else if (settings?.whatsappLinkMode === 'app') {
+                        url = `whatsapp://send?phone=${phone}&text=${encodedText}`;
+                      }
+                      openWhatsApp(url);
+                      setDirectSuccessReceipt(null);
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <WhatsAppIcon size={16} /> إرسال إيصال للمورد عبر واتساب
+                    </span>
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setDirectSuccessReceipt(null)}>
+                    إغلاق
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </FormSection>
+    </div>
   );
 }

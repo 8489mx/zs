@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { accountsApi } from '@/features/accounts/api/accounts.api';
-import { formatCurrency, formatDateTimeArabic, formatWhatsAppNumber } from '@/lib/format';
-import { openWhatsApp } from '@/lib/whatsapp';
-import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { formatCurrency } from '@/lib/format';
 import { SupplierBalanceScheduleCard } from '@/features/accounts/components/SupplierBalanceScheduleCard';
+import { CustomerBalanceInvoicesCard } from '@/features/accounts/components/CustomerBalanceInvoicesCard';
 import type { Customer, Supplier } from '@/types/domain';
 
 function BuildingOfficeIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
@@ -65,28 +63,9 @@ function ZapIcon({ size = 14, style }: { size?: number; style?: React.CSSPropert
   );
 }
 
-function CheckCircleIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  );
-}
-
-function WhatsAppIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={style}>
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  );
-}
-
 type QuickPartyTab = 'suppliers' | 'customers';
 
 export function SupplierQuickPaymentDialog() {
-  const queryClient = useQueryClient();
-  const { data: settings } = useSettingsQuery();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<QuickPartyTab>('suppliers');
   
@@ -101,13 +80,6 @@ export function SupplierQuickPaymentDialog() {
   const [customerSearchText, setCustomerSearchText] = useState('');
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [customerFocusedIndex, setCustomerFocusedIndex] = useState(-1);
-  const [customerPaymentAmount, setCustomerPaymentAmount] = useState('');
-  const [customerPaymentNote, setCustomerPaymentNote] = useState('');
-  const [customerSuccessReceipt, setCustomerSuccessReceipt] = useState<{
-    customer: Customer;
-    amountPaid: number;
-    remainingBalance: number;
-  } | null>(null);
 
   const suppliersQuery = useQuery({
     queryKey: [...queryKeys.suppliers, 'quick-payment-lookup'],
@@ -195,13 +167,6 @@ export function SupplierQuickPaymentDialog() {
     setCustomerSearchText('');
     setIsCustomerDropdownOpen(false);
     setCustomerFocusedIndex(-1);
-    resetCustomerFields();
-  }
-
-  function resetCustomerFields() {
-    setCustomerPaymentAmount('');
-    setCustomerPaymentNote('');
-    setCustomerSuccessReceipt(null);
   }
 
   function closeDialog() {
@@ -225,11 +190,6 @@ export function SupplierQuickPaymentDialog() {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (isOpen && (event.key === 'Escape' || event.key === 'Esc')) {
-        if (customerSuccessReceipt) {
-          event.preventDefault();
-          setCustomerSuccessReceipt(null);
-          return;
-        }
         if (isSupplierDropdownOpen) {
           event.preventDefault();
           setIsSupplierDropdownOpen(false);
@@ -283,7 +243,7 @@ export function SupplierQuickPaymentDialog() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, activeTab, customerSuccessReceipt, isSupplierDropdownOpen, isCustomerDropdownOpen]);
+  }, [isOpen, activeTab, isSupplierDropdownOpen, isCustomerDropdownOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -294,48 +254,6 @@ export function SupplierQuickPaymentDialog() {
       handleSelectCustomer(customers[0]);
     }
   }, [isOpen, activeTab, selectedSupplierId, selectedCustomerId, suppliers, customers]);
-
-  useEffect(() => {
-    resetCustomerFields();
-  }, [selectedCustomerId]);
-
-  const customerPaymentMutation = useMutation({
-    mutationFn: () => {
-      if (!selectedCustomer) throw new Error('اختر العميل أولًا');
-      const amount = Number(customerPaymentAmount || 0);
-      if (!(amount > 0)) throw new Error('المبلغ المحصل يجب أن يكون أكبر من الصفر');
-      return accountsApi.customerPaymentCreate({
-        customerId: Number(selectedCustomer.id),
-        amount,
-        note: customerPaymentNote || `تحصيل سريع من العميل ${selectedCustomer.name}`,
-      });
-    },
-    onSuccess: () => {
-      const amountPaid = Number(customerPaymentAmount || 0);
-      const currentBalance = Number(selectedCustomer?.balance || 0);
-      const newRemaining = Math.max(0, currentBalance - amountPaid);
-
-      if (selectedCustomer) {
-        setCustomerSuccessReceipt({
-          customer: selectedCustomer,
-          amountPaid,
-          remainingBalance: newRemaining,
-        });
-      }
-
-      queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances });
-      queryClient.invalidateQueries({ queryKey: queryKeys.customers });
-      queryClient.invalidateQueries({ queryKey: queryKeys.treasury });
-      queryClient.invalidateQueries({ queryKey: queryKeys.cashierShifts });
-      if (selectedCustomerId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.customerLedger(selectedCustomerId) });
-      }
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.customers, 'debt-lookup'] });
-
-      setCustomerPaymentAmount('');
-      setCustomerPaymentNote('');
-    },
-  });
 
   if (!isOpen) return null;
 
@@ -623,7 +541,7 @@ export function SupplierQuickPaymentDialog() {
                             }
                           }}
                           placeholder="اكتب اسم العميل أو رقم الهاتف للبحث السريع..."
-                          disabled={customerPaymentMutation.isPending}
+                          disabled={false}
                         />
                         {customerSearchText || selectedCustomerId ? (
                           <button
@@ -738,79 +656,17 @@ export function SupplierQuickPaymentDialog() {
               </div>
 
               {selectedCustomer ? (
-                <div className="customer-quick-collection-card">
-                  <div className="supplier-quick-payment-target">
-                    <strong>تسجيل استلام مبلغ من العميل: {selectedCustomer.name}</strong>
-                    <span>الرصيد المستحق الحالي: {formatCurrency(Number(selectedCustomer.balance || 0))}</span>
-                    {selectedCustomer.phone ? <small>رقم الهاتف: {selectedCustomer.phone}</small> : null}
-                  </div>
-
-                  <div className="form-grid">
-                    <Field label="المبلغ المحصل">
-                      <input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        max={Number(selectedCustomer.balance || 0)}
-                        value={customerPaymentAmount}
-                        onChange={(event) => setCustomerPaymentAmount(event.target.value)}
-                        placeholder={`مثال: ${selectedCustomer.balance || '0.00'}`}
-                      />
-                      <div className="customer-quick-amount-shortcuts">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => setCustomerPaymentAmount(String(selectedCustomer.balance || ''))}
-                        >
-                          تحصيل كامل الرصيد ({formatCurrency(Number(selectedCustomer.balance || 0))})
-                        </Button>
-                      </div>
-                    </Field>
-
-                    <Field label="ملاحظات التحصيل (اختياري)">
-                      <textarea
-                        rows={3}
-                        value={customerPaymentNote}
-                        onChange={(event) => setCustomerPaymentNote(event.target.value)}
-                        placeholder="مثال: تحصيل نقدي / تحويل بنكي / رقم إيصال داخلي"
-                      />
-                    </Field>
-                  </div>
-
-                  <div className="actions compact-actions supplier-payment-dialog-actions">
-                    <Button
-                      type="button"
-                      onClick={() => customerPaymentMutation.mutate()}
-                      disabled={customerPaymentMutation.isPending || !(Number(customerPaymentAmount) > 0)}
-                    >
-                      {customerPaymentMutation.isPending ? 'جاري تسجيل التحصيل...' : 'تأكيد تحصيل المبلغ من العميل'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={resetCustomerFields}
-                      disabled={customerPaymentMutation.isPending}
-                    >
-                      إعادة ضبط
-                    </Button>
-                  </div>
-
-                  <MutationFeedback
-                    isError={customerPaymentMutation.isError}
-                    isSuccess={false}
-                    error={customerPaymentMutation.error}
-                    errorFallback="تعذر تسجيل تحصيل العميل"
-                    successText=""
-                  />
+                <div className="supplier-quick-payment-embedded-card">
+                  <CustomerBalanceInvoicesCard customer={selectedCustomer} />
                 </div>
               ) : (
                 <div className="quick-empty-guide">
                   <div className="quick-empty-icon" style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(23, 12, 92, 0.08)', color: 'var(--primary, #170c5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                     <UsersIcon size={28} />
                   </div>
-                  <div className="quick-empty-title">اختر عميلاً لتسجيل التحصيل</div>
+                  <div className="quick-empty-title">اختر عميلاً لعرض فواتيره وتسجيل التحصيل</div>
                   <div className="quick-empty-hint">
-                    يمكنك اختيار العميل من القائمة بالأعلى أو الضغط على أحد أزرار الاختيار السريع لتسجيل استلام النقدية وإرسال إيصال السداد الفوري عبر واتساب.
+                    يمكنك اختيار العميل من القائمة بالأعلى أو الضغط على أحد أزرار الاختيار السريع لعرض كشف حسابه وفواتيره السابقة وتفاصيل الأصناف وسداد المديونية.
                   </div>
                 </div>
               )}
@@ -822,54 +678,6 @@ export function SupplierQuickPaymentDialog() {
           </div>
         </div>
       </div>
-
-      {customerSuccessReceipt ? (
-        <div
-          className="dialog-overlay supplier-payment-dialog-overlay"
-          role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setCustomerSuccessReceipt(null); }}
-        >
-          <div className="dialog-shell supplier-payment-dialog" role="dialog" aria-modal="true" aria-label="تم تسجيل التحصيل بنجاح">
-            <div className="dialog-card supplier-payment-dialog-card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', color: '#16a34a' }}>
-                <CheckCircleIcon size={52} />
-              </div>
-              <h3 style={{ marginBottom: '0.5rem' }}>تم تسجيل التحصيل بنجاح</h3>
-              <p className="muted" style={{ marginBottom: '1.5rem' }}>
-                تم استلام {formatCurrency(customerSuccessReceipt.amountPaid)} من العميل {customerSuccessReceipt.customer.name} (الرصيد المتبقي: {formatCurrency(customerSuccessReceipt.remainingBalance)}).
-              </p>
-
-              <div className="actions compact-actions supplier-payment-dialog-actions" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const rawPhone = customerSuccessReceipt.customer.phone || '';
-                    const phone = formatWhatsAppNumber(rawPhone);
-                    const remaining = customerSuccessReceipt.remainingBalance;
-                    const text = `مرحباً ${customerSuccessReceipt.customer.name}،\nتم تسجيل استلام دفعة نقدية بقيمة: *${formatCurrency(customerSuccessReceipt.amountPaid)} ج.م*\n• التاريخ والوقت: ${formatDateTimeArabic()}\n• إجمالي الرصيد المتبقي عليكم: *${formatCurrency(remaining)} ج.م*\nشكراً لتعاملكم معنا.`;
-                    const encodedText = encodeURIComponent(text);
-                    let url = `https://wa.me/${phone}?text=${encodedText}`;
-                    if (settings?.whatsappLinkMode === 'web') {
-                      url = `https://web.whatsapp.com/send/?phone=${phone}&text=${encodedText}`;
-                    } else if (settings?.whatsappLinkMode === 'app') {
-                      url = `whatsapp://send?phone=${phone}&text=${encodedText}`;
-                    }
-                    openWhatsApp(url);
-                    setCustomerSuccessReceipt(null);
-                  }}
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <WhatsAppIcon size={16} /> إرسال إيصال للعميل عبر واتساب
-                  </span>
-                </Button>
-                <Button type="button" variant="secondary" onClick={() => setCustomerSuccessReceipt(null)}>
-                  إغلاق
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

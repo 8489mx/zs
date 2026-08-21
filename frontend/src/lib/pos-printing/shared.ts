@@ -13,6 +13,18 @@ export function paymentLabel(value?: string) {
   return value || 'نقدي';
 }
 
+export function formatSalePaymentText(paymentType?: string, paymentChannel?: string, paidAmount?: number, total?: number): string {
+  const paid = Number(paidAmount || 0);
+  const invoiceTotal = Number(total || 0);
+  if (paymentType === 'credit') {
+    if (paid > 0.009 && paid + 0.009 < invoiceTotal) {
+      return 'سداد جزئي (نقدي + آجل)';
+    }
+    return 'آجل';
+  }
+  return paymentLabel(paymentChannel || paymentType);
+}
+
 export function getPrintOption(settings: Partial<AppSettings> | null | undefined, key: keyof AppSettings, defaultValue = true) {
   const value = settings?.[key];
   return typeof value === 'boolean' ? value : defaultValue;

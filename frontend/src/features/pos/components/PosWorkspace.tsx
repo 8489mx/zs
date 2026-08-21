@@ -313,7 +313,6 @@ export function PosWorkspace() {
         posMode={posMode}
         onModeChange={setPosMode}
         onFocusSearch={focusBarcodeEntry}
-        onOpenHeldDrafts={() => setHeldDraftsDialogOpen(true)}
         onOpenQuickService={() => setQuickServiceOpen(true)}
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}

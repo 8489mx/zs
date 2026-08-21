@@ -169,10 +169,8 @@ export function resolveSalePayments(
   collectibleTotal: number,
   fallbackPaymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = 'cash',
 ): Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }> {
-  if (paymentType === 'credit') return [];
-  
   let validPayments = payments;
-  if (!validPayments.length && collectibleTotal > 0) {
+  if (!validPayments.length && collectibleTotal > 0 && paymentType !== 'credit') {
     validPayments = [{
       paymentChannel: fallbackPaymentChannel === 'card'
         ? 'card'
@@ -218,7 +216,11 @@ export function resolvePostedSalePaymentChannel(
   paymentType: 'cash' | 'credit',
   payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' }>,
 ): 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' {
-  if (paymentType === 'credit') return 'credit';
+  if (paymentType === 'credit') {
+    if (payments.length === 0) return 'credit';
+    if (payments.length > 1) return 'mixed';
+    return payments[0]?.paymentChannel || 'credit';
+  }
   if (payments.length > 1) return 'mixed';
   return payments[0]?.paymentChannel || 'cash';
 }

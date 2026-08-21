@@ -67,13 +67,13 @@ export function validatePosSaleInput(input: CreatePosSaleInput) {
   if (input.cart.some((item) => !item.productId)) throw new Error('توجد عناصر غير صالحة داخل السلة');
   if (input.cart.some((item) => Number(item.qty || 0) <= 0)) throw new Error('كمية الصنف يجب أن تكون أكبر من صفر');
   if (input.paymentType === 'credit' && !normalizeCustomerId(input.customerId)) throw new Error('اختر العميل أولًا في حالة البيع الآجل');
-  if (input.paymentType === 'credit' && input.paymentChannel !== 'credit') throw new Error('قناة السداد يجب أن تكون آجل مع البيع الآجل');
   if (input.paymentType === 'cash' && input.paymentChannel === 'credit') throw new Error('لا يمكن استخدام قناة آجل مع بيع نقدي');
   if (Number(input.discount || 0) < 0) throw new Error('الخصم لا يمكن أن يكون سالبًا');
   if (Number(input.expectedTotal || 0) < 0) throw new Error('إجمالي الفاتورة غير صالح');
   const isCodDelivery = input.orderType === 'delivery' && input.collectionStatus === 'cod';
   const paymentsTotal = (input.payments || []).reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
-  if (input.paymentType !== 'credit' && !isCodDelivery && paymentsTotal < Number(input.expectedTotal || 0)) {
+  const isPartialCreditWithCustomer = Boolean(normalizeCustomerId(input.customerId)) && paymentsTotal < Number(input.expectedTotal || 0);
+  if (input.paymentType !== 'credit' && !isPartialCreditWithCustomer && !isCodDelivery && paymentsTotal < Number(input.expectedTotal || 0)) {
     throw new Error('المبلغ المدفوع أقل من إجمالي الفاتورة');
   }
 

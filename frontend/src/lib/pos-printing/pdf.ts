@@ -2,7 +2,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import type { AppSettings, Sale } from '@/types/domain';
 import { buildReceiptDocument, getInvoiceStyles } from '@/lib/pos-printing/template';
-import { defaultInvoiceFooter, formatDateTime, paymentLabel } from '@/lib/pos-printing/shared';
+import { defaultInvoiceFooter, formatDateTime, formatSalePaymentText } from '@/lib/pos-printing/shared';
 
 const PDF_PAGE_WIDTH_MM = 210;
 const PDF_PAGE_HEIGHT_MM = 297;
@@ -17,7 +17,7 @@ function buildPostedSaleDocument(sale: Sale, settings?: Partial<AppSettings> | n
     documentNumber: sale.docNo || sale.id,
     dateText: formatDateTime(sale.date),
     customerName: sale.customerName || 'عميل نقدي',
-    paymentText: paymentLabel(sale.paymentChannel || sale.paymentType),
+    paymentText: formatSalePaymentText(sale.paymentType, sale.paymentChannel, sale.paidAmount, sale.total),
     cashierName: sale.createdBy || '—',
     branchName: sale.branchName || 'المتجر الرئيسي',
     locationName: sale.locationName || 'المخزن الأساسي',

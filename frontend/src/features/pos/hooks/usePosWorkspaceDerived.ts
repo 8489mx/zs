@@ -183,10 +183,12 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
   const shouldAssumeFullCashPayment = allowNegativeStockSales && params.paymentType !== 'credit' && Number(params.paidAmount || 0) <= 0.0001;
   const isDeliveryCOD = params.orderType === 'delivery' && params.collectionStatus === 'cod';
+  const isPartialCreditWithCustomer = Boolean(params.customerId) && Number(params.paidAmount || 0) < Number(totals.total || 0);
   const hasUnderpaidSale = params.paymentType !== 'credit'
     && Number(params.paidAmount || 0) < Number(totals.total || 0)
     && !shouldAssumeFullCashPayment
-    && !isDeliveryCOD;
+    && !isDeliveryCOD
+    && !isPartialCreditWithCustomer;
   const hasDiscountPermissionViolation = !canApplyDiscount && Math.abs(Number(params.discount || 0)) > 0.0001;
   const hasPricePermissionViolation = !canEditPrice && params.cart.some((item) => {
     const baselinePrice = item.priceType === 'retail' && Number(item.qty || 0) === 1

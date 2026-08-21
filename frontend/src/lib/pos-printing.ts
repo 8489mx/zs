@@ -5,6 +5,7 @@ import { buildReceiptDocument, getInvoiceStyles } from '@/lib/pos-printing/templ
 import {
   defaultInvoiceFooter,
   formatDateTime,
+  formatSalePaymentText,
   getPrintOption,
   paymentLabel,
   type PosPrintPageSize,
@@ -115,7 +116,7 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     customerName: sale.customerName || 'عميل نقدي',
     customerPhone: sale.customerPhone,
     customerAddress: sale.customerAddress,
-    paymentText: paymentLabel(sale.paymentChannel || sale.paymentType),
+    paymentText: formatSalePaymentText(sale.paymentType, sale.paymentChannel, sale.paidAmount, sale.total),
     cashierName: sale.createdBy || options.cashierName || '—',
     branchName: sale.branchName || 'المتجر الرئيسي',
     locationName: sale.locationName || 'المخزن الأساسي',
