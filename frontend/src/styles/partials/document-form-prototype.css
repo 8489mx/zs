@@ -352,12 +352,12 @@
   border-radius: 8px;
   color: #64748b;
   display: inline-flex;
-  gap: 0.22rem;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  padding: 0 0.46rem;
-  width: 8.8rem;
+  gap: 0.35rem;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 0.6rem;
+  width: 11.5rem;
 }
 
 .purchase-prototype-search span {

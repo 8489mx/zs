@@ -58,6 +58,7 @@ export function GlobalAppToolbar() {
             >
               <span className="system-update-pulse-dot" />
               <span className="system-update-toolbar-label">تحديث جديد</span>
+              <span className="system-update-toolbar-sep">•</span>
               <span className="system-update-toolbar-version">v{updateInfo.latestVersion}</span>
             </button>
           )}
