@@ -532,27 +532,29 @@
 .system-update-toolbar-alert {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 10px;
   background: #ecfdf5;
   color: #065f46;
   border: 1px solid #a7f3d0;
   border-radius: 8px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08);
+  box-shadow: none;
   transition: all 0.18s ease;
   white-space: nowrap;
   flex-shrink: 0;
+  font-family: inherit;
+  letter-spacing: normal;
 }
 
 .system-update-toolbar-alert:hover {
   background: #d1fae5;
   border-color: #6ee7b7;
-  color: #047857;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.16);
+  color: #065f46;
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.15);
 }
 
 .system-update-pulse-dot {
