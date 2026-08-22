@@ -98,7 +98,7 @@ export function normalizeApiBaseUrl(
   }
 
   if (isDevServer) {
-    return `${runtimeLocation.protocol}//${runtimeLocation.hostname}:3001`;
+    return `${runtimeLocation.protocol}//${runtimeLocation.hostname}:3101`;
   }
 
   return '';

@@ -30,7 +30,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
-  server: { port: 5173, proxy: { '/api': { target: process.env.VITE_DEV_BACKEND_URL || 'http://localhost:3001', changeOrigin: true } } },
+  server: { port: 5173, proxy: { '/api': { target: process.env.VITE_DEV_BACKEND_URL || 'http://localhost:3101', changeOrigin: true } } },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
