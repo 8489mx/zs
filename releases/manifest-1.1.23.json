@@ -1,0 +1,11 @@
+{
+  "version": "1.1.23",
+  "generatedAt": "2026-08-22T15:45:13.230Z",
+  "passcode": "ZS-UPD-1123-AF0A-8A0C",
+  "requiresPasscode": true,
+  "changelog": "• ترقية شاملة لواجهة التحديثات بالتصميم الملكي.\n• إعادة بناء شاشة الإقلاع والفتح (Splash Screen) بهوية Z-ERP Enterprise ومراحل التحميل التفاعلية.\n• إضافة نظام كود التفعيل المنبثق وأرشيف الإصدارات السابقة القابل للطي.\n• تحسينات عامة على استقرار النظام ومزامنة قواعد البيانات.",
+  "patchUrl": "https://github.com/karimzakaria/zn/releases/download/v1.1.23/Z-ERP-Patch-v1.1.23.zip",
+  "sha256": "446c1dd508921522bf383f33838db7354d58d9d248dd0ccd6b12c7cf10942ef5",
+  "sizeBytes": 3458774,
+  "filesCount": 1350
+}

@@ -111,7 +111,8 @@ export function useOfflineUpdateCheck(deploymentMode: string | null | undefined)
       return fallback;
     },
     enabled: isDesktop,
-    staleTime: 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchInterval: 5 * 60 * 1000,
     retry: 1,
     refetchIntervalInBackground: false,
