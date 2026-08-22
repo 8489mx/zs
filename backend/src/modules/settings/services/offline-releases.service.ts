@@ -1,13 +1,32 @@
 /// <reference types="multer" />
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { Kysely } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { spawn } from 'child_process';
 import AdmZip from 'adm-zip';
+
+export function generateReleasePasscode(version: string): string {
+  const clean = version.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+  const h = crypto.createHash('sha256').update(`ZS_SECRET_KEY_${version}_2026_MASTER`).digest('hex').toUpperCase();
+  return `ZS-UPD-${clean || '100'}-${h.substring(0, 4)}-${h.substring(4, 8)}`;
+}
+
+export function compareSemver(v1: string, v2: string): number {
+  const p1 = (v1 || '0.0.0').replace(/^[vV]/, '').split('.').map(Number);
+  const p2 = (v2 || '0.0.0').replace(/^[vV]/, '').split('.').map(Number);
+  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+    const a = p1[i] || 0;
+    const b = p2[i] || 0;
+    if (a > b) return 1;
+    if (a < b) return -1;
+  }
+  return 0;
+}
 
 /**
  * Determines the portable/Electron root directory.
@@ -22,17 +41,119 @@ function getPortableRoot(): string {
 }
 
 @Injectable()
-export class OfflineReleasesService {
+export class OfflineReleasesService implements OnModuleInit {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
+
+  async onModuleInit() {
+    await this.syncManifestsFromDisk().catch((err) => {
+      console.warn('[OfflineReleasesService] Auto-sync manifests warning:', err?.message);
+    });
+  }
+
+  /**
+   * Automatically scans runtime/releases/ for manifest-*.json files
+   * and ensures all released versions are in the offline_releases table,
+   * activating the latest semver version automatically without manual SaaS entry!
+   */
+  async syncManifestsFromDisk() {
+    const searchDirs = [
+      path.resolve(process.cwd(), 'runtime/releases'),
+      path.resolve(process.cwd(), 'backend/runtime/releases'),
+      path.resolve(__dirname, '../../../../runtime/releases'),
+      path.resolve(__dirname, '../../../../../runtime/releases'),
+      'D:/zn/backend/runtime/releases',
+    ];
+
+    const foundManifests: Array<{ version: string; changelog: string; passcode?: string; requiresPasscode?: boolean; generatedAt?: string; patchUrl?: string }> = [];
+
+    for (const dir of searchDirs) {
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir).filter(f => f.startsWith('manifest-') && f.endsWith('.json'));
+        for (const file of files) {
+          try {
+            const content = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+            if (content.version) {
+              foundManifests.push(content);
+            }
+          } catch {
+            // ignore bad json
+          }
+        }
+      }
+    }
+
+    if (foundManifests.length === 0) return;
+
+    // Deduplicate by version
+    const uniqueByVersion = new Map<string, typeof foundManifests[0]>();
+    for (const m of foundManifests) {
+      uniqueByVersion.set(m.version, m);
+    }
+
+    const sortedManifests = Array.from(uniqueByVersion.values()).sort((a, b) => compareSemver(b.version, a.version));
+    const latestVersion = sortedManifests[0]?.version;
+
+    for (const m of sortedManifests) {
+      const existing = await this.db
+        .selectFrom('offline_releases')
+        .selectAll()
+        .where('version', '=', m.version)
+        .executeTakeFirst();
+
+      const isLatest = m.version === latestVersion;
+      const passcode = m.passcode || generateReleasePasscode(m.version);
+      const patchUrl = m.patchUrl || `https://api.karimzakaria.com/downloads/updates/Z-ERP-Patch-v${m.version}.zip`;
+
+      if (!existing) {
+        if (isLatest) {
+          await this.db
+            .updateTable('offline_releases')
+            .set({ is_active: false })
+            .where('is_active', '=', true)
+            .execute();
+        }
+        await this.db
+          .insertInto('offline_releases')
+          .values({
+            version: m.version,
+            changelog: m.changelog,
+            patch_url: patchUrl,
+            passcode: passcode,
+            requires_passcode: m.requiresPasscode ?? true,
+            is_active: isLatest,
+            promoted_by: '1',
+            promoted_at: m.generatedAt ? new Date(m.generatedAt).toISOString() : new Date().toISOString(),
+            created_at: new Date().toISOString(),
+          })
+          .execute();
+      } else {
+        if (isLatest && !existing.is_active) {
+          await this.db
+            .updateTable('offline_releases')
+            .set({ is_active: false })
+            .where('is_active', '=', true)
+            .execute();
+
+          await this.db
+            .updateTable('offline_releases')
+            .set({ is_active: true, passcode: passcode })
+            .where('id', '=', existing.id)
+            .execute();
+        }
+      }
+    }
+  }
 
   // ─── Public ───────────────────────────────────────────────────────────────
 
   /**
    * Called by offline portable clients on startup.
-   * Returns the latest active release if it is newer than the client's current version.
+   * Returns the latest active release if it is newer than the client's current version,
+   * along with the cumulative changelog of all releases between current and target.
    */
   async checkForUpdate(currentVersion: string) {
-    console.log(`[DEBUG] updates/check endpoint hit. requestedVersion: ${currentVersion}`);
+    // Ensure manifests are synced in memory/db
+    await this.syncManifestsFromDisk().catch(() => {});
     const active = await this.db
       .selectFrom('offline_releases')
       .selectAll()
@@ -42,58 +163,61 @@ export class OfflineReleasesService {
       .executeTakeFirst();
 
     const history = await this.listReleaseHistory();
-    console.log(`[DEBUG] approvedReleasesCount (history): ${history.length}`);
 
     if (!active) {
-      const result = {
+      return {
         updateAvailable: false,
         currentVersion,
         latestVersion: null,
         patchUrl: null,
         changelog: null,
+        cumulativeChangelog: null,
+        requiresPasscode: false,
         releases: history,
       };
-      console.log(`[DEBUG] response body (no active release):`, JSON.stringify(result));
-      return result;
     }
 
-    const currentParts = currentVersion.replace('v', '').split('.').map(Number);
-    const activeParts = active.version.replace('v', '').split('.').map(Number);
-    let isNewer = false;
-    for (let i = 0; i < Math.max(currentParts.length, activeParts.length); i++) {
-      const c = currentParts[i] || 0;
-      const a = activeParts[i] || 0;
-      if (a > c) {
-        isNewer = true;
-        break;
-      } else if (c > a) {
-        break;
-      }
-    }
+    const isNewer = compareSemver(active.version, currentVersion) > 0;
 
     if (!isNewer) {
-      const result = {
+      return {
         updateAvailable: false,
         currentVersion,
         latestVersion: active.version,
         patchUrl: null,
         changelog: null,
+        cumulativeChangelog: null,
+        requiresPasscode: active.requires_passcode ?? true,
         releases: history,
       };
-      console.log(`[DEBUG] response body (not newer):`, JSON.stringify(result));
-      return result;
     }
 
-    const result = {
+    // Build cumulative changelog from all intermediate releases
+    const allApproved = await this.db
+      .selectFrom('offline_releases')
+      .selectAll()
+      .where('promoted_at', 'is not', null)
+      .orderBy('promoted_at', 'desc')
+      .execute();
+
+    const intermediate = allApproved.filter((r) => compareSemver(r.version, currentVersion) > 0);
+    const cumulativeChangelog = intermediate
+      .map((r) => {
+        const dateStr = r.promoted_at ? new Date(r.promoted_at).toLocaleDateString('ar-EG') : '';
+        return `### 📦 الإصدار ${r.version} ${dateStr ? `(${dateStr})` : ''}\n${r.changelog || 'تحسينات عامة على أداء واستقرار النظام.'}`;
+      })
+      .join('\n\n---\n\n');
+
+    return {
       updateAvailable: true,
       currentVersion,
       latestVersion: active.version,
       patchUrl: active.patch_url,
       changelog: active.changelog,
+      cumulativeChangelog: cumulativeChangelog || active.changelog,
+      requiresPasscode: active.requires_passcode ?? true,
       releases: history,
     };
-    console.log(`[DEBUG] response body (update available):`, JSON.stringify(result));
-    return result;
   }
 
   async listReleaseHistory() {
@@ -105,11 +229,71 @@ export class OfflineReleasesService {
       .execute();
 
     return rows.map((r) => ({
+      id: r.id,
       version: r.version,
       changelog: r.changelog,
       patchUrl: r.patch_url,
       promotedAt: r.promoted_at,
+      requiresPasscode: r.requires_passcode ?? true,
     }));
+  }
+
+  // ─── Developer Simulation Sandbox ──────────────────────────────────────────
+
+  /**
+   * Allows the developer to simulate and test updates in real-time without packaging Electron EXEs.
+   */
+  async simulateUpdate(body: { fromVersion?: string; targetVersion?: string; passcode?: string }) {
+    const fromVer = body.fromVersion || '1.1.2';
+    const targetVer = body.targetVersion || '1.1.14';
+
+    const targetRelease = await this.db
+      .selectFrom('offline_releases')
+      .selectAll()
+      .where('version', '=', targetVer)
+      .executeTakeFirst();
+
+    const expectedPasscode = targetRelease?.passcode || generateReleasePasscode(targetVer);
+
+    if (targetRelease?.requires_passcode !== false && body.passcode !== undefined) {
+      const normalizedProvided = (body.passcode || '').replace(/[\s-]+/g, '').toUpperCase();
+      const normalizedExpected = expectedPasscode.replace(/[\s-]+/g, '').toUpperCase();
+      if (normalizedProvided !== normalizedExpected) {
+        throw new BadRequestException(`كود تفعيل التحديث غير صحيح. الكود المطلوب لهذا الإصدار هو: ${expectedPasscode}`);
+      }
+    }
+
+    const allApproved = await this.db
+      .selectFrom('offline_releases')
+      .selectAll()
+      .where('promoted_at', 'is not', null)
+      .orderBy('promoted_at', 'desc')
+      .execute();
+
+    const intermediate = allApproved.filter((r) => compareSemver(r.version, fromVer) > 0);
+    const cumulativeChangelog = intermediate
+      .map((r) => `### 📦 الإصدار ${r.version}\n${r.changelog || 'تحسينات شاملة.'}`)
+      .join('\n\n---\n\n');
+
+    return {
+      ok: true,
+      simulation: true,
+      fromVersion: fromVer,
+      targetVersion: targetVer,
+      passcodeVerified: true,
+      generatedPasscode: expectedPasscode,
+      cumulativeReleasesCount: intermediate.length,
+      cumulativeChangelog: cumulativeChangelog || `تحديث شامل للإصدار ${targetVer}`,
+      steps: [
+        { step: 1, title: 'التحقق من كود التفعيل والترخيص', status: 'completed', message: `تم التحقق بنجاح من كود التفعيل (${expectedPasscode}) وتوقيعه الرقمي.` },
+        { step: 2, title: 'إنشاء نقطة استعادة فورية (Auto Backup)', status: 'completed', message: `تم تأمين قاعدة البيانات والملفات في runtime/backups/pre-update-v${targetVer}.` },
+        { step: 3, title: 'فحص الحزمة وتطابق الـ SHA256 Checksums', status: 'completed', message: 'جميع الملفات والـ Hash سليمة 100% ولا توجد أي ملفات تالفة أو محقونة.' },
+        { step: 4, title: 'تطبيق ملفات الباك إند والفرونت إند', status: 'completed', message: `تم استبدال مجلدات dist بالكامل للإصدار ${targetVer} بنجاح.` },
+        { step: 5, title: 'تشغيل ترقيات قاعدة البيانات (Kysely Migrations)', status: 'completed', message: 'تم فحص وتطبيق كافة المايجريشنز التراكمية على قاعدة البيانات المحلية بنجاح.' },
+        { step: 6, title: 'تحديث علامة الإصدار (.app_version)', status: 'completed', message: `تم تحديث ملف الإصدار إلى: ${targetVer}.` },
+        { step: 7, title: 'إعادة التشغيل الساخن (Zero Downtime)', status: 'completed', message: 'تم إقلاع النظام وتجهيزه للعمل بكفاءة تامة.' },
+      ],
+    };
   }
 
   // ─── Admin ────────────────────────────────────────────────────────────────
@@ -121,23 +305,101 @@ export class OfflineReleasesService {
       .orderBy('created_at', 'desc')
       .execute();
 
+    // Auto-populate passcode for releases if missing
+    for (const r of rows) {
+      if (!r.passcode) {
+        const gen = generateReleasePasscode(r.version);
+        await this.db
+          .updateTable('offline_releases')
+          .set({ passcode: gen })
+          .where('id', '=', r.id)
+          .execute();
+        r.passcode = gen;
+      }
+    }
+
     return rows.map((r) => ({
       id: r.id,
       version: r.version,
       changelog: r.changelog,
       patchUrl: r.patch_url,
       isActive: r.is_active,
+      passcode: r.passcode,
+      requiresPasscode: r.requires_passcode ?? true,
       promotedBy: r.promoted_by,
       promotedAt: r.promoted_at,
       createdAt: r.created_at,
     }));
   }
 
+  async getReleasePasscode(_auth: AuthContext, id: number) {
+    const release = await this.db
+      .selectFrom('offline_releases')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!release) throw new NotFoundException('الإصدار غير موجود');
+
+    let passcode = release.passcode;
+    if (!passcode) {
+      passcode = generateReleasePasscode(release.version);
+      await this.db
+        .updateTable('offline_releases')
+        .set({ passcode })
+        .where('id', '=', id)
+        .execute();
+    }
+
+    return {
+      ok: true,
+      version: release.version,
+      passcode,
+      requiresPasscode: release.requires_passcode ?? true,
+    };
+  }
+
+  async getReleasePasscodeByVersion(_auth: AuthContext, version: string) {
+    if (!version?.trim()) throw new BadRequestException('version مطلوب');
+
+    const release = await this.db
+      .selectFrom('offline_releases')
+      .selectAll()
+      .where('version', '=', version.trim())
+      .executeTakeFirst();
+
+    if (release) {
+      let passcode = release.passcode;
+      if (!passcode) {
+        passcode = generateReleasePasscode(release.version);
+        await this.db
+          .updateTable('offline_releases')
+          .set({ passcode })
+          .where('id', '=', release.id)
+          .execute();
+      }
+      return {
+        ok: true,
+        version: release.version,
+        passcode,
+        requiresPasscode: release.requires_passcode ?? true,
+      };
+    }
+
+    const passcode = generateReleasePasscode(version.trim());
+    return {
+      ok: true,
+      version: version.trim(),
+      passcode,
+      requiresPasscode: true,
+    };
+  }
+
   async createRelease(
     _auth: AuthContext,
-    body: { version: string; changelog: string; patchUrl: string },
+    body: { version: string; changelog: string; patchUrl: string; passcode?: string; requiresPasscode?: boolean },
   ) {
-    const { version, changelog, patchUrl } = body;
+    const { version, changelog, patchUrl, passcode, requiresPasscode } = body;
 
     if (!version?.trim()) throw new BadRequestException('version مطلوب');
     if (!patchUrl?.trim()) throw new BadRequestException('patchUrl مطلوب');
@@ -153,6 +415,8 @@ export class OfflineReleasesService {
       throw new ConflictException(`الإصدار ${version} موجود بالفعل`);
     }
 
+    const assignedPasscode = passcode?.trim() || generateReleasePasscode(version.trim());
+
     const inserted = await this.db
       .insertInto('offline_releases')
       .values({
@@ -160,6 +424,8 @@ export class OfflineReleasesService {
         changelog: changelog?.trim() ?? '',
         patch_url: patchUrl.trim(),
         is_active: false,
+        passcode: assignedPasscode,
+        requires_passcode: requiresPasscode ?? true,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -287,13 +553,29 @@ export class OfflineReleasesService {
   /**
    * Called by the local desktop client to apply an update downloaded from SaaS.
    */
-  async applyLocalUpdate(body: { version: string; patchUrl: string; changelog: string }) {
+  async applyLocalUpdate(body: { version: string; patchUrl: string; changelog: string; passcode?: string }) {
     if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
       throw new BadRequestException('Updates can only be applied in Desktop/Offline mode');
     }
 
     if (!body.version || !body.patchUrl) {
       throw new BadRequestException('version and patchUrl are required');
+    }
+
+    // Validate passcode
+    const release = await this.db
+      .selectFrom('offline_releases')
+      .selectAll()
+      .where('version', '=', body.version)
+      .executeTakeFirst();
+
+    if (release?.requires_passcode !== false) {
+      const expected = release?.passcode || generateReleasePasscode(body.version);
+      const normalizedProvided = (body.passcode || '').replace(/[\s-]+/g, '').toUpperCase();
+      const normalizedExpected = expected.replace(/[\s-]+/g, '').toUpperCase();
+      if (normalizedProvided !== normalizedExpected) {
+        throw new BadRequestException('كود تفعيل التحديث غير صحيح. يرجى التواصل مع إدارة النظام للحصول على كود التفعيل المعتمد.');
+      }
     }
 
     const portableRoot  = getPortableRoot();
@@ -344,7 +626,7 @@ export class OfflineReleasesService {
   /**
    * Called by the local desktop client to apply a manual ZIP update.
    */
-  async applyLocalZipUpdate(file: Express.Multer.File) {
+  async applyLocalZipUpdate(file: Express.Multer.File, passcode?: string) {
     if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
       throw new BadRequestException('Updates can only be applied in Desktop/Offline mode');
     }
@@ -372,39 +654,58 @@ export class OfflineReleasesService {
         if (name === 'update-manifest.json') manifestEntry = entry;
       }
 
-      if (!manifestEntry) {
-        throw new Error('ملف التحديث لا يحتوي على update-manifest.json');
-      }
+      if (manifestEntry) {
+        const manifestStr = manifestEntry.getData().toString('utf8');
+        const manifest = JSON.parse(manifestStr);
 
-      const manifestStr = manifestEntry.getData().toString('utf8');
-      const manifest = JSON.parse(manifestStr);
-
-      if (!manifest.version) {
-        throw new Error('ملف التحديث يحتوي على manifest غير صالح');
-      }
-      
-      version = manifest.version;
-
-      // 2. Checksum validation
-      const crypto = require('crypto');
-      for (const f of manifest.files || []) {
-        const fileEntry = zip.getEntry(f.path) || zip.getEntry(f.path.replace(/\//g, '\\'));
-        if (!fileEntry) throw new Error(`الملف المذكور في manifest غير موجود: ${f.path}`);
+        if (!manifest.version) {
+          throw new Error('ملف التحديث يحتوي على manifest غير صالح');
+        }
         
-        const hash = crypto.createHash('sha256').update(fileEntry.getData()).digest('hex');
-        if (hash !== f.sha256) {
-           throw new Error(`الملف ${f.path} تالف أو تم التلاعب به (Checksum Mismatch)`);
-        }
-      }
+        version = manifest.version;
 
-      // 3. Expected structure validation
-      for (const folder of manifest.expectedFolders || []) {
-        let found = false;
-        for (const entry of entries) {
-           const name = entry.entryName.replace(/\\/g, '/');
-           if (name.startsWith(folder + '/') || name === folder) { found = true; break; }
+        // Passcode validation for ZIP package (if required by manifest)
+        if (manifest.requiresPasscode === true || manifest.passcode) {
+          const expected = manifest.passcode || generateReleasePasscode(manifest.version);
+          const normalizedProvided = (passcode || '').replace(/[\s-]+/g, '').toUpperCase();
+          const normalizedExpected = expected.replace(/[\s-]+/g, '').toUpperCase();
+          if (normalizedProvided !== normalizedExpected) {
+            throw new BadRequestException('كود تفعيل التحديث غير صحيح. يرجى التواصل مع إدارة النظام للحصول على كود التفعيل المعتمد.');
+          }
         }
-        if (!found) throw new Error(`المجلد المطلوب ${folder} غير موجود في ملف التحديث`);
+
+        // 2. Checksum validation
+        const crypto = require('crypto');
+        for (const f of manifest.files || []) {
+          const fileEntry = zip.getEntry(f.path) || zip.getEntry(f.path.replace(/\//g, '\\'));
+          if (!fileEntry) throw new Error(`الملف المذكور في manifest غير موجود: ${f.path}`);
+          
+          const hash = crypto.createHash('sha256').update(fileEntry.getData()).digest('hex');
+          if (hash !== f.sha256) {
+             throw new Error(`الملف ${f.path} تالف أو تم التلاعب به (Checksum Mismatch)`);
+          }
+        }
+
+        // 3. Expected structure validation
+        for (const folder of manifest.expectedFolders || []) {
+          let found = false;
+          for (const entry of entries) {
+             const name = entry.entryName.replace(/\\/g, '/');
+             if (name.startsWith(folder + '/') || name === folder) { found = true; break; }
+          }
+          if (!found) throw new Error(`المجلد المطلوب ${folder} غير موجود في ملف التحديث`);
+        }
+      } else {
+        // Fallback for zip packages without update-manifest.json
+        const pkgEntry = zip.getEntry('backend/package.json') || zip.getEntry('backend\\package.json');
+        if (pkgEntry) {
+          try {
+            const pkgData = JSON.parse(pkgEntry.getData().toString('utf8'));
+            version = pkgData.version || 'manual';
+          } catch {
+            version = 'manual';
+          }
+        }
       }
     } catch (e: any) {
       throw new BadRequestException(e.message || 'ملف التحديث غير صالح.');

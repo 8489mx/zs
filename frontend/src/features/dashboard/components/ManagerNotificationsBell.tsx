@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
 import { importantManagerActions } from '@/features/dashboard/lib/manager-actions-ui';
+import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 
 function formatCompactAlert(alert: { title: string; message: string; domain: string; severity: string; metrics?: Record<string, unknown> }) {
   let mainLabel = alert.title;
@@ -49,8 +50,10 @@ export function ManagerNotificationsBell() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const managerActions = useManagerActions(30);
+  const { data: updateInfo } = useOfflineUpdateCheck('desktop');
   const importantActions = importantManagerActions(managerActions.data?.insights || []);
-  const badgeCount = importantActions.length;
+  const hasUpdate = Boolean(updateInfo?.updateAvailable && updateInfo.latestVersion);
+  const badgeCount = importantActions.length + (hasUpdate ? 1 : 0);
   const compactCount = 7;
 
   const inventoryCount = importantActions.filter((a) => a.domain === 'inventory' || a.domain === 'products').length;
@@ -184,6 +187,39 @@ export function ManagerNotificationsBell() {
           {badgeCount ? `${badgeCount} تنبيه بحاجة لمتابعة` : 'الكل مستقر ومحدث'}
         </span>
       </div>
+
+      {/* Pinned System Update Notification */}
+      {hasUpdate && (
+        <div
+          style={{
+            padding: '10px 14px',
+            background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)',
+            color: '#ffffff',
+            borderRadius: '10px',
+            marginBottom: '10px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+            boxShadow: '0 3px 10px rgba(6, 95, 70, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+          }}
+          onClick={() => {
+            setIsOpen(false);
+            navigate('/settings/system-updates');
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>🚀</span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '12.5px', color: '#ffffff' }}>تحديث جديد للمنظومة (v{updateInfo?.latestVersion})</div>
+              <div style={{ fontSize: '10.5px', color: '#a7f3d0', marginTop: 1 }}>اضغط هنا للانتقال لصفحة الترقية وتطبيق التحديث</div>
+            </div>
+          </div>
+          <span style={{ fontSize: '11px', fontWeight: 800, background: '#10b981', color: '#ffffff', padding: '3px 9px', borderRadius: '6px', whiteSpace: 'nowrap' }}>ترقية الآن</span>
+        </div>
+      )}
 
       {/* Category Tabs */}
       {badgeCount > 0 && (

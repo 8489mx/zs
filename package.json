@@ -9,6 +9,7 @@
     "build:exe": "npm --prefix frontend run build:exe",
     "build:new": "node ./scripts/bump-and-build.cjs",
     "build:up": "node ./scripts/build-update-patch.cjs",
+    "release:generate": "npm --prefix backend run release:generate --",
     "sync:portable-backend": "node ./scripts/sync-portable-backend-runtime.cjs",
     "sync:electron-backend": "node ./scripts/sync-electron-backend.cjs",
     "qa": "npm --prefix backend run check:commercial-ready && npm --prefix frontend run qa",

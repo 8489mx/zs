@@ -45,6 +45,46 @@ async function main() {
     console.log('[build-update-patch] Copying frontend/dist...');
     fs.cpSync(path.join(rootDir, 'frontend/dist'), path.join(stagingDir, 'frontend/dist'), { recursive: true });
 
+    // Generate update-manifest.json
+    console.log('[build-update-patch] Generating update-manifest.json...');
+    const crypto = require('crypto');
+    function generateReleasePasscode(ver) {
+      const h = crypto.createHash('sha256').update(`ZS-RELEASE-${ver}-SECRET-SALT-2026`).digest('hex').toUpperCase();
+      return `ZS-UPD-${ver.replace(/\./g, '')}-${h.substring(0, 4)}-${h.substring(4, 8)}`;
+    }
+
+    function getAllFiles(dirPath, arrayOfFiles = []) {
+      const files = fs.readdirSync(dirPath);
+      files.forEach((file) => {
+        const fullPath = path.join(dirPath, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+          getAllFiles(fullPath, arrayOfFiles);
+        } else {
+          arrayOfFiles.push(fullPath);
+        }
+      });
+      return arrayOfFiles;
+    }
+
+    const filesInStaging = getAllFiles(stagingDir);
+    const manifestFiles = filesInStaging.map((fullPath) => {
+      const relPath = path.relative(stagingDir, fullPath).replace(/\\/g, '/');
+      const fileBuffer = fs.readFileSync(fullPath);
+      const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      return { path: relPath, sha256, size: fileBuffer.length };
+    });
+
+    const manifest = {
+      version,
+      generatedAt: new Date().toISOString(),
+      passcode: generateReleasePasscode(version),
+      requiresPasscode: true,
+      files: manifestFiles,
+      expectedFolders: ['backend/dist', 'frontend/dist']
+    };
+
+    fs.writeFileSync(path.join(stagingDir, 'update-manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
+
     // Zip
     const zipName = `Z-ERP-Patch-v${version}.zip`;
     const updatesDir = path.join(rootDir, 'release/updates');

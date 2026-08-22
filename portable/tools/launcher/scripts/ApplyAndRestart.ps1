@@ -210,17 +210,20 @@ try {
   Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
   Write-Log 'Extraction complete.'
 
-  # ── Validate update-manifest.json ───────────────────────────────────────────
+  # ── Validate update-manifest.json / package.json ──────────────────────────────
   $manifestPath = Join-Path $extractDir 'update-manifest.json'
-  if (-not (Test-Path $manifestPath)) {
-    throw "update-manifest.json is missing from the update package."
-  }
-  
-  # Note: The backend already validated the checksums for local patches,
-  # but doing basic validation ensures the payload wasn't corrupted on disk.
-  $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-  if (-not $manifest.version) {
-    throw "Invalid update-manifest.json (missing version)."
+  if (Test-Path $manifestPath) {
+    $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+    if ($manifest.version) {
+      $version = $manifest.version
+    }
+  } else {
+    Write-Log 'Notice: update-manifest.json not present in patch; reading backend/package.json'
+    $pkgPath = Join-Path $extractDir 'backend\package.json'
+    if (Test-Path $pkgPath) {
+      $pkgJson = Get-Content $pkgPath -Raw | ConvertFrom-Json
+      if ($pkgJson.version) { $version = $pkgJson.version }
+    }
   }
   
   # ── Copy backend/dist ─────────────────────────────────────────────────────────

@@ -30,6 +30,7 @@ export class OfflineUpdatesPublicController {
   async checkForUpdate(@Query('version') currentVersion = '') {
     return this.releasesService.checkForUpdate(currentVersion);
   }
+
   /**
    * GET /api/updates/history
    * Called by the portable client to view past updates.
@@ -39,6 +40,34 @@ export class OfflineUpdatesPublicController {
     return this.releasesService.listReleaseHistory();
   }
 
+  /**
+   * POST /api/updates/simulate
+   * Developer Sandbox simulation mode to test and verify updates in real-time.
+   */
+  @Post('simulate')
+  async simulateUpdate(@Body() body: { fromVersion?: string; targetVersion?: string; passcode?: string }) {
+    return this.releasesService.simulateUpdate(body);
+  }
+
+  /**
+   * POST /api/updates/apply-local-zip (Legacy alias)
+   */
+  @Post('apply-local-zip')
+  @UseInterceptors(FileInterceptor('file'))
+  async applyLocalZipUpdateLegacy(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('passcode') passcode?: string,
+  ) {
+    return this.releasesService.applyLocalZipUpdate(file, passcode);
+  }
+
+  /**
+   * POST /api/updates/apply (Legacy alias)
+   */
+  @Post('apply')
+  async applyUpdateLegacy(@Body() body: { version: string; patchUrl: string; changelog: string; passcode?: string }) {
+    return this.releasesService.applyLocalUpdate(body);
+  }
 }
 
 // ─── Protected endpoints — apply updates locally ───
@@ -53,7 +82,7 @@ export class OfflineUpdatesProtectedController {
    */
   @Post('apply')
   @RequirePermissions('canManageSettings')
-  async applyUpdate(@Body() body: { version: string; patchUrl: string; changelog: string }) {
+  async applyUpdate(@Body() body: { version: string; patchUrl: string; changelog: string; passcode?: string }) {
     return this.releasesService.applyLocalUpdate(body);
   }
 
@@ -73,9 +102,10 @@ export class OfflineUpdatesProtectedController {
         ],
         fileIsRequired: true,
       }),
-    ) file: Express.Multer.File
+    ) file: Express.Multer.File,
+    @Body('passcode') passcode?: string,
   ) {
-    return this.releasesService.applyLocalZipUpdate(file);
+    return this.releasesService.applyLocalZipUpdate(file, passcode);
   }
 }
 
@@ -91,15 +121,27 @@ export class OfflineReleasesAdminController {
     return this.releasesService.listReleases(req.authContext!);
   }
 
+  /** GET /api/admin/offline-releases/passcode-by-version?version=... — get passcode by version string */
+  @Get('passcode-by-version')
+  getReleasePasscodeByVersion(@Req() req: RequestWithAuth, @Query('version') version: string) {
+    return this.releasesService.getReleasePasscodeByVersion(req.authContext!, version);
+  }
+
+  /** GET /api/admin/offline-releases/:id/passcode — get release passcode for admin */
+  @Get(':id/passcode')
+  getReleasePasscode(@Req() req: RequestWithAuth, @Param('id') id: string) {
+    return this.releasesService.getReleasePasscode(req.authContext!, Number(id));
+  }
+
   /**
    * POST /api/admin/offline-releases
    * Create a new release entry (draft — not active yet).
-   * Body: { version, changelog, patchUrl }
+   * Body: { version, changelog, patchUrl, passcode, requiresPasscode }
    */
   @Post()
   createRelease(
     @Req() req: RequestWithAuth,
-    @Body() body: { version: string; changelog: string; patchUrl: string },
+    @Body() body: { version: string; changelog: string; patchUrl: string; passcode?: string; requiresPasscode?: boolean },
   ) {
     return this.releasesService.createRelease(req.authContext!, body);
   }

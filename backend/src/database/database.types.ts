@@ -1918,6 +1918,8 @@ export interface OfflineReleaseTable {
   changelog: string;
   patch_url: string;
   is_active: boolean;
+  passcode: string | null;
+  requires_passcode: boolean;
   promoted_by: string | null;
   promoted_at: ColumnType<Date, string | undefined, string | undefined> | null;
   created_at: ColumnType<Date, string | undefined, string | undefined>;

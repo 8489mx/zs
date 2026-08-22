@@ -2,12 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { Fragment } from 'react';
-
 import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
+import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
   const { breadcrumbs, toggleMobileSidebar, setGlobalSearchOpen } = useToolbarStore();
+  const { data: updateInfo } = useOfflineUpdateCheck('desktop');
 
   return (
     <div className="purchase-prototype-workspace-toolbar">
@@ -48,6 +49,22 @@ export function GlobalAppToolbar() {
         </div>
 
         <div className="purchase-prototype-toolbar-actions">
+          {updateInfo?.updateAvailable && updateInfo.latestVersion && (
+            <button
+              type="button"
+              className="system-update-toolbar-alert"
+              onClick={() => navigate('/settings/system-updates')}
+              title={`يتوفر تحديث جديد للمنظومة (v${updateInfo.latestVersion}) — اضغط للترقية`}
+            >
+              <span className="system-update-pulse-dot" />
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>تحديث جديد v{updateInfo.latestVersion}</span>
+            </button>
+          )}
           <div className="purchase-prototype-search-container" role="search">
             <button className="purchase-prototype-search" onClick={() => setGlobalSearchOpen(true)} aria-label="بحث شامل">
               <span aria-hidden="true">⌕</span>

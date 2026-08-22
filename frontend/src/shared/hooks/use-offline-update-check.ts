@@ -10,11 +10,16 @@ export interface UpdateCheckResult {
   latestVersion: string | null;
   patchUrl: string | null;
   changelog: string | null;
+  cumulativeChangelog?: string | null;
+  requiresPasscode?: boolean;
   releases: Array<{
+    id?: number;
     version: string;
     changelog: string;
     patchUrl: string;
     promotedAt: string;
+    passcode?: string;
+    requiresPasscode?: boolean;
   }>;
 }
 
