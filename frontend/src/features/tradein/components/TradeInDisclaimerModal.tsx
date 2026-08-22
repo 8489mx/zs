@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { buildCode128Svg } from '@/lib/barcode';
 import type { TradeInTransaction } from '@/types/domain-models/tradein';
 import type { AppSettings } from '@/types/domain';
+import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
 
 interface TradeInDisclaimerModalProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface TradeInDisclaimerModalProps {
 
 export function TradeInDisclaimerModal({ open, transaction, settings, onClose }: TradeInDisclaimerModalProps) {
   const printAreaRef = useRef<HTMLDivElement | null>(null);
+  const profile = getMaintenanceProfile(settings?.maintenanceProfile);
 
   if (!open || !transaction) return null;
 
@@ -80,10 +82,10 @@ export function TradeInDisclaimerModal({ open, transaction, settings, onClose }:
             </p>
             <div style={{ background: '#f1f5f9', padding: '10px', borderRadius: '6px', marginTop: '6px' }}>
               <div>• نوع وموديل الجهاز: <strong>{transaction.deviceBrand ? `${transaction.deviceBrand} ` : ''}{transaction.deviceModel}</strong></div>
-              <div>• رقم السيريال / الـ IMEI الأساسي: <strong dir="ltr">{transaction.serialNumber}</strong></div>
-              {transaction.imei2 && <div>• رقم الـ IMEI الثاني: <strong dir="ltr">{transaction.imei2}</strong></div>}
+              <div>• {profile.serialLabel}: <strong dir="ltr">{transaction.serialNumber}</strong></div>
+              {transaction.imei2 && <div>• {profile.secondarySerialLabel}: <strong dir="ltr">{transaction.imei2}</strong></div>}
               <div>• السعر المتفق عليه والمدفوع: <strong>{transaction.agreedPurchasePrice.toFixed(2)} ج.م</strong></div>
-              {transaction.deviceConditionNotes && <div>• حالة الجهاز: <span>{transaction.deviceConditionNotes}</span></div>}
+              {transaction.deviceConditionNotes && <div>• حالة وملاحظات الجهاز: <span>{transaction.deviceConditionNotes}</span></div>}
             </div>
           </div>
 

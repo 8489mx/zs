@@ -8,11 +8,13 @@ import { useAppToolbar } from '@/stores/toolbar-store';
 import { tradeInApi, type UpsertTradeInPayload } from '../api/tradein.api';
 import { TradeInDisclaimerModal } from '../components/TradeInDisclaimerModal';
 import { BrandCombobox } from '@/shared/components/BrandCombobox';
+import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
 import type { TradeInTransaction } from '@/types/domain-models/tradein';
 
 export function TradeInPage() {
   const queryClient = useQueryClient();
   const settingsQuery = useSettingsQuery();
+  const maintenanceProfile = getMaintenanceProfile(settingsQuery.data?.maintenanceProfile);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [conditionFilter, setConditionFilter] = useState<'all' | 'new_sealed' | 'like_new' | 'used' | 'for_parts'>('all');
@@ -108,14 +110,14 @@ export function TradeInPage() {
     const cleanPhone = t.sellerPhone.replace(/\D/g, '');
     const phoneFormatted = cleanPhone.startsWith('01') ? `2${cleanPhone}` : cleanPhone;
 
-    const message = `مرحباً أستاذ ${t.sellerName} 👋
+    const message = `مرحباً أستاذ ${t.sellerName}
 معك ${storeName} بخصوص عملية بيع / استبدال جهازك:
-📱 الموديل: ${t.deviceBrand ? `${t.deviceBrand} ` : ''}${t.deviceModel}
-🔢 السيريال / IMEI: ${t.serialNumber}
-💰 المبلغ المتفق عليه: ${t.agreedPurchasePrice.toFixed(2)} ج.م
-📄 رقم الإقرار والتنازل: ${t.docNo}
+• الموديل: ${t.deviceBrand ? `${t.deviceBrand} ` : ''}${t.deviceModel}
+• ${maintenanceProfile.serialLabel}: ${t.serialNumber}
+• المبلغ المتفق عليه: ${t.agreedPurchasePrice.toFixed(2)} ج.م
+• رقم الإقرار والتنازل: ${t.docNo}
 
-نشكرك لتعاملك الراقي ونسعد بزيارتك دائماً!`;
+نشكرك لتعاملك معنا ونسعد بزيارتك دائماً!`;
 
     const url = `https://api.whatsapp.com/send?phone=${phoneFormatted}&text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
@@ -213,7 +215,7 @@ export function TradeInPage() {
             <input
               type="text"
               className="purchase-prototype-field-input"
-              placeholder="بحث باسم البائع، الرقم القومي، الموديل، أو الـ IMEI..."
+              placeholder={`بحث باسم البائع، الرقم القومي، الموديل، أو ${maintenanceProfile.serialLabel}...`}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               style={{ width: '100%', padding: '8px 12px', boxSizing: 'border-box' }}
@@ -317,7 +319,7 @@ export function TradeInPage() {
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
                 <th style={{ padding: '10px 14px' }}>رقم الإيصال</th>
                 <th style={{ padding: '10px 14px' }}>البائع / الرقم القومي</th>
-                <th style={{ padding: '10px 14px' }}>الجهاز / الـ IMEI</th>
+                <th style={{ padding: '10px 14px' }}>الجهاز / {maintenanceProfile.serialLabel}</th>
                 <th style={{ padding: '10px 14px' }}>الحالة والملاحظات</th>
                 <th style={{ padding: '10px 14px' }}>سعر الشراء</th>
                 <th style={{ padding: '10px 14px' }}>العملية والتاريخ</th>
@@ -358,7 +360,7 @@ export function TradeInPage() {
                         {t.deviceModel}
                       </strong>
                       <div style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#0284c7', direction: 'ltr', textAlign: 'right' }}>
-                        IMEI: {t.serialNumber}
+                        {maintenanceProfile.serialLabel}: {t.serialNumber}
                       </div>
                     </td>
                     <td style={{ padding: '10px 14px', maxWidth: '240px' }}>
@@ -459,9 +461,11 @@ export function TradeInPage() {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', marginBottom: '8px' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            اسم البائع بالكامل <span style={{ color: '#dc2626' }}>*</span>
-                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              اسم البائع بالكامل <span style={{ color: '#dc2626' }}>*</span>
+                            </label>
+                          </div>
                           <input
                             type="text"
                             required
@@ -474,10 +478,12 @@ export function TradeInPage() {
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            الرقم القومي (14 رقم) <span style={{ color: '#dc2626' }}>*</span>
-                          </label>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              الرقم القومي (14 رقم) <span style={{ color: '#dc2626' }}>*</span>
+                            </label>
+                          </div>
                           <input
                             type="text"
                             required
@@ -490,10 +496,12 @@ export function TradeInPage() {
                             style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', textAlign: 'right', boxSizing: 'border-box' }}
                           />
                         </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            رقم الهاتف <span style={{ color: '#dc2626' }}>*</span>
-                          </label>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              رقم الهاتف <span style={{ color: '#dc2626' }}>*</span>
+                            </label>
+                          </div>
                           <input
                             type="tel"
                             required
@@ -515,36 +523,44 @@ export function TradeInPage() {
                         بيانات ومواصفات الجهاز
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            الماركة
-                          </label>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              الماركة
+                            </label>
+                          </div>
                           <BrandCombobox
                             value={formData.deviceBrand || ''}
                             onChange={(val) => setFormData({ ...formData, deviceBrand: val })}
-                            placeholder="...Apple, Samsung"
+                            categoryKey={maintenanceProfile.key}
+                            sampleBrands={maintenanceProfile.sampleBrands}
+                            placeholder={`...${maintenanceProfile.sampleBrands.slice(0, 3).join(', ')}`}
                           />
                         </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            الموديل والذاكرة <span style={{ color: '#dc2626' }}>*</span>
-                          </label>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              الموديل والمواصفات <span style={{ color: '#dc2626' }}>*</span>
+                            </label>
+                          </div>
                           <input
                             type="text"
                             required
                             className="purchase-prototype-field-input"
                             value={formData.deviceModel}
                             onChange={(e) => setFormData({ ...formData, deviceModel: e.target.value })}
-                            placeholder="iPhone 15 Pro 256GB"
+                            placeholder={maintenanceProfile.tradeInModelPlaceholder}
                             style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                           />
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            السيريال / IMEI 1 <span style={{ color: '#dc2626' }}>*</span>
-                          </label>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={maintenanceProfile.serialLabel}>
+                              {maintenanceProfile.serialLabel} <span style={{ color: '#dc2626' }}>*</span>
+                            </label>
+                          </div>
                           <input
                             type="text"
                             required
@@ -552,14 +568,16 @@ export function TradeInPage() {
                             className="purchase-prototype-field-input"
                             value={formData.serialNumber}
                             onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-                            placeholder="354892019283741"
+                            placeholder={maintenanceProfile.serialPlaceholder}
                             style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', boxSizing: 'border-box' }}
                           />
                         </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            IMEI 2 (شريحة 2 - اختياري)
-                          </label>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={maintenanceProfile.secondarySerialLabel}>
+                              {maintenanceProfile.secondarySerialLabel}
+                            </label>
+                          </div>
                           <input
                             type="text"
                             dir="ltr"
@@ -585,9 +603,11 @@ export function TradeInPage() {
 
                       {/* 4 State Buttons */}
                       <div style={{ marginBottom: '10px' }}>
-                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                          حالة الجهاز عند الشراء:
-                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '6px' }}>
+                          <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                            حالة الجهاز عند الشراء:
+                          </label>
+                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                           {(['new_sealed', 'like_new', 'used', 'for_parts'] as const).map((st) => {
                             const isSelected = (formData.deviceConditionState || 'used') === st;
@@ -622,15 +642,17 @@ export function TradeInPage() {
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          ملاحظات الفحص والملحقات (نسبة البطارية، الشاحن، الكرتونة):
-                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                          <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                            {maintenanceProfile.tradeInNotesLabel}
+                          </label>
+                        </div>
                         <textarea
                           rows={2}
                           className="purchase-prototype-field-input"
                           value={formData.deviceConditionNotes || ''}
                           onChange={(e) => setFormData({ ...formData, deviceConditionNotes: e.target.value })}
-                          placeholder="مثال: نسبة البطارية 92%، كرتونة أصلية، شاحن سريع..."
+                          placeholder={maintenanceProfile.tradeInNotesPlaceholder}
                           style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', resize: 'vertical', boxSizing: 'border-box', fontSize: '0.9rem' }}
                         />
                       </div>
@@ -642,11 +664,13 @@ export function TradeInPage() {
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="8" x2="12.01" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                         الاتفاق المالي والمخزن
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            سعر الشراء المتفق عليه <span style={{ color: '#dc2626' }}>*</span>
-                          </label>
+                      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                        <div style={{ flex: '1 1 0px', width: '33.333%', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              سعر الشراء المتفق عليه <span style={{ color: '#dc2626' }}>*</span>
+                            </label>
+                          </div>
                           <input
                             type="number"
                             min="0"
@@ -656,32 +680,36 @@ export function TradeInPage() {
                             value={formData.agreedPurchasePrice || ''}
                             onChange={(e) => setFormData({ ...formData, agreedPurchasePrice: Number(e.target.value) })}
                             placeholder="0.00"
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.95rem', boxSizing: 'border-box' }}
+                            style={{ width: '100%', height: '38px', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.95rem', boxSizing: 'border-box' }}
                           />
                         </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            نوع العملية
-                          </label>
+                        <div style={{ flex: '1 1 0px', width: '33.333%', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              نوع العملية
+                            </label>
+                          </div>
                           <select
                             className="purchase-prototype-field-input"
                             value={formData.transactionType}
                             onChange={(e) => setFormData({ ...formData, transactionType: e.target.value as any })}
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                            style={{ width: '100%', height: '38px', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           >
                             <option value="cash_purchase">شراء نقدي</option>
                             <option value="exchange_trade_in">استبدال Trade-In</option>
                           </select>
                         </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            طريقة السداد
-                          </label>
+                        <div style={{ flex: '1 1 0px', width: '33.333%', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              طريقة السداد
+                            </label>
+                          </div>
                           <select
                             className="purchase-prototype-field-input"
                             value={formData.paymentMethod || 'cash'}
                             onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as any })}
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                            style={{ width: '100%', height: '38px', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           >
                             <option value="cash">كاش الخزينة</option>
                             <option value="vodafone_cash">فودافون كاش</option>
@@ -703,7 +731,7 @@ export function TradeInPage() {
                               إدراج الجهاز تلقائياً في المخزن للبيع على الكاشير
                             </div>
                             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                              سيقوم النظام بإنشاء صنف باسم: <strong style={{ color: '#0284c7' }}>({formData.deviceBrand ? `${formData.deviceBrand} ` : ''}{formData.deviceModel || 'موديل الجهاز'} {getConditionSuffix(formData.deviceConditionState)})</strong> وربط الـ IMEI تلقائياً.
+                              سيقوم النظام بإنشاء صنف باسم: <strong style={{ color: '#0284c7' }}>({formData.deviceBrand ? `${formData.deviceBrand} ` : ''}{formData.deviceModel || 'موديل الجهاز'} {getConditionSuffix(formData.deviceConditionState)})</strong> وربط {maintenanceProfile.serialLabel} تلقائياً.
                             </div>
                           </div>
                         </label>

@@ -369,7 +369,7 @@ export function AppShell({ children }: PropsWithChildren) {
       services: 'الخدمات',
       treasury: 'الخزينة والبنوك',
       expenses: 'المصروفات',
-      accounts: 'كشف حسابات العملاء والموردين',
+      accounts: 'حسابات عملاء وموردين',
       'accounting-accounts': 'شجرة الحسابات',
       'accounting-journal-entries': 'القيود اليومية',
       'accounting-settings': 'إعدادات الحسابات',

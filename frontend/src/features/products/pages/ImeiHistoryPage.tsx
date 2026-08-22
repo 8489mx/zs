@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { useAppToolbar } from '@/stores/toolbar-store';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
 import { productSerialsApi, type ProductSerialItem } from '../api/product-serials.api';
 import { maintenanceApi, type MaintenanceListPageResponse } from '@/features/maintenance/api/maintenance.api';
 import { tradeInApi, type TradeInListPageResponse } from '@/features/tradein/api/tradein.api';
@@ -10,6 +12,9 @@ import type { MaintenanceTicket } from '@/types/domain-models/maintenance';
 import type { TradeInTransaction } from '@/types/domain-models/tradein';
 
 export function ImeiHistoryPage() {
+  const settingsQuery = useSettingsQuery();
+  const profile = getMaintenanceProfile(settingsQuery.data?.maintenanceProfile);
+
   const [searchInput, setSearchInput] = useState('');
   const [activeSerial, setActiveSerial] = useState('');
   const [recentLookups, setRecentLookups] = useState<string[]>(() => {
@@ -21,7 +26,7 @@ export function ImeiHistoryPage() {
     }
   });
 
-  useAppToolbar([{ label: 'سجل وتتبع الأجهزة والـ IMEI' }]);
+  useAppToolbar([{ label: `سجل وتتبع ${profile.shortTitle} والسيريالات` }]);
 
   const { data: serialItem } = useQuery<ProductSerialItem | null>({
     queryKey: ['imei-history-serial', activeSerial],
@@ -81,8 +86,8 @@ export function ImeiHistoryPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1100px', margin: '0 auto' }}>
         <PageHeader
-          title="سجل وتتبع دورة حياة الجهاز (IMEI Lifecycle Audit)"
-          description="استعلام شامل وفحص أمني عن أي سيريال أو IMEI: تاريخ الشراء، فواتير البيع والعميل، الضمان، سجل الصيانة، وتجارة المستعمل."
+          title={`سجل وتتبع دورة حياة الأجهزة والسيريالات (${profile.serialLabel})`}
+          description="استعلام شامل وفحص أمني عن أي سيريال أو باركود: تاريخ الشراء، فواتير البيع والعميل، الضمان، سجل الصيانة، وتجارة المستعمل."
         />
 
         {/* Big Search Bar */}
@@ -93,7 +98,7 @@ export function ImeiHistoryPage() {
               dir="ltr"
               autoFocus
               className="purchase-prototype-field-input"
-              placeholder="امسح الباركود بالسكانر أو اكتب رقم الـ IMEI / السيريال..."
+              placeholder={`امسح الباركود بالسكانر أو اكتب ${profile.serialLabel}...`}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               style={{ flex: 1, fontSize: '1rem', padding: '10px 14px', fontFamily: 'monospace' }}

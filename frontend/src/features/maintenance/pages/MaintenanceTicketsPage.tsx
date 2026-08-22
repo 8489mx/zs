@@ -56,6 +56,10 @@ export function MaintenanceTicketsPage() {
   const [discountReason, setDiscountReason] = useState<string>('فصال ومراضاة للعميل');
   const [customReason, setCustomReason] = useState<string>('');
 
+  // Quick suggestions popover toggles
+  const [showFaultsPopover, setShowFaultsPopover] = useState(false);
+  const [showAccessoriesPopover, setShowAccessoriesPopover] = useState(false);
+
   const openSettlementModal = (ticket: MaintenanceTicket) => {
     const totalCost = ticket.finalCost || ticket.expectedCost || 0;
     const advancePaid = ticket.advancePayment || 0;
@@ -91,7 +95,7 @@ export function MaintenanceTicketsPage() {
   };
 
   const maintenanceProfile = getMaintenanceProfile(settingsQuery.data?.maintenanceProfile);
-  useAppToolbar([{ label: `${maintenanceProfile.icon} ${maintenanceProfile.title}` }]);
+  useAppToolbar([{ label: maintenanceProfile.title }]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['maintenance-tickets', filterStatus, searchQuery, page],
@@ -368,7 +372,7 @@ export function MaintenanceTicketsPage() {
             <button type="button" className={`btn btn-sm ${filterStatus === 'delivered' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setFilterStatus('delivered'); setPage(1); }}>تم التسليم</button>
           </div>
           <div style={{ minWidth: '320px' }}>
-            <input type="text" className="purchase-prototype-field-input" placeholder="بحث بكود الجهاز ZM-XXXX، العميل، الهاتف، أو IMEI..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} style={{ width: '100%', padding: '6px 12px' }} />
+            <input type="text" className="purchase-prototype-field-input" placeholder={`بحث بكود الجهاز ZM-XXXX، العميل، الهاتف، أو ${maintenanceProfile.serialLabel}...`} value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} style={{ width: '100%', padding: '6px 12px' }} />
           </div>
         </div>
 
@@ -444,8 +448,7 @@ export function MaintenanceTicketsPage() {
                           <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>{t.deviceModel}</strong>
                         </div>
                         {t.serialNumber && (
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <span>{maintenanceProfile.icon}</span>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>
                             <span dir="ltr">{t.serialNumber}</span>
                           </div>
                         )}
@@ -572,7 +575,7 @@ export function MaintenanceTicketsPage() {
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         بيانات العميل
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div>
                           <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                             اسم العميل <span style={{ color: '#dc2626' }}>*</span>
@@ -607,7 +610,7 @@ export function MaintenanceTicketsPage() {
 
                     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
                       <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '1.1rem' }}>{maintenanceProfile.icon}</span>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
                         <span>مواصفات الجهاز و {maintenanceProfile.serialLabel}</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
@@ -618,6 +621,8 @@ export function MaintenanceTicketsPage() {
                           <BrandCombobox
                             value={formData.deviceBrand || ''}
                             onChange={(val) => setFormData({ ...formData, deviceBrand: val })}
+                            categoryKey={maintenanceProfile.key}
+                            sampleBrands={maintenanceProfile.sampleBrands}
                             placeholder={`...${maintenanceProfile.sampleBrands.slice(0, 3).join(', ')}`}
                           />
                         </div>
@@ -660,9 +665,34 @@ export function MaintenanceTicketsPage() {
                         الفحص وحالة الجهاز
                       </div>
                       <div style={{ marginBottom: '8px' }}>
-                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          وصف العطل المشتكى منه <span style={{ color: '#dc2626' }}>*</span>
-                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0 }}>
+                            وصف العطل المشتكى منه <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
+                          {maintenanceProfile.commonFaults?.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowFaultsPopover(!showFaultsPopover)}
+                              style={{
+                                background: showFaultsPopover ? '#eff6ff' : '#f8fafc',
+                                border: `1px solid ${showFaultsPopover ? '#93c5fd' : '#cbd5e1'}`,
+                                color: showFaultsPopover ? '#1d4ed8' : '#475569',
+                                borderRadius: '5px',
+                                padding: '2px 8px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span>أعطال شائعة</span>
+                              <span style={{ fontSize: '0.65rem' }}>{showFaultsPopover ? '▲' : '▼'}</span>
+                            </button>
+                          )}
+                        </div>
                         <input
                           type="text"
                           required
@@ -672,9 +702,10 @@ export function MaintenanceTicketsPage() {
                           placeholder="مثال: وصف عطل الجهاز أو المشكلة..."
                           style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                         />
-                        {maintenanceProfile.commonFaults?.length > 0 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
-                            {maintenanceProfile.commonFaults.slice(0, 5).map((fault) => (
+                        {showFaultsPopover && maintenanceProfile.commonFaults?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px', padding: '8px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 800, width: '100%', marginBottom: '2px' }}>اضغط لإضافة العطل فوراً:</span>
+                            {maintenanceProfile.commonFaults.map((fault) => (
                               <button
                                 key={fault}
                                 type="button"
@@ -684,13 +715,14 @@ export function MaintenanceTicketsPage() {
                                 }}
                                 style={{
                                   background: '#ffffff',
-                                  border: '1px solid #cbd5e1',
-                                  borderRadius: '4px',
-                                  padding: '2px 6px',
-                                  fontSize: '0.7rem',
-                                  color: '#334155',
+                                  border: '1px solid #93c5fd',
+                                  borderRadius: '5px',
+                                  padding: '3px 8px',
+                                  fontSize: '0.72rem',
+                                  color: '#1e3a8a',
                                   cursor: 'pointer',
-                                  fontWeight: 600
+                                  fontWeight: 700,
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
                                 }}
                               >
                                 + {fault}
@@ -699,11 +731,37 @@ export function MaintenanceTicketsPage() {
                           </div>
                         )}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            حالة الجهاز الظاهرية (خدوش، ملحقات)
-                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '24px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              الحالة والملحقات
+                            </label>
+                            {maintenanceProfile.defaultAccessories?.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setShowAccessoriesPopover(!showAccessoriesPopover)}
+                                style={{
+                                  background: showAccessoriesPopover ? '#eff6ff' : '#f8fafc',
+                                  border: `1px solid ${showAccessoriesPopover ? '#93c5fd' : '#cbd5e1'}`,
+                                  color: showAccessoriesPopover ? '#1d4ed8' : '#475569',
+                                  borderRadius: '5px',
+                                  padding: '1px 6px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  whiteSpace: 'nowrap',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                <span>ملحقات</span>
+                                <span style={{ fontSize: '0.62rem' }}>{showAccessoriesPopover ? '▲' : '▼'}</span>
+                              </button>
+                            )}
+                          </div>
                           <input
                             type="text"
                             className="purchase-prototype-field-input"
@@ -712,8 +770,9 @@ export function MaintenanceTicketsPage() {
                             placeholder="مثال: خدوش بالظهر، مستلم بدون شاحن..."
                             style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                           />
-                          {maintenanceProfile.defaultAccessories?.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                          {showAccessoriesPopover && maintenanceProfile.defaultAccessories?.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px', padding: '8px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 800, width: '100%', marginBottom: '2px' }}>اضغط لإضافة الملحق:</span>
                               {maintenanceProfile.defaultAccessories.map((acc) => (
                                 <button
                                   key={acc}
@@ -724,13 +783,14 @@ export function MaintenanceTicketsPage() {
                                   }}
                                   style={{
                                     background: '#ffffff',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    padding: '2px 6px',
-                                    fontSize: '0.7rem',
-                                    color: '#475569',
+                                    border: '1px solid #93c5fd',
+                                    borderRadius: '5px',
+                                    padding: '3px 8px',
+                                    fontSize: '0.72rem',
+                                    color: '#1e3a8a',
                                     cursor: 'pointer',
-                                    fontWeight: 600
+                                    fontWeight: 700,
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
                                   }}
                                 >
                                   + {acc}
@@ -740,9 +800,11 @@ export function MaintenanceTicketsPage() {
                           )}
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                            الفني المسؤول (اختياري)
-                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', height: '24px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              الفني المسؤول (اختياري)
+                            </label>
+                          </div>
                           <input
                             type="text"
                             className="purchase-prototype-field-input"
@@ -758,60 +820,54 @@ export function MaintenanceTicketsPage() {
                     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                          {maintenanceProfile.passcodeType === 'spec_text' ? (
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                          )}
                           {maintenanceProfile.passcodeLabel}
                         </label>
-                        <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
-                          <button
-                            type="button"
-                            onClick={() => setLockType('pin')}
-                            style={{
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              border: 'none',
-                              background: lockType === 'pin' ? '#fff' : 'transparent',
-                              fontWeight: lockType === 'pin' ? 700 : 500,
-                              color: lockType === 'pin' ? '#0f172a' : '#64748b',
-                              boxShadow: lockType === 'pin' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                              cursor: 'pointer',
-                              fontSize: '0.75rem',
-                            }}
-                          >
-                            كلمة المرور / PIN
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setLockType('pattern')}
-                            style={{
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              border: 'none',
-                              background: lockType === 'pattern' ? '#fff' : 'transparent',
-                              fontWeight: lockType === 'pattern' ? 700 : 500,
-                              color: lockType === 'pattern' ? '#0f172a' : '#64748b',
-                              boxShadow: lockType === 'pattern' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                              cursor: 'pointer',
-                              fontSize: '0.75rem',
-                            }}
-                          >
-                            نمط الشاشة (Pattern)
-                          </button>
-                        </div>
+                        {maintenanceProfile.passcodeType === 'mobile_lock' && (
+                          <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setLockType('pin')}
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                border: 'none',
+                                background: lockType === 'pin' ? '#fff' : 'transparent',
+                                fontWeight: lockType === 'pin' ? 700 : 500,
+                                color: lockType === 'pin' ? '#0f172a' : '#64748b',
+                                boxShadow: lockType === 'pin' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              كلمة المرور / PIN
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setLockType('pattern')}
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                border: 'none',
+                                background: lockType === 'pattern' ? '#fff' : 'transparent',
+                                fontWeight: lockType === 'pattern' ? 700 : 500,
+                                color: lockType === 'pattern' ? '#0f172a' : '#64748b',
+                                boxShadow: lockType === 'pattern' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              نمط الشاشة (Pattern)
+                            </button>
+                          </div>
+                        )}
                       </div>
 
-                      {lockType === 'pin' ? (
-                        <div>
-                          <input
-                            type="text"
-                            dir="ltr"
-                            className="purchase-prototype-field-input"
-                            value={formData.passcode || ''}
-                            onChange={(e) => setFormData({ ...formData, passcode: e.target.value })}
-                            placeholder={maintenanceProfile.passcodePlaceholder}
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                          />
-                        </div>
-                      ) : (
+                      {maintenanceProfile.passcodeType === 'mobile_lock' && lockType === 'pattern' ? (
                         <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                           <PatternLockWidget
                             value={formData.passcode || ''}
@@ -820,6 +876,18 @@ export function MaintenanceTicketsPage() {
                           <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
                             النمط المسجل: <strong dir="ltr" style={{ color: '#2563eb', fontFamily: 'monospace' }}>{formData.passcode || 'لم يتم الرسم بعد'}</strong>
                           </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <input
+                            type="text"
+                            dir={maintenanceProfile.passcodeType === 'password' ? 'ltr' : 'rtl'}
+                            className="purchase-prototype-field-input"
+                            value={formData.passcode || ''}
+                            onChange={(e) => setFormData({ ...formData, passcode: e.target.value })}
+                            placeholder={maintenanceProfile.passcodePlaceholder}
+                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: maintenanceProfile.passcodeType === 'password' ? 'monospace' : 'inherit', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                          />
                         </div>
                       )}
                     </div>
@@ -1018,15 +1086,14 @@ export function MaintenanceTicketsPage() {
                     <strong>{selectedTicket.deviceModel}</strong>
                   </div>
                   <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <span>📱</span>
-                    <span dir="ltr">IMEI: {selectedTicket.serialNumber || '—'}</span>
+                    <span dir="ltr">{maintenanceProfile.serialLabel}: {selectedTicket.serialNumber || '—'}</span>
                   </div>
                 </div>
 
                 <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
                   <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
                     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                    قفل الشاشة:
+                    {maintenanceProfile.passcodeLabel}:
                   </div>
                   <strong dir="ltr" style={{ color: '#2563eb' }}>{selectedTicket.passcode || 'بدون قفل'}</strong>
                 </div>

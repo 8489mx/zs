@@ -106,6 +106,93 @@ function EnterpriseIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function MaintenanceWrenchIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  );
+}
+
+function ProfileVectorIcon({ type, size = 20 }: { type: string; size?: number }) {
+  if (type === 'mobile') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+        <path d="M12 18h.01" />
+      </svg>
+    );
+  }
+  if (type === 'computer') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="18" height="12" x="3" y="4" rx="2" />
+        <line x1="2" x2="22" y1="20" y2="20" />
+      </svg>
+    );
+  }
+  if (type === 'console') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="6" x2="10" y1="12" y2="12" />
+        <line x1="8" x2="8" y1="10" y2="14" />
+        <line x1="15" x2="15.01" y1="13" y2="13" />
+        <line x1="18" x2="18.01" y1="11" y2="11" />
+        <rect width="20" height="12" x="2" y="6" rx="6" />
+      </svg>
+    );
+  }
+  if (type === 'printer') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="6 9 6 2 18 2 18 9" />
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+        <rect width="12" height="8" x="6" y="14" />
+      </svg>
+    );
+  }
+  if (type === 'screens') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="20" height="15" x="2" y="3" rx="2" />
+        <polyline points="17 21 12 18 7 21" />
+      </svg>
+    );
+  }
+  if (type === 'appliances') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+        <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+        <line x1="6" x2="6" y1="2" y2="4" />
+        <line x1="10" x2="10" y1="2" y2="4" />
+        <line x1="14" x2="14" y1="2" y2="4" />
+      </svg>
+    );
+  }
+  if (type === 'cooling') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" x2="12" y1="2" y2="22" />
+        <line x1="2" x2="22" y1="12" y2="12" />
+        <line x1="20" x2="4" y1="16" y2="8" />
+        <line x1="20" x2="4" y1="8" y2="16" />
+      </svg>
+    );
+  }
+  if (type === 'scooters') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="18" r="3" />
+        <path d="M6 18h12" />
+        <path d="M18 15V5h-3" />
+      </svg>
+    );
+  }
+  return <MaintenanceWrenchIcon size={size} />;
+}
+
 const premiumCardStyle = {
   display: 'flex',
   alignItems: 'center',
@@ -233,8 +320,8 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           <div style={{ ...premiumCardStyle, flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ ...iconBadgeStyle, background: enableMaintenance ? '#ecfdf5' : '#f8fafc', borderColor: enableMaintenance ? '#a7f3d0' : '#e2e8f0' }}>
-                  <span style={{ fontSize: '1.25rem' }}>{currentProfile.icon}</span>
+                <div style={iconBadgeStyle}>
+                  <MaintenanceWrenchIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
@@ -257,9 +344,12 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
 
             {enableMaintenance && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 10px', marginTop: '2px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
                   <span style={{ color: '#64748b' }}>نشاط الصيانة المحدد:</span>
-                  <span style={{ color: '#2563eb', fontWeight: 800 }}>{currentProfile.icon} {currentProfile.shortTitle}</span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#2563eb', fontWeight: 800 }}>
+                    <ProfileVectorIcon type={currentProfile.iconType} size={15} />
+                    <span>{currentProfile.shortTitle}</span>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -328,13 +418,29 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         </div>
 
         {enableMaintenance ? (
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', marginTop: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.4rem' }}>{currentProfile.icon}</span>
+          <div style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 20px', marginTop: 18, boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '10px',
+                  background: '#eff6ff',
+                  border: '1.5px solid #bfdbfe',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#2563eb',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.08)'
+                }}>
+                  <ProfileVectorIcon type={currentProfile.iconType} size={24} />
+                </div>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>{currentProfile.title}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{currentProfile.subtitle}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.96rem', color: '#0f172a' }}>{currentProfile.title}</div>
+                    <span style={{ fontSize: '0.7rem', background: '#dbeafe', color: '#1d4ed8', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>نشط الآن</span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>{currentProfile.subtitle}</div>
                 </div>
               </div>
               <button
@@ -343,17 +449,22 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                 disabled={disabled}
                 style={{
                   background: '#ffffff',
-                  border: '1px solid #cbd5e1',
+                  border: '1.5px solid #cbd5e1',
                   borderRadius: '8px',
-                  padding: '6px 14px',
+                  padding: '7px 16px',
                   fontSize: '0.82rem',
                   fontWeight: 800,
-                  color: '#2563eb',
+                  color: '#1e40af',
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                  transition: 'all 0.15s ease'
                 }}
               >
-                تخصيص القالب والنشاط ({currentProfile.shortTitle}) ▾
+                <span>تغيير نشاط الصيانة والقالب</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>▾</span>
               </button>
             </div>
 
@@ -371,23 +482,23 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                   {...form.register('technicianCommissionRate')}
                   disabled={disabled}
                   placeholder="30"
-                  style={{ fontWeight: 700 }}
+                  style={{ fontWeight: 700, background: '#ffffff' }}
                 />
-                <small className="muted">تُحسب العمولة تلقائيًا كنسبة مئوية من صافي ربح المصنعية وشغل اليد بعد خصم سعر قطع الغيار القطاعي.</small>
+                <small className="muted">تُحسب العمولة تلقائيًا كنسبة مئوية من صافي ربح المصنعية بعد خصم سعر قطع الغيار.</small>
               </div>
 
               <div className="field">
                 <label style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px', display: 'block', fontSize: '0.82rem' }}>
-                  الملحقات الافتراضية للفحص والاستلام
+                  الملحقات الافتراضية للفحص والاستلام السريع
                 </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
                   {currentProfile.defaultAccessories.map((acc) => (
-                    <span key={acc} style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '3px 8px', borderRadius: '6px', fontSize: '0.74rem', color: '#334155', fontWeight: 600 }}>
-                      {acc}
+                    <span key={acc} style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '3px 9px', borderRadius: '6px', fontSize: '0.74rem', color: '#334155', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                      + {acc}
                     </span>
                   ))}
                 </div>
-                <small className="muted">تظهر هذه الملحقات كأزرار سريعة في شاشة استلام وتذاكر الصيانة.</small>
+                <small className="muted">تظهر هذه الملحقات كأزرار سريعة بضغطة زر داخل شاشة تذاكر الصيانة.</small>
               </div>
             </div>
           </div>
@@ -397,34 +508,58 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         <DialogShell
           open={profileModalOpen}
           onClose={() => setProfileModalOpen(false)}
-          width="min(860px, 95vw)"
+          width="min(960px, 96vw)"
           ariaLabel="تخصيص نوع نشاط الصيانة والأجهزة"
         >
-          <div style={{ padding: '8px 4px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.4rem' }}>🛠️</span>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>تخصيص نوع نشاط الصيانة والأجهزة</h3>
-                  <small style={{ fontSize: '0.78rem', color: '#64748b' }}>اختر نوع النشاط لتكييف حقول الفحص، مسميات القائمة، والملحقات تلقائياً</small>
+          <div style={{ padding: '14px 10px 18px' }}>
+            <style>{`
+              .maintenance-profile-card {
+                transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease !important;
+                will-change: transform, box-shadow;
+              }
+              .maintenance-profile-card:hover {
+                transform: translateY(-3px) !important;
+                box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.14), 0 3px 8px -2px rgba(0, 0, 0, 0.05) !important;
+                border-color: #93c5fd !important;
+              }
+            `}</style>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.12)', flexShrink: 0 }}>
+                  <MaintenanceWrenchIcon size={24} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.01em' }}>
+                      تخصيص نوع نشاط الصيانة والأجهزة
+                    </h3>
+                    <span style={{ fontSize: '0.72rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                      9 أنشطة ذكية
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b', fontWeight: 500, lineHeight: 1.4 }}>
+                    اختر النشاط التجاري لتكييف حقول الفحص، المسميات، وإيصالات الاستلام فوراً
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setProfileModalOpen(false)}
-                style={{ background: '#f1f5f9', border: 'none', borderRadius: '6px', width: 28, height: 28, cursor: 'pointer', fontWeight: 800, color: '#64748b' }}
+                style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: 34, height: 34, cursor: 'pointer', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease', flexShrink: 0 }}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px', maxHeight: '60vh', overflowY: 'auto', padding: '2px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', maxHeight: '58vh', overflowY: 'auto', padding: '4px 2px' }}>
               {(Object.keys(MAINTENANCE_PROFILES) as MaintenanceProfileKey[]).map((key) => {
                 const profile = MAINTENANCE_PROFILES[key];
                 const isSelected = currentProfileKey === key;
                 return (
                   <div
                     key={key}
+                    className="maintenance-profile-card"
                     onClick={() => {
                       form.setValue('maintenanceProfile', key, { shouldDirty: true });
                       form.setValue('enableMobileStoreFeatures', true, { shouldDirty: true });
@@ -432,44 +567,90 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                     }}
                     style={{
                       border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                      background: isSelected ? '#eff6ff' : '#ffffff',
+                      background: isSelected ? 'linear-gradient(145deg, #f0f7ff 0%, #ffffff 100%)' : '#ffffff',
                       borderRadius: '12px',
-                      padding: '14px',
+                      padding: '16px',
                       cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                      boxShadow: isSelected ? '0 4px 12px rgba(37, 99, 235, 0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
+                      boxShadow: isSelected ? '0 6px 20px rgba(37, 99, 235, 0.14)' : '0 1px 3px rgba(0,0,0,0.03)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '8px',
+                      justifyContent: 'space-between',
+                      gap: '10px',
                       position: 'relative'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '1.5rem' }}>{profile.icon}</span>
-                        <strong style={{ fontSize: '0.88rem', color: isSelected ? '#1e40af' : '#0f172a', fontWeight: 800 }}>
-                          {profile.title}
-                        </strong>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 10,
+                            background: isSelected ? '#dbeafe' : '#f8fafc',
+                            border: `1.5px solid ${isSelected ? '#93c5fd' : '#e2e8f0'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: isSelected ? '#1d4ed8' : '#334155',
+                            boxShadow: isSelected ? '0 2px 6px rgba(29, 78, 216, 0.15)' : 'none',
+                            flexShrink: 0
+                          }}>
+                            <ProfileVectorIcon type={profile.iconType} size={20} />
+                          </div>
+                          <div>
+                            <strong style={{ fontSize: '0.9rem', color: isSelected ? '#1e40af' : '#0f172a', fontWeight: 800, display: 'block', lineHeight: 1.3 }}>
+                              {profile.title}
+                            </strong>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <span style={{
+                            background: '#2563eb',
+                            color: '#ffffff',
+                            borderRadius: '50%',
+                            width: 22,
+                            height: 22,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '11px',
+                            fontWeight: 900,
+                            boxShadow: '0 2px 6px rgba(37, 99, 235, 0.4)',
+                            flexShrink: 0
+                          }}>
+                            ✓
+                          </span>
+                        )}
                       </div>
-                      {isSelected && (
-                        <span style={{ background: '#2563eb', color: '#ffffff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900 }}>
-                          ✓
-                        </span>
-                      )}
+
+                      <p style={{ fontSize: '0.78rem', color: isSelected ? '#1e3a8a' : '#64748b', lineHeight: 1.45, margin: '0 0 8px', opacity: isSelected ? 0.9 : 1 }}>
+                        {profile.subtitle}
+                      </p>
                     </div>
 
-                    <p style={{ fontSize: '0.78rem', color: isSelected ? '#3b82f6' : '#64748b', lineHeight: 1.4, margin: 0 }}>
-                      {profile.subtitle}
-                    </p>
-
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-                      <span style={{ fontSize: '0.72rem', background: isSelected ? '#dbeafe' : '#f1f5f9', color: isSelected ? '#1e40af' : '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: `1px dashed ${isSelected ? '#bfdbfe' : '#f1f5f9'}`, paddingTop: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        background: isSelected ? '#dbeafe' : '#f1f5f9',
+                        color: isSelected ? '#1e40af' : '#475569',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 700
+                      }}>
                         {profile.serialLabel}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
+                        {profile.sampleBrands.slice(0, 2).join(' • ')}
                       </span>
                     </div>
                   </div>
                 );
               })}
+            </div>
+
+            <div style={{ marginTop: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#475569' }}>
+              <span style={{ color: '#2563eb', fontWeight: 900 }}>💡</span>
+              <span>يمكنك التبديل بين أنشطة الصيانة في أي وقت لتكييف الواجهات بما يلائم عملك دون التأثير على التذاكر والسجلات السابقة.</span>
             </div>
           </div>
         </DialogShell>
