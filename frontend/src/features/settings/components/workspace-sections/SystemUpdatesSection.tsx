@@ -6,13 +6,27 @@ import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { ClientPortal } from '@/shared/components/ClientPortal';
 
-export function SystemUpdatesSection() {
-  const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
+export function formatGregorianDate(dateInput?: string | number | Date | null, withTime = false): string {
+  if (!dateInput) return 'غير محدد';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return 'غير محدد';
+  return new Intl.DateTimeFormat('ar-EG', {
+    calendar: 'gregory',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    ...(withTime ? { hour: '2-digit', minute: '2-digit', hour12: true } : {}),
+  }).format(d);
+}
+
+export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: { deploymentMode?: string; isSuperAdmin?: boolean }) {
+  const authDeploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
   const userRole = useAuthStore((state) => state.user?.role);
-  const isSuperAdmin = userRole === 'super_admin' || userRole === 'admin';
+  const effectiveDeploymentMode = deploymentMode ?? authDeploymentMode;
+  const effectiveIsSuperAdmin = isSuperAdmin || (userRole === 'super_admin' || userRole === 'admin');
 
   // Update checker hooks
-  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt, isLoading: isCheckingHistory } = useOfflineUpdateCheck(deploymentMode);
+  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt, isLoading: isCheckingHistory } = useOfflineUpdateCheck(effectiveDeploymentMode);
   
   const [updateCheckResult, setUpdateCheckResult] = useState<{ open: boolean; type: 'checking' | 'up-to-date' | 'error' | 'available'; data?: any } | null>(null);
   const [selectedReleaseIndex, setSelectedReleaseIndex] = useState<number | null>(null);
@@ -275,7 +289,7 @@ export function SystemUpdatesSection() {
               <div className="system-update-hero-meta">
                 <div className="system-update-hero-meta-item">
                   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                  <span>آخر فحص: {dataUpdatedAt ? new Intl.DateTimeFormat('ar-SA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(dataUpdatedAt)) : 'اليوم، مستقر'}</span>
+                  <span>آخر فحص: {dataUpdatedAt ? formatGregorianDate(dataUpdatedAt, true) : 'اليوم، مستقر'}</span>
                 </div>
                 <span>•</span>
                 <div className="system-update-hero-meta-item">
@@ -337,7 +351,7 @@ export function SystemUpdatesSection() {
           </div>
           <div className="system-update-metric-body">
             <span className="system-update-metric-label">وضع النشر والاتصال</span>
-            <strong className="system-update-metric-val">{deploymentMode === 'server' ? 'سيرفر شبكي (Server Mode)' : 'مكتبي محلي (Desktop Mode)'}</strong>
+            <strong className="system-update-metric-val">{effectiveDeploymentMode === 'server' ? 'سيرفر شبكي (Server Mode)' : 'مكتبي محلي (Desktop Mode)'}</strong>
             <span className="system-update-metric-desc">يدعم استلام الترقيات السحابية والتثبيت دون الحاجة لإنترنت مستمر.</span>
           </div>
         </div>
@@ -378,16 +392,18 @@ export function SystemUpdatesSection() {
             <span className="system-releases-badge-count">{updateHistory.length} إصدارات مسجلة</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setShowSimulator(!showSimulator)}
-              className="system-update-btn-glass"
-              style={{ fontSize: '12px', padding: '6px 12px' }}
-            >
-              🧪 {showSimulator ? 'إخفاء محاكي المطور' : 'محاكي تحديثات المطور'}
-            </button>
-          </div>
+          {effectiveIsSuperAdmin && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setShowSimulator(!showSimulator)}
+                className="system-update-btn-glass"
+                style={{ fontSize: '12px', padding: '6px 12px' }}
+              >
+                {showSimulator ? 'إخفاء محاكي المطور' : 'محاكي تحديثات المطور'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="system-releases-list">
@@ -399,8 +415,8 @@ export function SystemUpdatesSection() {
             updateHistory.map((release, idx) => (
               <div key={release.version} className="system-release-item">
                 <div className="system-release-info">
-                  <div className="system-release-icon-tag">
-                    v{release.version.split('.')[1] || '1'}
+                  <div className="system-release-icon-tag" style={{ minWidth: '48px', padding: '0 6px', fontSize: '11px', fontWeight: 800 }}>
+                    v{release.version}
                   </div>
                   <div className="system-release-details">
                     <div className="system-release-version-row">
@@ -408,18 +424,18 @@ export function SystemUpdatesSection() {
                       {release.version === currentVersion ? (
                         <span className="system-release-tag-active">✓ الإصدار الحالي المستقر</span>
                       ) : (
-                        <span className="system-release-tag-available">سجل معتمد</span>
+                        <span className="system-release-tag-available">سجل معتمد ومؤرشف</span>
                       )}
                     </div>
                     <div className="system-release-date">
                       <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                      <span>تاريخ النشر: {release.promotedAt ? new Intl.DateTimeFormat('ar-SA', { dateStyle: 'long' }).format(new Date(release.promotedAt)) : 'مؤرشف'}</span>
+                      <span>تاريخ الاعتماد: {formatGregorianDate(release.promotedAt || (release as any).createdAt, true)}</span>
                     </div>
                   </div>
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {isSuperAdmin && (
+                  {effectiveIsSuperAdmin && (
                     <Button 
                       variant="secondary" 
                       onClick={() => handleRevealPasscode(release)}
@@ -497,21 +513,21 @@ export function SystemUpdatesSection() {
                 disabled={simLoading}
                 style={{ background: '#4f46e5', borderColor: '#4338ca', fontWeight: 800, padding: '9px 18px', borderRadius: '8px' }}
               >
-                {simLoading ? 'جارِ المحاكاة...' : '⚡ تشغيل محاكاة التحديث'}
+                {simLoading ? 'جارِ المحاكاة...' : 'تشغيل محاكاة التحديث'}
               </Button>
             </div>
           </div>
 
           {simError && (
             <div style={{ padding: '12px 14px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '12px', fontWeight: 700, marginTop: 10 }}>
-              ⚠️ {simError}
+              {simError}
             </div>
           )}
 
           {simResult && (
             <div style={{ marginTop: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', color: '#166534', fontWeight: 800, fontSize: '13px' }}>
-                <span>✅ اكتملت محاكاة التحديث بنجاح ({simResult.cumulativeReleasesCount} إصدارات تراكمية مدمجة)</span>
+                <span>اكتملت محاكاة التحديث بنجاح ({simResult.cumulativeReleasesCount} إصدارات تراكمية مدمجة)</span>
                 <span style={{ fontSize: '11px', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>v{simResult.fromVersion} ➔ v{simResult.targetVersion}</span>
               </div>
 
@@ -546,7 +562,7 @@ export function SystemUpdatesSection() {
             <div className="system-update-modal-header">
               <h3 className="system-update-modal-title">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="15" r="4" /><line x1="10.85" y1="12.15" x2="19" y2="4" /><line x1="18" y1="5" x2="20" y2="7" /><line x1="15" y1="8" x2="17" y2="10" /></svg>
-                <span>كود تفعيل التحديث المعتمد 🔑</span>
+                <span>كود تفعيل التحديث المعتمد</span>
               </h3>
             </div>
             <div className="system-update-modal-body stack gap-16" style={{ textAlign: 'center' }}>
@@ -571,7 +587,7 @@ export function SystemUpdatesSection() {
                     setTimeout(() => setCopiedPasscode(false), 2000);
                   }}
                 >
-                  {copiedPasscode ? '✓ تم النسخ بنجاح!' : '📋 نسخ كود التفعيل'}
+                  {copiedPasscode ? '✓ تم النسخ بنجاح!' : 'نسخ كود التفعيل'}
                 </Button>
                 <Button variant="secondary" onClick={() => { setRevealedPasscode(null); setCopiedPasscode(false); }}>إغلاق</Button>
               </div>
@@ -594,7 +610,7 @@ export function SystemUpdatesSection() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '13px', color: '#475569' }}>تاريخ الإصدار الرسمي:</span>
                 <strong style={{ fontSize: '13px', color: '#0f172a' }}>
-                  {selectedRelease.promotedAt ? new Intl.DateTimeFormat('ar-SA', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(selectedRelease.promotedAt)) : 'مؤرشف'}
+                  {selectedRelease.promotedAt ? formatGregorianDate(selectedRelease.promotedAt, true) : 'مؤرشف'}
                 </strong>
               </div>
 
