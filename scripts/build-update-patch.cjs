@@ -59,9 +59,10 @@ async function main() {
     console.log('[build-update-patch] Copying frontend/dist...');
     fs.cpSync(path.join(rootDir, 'frontend/dist'), path.join(stagingDir, 'frontend/dist'), { recursive: true });
 
-    // Copy frontend/electron/loading.html
+    // Copy frontend/electron/loading.html to both dist and electron folders in patch staging
     const loadingHtml = path.join(rootDir, 'frontend/electron/loading.html');
     if (fs.existsSync(loadingHtml)) {
+      fs.copyFileSync(loadingHtml, path.join(stagingDir, 'frontend/dist/loading.html'));
       fs.mkdirSync(path.join(stagingDir, 'frontend/electron'), { recursive: true });
       fs.copyFileSync(loadingHtml, path.join(stagingDir, 'frontend/electron/loading.html'));
     }

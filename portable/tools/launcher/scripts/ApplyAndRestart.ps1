@@ -314,13 +314,24 @@ try {
 
     # Update loading.html in electron resources if present in patch
     $srcLoading = Join-Path $extractDir 'frontend\electron\loading.html'
+    if (-not (Test-Path $srcLoading)) {
+      $srcLoading = Join-Path $extractDir 'frontend\dist\loading.html'
+    }
     if (Test-Path $srcLoading) {
       if ($isElectronMode) {
-        $destLoading = Join-Path $pathMap.AppFrontendDir '..\electron\loading.html'
-        if (Test-Path (Split-Path $destLoading)) {
-          Copy-Item -Path $srcLoading -Destination $destLoading -Force -ErrorAction SilentlyContinue
-          Write-Log 'loading.html updated in Electron resources.'
+        $destLoading1 = Join-Path $pathMap.AppFrontendDir 'loading.html'
+        Copy-Item -Path $srcLoading -Destination $destLoading1 -Force -ErrorAction SilentlyContinue
+
+        $destLoading2 = Join-Path $pathMap.AppFrontendDir '..\electron\loading.html'
+        if (Test-Path (Split-Path $destLoading2)) {
+          Copy-Item -Path $srcLoading -Destination $destLoading2 -Force -ErrorAction SilentlyContinue
         }
+
+        $destLoading3 = Join-Path $portableRoot 'resources\loading.html'
+        if (Test-Path (Split-Path $destLoading3)) {
+          Copy-Item -Path $srcLoading -Destination $destLoading3 -Force -ErrorAction SilentlyContinue
+        }
+        Write-Log 'loading.html updated in Electron resources and dist.'
       }
     }
   } else {

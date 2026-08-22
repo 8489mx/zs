@@ -36,6 +36,43 @@ function getAppDisplayVersion() {
 
 const packageVersion = getAppDisplayVersion();
 
+function getLoadingHtmlPath() {
+  const isDev = process.env.NODE_ENV === 'development';
+  if (isDev) {
+    return path.join(__dirname, 'loading.html');
+  }
+
+  // 1. Check unpacked dist/loading.html (updated via OTA patches)
+  const unpackedDistLoading = path.join(
+    __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
+    '../dist/loading.html'
+  );
+  if (fs.existsSync(unpackedDistLoading)) {
+    return unpackedDistLoading;
+  }
+
+  // 2. Check unpacked electron/loading.html
+  const unpackedElectronLoading = path.join(
+    __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
+    'loading.html'
+  );
+  if (fs.existsSync(unpackedElectronLoading)) {
+    return unpackedElectronLoading;
+  }
+
+  // 3. Check resources/loading.html
+  try {
+    const portableRoot = path.dirname(process.execPath);
+    const resourcesLoading = path.join(portableRoot, 'resources', 'loading.html');
+    if (fs.existsSync(resourcesLoading)) {
+      return resourcesLoading;
+    }
+  } catch { /* ignore */ }
+
+  // 4. Fallback to asar
+  return path.join(__dirname, 'loading.html');
+}
+
 const createWindow = () => {
   Menu.setApplicationMenu(null);
 
@@ -67,7 +104,7 @@ const createWindow = () => {
   });
 
   // Load loading page immediately while backend starts with dynamic version
-  mainWindow.loadFile(path.join(__dirname, 'loading.html'), { query: { v: packageVersion } });
+  mainWindow.loadFile(getLoadingHtmlPath(), { query: { v: packageVersion } });
 };
 
 const loadApp = () => {
