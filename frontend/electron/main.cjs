@@ -96,7 +96,34 @@ const createLoadingWindow = () => {
   loadingWindow.loadFile(getLoadingHtmlPath(), { query: { v: packageVersion } });
 };
 
-const createMainWindow = (onReadyCallback) => {
+let isBackendReady = false;
+let isMainWindowRendered = false;
+let hasRevealedApp = false;
+
+const tryRevealApp = () => {
+  if (hasRevealedApp) return;
+  if (!isBackendReady || !isMainWindowRendered) return;
+  hasRevealedApp = true;
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.maximize();
+    mainWindow.show();
+  }
+
+  if (loadingWindow && !loadingWindow.isDestroyed()) {
+    setTimeout(() => {
+      try {
+        if (loadingWindow && !loadingWindow.isDestroyed()) {
+          loadingWindow.destroy();
+          loadingWindow = null;
+        }
+      } catch (e) {}
+    }, 80);
+  }
+};
+
+const createMainWindow = (customLoadHandler) => {
+  if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
   Menu.setApplicationMenu(null);
 
   mainWindow = new BrowserWindow({
@@ -124,45 +151,32 @@ const createMainWindow = (onReadyCallback) => {
     mainWindow.webContents.send('show-custom-close-dialog');
   });
 
-  let hasRevealed = false;
-  const revealApp = () => {
-    if (hasRevealed) return;
-    hasRevealed = true;
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.maximize();
-      mainWindow.show();
-    }
-    if (loadingWindow && !loadingWindow.isDestroyed()) {
-      setTimeout(() => {
-        try {
-          if (loadingWindow && !loadingWindow.isDestroyed()) {
-            loadingWindow.destroy();
-            loadingWindow = null;
-          }
-        } catch (e) {}
-      }, 100);
-    }
-    if (onReadyCallback) onReadyCallback();
-  };
-
   mainWindow.once('ready-to-show', () => {
-    setTimeout(revealApp, 250);
+    isMainWindowRendered = true;
+    tryRevealApp();
   });
 
   mainWindow.webContents.once('did-finish-load', () => {
-    setTimeout(revealApp, 350);
+    isMainWindowRendered = true;
+    tryRevealApp();
   });
 
-  const isDev = process.env.NODE_ENV === 'development';
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+  if (customLoadHandler) {
+    customLoadHandler(mainWindow);
   } else {
-    const unpackedDist = path.join(
-      __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
-      '../dist/index.html'
-    );
-    mainWindow.loadFile(unpackedDist);
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
+      mainWindow.loadURL('http://localhost:5173');
+    } else {
+      const unpackedDist = path.join(
+        __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
+        '../dist/index.html'
+      );
+      mainWindow.loadFile(unpackedDist);
+    }
   }
+
+  return mainWindow;
 };
 
 app.whenReady().then(async () => {
@@ -211,6 +225,9 @@ app.whenReady().then(async () => {
 
   // Show loading window with progress immediately
   createLoadingWindow();
+
+  // Pre-warm React UI silently in memory while PostgreSQL and backend initialize
+  createMainWindow();
 
   // Start the bundled Postgres Server
   const PostgresManager = require('./postgres-manager.cjs');
@@ -678,18 +695,19 @@ Write-Output "$disk|$cpu|$uuid|$bb|$mac"
     console.error('Error writing version marker:', err);
   }
 
-  // Load the actual app now that backend is ready (Seamless Handover)
+  // Handover to main app once backend is ready
   if (currentConfig.runtimeMode === 'invalid') {
-    createMainWindow((win) => {
-      win.loadFile(path.join(__dirname, 'config-error.html'));
-    });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(path.join(__dirname, 'config-error.html'));
+    }
   } else if (currentConfig.runtimeMode === 'lan_client' && !backendReady) {
-    createMainWindow((win) => {
-      win.loadFile(path.join(__dirname, 'server-offline.html'));
-    });
-  } else {
-    createMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(path.join(__dirname, 'server-offline.html'));
+    }
   }
+
+  isBackendReady = true;
+  tryRevealApp();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
