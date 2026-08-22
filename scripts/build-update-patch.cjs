@@ -83,9 +83,21 @@ async function main() {
       expectedFolders: ['backend/dist', 'frontend/dist']
     };
 
-    fs.writeFileSync(path.join(stagingDir, 'update-manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
+    const AdmZip = require(path.join(rootDir, 'backend/node_modules/adm-zip'));
+    const zip = new AdmZip();
+    
+    // Add all staging files with forward-slash paths
+    const filesToZip = getAllFiles(stagingDir);
+    for (const filePath of filesToZip) {
+      const relPath = path.relative(stagingDir, filePath).replace(/\\/g, '/');
+      const fileData = fs.readFileSync(filePath);
+      zip.addFile(relPath, fileData);
+    }
+    
+    // Add update-manifest.json
+    zip.addFile('update-manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8'));
 
-    // Zip
+    // Zip output
     const zipName = `Z-ERP-Patch-v${version}.zip`;
     const updatesDir = path.join(rootDir, 'release/updates');
     fs.mkdirSync(updatesDir, { recursive: true });
@@ -95,10 +107,8 @@ async function main() {
       fs.unlinkSync(zipPath);
     }
     
-    console.log(`[build-update-patch] Zipping to ${zipPath}...`);
-    // Using PowerShell Compress-Archive
-    const psCommand = `powershell -NoProfile -Command "Compress-Archive -Path '${stagingDir}\\*' -DestinationPath '${zipPath}' -Force"`;
-    execSync(psCommand, { stdio: 'inherit' });
+    console.log(`[build-update-patch] Writing ZIP with AdmZip to ${zipPath}...`);
+    zip.writeZip(zipPath);
     
     // Clean up staging
     console.log('[build-update-patch] Cleaning up staging directory...');
