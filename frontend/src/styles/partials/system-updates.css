@@ -528,68 +528,54 @@
   padding: 22px 24px;
 }
 
-/* Micro-Chic Crystal Edition Badge */
+/* Clean Executive Header Update Badge — Matches Adjacent Toolbar Items & Neutral Table Headers */
 .system-update-toolbar-alert {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   height: 32px;
-  padding: 0 10px 0 8px;
-  background: #ffffff;
-  color: #1e293b;
-  border: 1px solid #cbd5e1;
+  padding: 0 12px;
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.18s ease;
   white-space: nowrap;
   flex-shrink: 0;
-  position: relative;
-}
-
-.system-update-sparkle-icon {
-  color: #6366f1;
-  filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.4));
-  animation: subtleSparkle 3s ease-in-out infinite alternate;
-}
-
-@keyframes subtleSparkle {
-  0% { transform: scale(0.92) rotate(0deg); opacity: 0.8; }
-  100% { transform: scale(1.08) rotate(12deg); opacity: 1; filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.6)); color: #10b981; }
 }
 
 .system-update-toolbar-label {
   font-size: 12px;
   font-weight: 700;
   color: #334155;
+}
+
+.system-update-toolbar-sep {
+  font-size: 11px;
+  color: #94a3b8;
+  opacity: 0.85;
+  user-select: none;
+}
+
+.system-update-toolbar-version {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #2563eb;
+  background: transparent;
+  padding: 0;
+  border: none;
+  font-family: inherit;
   letter-spacing: -0.01em;
 }
 
-.system-update-toolbar-version-badge {
-  font-size: 11px;
-  font-weight: 800;
-  color: #4338ca;
-  background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 5px;
-  border: 1px solid #e2e8f0;
-  font-family: monospace, sans-serif;
-  letter-spacing: -0.02em;
-}
-
 .system-update-toolbar-alert:hover {
-  background: #ffffff;
-  border-color: #818cf8;
-  box-shadow: 0 3px 8px -1px rgba(99, 102, 241, 0.18), 0 1px 3px rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
-}
-
-.system-update-toolbar-alert:hover .system-update-toolbar-version-badge {
-  background: #ede9fe;
-  border-color: #ddd6fe;
-  color: #4f46e5;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
 }
 
 .system-update-pulse-dot {
