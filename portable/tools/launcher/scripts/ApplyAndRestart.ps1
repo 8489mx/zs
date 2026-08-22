@@ -191,25 +191,45 @@ if ((-not [string]::IsNullOrWhiteSpace($localPatchPath)) -and (Test-Path $localP
 } else {
   Write-Log "Attempting to retrieve patch for v$version..."
   $downloadSuccess = $false
+
   if (-not [string]::IsNullOrWhiteSpace($patchUrl)) {
+    if ($patchUrl -match 'karimzakaria/zn') {
+      $patchUrl = $patchUrl -replace 'karimzakaria/zn', '8489mx/zs'
+      Write-Log "Auto-corrected repository URL to: $patchUrl"
+    }
+  } else {
+    $patchUrl = "https://github.com/8489mx/zs/releases/download/v$version/Z-ERP-Patch-v$version.zip"
+    Write-Log "Using official release URL: $patchUrl"
+  }
+
+  $urlsToTry = @($patchUrl, "https://github.com/8489mx/zs/releases/download/v$version/Z-ERP-Patch-v$version.zip") | Select-Object -Unique
+
+  foreach ($currentUrl in $urlsToTry) {
+    if ($downloadSuccess) { break }
     try {
       [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-      Write-Log "Downloading from $patchUrl ..."
+      Write-Log "Downloading from $currentUrl ..."
       $webClient = New-Object System.Net.WebClient
-      $webClient.Headers.Add('User-Agent', 'Z-ERP-Desktop-Updater')
-      $webClient.DownloadFile($patchUrl, $zipPath)
-      $sizeMB = [Math]::Round((Get-Item $zipPath).Length / 1MB, 1)
-      Write-Log "Download complete ($sizeMB MB)"
-      $downloadSuccess = $true
+      $webClient.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Z-ERP-Desktop-Updater')
+      $webClient.DownloadFile($currentUrl, $zipPath)
+      if ((Test-Path $zipPath) -and ((Get-Item $zipPath).Length -gt 100000)) {
+        $sizeMB = [Math]::Round((Get-Item $zipPath).Length / 1MB, 2)
+        Write-Log "WebClient download complete ($sizeMB MB)"
+        $downloadSuccess = $true
+        break
+      }
     } catch {
       Write-Log "Notice: WebClient download failed ($($_.Exception.Message)), trying Invoke-WebRequest..."
       try {
-        Invoke-WebRequest -Uri $patchUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300 -Headers @{ 'User-Agent' = 'Z-ERP-Desktop-Updater' }
-        $sizeMB = [Math]::Round((Get-Item $zipPath).Length / 1MB, 1)
-        Write-Log "Invoke-WebRequest download complete ($sizeMB MB)"
-        $downloadSuccess = $true
+        Invoke-WebRequest -Uri $currentUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300 -Headers @{ 'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Z-ERP-Desktop-Updater' }
+        if ((Test-Path $zipPath) -and ((Get-Item $zipPath).Length -gt 100000)) {
+          $sizeMB = [Math]::Round((Get-Item $zipPath).Length / 1MB, 2)
+          Write-Log "Invoke-WebRequest download complete ($sizeMB MB)"
+          $downloadSuccess = $true
+          break
+        }
       } catch {
-        Write-Log "Notice: Download failed ($($_.Exception.Message)), searching local releases..."
+        Write-Log "Notice: Download from $currentUrl failed ($($_.Exception.Message))"
       }
     }
   }
