@@ -29,6 +29,7 @@ import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
 
 
 type SidebarGroupDefinition = {
@@ -343,6 +344,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'saas-admin-tenants',
       'saas-admin-plans',
     ];
+    const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     const labelOverrides: Record<string, string> = {
       dashboard: t('sidebar.dashboard', 'الرئيسية'),
       'cash-drawer': t('sidebar.cash-drawer', 'الوردية والدرج النقدي'),
@@ -359,7 +361,7 @@ export function AppShell({ children }: PropsWithChildren) {
       products: 'قائمة الأصناف',
       'product-categories': 'أقسام الأصناف',
       'pricing-center': 'مركز التسعير',
-      'inventory-warehouses': 'أماكن المخزون',
+      'inventory-warehouses': 'أماكن التخزين',
       'inventory-tree': 'شجرة المخازن',
       inventory: 'جرد وحركات المخزون',
       'inventory-issue-orders': 'سجل أذونات الصرف',
@@ -373,7 +375,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'accounting-settings': 'إعدادات الحسابات',
       maintenance: 'تذاكر الصيانة',
       'trade-in': 'شراء واستبدال الأجهزة',
-      'imei-history': 'سجل وتتبع IMEI',
+      'imei-history': maintenanceProfile.sidebarSerialLabel,
       'import-shipments': 'إدارة الحاويات والشحن',
       'import-supplier-credit': 'مديونية الصين (المورد)',
       'import-profit-pool': 'أرباح الشركاء (نهاية المدة)',
@@ -409,21 +411,24 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.manufacturingModuleEnabled]);
+  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.manufacturingModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
-  const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => ([
-    { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher'], iconKey: 'sales' },
-    { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
-    { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'], iconKey: 'inventory' },
-    { key: 'accounting-group', label: t('sidebar.accounting-group', 'المالية والمحاسبة'), itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings'], iconKey: 'treasury' },
-    { key: 'mobile-group', label: t('sidebar.mobile-group', 'قسم الموبايل والأجهزة'), itemKeys: ['maintenance', 'trade-in', 'imei-history'], iconKey: 'mobile' },
-    { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'], iconKey: 'import' },
-    { key: 'manufacturing-group', label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'], iconKey: 'manufacturing' },
-    { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },
-    { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings', 'saas-admin-tenants', 'saas-admin-plans'], iconKey: 'admin' },
-  ]), [t]);
+  const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
+    const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
+    return [
+      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher'], iconKey: 'sales' },
+      { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
+      { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'], iconKey: 'inventory' },
+      { key: 'accounting-group', label: t('sidebar.accounting-group', 'المالية والمحاسبة'), itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings'], iconKey: 'treasury' },
+      { key: 'mobile-group', label: maintenanceProfile.sidebarTitle, itemKeys: ['maintenance', 'trade-in', 'imei-history'], iconKey: 'mobile' },
+      { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'], iconKey: 'import' },
+      { key: 'manufacturing-group', label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'], iconKey: 'manufacturing' },
+      { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },
+      { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings', 'saas-admin-tenants', 'saas-admin-plans'], iconKey: 'admin' },
+    ];
+  }, [t, settings?.maintenanceProfile]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {

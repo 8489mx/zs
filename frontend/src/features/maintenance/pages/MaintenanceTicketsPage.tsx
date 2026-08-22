@@ -11,6 +11,7 @@ import { PatternLockWidget } from '../components/PatternLockWidget';
 import { BrandCombobox } from '@/shared/components/BrandCombobox';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import type { MaintenanceTicket, MaintenanceStatus } from '@/types/domain-models/maintenance';
+import { getMaintenanceProfile } from '../constants/maintenance-profiles';
 
 export function MaintenanceTicketsPage() {
   const queryClient = useQueryClient();
@@ -89,7 +90,8 @@ export function MaintenanceTicketsPage() {
     setSettlementTicket(null);
   };
 
-  useAppToolbar([{ label: 'قسم الصيانة وتذاكر الإصلاح' }]);
+  const maintenanceProfile = getMaintenanceProfile(settingsQuery.data?.maintenanceProfile);
+  useAppToolbar([{ label: `${maintenanceProfile.icon} ${maintenanceProfile.title}` }]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['maintenance-tickets', filterStatus, searchQuery, page],
@@ -278,8 +280,8 @@ export function MaintenanceTicketsPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto' }}>
         <PageHeader
-          title="قسم الصيانة وتذاكر الإصلاح"
-          description="إدارة ومتابعة أجهزة الصيانة، الفحص، صرف قطع الغيار، وطباعة إيصالات الاستلام وحسابات التسليم."
+          title={maintenanceProfile.title}
+          description={maintenanceProfile.subtitle}
           badge={<span className="nav-pill">{totalItems} تذكرة صيانة</span>}
           actions={
             <div className="actions compact-actions">
@@ -376,7 +378,7 @@ export function MaintenanceTicketsPage() {
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
                 <th style={{ padding: '10px 14px' }}>كود الجهاز</th>
                 <th style={{ padding: '10px 14px' }}>العميل / الهاتف</th>
-                <th style={{ padding: '10px 14px' }}>الجهاز / IMEI</th>
+                <th style={{ padding: '10px 14px' }}>الجهاز / {maintenanceProfile.serialLabel}</th>
                 <th style={{ padding: '10px 14px' }}>العطل</th>
                 <th style={{ padding: '10px 14px' }}>التكلفة / المدفوع / المتبقي</th>
                 <th style={{ padding: '10px 14px' }}>الحالة</th>
@@ -443,8 +445,8 @@ export function MaintenanceTicketsPage() {
                         </div>
                         {t.serialNumber && (
                           <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <span>📱</span>
-                            <span dir="ltr">IMEI: {t.serialNumber}</span>
+                            <span>{maintenanceProfile.icon}</span>
+                            <span dir="ltr">{t.serialNumber}</span>
                           </div>
                         )}
                       </td>
@@ -605,8 +607,8 @@ export function MaintenanceTicketsPage() {
 
                     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
                       <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-                        مواصفات الجهاز والـ IMEI
+                        <span style={{ fontSize: '1.1rem' }}>{maintenanceProfile.icon}</span>
+                        <span>مواصفات الجهاز و {maintenanceProfile.serialLabel}</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
                         <div>
@@ -616,7 +618,7 @@ export function MaintenanceTicketsPage() {
                           <BrandCombobox
                             value={formData.deviceBrand || ''}
                             onChange={(val) => setFormData({ ...formData, deviceBrand: val })}
-                            placeholder="...Apple, Samsung"
+                            placeholder={`...${maintenanceProfile.sampleBrands.slice(0, 3).join(', ')}`}
                           />
                         </div>
                         <div>
@@ -629,14 +631,14 @@ export function MaintenanceTicketsPage() {
                             className="purchase-prototype-field-input"
                             value={formData.deviceModel}
                             onChange={(e) => setFormData({ ...formData, deviceModel: e.target.value })}
-                            placeholder="iPhone 13 Pro Max"
+                            placeholder={`مثال: ${maintenanceProfile.sampleBrands[0]}...`}
                             style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                           />
                         </div>
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          السيريال / IMEI (مسح بالسكانر أو كتابة)
+                          {maintenanceProfile.serialLabel} (مسح بالسكانر أو كتابة)
                         </label>
                         <input
                           type="text"
@@ -644,7 +646,7 @@ export function MaintenanceTicketsPage() {
                           className="purchase-prototype-field-input"
                           value={formData.serialNumber || ''}
                           onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-                          placeholder="354092019203741"
+                          placeholder={maintenanceProfile.serialPlaceholder}
                           style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', boxSizing: 'border-box' }}
                         />
                       </div>
@@ -667,9 +669,35 @@ export function MaintenanceTicketsPage() {
                           className="purchase-prototype-field-input"
                           value={formData.problemDescription}
                           onChange={(e) => setFormData({ ...formData, problemDescription: e.target.value })}
-                          placeholder="مثال: الشاشة مكسورة، أو الجهاز فاصل شحن..."
+                          placeholder="مثال: وصف عطل الجهاز أو المشكلة..."
                           style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                         />
+                        {maintenanceProfile.commonFaults?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                            {maintenanceProfile.commonFaults.slice(0, 5).map((fault) => (
+                              <button
+                                key={fault}
+                                type="button"
+                                onClick={() => {
+                                  const cur = formData.problemDescription ? `${formData.problemDescription} + ${fault}` : fault;
+                                  setFormData({ ...formData, problemDescription: cur });
+                                }}
+                                style={{
+                                  background: '#ffffff',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '4px',
+                                  padding: '2px 6px',
+                                  fontSize: '0.7rem',
+                                  color: '#334155',
+                                  cursor: 'pointer',
+                                  fontWeight: 600
+                                }}
+                              >
+                                + {fault}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
                         <div>
@@ -684,6 +712,32 @@ export function MaintenanceTicketsPage() {
                             placeholder="مثال: خدوش بالظهر، مستلم بدون شاحن..."
                             style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
                           />
+                          {maintenanceProfile.defaultAccessories?.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                              {maintenanceProfile.defaultAccessories.map((acc) => (
+                                <button
+                                  key={acc}
+                                  type="button"
+                                  onClick={() => {
+                                    const cur = formData.deviceCondition ? `${formData.deviceCondition}، ${acc}` : acc;
+                                    setFormData({ ...formData, deviceCondition: cur });
+                                  }}
+                                  style={{
+                                    background: '#ffffff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    padding: '2px 6px',
+                                    fontSize: '0.7rem',
+                                    color: '#475569',
+                                    cursor: 'pointer',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  + {acc}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
@@ -705,7 +759,7 @@ export function MaintenanceTicketsPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                         <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                          رمز أو قفل الشاشة (Screen Lock)
+                          {maintenanceProfile.passcodeLabel}
                         </label>
                         <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
                           <button
@@ -753,7 +807,7 @@ export function MaintenanceTicketsPage() {
                             className="purchase-prototype-field-input"
                             value={formData.passcode || ''}
                             onChange={(e) => setFormData({ ...formData, passcode: e.target.value })}
-                            placeholder="أو لا يوجد قفل، مثال: 1234 أو Passcode..."
+                            placeholder={maintenanceProfile.passcodePlaceholder}
                             style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', boxSizing: 'border-box' }}
                           />
                         </div>

@@ -7,6 +7,7 @@ import { buildCode128Svg } from '@/lib/barcode';
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { MaintenanceTicket } from '@/types/domain-models/maintenance';
 import type { AppSettings } from '@/types/domain';
+import { getMaintenanceProfile } from '../constants/maintenance-profiles';
 
 interface MaintenanceReceiptModalProps {
   open: boolean;
@@ -37,7 +38,8 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
   const collectedAtDelivery = Math.max(0, netTotal - advancePaid);
   const remainingAmount = ticket.status === 'delivered' ? 0 : Math.max(0, netTotal - advancePaid);
   const dateFormatted = new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
-  const storeName = settings?.storeName || 'مركز الصيانة';
+  const profile = getMaintenanceProfile(settings?.maintenanceProfile);
+  const storeName = settings?.storeName || profile.title;
   const phone = settings?.phone || '';
   const address = settings?.address || '';
 
@@ -48,7 +50,7 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
         ${phone ? `<div style="font-size: 10.5px; font-weight: 500; color: #111;">هاتف: ${escapeHtml(phone)}</div>` : ''}
         ${address ? `<div style="font-size: 9px; font-weight: 400; color: #333;">${escapeHtml(address)}</div>` : ''}
         <div style="margin-top: 4px; display: inline-block; padding: 2px 8px; border: 1px solid #000; border-radius: 4px; font-weight: 700; font-size: 10.5px; color: #000;">
-          إيصال استلام جهاز للإصلاح
+          إيصال استلام جهاز للإصلاح (${escapeHtml(profile.shortTitle)})
         </div>
       </div>
 
@@ -68,8 +70,8 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
         <div style="font-size: 10.5px; margin-bottom: 2px;">
           الجهاز: <strong style="font-weight: 700;">${escapeHtml(ticket.deviceBrand ? `${ticket.deviceBrand} - ` : '')}${escapeHtml(ticket.deviceModel)}</strong>
         </div>
-        ${ticket.serialNumber ? `<div style="font-size: 9.5px; font-family: monospace;" dir="ltr">IMEI: ${escapeHtml(ticket.serialNumber)}</div>` : ''}
-        ${ticket.passcode ? `<div style="color: #000;">الرمز / قفل الشاشة: <span dir="ltr" style="font-weight: 700;">${escapeHtml(ticket.passcode)}</span></div>` : ''}
+        ${ticket.serialNumber ? `<div style="font-size: 9.5px; font-family: monospace;" dir="ltr">${escapeHtml(profile.serialLabel)}: ${escapeHtml(ticket.serialNumber)}</div>` : ''}
+        ${ticket.passcode ? `<div style="color: #000;">${escapeHtml(profile.passcodeLabel)}: <span dir="ltr" style="font-weight: 700;">${escapeHtml(ticket.passcode)}</span></div>` : ''}
       </div>
 
       <div style="border: 1px solid #000; border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; font-size: 10px; color: #000; box-sizing: border-box;">
@@ -257,7 +259,8 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
   const collectedAtDelivery = Math.max(0, netTotal - advancePaid);
   const remainingAmount = ticket.status === 'delivered' ? 0 : Math.max(0, netTotal - advancePaid);
   const dateFormatted = new Date(ticket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
-  const storeName = settings?.storeName || 'مركز الصيانة';
+  const profile = getMaintenanceProfile(settings?.maintenanceProfile);
+  const storeName = settings?.storeName || profile.title;
   const phone = settings?.phone || '';
   const address = settings?.address || '';
 
@@ -268,7 +271,7 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
         ${phone ? `<div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 2px;">هاتف: ${escapeHtml(phone)}</div>` : ''}
         ${address ? `<div style="font-size: 11px; color: #64748b;">${escapeHtml(address)}</div>` : ''}
         <div style="margin-top: 8px; display: inline-block; background: #f1f5f9; border: 1px solid #cbd5e1; color: #0f172a; padding: 4px 14px; border-radius: 6px; font-weight: 800; font-size: 13px;">
-          إيصال استلام جهاز للإصلاح
+          إيصال استلام جهاز للإصلاح (${escapeHtml(profile.shortTitle)})
         </div>
       </div>
 
@@ -290,8 +293,8 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
         <div style="font-size: 13px; font-weight: 800; margin-bottom: 3px; color: #0f172a;">
           الجهاز: ${escapeHtml(ticket.deviceBrand ? `${ticket.deviceBrand} - ` : '')}${escapeHtml(ticket.deviceModel)}
         </div>
-        ${ticket.serialNumber ? `<div style="font-size: 11px; color: #64748b; font-family: monospace;" dir="ltr">IMEI: ${escapeHtml(ticket.serialNumber)}</div>` : ''}
-        ${ticket.passcode ? `<div style="font-weight: 800; color: #2563eb; margin-top: 2px;">الرمز / قفل الشاشة: <span dir="ltr">${escapeHtml(ticket.passcode)}</span></div>` : ''}
+        ${ticket.serialNumber ? `<div style="font-size: 11px; color: #64748b; font-family: monospace;" dir="ltr">${escapeHtml(profile.serialLabel)}: ${escapeHtml(ticket.serialNumber)}</div>` : ''}
+        ${ticket.passcode ? `<div style="font-weight: 800; color: #2563eb; margin-top: 2px;">${escapeHtml(profile.passcodeLabel)}: <span dir="ltr">${escapeHtml(ticket.passcode)}</span></div>` : ''}
       </div>
 
       <div style="margin-bottom: 14px;">

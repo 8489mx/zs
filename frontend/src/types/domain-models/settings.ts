@@ -46,6 +46,7 @@ export interface AppSettings {
   printDeliveryRepOnReceipt?: boolean;
   clothingModuleEnabled?: boolean;
   enableMobileStoreFeatures?: boolean;
+  maintenanceProfile?: string;
   enableEnterpriseFeatures?: boolean;
   technicianCommissionRate?: number;
   defaultProductKind?: 'standard' | 'fashion' | string;
