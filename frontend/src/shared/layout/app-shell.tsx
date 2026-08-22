@@ -549,6 +549,13 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [location.pathname]);
 
   useEffect(() => {
+    try {
+      const currentVer = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.21';
+      localStorage.setItem('zs.app_display_version', currentVer);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     const isTypingTarget = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
       const tag = target.tagName.toLowerCase();

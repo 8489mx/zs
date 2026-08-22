@@ -178,10 +178,41 @@
   <div class="version-pill" id="versionBadge">v...</div>
 
   <script>
-    // Read dynamic version from URL query parameter (?v=1.1.13)
+    // 1. Check URL query params first
     const urlParams = new URLSearchParams(window.location.search);
-    const ver = urlParams.get('v') || '1.1.13';
-    document.getElementById('versionBadge').textContent = 'v' + ver;
+    let ver = urlParams.get('v');
+
+    // 2. Fallback to localStorage cached version
+    try {
+      const cached = localStorage.getItem('zs.app_display_version');
+      if (cached) {
+        ver = cached;
+      }
+    } catch (e) {}
+
+    if (ver) {
+      document.getElementById('versionBadge').textContent = 'v' + ver.replace(/^v/i, '');
+    }
+
+    // 3. Dynamic polling to local backend API
+    async function updateVersionFromBackend() {
+      for (const p of [3001, 3002, 3003, 3004, 3005]) {
+        try {
+          const res = await fetch('http://127.0.0.1:' + p + '/api/updates/version');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.version) {
+              document.getElementById('versionBadge').textContent = 'v' + data.version.replace(/^v/i, '');
+              try { localStorage.setItem('zs.app_display_version', data.version); } catch (e) {}
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+    updateVersionFromBackend();
+    const verInterval = setInterval(updateVersionFromBackend, 600);
+    setTimeout(() => clearInterval(verInterval), 8000);
 
     const bar = document.getElementById('progressBar');
     const statusText = document.getElementById('statusText');

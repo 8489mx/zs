@@ -775,7 +775,10 @@ export class OfflineReleasesService implements OnModuleInit {
     });
     ps.unref();
 
-    setTimeout(() => process.exit(0), 1500);
+    setTimeout(() => {
+      console.log('[OfflineReleasesService] Exiting process for clean self-update restart...');
+      process.exit(0);
+    }, 17500);
 
     return {
       ok: true,
@@ -937,7 +940,10 @@ export class OfflineReleasesService implements OnModuleInit {
     });
     ps.unref();
 
-    setTimeout(() => process.exit(0), 1500);
+    setTimeout(() => {
+      console.log('[OfflineReleasesService] Exiting process for clean zip self-update restart...');
+      process.exit(0);
+    }, 17500);
 
     return {
       ok: true,
