@@ -93,14 +93,27 @@ async function main() {
     passcode: passcode,
     requiresPasscode: true,
     changelog: changelogMarkdown,
+    patchUrl: `https://github.com/8489mx/zs/releases/download/v${targetVersion}/patch-${targetVersion}.zip`,
   };
 
   const outputDir = path.resolve(__dirname, '../runtime/releases');
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
+  const rootReleasesDir = path.resolve(__dirname, '../../releases');
+  if (!fs.existsSync(rootReleasesDir)) fs.mkdirSync(rootReleasesDir, { recursive: true });
+
   const manifestPath = path.join(outputDir, `manifest-${targetVersion}.json`);
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
+  const rootManifestPath = path.join(rootReleasesDir, `manifest-${targetVersion}.json`);
+  fs.writeFileSync(rootManifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
+  const rootLatestManifestPath = path.join(rootReleasesDir, `manifest-latest.json`);
+  fs.writeFileSync(rootLatestManifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
   console.log(`✅ Release manifest saved to: ${manifestPath}`);
+  console.log(`✅ Root Release manifest saved to: ${rootManifestPath}`);
+  console.log(`✅ Root Latest manifest saved to: ${rootLatestManifestPath}`);
 }
 
 main().catch(console.error);

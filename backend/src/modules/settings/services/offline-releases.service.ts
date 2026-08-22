@@ -144,6 +144,71 @@ export class OfflineReleasesService implements OnModuleInit {
     }
   }
 
+  // ─── GitHub Cloud Updates ──────────────────────────────────────────────────
+
+  async fetchGitHubLatestRelease(): Promise<{
+    version: string;
+    changelog: string;
+    patchUrl: string;
+    passcode?: string;
+  } | null> {
+    try {
+      // 1. Try raw manifest-latest.json from GitHub repo
+      const rawUrl = 'https://raw.githubusercontent.com/8489mx/zs/main/releases/manifest-latest.json';
+      const rawRes = await fetch(rawUrl, {
+        headers: { 'User-Agent': 'Z-ERP-Desktop-Client' },
+        signal: AbortSignal.timeout(4000),
+      });
+
+      if (rawRes.ok) {
+        const manifest = (await rawRes.json()) as any;
+        if (manifest?.version && manifest.version !== '0.0.0') {
+          return {
+            version: manifest.version,
+            changelog: manifest.changelog || 'تحديث شامل للنظام متوفر على GitHub.',
+            patchUrl: manifest.patchUrl || `https://github.com/8489mx/zs/releases/download/v${manifest.version}/patch-${manifest.version}.zip`,
+            passcode: manifest.passcode,
+          };
+        }
+      }
+    } catch {
+      // Offline or GitHub raw unreachable
+    }
+
+    try {
+      // 2. Fallback to GitHub Releases API
+      const apiUrl = 'https://api.github.com/repos/8489mx/zs/releases/latest';
+      const apiRes = await fetch(apiUrl, {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'Z-ERP-Desktop-Client',
+        },
+        signal: AbortSignal.timeout(4000),
+      });
+
+      if (apiRes.ok) {
+        const data = (await apiRes.json()) as any;
+        const tag = (data.tag_name || '').replace(/^v/, '').trim();
+        if (tag) {
+          const zipAsset = (data.assets || []).find((a: any) =>
+            a.name?.endsWith('.zip'),
+          );
+          return {
+            version: tag,
+            changelog: data.body || 'تحديث جديد عبر GitHub Releases.',
+            patchUrl:
+              zipAsset?.browser_download_url ||
+              `https://github.com/8489mx/zs/releases/download/v${tag}/patch-${tag}.zip`,
+          };
+        }
+      }
+    } catch {
+      // Fallback silently
+    }
+
+    return null;
+  }
+
   // ─── Public ───────────────────────────────────────────────────────────────
 
   /**
@@ -152,8 +217,64 @@ export class OfflineReleasesService implements OnModuleInit {
    * along with the cumulative changelog of all releases between current and target.
    */
   async checkForUpdate(currentVersion: string) {
-    // Ensure manifests are synced in memory/db
+    // 1. Ensure manifests are synced from local disk
     await this.syncManifestsFromDisk().catch(() => {});
+
+    // 2. Query GitHub Cloud for latest remote release
+    const ghRelease = await this.fetchGitHubLatestRelease().catch(() => null);
+    if (ghRelease && ghRelease.version) {
+      const isNewerThanCurrent = compareSemver(ghRelease.version, currentVersion) > 0;
+      if (isNewerThanCurrent) {
+        const existing = await this.db
+          .selectFrom('offline_releases')
+          .selectAll()
+          .where('version', '=', ghRelease.version)
+          .executeTakeFirst();
+
+        const passcode = ghRelease.passcode || generateReleasePasscode(ghRelease.version);
+
+        if (!existing) {
+          await this.db
+            .updateTable('offline_releases')
+            .set({ is_active: false })
+            .where('is_active', '=', true)
+            .execute();
+
+          await this.db
+            .insertInto('offline_releases')
+            .values({
+              version: ghRelease.version,
+              changelog: ghRelease.changelog,
+              patch_url: ghRelease.patchUrl,
+              passcode: passcode,
+              requires_passcode: true,
+              is_active: true,
+              promoted_by: 'GitHub Cloud',
+              promoted_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            })
+            .execute();
+        } else if (!existing.is_active) {
+          await this.db
+            .updateTable('offline_releases')
+            .set({ is_active: false })
+            .where('is_active', '=', true)
+            .execute();
+
+          await this.db
+            .updateTable('offline_releases')
+            .set({
+              is_active: true,
+              patch_url: ghRelease.patchUrl,
+              changelog: ghRelease.changelog,
+              passcode: passcode,
+            })
+            .where('id', '=', existing.id)
+            .execute();
+        }
+      }
+    }
+
     const active = await this.db
       .selectFrom('offline_releases')
       .selectAll()
