@@ -38,6 +38,55 @@ export function SystemUpdatesSection() {
   const staticVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.14';
   const [currentVersion, setCurrentVersion] = useState<string>(staticVersion);
 
+  // Premium Upgrade Progress State
+  const [progressInfo, setProgressInfo] = useState<{
+    percent: number;
+    stepTitle: string;
+    stepDesc: string;
+  }>({
+    percent: 0,
+    stepTitle: '',
+    stepDesc: '',
+  });
+
+  const startProgressSequence = () => {
+    setProgressInfo({
+      percent: 20,
+      stepTitle: 'التحقق من كود التفعيل والحزمة...',
+      stepDesc: 'فحص التوقيع الرقمي ومطابقة الملفات لضمان أمان النظام',
+    });
+
+    const t1 = setTimeout(() => {
+      setProgressInfo({
+        percent: 45,
+        stepTitle: 'إنشاء نقطة استعادة احتياطية...',
+        stepDesc: 'حفظ نسخة أمان كاملة لقاعدة البيانات والملفات قبل الترقية',
+      });
+    }, 1000);
+
+    const t2 = setTimeout(() => {
+      setProgressInfo({
+        percent: 75,
+        stepTitle: 'فك الضغط واستبدال ملفات النظام...',
+        stepDesc: 'تطبيق التحديثات البرمجية وترقية واجهات المستخدم',
+      });
+    }, 2400);
+
+    const t3 = setTimeout(() => {
+      setProgressInfo({
+        percent: 92,
+        stepTitle: 'مزامنة الجداول وترقية التوافق...',
+        stepDesc: 'تجهيز قاعدة البيانات لبيئة العمل الجديدة',
+      });
+    }, 4000);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  };
+
   useEffect(() => {
     fetch(resolveRequestUrl('/api/updates/version'))
       .then(res => res.json())
@@ -59,6 +108,7 @@ export function SystemUpdatesSection() {
   const handleApplyLocalUpdate = async () => {
     if (!localUpdateState.file) return;
     setLocalUpdateState(s => ({ ...s, status: 'uploading' }));
+    const cancelProgress = startProgressSequence();
     
     const formData = new FormData();
     formData.append('file', localUpdateState.file);
@@ -84,8 +134,15 @@ export function SystemUpdatesSection() {
           throw err;
         }
       }
+      cancelProgress();
+      setProgressInfo({
+        percent: 100,
+        stepTitle: 'اكتمل التثبيت بنجاح!',
+        stepDesc: 'جاري تشغيل المنظومة تلقائياً بالإصدار الجديد خلال ثوانٍ...',
+      });
       setLocalUpdateState(s => ({ ...s, status: 'success' }));
     } catch (e: any) {
+      cancelProgress();
       setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));
     }
   };
@@ -107,6 +164,7 @@ export function SystemUpdatesSection() {
     setUpdateCheckResult(null);
     setSelectedReleaseIndex(null);
     setLocalUpdateState({ open: true, file: null, passcode: '', status: 'uploading' });
+    const cancelProgress = startProgressSequence();
 
     try {
       await http('/api/local-updates/apply', {
@@ -114,8 +172,15 @@ export function SystemUpdatesSection() {
         body: JSON.stringify({ version, patchUrl, changelog, passcode: passcode || onlineUpdatePasscode }),
         timeoutMs: 5 * 60 * 1000,
       });
+      cancelProgress();
+      setProgressInfo({
+        percent: 100,
+        stepTitle: 'اكتمل التثبيت بنجاح!',
+        stepDesc: 'جاري تشغيل المنظومة تلقائياً بالإصدار الجديد خلال ثوانٍ...',
+      });
       setLocalUpdateState(s => ({ ...s, status: 'success' }));
     } catch (e: any) {
+      cancelProgress();
       setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));
     }
   };
@@ -699,11 +764,107 @@ export function SystemUpdatesSection() {
                   </div>
                 </>
               )}
-              {localUpdateState.status === 'uploading' && (
-                <div style={{ padding: '30px 0' }}>
-                  <div style={{ width: '44px', height: '44px', border: '3px solid #e2e8f0', borderTopColor: '#0f172a', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 14px' }} />
-                  <div style={{ fontWeight: 800, fontSize: '15px', color: '#0f172a', marginBottom: 6 }}>جاري فك الحزمة وتطبيق التحديث وإعادة تشغيل النظام...</div>
-                  <div className="muted small" style={{ color: '#d97706' }}>برجاء الانتظار بضع ثوانٍ وعدم إغلاق النافذة...</div>
+              {(localUpdateState.status === 'uploading' || localUpdateState.status === 'success') && (
+                <div style={{
+                  padding: '36px 20px',
+                  background: 'linear-gradient(145deg, #170c5c 0%, #0d0638 100%)',
+                  borderRadius: '16px',
+                  color: '#ffffff',
+                  boxShadow: '0 20px 45px rgba(15, 6, 60, 0.45)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  textAlign: 'center',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Glowing ambient light */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-60px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '220px',
+                    height: '220px',
+                    background: 'radial-gradient(circle, rgba(124, 58, 237, 0.35) 0%, rgba(0,0,0,0) 70%)',
+                    pointerEvents: 'none'
+                  }} />
+
+                  {/* Pulsing Brand Icon */}
+                  <div style={{
+                    width: '68px',
+                    height: '68px',
+                    borderRadius: '20px',
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 18px',
+                    boxShadow: '0 0 30px rgba(99, 102, 241, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}>
+                    {localUpdateState.status === 'success' ? (
+                      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#ffffff" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#ffffff" strokeWidth="2" style={{ animation: 'spin 2s linear infinite' }}>
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                    )}
+                  </div>
+
+                  {/* Dynamic Phase Title */}
+                  <h3 style={{ margin: '0 0 6px', fontSize: '18px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.2px' }}>
+                    {progressInfo.stepTitle || 'جاري تطبيق الترقية البرمجية...'}
+                  </h3>
+
+                  {/* Phase Description */}
+                  <p style={{ margin: '0 0 22px', fontSize: '13px', color: '#c7d2fe', lineHeight: 1.5 }}>
+                    {progressInfo.stepDesc || 'يرجى الانتظار، يتم إعداد الملفات بدقة وأمان'}
+                  </p>
+
+                  {/* Progress Bar Container */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '999px',
+                    height: '10px',
+                    padding: '2px',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    marginBottom: '10px',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${progressInfo.percent}%`,
+                      height: '100%',
+                      borderRadius: '999px',
+                      background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+                      boxShadow: '0 0 16px rgba(139, 92, 246, 0.8)',
+                      transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }} />
+                  </div>
+
+                  {/* Percentage & Step Indicator */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#a5b4fc', fontWeight: 700, marginBottom: '20px' }}>
+                    <span>التقدم العام للترقية</span>
+                    <span style={{ fontSize: '14px', color: '#ffffff' }}>{progressInfo.percent}%</span>
+                  </div>
+
+                  {/* Security Reassurance Banner */}
+                  <div style={{
+                    padding: '10px 14px',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    fontSize: '12px',
+                    color: '#e0e7ff',
+                    lineHeight: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}>
+                    <span>يرجى الانتظار وعدم إغلاق البرنامج، سيتم تشغيل المنظومة تلقائياً.</span>
+                  </div>
                 </div>
               )}
               {localUpdateState.status === 'error' && (
@@ -716,15 +877,6 @@ export function SystemUpdatesSection() {
                   <div style={{ marginTop: 20 }}>
                     <Button variant="secondary" onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>إغلاق</Button>
                   </div>
-                </>
-              )}
-              {localUpdateState.status === 'success' && (
-                <>
-                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#dcfce7', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  </div>
-                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>تم تحديث النظام بنجاح!</h4>
-                  <p className="muted small" style={{ marginTop: 6 }}>يتم الآن إعادة تحميل الصفحة لتطبيق التغييرات الأخيرة...</p>
                 </>
               )}
             </div>
