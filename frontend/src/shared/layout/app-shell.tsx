@@ -254,7 +254,17 @@ export function AppShell({ children }: PropsWithChildren) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isSidebarSearchOpen]);
 
+  // Close search when collapsed
+  useEffect(() => {
+    if (isSidebarCollapsed && isSidebarSearchOpen) {
+      handleCloseSidebarSearch();
+    }
+  }, [isSidebarCollapsed, isSidebarSearchOpen]);
+
   const toggleSidebar = () => {
+    if (isSidebarSearchOpen) {
+      handleCloseSidebarSearch();
+    }
     setIsSidebarCollapsed((prev) => {
       const next = !prev;
       window.localStorage.setItem('zsystems_sidebar_collapsed', String(next));
@@ -574,6 +584,7 @@ export function AppShell({ children }: PropsWithChildren) {
         to={item.to} 
         end={item.end} 
         data-key={item.key} 
+        data-tooltip={isSidebarCollapsed ? item.label : undefined}
         style={toneStyle} 
         onAuxClick={(e) => {
           if (e.button === 1) e.preventDefault();
@@ -623,10 +634,12 @@ export function AppShell({ children }: PropsWithChildren) {
                 className="brand-logo" 
                 onClick={() => navigate('/')} 
                 style={{ cursor: 'pointer' }}
-                title="الانتقال إلى لوحة التحكم الرئيسية"
               >
-                <span className="z-mark">Z</span>
-                <span className="systems-mark">Systems</span>
+                <img 
+                  src="/brand/z-erp-approved-icon.png" 
+                  alt="Z-ERP" 
+                  className="brand-logo-img"
+                />
               </div>
             </div>
 
@@ -641,7 +654,8 @@ export function AppShell({ children }: PropsWithChildren) {
               <button 
                 type="button" 
                 className="sidebar-search-icon-btn" 
-                title={isSidebarSearchOpen ? 'بحث' : 'بحث سريع في القوائم والتابات'}
+                data-tooltip={isSidebarCollapsed ? "البحث السريع (Ctrl + K)" : undefined}
+                title={isSidebarSearchOpen ? 'بحث' : (isSidebarCollapsed ? undefined : 'بحث سريع في القوائم والتابات')}
                 onClick={(e) => {
                   if (!isSidebarSearchOpen) {
                     e.stopPropagation();
@@ -702,6 +716,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   <div 
                     className="sidebar-group-trigger" 
                     style={toneStyle}
+                    data-tooltip={isSidebarCollapsed ? group.label : undefined}
                     onClick={() => {
                       if (isSidebarCollapsed) toggleSidebar();
                     }}
@@ -733,13 +748,13 @@ export function AppShell({ children }: PropsWithChildren) {
               </div>
             </div>
             <div className="sidebar-footer-actions">
-              <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" title={t("sidebar.logout")}>
+              <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" data-tooltip={isSidebarCollapsed ? t("sidebar.logout") : undefined}>
                 <span className="btn-label">{t("sidebar.logout")}</span>
                 <span className="btn-icon">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 </span>
               </Button>
-              <button type="button" onClick={toggleSidebar} className="sidebar-toggle-btn" title={isSidebarCollapsed ? t("sidebar.expand_menu") : t("sidebar.collapse_menu")}>
+              <button type="button" onClick={toggleSidebar} className="sidebar-toggle-btn" data-tooltip={isSidebarCollapsed ? t("sidebar.expand_menu") : undefined}>
                 {isSidebarCollapsed ? (
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 ) : (

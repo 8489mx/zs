@@ -145,7 +145,7 @@ export class DatabaseMaintenanceService implements OnApplicationBootstrap {
       'suppliers',
       'customer_ledger',
       'supplier_ledger',
-      'stock_balances',
+      'location_products',
     ];
 
     let vacuumedCount = 0;
