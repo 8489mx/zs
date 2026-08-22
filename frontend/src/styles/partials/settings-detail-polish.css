@@ -232,3 +232,14 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+@media (max-width: 900px) {
+  .system-update-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .system-update-hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
