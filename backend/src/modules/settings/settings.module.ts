@@ -23,6 +23,7 @@ import { OfflineReleasesService } from './services/offline-releases.service';
     SettingsImportController,
     OfflineReleasesAdminController,
     OfflineUpdatesPublicController,
+    OfflineUpdatesProtectedController,
   ],
   providers: [
     SettingsService,

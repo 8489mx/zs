@@ -67,11 +67,23 @@ export function SystemUpdatesSection() {
     }
 
     try {
-      await http('/api/local-updates/apply-local-zip', {
-        method: 'POST',
-        body: formData,
-        timeoutMs: 5 * 60 * 1000,
-      });
+      try {
+        await http('/api/local-updates/apply-local-zip', {
+          method: 'POST',
+          body: formData,
+          timeoutMs: 5 * 60 * 1000,
+        });
+      } catch (err: any) {
+        if (err.status === 404) {
+          await http('/api/updates/apply-local-zip', {
+            method: 'POST',
+            body: formData,
+            timeoutMs: 5 * 60 * 1000,
+          });
+        } else {
+          throw err;
+        }
+      }
       setLocalUpdateState(s => ({ ...s, status: 'success' }));
     } catch (e: any) {
       setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));

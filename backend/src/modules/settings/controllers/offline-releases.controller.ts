@@ -94,15 +94,7 @@ export class OfflineUpdatesProtectedController {
   @RequirePermissions('canManageSettings')
   @UseInterceptors(FileInterceptor('file'))
   async applyLocalZipUpdate(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 500 * 1024 * 1024 }), // 500MB
-          new FileTypeValidator({ fileType: /^(application\/zip|application\/x-zip-compressed)$/ }),
-        ],
-        fileIsRequired: true,
-      }),
-    ) file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File,
     @Body('passcode') passcode?: string,
   ) {
     return this.releasesService.applyLocalZipUpdate(file, passcode);
