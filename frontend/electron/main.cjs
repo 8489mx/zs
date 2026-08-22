@@ -79,6 +79,7 @@ const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    backgroundColor: '#0d1322',
     icon: path.join(__dirname, '../public/logo_cropped.png'),
     autoHideMenuBar: true,
     webPreferences: {
@@ -165,28 +166,8 @@ app.whenReady().then(async () => {
     console.error('[ELECTRON] Failed to clear cache:', err);
   }
 
-  // Show Splash Screen Immediately
-  const splash = new BrowserWindow({
-    width: 400,
-    height: 300,
-    transparent: true,
-    frame: false,
-    alwaysOnTop: true,
-    icon: path.join(__dirname, '../public/logo_cropped.png'),
-    webPreferences: { nodeIntegration: false, contextIsolation: true }
-  });
-  splash.loadFile(path.join(__dirname, 'splash.html'));
-  splash.center();
-
-  // Show main window with loading page immediately (user sees progress)
+  // Show main window with loading page immediately (user sees progress smoothly)
   createWindow();
-
-  // Close splash shortly after main window is visible
-  setTimeout(() => {
-    if (splash && !splash.isDestroyed()) {
-      splash.close();
-    }
-  }, 800);
 
   // Start the bundled Postgres Server
   const PostgresManager = require('./postgres-manager.cjs');
