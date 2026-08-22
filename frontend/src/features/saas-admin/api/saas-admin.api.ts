@@ -122,4 +122,7 @@ export const saasAdminApi = {
   recordPayment: (id: string, payload: RecordPaymentPayload) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/payment`, { method: 'POST', body: JSON.stringify(payload) }),
   getTenantById: (id: string) => http<{ tenant: SaasTenantRow }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}`),
   getTenantTimeline: (id: string) => http<{ events: TenantTimelineEvent[] }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/timeline`),
+  impersonateTenant: (id: string) => http<{ ok: boolean; originalSessionId: string; loginPayload: Record<string, unknown> }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/impersonate`, { method: 'POST' }),
+  exitImpersonation: (originalSessionId: string) => http<{ ok: boolean; loginPayload: Record<string, unknown> }>('/api/saas-admin/exit-impersonation', { method: 'POST', body: JSON.stringify({ originalSessionId }) }),
 };
+

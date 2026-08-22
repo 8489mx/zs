@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, UpdateSaasPlanDto, RecordPaymentDto, UpdateTenantPlanDto } from './dto/saas-admin.dto';
@@ -104,5 +105,37 @@ export class SaasAdminController {
   @Post('tenants/:id/plan')
   updateTenantPlan(@Param('id') id: string, @Body() body: UpdateTenantPlanDto, @Req() req: RequestWithAuth) {
     return this.service.updateTenantPlan(id, body, req.authContext!);
+  }
+
+  @Post('tenants/:id/impersonate')
+  async impersonateTenant(
+    @Param('id') id: string,
+    @Req() req: RequestWithAuth,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.service.impersonateTenant(id, req.authContext!, {
+      ipAddress: req.ip,
+      userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : '',
+    });
+    this.service.setAuthCookies(res, result.sessionId, result.expiresAt);
+    return {
+      ok: true,
+      originalSessionId: result.originalSessionId,
+      loginPayload: await this.service.buildLoginPayload(result.auth),
+    };
+  }
+
+  @Post('exit-impersonation')
+  async exitImpersonation(
+    @Body() body: { originalSessionId?: string },
+    @Req() req: RequestWithAuth,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.service.exitImpersonation(body?.originalSessionId, req.authContext!);
+    this.service.setAuthCookies(res, result.sessionId, result.expiresAt);
+    return {
+      ok: true,
+      loginPayload: await this.service.buildLoginPayload(result.auth),
+    };
   }
 }

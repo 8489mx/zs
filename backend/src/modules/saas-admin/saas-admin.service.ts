@@ -1,11 +1,14 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
+import type { Response } from 'express';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { AuditService } from '../../core/audit/audit.service';
+import { SessionService } from '../../core/auth/services/session.service';
+import { createCsrfToken } from '../../core/auth/utils/csrf-token';
 import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, RecordPaymentDto, UpdateSaasPlanDto } from './dto/saas-admin.dto';
 import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
@@ -19,6 +22,7 @@ export class SaasAdminService {
     private readonly audit: AuditService,
     private readonly provisioning: TrialTenantProvisioningService,
     private readonly configService: ConfigService,
+    private readonly sessionService: SessionService,
   ) {}
 
   private assertPlatformAccess(auth: AuthContext): void {
@@ -841,4 +845,140 @@ export class SaasAdminService {
 
     return { ok: true };
   }
+
+  private sharedCookieDomain(): string | undefined {
+    const domain = this.configService.get<string>('SESSION_COOKIE_DOMAIN')?.trim();
+    return domain || undefined;
+  }
+
+  private cookieOptions(expiresAt?: Date) {
+    return {
+      httpOnly: true,
+      sameSite: this.configService.get<'lax' | 'strict' | 'none'>('SESSION_COOKIE_SAME_SITE') ?? 'lax',
+      secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
+      expires: expiresAt,
+      path: '/',
+      ...(this.sharedCookieDomain() ? { domain: this.sharedCookieDomain() } : {}),
+    };
+  }
+
+  private csrfCookieOptions(expiresAt?: Date) {
+    return {
+      httpOnly: false,
+      sameSite: this.configService.get<'lax' | 'strict' | 'none'>('SESSION_COOKIE_SAME_SITE') ?? 'lax',
+      secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
+      expires: expiresAt,
+      path: '/',
+      ...(this.sharedCookieDomain() ? { domain: this.sharedCookieDomain() } : {}),
+    };
+  }
+
+  private getSessionCookieName(): string {
+    return this.configService.get<string>('SESSION_COOKIE_NAME')?.trim() || 'session_id';
+  }
+
+  private getCsrfCookieName(): string {
+    return this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token';
+  }
+
+  setAuthCookies(res: Response, sessionId: string, expiresAt: Date): void {
+    const csrfSecret = this.configService.get<string>('SESSION_CSRF_SECRET') || '';
+    const csrfToken = createCsrfToken(sessionId, csrfSecret);
+    res.cookie(this.getSessionCookieName(), sessionId, this.cookieOptions(expiresAt));
+    res.cookie(this.getCsrfCookieName(), csrfToken, this.csrfCookieOptions(expiresAt));
+  }
+
+  async impersonateTenant(
+    tenantId: string,
+    auth: AuthContext,
+    meta?: { ipAddress?: string; userAgent?: string },
+  ): Promise<{ sessionId: string; expiresAt: Date; auth: AuthContext; originalSessionId: string }> {
+    this.assertPlatformAccess(auth);
+    const tenant = await this.getTenantForMutation(tenantId);
+    this.assertNotPlatformTenantTarget(tenant.id);
+
+    if (tenant.status === 'suspended') {
+      throw new BadRequestException('لا يمكن الدخول لنسخة موقوفة. قم بتفعيل النسخة أولاً.');
+    }
+
+    const owner = await this.getOwnerUserForTenant(tenant.id);
+    const sessionId = randomUUID();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await this.db
+      .insertInto('sessions')
+      .values({
+        id: sessionId,
+        user_id: owner.id,
+        tenant_id: tenant.id,
+        account_id: tenant.id,
+        expires_at: expiresAt,
+        last_seen_at: now,
+        ip_address: meta?.ipAddress?.slice(0, 255) || '',
+        user_agent: meta?.userAgent?.slice(0, 500) || '',
+      })
+      .execute();
+
+    await this.audit.log(
+      'تصفح نسخة كمالك',
+      `قام مسؤول المنصة (${auth.username}) ببدء جلسة تصفح كمالك للنسخة: ${tenant.slug} (${tenant.id})`,
+      auth,
+      { targetTenantId: tenant.id },
+    );
+
+    const impersonatedAuth = await this.sessionService.resolveAuthContext(sessionId);
+    if (!impersonatedAuth) {
+      throw new BadRequestException('تعذر إنشاء جلسة التصفح للنسخة.');
+    }
+
+    return {
+      sessionId,
+      expiresAt,
+      auth: impersonatedAuth,
+      originalSessionId: auth.sessionId,
+    };
+  }
+
+  async exitImpersonation(
+    originalSessionId: string | undefined,
+    currentAuth: AuthContext,
+  ): Promise<{ sessionId: string; expiresAt: Date; auth: AuthContext }> {
+    if (!originalSessionId || !originalSessionId.trim()) {
+      throw new BadRequestException('معرف الجلسة الأصلية غير متوفر.');
+    }
+
+    const normalizedOriginalSessionId = originalSessionId.trim();
+    const originalAuth = await this.sessionService.resolveAuthContext(normalizedOriginalSessionId);
+    if (!originalAuth) {
+      throw new ForbiddenException('جلسة مسؤول المنصة الأصلية غير صالحة أو منتهية. يرجى تسجيل الدخول مجدداً.');
+    }
+
+    this.assertPlatformAccess(originalAuth);
+
+    // Clean up current temporary impersonation session if distinct
+    if (currentAuth.sessionId && currentAuth.sessionId !== normalizedOriginalSessionId) {
+      await this.db.deleteFrom('sessions').where('id', '=', currentAuth.sessionId).execute();
+    }
+
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    await this.audit.log(
+      'إنهاء تصفح نسخة',
+      `تم إنهاء جلسة تصفح النسخة والعودة للوحة تحكم المنصة بواسطة (${originalAuth.username})`,
+      originalAuth,
+      { targetTenantId: originalAuth.tenantId },
+    );
+
+    return {
+      sessionId: normalizedOriginalSessionId,
+      expiresAt,
+      auth: originalAuth,
+    };
+  }
+
+  async buildLoginPayload(auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.sessionService.buildLoginPayload(auth);
+  }
 }
+

@@ -31,5 +31,10 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(payload)
     });
+  },
+  dismissPasswordChange() {
+    return http<{ ok: boolean }>('/api/auth/dismiss-password-change', {
+      method: 'POST'
+    });
   }
 };

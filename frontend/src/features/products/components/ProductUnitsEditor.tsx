@@ -194,7 +194,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                         disabled={disabled}
                         onChange={() => setExclusive(index, 'isBaseUnit')}
                       />
-                      <span>📦 أساسية (المخزون)</span>
+                      <span>أساسية (المخزون)</span>
                     </label>
                     <label className={`product-unit-chip-btn ${unit.isSaleUnit ? 'active' : ''}`} title="الوحدة الافتراضية للبيع في شاشة الكاشير">
                       <input
@@ -204,7 +204,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                         disabled={disabled}
                         onChange={() => setExclusive(index, 'isSaleUnit')}
                       />
-                      <span>🛒 بيع (الكاشير)</span>
+                      <span>بيع (الكاشير)</span>
                     </label>
                     <label className={`product-unit-chip-btn ${unit.isPurchaseUnit ? 'active' : ''}`} title="الوحدة الافتراضية في فواتير الشراء">
                       <input
@@ -214,7 +214,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                         disabled={disabled}
                         onChange={() => setExclusive(index, 'isPurchaseUnit')}
                       />
-                      <span>🚚 شراء (المورد)</span>
+                      <span>شراء (المورد)</span>
                     </label>
                   </>
                 )}

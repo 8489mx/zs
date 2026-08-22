@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 import { ApiError } from '@/lib/http';
 import { isPlatformAdmin } from '@/app/router/access';
+import { resetAuthenticatedClient } from '@/lib/query-client-session';
 import { saasAdminApi, SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
 import { UpdateTenantPlanModal } from '../components/UpdateTenantPlanModal';
 import { TenantDetailsModal } from '../components/TenantDetailsModal';
@@ -254,6 +255,20 @@ export function SaasTenantsPage() {
     onError: (error) => setFeedback(getFriendlyApiErrorMessage(error, 'تعذر إنشاء النسخة التجريبية.')),
   });
 
+  const clearSession = useAuthStore((state) => state.clearSession);
+
+  const impersonateMutation = useMutation({
+    mutationFn: (tenantId: string) => saasAdminApi.impersonateTenant(tenantId),
+    onSuccess: async (res) => {
+      if (res?.originalSessionId) {
+        window.localStorage.setItem('zs.impersonationOriginalSession', res.originalSessionId);
+      }
+      await resetAuthenticatedClient(queryClient, clearSession);
+      window.location.href = '/';
+    },
+    onError: (error) => setFeedback(getFriendlyApiErrorMessage(error, 'تعذر الدخول كمالك للنسخة.')),
+  });
+
   if (!canAccess) return <Navigate to="/" replace />;
 
   return (
@@ -395,6 +410,25 @@ export function SaasTenantsPage() {
                   }
                   return (
                     <div className="actions compact-actions">
+                      <button
+                        type="button"
+                        className="button"
+                        style={{
+                          background: 'linear-gradient(135deg, #3730a3 0%, #4338ca 100%)',
+                          color: '#ffffff',
+                          border: '1px solid #6366f1',
+                          fontWeight: 700,
+                        }}
+                        onClick={() => {
+                          if (window.confirm(`هل تريد تسجيل الدخول وتصفح نسخة (${row.businessName || row.slug}) كمالك؟`)) {
+                            impersonateMutation.mutate(row.id);
+                          }
+                        }}
+                        disabled={impersonateMutation.isPending}
+                        title="تسجيل الدخول كمالك وتصفح النسخة"
+                      >
+                        {impersonateMutation.isPending ? 'جاري الدخول...' : 'تصفح النسخة ↗'}
+                      </button>
                       <button type="button" className="button button-secondary" onClick={() => setUpgradeTenant({ id: row.id })}>تفعيل / ترقية</button>
                       <button type="button" className="button button-secondary" onClick={() => setUpdatePlanTenant(row)}>تعديل الباقة والميزات</button>
                       <button type="button" className="button button-secondary" onClick={() => setRenewTenant({ id: row.id })}>تجديد الاشتراك</button>

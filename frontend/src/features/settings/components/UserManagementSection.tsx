@@ -170,16 +170,18 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         <DialogShell
           open={isEditorOpen}
           onClose={() => setIsEditorOpen(false)}
-          width="min(840px, 95vw)"
+          width="min(940px, 95vw)"
           ariaLabel="تعديل المستخدم والصلاحيات"
           showCloseButton={true}
         >
-          <div className="dialog-card">
-            <div className="border-b pb-3 mb-4">
-              <h3 className="document-prototype-section-title">
+          <div className="dialog-card" style={{ padding: '24px 28px' }}>
+            <div className="border-b pb-3 mb-4" style={{ paddingInlineEnd: '36px' }}>
+              <h3 className="document-prototype-section-title" style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
                 {draft.id ? `تعديل المستخدم: ${draft.name || draft.username}` : 'إضافة مستخدم جديد'}
               </h3>
-              <p className="text-muted-foreground">تحديد الدور، الفروع المتاحة، ومجموعات الصلاحيات التفصيلية.</p>
+              <p className="text-muted-foreground" style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', margin: 0 }}>
+                تحديد الدور، الفروع المتاحة، ومجموعات الصلاحيات التفصيلية.
+              </p>
             </div>
             <UserManagementEditorPanel
               branches={branches}

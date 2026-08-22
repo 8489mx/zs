@@ -2,21 +2,23 @@ import { USER_PERMISSION_GROUPS, getPermissionLabel } from '@/features/settings/
 
 const optionStyle: React.CSSProperties = {
   cursor: 'pointer',
-  display: 'grid',
-  gridTemplateColumns: 'auto 1fr',
+  display: 'flex',
   alignItems: 'center',
-  gap: 12,
-  padding: '12px 14px',
-  border: '1px solid #dbe4f0',
-  borderRadius: 8,
-  background: '#fff',
+  gap: '10px',
+  padding: '8px 12px',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  background: '#ffffff',
+  transition: 'all 0.15s ease',
 };
 
 const checkboxStyle: React.CSSProperties = {
-  width: 18,
-  height: 18,
+  width: 16,
+  height: 16,
   margin: 0,
-  accentColor: '#170c5c',
+  accentColor: '#0f172a',
+  cursor: 'pointer',
+  flexShrink: 0,
 };
 
 export function UserManagementBranchAccess({
@@ -29,15 +31,15 @@ export function UserManagementBranchAccess({
   onToggleBranch: (branchId: string) => void;
 }) {
   return (
-    <div className="field">
-      <span>الفروع المسموح بها</span>
-      <div className="two-column-grid" style={{ gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>الفروع المسموح بها للمستخدم</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
         {branches.length ? branches.map((branch) => (
-          <label key={branch.id} style={optionStyle}>
+          <label key={branch.id} style={{ ...optionStyle, background: selectedBranchIds.includes(branch.id) ? '#f8fafc' : '#ffffff' }}>
             <input type="checkbox" style={checkboxStyle} checked={selectedBranchIds.includes(branch.id)} onChange={() => onToggleBranch(branch.id)} />
-            <span style={{ fontWeight: 700 }}>{branch.name}</span>
+            <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{branch.name}</span>
           </label>
-        )) : <div className="muted">أضف فرعًا أولًا من أعلى الإعدادات.</div>}
+        )) : <div className="muted small">أضف فرعًا أولًا من أعلى الإعدادات.</div>}
       </div>
     </div>
   );
@@ -53,32 +55,44 @@ export function UserManagementPermissionGroups({
   onTogglePermission: (permission: string) => void;
 }) {
   return (
-    <div className="field">
-      <span>الصلاحيات</span>
-      <div className="page-stack">
-        {USER_PERMISSION_GROUPS.map((group) => (
-          <div key={group.title} className="card-surface" style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-            <strong style={{ display: 'block', marginBottom: 12, fontSize: 18 }}>{group.title}</strong>
-            <div className="two-column-grid" style={{ gap: 10 }}>
-              {group.items.map((permission) => (
-                <label key={permission} style={optionStyle}>
-                  <input
-                    type="checkbox"
-                    style={checkboxStyle}
-                    checked={permissions.includes(permission)}
-                    onChange={() => onTogglePermission(permission)}
-                    disabled={role === 'super_admin'}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontWeight: 700 }}>{getPermissionLabel(permission)}</span>
-                    <span className="muted small">{permission}</span>
-                  </div>
-                </label>
-              ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>مجموعات الصلاحيات التفصيلية</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {USER_PERMISSION_GROUPS.map((group) => {
+          const activeInGroup = group.items.filter((p) => permissions.includes(p)).length;
+          return (
+            <div key={group.title} style={{ padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fafbfc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <strong style={{ fontSize: '0.86rem', color: '#0f172a', fontWeight: 800 }}>{group.title}</strong>
+                <span style={{ fontSize: '0.72rem', background: activeInGroup > 0 ? '#dcfce7' : '#f1f5f9', color: activeInGroup > 0 ? '#166534' : '#64748b', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
+                  {activeInGroup} / {group.items.length} مفعّل
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                {group.items.map((permission) => {
+                  const isChecked = permissions.includes(permission);
+                  return (
+                    <label key={permission} style={{ ...optionStyle, background: isChecked ? '#f0fdf4' : '#ffffff', borderColor: isChecked ? '#bbf7d0' : '#e2e8f0' }}>
+                      <input
+                        type="checkbox"
+                        style={checkboxStyle}
+                        checked={isChecked}
+                        onChange={() => onTogglePermission(permission)}
+                        disabled={role === 'super_admin'}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>{getPermissionLabel(permission)}</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{permission}</span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
+

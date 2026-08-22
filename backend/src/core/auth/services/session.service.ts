@@ -309,6 +309,11 @@ export class SessionService {
     await this.db.updateTable('users').set({ password_hash: nextPassword.hash, password_salt: nextPassword.salt, must_change_password: false, failed_login_count: 0, locked_until: null }).where('id', '=', auth.userId).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
   }
 
+  async dismissPasswordChange(auth: AuthContext): Promise<void> {
+    const { tenantId } = this.scope(auth);
+    await this.db.updateTable('users').set({ must_change_password: false }).where('id', '=', auth.userId).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
+  }
+
   async buildMePayload(auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = this.scope(auth);
     const profile = await this.getSessionUserProfile(auth);

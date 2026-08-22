@@ -5,9 +5,11 @@ export const DEFAULT_ADMIN_PERMS = [
   'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','canManageBranchStock','cashDrawer','deliveryReps'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','hr','hrEmployees','hrAttendance','settings','pricingCenterView','pricingCenterManage','cashDrawer','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageBranchStock','canManageSettings','deliveryReps'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','settings','pricingCenterView','pricingCenterManage','cashDrawer','deliveryReps','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageBranchStock','canManageSettings'
 ];
-export const DEFAULT_CASHIER_PERMS = ['sales', 'cashDrawer', 'customers', 'returns', 'hr', 'hrAttendance', 'deliveryReps', 'accounts', 'purchases', 'suppliers', 'products', 'canPrint'];
+export const DEFAULT_CASHIER_PERMS = [
+  'sales', 'cashDrawer', 'customers', 'suppliers', 'accounts', 'purchases', 'products', 'returns', 'deliveryReps', 'hr', 'hrAttendance', 'canPrint'
+];
 
 export const PERMISSION_LABELS: Record<string, string> = {
   dashboard: 'الشاشة الرئيسية',

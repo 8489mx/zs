@@ -194,6 +194,16 @@ export class SessionsController {
     return { ok: true, removedOtherSessions: removed };
   }
 
+  @Post('dismiss-password-change')
+  @UseGuards(SessionAuthGuard)
+  async dismissPasswordChange(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    if (req.authContext) {
+      await this.sessionService.dismissPasswordChange(req.authContext);
+      await this.auditService.log('تخطي تغيير كلمة المرور', `المستخدم ${req.authContext.username} اختار المتابعة بكلمة المرور الحالية`, req.authContext);
+    }
+    return { ok: true };
+  }
+
   @Get('me')
   @UseGuards(SessionAuthGuard)
   me(

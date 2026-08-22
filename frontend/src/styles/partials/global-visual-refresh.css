@@ -194,14 +194,17 @@ th {
 }
 
 .content-wrap {
-  width: calc(100vw - 268px);
-  max-width: calc(100vw - 268px);
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   padding: 14px var(--content-gutter) 18px;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .app-layout.sidebar-collapsed .content-wrap {
-  width: calc(100vw - 80px);
-  max-width: calc(100vw - 80px);
+  width: 100%;
+  max-width: 100%;
 }
 
 .app-layout.app-layout-pos-focus .content-wrap.content-wrap-pos-focus {
@@ -282,8 +285,8 @@ th {
   }
 
   .content-wrap {
-    width: calc(100vw - 232px);
-    max-width: calc(100vw - 232px);
+    width: 100%;
+    max-width: 100%;
   }
 
   .app-layout.app-layout-pos-focus .content-wrap.content-wrap-pos-focus {

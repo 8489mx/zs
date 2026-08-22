@@ -2,7 +2,7 @@ import { blankUserDraft, normalizeUserRecord, USER_ROLE_TEMPLATES } from '@/feat
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 
 export function applyRolePermissions(role: 'super_admin' | 'admin' | 'cashier') {
-  return role === 'super_admin' ? blankUserDraft('super_admin').permissions : role === 'admin' ? [] : blankUserDraft('cashier').permissions;
+  return [...blankUserDraft(role).permissions];
 }
 
 export function buildTemplateDraft(current: ManagedUserRecord, templateKey: keyof typeof USER_ROLE_TEMPLATES) {

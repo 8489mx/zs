@@ -1,9 +1,30 @@
-import { Field } from '@/shared/ui/field';
 import type { Branch } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { PASSWORD_MIN_LENGTH_HINT } from '@/config/security';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { formatDateTime } from '@/features/settings/components/user-management.shared';
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  height: '38px',
+  minHeight: '38px',
+  padding: '0 12px',
+  fontSize: '0.86rem',
+  fontWeight: 600,
+  color: '#0f172a',
+  background: '#ffffff',
+  border: '1px solid #cbd5e1',
+  borderRadius: '8px',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '0.78rem',
+  fontWeight: 700,
+  color: '#334155',
+  marginBottom: '4px',
+};
 
 export function UserManagementEditorCard({
   branches,
@@ -33,51 +54,177 @@ export function UserManagementEditorCard({
         : '';
 
   return (
-    <>
-      <div className="card-surface" style={{ padding: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}>
-        <div className="muted small">المستخدم المحدد</div>
-        <strong>{draft.name || draft.username || 'مستخدم جديد'}</strong>
-        <div className="muted small" style={{ marginTop: 6 }}>
-          {draft.id ? `آخر دخول: ${formatDateTime(draft.lastLoginAt)}` : 'مستخدم جديد'}
-          {isCurrentUserSelected ? ' · هذا هو المستخدم الحالي.' : ''}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Sleek Identity Strip */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 16px',
+        background: '#f8fafc',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0',
+        flexWrap: 'wrap',
+        gap: '8px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '6px',
+            background: '#0f172a',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+          }}>
+            {(draft.name || draft.username || 'U')[0].toUpperCase()}
+          </div>
+          <div>
+            <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>
+              {draft.name || draft.username || 'مستخدم جديد'}
+            </strong>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              {draft.id ? `آخر دخول: ${formatDateTime(draft.lastLoginAt)}` : 'جاري إنشاء حساب جديد'}
+              {isCurrentUserSelected ? ' · (حسابك الحالي)' : ''}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            fontSize: '0.74rem',
+            fontWeight: 700,
+            padding: '3px 10px',
+            borderRadius: '12px',
+            background: draft.isActive !== false ? '#dcfce7' : '#fee2e2',
+            color: draft.isActive !== false ? '#166534' : '#991b1b',
+            border: `1px solid ${draft.isActive !== false ? '#bbf7d0' : '#fecaca'}`,
+          }}>
+            {draft.isActive !== false ? 'نشط ومفعّل' : 'حساب موقوف'}
+          </span>
         </div>
       </div>
 
-      <div className="form-grid">
-        <Field label="اسم المستخدم"><input value={draft.username} onChange={(e) => onDraftChange((current) => ({ ...current, username: e.target.value }))} /></Field>
-        <Field label="الاسم المعروض"><input value={draft.name} onChange={(e) => onDraftChange((current) => ({ ...current, name: e.target.value }))} /></Field>
-        <Field label="مستوى النظام الأساسي (Role)">
-          <select value={draft.role} onChange={(e) => onApplyRolePermissions(e.target.value === 'super_admin' ? 'super_admin' : e.target.value === 'admin' ? 'admin' : 'cashier')} disabled={currentUserRole !== 'super_admin' || draft.role === 'super_admin'}>
+      {/* Main 3-Column Compact Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+        <div>
+          <label style={labelStyle}>اسم المستخدم (Login ID)</label>
+          <input
+            style={inputStyle}
+            value={draft.username}
+            onChange={(e) => onDraftChange((current) => ({ ...current, username: e.target.value }))}
+            placeholder="مثال: ahmed_pos"
+          />
+        </div>
+
+        <div>
+          <label style={labelStyle}>الاسم المعروض (Display Name)</label>
+          <input
+            style={inputStyle}
+            value={draft.name}
+            onChange={(e) => onDraftChange((current) => ({ ...current, name: e.target.value }))}
+            placeholder="مثال: أحمد محمد (كاشير)"
+          />
+        </div>
+
+        <div>
+          <label style={labelStyle}>مستوى النظام الأساسي (Role)</label>
+          <select
+            style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '28px' }}
+            value={draft.role}
+            onChange={(e) => onApplyRolePermissions(e.target.value === 'super_admin' ? 'super_admin' : e.target.value === 'admin' ? 'admin' : 'cashier')}
+            disabled={currentUserRole !== 'super_admin' || draft.role === 'super_admin'}
+          >
             <option value="cashier">كاشير (مستخدم عادي)</option>
             <option value="admin">مدير نظام (مشرف)</option>
             {currentUserRole === 'super_admin' ? <option value="super_admin">سوبر ادمن (صلاحيات كاملة)</option> : null}
           </select>
-        </Field>
-        <div className="muted small" style={{ gridColumn: '1 / -1', marginTop: -6 }}>استخدم قوالب الصلاحيات (محاسب، مدير مخزن، إلخ) لتخصيص الصلاحيات الدقيقة.</div>
-        <Field label="كلمة المرور الجديدة / الأولى"><input type="text" className="secure-password-field" value={draft.password || ''} onChange={(e) => onDraftChange((current) => ({ ...current, password: e.target.value }))} placeholder={draft.id ? 'اتركها فارغة إن لم ترد التغيير' : 'مطلوبة للمستخدم الجديد'} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" autoCorrect="off" autoCapitalize="off" spellCheck={false} /></Field>
-        <div className="muted small" style={{ gridColumn: '1 / -1', marginTop: -6 }}>{PASSWORD_MIN_LENGTH_HINT}</div>
-        {!SINGLE_STORE_MODE ? <Field label="الفرع الافتراضي">
-          <select value={draft.defaultBranchId} onChange={(e) => onDraftChange((current) => ({ ...current, defaultBranchId: e.target.value }))}>
-            <option value="">بدون افتراضي</option>
-            {branches.filter((branch) => draft.branchIds.includes(branch.id)).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-          </select>
-        </Field> : null}
-        <div className="field">
-          <span>الحالة</span>
-          <div className="actions compact-actions">
-            <label>
+        </div>
+
+        <div>
+          <label style={labelStyle}>كلمة المرور الجديدة / الأولى</label>
+          <input
+            type="text"
+            style={inputStyle}
+            value={draft.password || ''}
+            onChange={(e) => onDraftChange((current) => ({ ...current, password: e.target.value }))}
+            placeholder={draft.id ? 'اتركها فارغة إن لم ترد التغيير' : 'مطلوبة للمستخدم الجديد'}
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+          <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px', display: 'block' }}>
+            {PASSWORD_MIN_LENGTH_HINT}
+          </span>
+        </div>
+
+        {!SINGLE_STORE_MODE ? (
+          <div>
+            <label style={labelStyle}>الفرع الافتراضي</label>
+            <select
+              style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '28px' }}
+              value={draft.defaultBranchId}
+              onChange={(e) => onDraftChange((current) => ({ ...current, defaultBranchId: e.target.value }))}
+            >
+              <option value="">بدون افتراضي</option>
+              {branches.filter((branch) => draft.branchIds.includes(branch.id)).map((branch) => (
+                <option key={branch.id} value={branch.id}>{branch.name}</option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div />
+        )}
+
+        <div>
+          <label style={labelStyle}>حالة الحساب والأمان</label>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            height: '38px',
+            padding: '0 10px',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            boxSizing: 'border-box',
+          }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
               <input
                 type="checkbox"
                 checked={draft.isActive !== false}
                 disabled={!canDirectlyDisableSelected && draft.isActive !== false}
                 onChange={(e) => onDraftChange((current) => ({ ...current, isActive: e.target.checked }))}
-              /> نشط
+                style={{ accentColor: '#0f172a', width: '16px', height: '16px', margin: 0 }}
+              />
+              <span>نشط</span>
             </label>
-            <label><input type="checkbox" checked={draft.mustChangePassword === true} onChange={(e) => onDraftChange((current) => ({ ...current, mustChangePassword: e.target.checked }))} /> يجب تغيير كلمة المرور</label>
+
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>
+              <input
+                type="checkbox"
+                checked={draft.mustChangePassword === true}
+                onChange={(e) => onDraftChange((current) => ({ ...current, mustChangePassword: e.target.checked }))}
+                style={{ accentColor: '#0f172a', width: '16px', height: '16px', margin: 0 }}
+              />
+              <span>تغيير كلمة المرور</span>
+            </label>
           </div>
-          {!canDirectlyDisableSelected ? <div className="muted small">لا يمكن إيقاف هذا الحساب مباشرة: {disableReasonLabel}.</div> : null}
+          {!canDirectlyDisableSelected ? (
+            <span style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '2px', display: 'block' }}>
+              لا يمكن إيقافه: {disableReasonLabel}
+            </span>
+          ) : null}
         </div>
       </div>
-    </>
+    </div>
   );
 }
+

@@ -273,7 +273,6 @@ export function ProductCategoriesPage() {
                       alignItems: 'center',
                       gap: '4px',
                     }}>
-                      <span>📦</span>
                       <span>{count} صنف</span>
                     </span>
                   );
@@ -295,7 +294,7 @@ export function ProductCategoriesPage() {
                         title="تعديل الاسم"
                         style={{ padding: '6px 12px', fontSize: '12px' }}
                       >
-                        ✏️ تعديل
+                        تعديل
                       </Button>
                       
                       {hasProducts ? (
@@ -311,7 +310,7 @@ export function ProductCategoriesPage() {
                             title="نقل الأصناف لقسم آخر"
                             style={{ padding: '6px 12px', fontSize: '12px' }}
                           >
-                            ↔️ نقل الأصناف
+                            نقل الأصناف
                           </Button>
                           <Button 
                             variant="secondary" 
@@ -324,7 +323,7 @@ export function ProductCategoriesPage() {
                             title="نقل أرصدة القسم لمخزن آخر"
                             style={{ padding: '6px 12px', fontSize: '12px' }}
                           >
-                            🏢 نقل المخزن
+                            نقل المخزن
                           </Button>
                         </>
                       ) : (
@@ -334,7 +333,7 @@ export function ProductCategoriesPage() {
                           title="حذف القسم"
                           style={{ padding: '6px 12px', fontSize: '12px', color: '#dc2626', borderColor: '#fecaca', background: '#fff1f2' }}
                         >
-                          🗑️ حذف
+                          حذف
                         </Button>
                       )}
                     </div>

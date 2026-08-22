@@ -15,6 +15,7 @@ import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
 import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
+import { ImpersonationBanner } from '@/shared/system/impersonation-banner';
 import { DeveloperActivationPanel } from '@/shared/system/DeveloperActivationPanel';
 import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
 import {
@@ -759,6 +760,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {!isPosRoute && <GlobalAppToolbar />}
         <div className={`content-wrap ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
           <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
+            <ImpersonationBanner />
             <BootstrapAdminBanner />
             <TrialStatusBanner />
             <SystemStatusBanner />
