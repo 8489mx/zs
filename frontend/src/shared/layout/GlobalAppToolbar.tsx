@@ -56,10 +56,11 @@ export function GlobalAppToolbar() {
               onClick={() => navigate('/settings/system-updates')}
               title={`يتوفر تحديث جديد للمنظومة (v${updateInfo.latestVersion}) — اضغط للترقية`}
             >
-              <span className="system-update-pulse-dot" />
-              <span className="system-update-toolbar-label">تحديث جديد</span>
-              <span className="system-update-toolbar-sep">•</span>
-              <span className="system-update-toolbar-version">v{updateInfo.latestVersion}</span>
+              <svg className="system-update-sparkle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+              </svg>
+              <span className="system-update-toolbar-label">إصدار جديد متاح</span>
+              <span className="system-update-toolbar-version-badge">v{updateInfo.latestVersion}</span>
             </button>
           )}
           <div className="purchase-prototype-search-container" role="search">
