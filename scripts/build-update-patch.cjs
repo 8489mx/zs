@@ -14,7 +14,21 @@ async function main() {
       throw new Error('Could not read version from package.json');
     }
 
-    console.log(`[build-update-patch] Detected version: ${version}`);
+    console.log(`[build-update-patch] Target version: ${version}`);
+
+    // Update package.json files to target version so Vite and NestJS bake the correct version
+    const packagesToUpdate = [
+      path.join(rootDir, 'package.json'),
+      path.join(rootDir, 'frontend', 'package.json'),
+      path.join(rootDir, 'backend', 'package.json'),
+    ];
+    for (const p of packagesToUpdate) {
+      if (fs.existsSync(p)) {
+        const json = JSON.parse(fs.readFileSync(p, 'utf8'));
+        json.version = version;
+        fs.writeFileSync(p, JSON.stringify(json, null, 2) + '\n', 'utf8');
+      }
+    }
 
     // Build backend and frontend
     console.log('[build-update-patch] Building backend...');
