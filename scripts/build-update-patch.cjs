@@ -8,7 +8,7 @@ async function main() {
     const rootDir = path.join(__dirname, '..');
     const pkgPath = path.join(rootDir, 'package.json');
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    const version = pkg.version;
+    const version = process.argv[2] || pkg.version;
     
     if (!version) {
       throw new Error('Could not read version from package.json');

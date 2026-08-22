@@ -49,5 +49,44 @@
 @import './partials/product-form-compact.css';
 @import './partials/system-updates.css';
 
+/* ========================================================
+   GLOBAL AUTHORITY: PRIMARY BRAND COLOR (#170c5c)
+   ======================================================== */
+:root {
+  --primary: #170c5c !important;
+  --primary2: #10003b !important;
+  --primary-color: #170c5c !important;
+  --color-primary: #170c5c !important;
+  --z-erp-approved-logo: url('./brand/z-erp-approved-icon.png');
+}
+
+.btn-primary,
+.button-primary,
+button.btn-primary,
+.btn.btn-primary,
+.filter-chip-row .btn-primary,
+.filter-chip-row .button-primary,
+.filter-chip-row .btn.btn-primary,
+.settings-section-tabs .btn-primary,
+.settings-section-tabs .btn.btn-primary,
+.purchase-prototype-create-card .btn-primary,
+.purchase-prototype-create-confirm .btn-primary,
+.settings-page-shell .settings-core-form > .btn.btn-primary {
+  background: #170c5c !important;
+  border-color: #170c5c !important;
+  color: #ffffff !important;
+}
+
+.btn-primary:hover:not(:disabled),
+.button-primary:hover:not(:disabled),
+button.btn-primary:hover:not(:disabled),
+.btn.btn-primary:hover:not(:disabled),
+.filter-chip-row .btn-primary:hover:not(:disabled),
+.filter-chip-row .button-primary:hover:not(:disabled) {
+  background: #10003b !important;
+  border-color: #10003b !important;
+  color: #ffffff !important;
+}
+
 @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 @media print { .no-print { display: none !important; } }

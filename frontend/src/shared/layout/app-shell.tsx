@@ -636,9 +636,16 @@ export function AppShell({ children }: PropsWithChildren) {
                 style={{ cursor: 'pointer' }}
               >
                 <img 
-                  src="/brand/z-erp-approved-icon.png" 
+                  src="./brand/z-erp-approved-icon.png" 
                   alt="Z-ERP" 
                   className="brand-logo-img"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.dataset.failed) {
+                      img.dataset.failed = '1';
+                      img.src = '/brand/z-erp-approved-icon.png';
+                    }
+                  }}
                 />
               </div>
             </div>
