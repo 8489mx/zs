@@ -294,19 +294,32 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
 
       {clothingModuleEnabled && (
         <div className="surface-note" style={{ padding: 12 }}>
-          <div className="actions compact-actions" style={{ flexWrap: 'wrap' }}>
-            <div className="field" style={{ minWidth: 220 }}><label>نوع الصنف</label>
-              <select {...form.register('itemKind')} disabled={mutation.isPending}>
-                <option value="standard">صنف عادي</option>
-                <option value="fashion">موديل ملابس</option>
-              </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>نمط الصنف:</span>
+            <div className="actions compact-actions" style={{ margin: 0 }}>
+              <Button
+                type="button"
+                variant={!usesVariantBuilder ? 'primary' : 'secondary'}
+                onClick={() => {
+                  form.setValue('itemKind', 'standard');
+                  setGroupedEntryEnabled(false);
+                }}
+                disabled={mutation.isPending}
+              >
+                📦 صنف عادي (بسيط)
+              </Button>
+              <Button
+                type="button"
+                variant={usesVariantBuilder ? 'primary' : 'secondary'}
+                onClick={() => {
+                  form.setValue('itemKind', 'fashion');
+                  setGroupedEntryEnabled(true);
+                }}
+                disabled={mutation.isPending}
+              >
+                ⚡ صنف بمتغيرات (أحجام / روائح / مقاسات)
+              </Button>
             </div>
-            {watchedItemKind === 'standard' ? (
-              <>
-                <Button type="button" variant={!groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(false)} disabled={mutation.isPending}>صنف عادي (بسيط)</Button>
-                <Button type="button" variant={groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(true)} disabled={mutation.isPending}>صنف بمتغيرات (أنواع/أحجام)</Button>
-              </>
-            ) : null}
           </div>
         </div>
       )}
@@ -320,10 +333,10 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
             </select>
           </Field>
         ) : null}
-        <Field label={watchedItemKind === 'fashion' ? 'اسم الموديل الأساسي' : groupedEntryEnabled ? 'اسم الصنف الأساسي' : 'اسم الصنف'} error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} placeholder={watchedItemKind === 'fashion' ? 'مثال: تيشيرت بنجول' : groupedEntryEnabled ? 'مثال: مزيل عرق X' : undefined} /></Field>
+        <Field label={usesVariantBuilder ? 'اسم الصنف الأساسي' : 'اسم الصنف'} error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : undefined} /></Field>
 
         {usesVariantBuilder ? (
-          <Field label={watchedItemKind === 'fashion' ? 'كود الموديل' : 'كود المجموعة / الصنف الرئيسي'}>
+          <Field label="كود الصنف الأساسي / الموديل">
             <div className="inline-create-row">
               <input {...form.register('styleCode')} disabled={mutation.isPending || isGeneratingStyleCode} inputMode="numeric" placeholder="101" />
               <button type="button" className="btn btn-secondary" onClick={() => { void handleGenerateStyleCode(); }} disabled={mutation.isPending || isGeneratingStyleCode}>{isGeneratingStyleCode ? 'جارٍ التوليد...' : 'توليد كود'}</button>
@@ -333,8 +346,8 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
           <>
             <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
             {clothingModuleEnabled ? <Field label="كود المجموعة / الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} inputMode="numeric" placeholder="اختياري" /></Field> : null}
-            {clothingModuleEnabled ? <Field label="الخاصية الأولى"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
-            {clothingModuleEnabled ? <Field label="الخاصية الثانية"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+            {clothingModuleEnabled ? <Field label="الخاصية 1 (اللون / الرائحة)"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+            {clothingModuleEnabled ? <Field label="الخاصية 2 (المقاس / الحجم)"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
           </>
         )}
         

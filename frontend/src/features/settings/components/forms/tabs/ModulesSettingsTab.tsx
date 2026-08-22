@@ -78,10 +78,12 @@ function TableCustomerIcon({ size = 20 }: { size?: number }) {
   );
 }
 
-function ShirtIcon({ size = 20 }: { size?: number }) {
+function VariantsLayersIcon({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+      <path d="M12 2 2 7l10 5 10-5-10-5Z" />
+      <path d="m2 17 10 5 10-5" />
+      <path d="m2 12 10 5 10-5" />
     </svg>
   );
 }
@@ -402,12 +404,12 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
 
           <label style={premiumCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
-                <ShirtIcon size={20} />
+              <div style={{ ...iconBadgeStyle, color: '#2563eb' }}>
+                <VariantsLayersIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديل الملابس والمتغيرات</strong>
-                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل موديلات الملابس وشبكة المقاسات والألوان</small>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المتغيرات والأصناف المتعددة</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الأصناف ذات الخصائص المتعددة (مقاسات، ألوان، نكهات، أحجام، روائح...)</small>
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('clothingModuleEnabled')} disabled={disabled} />
@@ -681,10 +683,10 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         {clothingModuleEnabled ? (
           <div className="document-prototype-grid compact-grid-2" style={{ marginTop: 16 }}>
             <div className="field">
-              <label>الصنف الافتراضي عند الإضافة</label>
+              <label>النمط الافتراضي عند إضافة صنف</label>
               <select className="purchase-prototype-field-input" {...form.register('defaultProductKind')} disabled={disabled}>
-                <option value="standard">صنف عادي</option>
-                <option value="fashion">موديل ملابس</option>
+                <option value="standard">صنف عادي (بسيط بدون متغيرات)</option>
+                <option value="fashion">صنف بمتغيرات (أحجام / روائح / مقاسات)</option>
               </select>
             </div>
           </div>

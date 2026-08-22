@@ -663,19 +663,54 @@ export function NewProductForm({
           </div>
 
           {clothingModuleEnabled && (
-            <div className="actions compact-actions" style={{ flexWrap: 'wrap', marginBottom: '0.85rem' }}>
-              <div className="field" style={{ minWidth: 200, margin: 0 }}>
-                <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>
-                  <option value="standard">صنف عادي</option>
-                  <option value="fashion">موديل ملابس</option>
-                </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.85rem', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>نمط الصنف:</span>
+              <div style={{ display: 'inline-flex', gap: '4px', background: '#e2e8f0', padding: '3px', borderRadius: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    form.setValue('itemKind', 'standard', { shouldDirty: true });
+                    setGroupedEntryEnabled(false);
+                  }}
+                  disabled={isFormDisabled}
+                  style={{
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 12px',
+                    fontSize: '0.8rem',
+                    fontWeight: !usesVariantBuilder ? 800 : 600,
+                    background: !usesVariantBuilder ? '#ffffff' : 'transparent',
+                    color: !usesVariantBuilder ? '#0f172a' : '#64748b',
+                    cursor: 'pointer',
+                    boxShadow: !usesVariantBuilder ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  📦 صنف عادي (بسيط - باركود واحد)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    form.setValue('itemKind', 'fashion', { shouldDirty: true });
+                    setGroupedEntryEnabled(true);
+                  }}
+                  disabled={isFormDisabled}
+                  style={{
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 12px',
+                    fontSize: '0.8rem',
+                    fontWeight: usesVariantBuilder ? 800 : 600,
+                    background: usesVariantBuilder ? '#2563eb' : 'transparent',
+                    color: usesVariantBuilder ? '#ffffff' : '#64748b',
+                    cursor: 'pointer',
+                    boxShadow: usesVariantBuilder ? '0 1px 3px rgba(37,99,235,0.3)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ⚡ صنف بمتغيرات (أحجام / روائح / مقاسات)
+                </button>
               </div>
-              {watchedItemKind === 'standard' ? (
-                <>
-                  <Button type="button" variant={!groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(false)} disabled={isFormDisabled} style={{ minHeight: '34px', fontSize: '0.82rem' }}>صنف عادي (بسيط)</Button>
-                  <Button type="button" variant={groupedEntryEnabled ? 'primary' : 'secondary'} onClick={() => setGroupedEntryEnabled(true)} disabled={isFormDisabled} style={{ minHeight: '34px', fontSize: '0.82rem' }}>صنف بمتغيرات (أنواع/أحجام)</Button>
-                </>
-              ) : null}
             </div>
           )}
 
@@ -691,17 +726,17 @@ export function NewProductForm({
             </Field>
 
             <ProductNameField
-              label={watchedItemKind === 'fashion' ? 'اسم الموديل الأساسي' : groupedEntryEnabled ? 'اسم الصنف الأساسي' : 'اسم الصنف'}
+              label={usesVariantBuilder ? 'اسم الصنف الأساسي' : 'اسم الصنف'}
               value={watchedName || ''}
               onChange={(v) => form.setValue('name', v, { shouldDirty: true, shouldValidate: true })}
               allProducts={allProducts}
               disabled={isFormDisabled}
-              placeholder={watchedItemKind === 'fashion' ? 'مثال: تيشيرت بنجول' : groupedEntryEnabled ? 'مثال: مزيل عرق X' : 'اكتب اسم الصنف'}
+              placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}
               error={form.formState.errors.name?.message}
             />
 
             {usesVariantBuilder ? (
-              <Field label={watchedItemKind === 'fashion' ? 'كود الموديل' : 'كود المجموعة / الصنف الرئيسي'}>
+              <Field label="كود الصنف الأساسي / الموديل">
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input className="purchase-prototype-field-input" {...form.register('styleCode')} disabled={isFormDisabled || isGeneratingStyleCode} inputMode="numeric" placeholder="101" style={{ flex: 1 }} />
                   <Button type="button" variant="secondary" onClick={() => void handleGenerateStyleCode()} disabled={isFormDisabled || isGeneratingStyleCode}>{isGeneratingStyleCode ? '...' : 'توليد كود'}</Button>
@@ -713,8 +748,8 @@ export function NewProductForm({
                   <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
                 </Field>
                 {clothingModuleEnabled ? <Field label="كود المجموعة / الموديل"><input className="purchase-prototype-field-input" {...form.register('styleCode')} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري" /></Field> : null}
-                {clothingModuleEnabled ? <Field label="الخاصية الأولى"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
-                {clothingModuleEnabled ? <Field label="الخاصية الثانية"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
+                {clothingModuleEnabled ? <Field label="الخاصية 1 (اللون / الرائحة)"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
+                {clothingModuleEnabled ? <Field label="الخاصية 2 (المقاس / الحجم)"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
               </>
             )}
           </div>
