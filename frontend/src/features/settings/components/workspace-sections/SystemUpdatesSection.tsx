@@ -41,7 +41,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
   });
 
   // Update checker hooks
-  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt, isLoading: isCheckingUpdateInfo } = useOfflineUpdateCheck(effectiveDeploymentMode);
+  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt } = useOfflineUpdateCheck(effectiveDeploymentMode);
   
   const [updateCheckResult, setUpdateCheckResult] = useState<{ open: boolean; type: 'checking' | 'up-to-date' | 'error' | 'available'; data?: any } | null>(null);
   const [selectedReleaseIndex, setSelectedReleaseIndex] = useState<number | null>(null);
