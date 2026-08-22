@@ -102,8 +102,9 @@ async function bootstrap(): Promise<void> {
     .filter(Boolean);
 
   app.enableCors((req: any, callback: any) => {
+    const originHeader = req.headers?.origin;
     if (req.url && req.url.startsWith('/api/updates/') && req.method === 'GET') {
-      callback(null, { origin: '*', credentials: false });
+      callback(null, { origin: originHeader || true, credentials: true });
     } else {
       let allowedOrigins: (string | RegExp)[] = [...corsOrigins];
       const isLanServer = process.env.APP_MODE === 'SELF_CONTAINED' && process.env.ELECTRON_RUNTIME_MODE === 'lan_server';
