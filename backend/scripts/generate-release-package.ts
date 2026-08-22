@@ -41,31 +41,37 @@ function extractGitChangelog(): { changelogMarkdown: string; commitCount: number
       }
     }
 
+    function cleanCommitMessage(msg: string): string {
+      return msg
+        .replace(/^(feat|fix|perf|refactor|docs|style|test|build|ci|chore)(\([^)]+\))?:\s*/i, '')
+        .trim();
+    }
+
     const sections: string[] = [];
 
     if (categories.features.length > 0) {
-      sections.push('#### ✨ ميزات وتحسينات رئيسية:\n' + categories.features.slice(0, 8).map(f => `- ${f}`).join('\n'));
+      sections.push('#### الميزات والتحسينات الجديدة:\n' + categories.features.slice(0, 8).map(f => `- ${cleanCommitMessage(f)}`).join('\n'));
     }
 
     if (categories.fixes.length > 0) {
-      sections.push('#### 🐛 إصلاحات واستقرار النظام:\n' + categories.fixes.slice(0, 8).map(f => `- ${f}`).join('\n'));
+      sections.push('#### الإصلاحات والاستقرار العام:\n' + categories.fixes.slice(0, 8).map(f => `- ${cleanCommitMessage(f)}`).join('\n'));
     }
 
     if (categories.database.length > 0) {
-      sections.push('#### 🗄️ ترقيات قاعدة البيانات والأمان:\n' + categories.database.slice(0, 5).map(f => `- ${f}`).join('\n'));
+      sections.push('#### ترقيات قاعدة البيانات والأمان:\n' + categories.database.slice(0, 5).map(f => `- ${cleanCommitMessage(f)}`).join('\n'));
     }
 
     if (sections.length === 0) {
-      sections.push('#### 🚀 تحديثات عامة:\n- تحسينات عامة على أداء واستقرار النظام وترقية الواجهات.');
+      sections.push('#### تحديثات عامة:\n- تحسينات عامة على أداء واستقرار النظام وترقية الواجهات.');
     }
 
     return {
       changelogMarkdown: sections.join('\n\n'),
       commitCount: lines.length,
     };
-  } catch (err: any) {
+  } catch {
     return {
-      changelogMarkdown: '#### 🚀 تحديثات عامة:\n- تحسينات شاملة على تجربة المستخدم وسرعة استجابة النظام.',
+      changelogMarkdown: '#### تحديثات عامة:\n- تحسينات شاملة على تجربة المستخدم وسرعة استجابة النظام.',
       commitCount: 0,
     };
   }

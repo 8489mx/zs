@@ -49,8 +49,16 @@ async function main() {
     console.log('[build-update-patch] Generating update-manifest.json...');
     const crypto = require('crypto');
     function generateReleasePasscode(ver) {
-      const h = crypto.createHash('sha256').update(`ZS-RELEASE-${ver}-SECRET-SALT-2026`).digest('hex').toUpperCase();
-      return `ZS-UPD-${ver.replace(/\./g, '')}-${h.substring(0, 4)}-${h.substring(4, 8)}`;
+      const manifestPath = path.join(rootDir, 'releases', `manifest-${ver}.json`);
+      if (fs.existsSync(manifestPath)) {
+        try {
+          const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          if (m.passcode) return m.passcode;
+        } catch { /* ignore */ }
+      }
+      const clean = ver.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+      const h = crypto.createHash('sha256').update(`ZS_SECRET_KEY_${ver}_2026_MASTER`).digest('hex').toUpperCase();
+      return `ZS-UPD-${clean || '100'}-${h.substring(0, 4)}-${h.substring(4, 8)}`;
     }
 
     function getAllFiles(dirPath, arrayOfFiles = []) {

@@ -361,7 +361,7 @@ export function SystemUpdatesSection() {
                       style={{ fontWeight: 700, fontSize: '12px', padding: '6px 12px', borderRadius: '8px', background: '#f8fafc' }}
                       title="عرض كود تفعيل هذا التحديث المخصص للعملاء"
                     >
-                      🔑 كود التفعيل
+                      كود التفعيل
                     </Button>
                   )}
                   <Button 
@@ -625,7 +625,7 @@ export function SystemUpdatesSection() {
                   )}
 
                   <div className="system-passcode-input-box">
-                    <label>🔑 كود تفعيل التحديث المعتمد (Passcode):</label>
+                    <label>كود تفعيل التحديث المعتمد (Passcode):</label>
                     <input
                       type="text"
                       className="system-passcode-field"
@@ -677,7 +677,7 @@ export function SystemUpdatesSection() {
                   </div>
 
                   <div className="system-passcode-input-box">
-                    <label>🔑 كود تفعيل التحديث المعتمد (Passcode):</label>
+                    <label>كود تفعيل التحديث المعتمد (Passcode):</label>
                     <input
                       type="text"
                       className="system-passcode-field"
@@ -691,7 +691,7 @@ export function SystemUpdatesSection() {
                   </div>
 
                   <div style={{ background: '#fffbeb', color: '#92400e', padding: 12, borderRadius: 8, fontSize: '12px', marginBottom: 16, border: '1px solid #fde68a', lineHeight: 1.5, textAlign: 'right' }}>
-                    ⚠️ <strong>إجراء الأمان</strong>: سيتم أخذ نسخة احتياطية كاملة لقاعدة البيانات والملفات تلقائياً، وتطبيق الباتش وإعادة تشغيل الخادم فوراً.
+                    <strong>إجراء الأمان</strong>: سيتم أخذ نسخة احتياطية كاملة لقاعدة البيانات والملفات تلقائياً، وتطبيق الباتش وإعادة تشغيل الخادم فوراً.
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <Button variant="primary" style={{ flex: 1, fontWeight: 800 }} onClick={handleApplyLocalUpdate}>تأكيد وبدء التثبيت</Button>
