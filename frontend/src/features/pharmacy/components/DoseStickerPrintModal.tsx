@@ -159,7 +159,7 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
             }}
           >
             <div className="title" style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px' }}>
-              {storeName} {patientName ? `• أ/ ${patientName}` : ''}
+              {storeName} {patientName ? (' • أ/ ' + patientName) : ''}
             </div>
             <div className="drug" style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0369a1', margin: '3px 0' }}>
               {medName || 'اسم الدواء'}
@@ -168,7 +168,7 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
               {frequency}
             </div>
             <div className="timing" style={{ fontSize: '0.78rem', fontWeight: 700, color: '#dc2626' }}>
-              {timing} {duration ? `(${duration})` : ''}
+              {timing} {duration ? ('(' + duration + ')') : ''}
             </div>
             <div className="footer" style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>
               نتمنى لكم الشفاء العاجل!
