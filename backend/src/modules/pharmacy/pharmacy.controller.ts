@@ -25,6 +25,43 @@ import { UpsertClinicalServiceDto } from './dto/upsert-clinical-service.dto';
 export class PharmacyController {
   constructor(private readonly pharmacyService: PharmacyService) {}
 
+  // Master Catalog Endpoints
+  @Get('master-catalog')
+  getMasterCatalog(
+    @Query('q') q?: string,
+    @Query('drugClass') drugClass?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.pharmacyService.getMasterCatalog({
+      q,
+      drugClass,
+      page: page ? parseInt(page, 10) : undefined,
+      pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
+    });
+  }
+
+  @Post('master-catalog/seed-all')
+  seedAllMasterDrugs(@Req() req: RequestWithAuth) {
+    return this.pharmacyService.seedAllMasterDrugs(req.authContext!);
+  }
+
+  @Post('master-catalog/import-selected')
+  importSelectedMasterDrugs(@Req() req: RequestWithAuth, @Body('drugIds') drugIds: string[]) {
+    return this.pharmacyService.importSelectedMasterDrugs(req.authContext!, drugIds || []);
+  }
+
+  @Get('master-catalog/lookup')
+  lookupBarcode(@Req() req: RequestWithAuth, @Query('barcode') barcode: string) {
+    return this.pharmacyService.lookupBarcode(req.authContext!, barcode || '');
+  }
+
+  // Distributor Invoice Importer
+  @Post('distributors/import-invoice')
+  importDistributorInvoice(@Req() req: RequestWithAuth, @Body() dto: any) {
+    return this.pharmacyService.importDistributorInvoice(req.authContext!, dto);
+  }
+
   // Dashboard Stats
   @Get('stats')
   getStats(@Req() req: RequestWithAuth) {
@@ -117,7 +154,7 @@ export class PharmacyController {
     return this.pharmacyService.upsertPrescription(req.authContext!, dto);
   }
 
-  // Shortages
+  // Shortages Book
   @Get('shortages')
   listShortages(
     @Req() req: RequestWithAuth,
@@ -152,8 +189,11 @@ export class PharmacyController {
 
   // Clinical Services
   @Get('clinical-services')
-  listClinicalServices(@Req() req: RequestWithAuth) {
-    return this.pharmacyService.listClinicalServices(req.authContext!);
+  listClinicalServices(@Req() req: RequestWithAuth, @Query('limit') limit?: string) {
+    return this.pharmacyService.listClinicalServices(
+      req.authContext!,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Post('clinical-services')

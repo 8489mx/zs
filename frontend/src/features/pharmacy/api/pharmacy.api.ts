@@ -9,11 +9,101 @@ import type {
   PharmacyStats,
 } from '../types/pharmacy.types';
 
+export interface MasterDrugItem {
+  id: string;
+  trade_name: string;
+  trade_name_ar: string;
+  active_ingredient: string;
+  active_ingredient_ar: string;
+  dosage_form: string;
+  strength: string;
+  manufacturer: string;
+  drug_class: string;
+  prescription_required: boolean;
+  controlled_level: 'none' | 'table_1' | 'table_2';
+  units_per_box: number;
+  unit_name: string;
+  box_price: number;
+  strip_price: number;
+  barcode: string;
+  indications?: string;
+}
+
 export const pharmacyApi = {
   getStats: async (): Promise<PharmacyStats> => {
     return http<PharmacyStats>('/api/pharmacy/stats');
   },
 
+  // Master Egyptian Drug Index
+  getMasterCatalog: async (params?: {
+    q?: string;
+    drugClass?: string;
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const qs = buildQueryString(params || {});
+    return http<{
+      drugs: MasterDrugItem[];
+      pagination: { page: number; pageSize: number; totalItems: number; totalPages: number };
+    }>(`/api/pharmacy/master-catalog${qs}`);
+  },
+
+  seedAllMasterDrugs: async () => {
+    return http<{
+      success: boolean;
+      totalMasterDrugs: number;
+      insertedCount: number;
+      updatedCount: number;
+      message: string;
+    }>('/api/pharmacy/master-catalog/seed-all', {
+      method: 'POST',
+    });
+  },
+
+  importSelectedMasterDrugs: async (drugIds: string[]) => {
+    return http<{ success: boolean; importedCount: number }>('/api/pharmacy/master-catalog/import-selected', {
+      method: 'POST',
+      body: JSON.stringify({ drugIds }),
+    });
+  },
+
+  lookupBarcode: async (barcode: string) => {
+    const qs = buildQueryString({ barcode });
+    return http<{ foundIn: 'local' | 'master'; drug: any } | null>(`/api/pharmacy/master-catalog/lookup${qs}`);
+  },
+
+  // Distributor Invoice Importer
+  importDistributorInvoice: async (data: {
+    distributor: string;
+    invoiceNumber?: string;
+    invoiceDate?: string;
+    lines: Array<{
+      productName: string;
+      barcode?: string;
+      quantity: number;
+      bonusQuantity?: number;
+      publicPrice: number;
+      costPrice: number;
+      expiryDate: string;
+      batchNumber?: string;
+    }>;
+  }) => {
+    return http<{
+      success: boolean;
+      distributor: string;
+      invoiceNumber?: string;
+      importedLinesCount: number;
+      totalQuantity: number;
+      totalCostSum: number;
+      totalPublicSum: number;
+      message: string;
+    }>('/api/pharmacy/distributors/import-invoice', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Store Active Drugs
   listDrugs: async (params?: {
     q?: string;
     activeIngredient?: string;
