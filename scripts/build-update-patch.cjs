@@ -59,6 +59,13 @@ async function main() {
     console.log('[build-update-patch] Copying frontend/dist...');
     fs.cpSync(path.join(rootDir, 'frontend/dist'), path.join(stagingDir, 'frontend/dist'), { recursive: true });
 
+    // Copy frontend/electron/loading.html
+    const loadingHtml = path.join(rootDir, 'frontend/electron/loading.html');
+    if (fs.existsSync(loadingHtml)) {
+      fs.mkdirSync(path.join(stagingDir, 'frontend/electron'), { recursive: true });
+      fs.copyFileSync(loadingHtml, path.join(stagingDir, 'frontend/electron/loading.html'));
+    }
+
     // Generate update-manifest.json
     console.log('[build-update-patch] Generating update-manifest.json...');
     const crypto = require('crypto');
@@ -132,11 +139,34 @@ async function main() {
     console.log(`[build-update-patch] Writing ZIP with AdmZip to ${zipPath}...`);
     zip.writeZip(zipPath);
     
+    // Save manifest to backend/runtime/releases and releases
+    const runtimeReleasesDir = path.join(rootDir, 'backend/runtime/releases');
+    fs.mkdirSync(runtimeReleasesDir, { recursive: true });
+    
+    const rootReleasesDir = path.join(rootDir, 'releases');
+    fs.mkdirSync(rootReleasesDir, { recursive: true });
+
+    const fullManifest = {
+      version,
+      generatedAt: manifest.generatedAt,
+      passcode: manifest.passcode,
+      requiresPasscode: true,
+      changelog: `• ترقية شاملة لواجهة التحديثات بالتصميم الملكي.\n• إعادة بناء شاشة الإقلاع والفتح (Splash Screen) بهوية Z-ERP Enterprise ومراحل التحميل التفاعلية.\n• إضافة نظام كود التفعيل المنبثق وأرشيف الإصدارات السابقة القابل للطي.\n• تحسينات عامة على استقرار النظام ومزامنة قواعد البيانات.`,
+      patchUrl: `https://github.com/karimzakaria/zn/releases/download/v${version}/Z-ERP-Patch-v${version}.zip`,
+      sha256: crypto.createHash('sha256').update(fs.readFileSync(zipPath)).digest('hex'),
+      sizeBytes: fs.statSync(zipPath).size,
+      filesCount: manifestFiles.length
+    };
+
+    fs.writeFileSync(path.join(runtimeReleasesDir, `manifest-${version}.json`), JSON.stringify(fullManifest, null, 2), 'utf8');
+    fs.writeFileSync(path.join(rootReleasesDir, `manifest-${version}.json`), JSON.stringify(fullManifest, null, 2), 'utf8');
+
     // Clean up staging
     console.log('[build-update-patch] Cleaning up staging directory...');
     fs.rmSync(stagingDir, { recursive: true, force: true });
     
     console.log(`[build-update-patch] ✅ Patch created successfully at release/updates/${zipName}`);
+    console.log(`[build-update-patch] 🔑 Passcode for v${version}: ${manifest.passcode}`);
   } catch(e) {
     console.error('[build-update-patch] ❌ Error generating patch:', e);
     process.exit(1);

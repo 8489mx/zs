@@ -1,4 +1,4 @@
-export type SettingsSectionKey = 'overview' | 'core' | 'reference' | 'backup' | 'users' | 'offline-releases' | 'system-updates' | 'lan-network' | 'tax-integration';
+export type SettingsSectionKey = 'overview' | 'core' | 'reference' | 'backup' | 'users' | 'system-updates' | 'lan-network' | 'tax-integration';
 
 const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
   { key: 'overview', label: 'ملخص سريع' },
@@ -9,14 +9,12 @@ const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: b
   { key: 'system-updates', label: 'الإصدارات والتحديثات', offlineOnly: true },
   { key: 'backup', label: 'النسخ والاستيراد' },
   { key: 'tax-integration', label: 'الضرائب والفاتورة الإلكترونية', adminOnly: true },
-  { key: 'offline-releases', label: 'إصدارات الأوفلاين 🖥️', superAdminOnly: true }
 ];
 
 export const settingsSections = allSections.filter(s => s.key !== 'lan-network' || (typeof window !== 'undefined' && !!(window as any).electronRuntime));
 
 // Extra standalone pages linked from settings sidebar
 export const settingsStandaloneLinks: Array<{ label: string; to: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
-  { label: 'إصدارات الأوفلاين 🖥️', to: '/settings/offline-releases', superAdminOnly: true },
   { label: 'إدارة أماكن المخزون المتقدمة', to: '/settings/locations', adminOnly: true },
 ];
 

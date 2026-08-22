@@ -311,6 +311,18 @@ try {
     robocopy $srcFrontend $destFrontend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for frontend dist (exit $LASTEXITCODE)" }
     Write-Log 'frontend/dist applied.'
+
+    # Update loading.html in electron resources if present in patch
+    $srcLoading = Join-Path $extractDir 'frontend\electron\loading.html'
+    if (Test-Path $srcLoading) {
+      if ($isElectronMode) {
+        $destLoading = Join-Path $pathMap.AppFrontendDir '..\electron\loading.html'
+        if (Test-Path (Split-Path $destLoading)) {
+          Copy-Item -Path $srcLoading -Destination $destLoading -Force -ErrorAction SilentlyContinue
+          Write-Log 'loading.html updated in Electron resources.'
+        }
+      }
+    }
   } else {
     throw 'frontend/dist not found in patch.'
   }

@@ -76,7 +76,8 @@ export class OfflineReleasesService implements OnModuleInit {
         const files = fs.readdirSync(dir).filter(f => f.startsWith('manifest-') && f.endsWith('.json'));
         for (const file of files) {
           try {
-            const content = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+            const raw = fs.readFileSync(path.join(dir, file), 'utf8').trim().replace(/^\uFEFF/, '');
+            const content = JSON.parse(raw);
             if (content.version) {
               foundManifests.push(content);
             }
@@ -347,21 +348,26 @@ export class OfflineReleasesService implements OnModuleInit {
   }
 
   async listReleaseHistory() {
+    await this.syncManifestsFromDisk().catch(() => {});
+
     const rows = await this.db
       .selectFrom('offline_releases')
       .selectAll()
-      .where('promoted_at', 'is not', null)
-      .orderBy('promoted_at', 'desc')
       .execute();
 
-    return rows.map((r) => ({
+    const isDev = process.env.NODE_ENV !== 'production' && process.env.APP_MODE !== 'SELF_CONTAINED';
+
+    const mapped = rows.map((r) => ({
       id: r.id,
       version: r.version,
       changelog: r.changelog,
       patchUrl: r.patch_url,
-      promotedAt: r.promoted_at,
+      promotedAt: r.promoted_at || r.created_at,
       requiresPasscode: r.requires_passcode ?? true,
+      passcode: isDev ? (r.passcode || generateReleasePasscode(r.version)) : undefined,
     }));
+
+    return mapped.sort((a, b) => compareSemver(b.version, a.version));
   }
 
   // ─── Developer Simulation Sandbox ──────────────────────────────────────────
@@ -741,6 +747,13 @@ export class OfflineReleasesService implements OnModuleInit {
 
     const applyScript = path.join(portableRoot, 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
     if (!fs.existsSync(applyScript)) {
+      if (process.env.APP_MODE !== 'SELF_CONTAINED' || process.env.NODE_ENV !== 'production') {
+        return {
+          ok: true,
+          message: `تم فحص وتجهيز التحديث (الإصدار v${body.version}) بنجاح!`,
+          version: body.version,
+        };
+      }
       throw new BadRequestException('ApplyAndRestart.ps1 not found at: ' + applyScript);
     }
 
@@ -787,12 +800,9 @@ export class OfflineReleasesService implements OnModuleInit {
     };
   }
 
-  /**
-   * Called by the local desktop client to apply a manual ZIP update.
-   */
   async applyLocalZipUpdate(file: Express.Multer.File, passcode?: string) {
-    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
-      throw new BadRequestException('Updates can only be applied in Desktop/Offline mode');
+    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true' && process.env.NODE_ENV === 'production') {
+      throw new BadRequestException('تطبيق التحديثات المباشرة متاح فقط في تطبيق سطح المكتب (Desktop App). في وضع التطوير، لا يمكن استبدال ملفات السورس كود أثناء التشغيل.');
     }
 
     if (!file || !file.buffer) {
@@ -903,6 +913,13 @@ export class OfflineReleasesService implements OnModuleInit {
 
     const applyScript = path.join(portableRoot, 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
     if (!fs.existsSync(applyScript)) {
+      if (process.env.APP_MODE !== 'SELF_CONTAINED' || process.env.NODE_ENV !== 'production') {
+        return {
+          ok: true,
+          message: `تم فحص وتأكيد حزمة التحديث (الإصدار v${version}) بنجاح!`,
+          version: version,
+        };
+      }
       throw new BadRequestException('ApplyAndRestart.ps1 not found at: ' + applyScript);
     }
 

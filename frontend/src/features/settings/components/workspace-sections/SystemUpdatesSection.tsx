@@ -19,11 +19,9 @@ export function formatGregorianDate(dateInput?: string | number | Date | null, w
   }).format(d);
 }
 
-export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: { deploymentMode?: string; isSuperAdmin?: boolean }) {
+export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: string; isSuperAdmin?: boolean }) {
   const authDeploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
-  const userRole = useAuthStore((state) => state.user?.role);
   const effectiveDeploymentMode = deploymentMode ?? authDeploymentMode;
-  const effectiveIsSuperAdmin = isSuperAdmin || (userRole === 'super_admin' || userRole === 'admin');
 
   // Update checker hooks
   const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt, isLoading: isCheckingHistory } = useOfflineUpdateCheck(effectiveDeploymentMode);
@@ -40,14 +38,8 @@ export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: {
   const [revealedPasscode, setRevealedPasscode] = useState<{ version: string; passcode: string } | null>(null);
   const [copiedPasscode, setCopiedPasscode] = useState<boolean>(false);
 
-  // Developer Simulator State
-  const [showSimulator, setShowSimulator] = useState<boolean>(false);
-  const [simFromVersion, setSimFromVersion] = useState<string>('1.1.2');
-  const [simTargetVersion, setSimTargetVersion] = useState<string>('1.1.14');
-  const [simPasscode, setSimPasscode] = useState<string>('ZS-UPD-1114-E9AF-8D27');
-  const [simLoading, setSimLoading] = useState<boolean>(false);
-  const [simResult, setSimResult] = useState<any | null>(null);
-  const [simError, setSimError] = useState<string | null>(null);
+  const [copiedReleaseVersion, setCopiedReleaseVersion] = useState<string | null>(null);
+  const [showArchive, setShowArchive] = useState<boolean>(false);
 
   const staticVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.14';
   const [currentVersion, setCurrentVersion] = useState<string>(staticVersion);
@@ -176,7 +168,8 @@ export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: {
       }
     } catch (e: any) {
       cancelProgress();
-      setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));
+      const msg = typeof e?.data?.message === 'string' ? e.data.message : (typeof e?.response?.data?.message === 'string' ? e.response.data.message : (e?.message || 'تعذر استكمال عملية التحديث. يرجى التأكد من كود التفعيل وصحة حزمة التحديث.'));
+      setLocalUpdateState(s => ({ ...s, status: 'error', error: msg }));
     }
   };
 
@@ -207,28 +200,8 @@ export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: {
       });
     } catch (e: any) {
       cancelProgress();
-      setLocalUpdateState(s => ({ ...s, status: 'error', error: e.message }));
-    }
-  };
-
-  const handleRunSimulation = async () => {
-    setSimLoading(true);
-    setSimError(null);
-    setSimResult(null);
-    try {
-      const res = await http<any>('/api/updates/simulate', {
-        method: 'POST',
-        body: JSON.stringify({
-          fromVersion: simFromVersion,
-          targetVersion: simTargetVersion,
-          passcode: simPasscode,
-        }),
-      });
-      setSimResult(res);
-    } catch (e: any) {
-      setSimError(e.message || 'فشلت محاكاة التحديث');
-    } finally {
-      setSimLoading(false);
+      const msg = typeof e?.data?.message === 'string' ? e.data.message : (typeof e?.response?.data?.message === 'string' ? e.response.data.message : (e?.message || 'تعذر استكمال عملية التحديث. يرجى التأكد من كود التفعيل المعتمد.'));
+      setLocalUpdateState(s => ({ ...s, status: 'error', error: msg }));
     }
   };
 
@@ -377,19 +350,6 @@ export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: {
             <span>سجل الإصدارات المعتمدة وقوائم التغييرات</span>
             <span className="system-releases-badge-count">{updateHistory.length} إصدارات مسجلة</span>
           </div>
-
-          {effectiveIsSuperAdmin && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setShowSimulator(!showSimulator)}
-                className="system-update-btn-glass"
-                style={{ fontSize: '12px', padding: '6px 12px' }}
-              >
-                {showSimulator ? 'إخفاء محاكي المطور' : 'محاكي تحديثات المطور'}
-              </button>
-            </div>
-          )}
         </div>
 
         <div className="system-releases-list">
@@ -398,39 +358,138 @@ export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: {
               جارِ فحص وتحديث سجل الإصدارات من السيرفر...
             </div>
           ) : updateHistory && updateHistory.length > 0 ? (
-            updateHistory.map((release, idx) => (
-              <div key={release.version} className="system-release-item">
-                <div className="system-release-info">
-                  <div className="system-release-icon-tag" style={{ minWidth: '48px', padding: '0 6px', fontSize: '11px', fontWeight: 800 }}>
-                    v{release.version}
-                  </div>
-                  <div className="system-release-details">
-                    <div className="system-release-version-row">
-                      <span className="system-release-version-num">الإصدار {release.version}</span>
-                      {release.version === currentVersion ? (
-                        <span className="system-release-tag-active">✓ الإصدار الحالي المستقر</span>
-                      ) : (
-                        <span className="system-release-tag-available">سجل معتمد ومؤرشف</span>
+            (() => {
+              const currentRelease = updateHistory.find(r => r.version === currentVersion) || updateHistory[0];
+              const archivedReleases = updateHistory.filter(r => r.version !== currentRelease?.version);
+              const currentReleaseIdx = updateHistory.findIndex(r => r.version === currentRelease?.version);
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {/* Current Active Release Card */}
+                  {currentRelease && (
+                    <div className="system-release-item" style={{ border: '1.5px solid #bbf7d0', background: '#ffffff' }}>
+                      <div className="system-release-info">
+                        <div className="system-release-icon-tag" style={{ minWidth: '48px', padding: '0 6px', fontSize: '11px', fontWeight: 800, background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
+                          v{currentRelease.version}
+                        </div>
+                        <div className="system-release-details">
+                          <div className="system-release-version-row">
+                            <span className="system-release-version-num">الإصدار {currentRelease.version}</span>
+                            <span className="system-release-tag-active">✓ الإصدار الحالي المستقر</span>
+                          </div>
+                          <div className="system-release-date">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                            <span>تاريخ الاعتماد: {formatGregorianDate(currentRelease.promotedAt || (currentRelease as any).createdAt, true)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {currentRelease.passcode && (
+                          <Button 
+                            variant="secondary" 
+                            onClick={() => setRevealedPasscode({ version: currentRelease.version, passcode: currentRelease.passcode! })}
+                            style={{ fontWeight: 700, fontSize: '12px', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="15" r="4" /><line x1="10.85" y1="12.15" x2="19" y2="4" /><line x1="18" y1="5" x2="20" y2="7" /><line x1="15" y1="8" x2="17" y2="10" /></svg>
+                            <span>كود التفعيل</span>
+                          </Button>
+                        )}
+
+                        <Button 
+                          variant="secondary" 
+                          onClick={() => setSelectedReleaseIndex(currentReleaseIdx >= 0 ? currentReleaseIdx : 0)}
+                          style={{ fontWeight: 700, fontSize: '12px', padding: '6px 14px', borderRadius: '8px' }}
+                        >
+                          عرض التفاصيل وسجل التغييرات
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Archived / Older Releases Collapsible Card */}
+                  {archivedReleases.length > 0 && (
+                    <div style={{ marginTop: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowArchive(prev => !prev)}
+                        style={{
+                          width: '100%',
+                          padding: '12px 18px',
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          color: '#334155',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#64748b" strokeWidth="2"><polyline points="21 8 21 21 3 21 3 8" /><rect x="1" y="3" width="22" height="5" /><line x1="10" y1="12" x2="14" y2="12" /></svg>
+                          <span>أرشيف الإصدارات السابقة ({archivedReleases.length} إصدارات مؤرشفة)</span>
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#64748b', transform: showArchive ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', display: 'inline-block' }}>
+                          ▼
+                        </span>
+                      </button>
+
+                      {showArchive && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px', animation: 'fadeIn 0.2s ease' }}>
+                          {archivedReleases.map((release) => {
+                            const originalIdx = updateHistory.findIndex(r => r.version === release.version);
+                            return (
+                              <div key={release.version} className="system-release-item" style={{ background: '#fafbfc' }}>
+                                <div className="system-release-info">
+                                  <div className="system-release-icon-tag" style={{ minWidth: '48px', padding: '0 6px', fontSize: '11px', fontWeight: 800 }}>
+                                    v{release.version}
+                                  </div>
+                                  <div className="system-release-details">
+                                    <div className="system-release-version-row">
+                                      <span className="system-release-version-num">الإصدار {release.version}</span>
+                                      <span className="system-release-tag-available">سجل معتمد ومؤرشف</span>
+                                    </div>
+                                    <div className="system-release-date">
+                                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                                      <span>تاريخ الاعتماد: {formatGregorianDate(release.promotedAt || (release as any).createdAt, true)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  {release.passcode && (
+                                    <Button 
+                                      variant="secondary" 
+                                      onClick={() => setRevealedPasscode({ version: release.version, passcode: release.passcode! })}
+                                      style={{ fontWeight: 700, fontSize: '12px', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="15" r="4" /><line x1="10.85" y1="12.15" x2="19" y2="4" /><line x1="18" y1="5" x2="20" y2="7" /><line x1="15" y1="8" x2="17" y2="10" /></svg>
+                                      <span>كود التفعيل</span>
+                                    </Button>
+                                  )}
+
+                                  <Button 
+                                    variant="secondary" 
+                                    onClick={() => setSelectedReleaseIndex(originalIdx >= 0 ? originalIdx : 0)}
+                                    style={{ fontWeight: 700, fontSize: '12px', padding: '6px 14px', borderRadius: '8px' }}
+                                  >
+                                    عرض التفاصيل وسجل التغييرات
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-                    <div className="system-release-date">
-                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                      <span>تاريخ الاعتماد: {formatGregorianDate(release.promotedAt || (release as any).createdAt, true)}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => setSelectedReleaseIndex(idx)}
-                    style={{ fontWeight: 700, fontSize: '12px', padding: '6px 14px', borderRadius: '8px' }}
-                  >
-                    عرض التفاصيل وسجل التغييرات
-                  </Button>
-                </div>
-              </div>
-            ))
+              );
+            })()
           ) : (
             <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
               لا توجد إصدارات سابقة مسجلة في هذا النشاط.
@@ -438,98 +497,6 @@ export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: {
           )}
         </div>
       </div>
-
-      {showSimulator && (
-        <div className="system-simulator-card">
-          <div className="system-simulator-header">
-            <div className="system-simulator-title">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
-              <span>بيئة محاكاة واختبار تحديثات المطور (Developer Sandbox)</span>
-            </div>
-            <span className="system-simulator-badge">⚡ بيئة اختبار فورية</span>
-          </div>
-          
-          <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.6, margin: '0 0 14px 0' }}>
-            تتيح لك هذه البيئة محاكاة سيناريو كامل لتحديث عميل يمتلك نسخة قديمة (مثل 1.1.2) إلى أحدث إصدار مع التحقق من كود التفعيل والـ Checksum وتطبيق المايجريشنز في ثوانٍ معدودة دون الحاجة لبناء ملف Electron EXE.
-          </p>
-
-          <div className="system-simulator-form">
-            <div className="system-simulator-input-group">
-              <label>إصدار العميل الحالي (المحاكى):</label>
-              <input 
-                type="text" 
-                value={simFromVersion} 
-                onChange={(e) => setSimFromVersion(e.target.value)} 
-                placeholder="مثال: 1.1.2" 
-              />
-            </div>
-            <div className="system-simulator-input-group">
-              <label>الإصدار المستهدف للترقية:</label>
-              <input 
-                type="text" 
-                value={simTargetVersion} 
-                onChange={(e) => setSimTargetVersion(e.target.value)} 
-                placeholder="مثال: 1.1.14" 
-              />
-            </div>
-            <div className="system-simulator-input-group" style={{ flex: 1.5 }}>
-              <label>كود التفعيل (Passcode):</label>
-              <input 
-                type="text" 
-                value={simPasscode} 
-                onChange={(e) => setSimPasscode(e.target.value)} 
-                placeholder="ZS-UPD-XXXX-XXXX" 
-                style={{ fontFamily: 'monospace' }}
-              />
-            </div>
-            <div style={{ alignSelf: 'flex-end' }}>
-              <Button 
-                variant="primary" 
-                onClick={handleRunSimulation} 
-                disabled={simLoading}
-                style={{ background: '#4f46e5', borderColor: '#4338ca', fontWeight: 800, padding: '9px 18px', borderRadius: '8px' }}
-              >
-                {simLoading ? 'جارِ المحاكاة...' : 'تشغيل محاكاة التحديث'}
-              </Button>
-            </div>
-          </div>
-
-          {simError && (
-            <div style={{ padding: '12px 14px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '12px', fontWeight: 700, marginTop: 10 }}>
-              {simError}
-            </div>
-          )}
-
-          {simResult && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', color: '#166534', fontWeight: 800, fontSize: '13px' }}>
-                <span>اكتملت محاكاة التحديث بنجاح ({simResult.cumulativeReleasesCount} إصدارات تراكمية مدمجة)</span>
-                <span style={{ fontSize: '11px', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>v{simResult.fromVersion} ➔ v{simResult.targetVersion}</span>
-              </div>
-
-              <div className="system-simulator-steps-list">
-                {simResult.steps?.map((st: any) => (
-                  <div key={st.step} className="system-simulator-step completed">
-                    <span style={{ fontWeight: 800, minWidth: '20px' }}>✓ {st.step}.</span>
-                    <div>
-                      <strong>{st.title}:</strong> <span style={{ color: '#334155' }}>{st.message}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {simResult.cumulativeChangelog && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>سجل التغييرات التراكمي الشامل المحسوب للعميل:</div>
-                  <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '12px', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap', maxHeight: 150, overflowY: 'auto' }}>
-                    {simResult.cumulativeChangelog}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* 1. Admin Passcode Reveal Modal */}
       {revealedPasscode && (
@@ -597,6 +564,26 @@ export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: {
                 </div>
               </div>
 
+              {selectedRelease.passcode && (
+                <div style={{ padding: '14px 16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 700 }}>كود تفعيل هذا الإصدار (وضع المطور):</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: 900, color: '#0f172a', marginTop: '3px' }}>{selectedRelease.passcode}</div>
+                  </div>
+                  <Button 
+                    variant="secondary" 
+                    style={{ fontWeight: 800, fontSize: '12px', height: '36px' }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedRelease.passcode!);
+                      setCopiedReleaseVersion(selectedRelease.version);
+                      setTimeout(() => setCopiedReleaseVersion(null), 2000);
+                    }}
+                  >
+                    {copiedReleaseVersion === selectedRelease.version ? '✓ تم النسخ' : 'نسخ الكود'}
+                  </Button>
+                </div>
+              )}
+
               <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <Button variant="secondary" onClick={() => setSelectedReleaseIndex(null)}>إغلاق</Button>
                 {selectedRelease.version !== currentVersion && (
@@ -612,325 +599,524 @@ export function SystemUpdatesSection({ deploymentMode, isSuperAdmin = false }: {
         </ClientPortal>
       )}
 
-      {/* 3. Update Check Result Modal */}
+      {/* 3. Update Check Result Modal - Luxury Enterprise Standard */}
       {updateCheckResult && updateCheckResult.open && (
         <ClientPortal targetId="root">
-          <DialogShell open={true} showCloseButton={true} onClose={() => setUpdateCheckResult(null)} width="min(540px, 100%)" ariaLabel="فحص التحديثات">
-            <div className="system-update-modal-header">
-              <h3 className="system-update-modal-title">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-                <span>نتيجة فحص التحديثات السحابية</span>
-              </h3>
-            </div>
-            <div className="system-update-modal-body stack gap-16" style={{ textAlign: 'center' }}>
-              {updateCheckResult.type === 'checking' && (
-                <div style={{ padding: '24px 0' }}>
-                  <div style={{ width: '44px', height: '44px', border: '3px solid #e2e8f0', borderTopColor: '#0f172a', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800 }}>جارِ الاتصال بسيرفر التحديثات المعتمد...</h4>
-                  <p className="muted small" style={{ marginTop: 6 }}>يتم فحص وجود ترقيات جديدة وسجلات تغييرات تراكمية.</p>
-                </div>
-              )}
-              {updateCheckResult.type === 'up-to-date' && (
-                <div>
-                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  </div>
-                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>أنت تعمل على أحدث إصدار معتمد!</h4>
-                  <p className="muted small" style={{ marginTop: 6, lineHeight: 1.6 }}>
-                    نظامك يعمل حالياً بالإصدار <strong>v{currentVersion}</strong> المستقر، ولم تصدر أي تحديثات لاحقة حتى اللحظة.
-                  </p>
-                  <div style={{ marginTop: 20 }}>
-                    <Button variant="primary" onClick={() => setUpdateCheckResult(null)} style={{ minWidth: '120px' }}>تمام</Button>
-                  </div>
-                </div>
-              )}
-              {updateCheckResult.type === 'error' && (
-                <div>
-                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                  </div>
-                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#991b1b' }}>تعذر الاتصال بسيرفر التحديثات</h4>
-                  <p className="muted small" style={{ marginTop: 6, lineHeight: 1.6 }}>
-                    يرجى التحقق من اتصال الإنترنت، أو استخدام خاصية التحديث اليدوي من ملف ZIP إذا كنت في بيئة أوفلاين.
-                  </p>
-                  <div style={{ marginTop: 20 }}>
-                    <Button variant="secondary" onClick={() => setUpdateCheckResult(null)}>إغلاق</Button>
-                  </div>
-                </div>
-              )}
-              {updateCheckResult.type === 'available' && (
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                    <div style={{ flex: 1, padding: 12, background: '#f8fafc', borderRadius: 8, textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                      <div className="muted small">الإصدار الحالي</div>
-                      <div style={{ fontWeight: 800, fontSize: '15px', color: '#0f172a', marginTop: 2 }}>v{currentVersion}</div>
-                    </div>
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ color: '#0f172a' }}><polyline points="15 18 9 12 15 6" /></svg>
-                    <div style={{ flex: 1, padding: 12, background: '#ecfdf5', color: '#065f46', borderRadius: 8, textAlign: 'center', border: '1px solid #a7f3d0' }}>
-                      <div className="small" style={{ fontWeight: 700 }}>الإصدار الجديد المتوفر</div>
-                      <div style={{ fontWeight: 800, fontSize: '15px', color: '#065f46', marginTop: 2 }}>v{updateCheckResult.data.latestVersion}</div>
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <div style={{
+              width: '100%',
+              maxWidth: '540px',
+              background: '#ffffff',
+              borderRadius: '20px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)',
+              overflow: 'hidden',
+              textAlign: 'right',
+              color: '#0f172a',
+              position: 'relative'
+            }}>
+              <div style={{ padding: '24px 28px 26px' }}>
+                {/* Header with Brand & Close */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img 
+                      src="./brand/z-erp-approved-icon.png" 
+                      alt="Z-ERP" 
+                      style={{ width: '38px', height: '38px', objectFit: 'contain', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.12))' }} 
+                    />
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+                        مركز ترقية وتحديث المنظومة
+                      </h3>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>ZSystems Enterprise Release Manager</div>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setUpdateCheckResult(null)}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      color: '#64748b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="إغلاق"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-                  {(updateCheckResult.data.cumulativeChangelog || updateCheckResult.data.changelog) && (
-                    <div style={{ marginBottom: 16 }}>
-                      <div className="small" style={{ fontWeight: 800, marginBottom: 6, color: '#0f172a' }}>سجل التحسينات والتغييرات التراكمي:</div>
-                      <div style={{ padding: 12, background: '#f8fafc', borderRadius: 8, fontSize: '12px', whiteSpace: 'pre-wrap', maxHeight: 150, overflowY: 'auto', border: '1px solid #e2e8f0', lineHeight: 1.6 }}>
-                        {updateCheckResult.data.cumulativeChangelog || updateCheckResult.data.changelog}
+                {updateCheckResult.type === 'checking' && (
+                  <div style={{ padding: '28px 0', textAlign: 'center' }}>
+                    <div style={{ width: '48px', height: '48px', border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>جارِ الاتصال بسيرفر التحديثات المعتمد...</h4>
+                    <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748b' }}>يتم فحص وجود ترقيات جديدة وسجلات تغييرات تراكمية.</p>
+                  </div>
+                )}
+
+                {updateCheckResult.type === 'up-to-date' && (
+                  <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid #a7f3d0' }}>
+                      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                    </div>
+                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>أنت تعمل على أحدث إصدار معتمد!</h4>
+                    <p style={{ margin: '8px auto 0', fontSize: '13px', color: '#64748b', lineHeight: 1.6, maxWidth: '380px' }}>
+                      نظامك يعمل حالياً بالإصدار المستقر <strong>v{currentVersion}</strong>، ولم تصدر أي تحديثات جديدة بعد.
+                    </p>
+                    <div style={{ marginTop: '22px' }}>
+                      <Button variant="primary" onClick={() => setUpdateCheckResult(null)} style={{ minWidth: '130px', height: '42px', fontWeight: 800, borderRadius: '10px', background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)', border: 'none' }}>
+                        تمام
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {updateCheckResult.type === 'error' && (
+                  <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid #fecaca' }}>
+                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </div>
+                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#991b1b' }}>تعذر الاتصال بسيرفر التحديثات</h4>
+                    <p style={{ margin: '8px auto 0', fontSize: '13px', color: '#64748b', lineHeight: 1.6, maxWidth: '380px' }}>
+                      يرجى التحقق من اتصال الإنترنت، أو استخدام خاصية التحديث اليدوي من ملف ZIP.
+                    </p>
+                    <div style={{ marginTop: '22px' }}>
+                      <Button variant="secondary" onClick={() => setUpdateCheckResult(null)} style={{ minWidth: '110px', height: '40px', borderRadius: '10px' }}>إغلاق</Button>
+                    </div>
+                  </div>
+                )}
+
+                {updateCheckResult.type === 'available' && (
+                  <div>
+                    {/* Version Transition Box */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '14px 18px',
+                      background: '#f8fafc',
+                      borderRadius: '14px',
+                      border: '1px solid #e2e8f0',
+                      marginBottom: '16px'
+                    }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>الإصدار الحالي:</div>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>v{currentVersion}</div>
+                      </div>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: 700 }}>الإصدار الجديد المتوفر:</div>
+                        <div style={{ fontSize: '15px', fontWeight: 800, color: '#059669', marginTop: '2px' }}>v{updateCheckResult.data.latestVersion}</div>
                       </div>
                     </div>
-                  )}
 
-                  <div className="system-passcode-input-box">
-                    <label>كود تفعيل التحديث المعتمد (Passcode):</label>
-                    <input
-                      type="text"
-                      className="system-passcode-field"
-                      placeholder="ZS-UPD-XXXX-XXXX"
-                      value={onlineUpdatePasscode}
-                      onChange={(e) => setOnlineUpdatePasscode(e.target.value)}
-                    />
-                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>
-                      أدخل كود الترخيص الذي استلمته من إدارة النظام لبدء فك التحديث وتطبيقه.
+                    {/* Changelog */}
+                    {(updateCheckResult.data.cumulativeChangelog || updateCheckResult.data.changelog) && (
+                      <div style={{ marginBottom: '16px' }}>
+                        <div style={{ fontSize: '12.5px', fontWeight: 700, marginBottom: '6px', color: '#334155' }}>
+                          سجل التغييرات والتحسينات المعتمدة:
+                        </div>
+                        <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: '10px', fontSize: '12px', whiteSpace: 'pre-wrap', maxHeight: '130px', overflowY: 'auto', border: '1px solid #e2e8f0', lineHeight: 1.6, color: '#334155' }}>
+                          {updateCheckResult.data.cumulativeChangelog || updateCheckResult.data.changelog}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Passcode Input */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                        كود تفعيل التحديث المعتمد:
+                      </label>
+                      <input
+                        type="text"
+                        style={{
+                          width: '100%',
+                          height: '44px',
+                          background: '#f8fafc',
+                          border: '1.5px solid #cbd5e1',
+                          borderRadius: '10px',
+                          color: '#0f172a',
+                          padding: '0 14px',
+                          fontSize: '14.5px',
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          direction: 'ltr',
+                          textAlign: 'center',
+                          outline: 'none',
+                          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                        placeholder="ZS-UPD-XXXX-XXXX"
+                        value={onlineUpdatePasscode}
+                        onChange={(e) => setOnlineUpdatePasscode(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Security Notice */}
+                    <div style={{
+                      padding: '10px 14px',
+                      background: '#f0fdf4',
+                      borderRadius: '10px',
+                      border: '1px solid #bbf7d0',
+                      fontSize: '12px',
+                      color: '#166534',
+                      lineHeight: 1.5,
+                      marginBottom: '20px',
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'center'
+                    }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16a34a" strokeWidth="2.2" style={{ flexShrink: 0 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                      <span><strong>إجراء الأمان</strong>: سيتم أخذ نسخة احتياطية آمنة لقاعدة البيانات والملفات تلقائياً قبل الترقية.</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <Button
+                        variant="primary"
+                        style={{
+                          flex: 1,
+                          height: '44px',
+                          fontWeight: 800,
+                          borderRadius: '10px',
+                          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+                          border: 'none',
+                          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)'
+                        }}
+                        onClick={() => {
+                          if (updateCheckResult.data.latestVersion && updateCheckResult.data.patchUrl) {
+                            handleApplyOnlineUpdate(
+                              updateCheckResult.data.latestVersion, 
+                              updateCheckResult.data.patchUrl, 
+                              updateCheckResult.data.changelog ?? undefined,
+                              onlineUpdatePasscode
+                            );
+                          }
+                        }}
+                      >
+                        تطبيق الترقية الآن
+                      </Button>
+                      <Button variant="secondary" style={{ height: '44px', borderRadius: '10px' }} onClick={() => setUpdateCheckResult(null)}>
+                        لاحقاً
+                      </Button>
                     </div>
                   </div>
-
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <Button variant="primary" style={{ flex: 1, fontWeight: 800 }} onClick={() => {
-                      if (updateCheckResult.data.latestVersion && updateCheckResult.data.patchUrl) {
-                        handleApplyOnlineUpdate(
-                          updateCheckResult.data.latestVersion, 
-                          updateCheckResult.data.patchUrl, 
-                          updateCheckResult.data.changelog ?? undefined,
-                          onlineUpdatePasscode
-                        );
-                      }
-                    }}>تطبيق الترقية الآن</Button>
-                    <Button variant="secondary" onClick={() => setUpdateCheckResult(null)}>لاحقاً</Button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </DialogShell>
+          </div>
         </ClientPortal>
       )}
 
-      {/* 4. Local Update Modal */}
+      {/* 4. Local ZIP Update Modal - Luxury Enterprise Standard */}
       {localUpdateState.open && (
         <ClientPortal targetId="root">
-          <DialogShell 
-            open={true} 
-            showCloseButton={localUpdateState.status !== 'uploading' && localUpdateState.status !== 'success'} 
-            onClose={() => localUpdateState.status !== 'uploading' && localUpdateState.status !== 'success' && setLocalUpdateState(s => ({ ...s, open: false }))} 
-            width="min(560px, 100%)" 
-            ariaLabel="تطبيق التحديث"
-          >
-            <div className="system-update-modal-header" style={{ display: 'none' }}>
-              <h3 className="system-update-modal-title">
-                <span>تطبيق التحديث</span>
-              </h3>
-            </div>
-            <div className="system-update-modal-body" style={{ padding: localUpdateState.status === 'uploading' || localUpdateState.status === 'success' ? '0' : '20px', textAlign: 'center' }}>
-              {localUpdateState.status === 'idle' && localUpdateState.file && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', justifyContent: 'center' }}>
-                    <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>تطبيق حزمة التحديث اليدوية (.ZIP)</h3>
-                      <div className="muted small">تثبيت ملف التحديث المعتمد محلياً</div>
-                    </div>
-                  </div>
-
-                  <div style={{ padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: 16, textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{localUpdateState.file.name}</div>
-                    <div className="muted small" style={{ marginTop: 2 }}>حجم الحزمة: {(localUpdateState.file.size / 1024 / 1024).toFixed(2)} ميجابايت</div>
-                  </div>
-
-                  <div className="system-passcode-input-box">
-                    <label>كود تفعيل التحديث المعتمد (Passcode):</label>
-                    <input
-                      type="text"
-                      className="system-passcode-field"
-                      placeholder="ZS-UPD-XXXX-XXXX"
-                      value={localUpdateState.passcode}
-                      onChange={(e) => setLocalUpdateState(s => ({ ...s, passcode: e.target.value }))}
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <div style={{
+              width: '100%',
+              maxWidth: '540px',
+              background: '#ffffff',
+              borderRadius: '20px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)',
+              overflow: 'hidden',
+              textAlign: 'right',
+              color: '#0f172a',
+              position: 'relative'
+            }}>
+              <div style={{ padding: '24px 28px 26px' }}>
+                {/* Header with Brand & Close */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img 
+                      src="./brand/z-erp-approved-icon.png" 
+                      alt="Z-ERP" 
+                      style={{ width: '38px', height: '38px', objectFit: 'contain', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.12))' }} 
                     />
-                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>
-                      يرجى إدخال كود الترخيص لفك تشفير وتطبيق الحزمة.
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+                        تطبيق حزمة التحديث (.ZIP)
+                      </h3>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>تثبيت وترقية المنظومة محلياً من ملف معتمد</div>
                     </div>
                   </div>
+                  {localUpdateState.status !== 'uploading' && localUpdateState.status !== 'success' && (
+                    <button
+                      type="button"
+                      onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="إغلاق"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
 
-                  <div style={{ background: '#fffbeb', color: '#92400e', padding: 12, borderRadius: 10, fontSize: '12px', marginBottom: 16, border: '1px solid #fde68a', lineHeight: 1.5, textAlign: 'right' }}>
-                    <strong>إجراء الأمان</strong>: سيتم أخذ نسخة احتياطية كاملة لقاعدة البيانات والملفات تلقائياً، وتطبيق الباتش وإعادة تشغيل الخادم فوراً.
-                  </div>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <Button variant="primary" style={{ flex: 1, fontWeight: 800 }} onClick={handleApplyLocalUpdate}>تأكيد وبدء التثبيت</Button>
-                    <Button variant="secondary" onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>إلغاء</Button>
-                  </div>
-                </>
-              )}
-              {(localUpdateState.status === 'uploading' || localUpdateState.status === 'success') && (
-                <div style={{
-                  padding: '42px 24px 34px',
-                  background: 'linear-gradient(150deg, #0d0630 0%, #160a4f 50%, #080320 100%)',
-                  borderRadius: '20px',
-                  color: '#ffffff',
-                  boxShadow: '0 25px 55px rgba(10, 4, 45, 0.65)',
-                  border: '1px solid rgba(139, 92, 246, 0.35)',
-                  textAlign: 'center',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  {/* Ambient glowing orb */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '-70px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '260px',
-                    height: '260px',
-                    background: 'radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(0,0,0,0) 75%)',
-                    pointerEvents: 'none'
-                  }} />
-
-                  {/* Pulsing Brand Icon */}
-                  <div style={{
-                    width: '76px',
-                    height: '76px',
-                    borderRadius: '24px',
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 20px',
-                    boxShadow: '0 0 35px rgba(124, 58, 237, 0.6), inset 0 1px 2px rgba(255,255,255,0.4)',
-                    border: '1.5px solid rgba(255, 255, 255, 0.3)',
-                    position: 'relative'
-                  }}>
-                    {progressInfo.percent === 100 ? (
-                      <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#34d399" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#ffffff" strokeWidth="2.2" style={{ animation: 'spin 2s linear infinite' }}>
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                      </svg>
-                    )}
-                  </div>
-
-                  {/* Dynamic Phase Title */}
-                  <h3 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.3px', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-                    {progressInfo.stepTitle || 'جاري تطبيق الترقية البرمجية...'}
-                  </h3>
-
-                  {/* Phase Description */}
-                  <p style={{ margin: '0 auto 24px', fontSize: '13px', color: '#c7d2fe', lineHeight: 1.6, maxWidth: '440px' }}>
-                    {progressInfo.stepDesc || 'يرجى الانتظار، يتم إعداد وتحديث الملفات بدقة وأمان'}
-                  </p>
-
-                  {/* Step Indicators (4 Steps) */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: '6px',
-                    marginBottom: '20px',
-                    padding: '8px 10px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)'
-                  }}>
-                    {[
-                      { stepNum: 1, label: 'تنزيل الحزمة' },
-                      { stepNum: 2, label: 'نقطة استعادة' },
-                      { stepNum: 3, label: 'تثبيت وترقية' },
-                      { stepNum: 4, label: 'إعادة التشغيل' },
-                    ].map((st) => {
-                      const isDone = (progressInfo.step || 1) > st.stepNum || progressInfo.percent === 100;
-                      const isActive = (progressInfo.step || 1) === st.stepNum && progressInfo.percent < 100;
-                      return (
-                        <div key={st.stepNum} style={{
-                          padding: '6px 4px',
-                          borderRadius: '8px',
-                          background: isDone ? 'rgba(52, 211, 153, 0.15)' : isActive ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
-                          border: isDone ? '1px solid rgba(52, 211, 153, 0.3)' : isActive ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid transparent',
-                          color: isDone ? '#34d399' : isActive ? '#ffffff' : '#64748b',
-                          fontSize: '11px',
-                          fontWeight: isActive || isDone ? 800 : 600,
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <div style={{ fontSize: '12px', marginBottom: '2px' }}>{isDone ? '✓' : st.stepNum}</div>
-                          <div>{st.label}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Progress Bar Container */}
-                  <div style={{
-                    background: 'rgba(0, 0, 0, 0.4)',
-                    borderRadius: '999px',
-                    height: '14px',
-                    padding: '2px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    marginBottom: '12px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
-                  }}>
+                {localUpdateState.status === 'idle' && localUpdateState.file && (
+                  <>
+                    {/* File Metadata Panel */}
                     <div style={{
-                      width: `${progressInfo.percent}%`,
-                      height: '100%',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      marginBottom: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{localUpdateState.file.name}</div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                            حجم الحزمة: {(localUpdateState.file.size / 1024 / 1024).toFixed(2)} ميجابايت
+                          </div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
+                        جاهز للتثبيت
+                      </span>
+                    </div>
+
+                    {/* Passcode Input */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                        كود تفعيل التحديث المعتمد:
+                      </label>
+                      <input
+                        type="text"
+                        style={{
+                          width: '100%',
+                          height: '44px',
+                          background: '#f8fafc',
+                          border: '1.5px solid #cbd5e1',
+                          borderRadius: '10px',
+                          color: '#0f172a',
+                          padding: '0 14px',
+                          fontSize: '14.5px',
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          direction: 'ltr',
+                          textAlign: 'center',
+                          outline: 'none',
+                          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                        placeholder="ZS-UPD-XXXX-XXXX"
+                        value={localUpdateState.passcode}
+                        onChange={(e) => setLocalUpdateState(s => ({ ...s, passcode: e.target.value }))}
+                      />
+                    </div>
+
+                    {/* Security Notice */}
+                    <div style={{
+                      padding: '10px 14px',
+                      background: '#f0fdf4',
+                      borderRadius: '10px',
+                      border: '1px solid #bbf7d0',
+                      fontSize: '12px',
+                      color: '#166534',
+                      lineHeight: 1.5,
+                      marginBottom: '20px',
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'center'
+                    }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16a34a" strokeWidth="2.2" style={{ flexShrink: 0 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                      <span><strong>إجراء الأمان</strong>: سيتم أخذ نسخة احتياطية آمنة لقاعدة البيانات والملفات تلقائياً قبل الترقية.</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <Button
+                        variant="primary"
+                        style={{
+                          flex: 1,
+                          height: '44px',
+                          fontWeight: 800,
+                          borderRadius: '10px',
+                          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+                          border: 'none',
+                          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)'
+                        }}
+                        onClick={handleApplyLocalUpdate}
+                      >
+                        تأكيد وبدء التثبيت
+                      </Button>
+                      <Button variant="secondary" style={{ height: '44px', borderRadius: '10px' }} onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>
+                        إلغاء
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {(localUpdateState.status === 'uploading' || localUpdateState.status === 'success') && (
+                  <div style={{ textAlign: 'center', padding: '14px 0 6px' }}>
+                    {/* Status Animated Icon */}
+                    <div style={{
+                      width: '68px',
+                      height: '68px',
+                      borderRadius: '20px',
+                      background: progressInfo.percent === 100 ? '#ecfdf5' : '#eff6ff',
+                      border: progressInfo.percent === 100 ? '1.5px solid #a7f3d0' : '1.5px solid #bfdbfe',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 18px',
+                      boxShadow: progressInfo.percent === 100 ? '0 10px 25px rgba(16, 185, 129, 0.2)' : '0 10px 25px rgba(37, 99, 235, 0.15)'
+                    }}>
+                      {progressInfo.percent === 100 ? (
+                        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#059669" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#2563eb" strokeWidth="2.2" style={{ animation: 'spin 1.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                      )}
+                    </div>
+
+                    <h3 style={{ margin: '0 0 6px', fontSize: '19px', fontWeight: 800, color: '#0f172a' }}>
+                      {progressInfo.stepTitle || 'جاري تطبيق الترقية البرمجية...'}
+                    </h3>
+                    <p style={{ margin: '0 auto 22px', fontSize: '13px', color: '#64748b', lineHeight: 1.5, maxWidth: '420px' }}>
+                      {progressInfo.stepDesc || 'يرجى الانتظار حتى اكتمال الترقية بأمان'}
+                    </p>
+
+                    {/* 4 Step Badges */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '22px' }}>
+                      {[
+                        { stepNum: 1, label: 'تنزيل الحزمة' },
+                        { stepNum: 2, label: 'نقطة استعادة' },
+                        { stepNum: 3, label: 'تثبيت وترقية' },
+                        { stepNum: 4, label: 'إعادة التشغيل' },
+                      ].map((st) => {
+                        const isDone = (progressInfo.step || 1) > st.stepNum || progressInfo.percent === 100;
+                        const isActive = (progressInfo.step || 1) === st.stepNum && progressInfo.percent < 100;
+                        return (
+                          <div key={st.stepNum} style={{
+                            padding: '8px 4px',
+                            borderRadius: '10px',
+                            background: isDone ? '#ecfdf5' : isActive ? '#eff6ff' : '#f8fafc',
+                            border: isDone ? '1px solid #a7f3d0' : isActive ? '1.5px solid #93c5fd' : '1px solid #e2e8f0',
+                            color: isDone ? '#059669' : isActive ? '#1d4ed8' : '#64748b',
+                            fontSize: '11.5px',
+                            fontWeight: isActive || isDone ? 800 : 600
+                          }}>
+                            <div style={{ fontSize: '12px', marginBottom: '2px' }}>{isDone ? '✓' : st.stepNum}</div>
+                            <div>{st.label}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Sleek Precision Progress Bar */}
+                    <div style={{
+                      background: '#f1f5f9',
                       borderRadius: '999px',
-                      background: 'linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #10b981 100%)',
-                      boxShadow: '0 0 20px rgba(52, 211, 153, 0.8)',
-                      transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }} />
-                  </div>
+                      height: '12px',
+                      padding: '2px',
+                      border: '1px solid #e2e8f0',
+                      marginBottom: '12px',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        width: `${progressInfo.percent}%`,
+                        height: '100%',
+                        borderRadius: '999px',
+                        background: 'linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #10b981 100%)',
+                        boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)',
+                        transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }} />
+                    </div>
 
-                  {/* Percentage & Status Indicator */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#a5b4fc', fontWeight: 700, marginBottom: '22px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', display: 'inline-block', boxShadow: '0 0 8px #34d399' }} />
-                      التقدم العام للترقية
-                    </span>
-                    <span style={{ fontSize: '16px', fontWeight: 900, color: '#ffffff', fontFamily: 'monospace' }}>{progressInfo.percent}%</span>
-                  </div>
+                    {/* Percentage */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#64748b', fontWeight: 700, marginBottom: '20px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                        التقدم العام للترقية
+                      </span>
+                      <span style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', fontFamily: 'monospace' }}>{progressInfo.percent}%</span>
+                    </div>
 
-                  {/* Security Reassurance Banner */}
-                  <div style={{
-                    padding: '12px 16px',
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    fontSize: '12px',
-                    color: '#e0e7ff',
-                    lineHeight: 1.6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px'
-                  }}>
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#34d399" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                    <span><strong>حماية البيانات نشطة</strong>: تم تأمين قاعدة البيانات والملفات تلقائياً، وسيعود البرنامج للعمل فوراً.</span>
+                    {/* Security Badge */}
+                    <div style={{
+                      padding: '11px 16px',
+                      background: '#f8fafc',
+                      borderRadius: '10px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '12px',
+                      color: '#475569',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}>
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#10b981" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                      <span>حماية البيانات نشطة: تم تأمين قاعدة البيانات والملفات تلقائياً.</span>
+                    </div>
                   </div>
-                </div>
-              )}
-              {localUpdateState.status === 'error' && (
-                <div style={{ padding: '24px 16px' }}>
-                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                )}
+
+                {localUpdateState.status === 'error' && (
+                  <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid #fecaca' }}>
+                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </div>
+                    <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#991b1b' }}>تعذر تطبيق التحديث</h4>
+                    <p style={{ margin: '8px auto 0', fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>{localUpdateState.error}</p>
+                    <div style={{ marginTop: '20px' }}>
+                      <Button variant="secondary" style={{ borderRadius: '10px' }} onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>
+                        إغلاق
+                      </Button>
+                    </div>
                   </div>
-                  <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#991b1b' }}>فشل تثبيت التحديث</h4>
-                  <p className="muted small" style={{ marginTop: 8, lineHeight: 1.6 }}>{localUpdateState.error}</p>
-                  <div style={{ marginTop: 22 }}>
-                    <Button variant="secondary" onClick={() => setLocalUpdateState(s => ({ ...s, open: false }))}>إغلاق</Button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </DialogShell>
+          </div>
         </ClientPortal>
       )}
     </div>
