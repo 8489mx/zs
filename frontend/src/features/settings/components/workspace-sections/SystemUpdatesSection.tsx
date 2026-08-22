@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { resolveRequestUrl, http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
@@ -23,8 +24,24 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
   const authDeploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
   const effectiveDeploymentMode = deploymentMode ?? authDeploymentMode;
 
+  // Direct releases history query from backend
+  const { data: directHistory = [], isLoading: isHistoryLoading } = useQuery<any[]>({
+    queryKey: ['system-releases-history'],
+    queryFn: async () => {
+      try {
+        const res = await http<any[]>('/api/updates/history');
+        if (Array.isArray(res) && res.length > 0) return res;
+      } catch (err) {
+        console.warn('Failed to load direct history:', err);
+      }
+      return [];
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
   // Update checker hooks
-  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt, isLoading: isCheckingHistory } = useOfflineUpdateCheck(effectiveDeploymentMode);
+  const { data: updateInfo, refetch: checkUpdates, isFetching: isCheckingUpdates, dataUpdatedAt, isLoading: isCheckingUpdateInfo } = useOfflineUpdateCheck(effectiveDeploymentMode);
   
   const [updateCheckResult, setUpdateCheckResult] = useState<{ open: boolean; type: 'checking' | 'up-to-date' | 'error' | 'available'; data?: any } | null>(null);
   const [selectedReleaseIndex, setSelectedReleaseIndex] = useState<number | null>(null);
@@ -205,7 +222,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
     }
   };
 
-  const updateHistory = updateInfo?.releases || [];
+  const updateHistory = (directHistory && directHistory.length > 0) ? directHistory : (updateInfo?.releases || []);
   const selectedRelease = selectedReleaseIndex !== null && updateHistory ? updateHistory[selectedReleaseIndex] : null;
 
   return (
@@ -353,7 +370,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
         </div>
 
         <div className="system-releases-list">
-          {isCheckingHistory ? (
+          {isHistoryLoading && (!updateHistory || updateHistory.length === 0) ? (
             <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
               جارِ فحص وتحديث سجل الإصدارات من السيرفر...
             </div>
