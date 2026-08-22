@@ -193,13 +193,24 @@ if ((-not [string]::IsNullOrWhiteSpace($localPatchPath)) -and (Test-Path $localP
   $downloadSuccess = $false
   if (-not [string]::IsNullOrWhiteSpace($patchUrl)) {
     try {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
       Write-Log "Downloading from $patchUrl ..."
-      Invoke-WebRequest -Uri $patchUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300
+      $webClient = New-Object System.Net.WebClient
+      $webClient.Headers.Add('User-Agent', 'Z-ERP-Desktop-Updater')
+      $webClient.DownloadFile($patchUrl, $zipPath)
       $sizeMB = [Math]::Round((Get-Item $zipPath).Length / 1MB, 1)
       Write-Log "Download complete ($sizeMB MB)"
       $downloadSuccess = $true
     } catch {
-      Write-Log "Notice: Download failed ($($_.Exception.Message)), searching local releases..."
+      Write-Log "Notice: WebClient download failed ($($_.Exception.Message)), trying Invoke-WebRequest..."
+      try {
+        Invoke-WebRequest -Uri $patchUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300 -Headers @{ 'User-Agent' = 'Z-ERP-Desktop-Updater' }
+        $sizeMB = [Math]::Round((Get-Item $zipPath).Length / 1MB, 1)
+        Write-Log "Invoke-WebRequest download complete ($sizeMB MB)"
+        $downloadSuccess = $true
+      } catch {
+        Write-Log "Notice: Download failed ($($_.Exception.Message)), searching local releases..."
+      }
     }
   }
 

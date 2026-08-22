@@ -740,20 +740,40 @@ export class OfflineReleasesService implements OnModuleInit {
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
     const applyScript = path.join(portableRoot, 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
-    if (fs.existsSync(applyScript)) {
-      const ps = spawn(
-        'powershell.exe',
-        [
-          '-ExecutionPolicy', 'Bypass',
-          '-NonInteractive',
-          '-WindowStyle', 'Hidden',
-          '-File', applyScript,
-          '-PortableRoot', portableRoot,
-        ],
-        { detached: true, stdio: 'ignore', windowsHide: true },
-      );
-      ps.unref();
+    if (!fs.existsSync(applyScript)) {
+      throw new BadRequestException('ApplyAndRestart.ps1 not found at: ' + applyScript);
     }
+
+    const logsDir = path.join(portableRoot, 'runtime', 'logs');
+    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+    const spawnLog = path.join(logsDir, 'update-spawn.log');
+
+    const psCommand = 'cmd.exe';
+    const psArgs = [
+      '/c', 'start', '""', '/min',
+      'powershell.exe',
+      '-ExecutionPolicy', 'Bypass',
+      '-NoProfile',
+      '-File', applyScript,
+      '-PortableRoot', portableRoot
+    ];
+
+    fs.writeFileSync(spawnLog, JSON.stringify({
+      scriptPath: applyScript,
+      pendingFilePath: pendingFile,
+      localPatchPath: resolvedLocalPatchPath,
+      patchUrl: body.patchUrl,
+      cwd: process.cwd(),
+      command: psCommand + ' ' + psArgs.join(' ')
+    }, null, 2), 'utf8');
+
+    const ps = spawn(psCommand, psArgs, {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+      cwd: portableRoot
+    });
+    ps.unref();
 
     setTimeout(() => process.exit(0), 1500);
 
