@@ -172,6 +172,7 @@ export interface AppSettings {
   posShowCartMeta?: boolean;
   clothingModuleEnabled?: boolean;
   enableMobileStoreFeatures?: boolean;
+  enablePharmacyModule?: boolean;
   maintenanceProfile?: string;
   enableEnterpriseFeatures?: boolean;
   technicianCommissionRate?: number;

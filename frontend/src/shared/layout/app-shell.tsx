@@ -101,9 +101,23 @@ const iconToneMap: Record<string, IconTone> = {
   'inventory-tree': { bg: 'linear-gradient(135deg, #ccfbf1, #99f6e4)', border: '#5eead4', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.22)' },
   'product-categories': { bg: 'linear-gradient(135deg, #ccfbf1, #99f6e4)', border: '#5eead4', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.22)' },
   expenses: { bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', border: '#fca5a5', fg: '#b91c1c', glow: 'rgba(239, 68, 68, 0.2)' },
+  pharmacy: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#15803d', glow: 'rgba(34, 197, 94, 0.22)' },
+  'pharmacy-dashboard': { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#15803d', glow: 'rgba(34, 197, 94, 0.22)' },
+  'pharmacy-drugs': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'pharmacy-prescriptions': { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#047857', glow: 'rgba(16, 185, 129, 0.22)' },
+  'pharmacy-shortages': { bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', border: '#fca5a5', fg: '#b91c1c', glow: 'rgba(239, 68, 68, 0.2)' },
+  'pharmacy-batches': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#a16207', glow: 'rgba(245, 158, 11, 0.24)' },
+  'pharmacy-clinical': { bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', border: '#c4b5fd', fg: '#6d28d9', glow: 'rgba(124, 58, 237, 0.22)' },
 };
 
 const iconPathMap: Record<string, string> = {
+  pharmacy: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7ZM12 5v6M9 8h6',
+  'pharmacy-dashboard': 'M4 11h16M6 9l6-5 6 5v10H6V9z',
+  'pharmacy-drugs': 'M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7zm-2-2l7-7',
+  'pharmacy-prescriptions': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M9 13h6M9 17h6',
+  'pharmacy-shortages': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
+  'pharmacy-batches': 'M12 8v4l3 3M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z',
+  'pharmacy-clinical': 'M22 12h-4l-3 9L9 3l-3 9H2',
   dashboard: 'M4 11h16M6 9l6-5 6 5v10H6V9z',
   pos: 'M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4',
   'cash-drawer': 'M3 10h18v10H3V10zm3-6h12v4H6V4zm6 9v2m-4 0h8',
@@ -317,6 +331,14 @@ export function AppShell({ children }: PropsWithChildren) {
       'trade-in',
       'imei-history',
 
+      // 5.5. Pharmacy & Medications (Conditional)
+      'pharmacy-dashboard',
+      'pharmacy-drugs',
+      'pharmacy-prescriptions',
+      'pharmacy-shortages',
+      'pharmacy-batches',
+      'pharmacy-clinical',
+
       // 6. Import & Containers (Conditional)
       'import-shipments',
       'import-supplier-credit',
@@ -376,6 +398,12 @@ export function AppShell({ children }: PropsWithChildren) {
       maintenance: 'تذاكر الصيانة',
       'trade-in': 'شراء واستبدال الأجهزة',
       'imei-history': maintenanceProfile.sidebarSerialLabel,
+      'pharmacy-dashboard': 'لوحة تحكم الصيدلية',
+      'pharmacy-drugs': 'دليل الأدوية والبدائل',
+      'pharmacy-prescriptions': 'الروشتات والتأمين',
+      'pharmacy-shortages': 'كشكول النواقص',
+      'pharmacy-batches': 'الصلاحيات والمرتجعات',
+      'pharmacy-clinical': 'الفحوصات والخدمات',
       'import-shipments': 'إدارة الحاويات والشحن',
       'import-supplier-credit': 'مديونية الصين (المورد)',
       'import-profit-pool': 'أرباح الشركاء (نهاية المدة)',
@@ -402,6 +430,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'tax-dispatcher' && !isEtaActive) return false;
         if (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true) return false;
         if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && settings?.enableMobileStoreFeatures !== true) return false;
+        if (item.key?.startsWith('pharmacy-') && settings?.enablePharmacyModule !== true) return false;
         if (item.key?.startsWith('manufacturing-') && settings?.manufacturingModuleEnabled !== true) return false;
         return true;
       })
@@ -411,7 +440,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.manufacturingModuleEnabled]);
+  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
@@ -423,6 +452,7 @@ export function AppShell({ children }: PropsWithChildren) {
       { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'], iconKey: 'inventory' },
       { key: 'accounting-group', label: t('sidebar.accounting-group', 'المالية والمحاسبة'), itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings'], iconKey: 'treasury' },
       { key: 'mobile-group', label: maintenanceProfile.sidebarTitle, itemKeys: ['maintenance', 'trade-in', 'imei-history'], iconKey: 'mobile' },
+      { key: 'pharmacy-group', label: 'قسم الصيدلية والأدوية', itemKeys: ['pharmacy-dashboard', 'pharmacy-drugs', 'pharmacy-prescriptions', 'pharmacy-shortages', 'pharmacy-batches', 'pharmacy-clinical'], iconKey: 'pharmacy' },
       { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'], iconKey: 'import' },
       { key: 'manufacturing-group', label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'], iconKey: 'manufacturing' },
       { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },

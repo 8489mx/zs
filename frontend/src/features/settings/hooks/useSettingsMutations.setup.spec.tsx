@@ -54,6 +54,7 @@ const baseSettingsMutationValues = {
   printDeliveryRepOnReceipt: false,
   clothingModuleEnabled: false,
   enableMobileStoreFeatures: false,
+  enablePharmacyModule: false,
   maintenanceProfile: 'mobile',
   enableEnterpriseFeatures: false,
   technicianCommissionRate: 30,

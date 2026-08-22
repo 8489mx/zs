@@ -1889,6 +1889,11 @@ export interface Database {
   maintenance_tickets: MaintenanceTicketTable;
   maintenance_ticket_parts: MaintenanceTicketPartTable;
   trade_in_transactions: TradeInTransactionTable;
+  pharmacy_drugs: PharmacyDrugTable;
+  pharmacy_batches: PharmacyBatchTable;
+  pharmacy_prescriptions: PharmacyPrescriptionTable;
+  pharmacy_shortages: PharmacyShortageTable;
+  pharmacy_clinical_services: PharmacyClinicalServiceTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -1945,4 +1950,109 @@ export interface FeatureTable {
 export interface PlanFeatureTable {
   plan_id: string;
   feature_code: string;
+}
+
+export interface PharmacyDrugTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  product_id: number | null;
+  trade_name: string;
+  trade_name_ar: string | null;
+  active_ingredient: string;
+  active_ingredient_ar: string | null;
+  dosage_form: string;
+  strength: string | null;
+  manufacturer: string | null;
+  drug_class: string | null;
+  prescription_required: boolean;
+  controlled_level: string;
+  units_per_box: number;
+  unit_name: string;
+  strip_price: number | string;
+  box_price: number | string;
+  pregnancy_safety: string | null;
+  storage_condition: string | null;
+  barcode: string | null;
+  indications: string | null;
+  side_effects: string | null;
+  created_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface PharmacyBatchTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  product_id: number | null;
+  drug_id: number | null;
+  batch_number: string;
+  expiry_date: string;
+  quantity: number | string;
+  unit_cost: number | string;
+  location_id: number | null;
+  supplier_name: string | null;
+  status: string;
+  notes: string | null;
+  created_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface PharmacyPrescriptionTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  prescription_no: string;
+  customer_id: number | null;
+  customer_name: string;
+  customer_phone: string | null;
+  doctor_name: string | null;
+  doctor_specialty: string | null;
+  diagnosis: string | null;
+  insurance_provider: string | null;
+  insurance_card_no: string | null;
+  approval_code: string | null;
+  patient_copay_percent: number | string;
+  total_amount: number | string;
+  patient_amount: number | string;
+  insurance_amount: number | string;
+  status: string;
+  items_json: string;
+  dispensed_by: string | null;
+  dispensed_at: ColumnType<Date, string | undefined, string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface PharmacyShortageTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  product_name: string;
+  active_ingredient: string | null;
+  dosage_form: string | null;
+  suggested_distributor: string | null;
+  requested_quantity: number | string;
+  priority: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  status: string;
+  notes: string | null;
+  created_at: ColumnType<Date, string | undefined, string | undefined>;
+  updated_at: ColumnType<Date, string | undefined, string | undefined>;
+}
+
+export interface PharmacyClinicalServiceTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  service_type: string;
+  customer_name: string;
+  customer_phone: string | null;
+  metric_value_1: string | null;
+  metric_value_2: string | null;
+  pharmacist_notes: string | null;
+  fee: number | string;
+  created_at: ColumnType<Date, string | undefined, string | undefined>;
 }

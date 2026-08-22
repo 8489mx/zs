@@ -38,6 +38,7 @@ import { TaxIntegrationModule } from './modules/tax-integration/tax-integration.
 import { ImportSalesModule } from './modules/import-sales/import-sales.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { TradeInModule } from './modules/tradein/tradein.module';
+import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { TradeInModule } from './modules/tradein/tradein.module';
     ImportSalesModule,
     MaintenanceModule,
     TradeInModule,
+    PharmacyModule,
   ],
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })
