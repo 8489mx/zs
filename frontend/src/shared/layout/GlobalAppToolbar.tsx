@@ -57,12 +57,11 @@ export function GlobalAppToolbar() {
               title={`يتوفر تحديث جديد للمنظومة (v${updateInfo.latestVersion}) — اضغط للترقية`}
             >
               <span className="system-update-pulse-dot" />
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
+              <span className="system-update-toolbar-label">تحديث جديد</span>
+              <span className="system-update-toolbar-version">v{updateInfo.latestVersion}</span>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" className="system-update-arrow-icon">
+                <polyline points="15 18 9 12 15 6" />
               </svg>
-              <span>تحديث جديد v{updateInfo.latestVersion}</span>
             </button>
           )}
           <div className="purchase-prototype-search-container" role="search">
