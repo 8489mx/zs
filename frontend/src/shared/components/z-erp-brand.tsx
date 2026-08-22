@@ -1,5 +1,3 @@
-import { CSSProperties } from 'react';
-
 type ZErpIconProps = {
   className?: string;
   size?: number;
@@ -8,11 +6,26 @@ type ZErpIconProps = {
 
 export function ZErpIcon({ className = '', size = 40, title = 'Z ERP' }: ZErpIconProps) {
   return (
-    <span
-      className={`z-erp-icon ${className}`.trim()}
-      role="img"
-      aria-label={title}
-      style={{ '--z-erp-icon-size': `${size}px` } as CSSProperties}
+    <img
+      src="./brand/z-erp-approved-icon.png"
+      alt={title}
+      title={title}
+      className={`z-erp-icon-img ${className}`.trim()}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        objectFit: 'contain',
+        verticalAlign: 'middle',
+        display: 'inline-block',
+        flexShrink: 0
+      }}
+      onError={(e) => {
+        const img = e.currentTarget;
+        if (!img.dataset.failed) {
+          img.dataset.failed = '1';
+          img.src = '/brand/z-erp-approved-icon.png';
+        }
+      }}
     />
   );
 }

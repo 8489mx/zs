@@ -49,9 +49,9 @@
 }
 
 .brand {
-  min-height: 78px;
-  gap: 8px;
-  padding: 8px 8px;
+  min-height: 84px;
+  gap: 10px;
+  padding: 8px 10px;
 }
 
 .brand-copy {
@@ -63,11 +63,11 @@
 
 .brand-logo {
   position: relative;
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 62px;
+  height: 62px;
+  border-radius: 14px;
   overflow: visible;
-  flex: 0 0 52px;
+  flex: 0 0 62px;
   background: transparent;
   box-shadow: none;
   display: flex;
@@ -77,21 +77,27 @@
 }
 
 .brand-logo-img {
-  width: 44px;
-  height: 44px;
+  width: 58px;
+  height: 58px;
   object-fit: contain;
   display: block;
   margin: 0 auto;
-  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.1));
+  filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.18));
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .brand-logo:hover .brand-logo-img {
-  opacity: 0.88;
+  opacity: 0.92;
+  transform: scale(1.04);
 }
 
 .brand-logo:active .brand-logo-img {
   transform: scale(0.96);
+}
+
+.z-erp-icon-img {
+  filter: drop-shadow(0 4px 12px rgba(23, 12, 92, 0.2));
+  transition: transform 0.2s ease;
 }
 
 .brand-logo .z-mark,
