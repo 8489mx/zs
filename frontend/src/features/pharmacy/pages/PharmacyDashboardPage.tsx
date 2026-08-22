@@ -8,6 +8,17 @@ import { pharmacyApi } from '../api/pharmacy.api';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { GenericSubstitutesModal } from '../components/GenericSubstitutesModal';
 import { DoseStickerPrintModal } from '../components/DoseStickerPrintModal';
+import {
+  IconPill,
+  IconPrescription,
+  IconShortage,
+  IconExpiry,
+  IconStethoscope,
+  IconSparkles,
+  IconTag,
+  IconArrowLeft,
+  IconRefresh,
+} from '../components/PharmacyIcons';
 import type { PharmacyShortage } from '../types/pharmacy.types';
 
 export default function PharmacyDashboardPage() {
@@ -55,17 +66,24 @@ export default function PharmacyDashboardPage() {
               <Button
                 variant="primary"
                 onClick={() => setStickerModalOpen(true)}
-                style={{ background: '#16a34a', borderColor: '#16a34a' }}
+                style={{ background: '#16a34a', borderColor: '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                🏷️ طباعة استيكر جرعة
+                <IconTag size={16} />
+                <span>طباعة استيكر جرعة</span>
               </Button>
-              <Link to="/pharmacy/prescriptions">
-                <Button variant="secondary">
-                  📝 صرف روشتة
+              <Link to="/pharmacy/prescriptions" style={{ textDecoration: 'none' }}>
+                <Button variant="secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconPrescription size={16} />
+                  <span>صرف روشتة</span>
                 </Button>
               </Link>
-              <Button variant="secondary" onClick={() => void statsQuery.refetch()}>
-                تحديث
+              <Button
+                variant="secondary"
+                onClick={() => void statsQuery.refetch()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconRefresh size={16} />
+                <span>تحديث</span>
               </Button>
             </div>
           }
@@ -74,49 +92,49 @@ export default function PharmacyDashboardPage() {
         {/* Top 4 KPI Metrics Summary Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
           <Link to="/pharmacy/drugs" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'border-color 0.15s ease' }}>
               <div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>دليل الأدوية المسجلة</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>{stats.totalDrugs}</div>
               </div>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7zm-2-2l7-7"></path></svg>
+                <IconPill size={20} />
               </div>
             </div>
           </Link>
 
           <Link to="/pharmacy/shortages" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'border-color 0.15s ease' }}>
               <div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>كشكول النواقص المطلوبة</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>{stats.neededShortages}</div>
               </div>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>
+                <IconShortage size={20} />
               </div>
             </div>
           </Link>
 
           <Link to="/pharmacy/prescriptions" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'border-color 0.15s ease' }}>
               <div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>الروشتات المصروفة</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{stats.dispensedPrescriptions}</div>
               </div>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"></path><path d="M14 3v5h5M9 13h6M9 17h6"></path></svg>
+                <IconPrescription size={20} />
               </div>
             </div>
           </Link>
 
           <Link to="/pharmacy/batches" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'border-color 0.15s ease' }}>
               <div>
                 <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>التشغيلات والصلاحيات</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#d97706', marginTop: '2px' }}>{stats.totalBatches}</div>
               </div>
               <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <IconExpiry size={20} />
               </div>
             </div>
           </Link>
@@ -140,7 +158,7 @@ export default function PharmacyDashboardPage() {
         >
           <div style={{ maxWidth: '620px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.2rem' }}>⚡</span>
+              <IconSparkles size={20} color="#ffffff" />
               <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
                 محرك البحث الفوري عن بدائل ومثائل الأدوية (Generics Finder)
               </h2>
@@ -186,11 +204,12 @@ export default function PharmacyDashboardPage() {
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '1.1rem' }}>📋</span>
+                <IconShortage size={18} color="#0f172a" />
                 <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>أحدث النواقص بكشكول الصيدلية</strong>
               </div>
-              <Link to="/pharmacy/shortages" style={{ fontSize: '0.78rem', color: '#0284c7', textDecoration: 'none', fontWeight: 700 }}>
-                عرض الكشكول بالكامل 🠄
+              <Link to="/pharmacy/shortages" style={{ fontSize: '0.78rem', color: '#0284c7', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>عرض الكشكول بالكامل</span>
+                <IconArrowLeft size={14} />
               </Link>
             </div>
 
@@ -198,7 +217,7 @@ export default function PharmacyDashboardPage() {
               <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</div>
             ) : shortagesQuery.data?.shortages.length === 0 ? (
               <div style={{ padding: '28px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
-                🎉 لا توجد نواقص مسجلة حالياً
+                لا توجد نواقص مسجلة حالياً
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -256,15 +275,15 @@ export default function PharmacyDashboardPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem' }}>
-                  💊
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <IconPill size={20} />
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>دليل الأدوية وتجزئة الشرائط (Fractions)</strong>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>تسجيل المواد الفعالة، تسعير العلبة والشريط، وتصنيف الجداول</div>
                 </div>
               </div>
-              <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>🠄</span>
+              <IconArrowLeft size={16} color="#94a3b8" />
             </Link>
 
             <Link
@@ -282,15 +301,15 @@ export default function PharmacyDashboardPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem' }}>
-                  🧾
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <IconPrescription size={20} />
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>الروشتات الطبية والتأمين الصحي (Co-Pay)</strong>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>صرف الروشتات، حساب نسب التحمل، وأكواد الموافقات الطبية</div>
                 </div>
               </div>
-              <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>🠄</span>
+              <IconArrowLeft size={16} color="#94a3b8" />
             </Link>
 
             <Link
@@ -308,15 +327,15 @@ export default function PharmacyDashboardPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ede9fe', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem' }}>
-                  🩺
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ede9fe', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <IconStethoscope size={20} />
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>سجل الفحوصات والخدمات الإكلينيكية</strong>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>قياس الضغط، السكر، الوزن، وحقن المرضى مع حفظ التاريخ الطبي</div>
                 </div>
               </div>
-              <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>🠄</span>
+              <IconArrowLeft size={16} color="#94a3b8" />
             </Link>
 
             <Link
@@ -334,15 +353,15 @@ export default function PharmacyDashboardPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem' }}>
-                  ⏳
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <IconExpiry size={20} />
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>رادار الصلاحيات ومرتجعات الشركات</strong>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>حصر الأدوية الوشيكة الانتهاء وتجهيز أذون الإرجاع للموزعين</div>
                 </div>
               </div>
-              <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>🠄</span>
+              <IconArrowLeft size={16} color="#94a3b8" />
             </Link>
           </div>
         </div>

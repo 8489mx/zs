@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { Button } from '@/shared/ui/button';
 import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyDrug } from '../types/pharmacy.types';
+import { IconSparkles, IconPill, IconShield } from './PharmacyIcons';
 
 interface Props {
   open: boolean;
@@ -42,7 +44,8 @@ export function GenericSubstitutesModal({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>💊</span> بدائل ومثائل الدواء (Generic Substitutes)
+              <IconSparkles size={20} color="#0284c7" />
+              <span>بدائل ومثائل الدواء (Generic Substitutes)</span>
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#64748b' }}>
               المادة الفعالة: <strong style={{ color: '#0284c7' }}>{activeIngredient}</strong> {strength ? ('(' + strength + ')') : ''}
@@ -63,7 +66,9 @@ export function GenericSubstitutesModal({
             <div style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>جاري البحث عن البدائل والمثائل المتوفرة...</div>
           ) : substitutes.length === 0 ? (
             <div style={{ padding: '36px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                <IconPill size={32} color="#94a3b8" />
+              </div>
               <strong style={{ color: '#334155' }}>لم يتم العثور على بدائل مسجلة بنفس المادة الفعالة</strong>
               <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
                 يمكنك تسجيل بدائل أخرى من دليل الأدوية أو البحث بتركيز مختلف.
@@ -91,8 +96,9 @@ export function GenericSubstitutesModal({
                       <strong style={{ fontSize: '0.96rem', color: '#0f172a' }}>{drug.trade_name}</strong>
                       {drug.trade_name_ar && <span style={{ fontSize: '0.84rem', color: '#64748b' }}>({drug.trade_name_ar})</span>}
                       {drug.controlled_level !== 'none' && (
-                        <span style={{ fontSize: '0.72rem', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                          جدول أدوية
+                        <span style={{ fontSize: '0.72rem', background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <IconShield size={12} />
+                          <span>جدول أدوية</span>
                         </span>
                       )}
                     </div>
@@ -114,17 +120,16 @@ export function GenericSubstitutesModal({
                     </div>
 
                     {onSelectSubstitute && (
-                      <button
-                        type="button"
+                      <Button
+                        variant="primary"
+                        className="btn-sm"
                         onClick={() => {
                           onSelectSubstitute(drug);
                           onClose();
                         }}
-                        className="btn btn-sm btn-primary"
-                        style={{ padding: '6px 12px', fontSize: '0.8rem' }}
                       >
                         اختيار
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -134,9 +139,9 @@ export function GenericSubstitutesModal({
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             إغلاق
-          </button>
+          </Button>
         </div>
       </div>
     </DialogShell>

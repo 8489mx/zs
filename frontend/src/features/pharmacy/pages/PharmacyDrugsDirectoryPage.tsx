@@ -8,6 +8,27 @@ import type { PharmacyDrug } from '../types/pharmacy.types';
 import { DOSAGE_FORMS, MAJOR_PHARMA_COMPANIES, DRUG_CLASSES } from '../constants/pharmacy.constants';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { GenericSubstitutesModal } from '../components/GenericSubstitutesModal';
+import {
+  IconPill,
+  IconShield,
+  IconBox,
+  IconSparkles,
+  IconPlus,
+  IconRefresh,
+  IconEdit,
+  IconTrash,
+  IconSave,
+} from '../components/PharmacyIcons';
+
+// Popular drug templates for 1-click superfast entry
+const QUICK_DRUG_PRESETS = [
+  { trade_name: 'Panadol Extra 500mg', trade_name_ar: 'بنادول اكسترا', active_ingredient: 'Paracetamol + Caffeine', active_ingredient_ar: 'باراسيتامول + كافيين', dosage_form: 'أقراص (Tablets)', strength: '500mg/65mg', manufacturer: 'GSK', units_per_box: 2, unit_name: 'شريط', box_price: 45, strip_price: 22.5 },
+  { trade_name: 'Augmentin 1g', trade_name_ar: 'اوجمنتين 1 جم', active_ingredient: 'Amoxicillin + Clavulanic Acid', active_ingredient_ar: 'اموكسيسيلين + حمض كلافولانيك', dosage_form: 'أقراص (Tablets)', strength: '1000mg', manufacturer: 'GSK', units_per_box: 2, unit_name: 'شريط', box_price: 130, strip_price: 65 },
+  { trade_name: 'Concor 5mg', trade_name_ar: 'كونكور 5 مجم', active_ingredient: 'Bisoprolol Fumarate', active_ingredient_ar: 'بيسوبرولول', dosage_form: 'أقراص (Tablets)', strength: '5mg', manufacturer: 'Merck', units_per_box: 3, unit_name: 'شريط', box_price: 85, strip_price: 28.33 },
+  { trade_name: 'Antinal 200mg', trade_name_ar: 'انتينال', active_ingredient: 'Nifuroxazide', active_ingredient_ar: 'نيفوروكسازيد', dosage_form: 'كبسولات (Capsules)', strength: '200mg', manufacturer: 'Amoun', units_per_box: 2, unit_name: 'شريط', box_price: 36, strip_price: 18 },
+  { trade_name: 'Brufen 600mg', trade_name_ar: 'بروفين 600', active_ingredient: 'Ibuprofen', active_ingredient_ar: 'ايبوبروفين', dosage_form: 'أقراص (Tablets)', strength: '600mg', manufacturer: 'Abbott', units_per_box: 3, unit_name: 'شريط', box_price: 60, strip_price: 20 },
+  { trade_name: 'Ketofan 50mg', trade_name_ar: 'كيتوفان', active_ingredient: 'Ketoprofen', active_ingredient_ar: 'كيتوبروفين', dosage_form: 'كبسولات (Capsules)', strength: '50mg', manufacturer: 'Amriya', units_per_box: 2, unit_name: 'شريط', box_price: 28, strip_price: 14 },
+];
 
 export default function PharmacyDrugsDirectoryPage() {
   useAppToolbar([{ label: 'دليل الأدوية والبدائل' }]);
@@ -84,6 +105,14 @@ export default function PharmacyDrugsDirectoryPage() {
     setModalOpen(true);
   };
 
+  const handleApplyPreset = (preset: typeof QUICK_DRUG_PRESETS[0]) => {
+    setEditingDrug((prev) => ({
+      ...prev,
+      ...preset,
+      controlled_level: 'none',
+    }));
+  };
+
   const handleOpenEdit = (drug: PharmacyDrug) => {
     setEditingDrug(drug);
     setModalOpen(true);
@@ -113,11 +142,18 @@ export default function PharmacyDrugsDirectoryPage() {
               <Button
                 variant="primary"
                 onClick={handleOpenAdd}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                + إضافة دواء جديد
+                <IconPlus size={16} />
+                <span>إضافة دواء جديد</span>
               </Button>
-              <Button variant="secondary" onClick={() => void refetch()}>
-                تحديث
+              <Button
+                variant="secondary"
+                onClick={() => void refetch()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconRefresh size={16} />
+                <span>تحديث</span>
               </Button>
             </div>
           }
@@ -131,7 +167,7 @@ export default function PharmacyDrugsDirectoryPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>{totalItems}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7zm-2-2l7-7"></path></svg>
+              <IconPill size={20} />
             </div>
           </div>
 
@@ -141,7 +177,7 @@ export default function PharmacyDrugsDirectoryPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>{controlledCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <IconShield size={20} />
             </div>
           </div>
 
@@ -151,7 +187,7 @@ export default function PharmacyDrugsDirectoryPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{multiStripCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+              <IconBox size={20} />
             </div>
           </div>
 
@@ -161,7 +197,7 @@ export default function PharmacyDrugsDirectoryPage() {
               <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0369a1', marginTop: '4px' }}>Generics Finder</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              <IconSparkles size={20} />
             </div>
           </div>
         </div>
@@ -297,16 +333,19 @@ export default function PharmacyDrugsDirectoryPage() {
                             setSelectedSubTrade(drug.trade_name);
                             setSubModalOpen(true);
                           }}
-                          style={{ background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd', fontWeight: 800 }}
+                          style={{ background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
-                          ⚡ البدائل
+                          <IconSparkles size={14} />
+                          <span>البدائل</span>
                         </Button>
                         <Button
                           variant="secondary"
                           className="btn-sm"
                           onClick={() => handleOpenEdit(drug)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
-                          تعديل
+                          <IconEdit size={14} />
+                          <span>تعديل</span>
                         </Button>
                         <Button
                           variant="danger"
@@ -316,8 +355,10 @@ export default function PharmacyDrugsDirectoryPage() {
                               deleteMutation.mutate(drug.id);
                             }
                           }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
-                          حذف
+                          <IconTrash size={14} />
+                          <span>حذف</span>
                         </Button>
                       </div>
                     </td>
@@ -330,13 +371,45 @@ export default function PharmacyDrugsDirectoryPage() {
 
         {/* Drug Modal Form */}
         {modalOpen && editingDrug && (
-          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(720px, 95vw)" ariaLabel="بيانات الدواء">
+          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(760px, 95vw)" ariaLabel="بيانات الدواء">
             <form onSubmit={handleSave} dir="rtl" style={{ padding: '16px 20px' }}>
-              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                  {editingDrug.id ? '✏️ تعديل بيانات الدواء' : '➕ إضافة دواء جديد للدليل الصيدلي'}
+              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconPill size={20} color="#0284c7" />
+                  <span>{editingDrug.id ? 'تعديل بيانات الدواء' : 'إضافة دواء جديد للدليل الصيدلي'}</span>
                 </h3>
               </div>
+
+              {/* 1-Click Fast Drug Template Suggestions Bar */}
+              {!editingDrug.id && (
+                <div style={{ background: '#eff6ff', border: '1px dashed #bfdbfe', borderRadius: '8px', padding: '10px 12px', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e40af', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <IconSparkles size={14} />
+                    <span>تعبئة سريعة بنقرة واحدة (أشهر الأدوية المتداولة):</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {QUICK_DRUG_PRESETS.map((preset) => (
+                      <button
+                        key={preset.trade_name}
+                        type="button"
+                        onClick={() => handleApplyPreset(preset)}
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #93c5fd',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: '#1d4ed8',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        + {preset.trade_name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
@@ -457,7 +530,7 @@ export default function PharmacyDrugsDirectoryPage() {
                   </select>
                 </div>
 
-                {/* Pricing & Units Grid */}
+                {/* Pricing & Automatic Fraction Calculation */}
                 <div>
                   <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
                     سعر بيع العلبة (ج.م) <span style={{ color: '#dc2626' }}>*</span>
@@ -477,7 +550,7 @@ export default function PharmacyDrugsDirectoryPage() {
                         strip_price: units > 0 ? Number((boxP / units).toFixed(2)) : 0,
                       });
                     }}
-                    style={{ width: '100%', padding: '8px 12px' }}
+                    style={{ width: '100%', padding: '8px 12px', fontWeight: 700, color: '#16a34a' }}
                   />
                 </div>
 
@@ -513,7 +586,7 @@ export default function PharmacyDrugsDirectoryPage() {
                       className="purchase-prototype-field-input"
                       value={editingDrug.strip_price ?? 0}
                       onChange={(e) => setEditingDrug({ ...editingDrug, strip_price: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '100%', padding: '8px 12px' }}
+                      style={{ width: '100%', padding: '8px 12px', fontWeight: 700, color: '#0284c7' }}
                     />
                   </div>
                 </div>
@@ -521,8 +594,9 @@ export default function PharmacyDrugsDirectoryPage() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                 <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-                <Button variant="primary" type="submit" disabled={upsertMutation.isPending}>
-                  {upsertMutation.isPending ? 'جاري الحفظ...' : '💾 حفظ بيانات الدواء'}
+                <Button variant="primary" type="submit" disabled={upsertMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconSave size={16} />
+                  <span>{upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ بيانات الدواء'}</span>
                 </Button>
               </div>
             </form>

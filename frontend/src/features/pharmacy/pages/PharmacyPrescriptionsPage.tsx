@@ -8,6 +8,16 @@ import type { PharmacyPrescription, PrescribedItem } from '../types/pharmacy.typ
 import { INSURANCE_PROVIDERS } from '../constants/pharmacy.constants';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { DoseStickerPrintModal } from '../components/DoseStickerPrintModal';
+import {
+  IconPrescription,
+  IconPlus,
+  IconRefresh,
+  IconTag,
+  IconSave,
+  IconCheck,
+} from '../components/PharmacyIcons';
+
+const COPAY_PRESETS = [0, 10, 15, 20, 25, 30, 50, 100];
 
 export default function PharmacyPrescriptionsPage() {
   useAppToolbar([{ label: 'الروشتات والتأمين' }]);
@@ -74,6 +84,18 @@ export default function PharmacyPrescriptionsPage() {
     setModalOpen(true);
   };
 
+  const handleApplyCopayPreset = (percent: number) => {
+    if (!editingRx) return;
+    const tot = Number(editingRx.total_amount || 0);
+    const pat = tot * (percent / 100);
+    setEditingRx({
+      ...editingRx,
+      patient_copay_percent: percent,
+      patient_amount: pat,
+      insurance_amount: tot - pat,
+    });
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRx || !editingRx.customer_name) return;
@@ -92,12 +114,18 @@ export default function PharmacyPrescriptionsPage() {
               <Button
                 variant="primary"
                 onClick={handleOpenAdd}
-                style={{ background: '#16a34a', borderColor: '#16a34a' }}
+                style={{ background: '#16a34a', borderColor: '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                + صرف روشتة جديدة
+                <IconPlus size={16} />
+                <span>صرف روشتة جديدة</span>
               </Button>
-              <Button variant="secondary" onClick={() => void refetch()}>
-                تحديث
+              <Button
+                variant="secondary"
+                onClick={() => void refetch()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconRefresh size={16} />
+                <span>تحديث</span>
               </Button>
             </div>
           }
@@ -111,7 +139,7 @@ export default function PharmacyPrescriptionsPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{totalItems}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"></path><path d="M14 3v5h5M9 13h6M9 17h6"></path></svg>
+              <IconPrescription size={20} />
             </div>
           </div>
 
@@ -123,7 +151,7 @@ export default function PharmacyPrescriptionsPage() {
               </div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <IconPrescription size={20} />
             </div>
           </div>
 
@@ -135,7 +163,7 @@ export default function PharmacyPrescriptionsPage() {
               </div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <IconCheck size={20} />
             </div>
           </div>
 
@@ -147,7 +175,7 @@ export default function PharmacyPrescriptionsPage() {
               </div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+              <IconPrescription size={20} />
             </div>
           </div>
         </div>
@@ -260,8 +288,10 @@ export default function PharmacyPrescriptionsPage() {
                           setStickerMed('علاج الروشتة');
                           setStickerOpen(true);
                         }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                       >
-                        🏷️ استيكر
+                        <IconTag size={14} />
+                        <span>استيكر</span>
                       </Button>
                     </td>
                   </tr>
@@ -272,11 +302,12 @@ export default function PharmacyPrescriptionsPage() {
         </div>
 
         {modalOpen && editingRx && (
-          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(740px, 95vw)" ariaLabel="صرف روشتة طبية">
+          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(760px, 95vw)" ariaLabel="صرف روشتة طبية">
             <form onSubmit={handleSave} dir="rtl" style={{ padding: '16px 20px' }}>
-              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px' }}>
+              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <IconPrescription size={20} color="#16a34a" />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                  📝 صرف روشتة طبية وحساب التأمين الصحي
+                  صرف روشتة طبية وحساب التأمين الصحي
                 </h3>
               </div>
 
@@ -354,43 +385,37 @@ export default function PharmacyPrescriptionsPage() {
                   </select>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                      كود الموافقة
-                    </label>
-                    <input
-                      type="text"
-                      className="purchase-prototype-field-input"
-                      value={editingRx.approval_code || ''}
-                      onChange={(e) => setEditingRx({ ...editingRx, approval_code: e.target.value })}
-                      placeholder="Approval Code"
-                      style={{ width: '100%', padding: '8px 12px' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                      نسبة التحمل (%)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      className="purchase-prototype-field-input"
-                      value={editingRx.patient_copay_percent ?? 0}
-                      onChange={(e) => {
-                        const copay = parseFloat(e.target.value) || 0;
-                        const tot = Number(editingRx.total_amount || 0);
-                        const pat = tot * (copay / 100);
-                        setEditingRx({
-                          ...editingRx,
-                          patient_copay_percent: copay,
-                          patient_amount: pat,
-                          insurance_amount: tot - pat,
-                        });
-                      }}
-                      style={{ width: '100%', padding: '8px 12px' }}
-                    />
+                <div>
+                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                    كود الموافقة
+                  </label>
+                  <input
+                    type="text"
+                    className="purchase-prototype-field-input"
+                    value={editingRx.approval_code || ''}
+                    onChange={(e) => setEditingRx({ ...editingRx, approval_code: e.target.value })}
+                    placeholder="Approval Code"
+                    style={{ width: '100%', padding: '8px 12px' }}
+                  />
+                </div>
+
+                {/* Quick Copay presets */}
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                    نسبة تحمل المريض (Co-Pay %):
+                  </label>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {COPAY_PRESETS.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleApplyCopayPreset(p)}
+                        className={'btn btn-sm ' + (editingRx.patient_copay_percent === p ? 'btn-primary' : 'btn-secondary')}
+                        style={{ padding: '3px 8px', fontSize: '0.75rem' }}
+                      >
+                        {p === 0 ? '0% (كاش كامل)' : p === 100 ? '100% (تأمين كامل)' : p + '%'}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -415,7 +440,7 @@ export default function PharmacyPrescriptionsPage() {
                         insurance_amount: tot - pat,
                       });
                     }}
-                    style={{ width: '100%', padding: '8px 12px' }}
+                    style={{ width: '100%', padding: '8px 12px', fontWeight: 700 }}
                   />
                 </div>
 
@@ -451,8 +476,9 @@ export default function PharmacyPrescriptionsPage() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                 <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-                <Button variant="primary" type="submit" disabled={upsertMutation.isPending}>
-                  {upsertMutation.isPending ? 'جاري الحفظ...' : '💾 حفظ وصرف الروشتة'}
+                <Button variant="primary" type="submit" disabled={upsertMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconSave size={16} />
+                  <span>{upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ وصرف الروشتة'}</span>
                 </Button>
               </div>
             </form>

@@ -7,6 +7,15 @@ import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyShortage } from '../types/pharmacy.types';
 import { MAJOR_DISTRIBUTORS } from '../constants/pharmacy.constants';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import {
+  IconShortage,
+  IconSparkles,
+  IconPlus,
+  IconRefresh,
+  IconEdit,
+  IconSave,
+  IconCheck,
+} from '../components/PharmacyIcons';
 
 export default function PharmacyShortagesPage() {
   useAppToolbar([{ label: 'كشكول النواقص الرقمي' }]);
@@ -16,6 +25,13 @@ export default function PharmacyShortagesPage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [page, setPage] = useState(1);
 
+  // Fast inline addition state
+  const [quickName, setQuickName] = useState('');
+  const [quickQty, setQuickQty] = useState(1);
+  const [quickDist, setQuickDist] = useState(MAJOR_DISTRIBUTORS[0]);
+  const [quickPriority, setQuickPriority] = useState<'normal' | 'urgent' | 'customer_request'>('normal');
+
+  // Detailed Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingShortage, setEditingShortage] = useState<Partial<PharmacyShortage> | null>(null);
 
@@ -38,6 +54,7 @@ export default function PharmacyShortagesPage() {
       queryClient.invalidateQueries({ queryKey: ['pharmacy', 'stats'] });
       setModalOpen(false);
       setEditingShortage(null);
+      setQuickName('');
     },
   });
 
@@ -57,6 +74,18 @@ export default function PharmacyShortagesPage() {
   const urgentCount = shortagesList.filter((s: PharmacyShortage) => s.priority === 'urgent').length;
   const customerCount = shortagesList.filter((s: PharmacyShortage) => s.priority === 'customer_request').length;
   const receivedCount = shortagesList.filter((s: PharmacyShortage) => s.status === 'received').length;
+
+  const handleQuickAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickName.trim()) return;
+    upsertMutation.mutate({
+      product_name: quickName.trim(),
+      requested_quantity: Number(quickQty) || 1,
+      suggested_distributor: quickDist,
+      priority: quickPriority,
+      status: 'needed',
+    });
+  };
 
   const handleOpenAdd = () => {
     setEditingShortage({
@@ -91,12 +120,18 @@ export default function PharmacyShortagesPage() {
               <Button
                 variant="primary"
                 onClick={handleOpenAdd}
-                style={{ background: '#dc2626', borderColor: '#dc2626' }}
+                style={{ background: '#dc2626', borderColor: '#dc2626', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                + تسجيل صنف ناقص
+                <IconPlus size={16} />
+                <span>تسجيل صنف مفصل</span>
               </Button>
-              <Button variant="secondary" onClick={() => void refetch()}>
-                تحديث
+              <Button
+                variant="secondary"
+                onClick={() => void refetch()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconRefresh size={16} />
+                <span>تحديث</span>
               </Button>
             </div>
           }
@@ -110,7 +145,7 @@ export default function PharmacyShortagesPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>{neededCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+              <IconShortage size={20} />
             </div>
           </div>
 
@@ -120,7 +155,7 @@ export default function PharmacyShortagesPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b91c1c', marginTop: '2px' }}>{urgentCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              <IconSparkles size={20} />
             </div>
           </div>
 
@@ -130,7 +165,7 @@ export default function PharmacyShortagesPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0369a1', marginTop: '2px' }}>{customerCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+              <IconShortage size={20} />
             </div>
           </div>
 
@@ -140,10 +175,83 @@ export default function PharmacyShortagesPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{receivedCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <IconCheck size={20} />
             </div>
           </div>
         </div>
+
+        {/* 1-Step Instant Quick Add One-Liner Bar */}
+        <form
+          onSubmit={handleQuickAdd}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            marginBottom: '12px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0f172a', fontWeight: 800, fontSize: '0.84rem' }}>
+            <IconPlus size={16} color="#dc2626" />
+            <span>إضافة فورية للكشكول:</span>
+          </div>
+
+          <input
+            type="text"
+            required
+            className="purchase-prototype-field-input"
+            placeholder="اسم الدواء الناقص..."
+            value={quickName}
+            onChange={(e) => setQuickName(e.target.value)}
+            style={{ flex: '1 1 200px', padding: '6px 10px', fontSize: '0.84rem' }}
+          />
+
+          <input
+            type="number"
+            min="1"
+            className="purchase-prototype-field-input"
+            placeholder="العدد"
+            value={quickQty}
+            onChange={(e) => setQuickQty(Number(e.target.value) || 1)}
+            style={{ width: '70px', padding: '6px 10px', fontSize: '0.84rem', textAlign: 'center' }}
+            title="الكمية المطلوبة بالعلب"
+          />
+
+          <select
+            className="purchase-prototype-field-input"
+            value={quickDist}
+            onChange={(e) => setQuickDist(e.target.value)}
+            style={{ width: '130px', padding: '6px 8px', fontSize: '0.82rem', background: '#fff' }}
+          >
+            {MAJOR_DISTRIBUTORS.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+
+          <select
+            className="purchase-prototype-field-input"
+            value={quickPriority}
+            onChange={(e) => setQuickPriority(e.target.value as any)}
+            style={{ width: '110px', padding: '6px 8px', fontSize: '0.82rem', background: '#fff' }}
+          >
+            <option value="normal">عادي</option>
+            <option value="urgent">عاجل جداً</option>
+            <option value="customer_request">طلب مريض</option>
+          </select>
+
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={upsertMutation.isPending || !quickName.trim()}
+            style={{ background: '#dc2626', borderColor: '#dc2626', whiteSpace: 'nowrap', padding: '6px 14px' }}
+          >
+            {upsertMutation.isPending ? 'جاري الإضافة...' : '+ إدراج بالكشكول'}
+          </Button>
+        </form>
 
         {/* Filter Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
@@ -302,8 +410,10 @@ export default function PharmacyShortagesPage() {
                           setEditingShortage(s);
                           setModalOpen(true);
                         }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                       >
-                        تعديل
+                        <IconEdit size={14} />
+                        <span>تعديل</span>
                       </Button>
                     </td>
                   </tr>
@@ -314,11 +424,12 @@ export default function PharmacyShortagesPage() {
         </div>
 
         {modalOpen && editingShortage && (
-          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(600px, 95vw)" ariaLabel="تسجيل صنف ناقص">
+          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(640px, 95vw)" ariaLabel="تسجيل صنف ناقص">
             <form onSubmit={handleSave} dir="rtl" style={{ padding: '16px 20px' }}>
-              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px' }}>
+              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <IconShortage size={20} color="#dc2626" />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                  📋 تسجيل صنف في كشكول النواقص
+                  {editingShortage.id ? 'تعديل بيانات الصنف الناقص' : 'تسجيل صنف مفصل في كشكول النواقص'}
                 </h3>
               </div>
 
@@ -415,8 +526,9 @@ export default function PharmacyShortagesPage() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                 <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-                <Button variant="primary" type="submit" disabled={upsertMutation.isPending}>
-                  {upsertMutation.isPending ? 'جاري الحفظ...' : '💾 حفظ في كشكول النواقص'}
+                <Button variant="primary" type="submit" disabled={upsertMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconSave size={16} />
+                  <span>{upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ في كشكول النواقص'}</span>
                 </Button>
               </div>
             </form>

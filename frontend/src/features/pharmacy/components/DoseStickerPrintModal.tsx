@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { Button } from '@/shared/ui/button';
+import { IconTag, IconPrinter } from './PharmacyIcons';
 
 interface Props {
   open: boolean;
@@ -51,28 +53,32 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
   };
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(520px, 95vw)" ariaLabel="طباعة استيكر الجرعة الدوائية">
+    <DialogShell open={open} onClose={onClose} width="min(540px, 95vw)" ariaLabel="طباعة استيكر الجرعة الدوائية">
       <div dir="rtl" style={{ padding: '16px 20px' }}>
-        <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px' }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
-            🏷️ طباعة استيكر تعليمات الجرعة على علبة الدواء
-          </h3>
-          <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-            ملصق حراري صغير يوضع على علبة الدواء لضمان سلامة المريض والالتزام بالجرعات
-          </p>
+        <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <IconTag size={20} color="#16a34a" />
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
+              طباعة استيكر تعليمات الجرعة على علبة الدواء
+            </h3>
+            <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+              ملصق حراري صغير يوضع على علبة الدواء لضمان سلامة المريض والالتزام بالجرعات
+            </p>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
               اسم المريض:
             </label>
             <input
               type="text"
+              className="purchase-prototype-field-input"
               value={patientName}
               onChange={(e) => setPatientName(e.target.value)}
               placeholder="اسم المريض (اختياري)..."
-              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              style={{ width: '100%', padding: '6px 10px' }}
             />
           </div>
 
@@ -82,10 +88,11 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
             </label>
             <input
               type="text"
+              className="purchase-prototype-field-input"
               value={medName}
               onChange={(e) => setMedName(e.target.value)}
               placeholder="اسم الدواء..."
-              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              style={{ width: '100%', padding: '6px 10px' }}
             />
           </div>
 
@@ -94,9 +101,10 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
               الجرعة والتكرار:
             </label>
             <select
+              className="purchase-prototype-field-input"
               value={frequency}
               onChange={(e) => setFrequency(e.target.value)}
-              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+              style={{ width: '100%', padding: '6px 10px', background: '#fff' }}
             >
               <option value="قرص مرة واحدة يومياً">قرص مرة واحدة يومياً</option>
               <option value="قرص كل 12 ساعة (مرتين يومياً)">قرص كل 12 ساعة (مرتين يومياً)</option>
@@ -115,9 +123,10 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
               توقيت التناول:
             </label>
             <select
+              className="purchase-prototype-field-input"
               value={timing}
               onChange={(e) => setTiming(e.target.value)}
-              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+              style={{ width: '100%', padding: '6px 10px', background: '#fff' }}
             >
               <option value="بعد الأكل مباشرة">بعد الأكل مباشرة</option>
               <option value="قبل الأكل بنصف ساعة على معدة فارغة">قبل الأكل بنصف ساعة على معدة فارغة</option>
@@ -133,16 +142,17 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
             </label>
             <input
               type="text"
+              className="purchase-prototype-field-input"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
               placeholder="مثال: لمدة 5 أيام / تجنب التعرض للشمس..."
-              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              style={{ width: '100%', padding: '6px 10px' }}
             />
           </div>
         </div>
 
         {/* Live Sticker Preview */}
-        <div style={{ marginTop: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
+        <div style={{ marginTop: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, marginBottom: '6px' }}>معاينة ملصق العلبة:</div>
           <div
             ref={printRef}
@@ -176,13 +186,18 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+          <Button variant="secondary" onClick={onClose}>
             إلغاء
-          </button>
-          <button type="button" className="btn btn-primary" onClick={handlePrint} style={{ background: '#16a34a', borderColor: '#16a34a', fontWeight: 800 }}>
-            🖨️ طباعة الاستيكر فوراً
-          </button>
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handlePrint}
+            style={{ background: '#16a34a', borderColor: '#16a34a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <IconPrinter size={16} />
+            <span>طباعة الاستيكر فوراً</span>
+          </Button>
         </div>
       </div>
     </DialogShell>

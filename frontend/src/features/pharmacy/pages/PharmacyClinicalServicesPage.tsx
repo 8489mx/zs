@@ -7,6 +7,14 @@ import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyClinicalService } from '../types/pharmacy.types';
 import { CLINICAL_SERVICE_LABELS } from '../constants/pharmacy.constants';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import {
+  IconStethoscope,
+  IconPlus,
+  IconRefresh,
+  IconSave,
+  IconHeartPulse,
+  IconActivity,
+} from '../components/PharmacyIcons';
 
 export default function PharmacyClinicalServicesPage() {
   useAppToolbar([{ label: 'الفحوصات والخدمات الصيدلانية' }]);
@@ -61,12 +69,18 @@ export default function PharmacyClinicalServicesPage() {
               <Button
                 variant="primary"
                 onClick={() => setModalOpen(true)}
-                style={{ background: '#7c3aed', borderColor: '#7c3aed' }}
+                style={{ background: '#7c3aed', borderColor: '#7c3aed', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                + تسجيل فحص / خدمة جديدة
+                <IconPlus size={16} />
+                <span>تسجيل فحص / خدمة جديدة</span>
               </Button>
-              <Button variant="secondary" onClick={() => void refetch()}>
-                تحديث
+              <Button
+                variant="secondary"
+                onClick={() => void refetch()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconRefresh size={16} />
+                <span>تحديث</span>
               </Button>
             </div>
           }
@@ -80,7 +94,7 @@ export default function PharmacyClinicalServicesPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7c3aed', marginTop: '2px' }}>{totalItems}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+              <IconStethoscope size={20} />
             </div>
           </div>
 
@@ -90,7 +104,7 @@ export default function PharmacyClinicalServicesPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>{bpCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              <IconHeartPulse size={20} />
             </div>
           </div>
 
@@ -100,7 +114,7 @@ export default function PharmacyClinicalServicesPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#d97706', marginTop: '2px' }}>{glucoseCount + injectionCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              <IconActivity size={20} />
             </div>
           </div>
 
@@ -112,7 +126,7 @@ export default function PharmacyClinicalServicesPage() {
               </div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <IconActivity size={20} />
             </div>
           </div>
         </div>
@@ -141,11 +155,11 @@ export default function PharmacyClinicalServicesPage() {
                 </tr>
               ) : (
                 servicesList.map((srv: PharmacyClinicalService) => {
-                  const info = CLINICAL_SERVICE_LABELS[srv.service_type] || { title: srv.service_type, icon: '🩺', unit: '' };
+                  const info = CLINICAL_SERVICE_LABELS[srv.service_type] || { title: srv.service_type, icon: '', unit: '' };
                   return (
                     <tr key={srv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>
-                        <span style={{ marginLeft: '6px' }}>{info.icon}</span> {info.title}
+                        {info.title}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         <strong>{srv.customer_name}</strong>
@@ -173,11 +187,12 @@ export default function PharmacyClinicalServicesPage() {
         </div>
 
         {modalOpen && (
-          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(560px, 95vw)" ariaLabel="تسجيل فحص صيدلاني">
+          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(580px, 95vw)" ariaLabel="تسجيل فحص صيدلاني">
             <form onSubmit={handleSave} dir="rtl" style={{ padding: '16px 20px' }}>
-              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px' }}>
+              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <IconStethoscope size={20} color="#7c3aed" />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                  🩺 تسجيل فحص أو خدمة رعاية صيدلانية
+                  تسجيل فحص أو خدمة رعاية صيدلانية
                 </h3>
               </div>
 
@@ -192,11 +207,11 @@ export default function PharmacyClinicalServicesPage() {
                     onChange={(e) => setNewService({ ...newService, service_type: e.target.value as any })}
                     style={{ width: '100%', padding: '8px 12px', background: '#fff', fontWeight: 700 }}
                   >
-                    <option value="blood_pressure">🩺 قياس ضغط الدم والنبض</option>
-                    <option value="blood_glucose">🩸 قياس السكر بالدم (صائم / عشوائي)</option>
-                    <option value="weight_bmi">⚖️ قياس الوزن ومؤشر كتلة الجسم</option>
-                    <option value="injection">💉 إعطاء حقنة عضل / وريد</option>
-                    <option value="wound_dressing">🩹 غيار وتطهير جروح</option>
+                    <option value="blood_pressure">قياس ضغط الدم والنبض</option>
+                    <option value="blood_glucose">قياس السكر بالدم (صائم / عشوائي)</option>
+                    <option value="weight_bmi">قياس الوزن ومؤشر كتلة الجسم</option>
+                    <option value="injection">إعطاء حقنة عضل / وريد</option>
+                    <option value="wound_dressing">غيار وتطهير جروح</option>
                   </select>
                 </div>
 
@@ -241,6 +256,12 @@ export default function PharmacyClinicalServicesPage() {
                     placeholder="مثال: 120/80 أو 110 mg/dL"
                     style={{ width: '100%', padding: '8px 12px' }}
                   />
+                  {/* Quick Values Helpers */}
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                    <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '120/80', metric_value_2: '72' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>120/80</button>
+                    <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '140/90', metric_value_2: '80' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>140/90</button>
+                    <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '110 mg/dL', metric_value_2: 'صائم' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>110 صائم</button>
+                  </div>
                 </div>
 
                 <div>
@@ -288,8 +309,9 @@ export default function PharmacyClinicalServicesPage() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                 <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-                <Button variant="primary" type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'جاري الحفظ...' : '💾 حفظ الفحص'}
+                <Button variant="primary" type="submit" disabled={createMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconSave size={16} />
+                  <span>{createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الفحص'}</span>
                 </Button>
               </div>
             </form>

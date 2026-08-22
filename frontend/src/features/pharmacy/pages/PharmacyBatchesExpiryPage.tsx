@@ -7,6 +7,14 @@ import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyBatch } from '../types/pharmacy.types';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { MAJOR_DISTRIBUTORS } from '../constants/pharmacy.constants';
+import {
+  IconExpiry,
+  IconPlus,
+  IconRefresh,
+  IconEdit,
+  IconSave,
+  IconCheck,
+} from '../components/PharmacyIcons';
 
 export default function PharmacyBatchesExpiryPage() {
   useAppToolbar([{ label: 'الصلاحيات والمرتجعات' }]);
@@ -60,6 +68,14 @@ export default function PharmacyBatchesExpiryPage() {
     setModalOpen(true);
   };
 
+  const handleSetQuickExpiry = (monthsAhead: number) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + monthsAhead);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    setEditingBatch((prev) => ({ ...prev, expiry_date: yyyy + '-' + mm }));
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingBatch || !editingBatch.batch_number || !editingBatch.expiry_date) return;
@@ -78,12 +94,18 @@ export default function PharmacyBatchesExpiryPage() {
               <Button
                 variant="primary"
                 onClick={handleOpenAdd}
-                style={{ background: '#d97706', borderColor: '#d97706' }}
+                style={{ background: '#d97706', borderColor: '#d97706', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                + تسجيل تشغيلة / شحنة
+                <IconPlus size={16} />
+                <span>تسجيل تشغيلة / شحنة</span>
               </Button>
-              <Button variant="secondary" onClick={() => void refetch()}>
-                تحديث
+              <Button
+                variant="secondary"
+                onClick={() => void refetch()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconRefresh size={16} />
+                <span>تحديث</span>
               </Button>
             </div>
           }
@@ -97,7 +119,7 @@ export default function PharmacyBatchesExpiryPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{activeCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              <IconCheck size={20} />
             </div>
           </div>
 
@@ -107,7 +129,7 @@ export default function PharmacyBatchesExpiryPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#d97706', marginTop: '2px' }}>{nearExpiryCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <IconExpiry size={20} />
             </div>
           </div>
 
@@ -117,7 +139,7 @@ export default function PharmacyBatchesExpiryPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>{expiredCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <IconExpiry size={20} />
             </div>
           </div>
 
@@ -127,7 +149,7 @@ export default function PharmacyBatchesExpiryPage() {
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#475569', marginTop: '2px' }}>{returnedCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+              <IconRefresh size={20} />
             </div>
           </div>
         </div>
@@ -276,8 +298,10 @@ export default function PharmacyBatchesExpiryPage() {
                           setEditingBatch(batch);
                           setModalOpen(true);
                         }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                       >
-                        تعديل
+                        <IconEdit size={14} />
+                        <span>تعديل</span>
                       </Button>
                     </td>
                   </tr>
@@ -290,9 +314,10 @@ export default function PharmacyBatchesExpiryPage() {
         {modalOpen && editingBatch && (
           <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(600px, 95vw)" ariaLabel="بيانات التشغيلة">
             <form onSubmit={handleSave} dir="rtl" style={{ padding: '16px 20px' }}>
-              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px' }}>
+              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <IconExpiry size={20} color="#d97706" />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                  {editingBatch.id ? '✏️ تعديل بيانات التشغيلة' : '➕ إضافة تشغيلة وصلاحية جديدة'}
+                  {editingBatch.id ? 'تعديل بيانات التشغيلة' : 'إضافة تشغيلة وصلاحية جديدة'}
                 </h3>
               </div>
 
@@ -325,6 +350,13 @@ export default function PharmacyBatchesExpiryPage() {
                     placeholder="مثال: 2026-11 أو 11/2026"
                     style={{ width: '100%', padding: '8px 12px' }}
                   />
+                  {/* Quick Expiry Date Preset Buttons */}
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                    <button type="button" onClick={() => handleSetQuickExpiry(6)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>+6 شهور</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(12)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>+1 سنة</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(24)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>+2 سنة</button>
+                    <button type="button" onClick={() => handleSetQuickExpiry(36)} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>+3 سنوات</button>
+                  </div>
                 </div>
 
                 <div>
@@ -390,8 +422,9 @@ export default function PharmacyBatchesExpiryPage() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                 <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-                <Button variant="primary" type="submit" disabled={upsertMutation.isPending}>
-                  {upsertMutation.isPending ? 'جاري الحفظ...' : '💾 حفظ التشغيلة'}
+                <Button variant="primary" type="submit" disabled={upsertMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <IconSave size={16} />
+                  <span>{upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ التشغيلة'}</span>
                 </Button>
               </div>
             </form>
