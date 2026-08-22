@@ -4,7 +4,7 @@
   "passcode": "ZS-UPD-1122-C40E-9471",
   "requiresPasscode": true,
   "changelog": "• ترقية شاملة لواجهة التحديثات بالتصميم الملكي.\n• إعادة بناء شاشة الإقلاع والفتح (Splash Screen) بهوية Z-ERP Enterprise ومراحل التحميل التفاعلية.\n• إضافة نظام كود التفعيل المنبثق وأرشيف الإصدارات السابقة القابل للطي.\n• تحسينات عامة على استقرار النظام ومزامنة قواعد البيانات.",
-  "patchUrl": "https://github.com/karimzakaria/zn/releases/download/v1.1.22/Z-ERP-Patch-v1.1.22.zip",
+  "patchUrl": "https://github.com/8489mx/zs/releases/download/v1.1.22/Z-ERP-Patch-v1.1.22.zip",
   "sha256": "fa9862bac09344d47380234eb74e08e9d92bb6864b6a7de725f4ae1630e00968",
   "sizeBytes": 3455812,
   "filesCount": 1349

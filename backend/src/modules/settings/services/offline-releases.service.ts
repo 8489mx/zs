@@ -172,7 +172,7 @@ export class OfflineReleasesService implements OnModuleInit {
           return {
             version: manifest.version,
             changelog: manifest.changelog || 'تحديث شامل للنظام متوفر على GitHub.',
-            patchUrl: manifest.patchUrl || `https://github.com/8489mx/zs/releases/download/v${manifest.version}/patch-${manifest.version}.zip`,
+            patchUrl: manifest.patchUrl || `https://github.com/8489mx/zs/releases/download/v${manifest.version}/Z-ERP-Patch-v${manifest.version}.zip`,
             passcode: manifest.passcode,
           };
         }
@@ -715,17 +715,19 @@ export class OfflineReleasesService implements OnModuleInit {
 
     try { fs.mkdirSync(runtimeRunDir, { recursive: true }); } catch { /* ignore */ }
 
-    const possibleLocalPatchPaths = [
-      path.join(portableRoot, 'updates', `Z-ERP-Patch-v${body.version}.zip`),
-      path.join(portableRoot, '..', 'updates', `Z-ERP-Patch-v${body.version}.zip`),
-      path.join(portableRoot, 'runtime', 'run', 'update-staging', 'manual-patch.zip'),
-      `D:/zn/release/updates/Z-ERP-Patch-v${body.version}.zip`,
-    ];
     let resolvedLocalPatchPath = '';
-    for (const p of possibleLocalPatchPaths) {
-      if (fs.existsSync(p)) {
-        resolvedLocalPatchPath = p;
-        break;
+    const isOnlineUrl = /^https?:\/\//i.test(body.patchUrl);
+    if (!isOnlineUrl) {
+      const possibleLocalPatchPaths = [
+        path.join(portableRoot, 'updates', `Z-ERP-Patch-v${body.version}.zip`),
+        path.join(portableRoot, '..', 'updates', `Z-ERP-Patch-v${body.version}.zip`),
+        path.join(portableRoot, 'runtime', 'run', 'update-staging', 'manual-patch.zip'),
+      ];
+      for (const p of possibleLocalPatchPaths) {
+        if (fs.existsSync(p)) {
+          resolvedLocalPatchPath = p;
+          break;
+        }
       }
     }
 

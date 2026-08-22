@@ -153,7 +153,7 @@ async function main() {
       passcode: manifest.passcode,
       requiresPasscode: true,
       changelog: `• ترقية شاملة لواجهة التحديثات بالتصميم الملكي.\n• إعادة بناء شاشة الإقلاع والفتح (Splash Screen) بهوية Z-ERP Enterprise ومراحل التحميل التفاعلية.\n• إضافة نظام كود التفعيل المنبثق وأرشيف الإصدارات السابقة القابل للطي.\n• تحسينات عامة على استقرار النظام ومزامنة قواعد البيانات.`,
-      patchUrl: `https://github.com/karimzakaria/zn/releases/download/v${version}/Z-ERP-Patch-v${version}.zip`,
+      patchUrl: `https://github.com/8489mx/zs/releases/download/v${version}/Z-ERP-Patch-v${version}.zip`,
       sha256: crypto.createHash('sha256').update(fs.readFileSync(zipPath)).digest('hex'),
       sizeBytes: fs.statSync(zipPath).size,
       filesCount: manifestFiles.length
