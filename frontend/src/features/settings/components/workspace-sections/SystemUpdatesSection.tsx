@@ -179,6 +179,21 @@ export function SystemUpdatesSection() {
                   <span className="system-update-pulse-dot" />
                   الإصدار الحالي: v{currentVersion}
                 </span>
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '5px', 
+                  background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', 
+                  color: '#065f46', 
+                  border: '1px solid #a7f3d0', 
+                  padding: '3px 10px', 
+                  borderRadius: '16px', 
+                  fontSize: '11px', 
+                  fontWeight: 700 
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+                  تحديث سحابي مباشر متصل
+                </span>
               </div>
               <div className="system-update-hero-meta">
                 <div className="system-update-hero-meta-item">

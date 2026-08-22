@@ -57,10 +57,15 @@ export class OfflineReleasesService implements OnModuleInit {
    */
   async syncManifestsFromDisk() {
     const searchDirs = [
+      path.resolve(process.cwd(), 'releases'),
+      path.resolve(process.cwd(), '../releases'),
       path.resolve(process.cwd(), 'runtime/releases'),
       path.resolve(process.cwd(), 'backend/runtime/releases'),
+      path.resolve(__dirname, '../../../../releases'),
       path.resolve(__dirname, '../../../../runtime/releases'),
+      path.resolve(__dirname, '../../../../../releases'),
       path.resolve(__dirname, '../../../../../runtime/releases'),
+      'D:/zn/releases',
       'D:/zn/backend/runtime/releases',
     ];
 
