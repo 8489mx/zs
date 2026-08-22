@@ -6,8 +6,35 @@ const RuntimeConfig = require('./runtime-config.cjs');
 let runtimeConfigInstance = null;
 let currentConfig = null;
 
-let mainWindow = null;
-const packageVersion = require('../package.json').version || '1.0.0';
+function getAppDisplayVersion() {
+  try {
+    const portableRoot = path.dirname(process.execPath);
+    const versionFile = path.join(portableRoot, 'runtime', 'run', '.app_version');
+    if (fs.existsSync(versionFile)) {
+      const v = fs.readFileSync(versionFile, 'ascii').trim();
+      if (v) return v;
+    }
+  } catch { /* ignore */ }
+
+  try {
+    const unpackedBackendPkg = path.join(
+      __dirname.includes('app.asar') ? __dirname.replace('app.asar', 'app.asar.unpacked') : __dirname,
+      'backend/package.json'
+    );
+    if (fs.existsSync(unpackedBackendPkg)) {
+      const pkg = JSON.parse(fs.readFileSync(unpackedBackendPkg, 'utf8'));
+      if (pkg.version) return pkg.version;
+    }
+  } catch { /* ignore */ }
+
+  try {
+    return require('../package.json').version;
+  } catch {
+    return app.getVersion() || '1.0.0';
+  }
+}
+
+const packageVersion = getAppDisplayVersion();
 
 const createWindow = () => {
   Menu.setApplicationMenu(null);
@@ -85,11 +112,11 @@ app.whenReady().then(async () => {
   }
 
   // Log App Version details for Update Checker & Debugging
-  const packageVersion = require('../package.json').version;
+  const runtimeVersion = getAppDisplayVersion();
   console.log('----------------------------------------');
   console.log(`[ELECTRON] Application started`);
   console.log(`[ELECTRON] app.getVersion(): ${app.getVersion()}`);
-  console.log(`[ELECTRON] package.json version: ${packageVersion}`);
+  console.log(`[ELECTRON] runtime version: ${runtimeVersion}`);
   console.log(`[ELECTRON] process.env.APP_MODE: ${process.env.APP_MODE || 'SELF_CONTAINED'}`);
   console.log('----------------------------------------');
 
