@@ -528,54 +528,31 @@
   padding: 22px 24px;
 }
 
-/* Clean Executive Header Update Badge — Matches Adjacent Toolbar Items & Neutral Table Headers */
+/* Mint Emerald Executive Edition Badge — Matches User Preferred Mint Theme with Premium Rounded Rectangle */
 .system-update-toolbar-alert {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   height: 32px;
   padding: 0 12px;
-  background: #f8fafc;
-  color: #334155;
-  border: 1px solid #e2e8f0;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08);
   transition: all 0.18s ease;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.system-update-toolbar-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #334155;
-}
-
-.system-update-toolbar-sep {
-  font-size: 11px;
-  color: #94a3b8;
-  opacity: 0.85;
-  user-select: none;
-}
-
-.system-update-toolbar-version {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #2563eb;
-  background: transparent;
-  padding: 0;
-  border: none;
-  font-family: inherit;
-  letter-spacing: -0.01em;
-}
-
 .system-update-toolbar-alert:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #047857;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.16);
 }
 
 .system-update-pulse-dot {

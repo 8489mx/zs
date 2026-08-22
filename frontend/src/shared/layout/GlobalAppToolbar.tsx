@@ -57,9 +57,7 @@ export function GlobalAppToolbar() {
               title={`يتوفر تحديث جديد للمنظومة (v${updateInfo.latestVersion}) — اضغط للترقية`}
             >
               <span className="system-update-pulse-dot" />
-              <span className="system-update-toolbar-label">تحديث جديد</span>
-              <span className="system-update-toolbar-sep">•</span>
-              <span className="system-update-toolbar-version">v{updateInfo.latestVersion}</span>
+              <span>تحديث متوفر: v{updateInfo.latestVersion}</span>
             </button>
           )}
           <div className="purchase-prototype-search-container" role="search">
