@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyDrug } from '../types/pharmacy.types';
 import { GenericSubstitutesModal } from '../components/GenericSubstitutesModal';
@@ -173,319 +174,339 @@ export default function PharmacyDrugsDirectoryPage() {
 
   // Header and Toolbar
   useAppToolbar([
+    { label: 'الرئيسية', to: '/' },
+    { label: 'الصيدلية والأدوية', to: '/pharmacy' },
     { label: 'دليل الأدوية والمواد الفعالة' },
   ]);
 
   return (
-    <div style={{ padding: '16px 20px', maxWidth: '1280px', margin: '0 auto' }} dir="rtl">
-      <PageHeader
-        title="دليل الأدوية والمواد الفعالة والتجزئة"
-        description="إدارة كاملة للمواد الفعالة، بدائل الأدوية، تجزئة الشرائط، الباركود الدولي والتسعيرة الجبرية"
-      >
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Button
-            variant="primary"
-            onClick={() => setIsMasterCatalogOpen(true)}
-            style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', border: 'none', gap: '6px' }}
-          >
-            <IconSparkles size={16} />
-            دليل الأدوية المصري الشامل (Master Index)
-          </Button>
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="دليل الأدوية والمواد الفعالة والتجزئة"
+          description="إدارة شاملة للمواد الفعالة، بدائل الأدوية، تجزئة الشرائط، الباركود والتسعيرة الجبرية"
+          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{drugs.length} دواء مسجل</span>}
+          actions={
+            <div className="actions compact-actions">
+              <Button
+                variant="secondary"
+                onClick={() => setIsMasterCatalogOpen(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconSparkles size={15} />
+                <span>دليل الأدوية المصري (Master Index)</span>
+              </Button>
 
-          <Button
-            variant="primary"
-            onClick={() => setIsInvoiceModalOpen(true)}
-            style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', border: 'none', gap: '6px' }}
-          >
-            <IconBox size={16} />
-            استيراد فاتورة موزع (المتحدة / ابن سينا)
-          </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setIsInvoiceModalOpen(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconBox size={15} />
+                <span>استيراد فاتورة موزع</span>
+              </Button>
 
-          <Button variant="primary" onClick={() => handleOpenAdd()} style={{ gap: '6px' }}>
-            <IconPlus size={16} />
-            + إضافة دواء جديد
-          </Button>
-        </div>
-      </PageHeader>
+              <Button
+                variant="primary"
+                onClick={() => handleOpenAdd()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <IconPlus size={15} />
+                <span>إضافة دواء جديد</span>
+              </Button>
+            </div>
+          }
+        />
 
-      {/* 1-Click Fast Drug Entry Strip */}
-      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-          <IconSparkles size={16} color="#4f46e5" />
-          إضافة سريعة بنقرة واحدة (أشهر الأدوية):
-        </div>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {FAST_DRUG_PRESETS.map((p, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleOpenAdd(p)}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: '#1e293b',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-              onMouseOut={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
-            >
-              + {p.tradeName.split(' ')[0]} ({p.boxPrice} ج.م)
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-        <div style={{ position: 'relative' }}>
-          <input
-            type="text"
-            placeholder="ابحث بالاسم التجاري، المادة الفعالة، الباركود، أو الشركة..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="purchase-prototype-field-input"
-            style={{ width: '100%', paddingInlineStart: '34px' }}
-          />
-          <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '10px', color: '#9ca3af', display: 'flex' }}>
-            <IconSearch size={16} />
+        {/* 1-Click Fast Drug Entry Strip */}
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+            <IconSparkles size={15} color="var(--primary, #1e1b4b)" />
+            <span>إضافة سريعة بنقرة واحدة:</span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {FAST_DRUG_PRESETS.map((p, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleOpenAdd(p)}
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#1e293b',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                + {p.tradeName.split(' ')[0]} ({p.boxPrice} ج.م)
+              </button>
+            ))}
           </div>
         </div>
 
-        <div>
-          <select
-            value={selectedDosageForm}
-            onChange={(e) => setSelectedDosageForm(e.target.value)}
-            className="purchase-prototype-field-input"
-            style={{ width: '100%' }}
-          >
-            <option value="all">جميع الأشكال الصيدلانية</option>
-            <option value="أقراص (Tablets)">أقراص (Tablets)</option>
-            <option value="كبسولات (Capsules)">كبسولات (Capsules)</option>
-            <option value="شراب (Syrup)">شراب (Syrup)</option>
-            <option value="أمبولات حقن (Ampoules)">حقن وأمبولات (Injections)</option>
-            <option value="كريم جلدي (Cream)">كريمات ومراهم (Topicals)</option>
-            <option value="قطرة / بخاخ أنف (Drops/Spray)">قطرات وبخاخات</option>
-          </select>
+        {/* Filter and Search Bar */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginBottom: '14px' }}>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="ابحث بالاسم التجاري، المادة الفعالة، أو الباركود..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="purchase-prototype-field-input"
+              style={{ width: '100%', paddingInlineStart: '34px', boxSizing: 'border-box' }}
+            />
+            <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '10px', color: '#94a3b8', display: 'flex' }}>
+              <IconSearch size={16} />
+            </div>
+          </div>
+
+          <div>
+            <select
+              value={selectedDosageForm}
+              onChange={(e) => setSelectedDosageForm(e.target.value)}
+              className="purchase-prototype-field-input"
+              style={{ width: '100%' }}
+            >
+              <option value="all">جميع الأشكال الصيدلانية</option>
+              <option value="أقراص (Tablets)">أقراص (Tablets)</option>
+              <option value="كبسولات (Capsules)">كبسولات (Capsules)</option>
+              <option value="شراب (Syrup)">شراب (Syrup)</option>
+              <option value="أمبولات حقن (Ampoules)">حقن وأمبولات (Injections)</option>
+              <option value="كريم جلدي (Cream)">كريمات ومراهم (Topicals)</option>
+              <option value="قطرة / بخاخ أنف (Drops/Spray)">قطرات وبخاخات</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={selectedControlled}
+              onChange={(e) => setSelectedControlled(e.target.value)}
+              className="purchase-prototype-field-input"
+              style={{ width: '100%' }}
+            >
+              <option value="all">جميع مستويات الرقابة</option>
+              <option value="none">عادي (OTC / غير مجدول)</option>
+              <option value="table_1">جدول أول (أدوية مؤثرة)</option>
+              <option value="table_2">جدول ثانٍ (رقابة مشددة)</option>
+            </select>
+          </div>
         </div>
 
-        <div>
-          <select
-            value={selectedControlled}
-            onChange={(e) => setSelectedControlled(e.target.value)}
-            className="purchase-prototype-field-input"
-            style={{ width: '100%' }}
-          >
-            <option value="all">جميع مستويات الرقابة</option>
-            <option value="none">عادي (OTC / غير مجدول)</option>
-            <option value="table_1">جدول أول (أدوية مؤثرة)</option>
-            <option value="table_2">جدول ثانٍ (رقابة مشددة)</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Drugs Directory Table */}
-      <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
-            <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-              <tr>
-                <th style={{ padding: '10px 14px' }}>الدواء (التجاري)</th>
-                <th style={{ padding: '10px 14px' }}>المادة الفعالة والتركيز</th>
-                <th style={{ padding: '10px 14px' }}>الشكل والشركة</th>
-                <th style={{ padding: '10px 14px' }}>سعر العلبة</th>
-                <th style={{ padding: '10px 14px' }}>التجزئة (سعر الشريط)</th>
-                <th style={{ padding: '10px 14px' }}>الباركود</th>
-                <th style={{ padding: '10px 14px' }}>الرقابة</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+        {/* Drugs Directory Table */}
+        <div style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'right' }}>
+              <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
                 <tr>
-                  <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#6b7280' }}>
-                    جاري تحميل الأدوية...
-                  </td>
+                  <th style={{ padding: '10px 14px' }}>الدواء (التجاري)</th>
+                  <th style={{ padding: '10px 14px' }}>المادة الفعالة والتركيز</th>
+                  <th style={{ padding: '10px 14px' }}>الشكل والشركة</th>
+                  <th style={{ padding: '10px 14px' }}>سعر العلبة</th>
+                  <th style={{ padding: '10px 14px' }}>التجزئة (سعر الشريط)</th>
+                  <th style={{ padding: '10px 14px' }}>الباركود</th>
+                  <th style={{ padding: '10px 14px' }}>الرقابة</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>إجراءات</th>
                 </tr>
-              ) : drugs.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ padding: '40px', textAlign: 'center' }}>
-                    <div style={{ color: '#64748b', marginBottom: '10px' }}>لا توجد أدوية مضافة حالياً في صيدليتك</div>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                      <Button
-                        variant="primary"
-                        onClick={() => setIsMasterCatalogOpen(true)}
-                        style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)', border: 'none', gap: '6px' }}
-                      >
-                        <IconSparkles size={16} />
-                        استيراد كافة الأدوية من المرجع المصري فوراً
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                drugs.map((drug) => (
-                  <tr key={drug.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px' }}>
-                      <div style={{ fontWeight: 700, color: '#1e293b' }}>{drug.trade_name}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{drug.trade_name_ar || '—'}</div>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+                      جاري تحميل الأدوية...
                     </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <div style={{ color: '#0f766e', fontWeight: 600 }}>{drug.active_ingredient}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{drug.active_ingredient_ar || ''} {drug.strength ? `(${drug.strength})` : ''}</div>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <div>{drug.dosage_form}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{drug.manufacturer || '—'}</div>
-                    </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 700, color: '#15803d' }}>
-                      {Number(drug.box_price).toFixed(2)} ج.م
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <div style={{ fontSize: '12px' }}>
-                        {Number(drug.units_per_box) > 1 ? (
-                          <>
-                            <strong style={{ color: '#2563eb' }}>{Number(drug.strip_price).toFixed(2)} ج.م</strong>
-                            <span style={{ fontSize: '11px', color: '#64748b' }}> ({drug.units_per_box} {drug.unit_name || 'شريط'})</span>
-                          </>
-                        ) : (
-                          <span style={{ color: '#64748b' }}>علبة مفردة</span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: '11px', color: '#475569' }}>
-                      {drug.barcode || '—'}
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      {drug.controlled_level === 'table_1' ? (
-                        <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                          جدول أول ⚠️
-                        </span>
-                      ) : drug.controlled_level === 'table_2' ? (
-                        <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                          جدول ثانٍ
-                        </span>
-                      ) : (
-                        <span style={{ background: '#f0fdf4', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>
-                          عادي OTC
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                  </tr>
+                ) : drugs.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '40px', textAlign: 'center' }}>
+                      <div style={{ color: '#64748b', marginBottom: '12px', fontSize: '0.86rem' }}>لا توجد أدوية مسجلة حالياً</div>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                         <Button
-                          variant="secondary"
-                          className="btn-sm"
-                          onClick={() => setSubstitutesModalData({ open: true, activeIngredient: drug.active_ingredient, tradeName: drug.trade_name })}
-                          title="البدائل والمثائل"
-                          style={{ padding: '4px 6px' }}
+                          variant="primary"
+                          onClick={() => setIsMasterCatalogOpen(true)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         >
-                          <IconSparkles size={14} color="#4f46e5" />
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          className="btn-sm"
-                          onClick={() => setDoseStickerData({ open: true, tradeName: drug.trade_name, activeIngredient: drug.active_ingredient })}
-                          title="طباعة لاصق جرعة"
-                          style={{ padding: '4px 6px' }}
-                        >
-                          <IconPrinter size={14} color="#059669" />
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          className="btn-sm"
-                          onClick={() => handleOpenEdit(drug)}
-                          title="تعديل"
-                          style={{ padding: '4px 6px' }}
-                        >
-                          <IconEdit size={14} color="#0284c7" />
-                        </Button>
-                        <Button
-                          variant="danger"
-                          className="btn-sm"
-                          onClick={() => handleDelete(drug.id)}
-                          title="حذف"
-                          style={{ padding: '4px 6px' }}
-                        >
-                          <IconTrash size={14} />
+                          <IconSparkles size={15} />
+                          <span>استيراد كافة الأدوية من المرجع المصري</span>
                         </Button>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  drugs.map((drug) => (
+                    <tr key={drug.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{drug.trade_name}</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{drug.trade_name_ar || '—'}</div>
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ color: '#0f766e', fontWeight: 600 }}>{drug.active_ingredient}</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{drug.active_ingredient_ar || ''} {drug.strength ? `(${drug.strength})` : ''}</div>
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div>{drug.dosage_form}</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{drug.manufacturer || '—'}</div>
+                      </td>
+                      <td style={{ padding: '10px 14px', fontWeight: 700, color: '#15803d' }}>
+                        {Number(drug.box_price).toFixed(2)} ج.م
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ fontSize: '0.8rem' }}>
+                          {Number(drug.units_per_box) > 1 ? (
+                            <>
+                              <strong style={{ color: 'var(--primary, #1e1b4b)' }}>{Number(drug.strip_price).toFixed(2)} ج.م</strong>
+                              <span style={{ fontSize: '0.74rem', color: '#64748b' }}> ({drug.units_per_box} {drug.unit_name || 'شريط'})</span>
+                            </>
+                          ) : (
+                            <span style={{ color: '#64748b' }}>علبة مفردة</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: '0.75rem', color: '#475569' }}>
+                        {drug.barcode || '—'}
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        {drug.controlled_level === 'table_1' ? (
+                          <span style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                            جدول أول ⚠️
+                          </span>
+                        ) : drug.controlled_level === 'table_2' ? (
+                          <span style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                            جدول ثانٍ
+                          </span>
+                        ) : (
+                          <span style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
+                            عادي OTC
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                          <Button
+                            variant="secondary"
+                            className="btn-sm"
+                            onClick={() => setSubstitutesModalData({ open: true, activeIngredient: drug.active_ingredient, tradeName: drug.trade_name })}
+                            title="البدائل والمثائل"
+                            style={{ padding: '4px 6px' }}
+                          >
+                            <IconSparkles size={14} />
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            className="btn-sm"
+                            onClick={() => setDoseStickerData({ open: true, tradeName: drug.trade_name, activeIngredient: drug.active_ingredient })}
+                            title="طباعة لاصق جرعة"
+                            style={{ padding: '4px 6px' }}
+                          >
+                            <IconPrinter size={14} />
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            className="btn-sm"
+                            onClick={() => handleOpenEdit(drug)}
+                            title="تعديل"
+                            style={{ padding: '4px 6px' }}
+                          >
+                            <IconEdit size={14} />
+                          </Button>
+                          <Button
+                            variant="danger"
+                            className="btn-sm"
+                            onClick={() => handleDelete(drug.id)}
+                            title="حذف"
+                            style={{ padding: '4px 6px' }}
+                          >
+                            <IconTrash size={14} />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      {/* Add / Edit Drug Modal */}
-      {isModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#ffffff', borderRadius: '12px', padding: '20px', width: '90vw', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3 style={{ margin: 0, marginBottom: '14px', fontSize: '17px', fontWeight: 800 }}>
-              {editingDrug ? 'تعديل بيانات الدواء' : 'إضافة دواء جديد للدليل'}
-            </h3>
+        {/* Add / Edit Drug Modal using DialogShell */}
+        <DialogShell
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          width="min(740px, 95vw)"
+          ariaLabel={editingDrug ? 'تعديل بيانات الدواء' : 'إضافة دواء جديد للدليل'}
+        >
+          <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                {editingDrug ? 'تعديل بيانات الدواء' : 'إضافة دواء جديد للدليل'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
+              >
+                ✕
+              </button>
+            </div>
 
-            <form onSubmit={handleSave}>
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>الاسم التجاري (English) *</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>الاسم التجاري (English) *</label>
                   <input
                     type="text"
                     required
                     value={formData.trade_name}
                     onChange={(e) => setFormData({ ...formData, trade_name: e.target.value })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>الاسم التجاري (بالعربي)</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>الاسم التجاري (بالعربي)</label>
                   <input
                     type="text"
                     value={formData.trade_name_ar || ''}
                     onChange={(e) => setFormData({ ...formData, trade_name_ar: e.target.value })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>المادة الفعالة (English) *</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>المادة الفعالة (English) *</label>
                   <input
                     type="text"
                     required
                     value={formData.active_ingredient}
                     onChange={(e) => setFormData({ ...formData, active_ingredient: e.target.value })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>المادة الفعالة (بالعربي)</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>المادة الفعالة (بالعربي)</label>
                   <input
                     type="text"
                     value={formData.active_ingredient_ar || ''}
                     onChange={(e) => setFormData({ ...formData, active_ingredient_ar: e.target.value })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>الشكل الصيدلي</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>الشكل الصيدلي</label>
                   <select
                     value={formData.dosage_form}
                     onChange={(e) => setFormData({ ...formData, dosage_form: e.target.value })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   >
                     <option value="أقراص (Tablets)">أقراص (Tablets)</option>
                     <option value="كبسولات (Capsules)">كبسولات (Capsules)</option>
@@ -499,41 +520,41 @@ export default function PharmacyDrugsDirectoryPage() {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>التركيز</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>التركيز</label>
                   <input
                     type="text"
                     placeholder="مثال: 500mg"
                     value={formData.strength || ''}
                     onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>الشركة المصنعة</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>الشركة المصنعة</label>
                   <input
                     type="text"
                     value={formData.manufacturer || ''}
                     onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>الباركود الدولي</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>الباركود الدولي</label>
                   <input
                     type="text"
                     value={formData.barcode || ''}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px', fontFamily: 'monospace' }}
+                    style={{ width: '100%', marginTop: '4px', fontFamily: 'monospace', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>سعر العلبة (التسعيرة الجبرية)</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>سعر العلبة (التسعيرة الجبرية)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -544,12 +565,12 @@ export default function PharmacyDrugsDirectoryPage() {
                       setFormData({ ...formData, box_price: bp, strip_price: units > 0 ? bp / units : bp });
                     }}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>عدد الشرائط / الوحدات بالعلبة</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>عدد الشرائط / الوحدات بالعلبة</label>
                   <input
                     type="number"
                     min="1"
@@ -560,29 +581,29 @@ export default function PharmacyDrugsDirectoryPage() {
                       setFormData({ ...formData, units_per_box: units, strip_price: units > 0 ? bp / units : bp });
                     }}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>سعر بيع الشريط التلقائي</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>سعر بيع الشريط التلقائي</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.strip_price || 0}
                     onChange={(e) => setFormData({ ...formData, strip_price: Number(e.target.value) })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600 }}>جدول الرقابة الدوائية</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>جدول الرقابة الدوائية</label>
                   <select
                     value={formData.controlled_level}
                     onChange={(e) => setFormData({ ...formData, controlled_level: e.target.value as any })}
                     className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px' }}
+                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
                   >
                     <option value="none">عادي (غير مجدول OTC)</option>
                     <option value="table_1">جدول أول (مؤثر / عهدة)</option>
@@ -591,7 +612,7 @@ export default function PharmacyDrugsDirectoryPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
                 <Button variant="secondary" type="button" onClick={() => setIsModalOpen(false)}>
                   إلغاء
                 </Button>
@@ -601,38 +622,37 @@ export default function PharmacyDrugsDirectoryPage() {
               </div>
             </form>
           </div>
-        </div>
-      )}
+        </DialogShell>
 
-      {/* Master Egyptian Catalog Modal */}
-      <EgyptianMasterCatalogModal
-        open={isMasterCatalogOpen}
-        onClose={() => setIsMasterCatalogOpen(false)}
-        onImportSuccess={fetchDrugs}
-      />
+        {/* Master Egyptian Catalog Modal */}
+        <EgyptianMasterCatalogModal
+          open={isMasterCatalogOpen}
+          onClose={() => setIsMasterCatalogOpen(false)}
+          onImportSuccess={fetchDrugs}
+        />
 
-      {/* Distributor E-Invoice Importer Modal */}
-      <DistributorInvoiceImportModal
-        open={isInvoiceModalOpen}
-        onClose={() => setIsInvoiceModalOpen(false)}
-        onImportSuccess={fetchDrugs}
-      />
+        {/* Distributor E-Invoice Importer Modal */}
+        <DistributorInvoiceImportModal
+          open={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          onImportSuccess={fetchDrugs}
+        />
 
-      {/* Generic Substitutes Engine Modal */}
-      <GenericSubstitutesModal
-        open={substitutesModalData.open}
-        onClose={() => setSubstitutesModalData({ ...substitutesModalData, open: false })}
-        activeIngredient={substitutesModalData.activeIngredient}
-        originalTradeName={substitutesModalData.tradeName}
-      />
+        {/* Generic Substitutes Engine Modal */}
+        <GenericSubstitutesModal
+          open={substitutesModalData.open}
+          onClose={() => setSubstitutesModalData({ ...substitutesModalData, open: false })}
+          activeIngredient={substitutesModalData.activeIngredient}
+          originalTradeName={substitutesModalData.tradeName}
+        />
 
-      {/* Dose Sticker Print Modal */}
-      <DoseStickerPrintModal
-        open={doseStickerData.open}
-        onClose={() => setDoseStickerData({ ...doseStickerData, open: false })}
-        drugName={doseStickerData.tradeName}
-        
-      />
+        {/* Dose Sticker Print Modal */}
+        <DoseStickerPrintModal
+          open={doseStickerData.open}
+          onClose={() => setDoseStickerData({ ...doseStickerData, open: false })}
+          drugName={doseStickerData.tradeName}
+        />
+      </main>
     </div>
   );
 }

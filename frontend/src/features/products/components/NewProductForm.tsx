@@ -532,13 +532,9 @@ export function NewProductForm({
   }
 
   const builderMode = watchedItemKind === 'fashion' ? 'fashion' : 'standard';
-  const submitText = watchedItemKind === 'fashion'
-    ? 'إنشاء الموديل بكل المقاسات والألوان'
-    : groupedEntryEnabled
-      ? 'إنشاء الصنف الرئيسي بكل الأصناف الفرعية'
-      : mode === 'modal'
-        ? 'حفظ وإضافة للسلة'
-        : 'حفظ الصنف';
+  const submitText = usesVariantBuilder
+    ? (mode === 'modal' ? 'حفظ الصنف والمتغيرات وإضافة للسلة' : 'حفظ الصنف بجميع المتغيرات')
+    : (mode === 'modal' ? 'حفظ وإضافة للسلة' : 'حفظ الصنف');
 
   const onSubmit = form.handleSubmit((values) => {
     mutation.mutate({ ...values, itemKind: watchedItemKind, units, fashionVariantRows, groupedEntryEnabled: usesVariantBuilder });
@@ -625,8 +621,59 @@ export function NewProductForm({
 
         {/* 1. Core Info & Pricing */}
         <div className="product-compact-card">
-          <div className="product-compact-card-header">
-            <h3 className="product-compact-card-title">بيانات الصنف والأسعار</h3>
+          <div className="product-compact-card-header" style={{ flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+              <h3 className="product-compact-card-title">بيانات الصنف والأسعار</h3>
+              {clothingModuleEnabled && (
+                <div style={{ display: 'inline-flex', gap: '2px', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      form.setValue('itemKind', 'standard', { shouldDirty: true });
+                      setGroupedEntryEnabled(false);
+                    }}
+                    disabled={isFormDisabled}
+                    style={{
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '3px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: !usesVariantBuilder ? 800 : 600,
+                      background: !usesVariantBuilder ? 'var(--primary, #1e1b4b)' : 'transparent',
+                      color: !usesVariantBuilder ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      boxShadow: !usesVariantBuilder ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    صنف عادي (بسيط)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      form.setValue('itemKind', 'fashion', { shouldDirty: true });
+                      setGroupedEntryEnabled(true);
+                    }}
+                    disabled={isFormDisabled}
+                    style={{
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '3px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: usesVariantBuilder ? 800 : 600,
+                      background: usesVariantBuilder ? 'var(--primary, #1e1b4b)' : 'transparent',
+                      color: usesVariantBuilder ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      boxShadow: usesVariantBuilder ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    صنف بمتغيرات (أحجام / روائح / مقاسات)
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '12px', color: '#4b5563', fontWeight: 600 }}>حساب تلقائي للأسعار</span>
               <button
@@ -662,58 +709,6 @@ export function NewProductForm({
             </div>
           </div>
 
-          {clothingModuleEnabled && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.85rem', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>نمط الصنف:</span>
-              <div style={{ display: 'inline-flex', gap: '4px', background: '#e2e8f0', padding: '3px', borderRadius: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    form.setValue('itemKind', 'standard', { shouldDirty: true });
-                    setGroupedEntryEnabled(false);
-                  }}
-                  disabled={isFormDisabled}
-                  style={{
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 12px',
-                    fontSize: '0.8rem',
-                    fontWeight: !usesVariantBuilder ? 800 : 600,
-                    background: !usesVariantBuilder ? '#ffffff' : 'transparent',
-                    color: !usesVariantBuilder ? '#0f172a' : '#64748b',
-                    cursor: 'pointer',
-                    boxShadow: !usesVariantBuilder ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  📦 صنف عادي (بسيط - باركود واحد)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    form.setValue('itemKind', 'fashion', { shouldDirty: true });
-                    setGroupedEntryEnabled(true);
-                  }}
-                  disabled={isFormDisabled}
-                  style={{
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 12px',
-                    fontSize: '0.8rem',
-                    fontWeight: usesVariantBuilder ? 800 : 600,
-                    background: usesVariantBuilder ? '#2563eb' : 'transparent',
-                    color: usesVariantBuilder ? '#ffffff' : '#64748b',
-                    cursor: 'pointer',
-                    boxShadow: usesVariantBuilder ? '0 1px 3px rgba(37,99,235,0.3)' : 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  ⚡ صنف بمتغيرات (أحجام / روائح / مقاسات)
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
             <Field label="نوع الصنف">
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
@@ -743,14 +738,9 @@ export function NewProductForm({
                 </div>
               </Field>
             ) : (
-              <>
-                <Field label="الباركود">
-                  <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
-                </Field>
-                {clothingModuleEnabled ? <Field label="كود المجموعة / الموديل"><input className="purchase-prototype-field-input" {...form.register('styleCode')} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري" /></Field> : null}
-                {clothingModuleEnabled ? <Field label="الخاصية 1 (اللون / الرائحة)"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
-                {clothingModuleEnabled ? <Field label="الخاصية 2 (المقاس / الحجم)"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
-              </>
+              <Field label="الباركود">
+                <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
+              </Field>
             )}
           </div>
 
@@ -786,74 +776,120 @@ export function NewProductForm({
           <div className="product-compact-card-header">
             <h3 className="product-compact-card-title">التصنيف والتخزين والمخزون</h3>
           </div>
-          <div className="product-form-grid-4" style={{ marginBottom: '0.85rem' }}>
-            <div className="field">
-              <label>القسم</label>
-              <ComboboxSelect
-                value={watchedCategoryId || ''}
-                onChange={(v) => form.setValue('categoryId', v, { shouldDirty: true })}
-                options={categoryOptions}
-                emptyLabel="بدون قسم"
-                placeholder="ابحث..."
-                disabled={isFormDisabled || categoryMutation.isPending}
-                onCreateNew={(name) => categoryMutation.mutate(name)}
-                createLabel="إضافة قسم"
-                isPending={categoryMutation.isPending}
-              />
-              {form.formState.errors.categoryId && <small className="field-error">{form.formState.errors.categoryId.message}</small>}
-            </div>
-
-            <div className="field">
-              <label>المورد</label>
-              <ComboboxSelect
-                value={watchedSupplierId || ''}
-                onChange={(v) => form.setValue('supplierId', v, { shouldDirty: true })}
-                options={supplierOptions}
-                emptyLabel="بدون مورد"
-                placeholder="ابحث..."
-                disabled={isFormDisabled || supplierMutation.isPending}
-                onCreateNew={(name) => supplierMutation.mutate(name)}
-                createLabel="إضافة مورد"
-                isPending={supplierMutation.isPending}
-              />
-              {form.formState.errors.supplierId && <small className="field-error">{form.formState.errors.supplierId.message}</small>}
-            </div>
-
-            {!usesVariantBuilder ? (
+          {usesVariantBuilder ? (
+            <div className="product-form-grid-5">
               <div className="field">
-                <label>المخزن</label>
+                <label>القسم</label>
                 <ComboboxSelect
-                  value={watchedWarehouseId || ''}
-                  onChange={(v) => form.setValue('warehouseId', v, { shouldDirty: true, shouldValidate: true })}
-                  options={locationOptions}
-                  emptyLabel={locationOptions.length === 1 ? '' : "اختر المخزن..."}
+                  value={watchedCategoryId || ''}
+                  onChange={(v) => form.setValue('categoryId', v, { shouldDirty: true })}
+                  options={categoryOptions}
+                  emptyLabel="بدون قسم"
                   placeholder="ابحث..."
-                  disabled={isFormDisabled || locationOptions.length === 1}
+                  disabled={isFormDisabled || categoryMutation.isPending}
+                  onCreateNew={(name) => categoryMutation.mutate(name)}
+                  createLabel="إضافة قسم"
+                  isPending={categoryMutation.isPending}
                 />
-                {form.formState.errors.warehouseId && <small className="field-error">{form.formState.errors.warehouseId.message}</small>}
+                {form.formState.errors.categoryId && <small className="field-error">{form.formState.errors.categoryId.message}</small>}
               </div>
-            ) : <div />}
 
-            <Field label="مكان الرف (Bin)">
-              <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: رف 5" />
-            </Field>
-          </div>
+              <div className="field">
+                <label>المورد</label>
+                <ComboboxSelect
+                  value={watchedSupplierId || ''}
+                  onChange={(v) => form.setValue('supplierId', v, { shouldDirty: true })}
+                  options={supplierOptions}
+                  emptyLabel="بدون مورد"
+                  placeholder="ابحث..."
+                  disabled={isFormDisabled || supplierMutation.isPending}
+                  onCreateNew={(name) => supplierMutation.mutate(name)}
+                  createLabel="إضافة مورد"
+                  isPending={supplierMutation.isPending}
+                />
+                {form.formState.errors.supplierId && <small className="field-error">{form.formState.errors.supplierId.message}</small>}
+              </div>
 
-          <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
-            <div className="product-form-grid-3">
-              {!usesVariantBuilder ? (
-                <Field label="الرصيد الافتتاحي (أول المدة)">
-                  <input className="purchase-prototype-field-input" type="number" {...form.register('stock')} disabled={isFormDisabled} />
-                </Field>
-              ) : null}
+              <Field label="مكان الرف (Bin)">
+                <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: رف 5" />
+              </Field>
+
               <Field label="الحد الأدنى للتنبيه (نواقص)">
                 <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
               </Field>
+
               <Field label="ملاحظات">
-                <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder="ملاحظات حول الصنف (اختياري)..." />
+                <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder="ملاحظات الصنف..." />
               </Field>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="product-form-grid-4" style={{ marginBottom: '0.85rem' }}>
+                <div className="field">
+                  <label>القسم</label>
+                  <ComboboxSelect
+                    value={watchedCategoryId || ''}
+                    onChange={(v) => form.setValue('categoryId', v, { shouldDirty: true })}
+                    options={categoryOptions}
+                    emptyLabel="بدون قسم"
+                    placeholder="ابحث..."
+                    disabled={isFormDisabled || categoryMutation.isPending}
+                    onCreateNew={(name) => categoryMutation.mutate(name)}
+                    createLabel="إضافة قسم"
+                    isPending={categoryMutation.isPending}
+                  />
+                  {form.formState.errors.categoryId && <small className="field-error">{form.formState.errors.categoryId.message}</small>}
+                </div>
+
+                <div className="field">
+                  <label>المورد</label>
+                  <ComboboxSelect
+                    value={watchedSupplierId || ''}
+                    onChange={(v) => form.setValue('supplierId', v, { shouldDirty: true })}
+                    options={supplierOptions}
+                    emptyLabel="بدون مورد"
+                    placeholder="ابحث..."
+                    disabled={isFormDisabled || supplierMutation.isPending}
+                    onCreateNew={(name) => supplierMutation.mutate(name)}
+                    createLabel="إضافة مورد"
+                    isPending={supplierMutation.isPending}
+                  />
+                  {form.formState.errors.supplierId && <small className="field-error">{form.formState.errors.supplierId.message}</small>}
+                </div>
+
+                <div className="field">
+                  <label>المخزن</label>
+                  <ComboboxSelect
+                    value={watchedWarehouseId || ''}
+                    onChange={(v) => form.setValue('warehouseId', v, { shouldDirty: true, shouldValidate: true })}
+                    options={locationOptions}
+                    emptyLabel={locationOptions.length === 1 ? '' : "اختر المخزن..."}
+                    placeholder="ابحث..."
+                    disabled={isFormDisabled || locationOptions.length === 1}
+                  />
+                  {form.formState.errors.warehouseId && <small className="field-error">{form.formState.errors.warehouseId.message}</small>}
+                </div>
+
+                <Field label="مكان الرف (Bin)">
+                  <input className="purchase-prototype-field-input" {...form.register('binLocation')} disabled={isFormDisabled} placeholder="مثال: رف 5" />
+                </Field>
+              </div>
+
+              <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
+                <div className="product-form-grid-3">
+                  <Field label="الرصيد الافتتاحي (أول المدة)">
+                    <input className="purchase-prototype-field-input" type="number" {...form.register('stock')} disabled={isFormDisabled} />
+                  </Field>
+                  <Field label="الحد الأدنى للتنبيه (نواقص)">
+                    <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
+                  </Field>
+                  <Field label="ملاحظات">
+                    <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder="ملاحظات حول الصنف (اختياري)..." />
+                  </Field>
+                </div>
+              </div>
+            </>
+          )}
 
           {settingsQuery.data?.enableMobileStoreFeatures === true && (
             <div style={{ marginTop: '0.85rem', paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>

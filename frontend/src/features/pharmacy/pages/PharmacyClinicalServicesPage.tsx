@@ -9,42 +9,58 @@ import { CLINICAL_SERVICE_LABELS } from '../constants/pharmacy.constants';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import {
   IconStethoscope,
+  IconHeartPulse,
+  IconActivity,
   IconPlus,
   IconRefresh,
   IconSave,
-  IconHeartPulse,
-  IconActivity,
 } from '../components/PharmacyIcons';
 
 export default function PharmacyClinicalServicesPage() {
-  useAppToolbar([{ label: 'الفحوصات والخدمات الصيدلانية' }]);
+  useAppToolbar([
+    { label: 'الرئيسية', to: '/' },
+    { label: 'الصيدلية والأدوية', to: '/pharmacy' },
+    { label: 'الرعاية والقياسات الإكلينيكية' },
+  ]);
   const queryClient = useQueryClient();
+  const [page] = useState(1);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [newService, setNewService] = useState<Partial<PharmacyClinicalService>>({
     service_type: 'blood_pressure',
     customer_name: '',
     customer_phone: '',
-    metric_value_1: '120/80',
-    metric_value_2: '75',
+    metric_value_1: '',
+    metric_value_2: '',
     pharmacist_notes: '',
     fee: 0,
   });
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['pharmacy', 'clinical-services'],
-    queryFn: pharmacyApi.listClinicalServices,
+    queryKey: ['pharmacy', 'clinical-services', page],
+    queryFn: () => pharmacyApi.listClinicalServices(),
   });
 
   const createMutation = useMutation({
-    mutationFn: pharmacyApi.createClinicalService,
+    mutationFn: (dto: Partial<PharmacyClinicalService>) => pharmacyApi.createClinicalService(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pharmacy', 'clinical-services'] });
+      queryClient.invalidateQueries({ queryKey: ['pharmacy', 'stats'] });
       setModalOpen(false);
+      setNewService({
+        service_type: 'blood_pressure',
+        customer_name: '',
+        customer_phone: '',
+        metric_value_1: '',
+        metric_value_2: '',
+        pharmacist_notes: '',
+        fee: 0,
+      });
     },
   });
 
-  const servicesList = data || [];
-  const totalItems = servicesList.length;
+  const servicesList: PharmacyClinicalService[] = Array.isArray(data) ? data : ((data as any)?.services || []);
+  const totalItems = Array.isArray(data) ? data.length : ((data as any)?.pagination?.totalItems || servicesList.length);
 
   const bpCount = servicesList.filter((s: PharmacyClinicalService) => s.service_type === 'blood_pressure').length;
   const glucoseCount = servicesList.filter((s: PharmacyClinicalService) => s.service_type === 'blood_glucose').length;
@@ -59,83 +75,83 @@ export default function PharmacyClinicalServicesPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
-          title="سجل الفحوصات والخدمات والرعاية الصيدلانية"
-          description="تسجيل ومتابعة قياس ضغط الدم، السكر بالدم، مؤشر كتلة الجسم، وإعطاء الحقن مع حفظ سجل صحي لكل مريض"
-          badge={<span className="nav-pill">{totalItems} فحص مسجل</span>}
+          title="الرعاية الصيدلانية والفحوصات الإكلينيكية"
+          description="سجل قياسات ضغط الدم، السكر العشوائي والصائم، مؤشر كتلة الجسم (BMI)، والحقن والغيار"
+          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} فحص مسجل</span>}
           actions={
             <div className="actions compact-actions">
               <Button
                 variant="primary"
                 onClick={() => setModalOpen(true)}
-                style={{ background: '#7c3aed', borderColor: '#7c3aed', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <IconPlus size={16} />
-                <span>تسجيل فحص / خدمة جديدة</span>
+                <IconPlus size={15} />
+                <span>تسجيل فحص صيدلاني</span>
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => void refetch()}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <IconRefresh size={16} />
+                <IconRefresh size={15} />
                 <span>تحديث</span>
               </Button>
             </div>
           }
         />
 
-        {/* 4 Summary Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* 4 Summary KPI Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي الفحوصات والخدمات</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#7c3aed', marginTop: '2px' }}>{totalItems}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary, #1e1b4b)', marginTop: '2px' }}>{totalItems}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
-              <IconStethoscope size={20} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary, #1e1b4b)' }}>
+              <IconStethoscope size={18} />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>قياسات ضغط الدم والنبض</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>{bpCount}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{bpCount}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
-              <IconHeartPulse size={20} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
+              <IconHeartPulse size={18} />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تحاليل السكر والحقن</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#d97706', marginTop: '2px' }}>{glucoseCount + injectionCount}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{glucoseCount + injectionCount}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-              <IconActivity size={20} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
+              <IconActivity size={18} />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إيراد الخدمات الصيدلانية</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
                 {totalFees.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
               </div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <IconActivity size={20} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+              <IconActivity size={18} />
             </div>
           </div>
         </div>
 
         {/* Table */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', textAlign: 'right' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'right' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 800 }}>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
                 <th style={{ padding: '10px 14px' }}>نوع الخدمة / الفحص</th>
                 <th style={{ padding: '10px 14px' }}>اسم المريض / الهاتف</th>
                 <th style={{ padding: '10px 14px' }}>النتيجة والقياس</th>
@@ -158,16 +174,16 @@ export default function PharmacyClinicalServicesPage() {
                   const info = CLINICAL_SERVICE_LABELS[srv.service_type] || { title: srv.service_type, icon: '', unit: '' };
                   return (
                     <tr key={srv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--primary, #1e1b4b)' }}>
                         {info.title}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <strong>{srv.customer_name}</strong>
-                        {srv.customer_phone && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{srv.customer_phone}</div>}
+                        <strong style={{ color: '#0f172a' }}>{srv.customer_name}</strong>
+                        {srv.customer_phone && <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{srv.customer_phone}</div>}
                       </td>
-                      <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0284c7' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f766e' }}>
                         {srv.metric_value_1} {info.unit}
-                        {srv.metric_value_2 && <span style={{ fontSize: '0.75rem', color: '#64748b', marginRight: '6px' }}>({srv.metric_value_2})</span>}
+                        {srv.metric_value_2 && <span style={{ fontSize: '0.74rem', color: '#64748b', marginRight: '6px' }}>({srv.metric_value_2})</span>}
                       </td>
                       <td style={{ padding: '10px 14px', color: '#475569' }}>
                         {srv.pharmacist_notes || '—'}
@@ -175,7 +191,7 @@ export default function PharmacyClinicalServicesPage() {
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#16a34a' }}>
                         {Number(srv.fee) > 0 ? (Number(srv.fee).toFixed(2) + ' ج.م') : 'مجانية'}
                       </td>
-                      <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '0.75rem' }}>
+                      <td style={{ padding: '10px 14px', color: '#64748b', fontSize: '0.74rem' }}>
                         {new Date(srv.created_at).toLocaleString('ar-EG')}
                       </td>
                     </tr>
@@ -187,134 +203,147 @@ export default function PharmacyClinicalServicesPage() {
         </div>
 
         {modalOpen && (
-          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(580px, 95vw)" ariaLabel="تسجيل فحص صيدلاني">
-            <form onSubmit={handleSave} dir="rtl" style={{ padding: '16px 20px' }}>
-              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <IconStethoscope size={20} color="#7c3aed" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+          <DialogShell
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            width="min(580px, 95vw)"
+            ariaLabel="تسجيل فحص أو خدمة رعاية صيدلانية"
+          >
+            <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
                   تسجيل فحص أو خدمة رعاية صيدلانية
                 </h3>
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  ✕
+                </button>
               </div>
 
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    نوع الخدمة
-                  </label>
-                  <select
-                    className="purchase-prototype-field-input"
-                    value={newService.service_type || 'blood_pressure'}
-                    onChange={(e) => setNewService({ ...newService, service_type: e.target.value as any })}
-                    style={{ width: '100%', padding: '8px 12px', background: '#fff', fontWeight: 700 }}
-                  >
-                    <option value="blood_pressure">قياس ضغط الدم والنبض</option>
-                    <option value="blood_glucose">قياس السكر بالدم (صائم / عشوائي)</option>
-                    <option value="weight_bmi">قياس الوزن ومؤشر كتلة الجسم</option>
-                    <option value="injection">إعطاء حقنة عضل / وريد</option>
-                    <option value="wound_dressing">غيار وتطهير جروح</option>
-                  </select>
-                </div>
+              <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      نوع الخدمة
+                    </label>
+                    <select
+                      className="purchase-prototype-field-input"
+                      value={newService.service_type || 'blood_pressure'}
+                      onChange={(e) => setNewService({ ...newService, service_type: e.target.value as any })}
+                      style={{ width: '100%', fontWeight: 700, boxSizing: 'border-box' }}
+                    >
+                      <option value="blood_pressure">قياس ضغط الدم والنبض</option>
+                      <option value="blood_glucose">قياس السكر بالدم (صائم / عشوائي)</option>
+                      <option value="weight_bmi">قياس الوزن ومؤشر كتلة الجسم</option>
+                      <option value="injection">إعطاء حقنة عضل / وريد</option>
+                      <option value="wound_dressing">غيار وتطهير جروح</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    اسم المريض <span style={{ color: '#dc2626' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className="purchase-prototype-field-input"
-                    value={newService.customer_name || ''}
-                    onChange={(e) => setNewService({ ...newService, customer_name: e.target.value })}
-                    placeholder="اسم المريض..."
-                    style={{ width: '100%', padding: '8px 12px' }}
-                  />
-                </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      اسم المريض <span style={{ color: '#dc2626' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="purchase-prototype-field-input"
+                      value={newService.customer_name || ''}
+                      onChange={(e) => setNewService({ ...newService, customer_name: e.target.value })}
+                      placeholder="اسم المريض..."
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
 
-                <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    هاتف المريض
-                  </label>
-                  <input
-                    type="text"
-                    className="purchase-prototype-field-input"
-                    value={newService.customer_phone || ''}
-                    onChange={(e) => setNewService({ ...newService, customer_phone: e.target.value })}
-                    placeholder="010XXXXXXXX"
-                    style={{ width: '100%', padding: '8px 12px' }}
-                  />
-                </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      هاتف المريض
+                    </label>
+                    <input
+                      type="text"
+                      className="purchase-prototype-field-input"
+                      value={newService.customer_phone || ''}
+                      onChange={(e) => setNewService({ ...newService, customer_phone: e.target.value })}
+                      placeholder="010XXXXXXXX"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
 
-                <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    قيمة القياس الأولى (الضغط / السكر / الوزن)
-                  </label>
-                  <input
-                    type="text"
-                    className="purchase-prototype-field-input"
-                    value={newService.metric_value_1 || ''}
-                    onChange={(e) => setNewService({ ...newService, metric_value_1: e.target.value })}
-                    placeholder="مثال: 120/80 أو 110 mg/dL"
-                    style={{ width: '100%', padding: '8px 12px' }}
-                  />
-                  {/* Quick Values Helpers */}
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                    <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '120/80', metric_value_2: '72' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>120/80</button>
-                    <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '140/90', metric_value_2: '80' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>140/90</button>
-                    <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '110 mg/dL', metric_value_2: 'صائم' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>110 صائم</button>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      قيمة القياس الأولى (الضغط / السكر / الوزن)
+                    </label>
+                    <input
+                      type="text"
+                      className="purchase-prototype-field-input"
+                      value={newService.metric_value_1 || ''}
+                      onChange={(e) => setNewService({ ...newService, metric_value_1: e.target.value })}
+                      placeholder="مثال: 120/80 أو 110 mg/dL"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                    {/* Quick Values Helpers */}
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                      <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '120/80', metric_value_2: '72' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>120/80</button>
+                      <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '140/90', metric_value_2: '80' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>140/90</button>
+                      <button type="button" onClick={() => setNewService({ ...newService, metric_value_1: '110 mg/dL', metric_value_2: 'صائم' })} className="btn btn-sm btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem' }}>110 صائم</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      قيمة ثانوية (النبض / الحالة)
+                    </label>
+                    <input
+                      type="text"
+                      className="purchase-prototype-field-input"
+                      value={newService.metric_value_2 || ''}
+                      onChange={(e) => setNewService({ ...newService, metric_value_2: e.target.value })}
+                      placeholder="مثال: نبض 75 / عشوائي بعد الأكل"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      ملاحظات وتوجيهات الصيدلي
+                    </label>
+                    <input
+                      type="text"
+                      className="purchase-prototype-field-input"
+                      value={newService.pharmacist_notes || ''}
+                      onChange={(e) => setNewService({ ...newService, pharmacist_notes: e.target.value })}
+                      placeholder="مثال: الضغط مستقر / يفضل تقليل الأملاح..."
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                      رسوم الخدمة (ج.م)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="purchase-prototype-field-input"
+                      value={newService.fee ?? 0}
+                      onChange={(e) => setNewService({ ...newService, fee: parseFloat(e.target.value) || 0 })}
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    قيمة ثانوية (النبض / الحالة)
-                  </label>
-                  <input
-                    type="text"
-                    className="purchase-prototype-field-input"
-                    value={newService.metric_value_2 || ''}
-                    onChange={(e) => setNewService({ ...newService, metric_value_2: e.target.value })}
-                    placeholder="مثال: نبض 75 / عشوائي بعد الأكل"
-                    style={{ width: '100%', padding: '8px 12px' }}
-                  />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                  <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
+                  <Button variant="primary" type="submit" disabled={createMutation.isPending} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <IconSave size={15} />
+                    <span>{createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الفحص'}</span>
+                  </Button>
                 </div>
-
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    ملاحظات وتوجيهات الصيدلي
-                  </label>
-                  <input
-                    type="text"
-                    className="purchase-prototype-field-input"
-                    value={newService.pharmacist_notes || ''}
-                    onChange={(e) => setNewService({ ...newService, pharmacist_notes: e.target.value })}
-                    placeholder="مثال: الضغط مستقر / يفضل تقليل الأملاح..."
-                    style={{ width: '100%', padding: '8px 12px' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    رسوم الخدمة (ج.م)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="purchase-prototype-field-input"
-                    value={newService.fee ?? 0}
-                    onChange={(e) => setNewService({ ...newService, fee: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px 12px' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-                <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-                <Button variant="primary" type="submit" disabled={createMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <IconSave size={16} />
-                  <span>{createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الفحص'}</span>
-                </Button>
-              </div>
-            </form>
+              </form>
+            </div>
           </DialogShell>
         )}
       </main>

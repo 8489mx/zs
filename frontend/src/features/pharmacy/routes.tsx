@@ -41,7 +41,7 @@ export const pharmacyRouteModule: FeatureRouteModule = {
     },
   ],
   navigation: [
-    { key: 'pharmacy-dashboard', label: 'لوحة تحكم الصيدلية', to: '/pharmacy' },
+    { key: 'pharmacy-dashboard', label: 'لوحة تحكم الصيدلية', to: '/pharmacy', end: true },
     { key: 'pharmacy-drugs', label: 'دليل الأدوية والبدائل', to: '/pharmacy/drugs' },
     { key: 'pharmacy-prescriptions', label: 'الروشتات والتأمين', to: '/pharmacy/prescriptions' },
     { key: 'pharmacy-shortages', label: 'كشكول النواقص', to: '/pharmacy/shortages' },

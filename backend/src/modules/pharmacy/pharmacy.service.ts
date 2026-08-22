@@ -52,7 +52,7 @@ export class PharmacyService {
     }
 
     const page = Math.max(1, Number(filters?.page || 1));
-    const pageSize = Math.min(100, Math.max(1, Number(filters?.pageSize || 25)));
+    const pageSize = Math.min(500, Math.max(1, Number(filters?.pageSize || 25)));
     const totalItems = items.length;
     const offset = (page - 1) * pageSize;
     const paginatedItems = items.slice(offset, offset + pageSize);

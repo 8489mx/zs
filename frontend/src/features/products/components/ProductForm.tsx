@@ -282,11 +282,9 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
 
   const builderMode = watchedItemKind === 'fashion' ? 'fashion' : 'standard';
 
-  const submitText = watchedItemKind === 'fashion'
-    ? 'إنشاء الموديل بكل المقاسات والألوان'
-    : groupedEntryEnabled
-      ? 'إنشاء الصنف الرئيسي بكل الأصناف الفرعية'
-      : 'حفظ الصنف';
+  const submitText = usesVariantBuilder
+    ? 'حفظ الصنف بجميع المتغيرات'
+    : 'حفظ الصنف';
 
   return (
     <form className="page-stack" onSubmit={form.handleSubmit((values) => mutation.mutate({ ...values, itemKind: watchedItemKind, units, fashionVariantRows, groupedEntryEnabled: usesVariantBuilder }))}>
@@ -294,8 +292,8 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
 
       {clothingModuleEnabled && (
         <div className="surface-note" style={{ padding: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>نمط الصنف:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>نمط الصنف:</span>
             <div className="actions compact-actions" style={{ margin: 0 }}>
               <Button
                 type="button"
@@ -306,7 +304,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
                 }}
                 disabled={mutation.isPending}
               >
-                📦 صنف عادي (بسيط)
+                صنف عادي (بسيط)
               </Button>
               <Button
                 type="button"
@@ -317,7 +315,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
                 }}
                 disabled={mutation.isPending}
               >
-                ⚡ صنف بمتغيرات (أحجام / روائح / مقاسات)
+                صنف بمتغيرات (أحجام / روائح / مقاسات)
               </Button>
             </div>
           </div>
@@ -343,12 +341,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
             </div>
           </Field>
         ) : (
-          <>
-            <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
-            {clothingModuleEnabled ? <Field label="كود المجموعة / الموديل"><input {...form.register('styleCode')} disabled={mutation.isPending} inputMode="numeric" placeholder="اختياري" /></Field> : null}
-            {clothingModuleEnabled ? <Field label="الخاصية 1 (اللون / الرائحة)"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
-            {clothingModuleEnabled ? <Field label="الخاصية 2 (المقاس / الحجم)"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
-          </>
+          <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
         )}
         
         <Field label="نوع الكود الضريبي">

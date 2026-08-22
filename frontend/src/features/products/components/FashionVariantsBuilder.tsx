@@ -7,6 +7,46 @@ import { mergeFashionTokens, splitFashionTokens, type FashionVariantDraft } from
 
 export type VariantTemplateType = 'fashion' | 'scents' | 'sizes' | 'custom';
 
+function ScentDropletIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+    </svg>
+  );
+}
+
+function FashionShirtIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+    </svg>
+  );
+}
+
+function PackageBoxIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m7.5 4.27 9 5.15" />
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+    </svg>
+  );
+}
+
+function SlidersConfigIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" x2="20" y1="21" y2="21" />
+      <line x1="4" x2="20" y1="14" y2="14" />
+      <line x1="4" x2="20" y1="7" y2="7" />
+      <circle cx="9" cy="7" r="2" />
+      <circle cx="15" cy="14" r="2" />
+      <circle cx="8" cy="21" r="2" />
+    </svg>
+  );
+}
+
 const FASHION_COLOR_PRESETS = ['اسود', 'ابيض', 'كحلي', 'رمادي', 'بيج', 'احمر', 'ازرق', 'زيتي', 'وردي', 'اوف وايت', 'بني', 'عنابي'];
 const SCENT_FLAVOR_PRESETS = ['لافندر', 'عود', 'مسك', 'ياسمين', 'ورد', 'توت', 'خوخ', 'ليمون', 'نعناع', 'فانيليا', 'شوكولاتة', 'جوز هند', 'صندل', 'عنبر'];
 const SIZE_CAPACITY_PRESETS = ['250 مل', '500 مل', '1 لتر', '2 لتر', '5 لتر', '250 جم', '500 جم', '1 كجم', 'صغير', 'وسط', 'كبير'];
@@ -157,36 +197,40 @@ export function FashionVariantsBuilder({
   }
 
   return (
-    <div className="product-compact-card" style={{ background: '#f8fafc', borderColor: '#cbd5e1' }}>
+    <div className="product-compact-card" style={{ background: '#ffffff', borderColor: '#cbd5e1', boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)' }}>
       <div className="page-stack" style={{ gap: 12 }}>
         {/* Header with Template Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
           <div>
             <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-              ⚡ مُنشئ المتغيرات والأصناف الفرعية
+              مُنشئ المتغيرات والأصناف الفرعية
             </h4>
             <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>{templateConfig.hint}</div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <button
               type="button"
               onClick={() => setActiveTemplate('scents')}
               disabled={disabled}
               style={{
                 background: activeTemplate === 'scents' ? '#ffffff' : 'transparent',
-                color: activeTemplate === 'scents' ? '#2563eb' : '#475569',
+                color: activeTemplate === 'scents' ? 'var(--primary, #1e1b4b)' : '#475569',
                 fontWeight: activeTemplate === 'scents' ? 800 : 600,
-                border: 'none',
+                border: activeTemplate === 'scents' ? '1px solid #cbd5e1' : '1px solid transparent',
                 borderRadius: '6px',
-                padding: '4px 10px',
+                padding: '5px 10px',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
-                boxShadow: activeTemplate === 'scents' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: activeTemplate === 'scents' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
-              🍋 روائح ونكهات
+              <ScentDropletIcon size={14} />
+              <span>روائح ونكهات</span>
             </button>
             <button
               type="button"
@@ -194,18 +238,22 @@ export function FashionVariantsBuilder({
               disabled={disabled}
               style={{
                 background: activeTemplate === 'fashion' ? '#ffffff' : 'transparent',
-                color: activeTemplate === 'fashion' ? '#2563eb' : '#475569',
+                color: activeTemplate === 'fashion' ? 'var(--primary, #1e1b4b)' : '#475569',
                 fontWeight: activeTemplate === 'fashion' ? 800 : 600,
-                border: 'none',
+                border: activeTemplate === 'fashion' ? '1px solid #cbd5e1' : '1px solid transparent',
                 borderRadius: '6px',
-                padding: '4px 10px',
+                padding: '5px 10px',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
-                boxShadow: activeTemplate === 'fashion' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: activeTemplate === 'fashion' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
-              👕 ملابس وأحذية
+              <FashionShirtIcon size={14} />
+              <span>ملابس وأحذية</span>
             </button>
             <button
               type="button"
@@ -213,18 +261,22 @@ export function FashionVariantsBuilder({
               disabled={disabled}
               style={{
                 background: activeTemplate === 'sizes' ? '#ffffff' : 'transparent',
-                color: activeTemplate === 'sizes' ? '#2563eb' : '#475569',
+                color: activeTemplate === 'sizes' ? 'var(--primary, #1e1b4b)' : '#475569',
                 fontWeight: activeTemplate === 'sizes' ? 800 : 600,
-                border: 'none',
+                border: activeTemplate === 'sizes' ? '1px solid #cbd5e1' : '1px solid transparent',
                 borderRadius: '6px',
-                padding: '4px 10px',
+                padding: '5px 10px',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
-                boxShadow: activeTemplate === 'sizes' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: activeTemplate === 'sizes' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
-              📦 أحجام وعبوات
+              <PackageBoxIcon size={14} />
+              <span>أحجام وعبوات</span>
             </button>
             <button
               type="button"
@@ -232,25 +284,29 @@ export function FashionVariantsBuilder({
               disabled={disabled}
               style={{
                 background: activeTemplate === 'custom' ? '#ffffff' : 'transparent',
-                color: activeTemplate === 'custom' ? '#2563eb' : '#475569',
+                color: activeTemplate === 'custom' ? 'var(--primary, #1e1b4b)' : '#475569',
                 fontWeight: activeTemplate === 'custom' ? 800 : 600,
-                border: 'none',
+                border: activeTemplate === 'custom' ? '1px solid #cbd5e1' : '1px solid transparent',
                 borderRadius: '6px',
-                padding: '4px 10px',
+                padding: '5px 10px',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
-                boxShadow: activeTemplate === 'custom' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: activeTemplate === 'custom' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
-              ⚙️ مخصص
+              <SlidersConfigIcon size={14} />
+              <span>مخصص</span>
             </button>
           </div>
         </div>
 
         {/* Custom Labels Inputs if custom mode is chosen */}
         {activeTemplate === 'custom' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', background: '#f1f5f9', padding: '10px', borderRadius: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <Field label="مسمى الخاصية الأولى (مثل: القدرة، اللون، الخامة)">
               <input
                 className="purchase-prototype-field-input"
@@ -302,7 +358,7 @@ export function FashionVariantsBuilder({
         {templateConfig.primaryPresets.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-              💡 اختيارات سريعة للخاصية الأولى (اضغط للإضافة):
+              اختيارات سريعة للخاصية الأولى (اضغط للإضافة):
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {templateConfig.primaryPresets.map((val) => (
@@ -320,7 +376,7 @@ export function FashionVariantsBuilder({
                     color: '#334155',
                     cursor: 'pointer',
                     fontWeight: 600,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                   }}
                 >
                   + {val}
@@ -334,7 +390,7 @@ export function FashionVariantsBuilder({
         {activeTemplate === 'fashion' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-              💡 مجموعات مقاسات جاهزة للملابس:
+              مجموعات مقاسات جاهزة للملابس:
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {FASHION_SIZE_PRESETS.map((preset) => (
@@ -344,15 +400,15 @@ export function FashionVariantsBuilder({
                   disabled={disabled}
                   onClick={() => onSizesChange(mergeFashionTokens(sizesValue, preset.values))}
                   style={{
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '6px',
                     padding: '3px 10px',
                     fontSize: '0.75rem',
-                    color: '#1d4ed8',
+                    color: 'var(--primary, #1e1b4b)',
                     cursor: 'pointer',
                     fontWeight: 700,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                   }}
                 >
                   + {preset.label}
@@ -365,7 +421,7 @@ export function FashionVariantsBuilder({
         {activeTemplate === 'scents' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-              💡 أحجام وسعات شائعة للعطور والمستحضرات:
+              أحجام وسعات شائعة للعطور والمستحضرات:
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {SCENT_SIZE_PRESETS.map((val) => (
@@ -383,7 +439,7 @@ export function FashionVariantsBuilder({
                     color: '#166534',
                     cursor: 'pointer',
                     fontWeight: 700,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                   }}
                 >
                   + {val}
@@ -396,7 +452,7 @@ export function FashionVariantsBuilder({
         {activeTemplate === 'sizes' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-              💡 أنواع التغليف والعبوات:
+              أنواع التغليف والعبوات:
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {PACKAGING_PRESETS.map((val) => (
@@ -414,7 +470,7 @@ export function FashionVariantsBuilder({
                     color: '#854d0e',
                     cursor: 'pointer',
                     fontWeight: 700,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                   }}
                 >
                   + {val}
@@ -425,7 +481,7 @@ export function FashionVariantsBuilder({
         )}
 
         {/* Global Settings for Variants: Default Stock & Barcode Prefix */}
-        <div className="product-form-grid-2" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
+        <div className="product-form-grid-2" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
           <Field label="مخزون افتتاحي افتراضي لكل فرع">
             <input
               className="purchase-prototype-field-input"
@@ -512,7 +568,7 @@ export function FashionVariantsBuilder({
 
         {duplicateBarcodeCount ? (
           <div style={{ padding: '8px 12px', background: '#fee2e2', border: '1px solid #ef4444', borderRadius: '8px', color: '#b91c1c', fontSize: '0.82rem', fontWeight: 700 }}>
-            ⚠️ يوجد {duplicateBarcodeCount} باركود مكرر داخل نفس المجموعة. يجب أن يكون لكل صنف فرعي باركود مختلف لتجنب التضارب.
+            يوجد {duplicateBarcodeCount} باركود مكرر داخل نفس المجموعة. يجب أن يكون لكل صنف فرعي باركود مختلف لتجنب التضارب.
           </div>
         ) : null}
       </div>

@@ -15,12 +15,17 @@ import {
   IconTag,
   IconSave,
   IconCheck,
+  IconSearch,
 } from '../components/PharmacyIcons';
 
 const COPAY_PRESETS = [0, 10, 15, 20, 25, 30, 50, 100];
 
 export default function PharmacyPrescriptionsPage() {
-  useAppToolbar([{ label: 'الروشتات والتأمين' }]);
+  useAppToolbar([
+    { label: 'الرئيسية', to: '/' },
+    { label: 'الصيدلية والأدوية', to: '/pharmacy' },
+    { label: 'الروشتات والتأمين' },
+  ]);
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [insuranceFilter, setInsuranceFilter] = useState('all');
@@ -54,7 +59,7 @@ export default function PharmacyPrescriptionsPage() {
     },
   });
 
-  const totalItems = data?.pagination.totalItems || 0;
+  const totalItems = data?.pagination?.totalItems || (data?.prescriptions?.length || 0);
   const prescriptionsList = data?.prescriptions || [];
 
   const totalAmountSum = prescriptionsList.reduce((acc: number, r: PharmacyPrescription) => acc + (Number(r.total_amount) || 0), 0);
@@ -104,27 +109,27 @@ export default function PharmacyPrescriptionsPage() {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title="الروشتات الطبية والتأمين الصحي والنقابات"
-          description="تسجيل وصرف الروشتات الطبية، حساب نسبة تحمل المريض (Co-Pay) ومطالبات شركات التأمين، وطباعة ملصقات الجرعة"
-          badge={<span className="nav-pill">{totalItems} روشتة مسجلة</span>}
+          description="تسجيل وصرف الروشتات الطبية، حساب نسبة تحمل المريض (Co-Pay) ومطالبات شركات التأمين"
+          badge={<span className="cashier-chip" style={{ fontWeight: 700, color: 'var(--primary, #1e1b4b)', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>{totalItems} روشتة مسجلة</span>}
           actions={
             <div className="actions compact-actions">
               <Button
                 variant="primary"
                 onClick={handleOpenAdd}
-                style={{ background: '#16a34a', borderColor: '#16a34a', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <IconPlus size={16} />
+                <IconPlus size={15} />
                 <span>صرف روشتة جديدة</span>
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => void refetch()}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <IconRefresh size={16} />
+                <IconRefresh size={15} />
                 <span>تحديث</span>
               </Button>
             </div>
@@ -132,56 +137,56 @@ export default function PharmacyPrescriptionsPage() {
         />
 
         {/* 4 Summary KPI Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي الروشتات المصروفة</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{totalItems}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{totalItems}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
-              <IconPrescription size={20} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
+              <IconPrescription size={18} />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي قيمة الروشتات</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
                 {totalAmountSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
               </div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-              <IconPrescription size={20} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
+              <IconPrescription size={18} />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تحصيل المرضى (Co-pay)</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
                 {totalPatientSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
               </div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <IconCheck size={20} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+              <IconCheck size={18} />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>مطالبات شركات التأمين</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary, #1e1b4b)', marginTop: '2px' }}>
                 {totalInsuranceSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
               </div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
-              <IconPrescription size={20} />
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary, #1e1b4b)' }}>
+              <IconPrescription size={18} />
             </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+        {/* Filters and Search */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', background: '#ffffff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.02)' }}>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
@@ -213,23 +218,26 @@ export default function PharmacyPrescriptionsPage() {
             </button>
           </div>
 
-          <div style={{ minWidth: '320px' }}>
+          <div style={{ minWidth: '320px', position: 'relative', flex: '1 1 320px', maxWidth: '480px' }}>
             <input
               type="text"
               className="purchase-prototype-field-input"
-              placeholder="بحث برقم الروشتة، اسم المريض، الهاتف، الطبيب، أو رقم بطاقة التأمين..."
+              placeholder="بحث برقم الروشتة، اسم المريض، الهاتف، الطبيب..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              style={{ width: '100%', padding: '6px 12px' }}
+              style={{ width: '100%', paddingInlineStart: '34px', boxSizing: 'border-box' }}
             />
+            <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '10px', color: '#94a3b8', display: 'flex' }}>
+              <IconSearch size={16} />
+            </div>
           </div>
         </div>
 
         {/* Table */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', textAlign: 'right' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'right' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 800 }}>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
                 <th style={{ padding: '10px 14px' }}>رقم الروشتة</th>
                 <th style={{ padding: '10px 14px' }}>المريض / الطبيب</th>
                 <th style={{ padding: '10px 14px' }}>جهة التأمين / الكود</th>
@@ -251,19 +259,19 @@ export default function PharmacyPrescriptionsPage() {
               ) : (
                 prescriptionsList.map((rx: PharmacyPrescription) => (
                   <tr key={rx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 800, fontFamily: 'monospace' }}>
+                    <td style={{ padding: '10px 14px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--primary, #1e1b4b)' }}>
                       {rx.prescription_no}
                     </td>
                     <td style={{ padding: '10px 14px' }}>
-                      <strong>{rx.customer_name}</strong>
-                      {rx.customer_phone && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{rx.customer_phone}</div>}
-                      {rx.doctor_name && <div style={{ fontSize: '0.75rem', color: '#0284c7' }}>د. {rx.doctor_name} ({rx.doctor_specialty || 'طبيب'})</div>}
+                      <strong style={{ color: '#0f172a' }}>{rx.customer_name}</strong>
+                      {rx.customer_phone && <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{rx.customer_phone}</div>}
+                      {rx.doctor_name && <div style={{ fontSize: '0.74rem', color: '#0284c7' }}>د. {rx.doctor_name} ({rx.doctor_specialty || 'طبيب'})</div>}
                     </td>
                     <td style={{ padding: '10px 14px' }}>
                       <div>{rx.insurance_provider || 'كاش بدون تأمين'}</div>
-                      {rx.approval_code && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>موافقة: {rx.approval_code}</div>}
+                      {rx.approval_code && <div style={{ fontSize: '0.74rem', color: '#64748b' }}>موافقة: {rx.approval_code}</div>}
                     </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 800 }}>
+                    <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>
                       {Number(rx.total_amount).toFixed(2)} ج.م
                     </td>
                     <td style={{ padding: '10px 14px' }}>
@@ -275,7 +283,7 @@ export default function PharmacyPrescriptionsPage() {
                       )}
                     </td>
                     <td style={{ padding: '10px 14px' }}>
-                      <span style={{ background: '#dcfce7', color: '#16a34a', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800 }}>
+                      <span style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700 }}>
                         تم الصرف
                       </span>
                     </td>
@@ -288,7 +296,7 @@ export default function PharmacyPrescriptionsPage() {
                           setStickerMed('علاج الروشتة');
                           setStickerOpen(true);
                         }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
                         <IconTag size={14} />
                         <span>استيكر</span>
@@ -302,18 +310,24 @@ export default function PharmacyPrescriptionsPage() {
         </div>
 
         {modalOpen && editingRx && (
-          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(760px, 95vw)" ariaLabel="صرف روشتة طبية">
-            <form onSubmit={handleSave} dir="rtl" style={{ padding: '16px 20px' }}>
-              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <IconPrescription size={20} color="#16a34a" />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+          <DialogShell open={modalOpen} onClose={() => setModalOpen(false)} width="min(760px, 95vw)" ariaLabel="صرف روشتة طبية وحساب التأمين الصحي">
+            <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
                   صرف روشتة طبية وحساب التأمين الصحي
                 </h3>
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  ✕
+                </button>
               </div>
-
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     اسم المريض <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
@@ -323,12 +337,12 @@ export default function PharmacyPrescriptionsPage() {
                     value={editingRx.customer_name || ''}
                     onChange={(e) => setEditingRx({ ...editingRx, customer_name: e.target.value })}
                     placeholder="اسم المريض بالكامل..."
-                    style={{ width: '100%', padding: '8px 12px' }}
+                    style={{ width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     هاتف المريض
                   </label>
                   <input
@@ -337,12 +351,12 @@ export default function PharmacyPrescriptionsPage() {
                     value={editingRx.customer_phone || ''}
                     onChange={(e) => setEditingRx({ ...editingRx, customer_phone: e.target.value })}
                     placeholder="010XXXXXXXX"
-                    style={{ width: '100%', padding: '8px 12px' }}
+                    style={{ width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     اسم الطبيب المعالج
                   </label>
                   <input
@@ -351,12 +365,12 @@ export default function PharmacyPrescriptionsPage() {
                     value={editingRx.doctor_name || ''}
                     onChange={(e) => setEditingRx({ ...editingRx, doctor_name: e.target.value })}
                     placeholder="د. أحمد..."
-                    style={{ width: '100%', padding: '8px 12px' }}
+                    style={{ width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     التخصص الطبي
                   </label>
                   <input
@@ -365,19 +379,19 @@ export default function PharmacyPrescriptionsPage() {
                     value={editingRx.doctor_specialty || ''}
                     onChange={(e) => setEditingRx({ ...editingRx, doctor_specialty: e.target.value })}
                     placeholder="باطنة / أطفال / عظام..."
-                    style={{ width: '100%', padding: '8px 12px' }}
+                    style={{ width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     شركة التأمين / التعاقد
                   </label>
                   <select
                     className="purchase-prototype-field-input"
                     value={editingRx.insurance_provider || INSURANCE_PROVIDERS[0]}
                     onChange={(e) => setEditingRx({ ...editingRx, insurance_provider: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', background: '#fff' }}
+                    style={{ width: '100%', boxSizing: 'border-box' }}
                   >
                     {INSURANCE_PROVIDERS.map((p) => (
                       <option key={p} value={p}>{p}</option>
@@ -386,7 +400,7 @@ export default function PharmacyPrescriptionsPage() {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     كود الموافقة
                   </label>
                   <input
@@ -395,32 +409,34 @@ export default function PharmacyPrescriptionsPage() {
                     value={editingRx.approval_code || ''}
                     onChange={(e) => setEditingRx({ ...editingRx, approval_code: e.target.value })}
                     placeholder="Approval Code"
-                    style={{ width: '100%', padding: '8px 12px' }}
+                    style={{ width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
+              </div>
 
-                {/* Quick Copay presets */}
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                    نسبة تحمل المريض (Co-Pay %):
-                  </label>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                    {COPAY_PRESETS.map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => handleApplyCopayPreset(p)}
-                        className={'btn btn-sm ' + (editingRx.patient_copay_percent === p ? 'btn-primary' : 'btn-secondary')}
-                        style={{ padding: '3px 8px', fontSize: '0.75rem' }}
-                      >
-                        {p === 0 ? '0% (كاش كامل)' : p === 100 ? '100% (تأمين كامل)' : p + '%'}
-                      </button>
-                    ))}
-                  </div>
+              {/* Quick Copay presets */}
+              <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                  نسبة تحمل المريض (Co-Pay %):
+                </label>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {COPAY_PRESETS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handleApplyCopayPreset(p)}
+                      className={'btn btn-sm ' + (editingRx.patient_copay_percent === p ? 'btn-primary' : 'btn-secondary')}
+                      style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                    >
+                      {p === 0 ? '0% (كاش كامل)' : p === 100 ? '100% (تأمين كامل)' : p + '%'}
+                    </button>
+                  ))}
                 </div>
+              </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     إجمالي قيمة الأدوية (ج.م) <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
@@ -440,50 +456,50 @@ export default function PharmacyPrescriptionsPage() {
                         insurance_amount: tot - pat,
                       });
                     }}
-                    style={{ width: '100%', padding: '8px 12px', fontWeight: 700 }}
+                    style={{ width: '100%', fontWeight: 700, boxSizing: 'border-box' }}
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                      المطلوب سداده من المريض
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="purchase-prototype-field-input"
-                      value={editingRx.patient_amount ?? 0}
-                      onChange={(e) => setEditingRx({ ...editingRx, patient_amount: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '100%', padding: '8px 12px', fontWeight: 800, color: '#16a34a' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                      مطالبة التأمين
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="purchase-prototype-field-input"
-                      value={editingRx.insurance_amount ?? 0}
-                      onChange={(e) => setEditingRx({ ...editingRx, insurance_amount: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '100%', padding: '8px 12px', color: '#0284c7' }}
-                    />
-                  </div>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    المطلوب سداده من المريض
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="purchase-prototype-field-input"
+                    value={editingRx.patient_amount ?? 0}
+                    onChange={(e) => setEditingRx({ ...editingRx, patient_amount: parseFloat(e.target.value) || 0 })}
+                    style={{ width: '100%', fontWeight: 800, color: '#16a34a', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                    مطالبة التأمين
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="purchase-prototype-field-input"
+                    value={editingRx.insurance_amount ?? 0}
+                    onChange={(e) => setEditingRx({ ...editingRx, insurance_amount: parseFloat(e.target.value) || 0 })}
+                    style={{ width: '100%', color: 'var(--primary, #1e1b4b)', fontWeight: 700, boxSizing: 'border-box' }}
+                  />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '18px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
                 <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-                <Button variant="primary" type="submit" disabled={upsertMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <IconSave size={16} />
+                <Button variant="primary" type="submit" disabled={upsertMutation.isPending} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <IconSave size={15} />
                   <span>{upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ وصرف الروشتة'}</span>
                 </Button>
               </div>
             </form>
-          </DialogShell>
-        )}
+          </div>
+        </DialogShell>
+      )}
 
         <DoseStickerPrintModal
           open={stickerOpen}
