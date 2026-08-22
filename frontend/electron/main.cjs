@@ -73,13 +73,36 @@ function getLoadingHtmlPath() {
   return path.join(__dirname, 'loading.html');
 }
 
-const createWindow = () => {
+let loadingWindow = null;
+let mainWindow = null;
+
+const createLoadingWindow = () => {
+  loadingWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    backgroundColor: '#0d1322',
+    icon: path.join(__dirname, '../public/logo_cropped.png'),
+    autoHideMenuBar: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    },
+    show: false
+  });
+
+  loadingWindow.setMenuBarVisibility(false);
+  loadingWindow.maximize();
+  loadingWindow.show();
+  loadingWindow.loadFile(getLoadingHtmlPath(), { query: { v: packageVersion } });
+};
+
+const createMainWindow = (onReadyCallback) => {
   Menu.setApplicationMenu(null);
 
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    backgroundColor: '#0d1322',
+    backgroundColor: '#ffffff',
     icon: path.join(__dirname, '../public/logo_cropped.png'),
     autoHideMenuBar: true,
     webPreferences: {
@@ -88,15 +111,12 @@ const createWindow = () => {
       contextIsolation: true,
       additionalArguments: [`--electron-runtime-config=${JSON.stringify(currentConfig)}`]
     },
-    show: false,
+    show: false
   });
 
   mainWindow.setMenuBarVisibility(false);
-  mainWindow.maximize();
-  mainWindow.show();
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    // Allow window.open for printing and other internal app features
     return { action: 'allow' };
   });
 
@@ -104,12 +124,35 @@ const createWindow = () => {
     mainWindow.webContents.send('show-custom-close-dialog');
   });
 
-  // Load loading page immediately while backend starts with dynamic version
-  mainWindow.loadFile(getLoadingHtmlPath(), { query: { v: packageVersion } });
-};
+  let hasRevealed = false;
+  const revealApp = () => {
+    if (hasRevealed) return;
+    hasRevealed = true;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.maximize();
+      mainWindow.show();
+    }
+    if (loadingWindow && !loadingWindow.isDestroyed()) {
+      setTimeout(() => {
+        try {
+          if (loadingWindow && !loadingWindow.isDestroyed()) {
+            loadingWindow.destroy();
+            loadingWindow = null;
+          }
+        } catch (e) {}
+      }, 100);
+    }
+    if (onReadyCallback) onReadyCallback();
+  };
 
-const loadApp = () => {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.once('ready-to-show', () => {
+    setTimeout(revealApp, 250);
+  });
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    setTimeout(revealApp, 350);
+  });
+
   const isDev = process.env.NODE_ENV === 'development';
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
@@ -166,8 +209,8 @@ app.whenReady().then(async () => {
     console.error('[ELECTRON] Failed to clear cache:', err);
   }
 
-  // Show main window with loading page immediately (user sees progress smoothly)
-  createWindow();
+  // Show loading window with progress immediately
+  createLoadingWindow();
 
   // Start the bundled Postgres Server
   const PostgresManager = require('./postgres-manager.cjs');
@@ -635,18 +678,22 @@ Write-Output "$disk|$cpu|$uuid|$bb|$mac"
     console.error('Error writing version marker:', err);
   }
 
-  // Load the actual app now that backend is ready
+  // Load the actual app now that backend is ready (Seamless Handover)
   if (currentConfig.runtimeMode === 'invalid') {
-    mainWindow.loadFile(path.join(__dirname, 'config-error.html'));
+    createMainWindow((win) => {
+      win.loadFile(path.join(__dirname, 'config-error.html'));
+    });
   } else if (currentConfig.runtimeMode === 'lan_client' && !backendReady) {
-    mainWindow.loadFile(path.join(__dirname, 'server-offline.html'));
+    createMainWindow((win) => {
+      win.loadFile(path.join(__dirname, 'server-offline.html'));
+    });
   } else {
-    loadApp();
+    createMainWindow();
   }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      createMainWindow();
     }
   });
 });
