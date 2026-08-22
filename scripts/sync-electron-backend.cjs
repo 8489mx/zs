@@ -26,9 +26,16 @@ filesToRemove.forEach(file => {
   }
 });
 
-// Copy compiled NestJS backend and node_modules
+const { execSync } = require('child_process');
+
+// 1. Build backend to ensure fresh compilation
+console.log('[sync-electron-backend] Compiling fresh NestJS backend...');
+execSync('npm run build', { cwd: backendRoot, stdio: 'inherit' });
+
+// 2. Copy compiled NestJS backend, package.json, and node_modules
 const copies = [
   { source: path.join(backendRoot, 'dist'), target: path.join(electronBackendRoot, 'dist') },
+  { source: path.join(backendRoot, 'package.json'), target: path.join(electronBackendRoot, 'package.json') },
   { source: path.join(backendRoot, 'node_modules'), target: path.join(electronBackendRoot, 'node_modules') },
 ];
 
