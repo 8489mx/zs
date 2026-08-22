@@ -59,9 +59,6 @@ export function GlobalAppToolbar() {
               <span className="system-update-pulse-dot" />
               <span className="system-update-toolbar-label">تحديث جديد</span>
               <span className="system-update-toolbar-version">v{updateInfo.latestVersion}</span>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" className="system-update-arrow-icon">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
             </button>
           )}
           <div className="purchase-prototype-search-container" role="search">
