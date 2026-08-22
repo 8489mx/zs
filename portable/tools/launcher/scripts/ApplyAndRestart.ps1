@@ -185,20 +185,40 @@ $zipPath    = Join-Path $stagingDir 'patch.zip'
 $extractDir = Join-Path $stagingDir 'extracted'
 Ensure-Dir -DirPath $stagingDir
 
-# ── Download / Copy ZIP ───────────────────────────────────────────────────────
 if ((-not [string]::IsNullOrWhiteSpace($localPatchPath)) -and (Test-Path $localPatchPath)) {
   Write-Log "Using local patch file: $localPatchPath"
   Copy-Item -Path $localPatchPath -Destination $zipPath -Force
 } else {
-  Write-Log 'Downloading patch.zip...'
-  try {
-    Invoke-WebRequest -Uri $patchUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300
-    $sizeMB = [Math]::Round((Get-Item $zipPath).Length / 1MB, 1)
-    Write-Log "Download complete ($sizeMB MB)"
-  } catch {
-    Write-Log "ERROR: Download failed: $($_.Exception.Message)"
-    Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-    exit 1
+  Write-Log "Attempting to retrieve patch for v$version..."
+  $downloadSuccess = $false
+  if (-not [string]::IsNullOrWhiteSpace($patchUrl)) {
+    try {
+      Write-Log "Downloading from $patchUrl ..."
+      Invoke-WebRequest -Uri $patchUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300
+      $sizeMB = [Math]::Round((Get-Item $zipPath).Length / 1MB, 1)
+      Write-Log "Download complete ($sizeMB MB)"
+      $downloadSuccess = $true
+    } catch {
+      Write-Log "Notice: Download failed ($($_.Exception.Message)), searching local releases..."
+    }
+  }
+
+  if (-not $downloadSuccess) {
+    $fallbackLocal = @(
+      (Join-Path $PortableRoot "..\updates\Z-ERP-Patch-v$version.zip"),
+      (Join-Path $PortableRoot "updates\Z-ERP-Patch-v$version.zip"),
+      (Join-Path $PortableRoot "runtime\run\update-staging\manual-patch.zip"),
+      "D:\zn\release\updates\Z-ERP-Patch-v$version.zip"
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+    if ($fallbackLocal) {
+      Write-Log "Found local patch archive: $fallbackLocal"
+      Copy-Item -Path $fallbackLocal -Destination $zipPath -Force
+    } else {
+      Write-Log "ERROR: No patch archive found (download failed and no local patch available)."
+      Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
+      exit 1
+    }
   }
 }
 

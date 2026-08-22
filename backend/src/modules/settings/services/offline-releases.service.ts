@@ -709,10 +709,25 @@ export class OfflineReleasesService implements OnModuleInit {
 
     try { fs.mkdirSync(runtimeRunDir, { recursive: true }); } catch { /* ignore */ }
 
+    const possibleLocalPatchPaths = [
+      path.join(portableRoot, 'updates', `Z-ERP-Patch-v${body.version}.zip`),
+      path.join(portableRoot, '..', 'updates', `Z-ERP-Patch-v${body.version}.zip`),
+      path.join(portableRoot, 'runtime', 'run', 'update-staging', 'manual-patch.zip'),
+      `D:/zn/release/updates/Z-ERP-Patch-v${body.version}.zip`,
+    ];
+    let resolvedLocalPatchPath = '';
+    for (const p of possibleLocalPatchPaths) {
+      if (fs.existsSync(p)) {
+        resolvedLocalPatchPath = p;
+        break;
+      }
+    }
+
     const pendingFile = path.join(runtimeRunDir, '.update_pending');
     const payload = {
       version:         body.version,
       patchUrl:        body.patchUrl,
+      localPatchPath:  resolvedLocalPatchPath,
       changelog:       body.changelog || '',
       triggeredBy:     'Local User',
       triggeredAt:     new Date().toISOString(),
