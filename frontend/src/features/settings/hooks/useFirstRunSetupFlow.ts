@@ -154,8 +154,8 @@ export function buildFirstRunSetupFlowState({
     steps.push({
       key: 'trial-start',
       title: 'بداية التجربة',
-      section: 'overview',
-      to: '/settings/overview?setup=1',
+      section: 'core',
+      to: '/settings/core?setup=1',
       done: true,
       ctaLabel: 'مراجعة حالة التجربة',
       nextLabel: 'إنهاء الإعداد',

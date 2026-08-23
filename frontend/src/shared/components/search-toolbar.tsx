@@ -55,10 +55,7 @@ export function SearchToolbar({
 
       {meta ? <div className="toolbar-meta-row">{meta}</div> : null}
 
-      <div
-        className="toolbar-grid compact-toolbar"
-        style={!hasHeading && onReset ? { display: 'flex', alignItems: 'flex-end', gap: '8px', width: '100%' } : undefined}
-      >
+      <div className="toolbar-grid compact-toolbar">
         <div style={{ flex: 1, minWidth: 0 }}>
           <Field label={searchLabel}>
             <input
@@ -72,7 +69,7 @@ export function SearchToolbar({
         </div>
         {children ? <div className="toolbar-extra">{children}</div> : null}
         {!hasHeading && onReset ? (
-          <div style={{ marginBottom: '2px', flexShrink: 0 }}>
+          <div className="toolbar-reset-action">
             <Button type="button" variant="secondary" onClick={onReset}>
               {resetLabel}
             </Button>

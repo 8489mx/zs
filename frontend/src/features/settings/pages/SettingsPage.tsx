@@ -13,7 +13,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 export function SettingsPage() {
   const { section } = useParams<{ section?: string }>();
-  const resolvedSection: SettingsSectionKey = isSettingsSection(section) ? section : 'overview';
+  const resolvedSection: SettingsSectionKey = isSettingsSection(section) ? section : 'core';
   const page = useSettingsPageController(resolvedSection);
   const { activeSetupSection, navigate, setupFlow, setupMode } = page;
 
@@ -26,10 +26,10 @@ export function SettingsPage() {
   const sectionConfig = settingsSections.find(s => s.key === section) || settingsStandaloneLinks.find(s => s.to.endsWith(section || ''));
   const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
   
-  if (!isSettingsSection(section) && !sectionConfig) return <Navigate to="/settings/overview" replace />;
-  if (sectionConfig?.superAdminOnly && page.currentUserRole !== 'super_admin') return <Navigate to="/settings/overview" replace />;
-  if (sectionConfig?.adminOnly && page.currentUserRole !== 'super_admin' && page.currentUserRole !== 'admin') return <Navigate to="/settings/overview" replace />;
-  if (sectionConfig?.offlineOnly && deploymentMode !== 'desktop' && !import.meta.env.DEV) return <Navigate to="/settings/overview" replace />;
+  if (!isSettingsSection(section) && !sectionConfig) return <Navigate to="/settings/core" replace />;
+  if (sectionConfig?.superAdminOnly && page.currentUserRole !== 'super_admin') return <Navigate to="/settings/core" replace />;
+  if (sectionConfig?.adminOnly && page.currentUserRole !== 'super_admin' && page.currentUserRole !== 'admin') return <Navigate to="/settings/core" replace />;
+  if (sectionConfig?.offlineOnly && deploymentMode !== 'desktop' && !import.meta.env.DEV) return <Navigate to="/settings/core" replace />;
 
   return (
     <SettingsPageShell

@@ -57,7 +57,7 @@ async function fetchBackupBlob() {
   return await response.blob();
 }
 
-export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection = 'overview') {
+export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection = 'core') {
   const route = useSettingsRouteState();
   const queryClient = useQueryClient();
   const needsDiagnostics = currentSection === 'diagnostics';

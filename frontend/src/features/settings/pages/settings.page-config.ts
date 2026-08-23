@@ -1,7 +1,6 @@
-export type SettingsSectionKey = 'overview' | 'core' | 'reference' | 'backup' | 'users' | 'system-updates' | 'lan-network' | 'tax-integration';
+export type SettingsSectionKey = 'core' | 'reference' | 'backup' | 'users' | 'system-updates' | 'lan-network' | 'tax-integration';
 
 const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
-  { key: 'overview', label: 'ملخص سريع' },
   { key: 'core', label: 'إعدادات النظام' },
   { key: 'reference', label: 'أماكن المخزون' },
   { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', offlineOnly: true, adminOnly: true },

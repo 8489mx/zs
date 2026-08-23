@@ -1,9 +1,8 @@
 import { Fragment, useState, useMemo } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
-import { FileTextIcon } from '@/shared/components/icons/AppIcons';
+import { FileTextIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency } from '@/lib/format';
@@ -130,35 +129,97 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
       } 
       className="workspace-panel"
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
-        <div style={{ flex: '1 1 280px' }}>
-          <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو الخاصية الفرعية" />
+      <div className="products-table-toolbar" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: '1 1 320px' }}>
+            <input
+              type="text"
+              value={props.search}
+              onChange={(e) => props.onSearchChange(e.target.value)}
+              placeholder="ابحث بالاسم أو الباركود أو القسم أو المورد أو الخاصية الفرعية..."
+              className="purchase-prototype-field-input"
+              style={{
+                width: '100%',
+                height: '38px',
+                paddingInlineStart: '36px',
+                paddingInlineEnd: props.search ? '32px' : '12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                fontSize: '13px',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', insetInlineStart: '10px', color: '#94a3b8', display: 'flex', pointerEvents: 'none' }}>
+              <SearchIcon size={16} />
+            </div>
+            {props.search && (
+              <button
+                type="button"
+                onClick={() => props.onSearchChange('')}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  insetInlineEnd: '10px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  padding: 0,
+                }}
+                title="مسح البحث"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <select
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className="purchase-prototype-field-input"
+              style={{
+                height: '38px',
+                minWidth: '180px',
+                padding: '0 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#fff',
+                fontWeight: 600,
+                fontSize: '12.5px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            >
+              <option value="">كل الأقسام ({Object.keys(props.categoryNames).length})</option>
+              {Object.entries(props.categoryNames).map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+            {selectedCategoryId && (
+              <Button
+                variant="secondary"
+                onClick={() => setSelectedCategoryId('')}
+                style={{ height: '38px', padding: '0 10px', fontSize: '12px' }}
+                title="إلغاء تصفية القسم"
+              >
+                ✕ إلغاء
+              </Button>
+            )}
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <select
-            value={selectedCategoryId}
-            onChange={(e) => setSelectedCategoryId(e.target.value)}
-            className="purchase-prototype-field-input"
-            style={{ minWidth: '180px', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 600, fontSize: '0.85rem', color: '#1e293b' }}
-          >
-            <option value="">كل الأقسام ({Object.keys(props.categoryNames).length})</option>
-            {Object.entries(props.categoryNames).map(([id, name]) => (
-              <option key={id} value={id}>{name}</option>
-            ))}
-          </select>
-          {selectedCategoryId && (
-            <Button variant="secondary" onClick={() => setSelectedCategoryId('')} style={{ padding: '6px 10px', fontSize: '0.8rem' }} title="إلغاء تصفية القسم">
-              ✕ إلغاء
-            </Button>
-          )}
+
+        <div className="filter-chip-row toolbar-chip-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')}>الكل</Button>
+          <Button variant={props.viewFilter === 'low' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('low')}>منخفضة</Button>
+          <Button variant={props.viewFilter === 'out' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('out')}>نافدة</Button>
+          <Button variant={props.viewFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('offers')}>بعروض</Button>
+          <Button variant={props.viewFilter === 'special' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('special')}>أسعار خاصة</Button>
         </div>
-      </div>
-      <div className="filter-chip-row">
-        <Button variant={props.viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('all')}>الكل</Button>
-        <Button variant={props.viewFilter === 'low' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('low')}>منخفضة</Button>
-        <Button variant={props.viewFilter === 'out' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('out')}>نافدة</Button>
-        <Button variant={props.viewFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('offers')}>بعروض</Button>
-        <Button variant={props.viewFilter === 'special' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('special')}>أسعار خاصة</Button>
       </div>
       {props.selectedIds.length ? (
         <div className="bulk-toolbar">

@@ -2,7 +2,6 @@ import type { SettingsSectionKey } from '@/features/settings/pages/settings.page
 import {
   renderBackupSection,
   renderCoreSection,
-  renderOverviewSection,
   renderReferenceSection,
   renderUsersSection,
   renderLanNetworkSection,
@@ -44,7 +43,6 @@ interface SettingsSectionContentProps extends SharedSettingsSectionProps {
 }
 
 export function SettingsSectionContent({ section, ...props }: SettingsSectionContentProps) {
-  if (section === 'overview') return renderOverviewSection(props);
   if (section === 'core') return renderCoreSection(props);
   if (section === 'reference') return renderReferenceSection(props);
   if (section === 'backup') return renderBackupSection(props);

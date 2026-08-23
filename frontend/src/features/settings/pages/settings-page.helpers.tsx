@@ -25,7 +25,6 @@ interface SettingsGuidanceInput {
 }
 
 export function getSettingsSectionDescription(section: string) {
-  if (section === 'overview') return 'راجع الملخص وافتح القسم الذي تريد تعديله.';
   if (section === 'core') return 'عدّل بيانات النشاط ثم احفظ.';
   if (section === 'reference') return 'نظّم الفروع والمخازن من نفس الصفحة.';
   if (section === 'users') return 'أدر المستخدمين والصلاحيات من مكان واحد.';
@@ -35,19 +34,15 @@ export function getSettingsSectionDescription(section: string) {
 export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
   const nextAction = input.setupMode
     ? (input.setupStepTitle || 'أكمل خطوة التهيئة الحالية أولًا')
-    : input.section === 'overview'
-      ? 'راجع الملخص ثم افتح القسم الذي يحتاج تعديلًا الآن.'
-      : input.section === 'core'
-        ? 'عدّل بيانات النشاط ثم اضغط حفظ قبل الانتقال.'
-        : input.section === 'reference'
-          ? 'ابحث عن الفرع أو المخزن المطلوب ثم عدّل أو احذف من نفس الجدول.'
-          : input.section === 'users'
-            ? 'راجع الحسابات والصلاحيات ثم حدّث المستخدم المطلوب.'
-            : 'خذ نسخة أولًا، ثم نفّذ الاستيراد أو الاستعادة بعد التأكد.';
-
-  const focusValue = input.section === 'overview'
-    ? `${input.branchesCount} فرع / ${input.locationsCount} مخزن`
     : input.section === 'core'
+      ? 'عدّل بيانات النشاط ثم اضغط حفظ قبل الانتقال.'
+      : input.section === 'reference'
+        ? 'ابحث عن الفرع أو المخزن المطلوب ثم عدّل أو احذف من نفس الجدول.'
+        : input.section === 'users'
+          ? 'راجع الحسابات والصلاحيات ثم حدّث المستخدم المطلوب.'
+          : 'خذ نسخة أولًا، ثم نفّذ الاستيراد أو الاستعادة بعد التأكد.';
+
+  const focusValue = input.section === 'core'
       ? (input.storeName || 'بيانات النشاط الأساسية')
       : input.section === 'reference'
         ? `${input.filteredBranchesCount} فرع ظاهر / ${input.filteredLocationsCount} مخزن ظاهر`
