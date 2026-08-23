@@ -14,9 +14,8 @@ export function OverviewReportSection({
   accountingFinancialSummary,
   accountingCashMovement,
   executiveRows,
-  operatingSignalRows,
   formatPercent,
-}: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'accountingFinancialSummary' | 'accountingCashMovement' | 'executiveRows' | 'operatingSignalRows' | 'formatPercent'>) {
+}: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'accountingFinancialSummary' | 'accountingCashMovement' | 'executiveRows' | 'formatPercent'>) {
   const [chartPeriod, setChartPeriod] = useState<string>('6 شهور');
   const financial = accountingFinancialSummary?.cards;
   const cash = accountingCashMovement?.totals;
@@ -172,25 +171,24 @@ export function OverviewReportSection({
               />
             </div>
 
-            {/* Dual Progress Split Bar */}
-            <div style={{ width: '100%', height: '8px', borderRadius: '9999px', background: '#e2e8f0', display: 'flex', overflow: 'hidden', marginBottom: '12px' }}>
-              <div style={{ width: `${Math.min(100, Math.max(0, grossMarginPercent))}%`, background: '#10b981', transition: 'width 0.6s ease' }} title={`مجمل الربح: ${grossMarginPercent.toFixed(1)}%`} />
-              <div style={{ width: `${Math.min(100, Math.max(0, cogsPercent))}%`, background: '#f43f5e', transition: 'width 0.6s ease' }} title={`تكلفة البضاعة: ${cogsPercent.toFixed(1)}%`} />
+            {/* Unified Progress Bar matching System/Donut color */}
+            <div style={{ width: '100%', height: '6px', borderRadius: '9999px', background: '#f1f5f9', display: 'flex', overflow: 'hidden', marginBottom: '12px' }}>
+              <div style={{ width: `${Math.min(100, Math.max(0, grossMarginPercent))}%`, background: 'var(--accent, #8b5cf6)', transition: 'width 0.6s ease', borderRadius: '9999px' }} title={`هامش الربح: ${grossMarginPercent.toFixed(1)}%`} />
             </div>
 
-            {/* Clean Financial Breakdown Table / Rows */}
-            <div style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Clean Premium System-Themed Financial Breakdown */}
+            <div style={{ width: '100%', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
               {/* Line 1: Net Sales (Top) */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} />
                   صافي المبيعات
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#f1f5f9', color: '#64748b', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
                     100%
                   </span>
-                  <strong style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0f172a', minWidth: '90px', textAlign: 'left' }}>
+                  <strong style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a', minWidth: '90px', textAlign: 'left' }}>
                     {formatCurrency(netSales)}
                   </strong>
                 </div>
@@ -198,31 +196,31 @@ export function OverviewReportSection({
 
               {/* Line 2: Cost of Goods (Middle) */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#991b1b', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f43f5e', display: 'inline-block' }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} />
                   تكلفة البضاعة
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#f1f5f9', color: '#64748b', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
                     {cogsPercent.toFixed(1)}%
                   </span>
-                  <strong style={{ fontSize: '0.875rem', fontWeight: 800, color: '#991b1b', minWidth: '90px', textAlign: 'left' }}>
+                  <strong style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a', minWidth: '90px', textAlign: 'left' }}>
                     {formatCurrency(cogs)}
                   </strong>
                 </div>
               </div>
 
               {/* Line 3: Gross Profit Result (Bottom - Highlighted) */}
-              <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#166534', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent, #8b5cf6)', display: 'inline-block' }} />
                   مجمل الربح
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#ede9fe', color: '#6d28d9', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
                     {grossMarginPercent.toFixed(1)}%
                   </span>
-                  <strong style={{ fontSize: '0.9rem', fontWeight: 800, color: '#166534', minWidth: '90px', textAlign: 'left' }}>
+                  <strong style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', minWidth: '90px', textAlign: 'left' }}>
                     {formatCurrency(grossProfit)}
                   </strong>
                 </div>
@@ -260,13 +258,10 @@ export function OverviewReportSection({
           </div>
         </FormSection>
         <FormSection title="الربحية والخزنة" description="زاوية واحدة تربط الربح بحركة النقد." actions={<span className="nav-pill">الربحية والخزنة</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
-          <div className="metric-list">
-            {operatingSignalRows.map((row) => (
-              <div className="metric-row" key={row.label}>
-                <span>{row.label}</span>
-                <strong>{row.value}</strong>
-              </div>
-            ))}
+          <div className="list-stack compact-list">
+            <div className="list-row"><span>مجمل الربح</span><strong>{formatCurrency(grossProfit)}</strong></div>
+            <div className="list-row"><span>صافي حركة النقدية</span><strong>{formatCurrency(netCashMovement)}</strong></div>
+            <div className="list-row"><span>الفجوة (بيع / شراء)</span><strong>{formatCurrency(netSales - (report?.purchases.netPurchases || 0))}</strong></div>
           </div>
         </FormSection>
       </div>
