@@ -508,4 +508,150 @@
   }
 }
 
+/* ==========================================================================
+   Compact Executive Summary Cards
+   ========================================================================== */
+.reports-executive-card--compact,
+.reports-executive-card {
+  padding: 12px 14px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.reports-executive-card .form-section-header,
+.reports-executive-card .section-header {
+  margin-bottom: 8px !important;
+}
+
+.reports-premium-summary-strip,
+.reports-premium-summary-strip--compact {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-bottom: 0 !important;
+}
+
+.reports-premium-stat,
+.reports-premium-stat-compact {
+  position: relative !important;
+  min-height: 74px !important;
+  padding: 10px 14px 14px 14px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.reports-premium-stat span:first-child {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  line-height: 1.2 !important;
+}
+
+.reports-premium-stat strong {
+  font-size: clamp(1.2rem, 1.4vw, 1.45rem) !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin-top: 2px !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.reports-premium-stat small {
+  font-size: 0.68rem !important;
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  margin-top: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.reports-premium-stat-rail {
+  height: 4px !important;
+  bottom: 6px !important;
+  inset-inline: 12px !important;
+  border-radius: 4px !important;
+}
+
+.reports-preset-row--compact .btn,
+.reports-preset-row--compact .button {
+  padding: 3px 10px !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  font-size: 0.75rem !important;
+  border-radius: 6px !important;
+}
+
+.reports-mini-overview-grid--compact .stat-card,
+.reports-mini-overview-grid--compact .report-mini-stat-card {
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+}
+
+.reports-mini-overview-grid--compact .stat-card strong,
+.reports-mini-overview-grid--compact .report-mini-stat-card strong {
+  font-size: 0.95rem !important;
+  margin-top: 2px !important;
+}
+
+@media (max-width: 900px) {
+  .reports-premium-summary-strip,
+  .reports-premium-summary-strip--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .reports-premium-summary-strip,
+  .reports-premium-summary-strip--compact {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==========================================================================
+   Horizontal Single-Row Legend for Donut Chart
+   ========================================================================== */
+.reports-ring-legend,
+.reports-ring-legend-horizontal {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+  margin-bottom: 0 !important;
+}
+
+.reports-ring-legend-row {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+
+.reports-ring-legend-row span {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+.reports-ring-legend-row strong {
+  font-size: 0.8rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin-inline-start: 4px !important;
+}
+
+
+
 

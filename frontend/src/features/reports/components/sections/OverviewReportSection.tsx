@@ -25,6 +25,8 @@ export function OverviewReportSection({
   const grossProfit = report?.commercial.grossProfit ?? financial?.grossProfit ?? 0;
   const netCashMovement = report?.treasury.net ?? cash?.netMovement ?? financial?.netCashMovement ?? 0;
   const grossMarginPercent = report?.commercial.grossMarginPercent ?? (financial?.netSales ? (grossProfit / Math.max(1, financial.netSales)) * 100 : 0);
+  const cogs = Math.max(0, netSales - grossProfit);
+  const cogsPercent = netSales > 0 ? (cogs / netSales) * 100 : 0;
   const statMax = Math.max(1, Math.abs(salesTotal), Math.abs(netSales), Math.abs(grossProfit), Math.abs(netCashMovement));
   const premiumStats = [
     { label: 'إجمالي البيع', value: salesTotal, helper: 'كل البيع المسجل', tone: 'primary', progress: Math.round((Math.abs(salesTotal) / statMax) * 100) },
@@ -32,10 +34,6 @@ export function OverviewReportSection({
     { label: 'مجمل الربح', value: grossProfit, helper: 'بعد تكلفة البضاعة', tone: 'profit', progress: Math.round((Math.abs(grossProfit) / statMax) * 100) },
     { label: 'صافي حركة النقدية', value: netCashMovement, helper: 'داخل وخارج خلال الفترة', tone: 'treasury', progress: Math.round((Math.abs(netCashMovement) / statMax) * 100) },
   ];
-  const flowTotal = Math.max(1, Math.abs(netSales) + Math.abs(report?.purchases.netPurchases || 0) + Math.abs(grossProfit));
-  const salesShare = Math.round((Math.abs(netSales) / flowTotal) * 100);
-  const purchasesShare = Math.round((Math.abs(report?.purchases.netPurchases || 0) / flowTotal) * 100);
-  const profitShare = Math.max(0, 100 - salesShare - purchasesShare);
   const chartData = useMemo(() => {
     const baseSales = netSales;
     const basePurchases = report?.purchases.netPurchases || 0;
@@ -87,13 +85,11 @@ export function OverviewReportSection({
   }, [chartPeriod, netSales, report?.purchases.netPurchases]);
 
   return (
-    <div className="page-stack" style={{ gap: '16px' }}>
+    <div className="page-stack" style={{ gap: '12px' }}>
       {/* 1. Executive Summary KPIs Strip */}
       <QueryCard
         title="الملخص التنفيذي"
-        description="أهم أرقام ومؤشرات الأداء الرئيسية: المبيعات، الربحية، والمصروفات وحركة النقدية خلال الفترة."
-        actions={<span className="nav-pill">المؤشرات الرئيسية</span>}
-        className="reports-executive-card"
+        className="reports-executive-card reports-executive-card--compact"
         isLoading={reportQuery.isLoading}
         isError={reportQuery.isError}
         error={reportQuery.error}
@@ -102,12 +98,14 @@ export function OverviewReportSection({
         emptyTitle="لا توجد بيانات للفترة الحالية"
         emptyHint="جرّب تغيير الفترة أو إضافة عمليات جديدة."
       >
-        <div className="reports-premium-summary-strip" aria-label="أهم أرقام الفترة">
+        <div className="reports-premium-summary-strip reports-premium-summary-strip--compact" aria-label="أهم أرقام الفترة">
           {premiumStats.map((stat) => (
-            <div className={`reports-premium-stat reports-premium-stat-${stat.tone}`} key={stat.label}>
-              <span>{stat.label}</span>
+            <div className={`reports-premium-stat reports-premium-stat-compact reports-premium-stat-${stat.tone}`} key={stat.label}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{stat.label}</span>
+                <small>{stat.helper}</small>
+              </div>
               <strong><AnimatedValue value={stat.value} formatter={formatCurrency} /></strong>
-              <small>{stat.helper}</small>
               <span className="reports-premium-stat-rail" style={{ '--reports-stat-progress': `${stat.progress}%` } as CSSProperties} aria-hidden="true">
                 <i />
               </span>
@@ -163,19 +161,71 @@ export function OverviewReportSection({
           actions={<span className="nav-pill">الربحية</span>}
           className="reports-breakdown-card"
         >
-          <div className="reports-margin-donut-card">
-            <div className="reports-orb-cluster" style={{ marginBottom: '14px' }}>
+          <div className="reports-margin-donut-card" style={{ width: '100%', maxWidth: '340px', margin: '0 auto' }}>
+            <div style={{ position: 'relative', marginBottom: '14px' }}>
               <CircularProgress 
                 value={grossMarginPercent} 
                 label="هامش الربح" 
-                size={170} 
-                strokeWidth={15} 
+                size={165} 
+                strokeWidth={14} 
                 color="var(--accent, #8b5cf6)" 
               />
-              <div className="reports-ring-legend" style={{ marginTop: '10px' }}>
-                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-sales" /> صافي البيع</span><strong>{salesShare}%</strong></div>
-                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-purchases" /> صافي الشراء</span><strong>{purchasesShare}%</strong></div>
-                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-profit" /> مجمل الربح</span><strong>{profitShare}%</strong></div>
+            </div>
+
+            {/* Dual Progress Split Bar */}
+            <div style={{ width: '100%', height: '8px', borderRadius: '9999px', background: '#e2e8f0', display: 'flex', overflow: 'hidden', marginBottom: '12px' }}>
+              <div style={{ width: `${Math.min(100, Math.max(0, grossMarginPercent))}%`, background: '#10b981', transition: 'width 0.6s ease' }} title={`مجمل الربح: ${grossMarginPercent.toFixed(1)}%`} />
+              <div style={{ width: `${Math.min(100, Math.max(0, cogsPercent))}%`, background: '#f43f5e', transition: 'width 0.6s ease' }} title={`تكلفة البضاعة: ${cogsPercent.toFixed(1)}%`} />
+            </div>
+
+            {/* Clean Financial Breakdown Table / Rows */}
+            <div style={{ width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Line 1: Net Sales (Top) */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
+                  صافي المبيعات
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
+                    100%
+                  </span>
+                  <strong style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0f172a', minWidth: '90px', textAlign: 'left' }}>
+                    {formatCurrency(netSales)}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Line 2: Cost of Goods (Middle) */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#991b1b', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f43f5e', display: 'inline-block' }} />
+                  تكلفة البضاعة
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
+                    {cogsPercent.toFixed(1)}%
+                  </span>
+                  <strong style={{ fontSize: '0.875rem', fontWeight: 800, color: '#991b1b', minWidth: '90px', textAlign: 'left' }}>
+                    {formatCurrency(cogs)}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Line 3: Gross Profit Result (Bottom - Highlighted) */}
+              <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#166534', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                  مجمل الربح
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: '4px', minWidth: '44px', textAlign: 'center' }}>
+                    {grossMarginPercent.toFixed(1)}%
+                  </span>
+                  <strong style={{ fontSize: '0.9rem', fontWeight: 800, color: '#166534', minWidth: '90px', textAlign: 'left' }}>
+                    {formatCurrency(grossProfit)}
+                  </strong>
+                </div>
               </div>
             </div>
           </div>
