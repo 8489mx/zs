@@ -230,9 +230,19 @@ function renderTotals(options: {
   ] : [
     ...(hasOffersSavings ? [
       { label: 'الإجمالي قبل الخصومات', value: formatReceiptMoney(grossSubtotal, options.settings) },
-      { label: 'إجمالي خصومات العروض', value: `-${formatReceiptMoney(totalOffersSavings, options.settings)}` },
+      {
+        label: 'إجمالي خصومات العروض',
+        value: `<span style="display:inline-flex; align-items:center; direction:ltr;"><span>${formatReceiptMoney(totalOffersSavings, options.settings)}</span><span style="margin-left:2px;">-</span></span>`,
+        isHtml: true,
+      },
     ] : (showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])),
-    ...(hasDiscount ? [{ label: discountLabel, value: `-${formatReceiptMoney(Number(options.discount || 0), options.settings)}` }] : []),
+    ...(hasDiscount ? [
+      {
+        label: discountLabel,
+        value: `<span style="display:inline-flex; align-items:center; direction:ltr;"><span>${formatReceiptMoney(Number(options.discount || 0), options.settings)}</span><span style="margin-left:2px;">-</span></span>`,
+        isHtml: true,
+      },
+    ] : []),
     ...(hasDeliveryFee ? [{ label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) }] : []),
     ...(showTax && !hasOffersSavings ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
@@ -261,7 +271,7 @@ function renderTotals(options: {
       ${rows.map((row) => `
         <div class="meta-line${row.strong ? ' strong total-line' : ''}">
           <span class="meta-label">${escapeHtml(row.label)}:</span>
-          <span class="meta-value">${escapeHtml(row.value)}</span>
+          <span class="meta-value">${(row as any).isHtml ? row.value : escapeHtml(row.value)}</span>
         </div>
       `).join('')}
       ${savingsBannerHtml}
