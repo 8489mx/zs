@@ -165,6 +165,12 @@
   border-color: #bfdbfe;
 }
 
+.audit-page .audit-badge-maintenance {
+  color: #c2410c;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
 .audit-page .audit-badge-import {
   color: #166534;
   background: #f0fdf4;

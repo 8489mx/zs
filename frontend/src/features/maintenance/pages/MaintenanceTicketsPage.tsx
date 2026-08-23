@@ -787,7 +787,7 @@ export function MaintenanceTicketsPage() {
                               disabled={updateStatusMutation.isPending}
                               style={{
                                 width: '100%',
-                                padding: '5px 24px 5px 10px',
+                                padding: '5px 10px 5px 24px',
                                 borderRadius: '6px',
                                 fontSize: '0.78rem',
                                 fontWeight: 700,
@@ -796,9 +796,6 @@ export function MaintenanceTicketsPage() {
                                 background: cfg.bg,
                                 color: cfg.color,
                                 outline: 'none',
-                                appearance: 'none',
-                                WebkitAppearance: 'none',
-                                MozAppearance: 'none',
                                 whiteSpace: 'nowrap',
                                 textOverflow: 'ellipsis',
                               }}
@@ -811,9 +808,6 @@ export function MaintenanceTicketsPage() {
                               <option value="unrepairable">تعذر الإصلاح</option>
                               <option value="cancelled">ملغي</option>
                             </select>
-                            <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: cfg.color, display: 'flex', alignItems: 'center' }}>
-                              <Icons.ChevronDown />
-                            </span>
                           </div>
                         </td>
 

@@ -4,6 +4,9 @@ import { formatDate } from '@/lib/format';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { AuditLog } from '@/types/domain';
 
+import { getAuditActionLabel, normalizeAuditDetailText, normalizeAuditUserDisplay } from '@/features/audit/lib/audit-activity-presenter';
+import { formatAuditDetails } from '@/features/audit/lib/audit-details-format';
+
 interface Params {
   search: string;
   mode: 'all' | 'today' | 'withDetails';
@@ -42,8 +45,13 @@ export function useAuditPageActions({ search, mode, userId = '', totalRows, summ
       const payload = await auditApi.listAll({ search, mode, userId });
       downloadExcelFile(
         'audit-log-results.csv',
-        ['action', 'details', 'createdBy', 'date'],
-        payload.rows.map((row: AuditLog) => [row.action || '', row.detailsSummary || row.details || '', row.createdByName || '', row.createdAt || row.created_at || ''])
+        ['النشاط', 'التفاصيل', 'المنفذ', 'التاريخ'],
+        payload.rows.map((row: AuditLog) => [
+          getAuditActionLabel(row.action || ''),
+          normalizeAuditDetailText(formatAuditDetails(row)),
+          normalizeAuditUserDisplay(row),
+          row.createdAt || row.created_at || '',
+        ])
       );
       setCopyFeedback({ kind: 'success', text: 'تم تجهيز تصدير كامل للسجلات المطابقة.' });
     } catch {
@@ -64,13 +72,15 @@ export function useAuditPageActions({ search, mode, userId = '', totalRows, summ
         <h1>سجل النشاط</h1>
         <div class="meta">إجمالي السجلات المطابقة: ${payload.rows.length} · عدد المنفذين: ${summary.distinctUsers} · سجلات اليوم: ${summary.todayCount}</div>
         <table>
-          <thead><tr><th>الإجراء</th><th>التفاصيل</th><th>المنفذ</th><th>التاريخ</th></tr></thead>
+          <thead><tr><th>النشاط</th><th>التفاصيل</th><th>المنفذ</th><th>التاريخ</th></tr></thead>
           <tbody>${payload.rows
             .map(
               (row) =>
-                `<tr><td>${escapeHtml(row.action || '—')}</td><td>${escapeHtml(row.detailsSummary || row.details || '—')}</td><td>${escapeHtml(
-                  row.createdByName || '—'
-                )}</td><td>${escapeHtml(formatDate(row.createdAt || row.created_at || ''))}</td></tr>`
+                `<tr><td>${escapeHtml(getAuditActionLabel(row.action || '—'))}</td><td>${escapeHtml(
+                  normalizeAuditDetailText(formatAuditDetails(row))
+                )}</td><td>${escapeHtml(normalizeAuditUserDisplay(row))}</td><td>${escapeHtml(
+                  formatDate(row.createdAt || row.created_at || '')
+                )}</td></tr>`
             )
             .join('')}</tbody>
         </table>

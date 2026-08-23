@@ -33,6 +33,7 @@ const auditFilterOptions = [
 const auditTypeFilterOptions: Array<{ value: 'all' | Exclude<AuditActivityType, 'general'>; label: string }> = [
   { value: 'all', label: 'الكل' },
   { value: 'auth', label: 'دخول وخروج' },
+  { value: 'maintenance', label: 'صيانة' },
   { value: 'import', label: 'استيراد' },
   { value: 'inventory', label: 'مخزون' },
   { value: 'sales', label: 'مبيعات' },

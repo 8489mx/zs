@@ -55,7 +55,7 @@ export class AddonsService {
       throw new AppError('Failed to create addon', 'ADDON_CREATE_FAILED', 400);
     }
 
-    await this.audit.log('Create Addon', `Created addon ${payload.name}`, auth);
+    await this.audit.log('إضافة ملحق', `تم إنشاء ملحق جديد: ${payload.name}`, auth);
     return { ok: true, id: String(result.id) };
   }
 
@@ -74,10 +74,10 @@ export class AddonsService {
       .executeTakeFirst();
 
     if (Number(result.numUpdatedRows) === 0) {
-      throw new AppError('Addon not found', 'ADDON_NOT_FOUND', 404);
+      throw new AppError('الملحق غير موجود', 'ADDON_NOT_FOUND', 404);
     }
 
-    await this.audit.log('Update Addon', `Updated addon ${id}`, auth);
+    await this.audit.log('تعديل ملحق', `تم تعديل بيانات الملحق #${id}`, auth);
     return { ok: true };
   }
 
@@ -90,10 +90,10 @@ export class AddonsService {
       .executeTakeFirst();
 
     if (Number(result.numDeletedRows) === 0) {
-      throw new AppError('Addon not found', 'ADDON_NOT_FOUND', 404);
+      throw new AppError('الملحق غير موجود', 'ADDON_NOT_FOUND', 404);
     }
 
-    await this.audit.log('Delete Addon', `Deleted addon ${id}`, auth);
+    await this.audit.log('حذف ملحق', `تم حذف الملحق #${id}`, auth);
     return { ok: true };
   }
 }

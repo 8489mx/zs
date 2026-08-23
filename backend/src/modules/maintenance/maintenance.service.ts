@@ -233,7 +233,7 @@ export class MaintenanceService {
       }
     }
 
-    await this.audit.log('Create Maintenance Ticket', `Created ticket ${ticketNo} for ${payload.customerName}`, auth);
+    await this.audit.log('إنشاء تذكرة صيانة', `تم إنشاء تذكرة صيانة ${ticketNo} للعميل ${payload.customerName}`, auth);
     return { ok: true, id: String(result.id), ticketNo };
   }
 
@@ -278,7 +278,7 @@ export class MaintenanceService {
       .where('id', '=', id)
       .execute();
 
-    await this.audit.log('Update Maintenance Ticket', `Updated ticket ${existing.ticket_no}`, auth);
+    await this.audit.log('تعديل تذكرة صيانة', `تم تحديث بيانات تذكرة الصيانة ${existing.ticket_no}`, auth);
     return { ok: true };
   }
 
@@ -350,7 +350,18 @@ export class MaintenanceService {
       }
     }
 
-    await this.audit.log('Update Ticket Status', `Updated ticket ${existing.ticket_no} status to ${payload.status}`, auth);
+    const statusLabels: Record<string, string> = {
+      received: 'تم الاستلام',
+      inspecting: 'قيد الفحص والتسعير',
+      in_progress: 'قيد الصيانة والإصلاح',
+      repaired: 'تم الإصلاح وجاهز للتسليم',
+      delivered: 'تم التسليم للعميل',
+      unrepairable: 'غير قابل للإصلاح',
+      cancelled: 'ملغاة',
+      canceled: 'ملغاة',
+    };
+    const statusLabel = statusLabels[payload.status] || payload.status;
+    await this.audit.log('تحديث حالة التذكرة', `تم تغيير حالة التذكرة ${existing.ticket_no} إلى "${statusLabel}"`, auth);
     return { ok: true };
   }
 
@@ -575,7 +586,7 @@ export class MaintenanceService {
       .where('id', '=', id)
       .execute();
 
-    await this.audit.log('Delete Maintenance Ticket', `Deleted ticket ID ${id} and restored ${parts.length} parts to stock`, auth);
+    await this.audit.log('حذف تذكرة صيانة', `تم حذف تذكرة الصيانة #${id} واسترجاع ${parts.length} قطعة غيار إلى المخزون`, auth);
     return { ok: true };
   }
 }
