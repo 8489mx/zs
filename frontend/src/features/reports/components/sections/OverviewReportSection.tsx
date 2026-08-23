@@ -87,11 +87,12 @@ export function OverviewReportSection({
   }, [chartPeriod, netSales, report?.purchases.netPurchases]);
 
   return (
-    <div className="page-stack">
+    <div className="page-stack" style={{ gap: '16px' }}>
+      {/* 1. Executive Summary KPIs Strip */}
       <QueryCard
         title="الملخص التنفيذي"
-        description="أهم أرقام الإدارة في بطاقة واحدة: المبيعات، الربحية، والمصروفات وحركة النقدية خلال الفترة."
-        actions={<span className="nav-pill">الملخص التنفيذي</span>}
+        description="أهم أرقام ومؤشرات الأداء الرئيسية: المبيعات، الربحية، والمصروفات وحركة النقدية خلال الفترة."
+        actions={<span className="nav-pill">المؤشرات الرئيسية</span>}
         className="reports-executive-card"
         isLoading={reportQuery.isLoading}
         isError={reportQuery.isError}
@@ -113,41 +114,86 @@ export function OverviewReportSection({
             </div>
           ))}
         </div>
-
-        <div className="reports-executive-layout enhanced-executive-layout reports-executive-wide-layout">
-          <aside className="reports-executive-insight-card reports-executive-wide-card" aria-label="ملخص بصري للتقرير">
-            <div className="reports-executive-right-col">
-              <div className="reports-executive-insight-copy">
-                <span className="reports-kicker">نبض الفترة</span>
-                <strong>قراءة سريعة لحركة البيع والشراء والربح</strong>
-              </div>
-              <div className="reports-orb-cluster">
-                <CircularProgress 
-                  value={grossMarginPercent} 
-                  label="هامش الربح" 
-                  size={180} 
-                  strokeWidth={16} 
-                  color="var(--accent, #8b5cf6)" 
-                />
-                <div className="reports-ring-legend">
-                  <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-sales" /> صافي البيع</span><strong>{salesShare}%</strong></div>
-                  <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-purchases" /> صافي الشراء</span><strong>{purchasesShare}%</strong></div>
-                  <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-profit" /> مجمل الربح</span><strong>{profitShare}%</strong></div>
-                </div>
-              </div>
-            </div>
-            <div className="metric-list reports-metric-list reports-executive-list">
-              {executiveRows.map(([metric, value]) => (
-                <div className="metric-row" key={metric}>
-                  <span>{metric}</span>
-                  <strong>{metric === 'هامش الربح %' ? formatPercent(Number(value || 0)) : formatCurrency(Number(value || 0))}</strong>
-                </div>
-              ))}
-            </div>
-          </aside>
-        </div>
       </QueryCard>
 
+      {/* 2. Visual Command Center: Side-by-Side Charts (Area Trend + Margin Donut) */}
+      <div className="reports-charts-hub-grid">
+        {/* Right (65%): Sales & Purchases Area Trend Chart */}
+        <FormSection
+          title="تحليل المبيعات والمشتريات"
+          description="منحنى زمني تفاعلي يقارن بين حركة البيع والشراء."
+          className="reports-chart-motion"
+          actions={
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {['شهر', '6 شهور', 'سنة', 'الكل'].map((period) => {
+                const isActive = chartPeriod === period;
+                return (
+                  <button
+                    key={period}
+                    type="button"
+                    onClick={() => setChartPeriod(period)}
+                    className="nav-pill"
+                    style={{
+                      border: 'none',
+                      background: isActive ? 'var(--accent, #170c5c)' : '#f1f5f9',
+                      color: isActive ? '#ffffff' : '#475569',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      padding: '4px 12px',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    {period}
+                  </button>
+                );
+              })}
+            </div>
+          }
+        >
+          <div style={{ marginTop: '12px' }}>
+            <SalesTrendChart data={chartData} height={300} />
+          </div>
+        </FormSection>
+
+        {/* Left (35%): Profit Margin & Flow Distribution */}
+        <FormSection
+          title="نبض الفترة وهامش الربح"
+          description="توزيع السيولة ونسبة مجمل الأرباح المحققة."
+          actions={<span className="nav-pill">الربحية</span>}
+          className="reports-breakdown-card"
+        >
+          <div className="reports-margin-donut-card">
+            <div className="reports-orb-cluster" style={{ marginBottom: '14px' }}>
+              <CircularProgress 
+                value={grossMarginPercent} 
+                label="هامش الربح" 
+                size={170} 
+                strokeWidth={15} 
+                color="var(--accent, #8b5cf6)" 
+              />
+              <div className="reports-ring-legend" style={{ marginTop: '10px' }}>
+                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-sales" /> صافي البيع</span><strong>{salesShare}%</strong></div>
+                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-purchases" /> صافي الشراء</span><strong>{purchasesShare}%</strong></div>
+                <div className="reports-ring-legend-row"><span><i className="reports-ring-dot dot-profit" /> مجمل الربح</span><strong>{profitShare}%</strong></div>
+              </div>
+            </div>
+          </div>
+        </FormSection>
+      </div>
+
+      {/* 3. Secondary Bar Chart: Shifts Performance */}
+      <FormSection title="المبيعات حسب فترات العمل (الورديات)" description="مقارنة مبيعات فترات اليوم (النهار مقابل الليل)." actions={<span className="nav-pill">الورديات</span>}>
+        <div style={{ marginTop: '12px' }}>
+          <ShiftAnalysisChart data={[
+            { shift: 'الوردية الصباحية|من 8ص لـ 4م', sales: Math.round(netSales * 0.45), color: '#3b82f6' },
+            { shift: 'الوردية المسائية|من 4م لـ 12ص', sales: Math.round(netSales * 0.35), color: '#8b5cf6' },
+            { shift: 'الوردية الليلية|من 12ص لـ 8ص', sales: Math.round(netSales * 0.20), color: '#1e293b' }
+          ]} height={220} />
+        </div>
+      </FormSection>
+
+      {/* 4. Detailed Financial Breakdown Cards (3 Columns) */}
       <div className="three-column-grid reports-unified-grid">
         <FormSection title="حركة البيع" description="قراءة مختصرة للنطاق الحالي." actions={<span className="nav-pill">المبيعات</span>} className="reports-breakdown-card reports-motion-card reports-hover-scale">
           <div className="list-stack compact-list">
@@ -175,47 +221,19 @@ export function OverviewReportSection({
         </FormSection>
       </div>
 
+      {/* 5. Full Comprehensive Executive Audit Metric Grid */}
       <FormSection
-        title="تحليل المبيعات والمشتريات (شهري)"
-        description="مقارنة بين حركة البيع والشراء على مدار الشهور."
-        className="reports-chart-motion"
-        actions={
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {['شهر', '6 شهور', 'سنة', 'الكل'].map((period) => {
-              const isActive = chartPeriod === period;
-              return (
-                <button
-                  key={period}
-                  onClick={() => setChartPeriod(period)}
-                  className="nav-pill"
-                  style={{
-                    border: 'none',
-                    background: isActive ? 'var(--accent, #170c5c)' : 'var(--bg-light, #f1f5f9)',
-                    color: isActive ? 'white' : 'var(--text-secondary, #475569)',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '4px 12px'
-                  }}
-                >
-                  {period}
-                </button>
-              );
-            })}
-          </div>
-        }
+        title="جدول المؤشرات التنفيذية الشامل"
+        description="تفاصيل رقمية كاملة لجميع بنود الحسابات والأداء المالي خلال الفترة."
+        actions={<span className="nav-pill">بيانات التدقيق</span>}
       >
-        <div style={{ marginTop: '16px' }}>
-          <SalesTrendChart data={chartData} />
-        </div>
-      </FormSection>
-
-      <FormSection title="المبيعات حسب الوردية" description="مقارنة مبيعات فترات العمل (النهار مقابل الليل).">
-        <div style={{ marginTop: '16px' }}>
-          <ShiftAnalysisChart data={[
-            { shift: 'الوردية الصباحية|من 8ص لـ 4م', sales: Math.round(netSales * 0.45), color: '#3b82f6' },
-            { shift: 'الوردية المسائية|من 4م لـ 12ص', sales: Math.round(netSales * 0.35), color: '#8b5cf6' },
-            { shift: 'الوردية الليلية|من 12ص لـ 8ص', sales: Math.round(netSales * 0.20), color: '#1e293b' }
-          ]} />
+        <div className="reports-executive-metric-grid" style={{ marginTop: '12px' }}>
+          {executiveRows.map(([metric, value]) => (
+            <div className="reports-executive-metric-item" key={metric}>
+              <span>{metric}</span>
+              <strong>{metric === 'هامش الربح %' ? formatPercent(Number(value || 0)) : formatCurrency(Number(value || 0))}</strong>
+            </div>
+          ))}
         </div>
       </FormSection>
     </div>
