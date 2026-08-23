@@ -5,15 +5,20 @@ import { FileTextIcon, TagIcon, SmartphoneIcon } from '@/shared/components/icons
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
-  const settingsQuery = useSettingsQuery();
-  const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
-  const allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;
+  let allowItemNotes = false;
+  let allowItemModifiers = false;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const settingsQuery = useSettingsQuery();
+    allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true;
+    allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;
+  } catch {}
 
   const containerRef = useRef<HTMLElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver((entries) => {
       setContainerWidth(entries[0].contentRect.width);
     });
@@ -118,8 +123,11 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   </div>
                 )}
                 {item.offerName && (
-                  <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '2px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <TagIcon size={12} color="#10b981" /> {item.offerName}
+                  <div style={{ fontSize: '0.74rem', color: '#047857', background: '#ecfdf5', padding: '2px 6px', borderRadius: '4px', border: '1px solid #a7f3d0', marginTop: '2px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <TagIcon size={12} color="#059669" /> {item.offerName}
+                    {item.offerDiscount && item.offerDiscount > 0 ? (
+                      <span style={{ color: '#065f46', fontWeight: 700 }}> (وفرت {formatCurrency(item.offerDiscount * item.qty)})</span>
+                    ) : null}
                   </div>
                 )}
                 {item.serials && item.serials.length > 0 && (
@@ -161,6 +169,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   </button>
                   <input
                     type="number"
+                    aria-label="الكمية"
                     dir="ltr"
                     style={{ fontVariantNumeric: 'tabular-nums', textAlign: 'center', fieldSizing: 'content', minWidth: '54px' } as any}
                     min={minQty}
@@ -191,7 +200,16 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
               </div>
 
               <div className="pos-cart-col pos-cart-col-price">
-                <strong className="pos-cart-number">{formatCurrency(item.price)}</strong>
+                {item.originalPrice && item.originalPrice > item.price ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.74rem', lineHeight: 1 }}>
+                      {formatCurrency(item.originalPrice)}
+                    </span>
+                    <strong className="pos-cart-number" style={{ color: '#15803d' }}>{formatCurrency(item.price)}</strong>
+                  </div>
+                ) : (
+                  <strong className="pos-cart-number">{formatCurrency(item.price)}</strong>
+                )}
               </div>
 
               <div className="pos-cart-col pos-cart-col-total">

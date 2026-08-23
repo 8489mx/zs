@@ -244,9 +244,14 @@ export function createPosWorkspaceAsyncActions(
         tableNumber: params.tableNumber,
         deliveryRepId: params.deliveryRepId,
         collectionStatus: params.collectionStatus,
+        deliveryFeeMode: params.deliveryFeeMode,
       });
-      params.setLastSale(createdSale as Sale);
-      const createdSaleKey = getSaleKey(createdSale as Sale);
+      const hydratedSale: Sale = {
+        ...(createdSale as Sale),
+        cart: params.cart,
+      };
+      params.setLastSale(hydratedSale);
+      const createdSaleKey = getSaleKey(hydratedSale);
       base.resetPosDraft();
       params.setPostSaleSaleKey(createdSaleKey);
       const postSalePrintMode = getPostSalePrintMode(params.settings || null);
@@ -347,6 +352,9 @@ export function createPosWorkspaceAsyncActions(
     params.setTableNumber(draft.tableNumber || '');
     params.setDeliveryRepId(draft.deliveryRepId || '');
     params.setCollectionStatus(draft.collectionStatus || 'cod');
+    if ((draft as any).deliveryFeeMode) {
+      params.setDeliveryFeeMode((draft as any).deliveryFeeMode);
+    }
     params.setDiscountApprovalGranted(false);
     params.setDiscountApprovalSecret('');
     await params.deleteHeldDraftMutation.mutateAsync(draftId);

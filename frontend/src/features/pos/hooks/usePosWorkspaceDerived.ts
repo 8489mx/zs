@@ -3,6 +3,7 @@ import { formatCurrency } from '@/lib/format';
 import { paymentLabel } from '@/features/pos/lib/pos-workspace.helpers';
 import { getProductPrice, isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import { mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
+import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import type { PaymentChannel, PaymentType, PosProductFilter } from '@/features/pos/hooks/usePosWorkspace';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import type { Product, Sale } from '@/types/domain';
@@ -111,9 +112,11 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     return params.recentProductIds.map((id) => productById.get(String(id))).filter(Boolean) as Product[];
   }, [params.recentProductIds, productById]);
 
+  const parsedSearch = useMemo(() => parseQuantityPrefixQuery(params.search), [params.search]);
+
   const panelSourceProducts = useMemo(
-    () => (params.search.trim() ? saleProductList : mergeLookupProducts(recentProducts, saleProductList)),
-    [params.search, recentProducts, saleProductList],
+    () => (parsedSearch.cleanQuery ? saleProductList : mergeLookupProducts(recentProducts, saleProductList)),
+    [parsedSearch.cleanQuery, recentProducts, saleProductList],
   );
 
   const filteredSaleProducts = useMemo(() => {

@@ -98,7 +98,7 @@ function renderMetaPanel(rows: Array<{ label: string; value?: string | number | 
   `;
 }
 
-function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; total?: number; modifiers?: any[]; serials?: string[] }>, compact = false, settings?: Partial<AppSettings> | null) {
+function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?: number; price?: number; originalPrice?: number; offerDiscount?: number; offerName?: string; total?: number; modifiers?: any[]; serials?: string[] }>, compact = false, settings?: Partial<AppSettings> | null) {
   const body = (items || []).map((item, index) => {
     const modifiersHtml = item.modifiers?.length 
       ? `<div class="item-modifiers" style="font-size: 0.85em; color: #000; margin-top: 2px;">
@@ -119,10 +119,16 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
           <strong>IMEI:</strong> ${item.serials.map(escapeHtml).join(', ')}
          </div>`
       : '';
+    const hasOffer = (item.originalPrice && item.originalPrice > Number(item.price || 0)) || (item.offerDiscount && Number(item.offerDiscount) > 0);
+    const offerHtml = hasOffer
+      ? `<div class="item-offer-line" style="font-size: 0.82em; color: #000; margin-top: 2px; font-style: normal;">
+          <strong>[عرض]</strong> أصلي: ${formatReceiptMoney(Number(item.originalPrice || (Number(item.price || 0) + Number(item.offerDiscount || 0))), settings)} | خصم: ${formatReceiptMoney(Number(item.offerDiscount || (Number(item.originalPrice || 0) - Number(item.price || 0))), settings)}-
+         </div>`
+      : '';
     return `
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
-      <td class="name-cell">${escapeHtml(item.name || '—')}${modifiersHtml}${serialsHtml}</td>
+      <td class="name-cell">${escapeHtml(item.name || '—')}${offerHtml}${modifiersHtml}${serialsHtml}</td>
       ${compact ? '' : `<td>${escapeHtml(item.unitName || 'قطعة')}</td>`}
       <td>${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
       <td>${formatReceiptMoney(Number(item.price || 0), settings)}</td>
@@ -176,7 +182,7 @@ function renderTotals(options: {
   paidAmount?: number;
   tenderedAmount?: number;
   changeAmount?: number;
-  items: Array<{ qty?: number }>;
+  items: Array<{ qty?: number; price?: number; originalPrice?: number; offerDiscount?: number }>;
   settings?: Partial<AppSettings> | null;
   compact?: boolean;
   isReturn?: boolean;
@@ -191,16 +197,25 @@ function renderTotals(options: {
   const showPaymentDetails = getPrintOption(options.settings, 'printShowPaymentBreakdown', true);
   const hasDiscount = Math.abs(Number(options.discount || 0)) > 0.0001;
   const hasDeliveryFee = Math.abs(Number(options.deliveryFee || 0)) > 0.0001;
+
+  const totalOffersSavings = (options.items || []).reduce((sum, item) => {
+    const unitDiscount = Number(item.offerDiscount || (item.originalPrice ? Math.max(0, item.originalPrice - Number(item.price || 0)) : 0));
+    return sum + (unitDiscount * Number(item.qty || 0));
+  }, 0);
+  const hasOffersSavings = totalOffersSavings > 0.0001;
+  const totalAllSavings = totalOffersSavings + Number(options.discount || 0);
   
-  let discountLabel = 'الخصم';
+  let discountLabel = hasOffersSavings ? 'خصم إضافي' : 'الخصم';
   if (hasDiscount && Number(options.subtotal || 0) > 0) {
     const rawPercent = (options.discount / options.subtotal) * 100;
     const cleanPercent = Math.round(rawPercent);
     const expectedDiscount = (cleanPercent / 100) * options.subtotal;
     if (cleanPercent > 0 && Math.abs(expectedDiscount - options.discount) <= 0.02) {
-      discountLabel = `الخصم (${formatReceiptText(cleanPercent, options.settings)}%)`;
+      discountLabel = `${discountLabel} (${formatReceiptText(cleanPercent, options.settings)}%)`;
     }
   }
+
+  const grossSubtotal = Number(options.subtotal || 0) + totalOffersSavings;
 
   const rows = options.isReturn ? [
     ...(showTax && Number(options.taxAmount || 0) > 0 ? [
@@ -213,10 +228,13 @@ function renderTotals(options: {
       { label: 'إجمالي القطع', value: formatReceiptQuantity(totalPieces, options.settings) },
     ] : []),
   ] : [
-    ...(showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : []),
-    ...(hasDiscount ? [{ label: discountLabel, value: formatReceiptMoney(Number(options.discount || 0), options.settings) }] : []),
+    ...(hasOffersSavings ? [
+      { label: 'الإجمالي قبل الخصومات', value: formatReceiptMoney(grossSubtotal, options.settings) },
+      { label: 'إجمالي خصومات العروض', value: `${formatReceiptMoney(totalOffersSavings, options.settings)}-` },
+    ] : (showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])),
+    ...(hasDiscount ? [{ label: discountLabel, value: `${formatReceiptMoney(Number(options.discount || 0), options.settings)}-` }] : []),
     ...(hasDeliveryFee ? [{ label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) }] : []),
-    ...(showTax ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
+    ...(showTax && !hasOffersSavings ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
     ...(showPaymentDetails ? [
       { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
@@ -230,6 +248,14 @@ function renderTotals(options: {
     ] : []),
   ];
 
+  const savingsBannerHtml = (!options.isReturn && totalAllSavings > 0.0001)
+    ? `
+      <div class="receipt-savings-banner" style="margin-top: 6px; padding: 4px 6px; border: 1.5px dashed #000; border-radius: 4px; text-align: center; font-weight: 800; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000;">
+        🎉 إجمالي ما وفّرته في هذه الفاتورة: ${formatReceiptMoney(totalAllSavings, options.settings)}
+      </div>
+    `
+    : '';
+
   return `
     <section class="invoice-card invoice-totals-card${options.compact ? ' compact' : ''}">
       ${rows.map((row) => `
@@ -238,6 +264,7 @@ function renderTotals(options: {
           <span class="meta-value">${escapeHtml(row.value)}</span>
         </div>
       `).join('')}
+      ${savingsBannerHtml}
     </section>
   `;
 }

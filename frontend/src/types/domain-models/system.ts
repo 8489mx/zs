@@ -178,6 +178,8 @@ export interface AppSettings {
   technicianCommissionRate?: number;
   defaultProductKind?: 'standard' | 'fashion' | string;
   defaultPosMode?: 'scanner' | 'touch' | string;
+  deliveryFeeMode?: 'freelance_courier' | 'store_fleet' | string;
+  storeFleetCommissionRate?: number;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
   allowZeroPurchaseCost?: boolean;

@@ -71,6 +71,28 @@ function IssueModeDocIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function DeliveryModeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7" cy="17" r="2" />
+      <circle cx="17" cy="17" r="2" />
+      <path d="M5 17H3v-4l2-5h9v9" />
+      <path d="m14 7 3 3h4v4h-2" />
+      <path d="M9 17h6" />
+    </svg>
+  );
+}
+
+function CourierCommissionIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="5" x2="5" y2="19" />
+      <circle cx="6.5" cy="6.5" r="2.5" />
+      <circle cx="17.5" cy="17.5" r="2.5" />
+    </svg>
+  );
+}
+
 const premiumCardStyle = {
   display: 'flex',
   alignItems: 'center',
@@ -132,6 +154,8 @@ export function SalesInventorySettingsTab({
   disabled,
   activeTab,
 }: SalesInventoryTabProps) {
+  const isStoreFleet = form.watch('deliveryFeeMode') === 'store_fleet';
+
   return (
     <div style={{ display: activeTab === 'sales_inventory' ? 'block' : 'none' }}>
       {/* ===== إعدادات البيع والضريبة ===== */}
@@ -310,6 +334,59 @@ export function SalesInventorySettingsTab({
               </div>
             </div>
           </div>
+
+          {/* Card 6: Delivery Fee Mode */}
+          <div style={{ ...premiumCardStyle, cursor: 'default', ...(isStoreFleet ? {} : { gridColumn: '1 / -1' }) }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+              <div style={iconBadgeStyle}>
+                <DeliveryModeIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معالجة رسوم التوصيل</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                  {isStoreFleet ? 'أسطول المتجر (إيراد للمحل وتُطبق عمولة الطيار)' : 'مناديب حرة / طياري (100% للمندوب ولا تدخل الخزينة)'}
+                </small>
+              </div>
+            </div>
+            <select
+              className="purchase-prototype-field-input"
+              {...form.register('deliveryFeeMode')}
+              disabled={disabled}
+              style={{ width: isStoreFleet ? '185px' : '260px', height: '36px', fontSize: '0.82rem', fontWeight: 700 }}
+            >
+              <option value="freelance_courier">مناديب حرة (طياري)</option>
+              <option value="store_fleet">أسطول المتجر (داخلي)</option>
+            </select>
+          </div>
+
+          {/* Card 7: Store Fleet Courier Commission Rate (Only visible when store fleet is active) */}
+          {isStoreFleet ? (
+            <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <CourierCommissionIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نسبة الطيار من التوصيل</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>عمولة طياري الأسطول (0% للثابت)</small>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <input
+                  className="purchase-prototype-field-input"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  {...form.register('storeFleetCommissionRate')}
+                  disabled={disabled}
+                  placeholder="0"
+                  style={{ width: '70px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                />
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#334155' }}>%</span>
+              </div>
+            </div>
+          ) : null}
         </div>
       </FormSection>
     </div>

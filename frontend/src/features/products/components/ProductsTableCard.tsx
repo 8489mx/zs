@@ -379,16 +379,63 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         />
                       </td>
                       <td>
-                        <div className="page-stack" style={{ gap: 6 }}>
-                          <div className="actions compact-actions" style={{ justifyContent: 'space-between' }}>
-                            <strong>{baseName}</strong>
-                            <Button type="button" variant="secondary" onClick={() => toggleExpand(group.key)}>{isExpanded ? 'إخفاء الفرعيات' : 'عرض الفرعيات'}</Button>
+                        <div
+                          onClick={() => toggleExpand(group.key)}
+                          style={{ cursor: 'pointer', userSelect: 'none' }}
+                          title={isExpanded ? 'طي الأصناف الفرعية' : 'توسيع الأصناف الفرعية'}
+                        >
+                          <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>{baseName}</strong>
+                          <div className="muted small" style={{ fontSize: '0.74rem', marginTop: '2px', color: '#64748b' }}>
+                            {group.children.length} فرعيات{group.representative.styleCode ? ` • كود ${group.representative.styleCode}` : ''}
                           </div>
-                          <div className="muted small">{group.children.length} أصناف فرعية{group.representative.styleCode ? ` • كود ${group.representative.styleCode}` : ''}</div>
                         </div>
                       </td>
                       <td>—</td>
-                      <td>{group.children.map((entry) => variantLabel(entry)).join(' ، ')}</td>
+                      <td style={{ maxWidth: '200px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '52px', overflow: 'hidden' }}>
+                          {group.children.slice(0, 2).map((entry) => (
+                            <span
+                              key={entry.id}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                background: '#f1f5f9',
+                                color: '#334155',
+                                border: '1px solid #e2e8f0',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {variantLabel(entry)}
+                            </span>
+                          ))}
+                          {group.children.length > 2 ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(group.key)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                background: isExpanded ? '#dbeafe' : '#eff6ff',
+                                color: '#1e40af',
+                                border: '1px solid #bfdbfe',
+                                whiteSpace: 'nowrap',
+                                cursor: 'pointer',
+                              }}
+                              title={isExpanded ? 'إخفاء الفرعيات' : 'عرض باقي الفرعيات'}
+                            >
+                              +{group.children.length - 2} فرعي {isExpanded ? '▲' : '▼'}
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
                       <td>
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{props.categoryNames[group.representative.categoryId] || 'عام'}</div>
@@ -442,6 +489,21 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(group.representative)}>تعديل</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenBarcodeDialog(group.representative, 'scan')}>باركود</Button>
                           <Button variant="secondary" type="button" onClick={() => props.onOpenOfferDialog(group.representative)}>عروض</Button>
+                          <Button
+                            variant="secondary"
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`هل أنت متأكد من حذف الموديل "${baseName}" وجميع أصنافه الفرعية بالكامل (${group.children.length} صنف فرعي)؟`)) {
+                                for (const child of group.children) {
+                                  props.onDeleteProduct(child);
+                                }
+                              }
+                            }}
+                            disabled={!props.canDelete}
+                            style={{ color: '#dc2626' }}
+                          >
+                            حذف
+                          </Button>
                         </div>
                       </td>
                     </tr>

@@ -21,18 +21,26 @@ export function mapSaleRows(
   for (const item of items) {
     const key = String(item.sale_id);
     if (!itemsBySale.has(key)) itemsBySale.set(key, []);
+    const rawModifiers = typeof item.modifiers === 'string' ? JSON.parse(item.modifiers || '[]') : (item.modifiers || []);
+    const isOfferEnvelope = rawModifiers && !Array.isArray(rawModifiers) && rawModifiers.offer;
+    const itemModifiers = isOfferEnvelope ? (rawModifiers.mods || []) : (Array.isArray(rawModifiers) ? rawModifiers : []);
+    const offerMeta = isOfferEnvelope ? rawModifiers.offer : null;
+
     itemsBySale.get(key)!.push({
       id: String(item.id),
       productId: item.product_id ? String(item.product_id) : '',
       name: item.product_name || '',
       qty: Number(item.qty || 0),
       price: Number(item.unit_price || 0),
+      originalPrice: offerMeta?.originalPrice ? Number(offerMeta.originalPrice) : undefined,
+      offerDiscount: offerMeta?.offerDiscount ? Number(offerMeta.offerDiscount) : undefined,
+      offerName: offerMeta?.offerName || undefined,
       total: Number(item.line_total || 0),
       unitName: item.unit_name || 'قطعة',
       unitMultiplier: Number(item.unit_multiplier || 1),
       cost: Number(item.cost_price || 0),
       priceType: item.price_type || 'retail',
-      modifiers: typeof item.modifiers === 'string' ? JSON.parse(item.modifiers || '[]') : (item.modifiers || []),
+      modifiers: itemModifiers,
       serials: typeof item.serials === 'string' ? JSON.parse(item.serials || '[]') : (item.serials || []),
     });
   }

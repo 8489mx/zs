@@ -504,6 +504,20 @@ export class SalesWriteService {
       }
       const changeAmount = Number(Math.max(0, finalTenderedAmount - appliedCash).toFixed(2));
 
+      let resolvedDeliveryFeeMode: 'freelance_courier' | 'store_fleet' = (payload as any).deliveryFeeMode === 'store_fleet' ? 'store_fleet' : ((payload as any).deliveryFeeMode === 'freelance_courier' ? 'freelance_courier' : (null as any));
+      if (!resolvedDeliveryFeeMode && (payload as any).deliveryRepId) {
+        const rep = await trx.selectFrom('delivery_representatives').select(['rep_type']).where('id', '=', Number((payload as any).deliveryRepId)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+        if ((rep as any)?.rep_type === 'store_fleet') resolvedDeliveryFeeMode = 'store_fleet';
+      }
+      if (!resolvedDeliveryFeeMode) {
+        const settingRow = await trx.selectFrom('settings').select(['value']).where('key', '=', 'deliveryFeeMode').where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+        if (settingRow?.value && String(settingRow.value).includes('store_fleet')) {
+          resolvedDeliveryFeeMode = 'store_fleet';
+        } else {
+          resolvedDeliveryFeeMode = 'freelance_courier';
+        }
+      }
+
       const saleInsert = await trx
         .insertInto('sales')
         .values({
@@ -516,6 +530,7 @@ export class SalesWriteService {
           subtotal: Number(subtotal.toFixed(2)),
           discount: normalized.discount,
           delivery_fee: normalized.deliveryFee,
+          delivery_fee_mode: resolvedDeliveryFeeMode,
           tax_rate: normalized.taxRate,
           tax_amount: taxAmount,
           prices_include_tax: normalized.pricesIncludeTax,
@@ -567,7 +582,16 @@ export class SalesWriteService {
             cost_price: item.costPrice,
             price_type: item.priceType as 'retail' | 'wholesale',
             notes: item.notes,
-            modifiers: item.modifiers ? JSON.stringify(item.modifiers) : '[]',
+            modifiers: (item.originalPrice || item.offerDiscount || item.offerName)
+              ? JSON.stringify({
+                  mods: Array.isArray(item.modifiers) ? item.modifiers : [],
+                  offer: {
+                    originalPrice: item.originalPrice,
+                    offerDiscount: item.offerDiscount,
+                    offerName: item.offerName,
+                  },
+                })
+              : (item.modifiers ? JSON.stringify(item.modifiers) : '[]'),
             serials: itemSerials.length > 0 ? JSON.stringify(itemSerials) : '[]',
             tenant_id: scope.tenantId,
             account_id: scope.accountId,

@@ -15,6 +15,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
   const clothingModuleEnabled = values.clothingModuleEnabled === true;
   const defaultProductKind = clothingModuleEnabled && values.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const defaultPosMode = values.defaultPosMode === 'touch' ? 'touch' : 'scanner';
+  const deliveryFeeMode = values.deliveryFeeMode === 'store_fleet' ? 'store_fleet' : 'freelance_courier';
 
   const settings = {
     ...(currentSettings || {}),
@@ -43,6 +44,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     technicianCommissionRate: Number(values.technicianCommissionRate ?? 30),
     defaultProductKind,
     defaultPosMode,
+    deliveryFeeMode,
+    storeFleetCommissionRate: Math.max(0, Math.min(100, Number(values.storeFleetCommissionRate || 0))),
     manufacturingModuleEnabled: values.manufacturingModuleEnabled === true,
     importModuleEnabled: values.importModuleEnabled === true,
     comboModuleEnabled: values.comboModuleEnabled === true,

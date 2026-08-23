@@ -27,6 +27,9 @@ export type PreparedSaleItem = {
   productName: string;
   qty: number;
   unitPrice: number;
+  originalPrice?: number;
+  offerDiscount?: number;
+  offerName?: string;
   lineTotal: number;
   unitName: string;
   unitMultiplier: number;
@@ -63,6 +66,9 @@ export function buildPreparedSaleItem(
     productName,
     qty: Number(item.qty || 0),
     unitPrice: Number(item.price || 0),
+    originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
+    offerDiscount: item.offerDiscount ? Number(item.offerDiscount) : undefined,
+    offerName: item.offerName,
     lineTotal,
     unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
     unitMultiplier: Number(item.unitMultiplier || 1) || 1,
@@ -152,7 +158,10 @@ export function calculateAllowedSaleUnitPrice(params: {
   qty?: number;
   todayIso?: string;
 }): number {
-  const basePrice = Number(params.priceType === 'wholesale' ? params.wholesalePrice || params.retailPrice || 0 : params.retailPrice || 0);
+  if (params.priceType === 'wholesale') {
+    return roundCurrency(Number(params.wholesalePrice || params.retailPrice || 0));
+  }
+  const basePrice = Number(params.retailPrice || 0);
   const todayIso = normalizeDateOnly(params.todayIso) || todayLocalIsoDate();
   const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, Number(params.qty || 1), basePrice);
 

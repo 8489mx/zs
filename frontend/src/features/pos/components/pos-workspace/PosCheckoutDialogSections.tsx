@@ -489,7 +489,16 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                     background: String(rep.id) === String(pos.deliveryRepId) ? '#eff6ff' : 'white',
                     color: String(rep.id) === String(pos.deliveryRepId) ? '#170c5c' : '#334155'
                   }}
-                  onMouseDown={(e) => { e.preventDefault(); pos.setDeliveryRepId(String(rep.id)); setRepSearchOpen(false); }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pos.setDeliveryRepId(String(rep.id));
+                    if ((rep as any).rep_type === 'store_fleet') {
+                      pos.setDeliveryFeeMode('store_fleet');
+                    } else if ((rep as any).rep_type === 'freelance') {
+                      pos.setDeliveryFeeMode('freelance_courier');
+                    }
+                    setRepSearchOpen(false);
+                  }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
                   onMouseLeave={(e) => {
                     if (String(rep.id) !== String(pos.deliveryRepId)) e.currentTarget.style.background = 'white';
@@ -497,6 +506,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                   }}
                 >
                   {rep.name} {rep.phone ? <span style={{ color: '#94a3b8', fontSize: '12px' }}>({rep.phone})</span> : null}
+                  {(rep as any).rep_type === 'store_fleet' ? <span style={{ color: '#059669', fontSize: '11px', marginRight: '6px' }}>[أسطول المحل]</span> : null}
                 </div>
               ))}
             </div>
@@ -535,6 +545,33 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                 {status === 'cod' ? 'تحصيل من العميل' : status === 'prepaid_by_rep' ? 'خالص من المندوب' : 'خالص أونلاين'}
               </Button>
             ))}
+          </div>
+        </div>
+
+        <div className="field" style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>نوع التوصيل ومستحق الرسوم</span>
+            <small style={{ color: '#64748b', fontSize: '11px' }}>
+              {pos.deliveryFeeMode === 'store_fleet' ? 'تدخل خزينة المحل وتُحسب كإيراد' : 'مستحقة للمندوب مباشرة ولا تدخل الخزينة'}
+            </small>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <Button
+              type="button"
+              variant={pos.deliveryFeeMode === 'freelance_courier' ? 'primary' : 'secondary'}
+              onClick={() => pos.setDeliveryFeeMode('freelance_courier')}
+              style={{ flex: 1, fontSize: '13px', padding: '8px' }}
+            >
+              🛵 مندوب حر / طياري (مستحق للمندوب)
+            </Button>
+            <Button
+              type="button"
+              variant={pos.deliveryFeeMode === 'store_fleet' ? 'primary' : 'secondary'}
+              onClick={() => pos.setDeliveryFeeMode('store_fleet')}
+              style={{ flex: 1, fontSize: '13px', padding: '8px' }}
+            >
+              🚚 أسطول المتجر (إيراد للمحل)
+            </Button>
           </div>
         </div>
       </div>

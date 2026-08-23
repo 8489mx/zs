@@ -46,6 +46,18 @@ export interface ReportSummary {
     cogs?: number;
     informationalOnlyPurchasesInPeriod?: number;
   };
+  delivery?: {
+    count: number;
+    total: number;
+    mode: 'freelance_courier' | 'store_fleet' | string;
+    storeProfit: number;
+    freelanceCount?: number;
+    freelanceTotal?: number;
+    storeFleetCount?: number;
+    storeFleetTotal?: number;
+    storeFleetCourierShare?: number;
+    commissionRate?: number;
+  };
   topProducts?: Array<{
     name: string;
     qty: number;

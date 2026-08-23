@@ -4,6 +4,9 @@ export interface SaleItem {
   name: string;
   qty: number;
   price: number;
+  originalPrice?: number;
+  offerDiscount?: number;
+  offerName?: string;
   total: number;
   unitName: string;
   unitMultiplier: number;
@@ -45,6 +48,7 @@ export interface Sale {
   locationName: string;
   date: string;
   items: SaleItem[];
+  cart?: any[];
 }
 
 export interface PurchaseItem {

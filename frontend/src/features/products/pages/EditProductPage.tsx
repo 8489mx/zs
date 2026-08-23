@@ -215,7 +215,7 @@ export function EditProductPage() {
             </div>
           </div>
         </div>
-        <main className="document-prototype-column">
+        <main className="product-form-container">
           <Suspense fallback={<div className="loading-card">جاري التحميل...</div>}>
             <LazyFashionGroupEditorCard
               product={product}
@@ -294,13 +294,13 @@ export function EditProductPage() {
             <Field label="الباركود">
               <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
             </Field>
-            {clothingModuleEnabled ? (
+            {watchedItemKind === 'fashion' ? (
               <Field label="كود الموديل / الصنف الرئيسي">
                 <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري - أرقام فقط" />
               </Field>
             ) : null}
-            {clothingModuleEnabled ? <Field label="الخاصية 1 (اللون / الرائحة)"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
-            {clothingModuleEnabled ? <Field label="الخاصية 2 (المقاس / الحجم)"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
+            {watchedItemKind === 'fashion' ? <Field label="الخاصية 1 (اللون / الرائحة)"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
+            {watchedItemKind === 'fashion' ? <Field label="الخاصية 2 (المقاس / الحجم)"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
           </div>
 
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>

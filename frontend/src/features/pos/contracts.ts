@@ -32,6 +32,7 @@ export interface CreatePosSaleInput {
   tableNumber?: string | null;
   deliveryRepId?: string | number | null;
   collectionStatus?: string | null;
+  deliveryFeeMode?: 'freelance_courier' | 'store_fleet' | string | null;
 }
 
 function normalizeMoney(value: number) {
@@ -55,6 +56,9 @@ function normalizeCart(items: PosItem[]) {
     unitName: item.unitName,
     unitMultiplier: Math.max(1, Number(item.unitMultiplier || 1)),
     price: normalizeMoney(Number(item.price || 0)),
+    originalPrice: item.originalPrice ? normalizeMoney(Number(item.originalPrice)) : undefined,
+    offerDiscount: item.offerDiscount ? normalizeMoney(Number(item.offerDiscount)) : undefined,
+    offerName: item.offerName || undefined,
     priceType: item.priceType,
     notes: item.notes,
     modifiers: item.modifiers,
@@ -140,6 +144,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     locationId: input.locationId || null,
     source: input.source || 'pos',
     orderType: input.orderType || 'direct',
+    deliveryFeeMode: input.deliveryFeeMode || 'freelance_courier',
     ...(input.deliveryRepId && Number(input.deliveryRepId) > 0 ? {
       deliveryRepId: Number(input.deliveryRepId),
       collectionStatus: input.collectionStatus || 'cod',
@@ -174,6 +179,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     paymentChannel: simplePaymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
     deliveryFee: normalizeMoney(Number(input.deliveryFee || 0)),
+    deliveryFeeMode: input.deliveryFeeMode || 'freelance_courier',
     note: String(input.note || '').trim(),
     tenderedAmount: Number(input.tenderedAmount || 0),
     taxRate: normalizeMoney(Number(input.taxRate || 0)),

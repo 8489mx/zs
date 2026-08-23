@@ -1,8 +1,8 @@
 import {
   addPosItem,
-  getProductPrice,
   isNegativeStockSalesAllowed,
   removePosItem,
+  repriceCartLine,
   updatePosItemQtyWithOptions,
   updatePosItemNotes,
   updatePosItemModifiers,
@@ -13,6 +13,7 @@ import {
   matchProductByWeightedCode,
   parseWeightedBarcode,
 } from '@/features/pos/lib/weighted-barcode';
+import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import {
   exportHeldDraftRows,
   findLineQty,
@@ -97,34 +98,48 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
           return currentCart;
         }
       });
-
-      if (caughtError) {
-        const friendlyMessage = getAddProductErrorMessage(caughtError, product, { availableQty, currentQty, requestedQty, isWeighted });
-        params.setSubmitMessage(friendlyMessage);
-        params.setScannerMessage(friendlyMessage);
-        params.requestBarcodeFocus();
-        return false;
-      }
-
+      if (caughtError) throw caughtError;
       params.setSelectedLineKey(lineKey);
       params.setLastAddedLineKey(lineKey);
-      registerRecentProduct(product.id);
-      params.setScannerMessage('');
-      params.setSubmitMessage('');
-      params.setPostSaleSaleKey('');
+      registerRecentProduct(String(product.id));
+      params.setSearch('');
+      params.setQuickAddCode('');
+      params.setScannerMessage(`تمت إضافة ${product.name}`);
       params.requestBarcodeFocus();
       return true;
     } catch (error) {
-      const friendlyMessage = getAddProductErrorMessage(error, product, { availableQty, currentQty, requestedQty, isWeighted });
-      params.setSubmitMessage(friendlyMessage);
-      params.setScannerMessage(friendlyMessage);
+      const message = getAddProductErrorMessage(error, product, { availableQty, currentQty, requestedQty, isWeighted });
+      params.setSubmitMessage(message);
+      params.setScannerMessage(message);
       params.requestBarcodeFocus();
       return false;
     }
   }
 
   function handleQuickAddCodeSubmit(rawCode?: string, productsOverride?: Product[]) {
-    const code = String(rawCode ?? params.quickAddCode).trim();
+    const raw = String(rawCode ?? params.quickAddCode).trim();
+    const parsed = parseQuantityPrefixQuery(raw);
+    const code = parsed.cleanQuery || raw;
+    const requestedQuantity = parsed.hasPrefix ? parsed.quantity : 1;
+
+    if (parsed.isSuffixQuantityChange) {
+      const targetLineKey = params.selectedLineKey || params.lastAddedLineKey || params.cart[0]?.lineKey;
+      if (targetLineKey) {
+        setQty(targetLineKey, parsed.quantity);
+        params.setSearch('');
+        params.setQuickAddCode('');
+        params.setScannerMessage(`تم تعديل الكمية إلى ${parsed.quantity}.`);
+        params.requestBarcodeFocus();
+        return true;
+      }
+    }
+
+    if (parsed.hasPrefix && !parsed.cleanQuery) {
+      params.setScannerMessage(`الكمية المحددة: ${parsed.quantity} — اضرب الباركود الآن`);
+      params.requestBarcodeFocus();
+      return true;
+    }
+
     const result = matchProductByCode(productsOverride || params.products || [], code);
     if (result.status === 'empty') {
       params.setScannerMessage('اكتب الباركود أولًا.');
@@ -167,14 +182,20 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       params.requestBarcodeFocus();
       return false;
     }
-    const added = handleAddProduct(result.match.product, result.match.kind === 'unit' ? result.match.unitId : undefined);
+    const added = handleAddProduct(
+      result.match.product,
+      result.match.kind === 'unit' ? result.match.unitId : undefined,
+      { quantity: requestedQuantity },
+    );
     if (!added) return false;
     params.setSearch('');
     params.setQuickAddCode('');
     params.setScannerMessage(
-      result.match.kind === 'unit' && result.match.unitName
-        ? `تمت إضافة ${result.match.product.name} بوحدة ${result.match.unitName}.`
-        : `تمت إضافة ${result.match.product.name} إلى السلة.`,
+      requestedQuantity > 1
+        ? `تمت إضافة ${result.match.product.name} (عدد ${requestedQuantity}).`
+        : result.match.kind === 'unit' && result.match.unitName
+          ? `تمت إضافة ${result.match.product.name} بوحدة ${result.match.unitName}.`
+          : `تمت إضافة ${result.match.product.name} إلى السلة.`,
     );
     return true;
   }
@@ -188,12 +209,12 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     params.setPriceType(nextPriceType);
     params.setCart((current) => current.map((item) => {
       const product = (params.products || []).find((entry) => entry.id === item.productId);
-      return product ? {
+      if (!product) return item;
+      return repriceCartLine({
         ...item,
         priceType: nextPriceType,
-        price: getProductPrice(product, nextPriceType, item.qty),
         lineKey: `${item.productId}::${item.unitId || item.unitName}::${nextPriceType}`,
-      } : item;
+      }, product, item.qty);
     }));
     if (selectedLine) {
       params.setSelectedLineKey(`${selectedLine.productId}::${selectedLine.unitId || selectedLine.unitName}::${nextPriceType}`);

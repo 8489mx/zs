@@ -99,6 +99,8 @@ const baseSettingsMutationValues = {
   timeFormat: '12h' as const,
   whatsappLinkMode: 'wa_me' as const,
   printShowDeliveryCustomerDetails: true,
+  deliveryFeeMode: 'freelance_courier' as const,
+  storeFleetCommissionRate: 0,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {

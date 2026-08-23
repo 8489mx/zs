@@ -23,6 +23,7 @@ import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import { parseWeightedBarcode, matchProductByWeightedCode } from '@/features/pos/lib/weighted-barcode';
+import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
@@ -175,13 +176,15 @@ export function PosWorkspace() {
     return submitted;
   }, [pos]);
 
-  const resolveRemoteBarcodeMatch = useCallback((query: string) => {
+  const resolveRemoteBarcodeMatch = useCallback((rawQuery: string) => {
     void (async () => {
       try {
+        const parsed = parseQuantityPrefixQuery(rawQuery);
+        const query = parsed.cleanQuery || rawQuery;
         const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
         if (weightedBarcode) {
           const weightedLookupProducts = await posApi.lookupProducts({ barcode: weightedBarcode.productCode, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
-          const weightedSubmitted = pos.handleQuickAddCodeSubmit(query, weightedLookupProducts);
+          const weightedSubmitted = pos.handleQuickAddCodeSubmit(rawQuery, weightedLookupProducts);
           if (weightedSubmitted) {
             pos.setSearch('');
             return;
@@ -190,7 +193,7 @@ export function PosWorkspace() {
           const strippedProductCode = weightedBarcode.productCode.replace(/^0+/, '') || weightedBarcode.productCode;
           if (strippedProductCode !== weightedBarcode.productCode) {
             const strippedSearchProducts = await posApi.lookupProducts({ q: strippedProductCode, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
-            const strippedSearchSubmitted = pos.handleQuickAddCodeSubmit(query, strippedSearchProducts);
+            const strippedSearchSubmitted = pos.handleQuickAddCodeSubmit(rawQuery, strippedSearchProducts);
             if (strippedSearchSubmitted) {
               pos.setSearch('');
               return;
@@ -205,7 +208,7 @@ export function PosWorkspace() {
         const lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
         const remoteMatch = matchProductByCode(lookupProducts, query);
         if (remoteMatch.status === 'matched') {
-          const submitted = pos.handleQuickAddCodeSubmit(query, lookupProducts);
+          const submitted = pos.handleQuickAddCodeSubmit(rawQuery, lookupProducts);
           if (submitted) { pos.setSearch(''); return; }
           // Product found but blocked (e.g. zero stock in this branch) — error already set by handleAddProduct
           focusBarcodeEntry();
@@ -224,16 +227,37 @@ export function PosWorkspace() {
   }, [focusBarcodeEntry, pos]);
 
   const submitFirstSearchResult = useCallback((rawQuery?: string) => {
-    const query = String(rawQuery ?? pos.search).trim();
-    if (!query) {
+    const raw = String(rawQuery ?? pos.search).trim();
+    if (!raw) {
       pos.setSubmitMessage('اكتب اسم الصنف أو اضرب الباركود أولًا.');
       focusBarcodeEntry();
       return false;
     }
 
+    const parsed = parseQuantityPrefixQuery(raw);
+    const query = parsed.cleanQuery || raw;
+    const requestedQuantity = parsed.hasPrefix ? parsed.quantity : 1;
+
+    if (parsed.isSuffixQuantityChange) {
+      const targetLineKey = pos.selectedLineKey || pos.lastAddedLineKey || pos.cart[0]?.lineKey;
+      if (targetLineKey) {
+        pos.setQty(targetLineKey, parsed.quantity);
+        pos.setSearch('');
+        pos.setSubmitMessage(`تم تعديل الكمية إلى ${parsed.quantity}.`);
+        focusBarcodeEntry();
+        return true;
+      }
+    }
+
+    if (parsed.hasPrefix && !parsed.cleanQuery) {
+      pos.setSubmitMessage(`الكمية المحددة: ${parsed.quantity} — اضرب الباركود أو اكتب اسم الصنف`);
+      focusBarcodeEntry();
+      return true;
+    }
+
     const exactCodeMatch = matchProductByCode(pos.productsQuery.data || [], query);
     if (exactCodeMatch.status === 'matched') {
-      const submitted = handleQuickAddSubmit(query);
+      const submitted = handleQuickAddSubmit(raw);
       if (submitted) pos.setSearch('');
       return submitted;
     }
@@ -249,7 +273,7 @@ export function PosWorkspace() {
         // Only submit locally if we are SURE it's in the cache. Otherwise fallback to remote so we don't flash a false error message.
         const localWeightedMatch = matchProductByWeightedCode(pos.productsQuery.data || [], weightedBarcode.productCode);
         if (localWeightedMatch.status === 'matched') {
-          const submitted = handleQuickAddSubmit(query);
+          const submitted = handleQuickAddSubmit(raw);
           if (submitted) {
             pos.setSearch('');
             return true;
@@ -259,7 +283,7 @@ export function PosWorkspace() {
     }
 
     if (exactCodeMatch.status === 'not-found' && isLikelyBarcodeQuery(query)) {
-      resolveRemoteBarcodeMatch(query);
+      resolveRemoteBarcodeMatch(raw);
       return true;
     }
 
@@ -269,7 +293,7 @@ export function PosWorkspace() {
       focusBarcodeEntry();
       return false;
     }
-    pos.handleAddProduct(firstProduct);
+    pos.handleAddProduct(firstProduct, undefined, { quantity: requestedQuantity });
     pos.setSearch('');
     return true;
   }, [focusBarcodeEntry, handleQuickAddSubmit, pos, resolveRemoteBarcodeMatch]);
@@ -510,31 +534,35 @@ export function PosWorkspace() {
         }}
       />
 
-      <QuickProductModal
-        isOpen={quickServiceOpen}
-        onClose={() => setQuickServiceOpen(false)}
-        itemType="service"
-        onSuccess={(newServiceProduct) => {
-          pos.handleAddProduct(newServiceProduct);
-          focusBarcodeEntry();
-        }}
-      />
+      {quickServiceOpen && (
+        <QuickProductModal
+          isOpen={quickServiceOpen}
+          onClose={() => setQuickServiceOpen(false)}
+          itemType="service"
+          onSuccess={(newServiceProduct) => {
+            pos.handleAddProduct(newServiceProduct);
+            focusBarcodeEntry();
+          }}
+        />
+      )}
 
-      <PosNewProductModal
-        isOpen={newProductModalOpen}
-        onClose={() => {
-          setNewProductModalOpen(false);
-          focusBarcodeEntry();
-        }}
-        initialName={newProductInitialName}
-        initialBarcode={newProductInitialBarcode}
-        onSuccess={(newProduct) => {
-          setNewProductModalOpen(false);
-          pos.handleAddProduct(newProduct);
-          pos.setSearch('');
-          focusBarcodeEntry();
-        }}
-      />
+      {newProductModalOpen && (
+        <PosNewProductModal
+          isOpen={newProductModalOpen}
+          onClose={() => {
+            setNewProductModalOpen(false);
+            focusBarcodeEntry();
+          }}
+          initialName={newProductInitialName}
+          initialBarcode={newProductInitialBarcode}
+          onSuccess={(newProduct) => {
+            setNewProductModalOpen(false);
+            pos.handleAddProduct(newProduct);
+            pos.setSearch('');
+            focusBarcodeEntry();
+          }}
+        />
+      )}
     </div>
   );
 }

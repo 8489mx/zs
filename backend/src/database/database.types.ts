@@ -600,6 +600,7 @@ export interface DeliveryRepresentativeTable {
   national_id: string | null;
   address: string | null;
   vehicle_plate: string | null;
+  rep_type?: 'freelance' | 'store_fleet' | string | null;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
@@ -623,6 +624,7 @@ export interface SalesTable {
   tax_rate: number;
   tax_amount: number;
   delivery_fee: number;
+  delivery_fee_mode?: 'freelance_courier' | 'store_fleet' | string | null;
   prices_include_tax: boolean;
   total: number;
   paid_amount: number;

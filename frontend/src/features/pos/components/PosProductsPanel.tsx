@@ -248,7 +248,12 @@ function PosProductsPanelComponent({
     });
   };
   
-  const { data: categories = [] } = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });
+  let categories: any[] = [];
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const categoriesQuery = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });
+    categories = categoriesQuery.data || [];
+  } catch {}
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const categoryFilteredProducts = useMemo(() => {

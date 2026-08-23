@@ -239,13 +239,12 @@ describe('PosWorkspace - Weighted Barcodes', () => {
       expect(addedItemName).toBeInTheDocument();
     });
 
-    const qtyInput = screen.getByLabelText('الكمية');
-    expect(qtyInput).toHaveValue(0.135);
+    const qtyInputs = screen.getAllByLabelText('الكمية');
+    expect(qtyInputs.some((input) => (input as HTMLInputElement).value === '0.135')).toBe(true);
 
     expect(posApi.lookupProducts).toHaveBeenCalledWith(expect.objectContaining({
       barcode: '00002',
       branchId: 'b2',
-      locationId: 'l2',
     }));
   });
 

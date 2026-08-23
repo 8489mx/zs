@@ -65,7 +65,7 @@ export class ReportsService {
     ] = await Promise.all([
       this.db
         .selectFrom('sales')
-        .select(['id', 'total', 'discount', 'branch_id', 'location_id', 'created_by', 'created_at'])
+        .select(['id', 'total', 'discount', 'delivery_fee', 'delivery_fee_mode', 'delivery_rep_id', 'branch_id', 'location_id', 'created_by', 'created_at'])
         .where('status', '=', 'posted')
         .where('created_at', '>=', fromDate!)
         .where('created_at', '<=', toDate!)
@@ -154,6 +154,40 @@ export class ReportsService {
     const treasuryRows = filterScope(rawTreasuryRows, query);
     const saleItemsRows = filterScope(rawSaleItemsRows, query);
     const returnedSaleItemsRows = filterScope(rawReturnedSaleItemsRows, query);
+    const [deliverySettingRow, commissionSettingRow] = await Promise.all([
+      this.db
+        .selectFrom('settings')
+        .select(['value'])
+        .where('key', '=', 'deliveryFeeMode')
+        .where(this.tenantPredicate(auth))
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('settings')
+        .select(['value'])
+        .where('key', '=', 'storeFleetCommissionRate')
+        .where(this.tenantPredicate(auth))
+        .executeTakeFirst(),
+    ]);
+
+    let deliveryFeeMode = 'freelance_courier';
+    if (deliverySettingRow?.value) {
+      try {
+        const parsed = typeof deliverySettingRow.value === 'string' ? JSON.parse(deliverySettingRow.value) : deliverySettingRow.value;
+        deliveryFeeMode = parsed === 'store_fleet' ? 'store_fleet' : 'freelance_courier';
+      } catch {
+        deliveryFeeMode = String(deliverySettingRow.value).includes('store_fleet') ? 'store_fleet' : 'freelance_courier';
+      }
+    }
+
+    let storeFleetCommissionRate = 0;
+    if (commissionSettingRow?.value) {
+      try {
+        const parsed = typeof commissionSettingRow.value === 'string' ? JSON.parse(commissionSettingRow.value) : commissionSettingRow.value;
+        storeFleetCommissionRate = Number(parsed || 0);
+      } catch {
+        storeFleetCommissionRate = Number(commissionSettingRow.value || 0);
+      }
+    }
 
     return this.withScope({
       range,
@@ -167,6 +201,8 @@ export class ReportsService {
         saleItemsRows,
         returnedSaleItemsRows,
         topProductsLimit: 10,
+        deliveryFeeMode,
+        storeFleetCommissionRate,
       }),
     }, auth);
   }

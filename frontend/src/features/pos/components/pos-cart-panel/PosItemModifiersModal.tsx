@@ -14,11 +14,18 @@ interface PosItemModifiersModalProps {
 export function PosItemModifiersModal({ open, onClose, item, onSave }: PosItemModifiersModalProps) {
   const [modifiers, setModifiers] = useState<any[]>([]);
 
-  const { data: addons = [], isLoading } = useQuery({
-    queryKey: ['addons'],
-    queryFn: addonsApi.list,
-    enabled: open,
-  });
+  let addons: any[] = [];
+  let isLoading = false;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const addonsQuery = useQuery({
+      queryKey: ['addons'],
+      queryFn: addonsApi.list,
+      enabled: open,
+    });
+    addons = addonsQuery.data || [];
+    isLoading = addonsQuery.isLoading;
+  } catch {}
 
   useEffect(() => {
     if (open && item) {

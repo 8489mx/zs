@@ -28,6 +28,7 @@ export function usePosWorkspaceState() {
   const [tableNumber, setTableNumber] = useState(storedDraft?.tableNumber || '');
   const [deliveryRepId, setDeliveryRepId] = useState(storedDraft?.deliveryRepId || '');
   const [collectionStatus, setCollectionStatus] = useState(storedDraft?.collectionStatus || 'cod');
+  const [deliveryFeeMode, setDeliveryFeeMode] = useState<'freelance_courier' | 'store_fleet'>((storedDraft as any)?.deliveryFeeMode || 'freelance_courier');
   const [orderType, setOrderType] = useState(storedDraft?.orderType || 'takeaway');
   const [cart, setCart] = useState<PosItem[]>(storedDraft?.cart || []);
   const [selectedLineKey, setSelectedLineKey] = useState((storedDraft?.cart || [])[0]?.lineKey || '');
@@ -79,6 +80,8 @@ export function usePosWorkspaceState() {
     setDeliveryRepId,
     collectionStatus,
     setCollectionStatus,
+    deliveryFeeMode,
+    setDeliveryFeeMode,
     cart,
     setCart,
     selectedLineKey,

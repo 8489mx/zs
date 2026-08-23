@@ -44,6 +44,22 @@ export class DeliveryRepsService {
     return { id: Number(shift.id), branchId: shift.branch_id ? Number(shift.branch_id) : null, locationId: shift.location_id ? Number(shift.location_id) : null };
   }
 
+  private async getDeliveryFeeMode(trx: Kysely<Database>, actor: AuthContext): Promise<'freelance_courier' | 'store_fleet'> {
+    const row = await trx
+      .selectFrom('settings')
+      .select(['value'])
+      .where('key', '=', 'deliveryFeeMode')
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+    if (!row?.value) return 'freelance_courier';
+    try {
+      const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+      return parsed === 'store_fleet' ? 'store_fleet' : 'freelance_courier';
+    } catch {
+      return String(row.value).includes('store_fleet') ? 'store_fleet' : 'freelance_courier';
+    }
+  }
+
   async list(actor: AuthContext): Promise<Record<string, unknown>> {
     const reps = await this.db
       .selectFrom('delivery_representatives')
@@ -264,7 +280,7 @@ export class DeliveryRepsService {
   async settleOrder(saleId: number, actor: AuthContext): Promise<Record<string, unknown>> {
     const sale = await this.db
       .selectFrom('sales')
-      .select(['id', 'total', 'delivery_status', 'delivery_rep_id', 'collection_status', 'customer_id'])
+      .select(['id', 'total', 'delivery_fee', 'delivery_fee_mode', 'delivery_status', 'delivery_rep_id', 'collection_status', 'customer_id'])
       .where('id', '=', saleId)
       .where(this.tenantPredicate(actor))
       .executeTakeFirst();
@@ -285,23 +301,29 @@ export class DeliveryRepsService {
         branchId = openShift.branchId;
         locationId = openShift.locationId;
 
-        await trx.insertInto('treasury_transactions').values({
-          txn_type: 'cash_in',
-          amount: Number(sale.total),
-          note: `تسوية أوردر دليفري رقم #${saleId} من مندوب #${sale.delivery_rep_id}`,
-          reference_type: 'cashier_shift',
-          reference_id: shiftId,
-          branch_id: branchId,
-          location_id: locationId,
-          created_by: actor.userId,
-          ...this.tenantFields(actor)
-        }).execute();
+        const deliveryFeeMode = (sale as any).delivery_fee_mode || await this.getDeliveryFeeMode(trx, actor);
+        const deliveryFee = Number((sale as any).delivery_fee || 0);
+        const settledCashAmount = deliveryFeeMode === 'store_fleet' ? Number(sale.total) : Math.max(0, Number(sale.total) - deliveryFee);
+
+        if (settledCashAmount > 0) {
+          await trx.insertInto('treasury_transactions').values({
+            txn_type: 'cash_in',
+            amount: settledCashAmount,
+            note: `تسوية أوردر دليفري رقم #${saleId} من مندوب #${sale.delivery_rep_id}${deliveryFee > 0 && deliveryFeeMode === 'freelance_courier' ? ` (مخصوماً منها ${deliveryFee} ج رسوم المندوب)` : ''}`,
+            reference_type: 'cashier_shift',
+            reference_id: shiftId,
+            branch_id: branchId,
+            location_id: locationId,
+            created_by: actor.userId,
+            ...this.tenantFields(actor)
+          }).execute();
+        }
 
         if (sale.customer_id) {
           await this.salesFinance.createCustomerLedgerEntry(trx, sale.customer_id, -Number(sale.total), `تسديد من مندوب للأوردر #${saleId}`, saleId, actor);
         }
 
-        await this.accountingPosting.postDeliveryRepSettlement(trx, saleId, Number(sale.total), branchId, locationId, actor);
+        await this.accountingPosting.postDeliveryRepSettlement(trx, saleId, settledCashAmount, branchId, locationId, actor);
       }
 
       await trx

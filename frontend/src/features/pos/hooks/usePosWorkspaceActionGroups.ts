@@ -49,6 +49,8 @@ export interface PosWorkspaceActionParams {
   setTableNumber: Dispatch<SetStateAction<string>>;
   orderType: string;
   setOrderType: Dispatch<SetStateAction<string>>;
+  deliveryFeeMode: 'freelance_courier' | 'store_fleet';
+  setDeliveryFeeMode: Dispatch<SetStateAction<'freelance_courier' | 'store_fleet'>>;
   deliveryRepId: string;
   setDeliveryRepId: Dispatch<SetStateAction<string>>;
   collectionStatus: string;
@@ -64,6 +66,7 @@ export interface PosWorkspaceActionParams {
   scannerMessage: string;
   setScannerMessage: Dispatch<SetStateAction<string>>;
   setSubmitMessage: Dispatch<SetStateAction<string>>;
+  lastAddedLineKey: string;
   setLastAddedLineKey: Dispatch<SetStateAction<string>>;
   setRecentProductIds: Dispatch<SetStateAction<string[]>>;
   setLastSale: Dispatch<SetStateAction<Sale | null>>;

@@ -75,6 +75,53 @@ export function SalesReportSection({
             />
           </FormSection>
         </div>
+
+        <div style={{ marginTop: 16 }}>
+          <FormSection
+            title="إحصائيات وتفصيل رسوم التوصيل والمناديب"
+            description="فصل دقيق بين مستحقات المناديب الحرة (طياري) وإيرادات أسطول المتجر ونسبة الطيارين وصافي أرباح المحل."
+          >
+            <div className="reports-spotlight-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+              <ReportMetricCard
+                label="إجمالي رسوم التوصيل"
+                value={report?.delivery?.total || 0}
+                helper={`${report?.delivery?.count || 0} رحلة توصيل إجمالية`}
+                tone="primary"
+                formatter={formatCurrency}
+              />
+              <ReportMetricCard
+                label="مناديب حرة (طياري)"
+                value={report?.delivery?.freelanceTotal || 0}
+                helper={`${report?.delivery?.freelanceCount || 0} رحلة (مستحقات للمناديب لا تدخل الخزينة)`}
+                tone="warning"
+                formatter={formatCurrency}
+              />
+              <ReportMetricCard
+                label="أسطول المتجر (إجمالي محصل)"
+                value={report?.delivery?.storeFleetTotal || 0}
+                helper={`${report?.delivery?.storeFleetCount || 0} رحلة توصيل داخلي`}
+                tone="primary"
+                formatter={formatCurrency}
+              />
+              {Number(report?.delivery?.commissionRate || 0) > 0 ? (
+                <ReportMetricCard
+                  label={`عمولة طياري الأسطول (${report?.delivery?.commissionRate || 0}%)`}
+                  value={report?.delivery?.storeFleetCourierShare || 0}
+                  helper="مستحقات للطيارين من التوصيل الداخلي"
+                  tone="warning"
+                  formatter={formatCurrency}
+                />
+              ) : null}
+              <ReportMetricCard
+                label="صافي ربح المحل من التوصيل"
+                value={report?.delivery?.storeProfit || 0}
+                helper={Number(report?.delivery?.commissionRate || 0) > 0 ? `بعد خصم ${report?.delivery?.commissionRate}% نسبة الطيارين` : 'الأرباح المضافة لدخل النشاط'}
+                tone={Number(report?.delivery?.storeProfit || 0) > 0 ? 'success' : undefined}
+                formatter={formatCurrency}
+              />
+            </div>
+          </FormSection>
+        </div>
       </QueryCard>
     </div>
   );

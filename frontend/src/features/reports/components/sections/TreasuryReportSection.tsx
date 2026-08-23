@@ -45,6 +45,12 @@ export function TreasuryReportSection({
         <ReportMetricCard label="صافي الربح" value={netProfit} helper={`هامش الربح: ${formatPercent(grossMarginPercent)}`} tone={netProfit >= 0 ? 'success' : 'danger'} formatter={formatCurrency} progress={relativePercent(netProfit, values)} />
       </div>
       <div className="metric-list reports-metric-list">
+        {report?.delivery ? (
+          <div className="metric-row" key="delivery-fees">
+            <span>رسوم التوصيل ({report.delivery.mode === 'store_fleet' ? 'أسطول المتجر - إيراد' : 'مناديب حرة - مستحق للمندوب'})</span>
+            <strong>{formatCurrency(report.delivery.total)} ({report.delivery.count} طلب)</strong>
+          </div>
+        ) : null}
         {operatingSignalRows.map((row) => (
           <div className="metric-row" key={row.label}>
             <span>{row.label}</span>

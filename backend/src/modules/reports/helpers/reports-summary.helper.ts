@@ -20,6 +20,16 @@ type SummaryTotals = {
   cashIn: number;
   cashOut: number;
   cogs: number;
+  deliveryTotal?: number;
+  deliveryCount?: number;
+  deliveryFeeMode?: string;
+  deliveryStoreProfit?: number;
+  freelanceCount?: number;
+  freelanceTotal?: number;
+  storeFleetCount?: number;
+  storeFleetTotal?: number;
+  storeFleetCourierShare?: number;
+  storeFleetCommissionRate?: number;
 };
 
 type TopProductAccumulatorRow = {
@@ -123,6 +133,18 @@ export function buildCommercialSummary(counts: SummaryCounts, totals: SummaryTot
       netOperatingProfit,
       informationalOnlyPurchasesInPeriod: netPurchases,
     },
+    delivery: {
+      count: totals.deliveryCount ?? 0,
+      total: totals.deliveryTotal ?? 0,
+      mode: totals.deliveryFeeMode ?? 'freelance_courier',
+      storeProfit: totals.deliveryStoreProfit ?? 0,
+      freelanceCount: totals.freelanceCount ?? 0,
+      freelanceTotal: totals.freelanceTotal ?? 0,
+      storeFleetCount: totals.storeFleetCount ?? 0,
+      storeFleetTotal: totals.storeFleetTotal ?? 0,
+      storeFleetCourierShare: totals.storeFleetCourierShare ?? 0,
+      commissionRate: totals.storeFleetCommissionRate ?? 0,
+    },
   };
 }
 
@@ -146,8 +168,10 @@ export function buildReportSummaryPayload(args: {
   saleItemsRows: SummarySaleItemRow[];
   returnedSaleItemsRows?: SummarySaleItemRow[];
   topProductsLimit?: number;
+  deliveryFeeMode?: string;
+  storeFleetCommissionRate?: number;
 }) {
-  const { salesRows, servicesRows = [], purchasesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows, returnedSaleItemsRows = [], topProductsLimit = 10 } = args;
+  const { salesRows, servicesRows = [], purchasesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows, returnedSaleItemsRows = [], topProductsLimit = 10, deliveryFeeMode = 'freelance_courier', storeFleetCommissionRate = 0 } = args;
   const splitReturns = splitReturnRowsByType(returnsRows);
 
   const salesTotal = sumMoney(salesRows, (row) => row.total);
@@ -163,6 +187,23 @@ export function buildReportSummaryPayload(args: {
   
   const cashIn = sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) > 0), (row) => row.amount);
   const cashOut = Math.abs(sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) < 0), (row) => row.amount));
+
+  const deliveryRows = (salesRows as any[]) || [];
+  const freelanceRows = deliveryRows.filter((row) => Number(row.delivery_fee || 0) > 0 && (row.delivery_fee_mode === 'freelance_courier' || (!row.delivery_fee_mode && deliveryFeeMode === 'freelance_courier')));
+  const storeFleetRows = deliveryRows.filter((row) => Number(row.delivery_fee || 0) > 0 && (row.delivery_fee_mode === 'store_fleet' || (!row.delivery_fee_mode && deliveryFeeMode === 'store_fleet')));
+
+  const freelanceTotal = toMoney(freelanceRows.reduce((sum, row) => sum + Number(row.delivery_fee || 0), 0));
+  const freelanceCount = freelanceRows.length;
+
+  const storeFleetTotal = toMoney(storeFleetRows.reduce((sum, row) => sum + Number(row.delivery_fee || 0), 0));
+  const storeFleetCount = storeFleetRows.length;
+
+  const commissionRate = Math.max(0, Math.min(100, Number(storeFleetCommissionRate || 0)));
+  const storeFleetCourierShare = toMoney(storeFleetTotal * (commissionRate / 100));
+  const deliveryStoreProfit = toMoney(Math.max(0, storeFleetTotal - storeFleetCourierShare));
+
+  const deliveryTotal = toMoney(freelanceTotal + storeFleetTotal);
+  const deliveryCount = freelanceCount + storeFleetCount;
 
   return {
     ...buildCommercialSummary({
@@ -183,6 +224,16 @@ export function buildReportSummaryPayload(args: {
       cashIn,
       cashOut,
       cogs,
+      deliveryTotal,
+      deliveryCount,
+      deliveryFeeMode,
+      deliveryStoreProfit,
+      freelanceCount,
+      freelanceTotal,
+      storeFleetCount,
+      storeFleetTotal,
+      storeFleetCourierShare,
+      storeFleetCommissionRate: commissionRate,
     }),
     topProducts: buildTopProducts(saleItemsRows, topProductsLimit),
   };

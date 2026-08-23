@@ -39,6 +39,8 @@ export const settingsFormSchema = z.object({
   technicianCommissionRate: z.coerce.number().min(0).max(100).default(30),
   defaultProductKind: z.enum(['standard', 'fashion']).default('standard'),
   defaultPosMode: z.enum(['scanner', 'touch']).default('scanner'),
+  deliveryFeeMode: z.enum(['freelance_courier', 'store_fleet']).default('freelance_courier'),
+  storeFleetCommissionRate: z.coerce.number().min(0).max(100).default(0),
   allowNegativeStockSales: z.boolean().default(false),
   allowZeroPurchaseCost: z.boolean().default(false),
   requireCashierShiftForSales: z.boolean().default(true),

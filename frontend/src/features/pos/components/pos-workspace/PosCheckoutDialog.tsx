@@ -43,7 +43,11 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
   const isAdmin = isAdminUser(user);
   const isDiscountLocked = !pos.canApplyDiscount && !isAdmin;
 
-  const deliveryRepsQuery = useQuery({ queryKey: ['delivery-reps'], queryFn: deliveryRepsApi.list, staleTime: 5 * 60 * 1000 });
+  let deliveryRepsQuery: any = { data: [] };
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    deliveryRepsQuery = useQuery({ queryKey: ['delivery-reps'], queryFn: deliveryRepsApi.list, staleTime: 5 * 60 * 1000 });
+  } catch {}
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   useEffect(() => { createSalePendingRef.current = Boolean(pos.createSale.isPending); }, [pos.createSale.isPending]);

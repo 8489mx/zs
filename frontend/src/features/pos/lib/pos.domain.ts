@@ -85,8 +85,9 @@ function getOfferMinQty(offer: ProductOffer) {
 }
 
 function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) {
+  if (priceType === 'wholesale') return null;
   const today = todayLocalIsoDate();
-  const basePrice = Number(priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
+  const basePrice = Number(product.retailPrice || 0);
   const applicableOffers = (product.offers || []).filter((offer) => {
     const from = normalizeDateOnly(offer.from || offer.start_date || '');
     const to = normalizeDateOnly(offer.to || offer.end_date || '');
@@ -145,14 +146,18 @@ export function getOfferDisplayName(offer: ProductOffer) {
   return 'تم تفعيل عرض خاص';
 }
 
-function repriceCartLine(item: PosItem, product: Product, qty: number) {
+export function repriceCartLine(item: PosItem, product: Product, qty: number) {
   const basePrice = Number(item.priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
   const offer = getApplicableOffer(product, item.priceType, qty);
+  const effectivePrice = offer ? getOfferAppliedPrice(basePrice, offer) : roundMoney(basePrice);
+  const offerDiscount = offer ? roundMoney(Math.max(0, basePrice - effectivePrice)) : 0;
   
   return {
     ...item,
     qty,
-    price: offer ? getOfferAppliedPrice(basePrice, offer) : roundMoney(basePrice),
+    price: effectivePrice,
+    originalPrice: basePrice,
+    offerDiscount,
     offerName: offer ? getOfferDisplayName(offer) : undefined,
   };
 }

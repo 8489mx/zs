@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { posApi } from '@/features/pos/api/pos.api';
 import { getAvailableSaleProducts } from '@/features/pos/lib/pos.domain';
 import { POS_PRODUCT_CACHE_LIMIT, POS_PRODUCT_LOOKUP_LIMIT, isLikelyBarcodeQuery, mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
+import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import type { Product } from '@/types/domain';
 
 export function usePosCatalog(search: string, branchId: string, locationId: string, productFilter: string = 'all') {
   const [productCache, setProductCache] = useState<Product[]>([]);
-  const trimmedSearch = search.trim();
+  const parsedSearch = parseQuantityPrefixQuery(search);
+  const trimmedSearch = parsedSearch.cleanQuery;
   const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
   const lookupTerm = isLikelyBarcodeQuery(trimmedSearch) ? trimmedSearch : debouncedSearch;
   const lookupMode: 'browse' | 'barcode' | 'search' = !lookupTerm ? 'browse' : isLikelyBarcodeQuery(lookupTerm) ? 'barcode' : 'search';

@@ -213,6 +213,7 @@ export function PosWorkspaceConfirmDialogs({
         shellClassName="pos-destructive-confirm-shell"
         title="تأكيد حذف كل الفواتير المعلقة"
         description={`سيتم حذف ${heldDraftsCount} فاتورة معلقة من هذه الشاشة. اكتب حذف الكل للتأكيد.`}
+        confirmationKeyword="حذف الكل"
         confirmLabel="حذف"
         cancelLabel="إلغاء"
         confirmVariant="danger"

@@ -13,7 +13,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { ComboComponentsEditor } from '@/features/products/components/ComboComponentsEditor';
-import { type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
+import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
@@ -476,9 +476,21 @@ export function NewProductForm({
   const watchedCostPrice = form.watch('costPrice');
   const usesVariantBuilder = watchedItemKind === 'fashion' || groupedEntryEnabled;
 
+  const colorTokens = useMemo(() => splitFashionTokens(watchedFashionColors), [watchedFashionColors]);
+  const sizeTokens = useMemo(() => splitFashionTokens(watchedFashionSizes), [watchedFashionSizes]);
+
   useEffect(() => {
     if (watchedItemKind === 'fashion' && !groupedEntryEnabled) setGroupedEntryEnabled(true);
   }, [watchedItemKind, groupedEntryEnabled]);
+
+  useEffect(() => {
+    if (!usesVariantBuilder) {
+      if (fashionVariantRows.length) setFashionVariantRows([]);
+      if (variantBarcodePrefix) setVariantBarcodePrefix('');
+      return;
+    }
+    setFashionVariantRows((current) => buildFashionVariantDrafts(colorTokens, sizeTokens, current, watchedVariantStock));
+  }, [usesVariantBuilder, colorTokens, sizeTokens, watchedVariantStock]);
 
   useEffect(() => {
     if (isMarginActive && watchedCostPrice !== undefined) {

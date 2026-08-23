@@ -78,7 +78,7 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
   }
 
   return (
-    <div className="table-wrap table-wrap-compact" style={{ margin: '8px 16px', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'auto' }}>
+    <div className="table-wrap table-wrap-compact" style={{ margin: '8px 16px', border: '1px solid var(--border-color)', borderRadius: '4px', overflowX: 'auto', maxWidth: '100%', boxSizing: 'border-box' }}>
       <table aria-label="Matrix View" style={{ minWidth: 'auto', background: 'var(--bg-card)' }}>
         <thead>
           <tr>

@@ -49,6 +49,22 @@ export class AccountingPostingService {
       .executeTakeFirst();
   }
 
+  private async getDeliveryFeeMode(queryable: DbOrTx, tenantId: string): Promise<'freelance_courier' | 'store_fleet'> {
+    const row = await queryable
+      .selectFrom('settings')
+      .select(['value'])
+      .where('key', '=', 'deliveryFeeMode')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+    if (!row?.value) return 'freelance_courier';
+    try {
+      const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+      return parsed === 'store_fleet' ? 'store_fleet' : 'freelance_courier';
+    } catch {
+      return String(row.value).includes('store_fleet') ? 'store_fleet' : 'freelance_courier';
+    }
+  }
+
   private toMoney(value: unknown): number {
     const amount = Number(value || 0);
     if (!Number.isFinite(amount)) return 0;
@@ -432,7 +448,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
-        'delivery_fee',
+        'delivery_fee', 'delivery_fee_mode',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -451,24 +467,27 @@ export class AccountingPostingService {
     const cashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
     const nonCashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
 
+    const deliveryFeeMode = (sale as any).delivery_fee_mode || await this.getDeliveryFeeMode(queryable, scope.tenantId);
     const subtotal = this.toMoney(sale.subtotal);
     const discount = this.toMoney(sale.discount);
     const taxAmount = this.toMoney(sale.tax_amount);
     const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
+    const effectiveStoreDeliveryFee = deliveryFeeMode === 'store_fleet' ? deliveryFee : 0;
     const paidAmount = this.toMoney(sale.paid_amount);
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
-    const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed));
-    const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - paidAmount));
-    const revenueCredit = this.toMoney(subtotal + deliveryFee);
+    const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed - (deliveryFeeMode === 'freelance_courier' ? deliveryFee : 0)));
+    const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - (deliveryFeeMode === 'freelance_courier' ? Math.max(0, paidAmount - deliveryFee) : paidAmount)));
+    const revenueCredit = this.toMoney(subtotal + effectiveStoreDeliveryFee);
+    const effectiveCashAmount = deliveryFeeMode === 'store_fleet' ? cashAmount : Math.max(0, this.toMoney(cashAmount - deliveryFee));
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
 
-    if (cashAmount > 0) {
+    if (effectiveCashAmount > 0) {
       this.addLine(lines, {
         accountId: Number(settings.cash_account_id || 0),
         description: 'تحصيل نقدي من فاتورة بيع',
-        debit: cashAmount,
+        debit: effectiveCashAmount,
         credit: 0,
         partnerType: 'none',
         partnerId: null,
@@ -631,7 +650,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
-        'delivery_fee',
+        'delivery_fee', 'delivery_fee_mode',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -650,24 +669,27 @@ export class AccountingPostingService {
     const cashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
     const nonCashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
 
+    const deliveryFeeMode = (sale as any).delivery_fee_mode || await this.getDeliveryFeeMode(queryable, scope.tenantId);
     const subtotal = this.toMoney(sale.subtotal);
     const discount = this.toMoney(sale.discount);
     const taxAmount = this.toMoney(sale.tax_amount);
     const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
+    const effectiveStoreDeliveryFee = deliveryFeeMode === 'store_fleet' ? deliveryFee : 0;
     const paidAmount = this.toMoney(sale.paid_amount);
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
-    const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed));
-    const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - paidAmount));
-    const revenueCredit = this.toMoney(subtotal + deliveryFee);
+    const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed - (deliveryFeeMode === 'freelance_courier' ? deliveryFee : 0)));
+    const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - (deliveryFeeMode === 'freelance_courier' ? Math.max(0, paidAmount - deliveryFee) : paidAmount)));
+    const revenueCredit = this.toMoney(subtotal + effectiveStoreDeliveryFee);
+    const effectiveCashAmount = deliveryFeeMode === 'store_fleet' ? cashAmount : Math.max(0, this.toMoney(cashAmount - deliveryFee));
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
 
-    if (cashAmount > 0) {
+    if (effectiveCashAmount > 0) {
       this.addLine(lines, {
         accountId: Number(settings.cash_account_id || 0),
         description: 'تحصيل نقدي من تعديل فاتورة بيع',
-        debit: cashAmount,
+        debit: effectiveCashAmount,
         credit: 0,
         partnerType: 'none',
         partnerId: null,

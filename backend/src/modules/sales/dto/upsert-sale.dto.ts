@@ -27,6 +27,22 @@ class SaleItemDto {
   @Min(0)
   price!: number;
 
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  originalPrice?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  offerDiscount?: number;
+
+  @IsOptional()
+  @IsString()
+  offerName?: string;
+
   @IsOptional()
   @IsString()
   unitName?: string;
@@ -139,6 +155,10 @@ export class UpsertSaleDto {
   @IsIn(['cod', 'prepaid_by_rep', 'prepaid_online'])
   collectionStatus?: 'cod' | 'prepaid_by_rep' | 'prepaid_online';
 
+  @IsOptional()
+  @IsIn(['freelance_courier', 'store_fleet'])
+  deliveryFeeMode?: 'freelance_courier' | 'store_fleet';
+
   @Transform(({ value }: { value: unknown }) => (value && Number(value) > 0 ? Number(value) : undefined))
   @IsOptional()
   @IsNumber()
@@ -188,7 +208,7 @@ export type NormalizedSalePayload = {
   branchId: number | null;
   locationId: number | null;
   source: 'pos' | 'dashboard';
-  items: Array<{ productId: number; qty: number; price: number; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; notes: string; modifiers: any; serials?: string[] }>;
+  items: Array<{ productId: number; qty: number; price: number; originalPrice?: number; offerDiscount?: number; offerName?: string; unitName: string; unitMultiplier: number; priceType: 'retail' | 'wholesale'; notes: string; modifiers: any; serials?: string[] }>;
   payments: Array<{ paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay'; amount: number }>;
   tenderedAmount: number;
   tableNumber: string | null;
@@ -196,4 +216,5 @@ export type NormalizedSalePayload = {
   deliveryRepId?: number;
   deliveryStatus?: string;
   collectionStatus?: 'cod' | 'prepaid_by_rep' | 'prepaid_online';
+  deliveryFeeMode?: 'freelance_courier' | 'store_fleet';
 };

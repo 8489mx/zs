@@ -118,9 +118,9 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
           {clothingModuleEnabled ? <Field label="طبيعة الصنف"><select {...form.register('itemKind')} disabled={mutation.isPending}><option value="standard">صنف عادي (بسيط)</option><option value="fashion">صنف بمتغيرات / Variant</option></select></Field> : null}
           <Field label="اسم الصنف" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
           <Field label="الباركود"><input {...form.register('barcode')} disabled={mutation.isPending} /></Field>
-          {clothingModuleEnabled ? <Field label="كود الموديل / الصنف الرئيسي"><input value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={mutation.isPending} inputMode="numeric" placeholder="اختياري - أرقام فقط" /></Field> : null}
-          {clothingModuleEnabled ? <Field label="الخاصية 1 (اللون / الرائحة)"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
-          {clothingModuleEnabled ? <Field label="الخاصية 2 (المقاس / الحجم)"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+          {watchedItemKind === 'fashion' ? <Field label="كود الموديل / الصنف الرئيسي"><input value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={mutation.isPending} inputMode="numeric" placeholder="اختياري - أرقام فقط" /></Field> : null}
+          {watchedItemKind === 'fashion' ? <Field label="الخاصية 1 (اللون / الرائحة)"><input {...form.register('color')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
+          {watchedItemKind === 'fashion' ? <Field label="الخاصية 2 (المقاس / الحجم)"><input {...form.register('size')} disabled={mutation.isPending} placeholder="اختياري" /></Field> : null}
           <Field label="سعر الشراء"><input type="number" step="0.01" {...form.register('costPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر القطاعي"><input type="number" step="0.01" {...form.register('retailPrice')} disabled={mutation.isPending} /></Field>
           <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
