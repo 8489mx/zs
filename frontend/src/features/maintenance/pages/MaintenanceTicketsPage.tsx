@@ -13,6 +13,158 @@ import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import type { MaintenanceTicket, MaintenanceStatus } from '@/types/domain-models/maintenance';
 import { getMaintenanceProfile } from '../constants/maintenance-profiles';
 
+// Premium Minimal Vector SVG Icons (Eye-friendly, 1.5 - 1.75 stroke)
+const Icons = {
+  Wrench: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  ),
+  Clock: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+  CheckCircle: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  ),
+  DeliveryBox: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="21 8 21 21 3 21 3 8" />
+      <rect x="1" y="3" width="22" height="5" />
+      <line x1="10" y1="12" x2="14" y2="12" />
+    </svg>
+  ),
+  Coins: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="6" />
+      <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+      <path d="M7 6h1v4" />
+      <path d="M16.7 13.8a4 4 0 0 0-4-4" />
+    </svg>
+  ),
+  WhatsApp: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#16a34a" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  ),
+  Printer: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect x="6" y="14" width="12" height="8" />
+    </svg>
+  ),
+  Search: () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  User: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  Device: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+      <line x1="12" y1="18" x2="12.01" y2="18" />
+    </svg>
+  ),
+  Shield: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  ),
+  Lock: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+  ChevronDown: () => (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  ),
+  Refresh: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10" />
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+    </svg>
+  ),
+  Plus: () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  ),
+  Copy: () => (
+    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  ),
+};
+
+const statusConfig: Record<MaintenanceStatus, { label: string; bg: string; border: string; color: string; dot: string }> = {
+  received: {
+    label: 'استلام جديد',
+    bg: '#f0f9ff',
+    border: '#bae6fd',
+    color: '#0369a1',
+    dot: '#0ea5e9',
+  },
+  inspecting: {
+    label: 'قيد الفحص والتسعير',
+    bg: '#f5f3ff',
+    border: '#ddd6fe',
+    color: '#6d28d9',
+    dot: '#8b5cf6',
+  },
+  in_progress: {
+    label: 'قيد الصيانة',
+    bg: '#fffbeb',
+    border: '#fde68a',
+    color: '#92400e',
+    dot: '#d97706',
+  },
+  repaired: {
+    label: 'جاهز للتسليم',
+    bg: '#ecfdf5',
+    border: '#a7f3d0',
+    color: '#065f46',
+    dot: '#10b981',
+  },
+  delivered: {
+    label: 'تم التسليم والتحصيل',
+    bg: '#f8fafc',
+    border: '#e2e8f0',
+    color: '#475569',
+    dot: '#94a3b8',
+  },
+  unrepairable: {
+    label: 'تعذر الإصلاح',
+    bg: '#fff1f2',
+    border: '#fecdd3',
+    color: '#9f1239',
+    dot: '#e11d48',
+  },
+  cancelled: {
+    label: 'ملغي',
+    bg: '#f8fafc',
+    border: '#e2e8f0',
+    color: '#64748b',
+    dot: '#cbd5e1',
+  },
+};
+
 export function MaintenanceTicketsPage() {
   const queryClient = useQueryClient();
   const settingsQuery = useSettingsQuery();
@@ -21,6 +173,7 @@ export function MaintenanceTicketsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
@@ -60,6 +213,13 @@ export function MaintenanceTicketsPage() {
   const [showFaultsPopover, setShowFaultsPopover] = useState(false);
   const [showAccessoriesPopover, setShowAccessoriesPopover] = useState(false);
 
+  const handleCopyPhone = (phone: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(phone);
+    setCopiedPhone(phone);
+    setTimeout(() => setCopiedPhone(null), 2000);
+  };
+
   const openSettlementModal = (ticket: MaintenanceTicket) => {
     const totalCost = ticket.finalCost || ticket.expectedCost || 0;
     const advancePaid = ticket.advancePayment || 0;
@@ -97,7 +257,7 @@ export function MaintenanceTicketsPage() {
   const maintenanceProfile = getMaintenanceProfile(settingsQuery.data?.maintenanceProfile);
   useAppToolbar([{ label: maintenanceProfile.title }]);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['maintenance-tickets', filterStatus, searchQuery, page],
     queryFn: () =>
       maintenanceApi.list({
@@ -113,7 +273,6 @@ export function MaintenanceTicketsPage() {
     onSuccess: (res) => {
       setCreateModalOpen(false);
       void queryClient.invalidateQueries({ queryKey: ['maintenance-tickets'] });
-      // Open receipt print directly
       void maintenanceApi.get(res.id).then((r) => setReceiptTicket(r.ticket));
     },
   });
@@ -157,11 +316,12 @@ export function MaintenanceTicketsPage() {
   const tickets = data?.tickets || [];
   const totalItems = data?.pagination.totalItems || 0;
 
-  const inProgressCount = tickets.filter((t) => ['received', 'inspecting', 'in_progress'].includes(t.status)).length;
+  const receivedCount = tickets.filter((t) => t.status === 'received').length;
+  const inProgressCount = tickets.filter((t) => ['inspecting', 'in_progress'].includes(t.status)).length;
   const readyCount = tickets.filter((t) => t.status === 'repaired').length;
   const deliveredCount = tickets.filter((t) => t.status === 'delivered').length;
   const totalRemainingSum = tickets.reduce((acc, t) => {
-    if (t.status !== 'delivered') {
+    if (!['delivered', 'unrepairable', 'cancelled'].includes(t.status)) {
       return acc + Math.max(0, (t.finalCost || t.expectedCost || 0) - (t.advancePayment || 0));
     }
     return acc;
@@ -252,7 +412,6 @@ export function MaintenanceTicketsPage() {
         lines.push(`- *التكلفة المبدئية المتوقعة:* ${totalCost.toFixed(2)} ج.م`);
       }
     } else {
-      // received
       lines.push(`- *الحالة:* تم استلام جهازك بنجاح في قسم الصيانة وجارٍ الفحص.`);
       if (totalCost > 0) {
         lines.push(`- *التكلفة التقديرية:* ${totalCost.toFixed(2)} ج.م`);
@@ -270,25 +429,15 @@ export function MaintenanceTicketsPage() {
     window.open(url, '_blank');
   };
 
-  const statusLabels: Record<MaintenanceStatus, { label: string; bg: string; color: string }> = {
-    received: { label: 'استلام جديد', bg: '#fef9c3', color: '#854d0e' },
-    inspecting: { label: 'قيد الفحص والتسعير', bg: '#e0e7ff', color: '#3730a3' },
-    in_progress: { label: 'قيد الصيانة', bg: '#fef3c7', color: '#92400e' },
-    repaired: { label: 'جاهز للتسليم', bg: '#dcfce7', color: '#166534' },
-    delivered: { label: 'تم التسليم والتحصيل', bg: '#f1f5f9', color: '#475569' },
-    unrepairable: { label: 'تعذر الإصلاح', bg: '#fee2e2', color: '#991b1b' },
-    cancelled: { label: 'ملغي', bg: '#f3f4f6', color: '#6b7280' },
-  };
-
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title={maintenanceProfile.title}
           description={maintenanceProfile.subtitle}
-          badge={<span className="nav-pill">{totalItems} تذكرة صيانة</span>}
+          badge={<span className="nav-pill" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>{totalItems} تذكرة</span>}
           actions={
-            <div className="actions compact-actions">
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
                 variant="primary"
                 onClick={() => {
@@ -308,234 +457,446 @@ export function MaintenanceTicketsPage() {
                   });
                   setCreateModalOpen(true);
                 }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
               >
-                + استلام جهاز صيانة جديد
+                <Icons.Plus />
+                <span>استلام جهاز صيانة جديد</span>
               </Button>
-              <Button variant="secondary" onClick={() => void refetch()}>
-                تحديث
+              <Button
+                variant="secondary"
+                onClick={() => void refetch()}
+                disabled={isRefetching}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Icons.Refresh />
+                <span>تحديث</span>
               </Button>
             </div>
           }
         />
 
-        {/* KPI Metrics Summary Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* KPI Metrics Summary Cards - Calm, Enterprise Dashboard Style */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أجهزة قيد العمل والفحص</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309', marginTop: '2px' }}>{inProgressCount}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{inProgressCount}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Icons.Clock />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أجهزة جاهزة للتسليم</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{readyCount}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{readyCount}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Icons.CheckCircle />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>تم تسليمها للعملاء</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#2563eb', marginTop: '2px' }}>{deliveredCount}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{deliveredCount}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Icons.DeliveryBox />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>مبالغ متبقية للتحصيل</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>
-                {totalRemainingSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                {totalRemainingSum.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
               </div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Icons.Coins />
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#fff', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            <button type="button" className={`btn btn-sm ${filterStatus === 'all' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setFilterStatus('all'); setPage(1); }}>الكل ({totalItems})</button>
-            <button type="button" className={`btn btn-sm ${filterStatus === 'received' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setFilterStatus('received'); setPage(1); }}>استلام جديد</button>
-            <button type="button" className={`btn btn-sm ${filterStatus === 'in_progress' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setFilterStatus('in_progress'); setPage(1); }}>قيد الصيانة</button>
-            <button type="button" className={`btn btn-sm ${filterStatus === 'repaired' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setFilterStatus('repaired'); setPage(1); }}>جاهز للتسليم</button>
-            <button type="button" className={`btn btn-sm ${filterStatus === 'delivered' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setFilterStatus('delivered'); setPage(1); }}>تم التسليم</button>
+        {/* Filter Toolbar & Search Bar - Calm Neutral Styling with Mini Badges */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#ffffff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', gap: '4px', background: '#f8fafc', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            {[
+              { key: 'all', label: 'الكل', count: totalItems },
+              { key: 'received', label: 'استلام جديد', count: receivedCount },
+              { key: 'in_progress', label: 'قيد الصيانة', count: inProgressCount },
+              { key: 'repaired', label: 'جاهز للتسليم', count: readyCount },
+              { key: 'delivered', label: 'تم التسليم', count: deliveredCount },
+            ].map((tab) => {
+              const active = filterStatus === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => { setFilterStatus(tab.key); setPage(1); }}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: active ? 700 : 500,
+                    border: active ? '1px solid #cbd5e1' : '1px solid transparent',
+                    background: active ? '#ffffff' : 'transparent',
+                    color: active ? '#0f172a' : '#64748b',
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '1px 5px',
+                      borderRadius: '10px',
+                      background: active ? '#0f172a' : '#e2e8f0',
+                      color: active ? '#ffffff' : '#475569',
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          <div style={{ minWidth: '320px' }}>
-            <input type="text" className="purchase-prototype-field-input" placeholder={`بحث بكود الجهاز ZM-XXXX، العميل، الهاتف، أو ${maintenanceProfile.serialLabel}...`} value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} style={{ width: '100%', padding: '6px 12px' }} />
+
+          <div style={{ position: 'relative', minWidth: '320px', flex: '1', maxWidth: '420px' }}>
+            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+              <Icons.Search />
+            </span>
+            <input
+              type="text"
+              placeholder={`بحث بكود ZM-XXXX، العميل، الهاتف، أو ${maintenanceProfile.serialLabel}...`}
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              style={{
+                width: '100%',
+                padding: '7px 34px 7px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.85rem',
+                outline: 'none',
+                background: '#ffffff',
+                boxSizing: 'border-box',
+              }}
+            />
           </div>
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                <th style={{ padding: '10px 14px' }}>كود الجهاز</th>
-                <th style={{ padding: '10px 14px' }}>العميل / الهاتف</th>
-                <th style={{ padding: '10px 14px' }}>الجهاز / {maintenanceProfile.serialLabel}</th>
-                <th style={{ padding: '10px 14px' }}>العطل</th>
-                <th style={{ padding: '10px 14px' }}>التكلفة / المدفوع / المتبقي</th>
-                <th style={{ padding: '10px 14px' }}>الحالة</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>جاري تحميل تذاكر الصيانة...</td></tr>
-              ) : tickets.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>لا توجد تذاكر صيانة مسجلة تطابق البحث.</td></tr>
-              ) : (
-                tickets.map((t) => {
-                  const isDelivered = t.status === 'delivered';
-                  const isCancelled = t.status === 'cancelled' || t.status === 'unrepairable';
-                  const totalCost = t.finalCost || t.expectedCost || 0;
-                  const advancePaid = t.advancePayment || 0;
-                  const remaining = isDelivered || isCancelled ? 0 : Math.max(0, totalCost - advancePaid);
-                  return (
-                    <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px 14px' }}>
-                        <button
-                          type="button"
-                          onClick={() => void maintenanceApi.get(t.id).then((r) => setSelectedTicket(r.ticket))}
-                          title="فتح تفاصيل التذكرة"
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 800,
-                            fontSize: '0.92rem',
-                            color: '#0284c7',
-                            background: '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            display: 'inline-block',
-                          }}
-                        >
-                          {t.ticketNo}
-                        </button>
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <strong style={{ display: 'block', color: '#1e293b' }}>{t.customerName}</strong>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }} dir="ltr">{t.customerPhone}</div>
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
-                          {t.deviceBrand && (
-                            <span
+        {/* Tickets Table */}
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'right' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', fontWeight: 700 }}>
+                  <th style={{ padding: '10px 14px', width: '105px' }}>كود الجهاز</th>
+                  <th style={{ padding: '10px 14px', width: '160px' }}>العميل / الهاتف</th>
+                  <th style={{ padding: '10px 14px', width: '180px' }}>الجهاز / {maintenanceProfile.serialLabel}</th>
+                  <th style={{ padding: '10px 14px', minWidth: '140px' }}>العطل المشتكى منه</th>
+                  <th style={{ padding: '10px 14px', width: '150px' }}>الحساب المالي</th>
+                  <th style={{ padding: '10px 14px', width: '165px' }}>حالة الصيانة</th>
+                  <th style={{ padding: '10px 14px', width: '185px', textAlign: 'center' }}>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                        <Icons.Refresh />
+                        <span>جاري تحميل تذاكر الصيانة...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : tickets.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '44px', textAlign: 'center', color: '#64748b' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>لا توجد تذاكر صيانة مسجلة</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>استخدم زر "استلام جهاز صيانة جديد" لفتح تذكرة جديدة.</div>
+                    </td>
+                  </tr>
+                ) : (
+                  tickets.map((t) => {
+                    const isDelivered = t.status === 'delivered';
+                    const isCancelled = t.status === 'cancelled';
+                    const isUnrepairable = t.status === 'unrepairable';
+                    const isTerminated = isCancelled || isUnrepairable;
+                    const totalCost = t.finalCost || t.expectedCost || 0;
+                    const advancePaid = t.advancePayment || 0;
+                    const remaining = isDelivered || isTerminated ? 0 : Math.max(0, totalCost - advancePaid);
+                    const cfg = statusConfig[t.status] || statusConfig.received;
+
+                    return (
+                      <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s ease' }}>
+                        {/* Code */}
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          <button
+                            type="button"
+                            onClick={() => void maintenanceApi.get(t.id).then((r) => setSelectedTicket(r.ticket))}
+                            title="فتح بطاقة الجهاز وإدارة الصيانة"
+                            style={{
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              fontSize: '0.825rem',
+                              color: '#0f172a',
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '3px 8px',
+                              borderRadius: '5px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <span>{t.ticketNo}</span>
+                          </button>
+                        </td>
+
+                        {/* Customer with Click-to-copy */}
+                        <td style={{ padding: '11px 14px' }}>
+                          <strong style={{ display: 'block', color: '#0f172a', fontSize: '0.85rem' }}>{t.customerName}</strong>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
+                            <button
+                              type="button"
+                              onClick={(e) => handleCopyPhone(t.customerPhone, e)}
+                              title="اضغط لنسخ رقم الهاتف"
                               style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                background: '#f1f5f9',
-                                color: '#334155',
-                                border: '1px solid #e2e8f0',
+                                fontFamily: 'monospace',
+                                fontSize: '0.75rem',
+                                color: '#64748b',
+                                background: 'transparent',
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
                               }}
                             >
-                              {t.deviceBrand}
-                            </span>
-                          )}
-                          <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>{t.deviceModel}</strong>
-                        </div>
-                        {t.serialNumber && (
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>
-                            <span dir="ltr">{t.serialNumber}</span>
+                              <span dir="ltr">{t.customerPhone}</span>
+                              {copiedPhone === t.customerPhone ? (
+                                <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 700 }}>تم النسخ ✓</span>
+                              ) : (
+                                <Icons.Copy />
+                              )}
+                            </button>
                           </div>
-                        )}
-                      </td>
-                      <td style={{ padding: '10px 14px', maxWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.problemDescription}>
-                        {t.problemDescription}
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>
-                          {totalCost.toFixed(2)} <span style={{ fontSize: '0.7rem', color: '#64748b' }}>ج.م</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', marginTop: '2px', flexWrap: 'wrap' }}>
-                          {advancePaid > 0 ? (
-                            <span style={{ color: '#16a34a', fontWeight: 600 }}>
-                              مدفوع: {advancePaid.toFixed(2)}
-                            </span>
-                          ) : (
-                            <span style={{ color: '#94a3b8' }}>بدون مقدم</span>
+                        </td>
+
+                        {/* Device */}
+                        <td style={{ padding: '11px 14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '1px' }}>
+                            {t.deviceBrand && (
+                              <span
+                                style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 600,
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  background: '#f1f5f9',
+                                  color: '#475569',
+                                  border: '1px solid #e2e8f0',
+                                }}
+                              >
+                                {t.deviceBrand}
+                              </span>
+                            )}
+                            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{t.deviceModel}</strong>
+                          </div>
+                          {t.serialNumber && (
+                            <div style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
+                              <span dir="ltr">{t.serialNumber}</span>
+                            </div>
                           )}
-                          <span style={{ color: '#cbd5e1' }}>•</span>
-                          {isDelivered ? (
-                            <span style={{ color: '#16a34a', fontWeight: 700 }}>
-                              خالص ✓
-                            </span>
-                          ) : isCancelled ? (
-                            <span style={{ color: '#94a3b8', fontWeight: 600 }}>
-                              {advancePaid > 0 ? `مسترد: ${advancePaid.toFixed(2)}` : 'ملغي'}
-                            </span>
-                          ) : remaining > 0 ? (
-                            <span style={{ color: '#dc2626', fontWeight: 700 }}>
-                              متبقي: {remaining.toFixed(2)}
-                            </span>
+                        </td>
+
+                        {/* Problem */}
+                        <td style={{ padding: '11px 14px', maxWidth: '200px' }} title={t.problemDescription}>
+                          <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#334155', fontSize: '0.8rem' }}>
+                            {t.problemDescription}
+                          </div>
+                        </td>
+
+                        {/* Financials */}
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          {isTerminated ? (
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '0.8rem', color: isUnrepairable ? '#9f1239' : '#64748b' }}>
+                                {isUnrepairable ? 'تعذر الإصلاح' : 'ملغي'}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', marginTop: '2px' }}>
+                                {advancePaid > 0 ? (
+                                  <span style={{ color: '#c2410c', fontWeight: 700 }}>
+                                    عربون مسترد: {advancePaid.toFixed(0)} ج.م
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#94a3b8' }}>بدون تكلفة</span>
+                                )}
+                              </div>
+                            </div>
                           ) : (
-                            <span style={{ color: '#16a34a', fontWeight: 700 }}>
-                              خالص ✓
-                            </span>
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>
+                                {totalCost.toFixed(2)} <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>ج.م</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', marginTop: '1px' }}>
+                                {advancePaid > 0 ? (
+                                  <span style={{ color: '#475569', fontWeight: 600 }}>
+                                    مدفوع: {advancePaid.toFixed(0)}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#94a3b8' }}>بدون مقدم</span>
+                                )}
+                                <span style={{ color: '#cbd5e1' }}>•</span>
+                                {isDelivered ? (
+                                  <span style={{ color: '#16a34a', fontWeight: 700 }}>خالص ✓</span>
+                                ) : remaining > 0 ? (
+                                  <span style={{ color: '#b45309', fontWeight: 700 }}>متبقي: {remaining.toFixed(0)}</span>
+                                ) : (
+                                  <span style={{ color: '#16a34a', fontWeight: 700 }}>خالص ✓</span>
+                                )}
+                              </div>
+                            </div>
                           )}
-                        </div>
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <select
-                          value={t.status}
-                          onChange={(e) => {
-                            const newStatus = e.target.value as MaintenanceStatus;
-                            if (newStatus === 'delivered') {
-                              openSettlementModal(t);
-                            } else {
-                              updateStatusMutation.mutate({ id: t.id, status: newStatus });
-                            }
-                          }}
-                          disabled={updateStatusMutation.isPending}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: '1px solid transparent',
-                            background: statusLabels[t.status]?.bg || '#f1f5f9',
-                            color: statusLabels[t.status]?.color || '#334155',
-                            outline: 'none',
-                          }}
-                        >
-                          <option value="received">استلام جديد</option>
-                          <option value="inspecting">قيد الفحص والتسعير</option>
-                          <option value="in_progress">قيد الصيانة</option>
-                          <option value="repaired">جاهز للتسليم</option>
-                          <option value="delivered">تم التسليم والتحصيل</option>
-                          <option value="unrepairable">تعذر الإصلاح</option>
-                          <option value="cancelled">ملغي</option>
-                        </select>
-                      </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', gap: '4px' }}>
-                          <button type="button" className="btn btn-sm btn-secondary" onClick={() => void maintenanceApi.get(t.id).then((r) => setSelectedTicket(r.ticket))}>صرف قطع / حساب</button>
-                          <button type="button" className="btn btn-sm btn-secondary" title="إرسال واتساب للعميل" onClick={() => sendWhatsAppMessage(t)} style={{ color: '#16a34a' }}>واتساب 💬</button>
-                          <button type="button" className="btn btn-sm btn-secondary" title="طباعة إيصال أو ستيكر" onClick={() => setReceiptTicket(t)}>إيصال / ستيكر</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        </td>
+
+                        {/* Status Select Badge - Subtle Soft Pastel Tint */}
+                        <td style={{ padding: '11px 14px' }}>
+                          <div style={{ position: 'relative', width: '100%', minWidth: '150px' }}>
+                            <select
+                              value={t.status}
+                              onChange={(e) => {
+                                const newStatus = e.target.value as MaintenanceStatus;
+                                if (newStatus === 'delivered') {
+                                  openSettlementModal(t);
+                                } else {
+                                  updateStatusMutation.mutate({ id: t.id, status: newStatus });
+                                }
+                              }}
+                              disabled={updateStatusMutation.isPending}
+                              style={{
+                                width: '100%',
+                                padding: '5px 24px 5px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                border: `1px solid ${cfg.border}`,
+                                background: cfg.bg,
+                                color: cfg.color,
+                                outline: 'none',
+                                appearance: 'none',
+                                WebkitAppearance: 'none',
+                                MozAppearance: 'none',
+                                whiteSpace: 'nowrap',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              <option value="received">استلام جديد</option>
+                              <option value="inspecting">قيد الفحص والتسعير</option>
+                              <option value="in_progress">قيد الصيانة</option>
+                              <option value="repaired">جاهز للتسليم</option>
+                              <option value="delivered">تم التسليم والتحصيل</option>
+                              <option value="unrepairable">تعذر الإصلاح</option>
+                              <option value="cancelled">ملغي</option>
+                            </select>
+                            <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: cfg.color, display: 'flex', alignItems: 'center' }}>
+                              <Icons.ChevronDown />
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Actions - Unified Minimal Buttons */}
+                        <td style={{ padding: '11px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => void maintenanceApi.get(t.id).then((r) => setSelectedTicket(r.ticket))}
+                              title="صرف قطع غيار وإدارة الحساب"
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '5px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                border: '1px solid #e2e8f0',
+                                background: '#ffffff',
+                                color: '#334155',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <Icons.Wrench />
+                              <span>قطع / حساب</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => sendWhatsAppMessage(t)}
+                              title="إرسال إشعار وتحديث حالة عبر واتساب"
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '5px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                border: '1px solid #e2e8f0',
+                                background: '#ffffff',
+                                color: '#334155',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <Icons.WhatsApp />
+                              <span>واتساب</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setReceiptTicket(t)}
+                              title="طباعة إيصال استلام أو ستيكر لاصق"
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '5px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                border: '1px solid #e2e8f0',
+                                background: '#ffffff',
+                                color: '#475569',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <Icons.Printer />
+                              <span>طباعة</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
+        {/* 1. Modal: Create New Maintenance Ticket */}
         {createModalOpen && (
           <DialogShell
             open={createModalOpen}
@@ -543,25 +904,22 @@ export function MaintenanceTicketsPage() {
             width="min(1040px, 96vw)"
             ariaLabel="استلام جهاز صيانة جديد"
           >
-            <div style={{ padding: '22px 28px' }}>
-              <form onSubmit={handleCreateSubmit} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                        <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                      </svg>
+            <div style={{ padding: '24px 28px' }}>
+              <form onSubmit={handleCreateSubmit} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
+                      <Icons.Device />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>استلام جهاز صيانة جديد</h3>
-                      <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#64748b' }}>تسجيل بيانات العميل، فحص العطل، وإصدار كود الجهاز ZM-XXXX</p>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>استلام جهاز صيانة جديد</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>تسجيل بيانات العميل، فحص العطل المشتكى منه، وتوليد كود الصيانة</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setCreateModalOpen(false)}
-                    style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: '34px', height: '34px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '1rem', fontWeight: 700, transition: 'all 0.15s ease' }}
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}
                     title="إغلاق"
                   >
                     ✕
@@ -569,15 +927,17 @@ export function MaintenanceTicketsPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        بيانات العميل
+                  {/* Left Column: Customer & Device Details */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Customer Card */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#64748b' }}><Icons.User /></span>
+                        <span>بيانات العميل</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                             اسم العميل <span style={{ color: '#dc2626' }}>*</span>
                           </label>
                           <input
@@ -586,12 +946,12 @@ export function MaintenanceTicketsPage() {
                             className="purchase-prototype-field-input"
                             value={formData.customerName}
                             onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                            placeholder="الاسم الثلاثي أو الرباعي"
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                            placeholder="الاسم الثلاثي أو الثنائي"
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                             رقم الهاتف <span style={{ color: '#dc2626' }}>*</span>
                           </label>
                           <input
@@ -602,20 +962,21 @@ export function MaintenanceTicketsPage() {
                             value={formData.customerPhone}
                             onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                             placeholder="01012345678"
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                    {/* Device Specs Card */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#64748b' }}><Icons.Device /></span>
                         <span>مواصفات الجهاز و {maintenanceProfile.serialLabel}</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                             الماركة
                           </label>
                           <BrandCombobox
@@ -627,7 +988,7 @@ export function MaintenanceTicketsPage() {
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                             موديل الجهاز <span style={{ color: '#dc2626' }}>*</span>
                           </label>
                           <input
@@ -637,12 +998,12 @@ export function MaintenanceTicketsPage() {
                             value={formData.deviceModel}
                             onChange={(e) => setFormData({ ...formData, deviceModel: e.target.value })}
                             placeholder={`مثال: ${maintenanceProfile.sampleBrands[0]}...`}
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           />
                         </div>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                           {maintenanceProfile.serialLabel} (مسح بالسكانر أو كتابة)
                         </label>
                         <input
@@ -652,40 +1013,41 @@ export function MaintenanceTicketsPage() {
                           value={formData.serialNumber || ''}
                           onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
                           placeholder={maintenanceProfile.serialPlaceholder}
-                          style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                          style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                        الفحص وحالة الجهاز
+                  {/* Right Column: Problem & Passcode */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Problem Description & Faults */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#64748b' }}><Icons.Wrench /></span>
+                        <span>وصف العطل والفحص الفني</span>
                       </div>
                       <div style={{ marginBottom: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0 }}>
-                            وصف العطل المشتكى منه <span style={{ color: '#dc2626' }}>*</span>
+                          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', margin: 0 }}>
+                            العطل المشتكى منه <span style={{ color: '#dc2626' }}>*</span>
                           </label>
                           {maintenanceProfile.commonFaults?.length > 0 && (
                             <button
                               type="button"
                               onClick={() => setShowFaultsPopover(!showFaultsPopover)}
                               style={{
-                                background: showFaultsPopover ? '#eff6ff' : '#f8fafc',
-                                border: `1px solid ${showFaultsPopover ? '#93c5fd' : '#cbd5e1'}`,
-                                color: showFaultsPopover ? '#1d4ed8' : '#475569',
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                color: '#475569',
                                 borderRadius: '5px',
                                 padding: '2px 8px',
                                 fontSize: '0.72rem',
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '4px',
-                                transition: 'all 0.15s ease'
                               }}
                             >
                               <span>أعطال شائعة</span>
@@ -699,12 +1061,12 @@ export function MaintenanceTicketsPage() {
                           className="purchase-prototype-field-input"
                           value={formData.problemDescription}
                           onChange={(e) => setFormData({ ...formData, problemDescription: e.target.value })}
-                          placeholder="مثال: وصف عطل الجهاز أو المشكلة..."
-                          style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                          placeholder="مثال: الشاشة مكسورة، الجهاز لا يشحن..."
+                          style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                         />
                         {showFaultsPopover && maintenanceProfile.commonFaults?.length > 0 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px', padding: '8px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
-                            <span style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 800, width: '100%', marginBottom: '2px' }}>اضغط لإضافة العطل فوراً:</span>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px', padding: '8px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, width: '100%', marginBottom: '2px' }}>اضغط للإضافة السريعة:</span>
                             {maintenanceProfile.commonFaults.map((fault) => (
                               <button
                                 key={fault}
@@ -714,15 +1076,14 @@ export function MaintenanceTicketsPage() {
                                   setFormData({ ...formData, problemDescription: cur });
                                 }}
                                 style={{
-                                  background: '#ffffff',
-                                  border: '1px solid #93c5fd',
-                                  borderRadius: '5px',
+                                  background: '#f8fafc',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '4px',
                                   padding: '3px 8px',
                                   fontSize: '0.72rem',
-                                  color: '#1e3a8a',
+                                  color: '#334155',
                                   cursor: 'pointer',
-                                  fontWeight: 700,
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                                  fontWeight: 600,
                                 }}
                               >
                                 + {fault}
@@ -731,10 +1092,11 @@ export function MaintenanceTicketsPage() {
                           </div>
                         )}
                       </div>
+
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '24px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
                               الحالة والملحقات
                             </label>
                             {maintenanceProfile.defaultAccessories?.length > 0 && (
@@ -742,19 +1104,17 @@ export function MaintenanceTicketsPage() {
                                 type="button"
                                 onClick={() => setShowAccessoriesPopover(!showAccessoriesPopover)}
                                 style={{
-                                  background: showAccessoriesPopover ? '#eff6ff' : '#f8fafc',
-                                  border: `1px solid ${showAccessoriesPopover ? '#93c5fd' : '#cbd5e1'}`,
-                                  color: showAccessoriesPopover ? '#1d4ed8' : '#475569',
-                                  borderRadius: '5px',
+                                  background: '#ffffff',
+                                  border: '1px solid #cbd5e1',
+                                  color: '#475569',
+                                  borderRadius: '4px',
                                   padding: '1px 6px',
                                   fontSize: '0.7rem',
-                                  fontWeight: 700,
+                                  fontWeight: 600,
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '3px',
-                                  whiteSpace: 'nowrap',
-                                  transition: 'all 0.15s ease'
                                 }}
                               >
                                 <span>ملحقات</span>
@@ -767,12 +1127,12 @@ export function MaintenanceTicketsPage() {
                             className="purchase-prototype-field-input"
                             value={formData.deviceCondition || ''}
                             onChange={(e) => setFormData({ ...formData, deviceCondition: e.target.value })}
-                            placeholder="مثال: خدوش بالظهر، مستلم بدون شاحن..."
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                            placeholder="خدوش بالظهر، مستلم بدون شاحن..."
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           />
                           {showAccessoriesPopover && maintenanceProfile.defaultAccessories?.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px', padding: '8px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
-                              <span style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 800, width: '100%', marginBottom: '2px' }}>اضغط لإضافة الملحق:</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px', padding: '8px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, width: '100%', marginBottom: '2px' }}>اضغط لإضافة الملحق:</span>
                               {maintenanceProfile.defaultAccessories.map((acc) => (
                                 <button
                                   key={acc}
@@ -782,15 +1142,14 @@ export function MaintenanceTicketsPage() {
                                     setFormData({ ...formData, deviceCondition: cur });
                                   }}
                                   style={{
-                                    background: '#ffffff',
-                                    border: '1px solid #93c5fd',
-                                    borderRadius: '5px',
+                                    background: '#f8fafc',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
                                     padding: '3px 8px',
                                     fontSize: '0.72rem',
-                                    color: '#1e3a8a',
+                                    color: '#334155',
                                     cursor: 'pointer',
-                                    fontWeight: 700,
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                                    fontWeight: 600,
                                   }}
                                 >
                                   + {acc}
@@ -799,10 +1158,11 @@ export function MaintenanceTicketsPage() {
                             </div>
                           )}
                         </div>
+
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '24px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              الفني المسؤول (اختياري)
+                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
+                              الفني المسؤول
                             </label>
                           </div>
                           <input
@@ -811,21 +1171,18 @@ export function MaintenanceTicketsPage() {
                             value={formData.technicianName || ''}
                             onChange={(e) => setFormData({ ...formData, technicianName: e.target.value })}
                             placeholder="اسم الفني..."
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                    {/* Passcode & Security Lock Card */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {maintenanceProfile.passcodeType === 'spec_text' ? (
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                          ) : (
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                          )}
-                          {maintenanceProfile.passcodeLabel}
+                        <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ color: '#64748b' }}><Icons.Lock /></span>
+                          <span>{maintenanceProfile.passcodeLabel}</span>
                         </label>
                         {maintenanceProfile.passcodeType === 'mobile_lock' && (
                           <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
@@ -833,48 +1190,46 @@ export function MaintenanceTicketsPage() {
                               type="button"
                               onClick={() => setLockType('pin')}
                               style={{
-                                padding: '3px 8px',
+                                padding: '2px 8px',
                                 borderRadius: '4px',
                                 border: 'none',
                                 background: lockType === 'pin' ? '#fff' : 'transparent',
                                 fontWeight: lockType === 'pin' ? 700 : 500,
                                 color: lockType === 'pin' ? '#0f172a' : '#64748b',
-                                boxShadow: lockType === 'pin' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                                 cursor: 'pointer',
-                                fontSize: '0.75rem',
+                                fontSize: '0.72rem',
                               }}
                             >
-                              كلمة المرور / PIN
+                              PIN / رمز
                             </button>
                             <button
                               type="button"
                               onClick={() => setLockType('pattern')}
                               style={{
-                                padding: '3px 8px',
+                                padding: '2px 8px',
                                 borderRadius: '4px',
                                 border: 'none',
                                 background: lockType === 'pattern' ? '#fff' : 'transparent',
                                 fontWeight: lockType === 'pattern' ? 700 : 500,
                                 color: lockType === 'pattern' ? '#0f172a' : '#64748b',
-                                boxShadow: lockType === 'pattern' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                                 cursor: 'pointer',
-                                fontSize: '0.75rem',
+                                fontSize: '0.72rem',
                               }}
                             >
-                              نمط الشاشة (Pattern)
+                              نمط الشاشة
                             </button>
                           </div>
                         )}
                       </div>
 
                       {maintenanceProfile.passcodeType === 'mobile_lock' && lockType === 'pattern' ? (
-                        <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                           <PatternLockWidget
                             value={formData.passcode || ''}
                             onChange={(pat) => setFormData({ ...formData, passcode: pat })}
                           />
-                          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                            النمط المسجل: <strong dir="ltr" style={{ color: '#2563eb', fontFamily: 'monospace' }}>{formData.passcode || 'لم يتم الرسم بعد'}</strong>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            النمط المسجل: <strong dir="ltr" style={{ color: '#0f172a', fontFamily: 'monospace' }}>{formData.passcode || 'لم يتم الرسم بعد'}</strong>
                           </div>
                         </div>
                       ) : (
@@ -886,7 +1241,7 @@ export function MaintenanceTicketsPage() {
                             value={formData.passcode || ''}
                             onChange={(e) => setFormData({ ...formData, passcode: e.target.value })}
                             placeholder={maintenanceProfile.passcodePlaceholder}
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: maintenanceProfile.passcodeType === 'password' ? 'monospace' : 'inherit', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: maintenanceProfile.passcodeType === 'password' ? 'monospace' : 'inherit', fontSize: '0.85rem', boxSizing: 'border-box' }}
                           />
                         </div>
                       )}
@@ -894,14 +1249,15 @@ export function MaintenanceTicketsPage() {
                   </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                    الحساب المالي وفترة الضمان
+                {/* Financial Overview & Warranty Days */}
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 18px' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#64748b' }}><Icons.Coins /></span>
+                    <span>الحساب المالي والضمان</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                    <div style={{ background: '#fff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                    <div style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
                         التكلفة التقديرية
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -913,15 +1269,15 @@ export function MaintenanceTicketsPage() {
                           value={formData.expectedCost || ''}
                           onChange={(e) => setFormData({ ...formData, expectedCost: Number(e.target.value) })}
                           placeholder="0.00"
-                          style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 700, fontSize: '0.95rem' }}
+                          style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '5px', fontWeight: 700, fontSize: '0.9rem' }}
                         />
-                        <span style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
                       </div>
                     </div>
 
-                    <div style={{ background: '#fff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
-                        الدفعة المقدمة
+                    <div style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                        الدفعة المقدمة (عربون)
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <input
@@ -932,23 +1288,23 @@ export function MaintenanceTicketsPage() {
                           value={formData.advancePayment || ''}
                           onChange={(e) => setFormData({ ...formData, advancePayment: Number(e.target.value) })}
                           placeholder="0.00"
-                          style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 700, fontSize: '0.95rem' }}
+                          style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '5px', fontWeight: 700, fontSize: '0.9rem' }}
                         />
-                        <span style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
                       </div>
                     </div>
 
-                    <div style={{ background: '#fff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                    <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
                         المتبقي التقديري
                       </label>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#2563eb', lineHeight: 1.3 }}>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
                         {Math.max(0, (formData.expectedCost || 0) - (formData.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
                       </div>
                     </div>
 
-                    <div style={{ background: '#fff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                    <div style={{ background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
                         فترة الضمان
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -958,19 +1314,19 @@ export function MaintenanceTicketsPage() {
                           className="purchase-prototype-field-input"
                           value={formData.warrantyDays || 30}
                           onChange={(e) => setFormData({ ...formData, warrantyDays: Number(e.target.value) })}
-                          style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 700, fontSize: '0.95rem' }}
+                          style={{ width: '100%', padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '5px', fontWeight: 700, fontSize: '0.9rem' }}
                         />
-                        <span style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap' }}>يوم</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>يوم</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
-                  <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)} style={{ padding: '8px 24px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                  <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)} style={{ padding: '7px 20px', fontSize: '0.85rem' }}>
                     إلغاء
                   </Button>
-                  <Button type="submit" variant="primary" disabled={createMutation.isPending} style={{ padding: '8px 28px', fontWeight: 700, fontSize: '0.9rem' }}>
+                  <Button type="submit" variant="primary" disabled={createMutation.isPending} style={{ padding: '7px 24px', fontWeight: 700, fontSize: '0.85rem' }}>
                     {createMutation.isPending ? 'جارٍ الحفظ...' : 'حفظ واستخراج إيصال الاستلام'}
                   </Button>
                 </div>
@@ -979,151 +1335,184 @@ export function MaintenanceTicketsPage() {
           </DialogShell>
         )}
 
+        {/* 2. Modal: Selected Ticket Details & Parts Management */}
         {selectedTicket && (
           <DialogShell
             open={Boolean(selectedTicket)}
             onClose={() => setSelectedTicket(null)}
-            width="min(860px, 95vw)"
+            width="min(880px, 96vw)"
             ariaLabel={`تذكرة رقم ${selectedTicket.ticketNo}`}
           >
-            <div className="page-stack" dir="rtl" style={{ gap: '16px' }}>
+            <div className="page-stack" dir="rtl" style={{ gap: '14px', padding: '20px 24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                      بطاقة صيانة الجهاز: <span style={{ fontFamily: 'monospace', color: '#0284c7', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: '6px' }}>{selectedTicket.ticketNo}</span>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                      بطاقة صيانة الجهاز:{' '}
+                      <span style={{ fontFamily: 'monospace', color: '#0f172a', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '5px' }}>
+                        {selectedTicket.ticketNo}
+                      </span>
                     </h3>
                     <span
                       style={{
-                        padding: '4px 10px',
-                        borderRadius: '20px',
-                        fontSize: '0.75rem',
+                        padding: '3px 10px',
+                        borderRadius: '5px',
+                        fontSize: '0.775rem',
                         fontWeight: 700,
-                        background: statusLabels[selectedTicket.status]?.bg || '#f1f5f9',
-                        color: statusLabels[selectedTicket.status]?.color || '#334155',
+                        background: '#ffffff',
+                        color: '#475569',
+                        border: '1px solid #e2e8f0',
                       }}
                     >
-                      {statusLabels[selectedTicket.status]?.label || selectedTicket.status}
+                      {statusConfig[selectedTicket.status]?.label || selectedTicket.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px' }}>
                     تاريخ الاستلام: {new Date(selectedTicket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <Button
                     variant="secondary"
                     onClick={() => sendWhatsAppMessage(selectedTicket)}
-                    style={{ fontSize: '0.85rem', color: '#16a34a', borderColor: '#86efac', background: '#f0fdf4', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}
                   >
-                    إرسال واتساب للعميل 💬
+                    <Icons.WhatsApp />
+                    <span>إرسال واتساب</span>
                   </Button>
-                  <Button variant="secondary" onClick={() => setReceiptTicket(selectedTicket)} style={{ fontSize: '0.85rem' }}>
-                    طباعة إيصال / ستيكر
+                  <Button variant="secondary" onClick={() => setReceiptTicket(selectedTicket)} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Icons.Printer />
+                    <span>طباعة</span>
                   </Button>
                   <button
                     type="button"
                     onClick={() => setSelectedTicket(null)}
-                    style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '1rem', fontWeight: 700 }}
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}
                   >
                     ✕
                   </button>
                 </div>
               </div>
 
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+              {/* Status Stepper / Switcher */}
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
                   مرحلة عمل وصيانة الجهاز:
                 </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {(['received', 'inspecting', 'in_progress', 'repaired', 'delivered', 'unrepairable'] as MaintenanceStatus[]).map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      className={`btn btn-sm ${selectedTicket.status === st ? 'btn-primary' : 'btn-secondary'}`}
-                      disabled={updateStatusMutation.isPending}
-                      onClick={() => updateStatusMutation.mutate({ id: selectedTicket.id, status: st })}
-                      style={{ fontSize: '0.8rem', padding: '4px 12px' }}
-                    >
-                      {statusLabels[st]?.label || st}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                  {(['received', 'inspecting', 'in_progress', 'repaired', 'delivered', 'unrepairable'] as MaintenanceStatus[]).map((st) => {
+                    const isCurrent = selectedTicket.status === st;
+                    const cfg = statusConfig[st];
+                    return (
+                      <button
+                        key={st}
+                        type="button"
+                        disabled={updateStatusMutation.isPending}
+                        onClick={() => {
+                          if (st === 'delivered') {
+                            openSettlementModal(selectedTicket);
+                          } else {
+                            updateStatusMutation.mutate({ id: selectedTicket.id, status: st });
+                          }
+                        }}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: isCurrent ? 700 : 500,
+                          border: isCurrent ? '1px solid #cbd5e1' : '1px solid #e2e8f0',
+                          background: isCurrent ? '#ffffff' : '#f8fafc',
+                          color: isCurrent ? '#0f172a' : '#64748b',
+                          boxShadow: isCurrent ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isCurrent ? cfg.dot : '#cbd5e1' }} />
+                        <span>{cfg.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', fontSize: '0.85rem' }}>
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                    العميل:
+              {/* Customer, Device & Passcode Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '8px', fontSize: '0.825rem' }}>
+                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                    <Icons.User />
+                    <span>العميل:</span>
                   </div>
-                  <strong>{selectedTicket.customerName}</strong>
-                  <div style={{ color: '#475569', fontSize: '0.8rem' }} dir="ltr">{selectedTicket.customerPhone}</div>
+                  <strong style={{ color: '#0f172a' }}>{selectedTicket.customerName}</strong>
+                  <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '1px' }} dir="ltr">{selectedTicket.customerPhone}</div>
                 </div>
 
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-                    الجهاز:
+                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                    <Icons.Device />
+                    <span>الجهاز:</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '1px' }}>
                     {selectedTicket.deviceBrand && (
                       <span
                         style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          padding: '1px 6px',
+                          fontSize: '0.68rem',
+                          fontWeight: 600,
+                          padding: '1px 5px',
                           borderRadius: '4px',
                           background: '#f1f5f9',
-                          color: '#334155',
+                          color: '#475569',
                           border: '1px solid #e2e8f0',
                         }}
                       >
                         {selectedTicket.deviceBrand}
                       </span>
                     )}
-                    <strong>{selectedTicket.deviceModel}</strong>
+                    <strong style={{ color: '#0f172a' }}>{selectedTicket.deviceModel}</strong>
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#64748b' }}>
                     <span dir="ltr">{maintenanceProfile.serialLabel}: {selectedTicket.serialNumber || '—'}</span>
                   </div>
                 </div>
 
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                    {maintenanceProfile.passcodeLabel}:
+                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                    <Icons.Lock />
+                    <span>{maintenanceProfile.passcodeLabel}:</span>
                   </div>
-                  <strong dir="ltr" style={{ color: '#2563eb' }}>{selectedTicket.passcode || 'بدون قفل'}</strong>
+                  <strong dir="ltr" style={{ color: '#0f172a', fontFamily: 'monospace' }}>{selectedTicket.passcode || 'بدون قفل'}</strong>
                 </div>
 
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    فترة الضمان:
+                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+                  <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                    <Icons.Shield />
+                    <span>فترة الضمان:</span>
                   </div>
-                  <strong>{selectedTicket.warrantyDays || 30} يوماً</strong>
+                  <strong style={{ color: '#0f172a' }}>{selectedTicket.warrantyDays || 30} يوماً</strong>
                 </div>
               </div>
 
               <div>
-                <div style={{ color: '#dc2626', fontSize: '0.82rem', fontWeight: 700, marginBottom: '4px' }}>عطل الجهاز المشتكى منه:</div>
-                <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', padding: '8px 12px', borderRadius: '6px', fontSize: '0.875rem', color: '#991b1b' }}>
+                <div style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px' }}>عطل الجهاز المشتكى منه:</div>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.5 }}>
                   {selectedTicket.problemDescription}
                 </div>
               </div>
 
+              {/* Parts Dispatch Area */}
               <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                    صرف قطع الغيار من المخزن على الكود ({selectedTicket.ticketNo})
+                  <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Icons.Wrench />
+                    <span>صرف قطع الغيار من المخزن على الكود ({selectedTicket.ticketNo})</span>
                   </h4>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{(selectedTicket.parts || []).length} قطعة مسجلة</span>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{(selectedTicket.parts || []).length} قطعة مسجلة</span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 85px 105px auto', gap: '8px', marginBottom: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 85px 105px auto', gap: '8px', marginBottom: '8px', background: '#f8fafc', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center' }}>
                   <SearchableCombobox
                     inline
                     inputClassName="purchase-prototype-field-input"
@@ -1152,7 +1541,7 @@ export function MaintenanceTicketsPage() {
                     className="purchase-prototype-field-input"
                     value={partQty}
                     onChange={(e) => setPartQty(Number(e.target.value))}
-                    style={{ height: '38px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box', margin: 0 }}
+                    style={{ height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.825rem', width: '100%', boxSizing: 'border-box', margin: 0 }}
                   />
                   <input
                     type="number"
@@ -1162,7 +1551,7 @@ export function MaintenanceTicketsPage() {
                     className="purchase-prototype-field-input"
                     value={partPrice}
                     onChange={(e) => setPartPrice(Number(e.target.value))}
-                    style={{ height: '38px', padding: '0 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box', margin: 0 }}
+                    style={{ height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.825rem', width: '100%', boxSizing: 'border-box', margin: 0 }}
                   />
                   <Button
                     type="button"
@@ -1172,34 +1561,34 @@ export function MaintenanceTicketsPage() {
                       setPartSearchText('');
                     }}
                     disabled={!selectedProductId || addPartMutation.isPending}
-                    style={{ height: '38px', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', margin: 0 }}
+                    style={{ height: '36px', padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', margin: 0, fontWeight: 700, fontSize: '0.825rem' }}
                   >
-                    {addPartMutation.isPending ? 'جاري الصرف...' : '+ صرف على الجهاز'}
+                    {addPartMutation.isPending ? 'جاري...' : '+ صرف'}
                   </Button>
                 </div>
 
                 {(selectedTicket.parts || []).length > 0 ? (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                        <th style={{ padding: '8px 10px' }}>القطعة</th>
-                        <th style={{ padding: '8px 10px' }}>الكمية</th>
-                        <th style={{ padding: '8px 10px' }}>سعر الوحدة</th>
-                        <th style={{ padding: '8px 10px' }}>الإجمالي</th>
-                        <th style={{ padding: '8px 10px', textAlign: 'center' }}>إلغاء الصرف</th>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right', color: '#475569', fontSize: '0.78rem' }}>
+                        <th style={{ padding: '7px 10px' }}>القطعة</th>
+                        <th style={{ padding: '7px 10px' }}>الكمية</th>
+                        <th style={{ padding: '7px 10px' }}>سعر الوحدة</th>
+                        <th style={{ padding: '7px 10px' }}>الإجمالي</th>
+                        <th style={{ padding: '7px 10px', textAlign: 'center' }}>إلغاء الصرف</th>
                       </tr>
                     </thead>
                     <tbody>
                       {selectedTicket.parts?.map((p) => (
                         <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '8px 10px', fontWeight: 600 }}>{p.productName}</td>
-                          <td style={{ padding: '8px 10px' }}>{p.qty}</td>
-                          <td style={{ padding: '8px 10px' }}>{p.unitPrice.toFixed(2)} ج.م</td>
-                          <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0f172a' }}>{p.totalPrice.toFixed(2)} ج.م</td>
-                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          <td style={{ padding: '7px 10px', fontWeight: 600, color: '#0f172a' }}>{p.productName}</td>
+                          <td style={{ padding: '7px 10px' }}>{p.qty}</td>
+                          <td style={{ padding: '7px 10px' }}>{p.unitPrice.toFixed(2)} ج.م</td>
+                          <td style={{ padding: '7px 10px', fontWeight: 700, color: '#0f172a' }}>{p.totalPrice.toFixed(2)} ج.م</td>
+                          <td style={{ padding: '7px 10px', textAlign: 'center' }}>
                             <button
                               type="button"
-                              style={{ color: '#ef4444', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}
+                              style={{ color: '#9f1239', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}
                               onClick={() => removePartMutation.mutate({ ticketId: selectedTicket.id, partId: p.id })}
                               title="إلغاء وإرجاع للمخزن"
                             >
@@ -1211,12 +1600,13 @@ export function MaintenanceTicketsPage() {
                     </tbody>
                   </table>
                 ) : (
-                  <div style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '12px', background: '#f8fafc', borderRadius: '6px' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', padding: '12px', background: '#f8fafc', borderRadius: '6px', border: '1px dashed #e2e8f0' }}>
                     لم يتم صرف أي قطع غيار على هذا الجهاز بعد.
                   </div>
                 )}
               </div>
 
+              {/* Profit & Labor Commission Breakdown */}
               {(() => {
                 const totalCost = selectedTicket.finalCost || selectedTicket.expectedCost || 0;
                 const partsCost = (selectedTicket.parts || []).reduce((acc, p) => acc + (p.qty * (p.unitCost || 0)), 0);
@@ -1228,13 +1618,13 @@ export function MaintenanceTicketsPage() {
                 const storeProfit = Math.max(0, (laborPrice - technicianCommission) + partsProfit);
 
                 return (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                        حساب أرباح الصيانة وعمولة الفني:
+                        <Icons.Coins />
+                        <span>حساب أرباح الصيانة وعمولة الفني:</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}>
                         <span style={{ color: '#64748b' }}>تعديل إجمالي الحساب:</span>
                         <input
                           type="number"
@@ -1243,7 +1633,7 @@ export function MaintenanceTicketsPage() {
                           className="purchase-prototype-field-input"
                           value={editingCost ?? totalCost}
                           onChange={(e) => setEditingCost(Number(e.target.value))}
-                          style={{ width: '90px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, textAlign: 'center' }}
+                          style={{ width: '90px', padding: '3px 6px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, textAlign: 'center', fontSize: '0.85rem' }}
                         />
                         <button
                           type="button"
@@ -1255,35 +1645,36 @@ export function MaintenanceTicketsPage() {
                               setEditingCost(null);
                             }
                           }}
-                          style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                          style={{ padding: '3px 10px', fontSize: '0.75rem', fontWeight: 700 }}
                         >
                           تحديث الحساب
                         </button>
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '0.8rem', textAlign: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '0.78rem', textAlign: 'center' }}>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ color: '#64748b' }}>قطع الغيار (قطاعي)</div>
-                        <strong style={{ color: '#0f172a' }}>{partsPrice.toFixed(2)} ج.م</strong>
-                        {partsProfit > 0 && <div style={{ fontSize: '0.7rem', color: '#16a34a' }}>ربح بضاعة: +{partsProfit.toFixed(0)}</div>}
+                        <div style={{ color: '#64748b', marginBottom: '1px' }}>قطع الغيار (قطاعي)</div>
+                        <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{partsPrice.toFixed(2)} ج.م</strong>
+                        {partsProfit > 0 && <div style={{ fontSize: '0.68rem', color: '#16a34a', marginTop: '1px', fontWeight: 600 }}>ربح بضاعة: +{partsProfit.toFixed(0)}</div>}
                       </div>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ color: '#64748b' }}>صافي المصنعية</div>
-                        <strong style={{ color: '#0284c7' }}>{laborPrice.toFixed(2)} ج.م</strong>
+                        <div style={{ color: '#64748b', marginBottom: '1px' }}>صافي المصنعية</div>
+                        <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{laborPrice.toFixed(2)} ج.م</strong>
                       </div>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ color: '#64748b' }}>عمولة الفني ({commissionRate}%)</div>
-                        <strong style={{ color: '#d97706' }}>{technicianCommission.toFixed(2)} ج.م</strong>
+                        <div style={{ color: '#64748b', marginBottom: '1px' }}>عمولة الفني ({commissionRate}%)</div>
+                        <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{technicianCommission.toFixed(2)} ج.م</strong>
                       </div>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ color: '#64748b' }}>صافي ربح المحل</div>
-                        <strong style={{ color: '#16a34a' }}>{storeProfit.toFixed(2)} ج.م</strong>
+                        <div style={{ color: '#64748b', marginBottom: '1px' }}>صافي ربح المحل</div>
+                        <strong style={{ color: '#16a34a', fontSize: '0.875rem' }}>{storeProfit.toFixed(2)} ج.م</strong>
                       </div>
                     </div>
                   </div>
                 );
               })()}
 
+              {/* Settlement Card */}
               {selectedTicket.status === 'delivered' ? (() => {
                 const totalCost = selectedTicket.finalCost || selectedTicket.expectedCost || 0;
                 const discountInfo = extractTicketDiscount(selectedTicket.technicianNotes);
@@ -1292,62 +1683,90 @@ export function MaintenanceTicketsPage() {
                 const collectedAtDelivery = Math.max(0, netTotal - advancePaid);
 
                 return (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                     <div>
-                      <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>إجمالي حساب الصيانة والتسليم:</div>
+                      <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي حساب الصيانة والتسليم:</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <strong style={{ fontSize: '1.25rem', color: '#14532d' }}>
-                          {totalCost.toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ج.م</span>
+                        <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
+                          {totalCost.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
                         </strong>
                         {discountInfo.amount > 0 && (
-                          <span style={{ fontSize: '0.8rem', color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                          <span style={{ fontSize: '0.75rem', color: '#475569', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
                             خصم: -{discountInfo.amount.toFixed(2)} ج.م (الصافي: {netTotal.toFixed(2)} ج.م)
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: '#16a34a', marginTop: '2px', fontWeight: 700 }}>
+                      <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '3px', fontWeight: 600 }}>
                         ✓ تم السداد والتحصيل في الخزينة بالكامل
                         {advancePaid > 0 ? ` (مقدم: ${advancePaid.toFixed(2)} ج.م + عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)` : ` (المحصل عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)`}
                       </div>
                       {discountInfo.amount > 0 && (
-                        <div style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '4px', background: '#fef3c7', padding: '3px 8px', borderRadius: '4px', display: 'inline-block' }}>
-                          📝 سبب الخصم: {discountInfo.reason}
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
+                          سبب الخصم: {discountInfo.reason}
                         </div>
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700 }}>الرصيد المتبقي:</div>
-                        <strong style={{ fontSize: '1.35rem', color: '#16a34a', fontWeight: 800 }}>
-                          0.00 <span style={{ fontSize: '0.85rem' }}>ج.م (خالص)</span>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>الرصيد المتبقي:</div>
+                        <strong style={{ fontSize: '1.2rem', color: '#16a34a', fontWeight: 800 }}>
+                          0.00 <span style={{ fontSize: '0.75rem' }}>ج.م (خالص)</span>
                         </strong>
                       </div>
-                      <span style={{ padding: '8px 16px', borderRadius: '8px', background: '#dcfce7', color: '#166534', fontWeight: 800, fontSize: '0.9rem', border: '1px solid #86efac' }}>
-                        ✓ تم تسليم الجهاز والتحصيل
+                      <span style={{ padding: '6px 12px', borderRadius: '6px', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.85rem', border: '1px solid #dcfce7' }}>
+                        ✓ تم تسليم الجهاز
                       </span>
                     </div>
                   </div>
                 );
+              })() : (selectedTicket.status === 'unrepairable' || selectedTicket.status === 'cancelled') ? (() => {
+                const advancePaid = selectedTicket.advancePayment || 0;
+                const isUnrep = selectedTicket.status === 'unrepairable';
+                return (
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '0.825rem', color: isUnrep ? '#9f1239' : '#475569', fontWeight: 700 }}>
+                        {isUnrep ? '✕ تعذر إصلاح الجهاز (تم إلغاء رسوم الصيانة)' : '✕ تم إلغاء تذكرة الصيانة'}
+                      </div>
+                      {advancePaid > 0 ? (
+                        <div style={{ fontSize: '0.78rem', color: '#c2410c', marginTop: '3px', fontWeight: 600 }}>
+                          ⚠️ مستحق رد العربون للعميل بالكامل: {advancePaid.toFixed(2)} ج.م عند تسليم الجهاز
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                          لا توجد أي مستحقات مالية مطلوبة من العميل.
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>المطلوب تحصيله:</div>
+                      <strong style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 700 }}>
+                        0.00 <span style={{ fontSize: '0.75rem' }}>ج.م</span>
+                      </strong>
+                    </div>
+                  </div>
+                );
               })() : (
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>إجمالي حساب الصيانة والقطع:</div>
-                    <strong style={{ fontSize: '1.25rem', color: '#0f172a' }}>
-                      {(selectedTicket.finalCost || selectedTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ج.م</span>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>إجمالي حساب الصيانة والقطع:</div>
+                    <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
+                      {(selectedTicket.finalCost || selectedTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
                     </strong>
                     {selectedTicket.advancePayment > 0 && (
-                      <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px', fontWeight: 600 }}>
                         (المدفوع مقدماً: {selectedTicket.advancePayment.toFixed(2)} ج.م)
                       </div>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: '0.8rem', color: '#dc2626', fontWeight: 700 }}>المتبقي للتحصيل:</div>
-                      <strong style={{ fontSize: '1.35rem', color: '#dc2626', fontWeight: 800 }}>
-                        {Math.max(0, (selectedTicket.finalCost || selectedTicket.expectedCost || 0) - (selectedTicket.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.85rem' }}>ج.م</span>
+                      <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>المتبقي للتحصيل:</div>
+                      <strong style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
+                        {Math.max(0, (selectedTicket.finalCost || selectedTicket.expectedCost || 0) - (selectedTicket.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.75rem', color: '#64748b' }}>ج.م</span>
                       </strong>
                     </div>
 
@@ -1355,7 +1774,7 @@ export function MaintenanceTicketsPage() {
                       variant="primary"
                       onClick={() => openSettlementModal(selectedTicket)}
                       disabled={updateStatusMutation.isPending}
-                      style={{ padding: '8px 18px', fontWeight: 700, fontSize: '0.9rem', background: '#16a34a', borderColor: '#16a34a' }}
+                      style={{ padding: '7px 18px', fontWeight: 700, fontSize: '0.85rem' }}
                     >
                       ✓ تسليم الجهاز والتحصيل
                     </Button>
@@ -1364,7 +1783,7 @@ export function MaintenanceTicketsPage() {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                <Button variant="secondary" onClick={() => setSelectedTicket(null)}>
+                <Button variant="secondary" onClick={() => setSelectedTicket(null)} style={{ fontSize: '0.85rem' }}>
                   إغلاق
                 </Button>
               </div>
@@ -1372,25 +1791,25 @@ export function MaintenanceTicketsPage() {
           </DialogShell>
         )}
 
-        {/* Delivery & Settlement Modal */}
+        {/* 3. Modal: Delivery Settlement Modal */}
         {settlementTicket && (
           <DialogShell
             open={Boolean(settlementTicket)}
             onClose={() => setSettlementTicket(null)}
-            width="min(520px, 95vw)"
+            width="min(540px, 95vw)"
             ariaLabel="تأكيد تحصيل وتسليم جهاز الصيانة"
           >
-            <div className="page-stack" dir="rtl" style={{ gap: '14px', padding: '18px 22px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800 }}>
-                    ✓
+            <div className="page-stack" dir="rtl" style={{ gap: '14px', padding: '20px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icons.CheckCircle />
                   </div>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                      تحصيل وتسليم الجهاز: <span style={{ fontFamily: 'monospace', color: '#0284c7' }}>{settlementTicket.ticketNo}</span>
+                      تحصيل وتسليم الجهاز: <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{settlementTicket.ticketNo}</span>
                     </h3>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
                       العميل: <strong>{settlementTicket.customerName}</strong> ({settlementTicket.deviceBrand ? `${settlementTicket.deviceBrand} ` : ''}{settlementTicket.deviceModel})
                     </div>
                   </div>
@@ -1398,7 +1817,7 @@ export function MaintenanceTicketsPage() {
                 <button
                   type="button"
                   onClick={() => setSettlementTicket(null)}
-                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontWeight: 700 }}
+                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontWeight: 700 }}
                 >
                   ✕
                 </button>
@@ -1412,24 +1831,24 @@ export function MaintenanceTicketsPage() {
 
                 return (
                   <>
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center', fontSize: '0.8rem' }}>
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center', fontSize: '0.78rem' }}>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ color: '#64748b' }}>إجمالي الحساب</div>
+                        <div style={{ color: '#64748b', marginBottom: '2px' }}>إجمالي الحساب</div>
                         <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{totalCost.toFixed(2)} ج.م</strong>
                       </div>
                       <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ color: '#64748b' }}>المدفوع مقدماً</div>
-                        <strong style={{ fontSize: '0.95rem', color: '#16a34a' }}>{advancePaid.toFixed(2)} ج.م</strong>
+                        <div style={{ color: '#64748b', marginBottom: '2px' }}>المدفوع مقدماً</div>
+                        <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{advancePaid.toFixed(2)} ج.م</strong>
                       </div>
-                      <div style={{ background: '#eff6ff', padding: '8px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
-                        <div style={{ color: '#1e40af' }}>المطلوب تحصيله</div>
-                        <strong style={{ fontSize: '1rem', color: '#1d4ed8' }}>{expectedRem.toFixed(2)} ج.م</strong>
+                      <div style={{ background: '#ffffff', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                        <div style={{ color: '#475569', marginBottom: '2px' }}>المطلوب تحصيله</div>
+                        <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{expectedRem.toFixed(2)} ج.م</strong>
                       </div>
                     </div>
 
                     <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                        💵 المبلغ المستلم فعلياً من العميل الآن:
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                        المبلغ المستلم فعلياً من العميل الآن:
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <input
@@ -1439,28 +1858,28 @@ export function MaintenanceTicketsPage() {
                           className="purchase-prototype-field-input"
                           value={collectedAmount}
                           onChange={(e) => setCollectedAmount(Number(e.target.value))}
-                          style={{ width: '100%', height: '40px', fontSize: '1.15rem', fontWeight: 800, padding: '0 12px', borderRadius: '6px', border: '2px solid #3b82f6', color: '#0f172a' }}
+                          style={{ width: '100%', height: '38px', fontSize: '1.1rem', fontWeight: 800, padding: '0 12px', borderRadius: '6px', border: '1px solid #cbd5e1', color: '#0f172a' }}
                         />
-                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', whiteSpace: 'nowrap' }}>ج.م</span>
                       </div>
                     </div>
 
                     {diff > 0 && (
-                      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#b45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            ⚠️ فرق / خصم ممنوح للعميل:
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>
+                            فرق / خصم مسموح به للعميل:
                           </span>
-                          <strong style={{ fontSize: '1rem', color: '#d97706' }}>{diff.toFixed(2)} ج.م</strong>
+                          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{diff.toFixed(2)} ج.م</strong>
                         </div>
-                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#92400e', marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
                           اختر سبب الخصم / الفرق:
                         </label>
                         <select
                           value={discountReason}
                           onChange={(e) => setDiscountReason(e.target.value)}
                           className="purchase-prototype-field-input"
-                          style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', fontWeight: 600, fontSize: '0.85rem', marginBottom: discountReason === 'custom' ? '8px' : '0' }}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 600, fontSize: '0.8rem', marginBottom: discountReason === 'custom' ? '6px' : '0' }}
                         >
                           <option value="فصال ومراضاة للعميل">فصال ومراضاة للعميل (خصم مسموح به)</option>
                           <option value="خصم عميل مميز / إكرامية">خصم عميل مميز / إكرامية</option>
@@ -1474,21 +1893,21 @@ export function MaintenanceTicketsPage() {
                             value={customReason}
                             onChange={(e) => setCustomReason(e.target.value)}
                             className="purchase-prototype-field-input"
-                            style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', fontSize: '0.85rem' }}
+                            style={{ width: '100%', padding: '6px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.8rem' }}
                           />
                         )}
                       </div>
                     )}
 
                     {diff < 0 && (
-                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>باقي مستحق للعميل:</span>
-                        <strong style={{ fontSize: '1rem', color: '#16a34a' }}>{Math.abs(diff).toFixed(2)} ج.م</strong>
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>باقي مستحق للعميل:</span>
+                        <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{Math.abs(diff).toFixed(2)} ج.م</strong>
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
-                      <Button type="button" variant="secondary" onClick={() => setSettlementTicket(null)}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                      <Button type="button" variant="secondary" onClick={() => setSettlementTicket(null)} style={{ fontSize: '0.85rem' }}>
                         إلغاء
                       </Button>
                       <Button
@@ -1496,7 +1915,7 @@ export function MaintenanceTicketsPage() {
                         variant="primary"
                         onClick={handleConfirmSettlement}
                         disabled={updateStatusMutation.isPending}
-                        style={{ padding: '8px 24px', fontWeight: 800, fontSize: '0.92rem', background: '#16a34a', borderColor: '#16a34a' }}
+                        style={{ padding: '7px 20px', fontWeight: 700, fontSize: '0.85rem' }}
                       >
                         {updateStatusMutation.isPending ? 'جاري التحصيل...' : '✓ تأكيد التحصيل والتسليم النهائي'}
                       </Button>
@@ -1508,7 +1927,7 @@ export function MaintenanceTicketsPage() {
           </DialogShell>
         )}
 
-        {/* Receipt Print Modal */}
+        {/* 4. Modal: Printable Receipt & Sticker */}
         <MaintenanceReceiptModal
           open={Boolean(receiptTicket)}
           ticket={receiptTicket}

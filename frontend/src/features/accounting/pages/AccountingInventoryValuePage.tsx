@@ -5,6 +5,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { FormSection } from '@/shared/components/form-section';
 import { ReportMetricCard } from '@/shared/components/report-metric-card';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { formatCurrency } from '@/lib/format';
 
 import { accountingApi, type InventoryValueItem } from '@/features/accounting/api/accounting.api';
@@ -78,24 +79,28 @@ export function AccountingInventoryValuePage() {
             <span>بحث باسم الصنف أو الباركود</span>
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="اكتب اسم الصنف أو الباركود" />
           </label>
-          <label className="field stack gap-8">
+          <div className="field stack gap-8">
             <span>التصنيف</span>
-            <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-              <option value="">كل التصنيفات</option>
-              {(categoriesQuery.data || []).map((category) => (
-                <option key={category.id} value={category.id}>{category.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field stack gap-8">
+            <CustomSelect
+              value={categoryId}
+              onChange={(val) => setCategoryId(val)}
+              options={[
+                { value: '', label: 'كل التصنيفات' },
+                ...(categoriesQuery.data || []).map((category) => ({ value: category.id, label: category.name })),
+              ]}
+            />
+          </div>
+          <div className="field stack gap-8">
             <span>المورد</span>
-            <select value={supplierId} onChange={(event) => setSupplierId(event.target.value)}>
-              <option value="">كل الموردين</option>
-              {(suppliersQuery.data || []).map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
-              ))}
-            </select>
-          </label>
+            <CustomSelect
+              value={supplierId}
+              onChange={(val) => setSupplierId(val)}
+              options={[
+                { value: '', label: 'كل الموردين' },
+                ...(suppliersQuery.data || []).map((supplier) => ({ value: supplier.id, label: supplier.name })),
+              ]}
+            />
+          </div>
         </div>
         <div className="actions" style={{ marginTop: 12 }}>
           <label className="checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>

@@ -1,6 +1,7 @@
 import { Fragment, useState, useMemo } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
@@ -87,6 +88,7 @@ function groupProducts(products: Product[]): ProductGroup[] {
 export function ProductsTableCard(props: ProductsTableCardProps) {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [activeNoteModal, setActiveNoteModal] = useState<{ productName: string; note: string } | null>(null);
 
   const filteredProducts = useMemo(() => {
     if (!selectedCategoryId) return props.visibleProducts;
@@ -203,7 +205,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 <th>القسم / المورد / المخزن</th>
                 <th>الأسعار</th>
                 <th>المخزون</th>
-                <th>ملاحظات</th>
+                <th style={{ width: '80px', textAlign: 'center' }}>ملاحظات</th>
                 <th style={{ textAlign: 'center' }}>إجراءات</th>
               </tr>
             </thead>
@@ -252,7 +254,35 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           {product.stock}
                         </span>
                       </td>
-                      <td>{product.notes || '—'}</td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>
+                        {product.notes ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveNoteModal({ productName: product.name, note: product.notes! });
+                            }}
+                            title={product.notes}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <span>📝 ملاحظة</span>
+                          </button>
+                        ) : (
+                          <span style={{ color: '#cbd5e1' }}>—</span>
+                        )}
+                      </td>
                       <td>
                         <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
@@ -316,7 +346,35 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           {totalStock}
                         </span>
                       </td>
-                      <td>{group.representative.notes || '—'}</td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>
+                        {group.representative.notes ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveNoteModal({ productName: baseName, note: group.representative.notes! });
+                            }}
+                            title={group.representative.notes}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <span>📝 ملاحظة</span>
+                          </button>
+                        ) : (
+                          <span style={{ color: '#cbd5e1' }}>—</span>
+                        )}
+                      </td>
                       <td>
                         <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                           <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(group.representative)}>تعديل</Button>
@@ -369,7 +427,35 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             {product.stock}
                           </span>
                         </td>
-                        <td>{product.notes || '—'}</td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>
+                          {product.notes ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveNoteModal({ productName: `${baseName} (${variantLabel(product)})`, note: product.notes! });
+                              }}
+                              title={product.notes}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                background: '#eff6ff',
+                                color: '#1d4ed8',
+                                border: '1px solid #bfdbfe',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <span>📝 ملاحظة</span>
+                            </button>
+                          ) : (
+                            <span style={{ color: '#cbd5e1' }}>—</span>
+                          )}
+                        </td>
                         <td>
                           <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                             <Button variant="secondary" type="button" onClick={() => props.onSelectProduct(product)}>تعديل</Button>
@@ -397,6 +483,47 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           onPageSizeChange={props.onPageSizeChange}
           itemLabel="صنف"
         />
+
+        {/* Product Note Modal */}
+        {activeNoteModal && (
+          <DialogShell
+            open={Boolean(activeNoteModal)}
+            onClose={() => setActiveNoteModal(null)}
+            width="min(480px, 92vw)"
+            ariaLabel="ملاحظات الصنف"
+          >
+            <div style={{ padding: '20px 24px' }} dir="rtl">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+                    📝
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>ملاحظات الصنف</h3>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>{activeNoteModal.productName}</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveNoteModal(null)}
+                  style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px', fontSize: '0.9rem', lineHeight: 1.7, color: '#1e293b', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {activeNoteModal.note}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                <Button variant="secondary" onClick={() => setActiveNoteModal(null)}>
+                  إغلاق
+                </Button>
+              </div>
+            </div>
+          </DialogShell>
+        )}
       </QueryFeedback>
     </FormSection>
   );

@@ -209,22 +209,23 @@ export function InventoryTreePage() {
   ] as const;
 
   return (
-    <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '32px' }} dir="rtl">
-      {/* Header */}
-      <PageHeader
-        title="شجرة المخازن الشاملة"
-        description="عرض تفصيلي لأرصدة الأصناف وتوزيعها على أماكن التخزين وإجراء عمليات المناقلة والتعيين الجماعية"
-        actions={(
-          <div className="actions compact-actions page-header-actions">
-            <Button variant="primary" onClick={() => navigate('/inventory/issue-order/new')}>
-              + إذن صرف جديد
-            </Button>
-            <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')}>
-              🏢 أماكن المخزون
-            </Button>
-          </div>
-        )}
-      />
+    <div className="page-stack page-shell inventory-tree-page" dir="rtl">
+      <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '32px' }}>
+        {/* Header */}
+        <PageHeader
+          title="شجرة المخازن الشاملة"
+          description="عرض تفصيلي لأرصدة الأصناف وتوزيعها على أماكن التخزين وإجراء عمليات المناقلة والتعيين الجماعية"
+          actions={(
+            <div className="actions compact-actions page-header-actions">
+              <Button variant="primary" onClick={() => navigate('/inventory/issue-order/new')}>
+                + إذن صرف جديد
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')}>
+                🏢 أماكن المخزون
+              </Button>
+            </div>
+          )}
+        />
 
       {/* Stats */}
       <StatsGrid items={statsItems} className="stats-grid compact-grid" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }} />
@@ -425,7 +426,8 @@ export function InventoryTreePage() {
           onDone={handleDone}
         />
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 

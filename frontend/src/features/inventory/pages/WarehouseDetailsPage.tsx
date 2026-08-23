@@ -108,7 +108,8 @@ export function WarehouseDetailsPage() {
   const isLoading = productsQuery.isLoading || locationStocksQuery.isLoading || categoriesQuery.isLoading;
 
   return (
-    <main className="document-prototype-column" dir="rtl" style={{ maxWidth: '1280px', paddingBottom: '32px' }}>
+    <div className="page-stack page-shell warehouse-details-page" dir="rtl">
+      <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '32px' }}>
       <PageHeader 
         title={`مخزن: ${location?.name || '...'}`} 
         description={`عرض تفصيلي لأرصدة وأقسام ${location?.name || 'المخزن'} وقيمتها المالية`} 
@@ -292,6 +293,7 @@ export function WarehouseDetailsPage() {
           </div>
         )}
       </FormSection>
-    </main>
+      </main>
+    </div>
   );
 }

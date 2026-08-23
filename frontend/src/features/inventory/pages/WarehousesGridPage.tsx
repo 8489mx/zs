@@ -115,7 +115,7 @@ export function WarehousesGridPage() {
   }, [locations, search]);
 
   return (
-    <main className="document-prototype-column" dir="rtl" style={{ paddingBottom: '32px' }}>
+    <main className="document-prototype-column" dir="rtl" style={{ paddingBottom: '32px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <PageHeader 
         title="أماكن المخزون" 
         description="استعراض وإدارة أماكن التخزين والفروع ومتابعة الأرصدة والقيم المالية" 

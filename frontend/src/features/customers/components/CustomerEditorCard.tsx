@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
@@ -46,10 +47,21 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
       <Field label="الهاتف"><input {...form.register('phone')} disabled={mutation.isPending} /></Field>
       <Field label="العنوان"><input {...form.register('address')} disabled={mutation.isPending} /></Field>
       <Field label="نوع العميل">
-        <select {...form.register('type')} disabled={mutation.isPending}>
-          <option value="cash">نقدي</option>
-          <option value="vip">مميز</option>
-        </select>
+        <Controller
+          name="type"
+          control={form.control}
+          render={({ field }) => (
+            <CustomSelect
+              value={field.value}
+              onChange={field.onChange}
+              disabled={mutation.isPending}
+              options={[
+                { value: 'cash', label: 'نقدي' },
+                { value: 'vip', label: 'مميز' },
+              ]}
+            />
+          )}
+        />
       </Field>
       <Field label="الرصيد الافتتاحي"><input type="number" step="0.01" {...form.register('balance')} disabled={mutation.isPending} /></Field>
       <Field label="حد الائتمان"><input type="number" step="0.01" {...form.register('creditLimit')} disabled={mutation.isPending} /></Field>
@@ -59,10 +71,21 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
           <legend className="px-2 font-semibold text-primary">إعدادات الاستيراد</legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="عملة الحساب">
-              <select {...form.register('metadata.currency')} disabled={mutation.isPending}>
-                <option value="EGP">جنيه مصري</option>
-                <option value="USD">دولار أمريكي</option>
-              </select>
+              <Controller
+                name="metadata.currency"
+                control={form.control}
+                render={({ field }) => (
+                  <CustomSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={mutation.isPending}
+                    options={[
+                      { value: 'EGP', label: 'جنيه مصري' },
+                      { value: 'USD', label: 'دولار أمريكي' },
+                    ]}
+                  />
+                )}
+              />
             </Field>
           </div>
         </fieldset>

@@ -202,24 +202,27 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
       </div>
 
       {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-          background: '#fff',
-          border: '1px solid var(--border, #dbe2ea)',
-          borderRadius: 8,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-          marginTop: 4,
-          maxHeight: 240,
-          overflowY: 'auto',
-          padding: 4,
-        }}>
+        <div
+          className="custom-combobox-dropdown"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: 8,
+            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06)',
+            marginTop: 4,
+            maxHeight: 220,
+            overflowY: 'auto',
+            padding: 4,
+          }}
+        >
           <button
             type="button"
-            style={{ width: '100%', textAlign: 'right', background: highlightedIndex === 0 ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: '#6b7280' }}
+            style={{ width: '100%', textAlign: 'right', background: highlightedIndex === 0 ? '#f1f5f9' : 'transparent', border: 'none', padding: '7px 10px', borderRadius: 6, cursor: 'pointer', color: '#64748b', fontSize: '0.84rem' }}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleSelect('')}
             onMouseEnter={() => setHighlightedIndex(0)}
@@ -230,7 +233,19 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
             <button
               key={opt.id}
               type="button"
-              style={{ width: '100%', textAlign: 'right', background: highlightedIndex === i + 1 ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: value === opt.id ? 600 : 400 }}
+              style={{
+                width: '100%',
+                textAlign: 'right',
+                background: highlightedIndex === i + 1 ? '#f1f5f9' : 'transparent',
+                border: 'none',
+                padding: '7px 10px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontWeight: value === opt.id ? 700 : 500,
+                color: highlightedIndex === i + 1 ? '#0f172a' : '#334155',
+                fontSize: '0.86rem',
+                transition: 'background 0.12s ease',
+              }}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSelect(opt.id)}
               onMouseEnter={() => setHighlightedIndex(i + 1)}
@@ -239,12 +254,24 @@ function ComboboxSelect({ value, onChange, options, placeholder = 'ابحث...',
             </button>
           ))}
           {filteredOptions.length === 0 && !showCreateOption && (
-            <div style={{ padding: '8px 10px', color: '#9ca3af', textAlign: 'center', fontSize: 13 }}>لا توجد نتائج</div>
+            <div style={{ padding: '8px 10px', color: '#94a3b8', textAlign: 'center', fontSize: '0.82rem' }}>لا توجد نتائج</div>
           )}
           {showCreateOption && (
             <button
               type="button"
-              style={{ width: '100%', textAlign: 'right', background: highlightedIndex === filteredOptions.length + 1 ? '#eff6ff' : 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, cursor: 'pointer', color: 'var(--primary, #170c5c)', fontWeight: 700 }}
+              style={{
+                width: '100%',
+                textAlign: 'right',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                padding: '7px 10px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                color: '#1e40af',
+                fontWeight: 700,
+                fontSize: '0.84rem',
+                marginTop: 4,
+              }}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => { onCreateNew?.(query.trim()); setIsOpen(false); }}
               onMouseEnter={() => setHighlightedIndex(filteredOptions.length + 1)}

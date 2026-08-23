@@ -83,7 +83,8 @@ export function LocationsManagementPage() {
   ];
 
   return (
-    <main className="document-prototype-column" style={{ maxWidth: '1000px' }}>
+    <div className="page-stack page-shell locations-page" dir="rtl">
+      <main className="document-prototype-column" style={{ maxWidth: '1280px', margin: '0 auto', width: '100%', paddingBottom: '32px' }}>
       <PageHeader
         title="إدارة أماكن المخزون"
         description="إضافة، تعديل، وحذف أماكن المخزون في النظام"
@@ -145,6 +146,7 @@ export function LocationsManagementPage() {
           </div>
         </DialogShell>
       )}
-    </main>
+      </main>
+    </div>
   );
 }

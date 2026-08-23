@@ -510,6 +510,59 @@ export class MaintenanceService {
 
   async deleteTicket(id: number, auth: AuthContext) {
     const scope = requireTenantScope(auth);
+
+    // Return all consumed parts back to inventory before deletion
+    const parts = await this.db
+      .selectFrom('maintenance_ticket_parts')
+      .selectAll()
+      .where('tenant_id', '=', scope.tenantId)
+      .where('ticket_id', '=', id)
+      .execute();
+
+    for (const part of parts) {
+      const prod = await this.db
+        .selectFrom('products')
+        .select(['stock_qty'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', part.product_id)
+        .executeTakeFirst();
+
+      if (prod) {
+        const currentQty = Number(prod.stock_qty || 0);
+        const returnQty = Number(part.qty);
+        const afterQty = currentQty + returnQty;
+
+        await this.db
+          .updateTable('products')
+          .set({ stock_qty: afterQty })
+          .where('tenant_id', '=', scope.tenantId)
+          .where('id', '=', part.product_id)
+          .execute();
+
+        try {
+          await this.db
+            .insertInto('stock_movements')
+            .values({
+              product_id: Number(part.product_id),
+              movement_type: 'maintenance_return',
+              qty: returnQty,
+              before_qty: currentQty,
+              after_qty: afterQty,
+              reason: 'إلغاء تذكرة صيانة - إرجاع قطع الغيار للمخزون',
+              note: `حذف تذكرة صيانة #${id} - قطعة: ${part.product_name}`,
+              reference_type: 'maintenance_ticket',
+              reference_id: id,
+              created_by: auth.userId ? Number(auth.userId) : null,
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+            })
+            .execute();
+        } catch (err) {
+          console.warn('Failed to record stock movement on ticket delete:', err);
+        }
+      }
+    }
+
     await this.db
       .deleteFrom('maintenance_ticket_parts')
       .where('tenant_id', '=', scope.tenantId)
@@ -522,7 +575,7 @@ export class MaintenanceService {
       .where('id', '=', id)
       .execute();
 
-    await this.audit.log('Delete Maintenance Ticket', `Deleted ticket ID ${id}`, auth);
+    await this.audit.log('Delete Maintenance Ticket', `Deleted ticket ID ${id} and restored ${parts.length} parts to stock`, auth);
     return { ok: true };
   }
 }

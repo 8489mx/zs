@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/components/data-table';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { PageHeader } from '@/shared/components/page-header';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { FilterChipGroup } from '@/shared/components/filter-chip-group';
@@ -123,15 +124,21 @@ export function AuditPage() {
         <FilterChipGroup value={filterMode} options={auditFilterOptions} onChange={setFilterMode} />
         <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالإجراء أو التفاصيل أو المنفذ">
           <Field label="نوع النشاط">
-            <select value={activityTypeFilter} onChange={(event) => setActivityTypeFilter(event.target.value as typeof activityTypeFilter)}>
-              {auditTypeFilterOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
+            <CustomSelect
+              value={activityTypeFilter}
+              onChange={(val) => setActivityTypeFilter(val as typeof activityTypeFilter)}
+              options={auditTypeFilterOptions}
+            />
           </Field>
           <Field label="الموظف">
-            <select value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)}>
-              <option value="">كل الموظفين</option>
-              {userOptions.map((user) => <option key={user.id} value={user.id}>{user.label}{user.role ? ` — ${user.role}` : ''}</option>)}
-            </select>
+            <CustomSelect
+              value={selectedUserId}
+              onChange={(val) => setSelectedUserId(val)}
+              options={[
+                { value: '', label: 'كل الموظفين' },
+                ...userOptions.map((user) => ({ value: user.id, label: user.label + (user.role ? ` — ${user.role}` : '') })),
+              ]}
+            />
           </Field>
         </SearchToolbar>
         <StatsGrid items={stats} style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }} />

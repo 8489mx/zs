@@ -4,6 +4,7 @@ import { queryKeys } from '@/app/query-keys';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { accountsApi } from '@/features/accounts/api/accounts.api';
@@ -738,10 +739,14 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                   <input type="number" min="1" max={unscheduledBalance} step="0.01" value={scheduleAmount} onChange={(event) => setScheduleAmount(event.target.value)} placeholder={String(unscheduledBalance || '')} />
                 </Field>
                 <Field label="طريقة التقسيم">
-                  <select value={mode} onChange={(event) => setMode(event.target.value as 'count' | 'amount')}>
-                    <option value="count">حسب عدد الدفعات</option>
-                    <option value="amount">حسب مبلغ الدفعة</option>
-                  </select>
+                  <CustomSelect
+                    value={mode}
+                    onChange={(val) => setMode(val as 'count' | 'amount')}
+                    options={[
+                      { value: 'count', label: 'حسب عدد الدفعات' },
+                      { value: 'amount', label: 'حسب مبلغ الدفعة' },
+                    ]}
+                  />
                 </Field>
                 {mode === 'count' ? (
                   <Field label="عدد الدفعات"><input type="number" min="1" value={installmentCount} onChange={(event) => setInstallmentCount(event.target.value)} /></Field>

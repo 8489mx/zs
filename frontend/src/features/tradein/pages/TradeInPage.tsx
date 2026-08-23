@@ -11,6 +11,96 @@ import { BrandCombobox } from '@/shared/components/BrandCombobox';
 import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
 import type { TradeInTransaction } from '@/types/domain-models/tradein';
 
+// Premium Minimal Vector SVG Icons (StrokeWidth 1.75)
+const Icons = {
+  Device: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+      <line x1="12" y1="18" x2="12.01" y2="18" />
+    </svg>
+  ),
+  Exchange: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  ),
+  Box: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+  ),
+  Coins: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="6" />
+      <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+      <path d="M7 6h1v4" />
+      <path d="M16.7 13.8a4 4 0 0 0-4-4" />
+    </svg>
+  ),
+  Search: () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  WhatsApp: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#16a34a" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  ),
+  Printer: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9" />
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <rect x="6" y="14" width="12" height="8" />
+    </svg>
+  ),
+  Copy: () => (
+    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  ),
+  Plus: () => (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  ),
+  Refresh: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10" />
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+    </svg>
+  ),
+  User: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  FileText: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
+    </svg>
+  ),
+};
+
+const conditionLabels: Record<string, { label: string; bg: string; color: string; border: string }> = {
+  new_sealed: { label: 'جديد متبرشم (Sealed)', bg: '#ecfdf5', color: '#065f46', border: '#a7f3d0' },
+  like_new: { label: 'كسر زيرو (Like New)', bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
+  used: { label: 'مستعمل (Used)', bg: '#f8fafc', color: '#334155', border: '#e2e8f0' },
+  for_parts: { label: 'قطع غيار / تالف', bg: '#fff1f2', color: '#9f1239', border: '#fecdd3' },
+};
+
 export function TradeInPage() {
   const queryClient = useQueryClient();
   const settingsQuery = useSettingsQuery();
@@ -21,6 +111,7 @@ export function TradeInPage() {
   const [page, setPage] = useState(1);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [disclaimerTransaction, setDisclaimerTransaction] = useState<TradeInTransaction | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<UpsertTradeInPayload>({
     sellerName: '',
@@ -42,7 +133,7 @@ export function TradeInPage() {
 
   useAppToolbar([{ label: 'شراء واستبدال الأجهزة (شراء من الأفراد)' }]);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['tradein-transactions', searchQuery, page],
     queryFn: () =>
       tradeInApi.list({
@@ -68,6 +159,17 @@ export function TradeInPage() {
   const autoInventoryCount = allTransactions.filter((t) => Boolean(t.createdProductId)).length;
   const totalPurchaseSpend = allTransactions.reduce((acc, t) => acc + (t.agreedPurchasePrice || 0), 0);
 
+  const countForCondition = (cond: 'new_sealed' | 'like_new' | 'used' | 'for_parts') => {
+    return allTransactions.filter((t) => {
+      const notes = t.deviceConditionNotes || '';
+      if (cond === 'new_sealed') return notes.includes('جديد متبرشم') || notes.includes('Sealed');
+      if (cond === 'like_new') return notes.includes('كسر زيرو') || notes.includes('Like New');
+      if (cond === 'used') return notes.includes('مستعمل') || (!notes.includes('جديد متبرشم') && !notes.includes('كسر زيرو') && !notes.includes('قطع غيار'));
+      if (cond === 'for_parts') return notes.includes('قطع غيار') || notes.includes('تالف');
+      return false;
+    }).length;
+  };
+
   const transactions = allTransactions.filter((t) => {
     if (conditionFilter === 'all') return true;
     const notes = t.deviceConditionNotes || '';
@@ -85,11 +187,11 @@ export function TradeInPage() {
     return '(مستعمل)';
   };
 
-  const conditionLabels: Record<string, { label: string; bg: string; color: string; border: string }> = {
-    new_sealed: { label: 'جديد متبرشم (Sealed)', bg: '#dcfce7', color: '#166534', border: '#86efac' },
-    like_new: { label: 'كسر زيرو (Like New)', bg: '#dbeafe', color: '#1e40af', border: '#93c5fd' },
-    used: { label: 'مستعمل (Used)', bg: '#f1f5f9', color: '#334155', border: '#cbd5e1' },
-    for_parts: { label: 'قطع غيار / تالف', bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  const handleCopyText = (text: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopiedId(text);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -110,28 +212,28 @@ export function TradeInPage() {
     const cleanPhone = t.sellerPhone.replace(/\D/g, '');
     const phoneFormatted = cleanPhone.startsWith('01') ? `2${cleanPhone}` : cleanPhone;
 
-    const message = `مرحباً أستاذ ${t.sellerName}
-معك ${storeName} بخصوص عملية بيع / استبدال جهازك:
-• الموديل: ${t.deviceBrand ? `${t.deviceBrand} ` : ''}${t.deviceModel}
-• ${maintenanceProfile.serialLabel}: ${t.serialNumber}
-• المبلغ المتفق عليه: ${t.agreedPurchasePrice.toFixed(2)} ج.م
-• رقم الإقرار والتنازل: ${t.docNo}
+    const message = `مرحباً أستاذ *${t.sellerName}*
+معك *${storeName}* بخصوص عملية بيع / استبدال جهازك:
+- *الموديل:* ${t.deviceBrand ? `${t.deviceBrand} ` : ''}${t.deviceModel}
+- *${maintenanceProfile.serialLabel}:* ${t.serialNumber}
+- *المبلغ المتفق عليه:* ${t.agreedPurchasePrice.toFixed(2)} ج.م
+- *رقم الإقرار والتنازل:* ${t.docNo}
+----------------------------------------
+نشكرك لتعاملك معنا ونسعد دائماً بزيارتك!`;
 
-نشكرك لتعاملك معنا ونسعد بزيارتك دائماً!`;
-
-    const url = `https://api.whatsapp.com/send?phone=${phoneFormatted}&text=${encodeURIComponent(message)}`;
+    const url = `https://api.whatsapp.com/send/?phone=${phoneFormatted}&text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
 
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title="شراء واستبدال الأجهزة (شراء من الأفراد)"
           description="تسجيل شراء أجهزة جديدة، كسر زيرو، مستعملة، أو قطع غيار من العملاء، إدراجها بالمخزن، وطباعة إقرار التنازل الأمني."
-          badge={<span className="nav-pill">{totalItems} عملية شراء/استبدال</span>}
+          badge={<span className="nav-pill" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>{totalItems} عملية شراء/استبدال</span>}
           actions={
-            <div className="actions compact-actions">
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
                 variant="primary"
                 onClick={() => {
@@ -154,264 +256,330 @@ export function TradeInPage() {
                   });
                   setCreateModalOpen(true);
                 }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
               >
-                + شراء جهاز من عميل / فرد
+                <Icons.Plus />
+                <span>شراء جهاز من عميل / فرد</span>
               </Button>
-              <Button variant="secondary" onClick={() => void refetch()}>
-                تحديث
+              <Button variant="secondary" onClick={() => void refetch()} disabled={isRefetching} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Icons.Refresh />
+                <span>تحديث</span>
               </Button>
             </div>
           }
         />
 
-        {/* Trade-In KPI Summary Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Trade-In KPI Summary Cards - Calm Enterprise Dashboard Style */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي الأجهزة المشتراة</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{allTransactions.length}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{allTransactions.length}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Icons.Device />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عمليات استبدال Trade-In</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#2563eb', marginTop: '2px' }}>{tradeInExchangeCount}</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{tradeInExchangeCount}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Icons.Exchange />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أجهزة مضافة للمخزون فوراً</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{autoInventoryCount}</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أجهزة مضافة للمخزون</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{autoInventoryCount}</div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Icons.Box />
             </div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
             <div>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي المنصرف للشراء</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                {totalPurchaseSpend.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>ج.م</span>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                {totalPurchaseSpend.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
               </div>
             </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a' }}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="8" x2="12.01" y2="8"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Icons.Coins />
             </div>
           </div>
         </div>
 
-        {/* Search Bar & Filter Tabs */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', gap: '12px' }}>
-          <div style={{ width: '100%', maxWidth: '380px' }}>
+        {/* Search Bar & Filter Tabs - Segmented Style */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', gap: '12px', marginBottom: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', gap: '4px', background: '#f8fafc', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            {[
+              { key: 'all', label: 'الكل', count: allTransactions.length },
+              { key: 'new_sealed', label: 'جديد متبرشم', count: countForCondition('new_sealed') },
+              { key: 'like_new', label: 'كسر زيرو', count: countForCondition('like_new') },
+              { key: 'used', label: 'مستعمل', count: countForCondition('used') },
+              { key: 'for_parts', label: 'قطع غيار', count: countForCondition('for_parts') },
+            ].map((tab) => {
+              const active = conditionFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setConditionFilter(tab.key as any)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: active ? 700 : 500,
+                    border: active ? '1px solid #cbd5e1' : '1px solid transparent',
+                    background: active ? '#ffffff' : 'transparent',
+                    color: active ? '#0f172a' : '#64748b',
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      padding: '1px 5px',
+                      borderRadius: '10px',
+                      background: active ? '#0f172a' : '#e2e8f0',
+                      color: active ? '#ffffff' : '#475569',
+                    }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ position: 'relative', minWidth: '320px', flex: '1', maxWidth: '420px' }}>
+            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+              <Icons.Search />
+            </span>
             <input
               type="text"
               className="purchase-prototype-field-input"
               placeholder={`بحث باسم البائع، الرقم القومي، الموديل، أو ${maintenanceProfile.serialLabel}...`}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              style={{ width: '100%', padding: '8px 12px', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '7px 34px 7px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
             />
-          </div>
-
-          {/* Quick Filter Tabs */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => setConditionFilter('all')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor: conditionFilter === 'all' ? '#0f172a' : '#e2e8f0',
-                background: conditionFilter === 'all' ? '#0f172a' : '#fff',
-                color: conditionFilter === 'all' ? '#fff' : '#475569',
-                fontSize: '0.825rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              الكل ({allTransactions.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setConditionFilter('new_sealed')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor: conditionFilter === 'new_sealed' ? '#16a34a' : '#e2e8f0',
-                background: conditionFilter === 'new_sealed' ? '#dcfce7' : '#fff',
-                color: conditionFilter === 'new_sealed' ? '#166534' : '#475569',
-                fontSize: '0.825rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              جديد متبرشم
-            </button>
-            <button
-              type="button"
-              onClick={() => setConditionFilter('like_new')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor: conditionFilter === 'like_new' ? '#2563eb' : '#e2e8f0',
-                background: conditionFilter === 'like_new' ? '#dbeafe' : '#fff',
-                color: conditionFilter === 'like_new' ? '#1e40af' : '#475569',
-                fontSize: '0.825rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              كسر زيرو
-            </button>
-            <button
-              type="button"
-              onClick={() => setConditionFilter('used')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor: conditionFilter === 'used' ? '#475569' : '#e2e8f0',
-                background: conditionFilter === 'used' ? '#f1f5f9' : '#fff',
-                color: conditionFilter === 'used' ? '#0f172a' : '#475569',
-                fontSize: '0.825rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              مستعمل
-            </button>
-            <button
-              type="button"
-              onClick={() => setConditionFilter('for_parts')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '20px',
-                border: '1px solid',
-                borderColor: conditionFilter === 'for_parts' ? '#dc2626' : '#e2e8f0',
-                background: conditionFilter === 'for_parts' ? '#fee2e2' : '#fff',
-                color: conditionFilter === 'for_parts' ? '#991b1b' : '#475569',
-                fontSize: '0.825rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              قطع غيار
-            </button>
           </div>
         </div>
 
         {/* Transactions Table */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
-                <th style={{ padding: '10px 14px' }}>رقم الإيصال</th>
-                <th style={{ padding: '10px 14px' }}>البائع / الرقم القومي</th>
-                <th style={{ padding: '10px 14px' }}>الجهاز / {maintenanceProfile.serialLabel}</th>
-                <th style={{ padding: '10px 14px' }}>الحالة والملاحظات</th>
-                <th style={{ padding: '10px 14px' }}>سعر الشراء</th>
-                <th style={{ padding: '10px 14px' }}>العملية والتاريخ</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                    جاري تحميل سجلات شراء الأجهزة...
-                  </td>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'right' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', fontWeight: 700 }}>
+                  <th style={{ padding: '10px 14px', width: '110px' }}>رقم الإيصال</th>
+                  <th style={{ padding: '10px 14px', width: '190px' }}>البائع / الرقم القومي</th>
+                  <th style={{ padding: '10px 14px', width: '200px' }}>الجهاز / {maintenanceProfile.serialLabel}</th>
+                  <th style={{ padding: '10px 14px', minWidth: '160px' }}>الحالة والملاحظات</th>
+                  <th style={{ padding: '10px 14px', width: '130px' }}>سعر الشراء</th>
+                  <th style={{ padding: '10px 14px', width: '150px' }}>نوع العملية والتاريخ</th>
+                  <th style={{ padding: '10px 14px', width: '170px', textAlign: 'center' }}>الإجراءات</th>
                 </tr>
-              ) : transactions.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                    لا توجد عمليات مسجلة لهذا التصنيف.
-                  </td>
-                </tr>
-              ) : (
-                transactions.map((t) => (
-                  <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 700, fontFamily: 'monospace' }}>
-                      {t.docNo}
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <strong>{t.sellerName}</strong>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        الرقم القومي: <span dir="ltr">{t.sellerNationalId}</span>
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', direction: 'ltr', textAlign: 'right' }}>
-                        {t.sellerPhone}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <strong>
-                        {t.deviceBrand ? `${t.deviceBrand} ` : ''}
-                        {t.deviceModel}
-                      </strong>
-                      <div style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#0284c7', direction: 'ltr', textAlign: 'right' }}>
-                        {maintenanceProfile.serialLabel}: {t.serialNumber}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 14px', maxWidth: '240px' }}>
-                      <div style={{ fontSize: '0.825rem', color: '#334155', lineHeight: 1.4 }}>
-                        {t.deviceConditionNotes || '—'}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>
-                      {t.agreedPurchasePrice.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '12px',
-                          fontSize: '0.725rem',
-                          fontWeight: 700,
-                          background: t.transactionType === 'exchange_trade_in' ? '#dbeafe' : '#f1f5f9',
-                          color: t.transactionType === 'exchange_trade_in' ? '#1e40af' : '#475569',
-                        }}
-                      >
-                        {t.transactionType === 'exchange_trade_in' ? 'استبدال Trade-In' : 'شراء كاش'}
-              </span>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '3px' }}>
-                        {new Date(t.createdAt).toLocaleDateString('ar-EG', { dateStyle: 'medium' } as any)}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', gap: '4px' }}>
-                        <Button
-                          variant="secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.8rem', color: '#16a34a' }}
-                          title="إرسال إشعار واتساب للبائع"
-                          onClick={() => sendWhatsAppTradeInNotice(t)}
-                        >
-                          واتساب 💬
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                          onClick={() => setDisclaimerTransaction(t)}
-                        >
-                          طباعة الإقرار
-                        </Button>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                        <Icons.Refresh />
+                        <span>جاري تحميل سجلات شراء الأجهزة...</span>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '44px', textAlign: 'center', color: '#64748b' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>لا توجد عمليات مسجلة</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>استخدم زر "شراء جهاز من عميل / فرد" لبدء تسجيل عملية شراء جديدة.</div>
+                    </td>
+                  </tr>
+                ) : (
+                  transactions.map((t) => (
+                    <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s ease' }}>
+                      {/* Doc No */}
+                      <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => setDisclaimerTransaction(t)}
+                          title="عرض وطباعة إقرار التنازل"
+                          style={{
+                            fontFamily: 'monospace',
+                            fontWeight: 700,
+                            fontSize: '0.825rem',
+                            color: '#0f172a',
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            padding: '3px 8px',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <span>{t.docNo}</span>
+                        </button>
+                      </td>
+
+                      {/* Seller */}
+                      <td style={{ padding: '11px 14px' }}>
+                        <strong style={{ display: 'block', color: '#0f172a', fontSize: '0.85rem' }}>{t.sellerName}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                          <span>ق:</span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleCopyText(t.sellerNationalId, e)}
+                            title="اضغط لنسخ الرقم القومي"
+                            style={{ background: 'transparent', border: 'none', padding: 0, color: '#475569', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontFamily: 'monospace' }}
+                          >
+                            <span dir="ltr">{t.sellerNationalId}</span>
+                            {copiedId === t.sellerNationalId ? <span style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 700 }}>✓</span> : <Icons.Copy />}
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#64748b', marginTop: '1px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => handleCopyText(t.sellerPhone, e)}
+                            title="اضغط لنسخ رقم الهاتف"
+                            style={{ background: 'transparent', border: 'none', padding: 0, color: '#64748b', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontFamily: 'monospace' }}
+                          >
+                            <span dir="ltr">{t.sellerPhone}</span>
+                            {copiedId === t.sellerPhone ? <span style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 700 }}>✓</span> : <Icons.Copy />}
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Device */}
+                      <td style={{ padding: '11px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '1px' }}>
+                          {t.deviceBrand && (
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 600,
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                background: '#f1f5f9',
+                                color: '#475569',
+                                border: '1px solid #e2e8f0',
+                              }}
+                            >
+                              {t.deviceBrand}
+                            </span>
+                          )}
+                          <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{t.deviceModel}</strong>
+                        </div>
+                        <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#64748b' }}>
+                          <span dir="ltr">{t.serialNumber}</span>
+                        </div>
+                      </td>
+
+                      {/* Notes & Condition */}
+                      <td style={{ padding: '11px 14px', maxWidth: '240px' }} title={t.deviceConditionNotes || ''}>
+                        <div style={{ fontSize: '0.8rem', color: '#334155', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {t.deviceConditionNotes || '—'}
+                        </div>
+                      </td>
+
+                      {/* Purchase Price */}
+                      <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                          {t.agreedPurchasePrice.toFixed(2)} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                        </div>
+                      </td>
+
+                      {/* Transaction Type */}
+                      <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                        <span
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '5px',
+                            fontSize: '0.725rem',
+                            fontWeight: 700,
+                            background: t.transactionType === 'exchange_trade_in' ? '#f0f9ff' : '#f8fafc',
+                            color: t.transactionType === 'exchange_trade_in' ? '#0369a1' : '#475569',
+                            border: `1px solid ${t.transactionType === 'exchange_trade_in' ? '#bae6fd' : '#e2e8f0'}`,
+                          }}
+                        >
+                          {t.transactionType === 'exchange_trade_in' ? 'استبدال Trade-In' : 'شراء كاش'}
+                        </span>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                          {new Date(t.createdAt).toLocaleDateString('ar-EG', { dateStyle: 'medium' } as any)}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ padding: '11px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => sendWhatsAppTradeInNotice(t)}
+                            title="إرسال إشعار وتوثيق للبائع عبر واتساب"
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: '5px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              border: '1px solid #e2e8f0',
+                              background: '#ffffff',
+                              color: '#334155',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Icons.WhatsApp />
+                            <span>واتساب</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDisclaimerTransaction(t)}
+                            title="طباعة إقرار وتعهد التنازل الأمني"
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: '5px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              border: '1px solid #e2e8f0',
+                              background: '#ffffff',
+                              color: '#475569',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <Icons.Printer />
+                            <span>الإقرار</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* New Purchase Modal */}
@@ -422,27 +590,23 @@ export function TradeInPage() {
             width="min(1040px, 96vw)"
             ariaLabel="شراء وتنازل جهاز"
           >
-            <div style={{ padding: '22px 28px' }}>
-              <form onSubmit={handleSubmit} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ padding: '24px 28px' }}>
+              <form onSubmit={handleSubmit} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* Modal Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="23 4 23 10 17 10"></polyline>
-                        <polyline points="1 20 1 14 7 14"></polyline>
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                      </svg>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
+                      <Icons.Exchange />
                     </div>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>تسجيل شراء وتنازل جهاز (من عميل / فرد)</h3>
-                      <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#64748b' }}>توثيق بيانات البائع بالرقم القومي، تحديد حالة الجهاز، وإصدار إقرار إخلاء المسؤولية</p>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>تسجيل شراء وتنازل جهاز (من عميل / فرد)</h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>توثيق بيانات البائع بالرقم القومي، تحديد حالة الجهاز، وإصدار إقرار إخلاء المسؤولية</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setCreateModalOpen(false)}
-                    style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: '34px', height: '34px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '1rem', fontWeight: 700, transition: 'all 0.15s ease' }}
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}
                     title="إغلاق"
                   >
                     ✕
@@ -452,38 +616,32 @@ export function TradeInPage() {
                 {/* 2-Column Content Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
                   {/* Right Column: Seller & Device Details */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {/* Seller Details Card */}
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><line x1="7" y1="8" x2="17" y2="8"></line><line x1="7" y1="12" x2="13" y2="12"></line></svg>
-                        بيانات البائع (المقر بالملكية)
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#64748b' }}><Icons.User /></span>
+                        <span>بيانات البائع (المقر بالملكية)</span>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', marginBottom: '8px' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              اسم البائع بالكامل <span style={{ color: '#dc2626' }}>*</span>
-                            </label>
-                          </div>
-                          <input
-                            type="text"
-                            required
-                            className="purchase-prototype-field-input"
-                            value={formData.sellerName}
-                            onChange={(e) => setFormData({ ...formData, sellerName: e.target.value })}
-                            placeholder="الاسم الرباعي للبائع"
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
-                          />
-                        </div>
+                      <div style={{ marginBottom: '8px' }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          اسم البائع بالكامل <span style={{ color: '#dc2626' }}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          className="purchase-prototype-field-input"
+                          value={formData.sellerName}
+                          onChange={(e) => setFormData({ ...formData, sellerName: e.target.value })}
+                          placeholder="الاسم الرباعي أو الثلاثي للبائع"
+                          style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                        />
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              الرقم القومي (14 رقم) <span style={{ color: '#dc2626' }}>*</span>
-                            </label>
-                          </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            الرقم القومي (14 رقم) <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
                           <input
                             type="text"
                             required
@@ -493,15 +651,13 @@ export function TradeInPage() {
                             value={formData.sellerNationalId}
                             onChange={(e) => setFormData({ ...formData, sellerNationalId: e.target.value })}
                             placeholder="29801010123456"
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', textAlign: 'right', boxSizing: 'border-box' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.85rem', textAlign: 'right', boxSizing: 'border-box' }}
                           />
                         </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              رقم الهاتف <span style={{ color: '#dc2626' }}>*</span>
-                            </label>
-                          </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            رقم الهاتف <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
                           <input
                             type="tel"
                             required
@@ -510,25 +666,23 @@ export function TradeInPage() {
                             value={formData.sellerPhone}
                             onChange={(e) => setFormData({ ...formData, sellerPhone: e.target.value })}
                             placeholder="01012345678"
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* Device Specs Card */}
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-                        بيانات ومواصفات الجهاز
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#64748b' }}><Icons.Device /></span>
+                        <span>بيانات ومواصفات الجهاز</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              الماركة
-                            </label>
-                          </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            الماركة
+                          </label>
                           <BrandCombobox
                             value={formData.deviceBrand || ''}
                             onChange={(val) => setFormData({ ...formData, deviceBrand: val })}
@@ -537,12 +691,10 @@ export function TradeInPage() {
                             placeholder={`...${maintenanceProfile.sampleBrands.slice(0, 3).join(', ')}`}
                           />
                         </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              الموديل والمواصفات <span style={{ color: '#dc2626' }}>*</span>
-                            </label>
-                          </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            الموديل والمواصفات <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
                           <input
                             type="text"
                             required
@@ -550,17 +702,15 @@ export function TradeInPage() {
                             value={formData.deviceModel}
                             onChange={(e) => setFormData({ ...formData, deviceModel: e.target.value })}
                             placeholder={maintenanceProfile.tradeInModelPlaceholder}
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
                           />
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={maintenanceProfile.serialLabel}>
-                              {maintenanceProfile.serialLabel} <span style={{ color: '#dc2626' }}>*</span>
-                            </label>
-                          </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            {maintenanceProfile.serialLabel} <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
                           <input
                             type="text"
                             required
@@ -569,15 +719,13 @@ export function TradeInPage() {
                             value={formData.serialNumber}
                             onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
                             placeholder={maintenanceProfile.serialPlaceholder}
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
                           />
                         </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={maintenanceProfile.secondarySerialLabel}>
-                              {maintenanceProfile.secondarySerialLabel}
-                            </label>
-                          </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            {maintenanceProfile.secondarySerialLabel}
+                          </label>
                           <input
                             type="text"
                             dir="ltr"
@@ -585,7 +733,7 @@ export function TradeInPage() {
                             value={formData.imei2 || ''}
                             onChange={(e) => setFormData({ ...formData, imei2: e.target.value })}
                             placeholder="اختياري..."
-                            style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                            style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.85rem', boxSizing: 'border-box' }}
                           />
                         </div>
                       </div>
@@ -593,21 +741,19 @@ export function TradeInPage() {
                   </div>
 
                   {/* Left Column: Condition & Pricing */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {/* Condition Selector & Notes Card */}
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                        حالة الجهاز وملاحظات الفحص
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#64748b' }}><Icons.FileText /></span>
+                        <span>حالة الجهاز وملاحظات الفحص</span>
                       </div>
 
-                      {/* 4 State Buttons */}
+                      {/* 4 State Buttons - Soft Pastel Badges */}
                       <div style={{ marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '6px' }}>
-                          <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                            حالة الجهاز عند الشراء:
-                          </label>
-                        </div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                          حالة الجهاز عند الشراء:
+                        </label>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                           {(['new_sealed', 'like_new', 'used', 'for_parts'] as const).map((st) => {
                             const isSelected = (formData.deviceConditionState || 'used') === st;
@@ -618,19 +764,19 @@ export function TradeInPage() {
                                 type="button"
                                 onClick={() => setFormData({ ...formData, deviceConditionState: st })}
                                 style={{
-                                  padding: '8px 10px',
-                                  borderRadius: '8px',
-                                  border: isSelected ? `2px solid ${meta.color}` : '1px solid #cbd5e1',
-                                  background: isSelected ? meta.bg : '#fff',
+                                  padding: '7px 10px',
+                                  borderRadius: '6px',
+                                  border: `1px solid ${isSelected ? meta.border : '#cbd5e1'}`,
+                                  background: isSelected ? meta.bg : '#ffffff',
                                   color: isSelected ? meta.color : '#334155',
-                                  fontWeight: isSelected ? 800 : 600,
-                                  fontSize: '0.825rem',
+                                  fontWeight: isSelected ? 800 : 500,
+                                  fontSize: '0.8rem',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  gap: '6px',
-                                  transition: 'all 0.15s ease',
+                                  gap: '4px',
+                                  boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
                                 }}
                               >
                                 {isSelected ? '✓ ' : ''}
@@ -642,35 +788,31 @@ export function TradeInPage() {
                       </div>
 
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                          <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                            {maintenanceProfile.tradeInNotesLabel}
-                          </label>
-                        </div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          {maintenanceProfile.tradeInNotesLabel}
+                        </label>
                         <textarea
                           rows={2}
                           className="purchase-prototype-field-input"
                           value={formData.deviceConditionNotes || ''}
                           onChange={(e) => setFormData({ ...formData, deviceConditionNotes: e.target.value })}
                           placeholder={maintenanceProfile.tradeInNotesPlaceholder}
-                          style={{ width: '100%', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', resize: 'vertical', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                          style={{ width: '100%', background: '#fff', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', resize: 'vertical', boxSizing: 'border-box', fontSize: '0.85rem' }}
                         />
                       </div>
                     </div>
 
                     {/* Financials & Inventory Link Card */}
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="8" x2="12.01" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                        الاتفاق المالي والمخزن
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#64748b' }}><Icons.Coins /></span>
+                        <span>الاتفاق المالي والمخزن</span>
                       </div>
-                      <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                        <div style={{ flex: '1 1 0px', width: '33.333%', minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              سعر الشراء المتفق عليه <span style={{ color: '#dc2626' }}>*</span>
-                            </label>
-                          </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '10px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                            سعر الشراء المتفق عليه <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
                           <input
                             type="number"
                             min="0"
@@ -680,36 +822,32 @@ export function TradeInPage() {
                             value={formData.agreedPurchasePrice || ''}
                             onChange={(e) => setFormData({ ...formData, agreedPurchasePrice: Number(e.target.value) })}
                             placeholder="0.00"
-                            style={{ width: '100%', height: '38px', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.95rem', boxSizing: 'border-box' }}
+                            style={{ width: '100%', height: '36px', background: '#fff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.9rem', boxSizing: 'border-box' }}
                           />
                         </div>
-                        <div style={{ flex: '1 1 0px', width: '33.333%', minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              نوع العملية
-                            </label>
-                          </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                            نوع العملية
+                          </label>
                           <select
                             className="purchase-prototype-field-input"
                             value={formData.transactionType}
                             onChange={(e) => setFormData({ ...formData, transactionType: e.target.value as any })}
-                            style={{ width: '100%', height: '38px', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                            style={{ width: '100%', height: '36px', background: '#fff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: 600 }}
                           >
                             <option value="cash_purchase">شراء نقدي</option>
                             <option value="exchange_trade_in">استبدال Trade-In</option>
                           </select>
                         </div>
-                        <div style={{ flex: '1 1 0px', width: '33.333%', minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '22px', marginBottom: '4px' }}>
-                            <label style={{ fontSize: '0.825rem', fontWeight: 600, color: '#475569', margin: 0, whiteSpace: 'nowrap' }}>
-                              طريقة السداد
-                            </label>
-                          </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                            طريقة السداد
+                          </label>
                           <select
                             className="purchase-prototype-field-input"
                             value={formData.paymentMethod || 'cash'}
                             onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as any })}
-                            style={{ width: '100%', height: '38px', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                            style={{ width: '100%', height: '36px', background: '#fff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: 600 }}
                           >
                             <option value="cash">كاش الخزينة</option>
                             <option value="vodafone_cash">فودافون كاش</option>
@@ -718,27 +856,27 @@ export function TradeInPage() {
                         </div>
                       </div>
 
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px 12px' }}>
                         <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
                           <input
                             type="checkbox"
                             checked={formData.autoAddToInventory !== false}
                             onChange={(e) => setFormData({ ...formData, autoAddToInventory: e.target.checked })}
-                            style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer' }}
+                            style={{ width: '16px', height: '16px', marginTop: '2px', cursor: 'pointer' }}
                           />
                           <div>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
+                            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0f172a' }}>
                               إدراج الجهاز تلقائياً في المخزن للبيع على الكاشير
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                              سيقوم النظام بإنشاء صنف باسم: <strong style={{ color: '#0284c7' }}>({formData.deviceBrand ? `${formData.deviceBrand} ` : ''}{formData.deviceModel || 'موديل الجهاز'} {getConditionSuffix(formData.deviceConditionState)})</strong> وربط {maintenanceProfile.serialLabel} تلقائياً.
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                              سيقوم النظام بإنشاء صنف باسم: <strong style={{ color: '#0f172a' }}>({formData.deviceBrand ? `${formData.deviceBrand} ` : ''}{formData.deviceModel || 'موديل الجهاز'} {getConditionSuffix(formData.deviceConditionState)})</strong> وربط السيريال تلقائياً.
                             </div>
                           </div>
                         </label>
 
                         {formData.autoAddToInventory !== false && (
-                          <div style={{ marginTop: '10px', borderTop: '1px dashed #e2e8f0', paddingTop: '8px' }}>
-                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
+                          <div style={{ marginTop: '8px', borderTop: '1px dashed #e2e8f0', paddingTop: '8px' }}>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '3px' }}>
                               سعر البيع المقترح للجمهور على الكاشير (اختياري):
                             </label>
                             <input
@@ -749,7 +887,7 @@ export function TradeInPage() {
                               value={formData.resalePrice || ''}
                               onChange={(e) => setFormData({ ...formData, resalePrice: Number(e.target.value) })}
                               placeholder={formData.agreedPurchasePrice ? `مثال: ${(formData.agreedPurchasePrice * 1.15).toFixed(0)}` : '0.00'}
-                              style={{ width: '100%', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                              style={{ width: '100%', background: '#f8fafc', padding: '5px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', fontSize: '0.825rem', boxSizing: 'border-box' }}
                             />
                           </div>
                         )}
@@ -759,11 +897,11 @@ export function TradeInPage() {
                 </div>
 
                 {/* Modal Footer */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
-                  <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)} style={{ padding: '8px 24px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                  <Button type="button" variant="secondary" onClick={() => setCreateModalOpen(false)} style={{ padding: '7px 20px', fontSize: '0.85rem' }}>
                     إلغاء
                   </Button>
-                  <Button type="submit" variant="primary" disabled={createMutation.isPending} style={{ padding: '8px 28px', fontWeight: 700, fontSize: '0.9rem' }}>
+                  <Button type="submit" variant="primary" disabled={createMutation.isPending} style={{ padding: '7px 24px', fontWeight: 700, fontSize: '0.85rem' }}>
                     {createMutation.isPending ? 'جارٍ التسجيل...' : 'حفظ وتوثيق عقد التنازل'}
                   </Button>
                 </div>

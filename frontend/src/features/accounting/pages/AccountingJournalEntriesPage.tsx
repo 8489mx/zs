@@ -74,7 +74,7 @@ export function AccountingJournalEntriesPage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
-      <PageHeader title="الحسابات" description="القيود اليومية" />
+      <PageHeader title="القيود اليومية" badge={<span className="nav-pill">دفتر اليومية العامة</span>} />
       <FormSection title="القيود اليومية">
         <QueryFeedback
           isLoading={query.isLoading}

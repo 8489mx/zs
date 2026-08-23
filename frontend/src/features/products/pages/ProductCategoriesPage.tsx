@@ -169,7 +169,8 @@ export function ProductCategoriesPage() {
   };
 
   return (
-    <main className="document-prototype-column" style={{ paddingBottom: '60px', maxWidth: '1280px' }} dir="rtl">
+    <div className="page-stack page-shell product-categories-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '60px', maxWidth: '1280px' }}>
       <PageHeader 
         title="أقسام وتصنيفات الأصناف"
         description="إدارة وتعديل تصنيفات الأصناف، نقل المنتجات جماعياً، ومناقلة أرصدة الأقسام بين المخازن"
@@ -465,7 +466,7 @@ export function ProductCategoriesPage() {
                 </Button>
               </div>
               
-              <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#ffffff' }}>
+              <div className="custom-combobox-dropdown" style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#ffffff' }}>
                 {productsQuery.isLoading ? (
                   <div className="muted small" style={{ textAlign: 'center', padding: '24px' }}>جاري تحميل الأصناف...</div>
                 ) : categoryProducts.length === 0 ? (
@@ -605,6 +606,7 @@ export function ProductCategoriesPage() {
           onCancel={() => setDeletingCategory(null)}
         />
       )}
-    </main>
+      </main>
+    </div>
   );
 }

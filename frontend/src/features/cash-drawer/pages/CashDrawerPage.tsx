@@ -62,7 +62,7 @@ export function CashDrawerPage() {
 
   return (
     <div className="page-stack page-shell cash-drawer-page" dir="rtl">
-      <main className="document-prototype-column" style={{ maxWidth: '1440px', paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '100px' }}>
       <PageHeader
         title="ورديات نقطة البيع ودرج النقدية"
         badge={<span className="nav-pill">متابعة ورديات نقطة البيع</span>}

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
+import { Controller, type UseFormReturn } from 'react-hook-form';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
@@ -183,10 +184,21 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             </select>
           </Field> : null}
           {SINGLE_STORE_MODE ? <Field label="المخزن الأساسي"><input value={locationList[0]?.name || 'سيتم الربط تلقائيًا بالمخزن الأساسي'} disabled readOnly /></Field> : <Field label="المخزن">
-            <select {...props.openForm.register('locationId')} disabled={props.openMutation.isPending}>
-              <option value="">بدون مخزن</option>
-              {availableLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-            </select>
+            <Controller
+              name="locationId"
+              control={props.openForm.control}
+              render={({ field }) => (
+                <CustomSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={props.openMutation.isPending}
+                  options={[
+                    { value: '', label: 'بدون مخزن' },
+                    ...availableLocations.map((location) => ({ value: location.id, label: location.name })),
+                  ]}
+                />
+              )}
+            />
           </Field>}
           <Field label="ملاحظة الافتتاح"><textarea rows={2} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>
           <MutationFeedback isError={props.openMutation.isError} isSuccess={props.openMutation.isSuccess} error={props.openMutation.error} errorFallback="تعذر فتح وردية نقطة البيع" successText="تم فتح وردية نقطة البيع بنجاح." />
@@ -200,16 +212,38 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           <h2 style={{ marginTop: 0, marginBottom: '24px' }}>تسجيل حركة درج النقدية</h2>
         <form className="form-grid" onSubmit={props.onMovementSubmit}>
           <Field label="وردية نقطة البيع المفتوحة">
-            <select {...props.movementForm.register('shiftId')} disabled={props.movementMutation.isPending}>
-              <option value="">اختر وردية نقطة البيع</option>
-              {props.openOptions.map((shift) => <option key={shift.id} value={shift.id}>{shift.openedByName || 'وردية نقطة بيع'}{shift.docNo ? ` — ${shift.docNo}` : ''}</option>)}
-            </select>
+            <Controller
+              name="shiftId"
+              control={props.movementForm.control}
+              render={({ field }) => (
+                <CustomSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={props.movementMutation.isPending}
+                  options={[
+                    { value: '', label: 'اختر وردية نقطة البيع' },
+                    ...props.openOptions.map((shift) => ({ value: shift.id, label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}` })),
+                  ]}
+                />
+              )}
+            />
           </Field>
           <Field label="النوع">
-            <select {...props.movementForm.register('type')} disabled={props.movementMutation.isPending}>
-              <option value="cash_in">إيداع</option>
-              <option value="cash_out">صرف</option>
-            </select>
+            <Controller
+              name="type"
+              control={props.movementForm.control}
+              render={({ field }) => (
+                <CustomSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={props.movementMutation.isPending}
+                  options={[
+                    { value: 'cash_in', label: 'إيداع' },
+                    { value: 'cash_out', label: 'صرف' },
+                  ]}
+                />
+              )}
+            />
           </Field>
           <Field label="المبلغ"><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} /></Field>
           <Field label="سبب الحركة (إجباري)"><textarea rows={2} placeholder="اكتب سبب الصرف أو الإيداع بوضوح" required {...props.movementForm.register('note', { required: true })} disabled={props.movementMutation.isPending} /></Field>
@@ -230,11 +264,23 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
           <h2 style={{ marginTop: 0, marginBottom: '24px' }}>إغلاق وردية نقطة البيع</h2>
         <form className="form-grid" onSubmit={props.onCloseSubmit}>
           <Field label="وردية نقطة البيع المفتوحة">
-            <select {...props.closeForm.register('shiftId')} disabled={props.closeMutation.isPending}>
-              <option value="">اختر وردية نقطة البيع</option>
-              {props.openOptions.map((shift) => <option key={shift.id} value={shift.id}>{shift.openedByName || 'وردية نقطة بيع'}{shift.docNo ? ` — ${shift.docNo}` : ''}</option>)}
-            </select>
+            <Controller
+              name="shiftId"
+              control={props.closeForm.control}
+              render={({ field }) => (
+                <CustomSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={props.closeMutation.isPending}
+                  options={[
+                    { value: '', label: 'اختر وردية نقطة البيع' },
+                    ...props.openOptions.map((shift) => ({ value: shift.id, label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}` })),
+                  ]}
+                />
+              )}
+            />
           </Field>
+
 
           {isBlindCloseMode ? (
             <>

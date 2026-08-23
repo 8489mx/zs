@@ -144,8 +144,8 @@ export function AccountingSettingsPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
         <PageHeader
-          title="الحسابات"
-          description="إعدادات الحسابات والأرصدة الافتتاحية"
+          title="إعدادات الحسابات والأرصدة"
+          badge={<span className="nav-pill">الربط المحاسبي</span>}
           actions={
             <div className="actions compact-actions">
               <Button type="button" variant={activeSection === 'accounts-map' ? 'primary' : 'secondary'} onClick={() => setActiveSection('accounts-map')}>

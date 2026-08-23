@@ -52,6 +52,16 @@ export function getProductColumns(categoryNames: Record<string, string>, supplie
       header: 'المخزون',
       cell: (product: Product) => <span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>{product.stock}</span>
     },
-    { key: 'notes', header: 'ملاحظات', cell: (product: Product) => product.notes || '—' }
+    {
+      key: 'notes',
+      header: 'ملاحظات',
+      cell: (product: Product) => (
+        product.notes ? (
+          <span title={product.notes} style={{ color: '#1d4ed8', fontWeight: 700, fontSize: '0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+            📝 ملاحظة
+          </span>
+        ) : '—'
+      )
+    }
   ];
 }

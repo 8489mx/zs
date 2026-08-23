@@ -9,15 +9,15 @@
 }
 
 .cash-drawer-page .page-header {
-  padding: 10px 14px !important;
+  padding: 10px 16px !important;
   border-radius: 8px;
-  min-height: auto !important;
+  min-height: 48px !important;
   margin-bottom: 0 !important;
 }
 
 .cash-drawer-page .page-header .page-header-title {
-  font-size: 22px !important;
-  line-height: 1.05 !important;
+  font-size: 1.15rem !important;
+  line-height: 1.2 !important;
 }
 
 .cash-drawer-page .page-header-description,
