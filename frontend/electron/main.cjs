@@ -2,6 +2,15 @@ const { app, BrowserWindow, ipcMain, dialog, session, Menu } = require('electron
 const path = require('path');
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
+
+// Enforce single application instance lock
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  console.log('[ELECTRON] Another instance of the application is already running. Focusing existing instance.');
+  app.quit();
+  process.exit(0);
+}
+
 const RuntimeConfig = require('./runtime-config.cjs');
 let runtimeConfigInstance = null;
 let currentConfig = null;
@@ -220,14 +229,47 @@ const createMainWindow = (customLoadHandler) => {
   return mainWindow;
 };
 
+app.on('second-instance', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  } else if (loadingWindow && !loadingWindow.isDestroyed()) {
+    if (loadingWindow.isMinimized()) loadingWindow.restore();
+    loadingWindow.focus();
+  }
+});
+
+function freePortIfStale(port) {
+  if (process.platform !== 'win32') return;
+  try {
+    const output = execSync(`netstat -ano -p tcp | findstr :${port}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+    const lines = output.trim().split('\n');
+    for (const line of lines) {
+      if (!line.toUpperCase().includes('LISTENING')) continue;
+      const parts = line.trim().split(/\s+/);
+      const pid = parts[parts.length - 1];
+      if (pid && pid !== '0' && pid !== String(process.pid)) {
+        console.log(`[ELECTRON] Releasing stale process holding port ${port} (PID: ${pid})...`);
+        try {
+          execSync(`taskkill /pid ${pid} /T /F`, { stdio: 'ignore' });
+        } catch (e) {}
+      }
+    }
+  } catch (e) {
+    // Port is free
+  }
+}
+
 app.whenReady().then(async () => {
   runtimeConfigInstance = new RuntimeConfig(app.getPath('userData'));
   currentConfig = runtimeConfigInstance.getConfig();
 
-  // Find a free port dynamically for the backend (starting from configured port or 3001)
+  // Ensure port 3001 isn't locked by an orphan process from a previous crash/abrupt close
   if (currentConfig.runtimeMode !== 'lan_client') {
+    const targetPort = currentConfig.port || 3001;
+    freePortIfStale(targetPort);
+
     const net = require('net');
-    const startPort = currentConfig.port || 3001;
     const findFreePort = (port) => {
       return new Promise((resolve) => {
         const server = net.createServer();
@@ -240,9 +282,9 @@ app.whenReady().then(async () => {
         });
       });
     };
-    const freePort = await findFreePort(startPort);
-    if (freePort !== startPort) {
-      console.log(`[ELECTRON] Port ${startPort} is busy. Dynamically assigned port ${freePort} for backend.`);
+    const freePort = await findFreePort(targetPort);
+    if (freePort !== targetPort) {
+      console.log(`[ELECTRON] Port ${targetPort} is busy. Dynamically assigned port ${freePort} for backend.`);
       currentConfig.port = freePort;
     }
   }
@@ -411,18 +453,29 @@ app.whenReady().then(async () => {
     });
   }
 
-  // Ensure backend shuts down when Electron closes
-  app.on('will-quit', () => {
+  // Ensure backend shuts down cleanly when Electron closes
+  const cleanShutdown = () => {
     isQuitting = true;
-    if (backendProcess) {
-      backendProcess.kill();
+    if (backendProcess && backendProcess.pid) {
+      try {
+        if (process.platform === 'win32') {
+          execSync(`taskkill /pid ${backendProcess.pid} /T /F`, { stdio: 'ignore' });
+        } else {
+          backendProcess.kill('SIGKILL');
+        }
+      } catch (e) {
+        try { backendProcess.kill(); } catch (err) {}
+      }
     }
     try {
       pgManager.stopServer();
     } catch (err) {
       console.error('Failed to stop postgres on quit', err);
     }
-  });
+  };
+
+  app.on('before-quit', cleanShutdown);
+  app.on('will-quit', cleanShutdown);
 
   // Handle IPC for LAN Modes
   ipcMain.handle('get-runtime-config', () => currentConfig);
