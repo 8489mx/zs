@@ -1,0 +1,173 @@
+/* ==========================================================================
+   Centralized Combobox & Dropdown Design System (Single Source of Truth)
+   Any change here instantly updates 100% of dropdowns across the entire ERP!
+   ========================================================================== */
+
+:root {
+  /* Surface & Geometry */
+  --combobox-bg: #ffffff;
+  --combobox-border: #cbd5e1;
+  --combobox-radius: 8px;
+  --combobox-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+  --combobox-max-height: 200px;
+  --combobox-min-width: 210px;
+  --combobox-padding: 4px;
+
+  /* Typography & Items */
+  --combobox-item-font-size: 0.86rem;
+  --combobox-item-padding: 7px 10px;
+  --combobox-item-radius: 6px;
+  --combobox-item-color: #334155;
+  --combobox-item-selected-color: #0f172a;
+  --combobox-item-hover-bg: #f1f5f9;
+  --combobox-item-hover-color: #0f172a;
+
+  /* Custom Slim Scrollbar */
+  --combobox-scrollbar-width: 5px;
+  --combobox-scrollbar-thumb: #cbd5e1;
+  --combobox-scrollbar-thumb-hover: #94a3b8;
+  --combobox-scrollbar-track: transparent;
+
+  /* Create / Action Row */
+  --combobox-create-bg: #eff6ff;
+  --combobox-create-border: #bfdbfe;
+  --combobox-create-color: #1e40af;
+  --combobox-create-font-size: 0.82rem;
+}
+
+/* Master Dropdown Container */
+.custom-combobox-dropdown,
+.purchase-prototype-combobox-dropdown {
+  position: absolute !important;
+  background: var(--combobox-bg) !important;
+  border: 1px solid var(--combobox-border) !important;
+  border-radius: var(--combobox-radius) !important;
+  box-shadow: var(--combobox-shadow) !important;
+  max-height: var(--combobox-max-height) !important;
+  min-width: var(--combobox-min-width) !important;
+  overflow-y: auto !important;
+  padding: var(--combobox-padding) !important;
+  box-sizing: border-box !important;
+  z-index: 1200 !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--combobox-scrollbar-thumb) var(--combobox-scrollbar-track) !important;
+}
+
+/* Master Scrollbar Rules */
+.custom-combobox-dropdown::-webkit-scrollbar,
+.purchase-prototype-combobox-dropdown::-webkit-scrollbar,
+div.custom-combobox-dropdown::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-combobox-dropdown::-webkit-scrollbar-track,
+.purchase-prototype-combobox-dropdown::-webkit-scrollbar-track,
+div.custom-combobox-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-combobox-dropdown::-webkit-scrollbar-thumb,
+.purchase-prototype-combobox-dropdown::-webkit-scrollbar-thumb,
+div.custom-combobox-dropdown::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.custom-combobox-dropdown::-webkit-scrollbar-thumb:hover,
+.purchase-prototype-combobox-dropdown::-webkit-scrollbar-thumb:hover,
+div.custom-combobox-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.custom-combobox-dropdown::-webkit-scrollbar-button,
+.purchase-prototype-combobox-dropdown::-webkit-scrollbar-button,
+div.custom-combobox-dropdown::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Master Option Row */
+.custom-combobox-option,
+.purchase-prototype-combobox-option {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: var(--combobox-item-padding) !important;
+  border-radius: var(--combobox-item-radius) !important;
+  cursor: pointer !important;
+  background: transparent !important;
+  color: var(--combobox-item-color) !important;
+  font-size: var(--combobox-item-font-size) !important;
+  font-weight: 500 !important;
+  border: none !important;
+  width: 100% !important;
+  text-align: right !important;
+  box-sizing: border-box !important;
+  transition: background 0.12s ease, color 0.12s ease !important;
+}
+
+.custom-combobox-option:hover,
+.custom-combobox-option.is-highlighted,
+.purchase-prototype-combobox-option:hover,
+.purchase-prototype-combobox-option.is-highlighted {
+  background: var(--combobox-item-hover-bg) !important;
+  color: var(--combobox-item-hover-color) !important;
+  font-weight: 700 !important;
+}
+
+/* Master Quick Add / Create Row */
+.custom-combobox-create,
+.purchase-prototype-combobox-create {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: var(--combobox-create-bg) !important;
+  border: 1px solid var(--combobox-create-border) !important;
+  border-radius: var(--combobox-item-radius) !important;
+  color: var(--combobox-create-color) !important;
+  font-size: var(--combobox-create-font-size) !important;
+  font-weight: 700 !important;
+  padding: var(--combobox-item-padding) !important;
+  margin-top: 4px !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: all 0.15s ease !important;
+}
+
+/* ==========================================================================
+   Universal Fallback Styling for any remaining native <select> elements in ERP
+   ========================================================================== */
+select:not([multiple]) {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: var(--combobox-bg, #ffffff) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: left 8px center !important;
+  border: 1px solid var(--combobox-border, #cbd5e1) !important;
+  border-radius: 6px !important;
+  padding: 6px 10px 6px 26px !important;
+  font-size: 0.84rem !important;
+  font-family: inherit !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+select:not([multiple]):focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+select:not([multiple]):disabled {
+  background-color: #f8fafc !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+}
+

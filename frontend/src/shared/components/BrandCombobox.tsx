@@ -61,26 +61,21 @@ export function BrandCombobox({
     }
   }, [storageKey]);
 
-  // Combine default profile brands + saved custom brands
-  const allBrands = useMemo(() => {
-    const base = sampleBrands && sampleBrands.length > 0 ? sampleBrands : DEFAULT_MOBILE_BRANDS;
-    const combined = [...base];
-    for (const b of customBrands) {
-      if (!combined.some((item) => item.toLowerCase() === b.toLowerCase())) {
-        combined.push(b);
-      }
-    }
-    return combined;
-  }, [sampleBrands, customBrands]);
-
-  // Save new custom brand to memory
+  // Save custom brand to localStorage
   const rememberBrand = (newBrand: string) => {
-    const trimmed = newBrand.trim();
-    if (!trimmed) return;
-    if (allBrands.some((b) => b.toLowerCase() === trimmed.toLowerCase())) return;
+    if (!newBrand || !newBrand.trim()) return;
+    const clean = newBrand.trim();
+
+    // Check if already in presets or saved
+    const allPresets = sampleBrands || DEFAULT_MOBILE_BRANDS;
+    const isPreset = allPresets.some((b) => b.toLowerCase() === clean.toLowerCase());
+    if (isPreset) return;
+
+    const alreadySaved = customBrands.some((b) => b.toLowerCase() === clean.toLowerCase());
+    if (alreadySaved) return;
 
     try {
-      const updated = [trimmed, ...customBrands].slice(0, 50);
+      const updated = [clean, ...customBrands].slice(0, 50); // keep up to 50
       setCustomBrands(updated);
       localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch (e) {
@@ -95,38 +90,55 @@ export function BrandCombobox({
       setCustomBrands(updated);
       localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch (err) {
-      console.warn('Failed to delete custom brand:', err);
+      console.warn('Failed to remove custom brand:', err);
     }
   };
 
+  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
-        // Auto-save typed custom brand on blur if non-empty
-        if (value && value.trim().length > 1) {
-          rememberBrand(value.trim());
-        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [value]);
+  }, []);
+
+  // Combined and filtered brands
+  const allAvailableBrands = useMemo(() => {
+    const baseList = sampleBrands && sampleBrands.length > 0 ? sampleBrands : DEFAULT_MOBILE_BRANDS;
+    const combined = [...customBrands, ...baseList];
+    // Deduplicate (case-insensitive)
+    const seen = new Set<string>();
+    return combined.filter((item) => {
+      const lower = item.toLowerCase();
+      if (seen.has(lower)) return false;
+      seen.add(lower);
+      return true;
+    });
+  }, [sampleBrands, customBrands]);
 
   const filtered = useMemo(() => {
-    if (!value || !value.trim()) return allBrands;
-    return allBrands.filter((b) => matchesArabic(b, value));
-  }, [allBrands, value]);
+    if (!value || !value.trim()) return allAvailableBrands;
+    return allAvailableBrands.filter((b) => matchesArabic(b, value));
+  }, [allAvailableBrands, value]);
 
-  const isExactMatch = allBrands.some((b) => b.toLowerCase() === (value || '').trim().toLowerCase());
+  // Is exact match?
+  const isExactMatch = useMemo(() => {
+    if (!value || !value.trim()) return true;
+    return allAvailableBrands.some((b) => b.toLowerCase() === value.trim().toLowerCase());
+  }, [allAvailableBrands, value]);
 
+  // Keyboard navigation
   useEffect(() => {
     if (filtered.length > 0) {
-      setHighlightedIndex(0);
+      const selectedIdx = filtered.findIndex((b) => b.toLowerCase() === value.toLowerCase());
+      setHighlightedIndex(selectedIdx >= 0 ? selectedIdx : 0);
     } else {
       setHighlightedIndex(-1);
     }
-  }, [value, filtered.length]);
+  }, [value, filtered]);
 
   useEffect(() => {
     if (isOpen && highlightedIndex >= 0 && itemRefs.current[highlightedIndex]) {
@@ -142,12 +154,9 @@ export function BrandCombobox({
       e.preventDefault();
       if (!isOpen) {
         setIsOpen(true);
-        setHighlightedIndex(0);
         return;
       }
-      if (filtered.length > 0) {
-        setHighlightedIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : 0));
-      }
+      setHighlightedIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : prev));
       return;
     }
 
@@ -155,25 +164,21 @@ export function BrandCombobox({
       e.preventDefault();
       if (!isOpen) {
         setIsOpen(true);
-        setHighlightedIndex(filtered.length - 1);
         return;
       }
-      if (filtered.length > 0) {
-        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : filtered.length - 1));
-      }
+      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
       return;
     }
 
     if (e.key === 'Enter') {
-      if (isOpen) {
+      if (isOpen && filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
         e.preventDefault();
-        if (filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
-          const selected = filtered[highlightedIndex];
-          onChange(selected);
-          rememberBrand(selected);
-        } else if (value.trim()) {
-          rememberBrand(value.trim());
-        }
+        const selected = filtered[highlightedIndex];
+        onChange(selected);
+        rememberBrand(selected);
+        setIsOpen(false);
+      } else if (value.trim()) {
+        rememberBrand(value.trim());
         setIsOpen(false);
       }
       return;
@@ -223,7 +228,8 @@ export function BrandCombobox({
             borderRadius: '6px',
             border: '1px solid #cbd5e1',
             boxSizing: 'border-box',
-            fontSize: '0.9rem',
+            fontSize: '0.88rem',
+            height: '36px',
             ...style,
           }}
         />
@@ -271,19 +277,11 @@ export function BrandCombobox({
       {isOpen && (
         <div
           ref={dropdownRef}
+          className="custom-combobox-dropdown"
           style={{
-            position: 'absolute',
             top: 'calc(100% + 4px)',
-            left: 0,
             right: 0,
-            zIndex: 1100,
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            borderRadius: '8px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
-            maxHeight: '220px',
-            overflowY: 'auto',
-            padding: '4px',
+            width: 'max(100%, 210px)',
           }}
         >
           {filtered.length > 0 ? (
@@ -298,6 +296,7 @@ export function BrandCombobox({
                   ref={(el) => {
                     itemRefs.current[index] = el;
                   }}
+                  className={`custom-combobox-option ${isHighlighted ? 'is-highlighted' : ''}`}
                   onClick={() => {
                     onChange(brandName);
                     rememberBrand(brandName);
@@ -305,23 +304,13 @@ export function BrandCombobox({
                   }}
                   onMouseEnter={() => setHighlightedIndex(index)}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '7px 10px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    background: isHighlighted ? '#e0e7ff' : isSelected ? '#eff6ff' : 'transparent',
-                    color: isHighlighted ? '#1e40af' : isSelected ? '#1d4ed8' : '#1e293b',
-                    fontSize: '0.85rem',
                     fontWeight: isHighlighted || isSelected ? 700 : 500,
-                    transition: 'background 0.12s ease',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>{brandName}</span>
                     {isCustom && (
-                      <span style={{ fontSize: '0.68rem', background: '#f1f5f9', color: '#64748b', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
+                      <span style={{ fontSize: '0.68rem', background: '#e2e8f0', color: '#475569', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
                         محفوظة
                       </span>
                     )}
@@ -352,24 +341,22 @@ export function BrandCombobox({
 
           {!isExactMatch && value.trim().length > 0 && (
             <div
+              className="custom-combobox-create"
               onClick={() => {
                 rememberBrand(value.trim());
                 setIsOpen(false);
               }}
               style={{
-                padding: '8px 10px',
-                fontSize: '0.8rem',
-                color: '#2563eb',
-                background: '#f8fafc',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                textAlign: 'center',
-                borderTop: '1px solid #f1f5f9',
-                marginTop: '2px',
-                fontWeight: 600,
+                whiteSpace: 'nowrap',
               }}
             >
-              + حفظ <strong>"${value.trim()}"</strong> كماركة جديدة
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>+</span>
+                <span>حفظ <strong>"{value.trim()}"</strong></span>
+              </div>
+              <span style={{ fontSize: '0.65rem', color: '#475569', background: '#ffffff', padding: '1px 5px', borderRadius: '3px', border: '1px solid #cbd5e1', flexShrink: 0 }}>
+                Enter ↵
+              </span>
             </div>
           )}
         </div>

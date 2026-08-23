@@ -2,6 +2,7 @@
 @import './partials/layout.css';
 @import './partials/dashboard.css';
 @import './partials/features.css';
+@import './partials/combobox-system.css';
 @import './partials/pos-compact-fix.css';
 @import './partials/dashboard-compact-fix.css';
 @import './partials/cash-drawer-compact-fix.css';

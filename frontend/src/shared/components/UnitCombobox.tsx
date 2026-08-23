@@ -75,7 +75,6 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
 
   useEffect(() => {
     if (filtered.length > 0) {
-      // Highlight the selected item if present in filtered list
       const selectedIdx = filtered.findIndex((u) => u.name.trim() === value.trim());
       setHighlightedIndex(selectedIdx >= 0 ? selectedIdx : 0);
     } else {
@@ -101,9 +100,7 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
         setIsOpen(true);
         return;
       }
-      if (filtered.length > 0) {
-        setHighlightedIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : 0));
-      }
+      setHighlightedIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : prev));
       return;
     }
 
@@ -113,23 +110,16 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
         setIsOpen(true);
         return;
       }
-      if (filtered.length > 0) {
-        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : filtered.length - 1));
-      }
+      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
       return;
     }
 
     if (e.key === 'Enter') {
-      if (isOpen) {
-        e.preventDefault();
-        if (filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
-          const selected = filtered[highlightedIndex].name;
-          onChange(selected);
-          setSearchTerm(selected);
-        } else if (searchTerm.trim()) {
-          onChange(searchTerm.trim());
-        }
-        setIsOpen(false);
+      e.preventDefault();
+      if (isOpen && filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
+        handleSelectUnit(filtered[highlightedIndex].name);
+      } else if (searchTerm.trim()) {
+        handleSelectUnit(searchTerm.trim());
       }
       return;
     }
@@ -137,7 +127,6 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
     if (e.key === 'Escape') {
       if (isOpen) {
         e.preventDefault();
-        setSearchTerm(value);
         setIsOpen(false);
       }
       return;
@@ -145,9 +134,7 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
 
     if (e.key === 'Tab') {
       if (isOpen && filtered.length > 0 && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
-        const selected = filtered[highlightedIndex].name;
-        onChange(selected);
-        setSearchTerm(selected);
+        handleSelectUnit(filtered[highlightedIndex].name);
       }
       setIsOpen(false);
     }
@@ -161,40 +148,39 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'relative' }}>
         <input
           ref={inputRef}
           type="text"
-          className="purchase-prototype-field-input"
-          value={searchTerm}
           disabled={disabled}
-          onChange={(e) => {
-            const nextVal = e.target.value;
-            setSearchTerm(nextVal);
-            onChange(nextVal);
-            if (!isOpen) setIsOpen(true);
-          }}
-          onFocus={(e) => {
-            if (!disabled) {
-              setIsOpen(true);
-              e.target.select();
-            }
-          }}
-          onKeyDown={handleKeyDown}
+          value={isOpen ? searchTerm : value}
           placeholder={placeholder}
+          className="purchase-prototype-field-input"
           style={{
             width: '100%',
-            height: '34px',
-            background: '#fff',
-            padding: '4px 26px 4px 10px',
+            background: disabled ? '#f8fafc' : '#ffffff',
+            padding: '8px 28px 8px 10px',
             borderRadius: '6px',
             border: '1px solid #cbd5e1',
             boxSizing: 'border-box',
-            fontSize: '0.86rem',
-            fontWeight: 600,
+            fontSize: '0.88rem',
+            height: '36px',
+            cursor: disabled ? 'not-allowed' : 'text',
             ...style,
           }}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            if (!isOpen) setIsOpen(true);
+          }}
+          onFocus={() => {
+            if (disabled) return;
+            setIsOpen(true);
+            setSearchTerm(value || '');
+            inputRef.current?.select();
+          }}
+          onKeyDown={handleKeyDown}
         />
+
         <button
           type="button"
           tabIndex={-1}
@@ -245,20 +231,12 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
       {isOpen && !disabled && (
         <div
           ref={dropdownRef}
+          className="custom-combobox-dropdown"
           style={{
-            position: 'absolute',
             top: 'calc(100% + 4px)',
             left: 0,
             right: 0,
-            minWidth: '200px',
-            zIndex: 1200,
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            borderRadius: '8px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.14), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
-            maxHeight: '220px',
-            overflowY: 'auto',
-            padding: '4px',
+            width: 'max(100%, 210px)',
           }}
         >
           {filtered.length > 0 ? (
@@ -272,24 +250,15 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
                     ref={(el) => {
                       itemRefs.current[index] = el;
                     }}
+                    className={`custom-combobox-option ${isHighlighted ? 'is-highlighted' : ''}`}
                     onClick={() => handleSelectUnit(u.name)}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '6px 10px',
-                      borderRadius: '5px',
-                      cursor: 'pointer',
-                      background: isHighlighted ? '#e0e7ff' : isSelected ? '#eff6ff' : 'transparent',
-                      color: isHighlighted ? '#1e40af' : isSelected ? '#1d4ed8' : '#1e293b',
-                      fontSize: '0.84rem',
                       fontWeight: isHighlighted || isSelected ? 700 : 500,
-                      transition: 'background 0.1s ease',
                     }}
                   >
-                    <span style={{ fontWeight: 700 }}>{u.name}</span>
-                    <span style={{ fontSize: '0.74rem', color: isHighlighted ? '#2563eb' : '#64748b' }}>{u.hint}</span>
+                    <span>{u.name}</span>
+                    <span style={{ fontSize: '0.74rem', color: isHighlighted ? '#475569' : '#64748b' }}>{u.hint}</span>
                   </div>
                 );
               })}
@@ -297,39 +266,37 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
               {/* If custom input typed and not exact preset */}
               {isSearching && !hasExactPresetMatch && (
                 <div
+                  className="custom-combobox-create"
                   onClick={() => handleSelectUnit(searchTerm.trim())}
                   style={{
-                    marginTop: '4px',
-                    padding: '7px 10px',
-                    fontSize: '0.8rem',
-                    color: '#2563eb',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    background: '#eff6ff',
-                    borderTop: '1px dashed #bfdbfe',
-                    borderRadius: '5px',
-                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  + استخدام <strong>"{searchTerm}"</strong> كوحدة مخصصة ↵
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>+</span>
+                    <span>استخدام <strong>"{searchTerm}"</strong> كوحدة</span>
+                  </div>
+                  <span style={{ fontSize: '0.65rem', color: '#475569', background: '#ffffff', padding: '1px 5px', borderRadius: '3px', border: '1px solid #cbd5e1', flexShrink: 0 }}>
+                    Enter ↵
+                  </span>
                 </div>
               )}
             </>
           ) : (
             <div
+              className="custom-combobox-create"
               onClick={() => handleSelectUnit(searchTerm.trim())}
               style={{
-                padding: '8px 10px',
-                fontSize: '0.82rem',
-                color: '#2563eb',
-                textAlign: 'center',
-                cursor: 'pointer',
-                background: '#eff6ff',
-                borderRadius: '5px',
-                fontWeight: 700,
+                whiteSpace: 'nowrap',
               }}
             >
-              + استخدام <strong>"{searchTerm}"</strong> كوحدة مخصصة ↵
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>+</span>
+                <span>استخدام <strong>"{searchTerm}"</strong> كوحدة</span>
+              </div>
+              <span style={{ fontSize: '0.65rem', color: '#475569', background: '#ffffff', padding: '1px 5px', borderRadius: '3px', border: '1px solid #cbd5e1', flexShrink: 0 }}>
+                Enter ↵
+              </span>
             </div>
           )}
         </div>
