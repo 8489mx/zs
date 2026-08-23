@@ -473,8 +473,12 @@ export class SalesWriteService {
         if (!hasOpenShift) throw new AppError('Open cashier shift is required before posting a cash sale', 'OPEN_SHIFT_REQUIRED', 400);
       }
 
+      const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
+      const paidAmount = calculatePaidAmount(payments);
+      const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
+
       if (normalized.paymentType === 'credit' && customer) {
-        const nextBalance = Number(customer.balance || 0) + collectibleTotal;
+        const nextBalance = Number(customer.balance || 0) + remainingDebt;
         if (Number(customer.credit_limit || 0) > 0 && nextBalance > Number(customer.credit_limit || 0)) {
           throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);
         }
@@ -486,9 +490,6 @@ export class SalesWriteService {
           throw new AppError('Store credit exceeds available balance', 'STORE_CREDIT_EXCEEDED', 400);
         }
       }
-
-      const payments = resolveSalePayments(normalized.paymentType, normalized.payments, collectibleTotal, normalized.paymentChannel);
-      const paidAmount = calculatePaidAmount(payments);
       const isCodDelivery = String(normalized.orderType || '').trim() === 'delivery' && String((payload as any).collectionStatus || '').trim() === 'cod';
       const isPartialCredit = Boolean(normalized.customerId) && paidAmount + 0.0001 < collectibleTotal;
       const effectivePaymentType = (isPartialCredit || normalized.paymentType === 'credit') ? 'credit' : 'cash';
@@ -687,7 +688,6 @@ export class SalesWriteService {
           .execute();
       }
 
-      const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
       if (customer && remainingDebt > 0) {
         await this.finance.createCustomerLedgerEntry(
           trx,

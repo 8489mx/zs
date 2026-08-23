@@ -71,8 +71,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
       : requestedPaymentChannel === 'instapay'
         ? 'instapay'
         : 'cash';
-  const isPureCreditSale = paymentType === 'credit' && (payload.paymentType === 'credit' || payload.paymentChannel === 'credit') && payload.payments?.some((p) => p.paymentChannel === 'cash');
-  const payments = isPureCreditSale ? [] : correctedPayments;
+  const payments = correctedPayments;
   const paymentChannel: 'cash' | 'card' | 'wallet' | 'instapay' | 'mixed' | 'credit' = paymentType === 'credit'
     ? (payments.length ? (payments.length > 1 ? 'mixed' : (payments[0]?.paymentChannel || 'credit')) : 'credit')
     : (requestedPaymentChannel === 'mixed'

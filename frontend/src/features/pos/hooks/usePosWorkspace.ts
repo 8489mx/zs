@@ -51,13 +51,11 @@ function getSaleKey(sale: { docNo?: string | number; id?: string | number } | nu
 
 export function usePosWorkspace() {
   const state = usePosWorkspaceState();
-  const paidAmount = state.paymentType === 'credit'
-    ? 0
-    : Number((
-      state.paymentChannel === 'wallet' || state.paymentChannel === 'instapay'
-        ? Number(state.transferAmount || 0)
-        : Number(state.cashAmount || 0) + Number(state.cardAmount || 0)
-    ).toFixed(2));
+  const paidAmount = Number((
+    state.paymentChannel === 'wallet' || state.paymentChannel === 'instapay'
+      ? Number(state.transferAmount || 0)
+      : Number(state.cashAmount || 0) + Number(state.cardAmount || 0)
+  ).toFixed(2));
 
   const customersQuery = useQuery({ queryKey: queryKeys.posCustomers, queryFn: () => posApi.customers({ limit: 50 }), staleTime: posReferenceStaleTime });
   const settingsQuery = useQuery({ queryKey: queryKeys.posSettings, queryFn: posApi.settings, staleTime: posReferenceStaleTime });
