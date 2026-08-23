@@ -538,8 +538,22 @@ export function AppShell({ children }: PropsWithChildren) {
         }
         if (!document.fullscreenElement) {
           await document.documentElement.requestFullscreen?.();
+          if ('keyboard' in navigator && typeof (navigator as any).keyboard?.lock === 'function') {
+            try {
+              await (navigator as any).keyboard.lock(['Escape']);
+            } catch {
+              // ignore
+            }
+          }
           setIsPosChromeHidden(true);
           return;
+        }
+        if ('keyboard' in navigator && typeof (navigator as any).keyboard?.unlock === 'function') {
+          try {
+            (navigator as any).keyboard.unlock();
+          } catch {
+            // ignore
+          }
         }
         await document.exitFullscreen?.();
         setIsPosChromeHidden(false);
@@ -562,10 +576,24 @@ export function AppShell({ children }: PropsWithChildren) {
         }
       }
     };
-    const handleFullscreenChange = () => {
+    const handleFullscreenChange = async () => {
       if (document.fullscreenElement) {
+        if ('keyboard' in navigator && typeof (navigator as any).keyboard?.lock === 'function') {
+          try {
+            await (navigator as any).keyboard.lock(['Escape']);
+          } catch {
+            // ignore
+          }
+        }
         setIsPosChromeHidden(true);
         return;
+      }
+      if ('keyboard' in navigator && typeof (navigator as any).keyboard?.unlock === 'function') {
+        try {
+          (navigator as any).keyboard.unlock();
+        } catch {
+          // ignore
+        }
       }
       setIsPosChromeHidden(readPosShellPreference());
     };

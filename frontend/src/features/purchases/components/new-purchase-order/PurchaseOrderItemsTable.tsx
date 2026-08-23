@@ -51,6 +51,10 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
       <div className="document-prototype-section-header">
         <h3 className="document-prototype-section-title">{t('items_section')}</h3>
         <div className="purchase-prototype-quick-actions" aria-label={t('quick_item_actions')}>
+          <button type="button" className="purchase-prototype-quick-action" title="إضافة صنف جديد" onClick={() => props.onOpenQuickCreate('product', '', null)} style={{ fontWeight: 700, color: '#1e40af' }}>
+            <span aria-hidden="true">+</span>
+            <span>صنف جديد</span>
+          </button>
           <button type="button" className="purchase-prototype-quick-action" title={t('add_service_line')} onClick={props.onAddServiceLine}>
             <span aria-hidden="true">+</span>
             <span>{t('service_type')}</span>

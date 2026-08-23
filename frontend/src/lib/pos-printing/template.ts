@@ -119,8 +119,9 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
           <strong>IMEI:</strong> ${item.serials.map(escapeHtml).join(', ')}
          </div>`
       : '';
+    const showItemOffers = getPrintOption(settings, 'printShowItemOffers', true);
     const hasOffer = (item.originalPrice && item.originalPrice > Number(item.price || 0)) || (item.offerDiscount && Number(item.offerDiscount) > 0);
-    const offerHtml = hasOffer
+    const offerHtml = (hasOffer && showItemOffers)
       ? `<div class="item-offer-line" style="font-size: 0.82em; color: #000; margin-top: 2px; font-style: normal;">
           <strong>[عرض]</strong> أصلي: ${formatReceiptMoney(Number(item.originalPrice || (Number(item.price || 0) + Number(item.offerDiscount || 0))), settings)} | وفرت: ${formatReceiptMoney(Number(item.offerDiscount || (Number(item.originalPrice || 0) - Number(item.price || 0))), settings)}
          </div>`
@@ -195,6 +196,8 @@ function renderTotals(options: {
   const showTax = getPrintOption(options.settings, 'printShowTax', true);
   const showItemSummary = getPrintOption(options.settings, 'printShowItemSummary', true);
   const showPaymentDetails = getPrintOption(options.settings, 'printShowPaymentBreakdown', true);
+  const showDiscountBreakdown = getPrintOption(options.settings, 'printShowDiscountBreakdown', true);
+  const showSavingsBanner = getPrintOption(options.settings, 'printShowSavingsBanner', true);
   const hasDiscount = Math.abs(Number(options.discount || 0)) > 0.0001;
   const hasDeliveryFee = Math.abs(Number(options.deliveryFee || 0)) > 0.0001;
 
@@ -228,15 +231,15 @@ function renderTotals(options: {
       { label: 'إجمالي القطع', value: formatReceiptQuantity(totalPieces, options.settings) },
     ] : []),
   ] : [
-    ...(hasOffersSavings ? [
+    ...(hasOffersSavings ? (showDiscountBreakdown ? [
       { label: 'الإجمالي قبل الخصومات', value: formatReceiptMoney(grossSubtotal, options.settings) },
       {
         label: 'إجمالي خصومات العروض',
         value: `<span style="display:inline-flex; align-items:center; direction:ltr;"><span>${formatReceiptMoney(totalOffersSavings, options.settings)}</span><span style="margin-left:2px;">-</span></span>`,
         isHtml: true,
       },
-    ] : (showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])),
-    ...(hasDiscount ? [
+    ] : (showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])) : (showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])),
+    ...(hasDiscount && showDiscountBreakdown ? [
       {
         label: discountLabel,
         value: `<span style="display:inline-flex; align-items:center; direction:ltr;"><span>${formatReceiptMoney(Number(options.discount || 0), options.settings)}</span><span style="margin-left:2px;">-</span></span>`,
@@ -244,7 +247,7 @@ function renderTotals(options: {
       },
     ] : []),
     ...(hasDeliveryFee ? [{ label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) }] : []),
-    ...(showTax && !hasOffersSavings ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
+    ...(showTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
     ...(showPaymentDetails ? [
       { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
@@ -258,10 +261,14 @@ function renderTotals(options: {
     ] : []),
   ];
 
-  const savingsBannerHtml = (!options.isReturn && totalAllSavings > 0.0001)
+  const savingsBannerHtml = (!options.isReturn && totalAllSavings > 0.0001 && showSavingsBanner)
     ? `
-      <div class="receipt-savings-banner" style="margin-top: 6px; padding: 4px 6px; border: 1.5px dashed #000; border-radius: 4px; text-align: center; font-weight: 800; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000;">
-        🎉 إجمالي ما وفّرته في هذه الفاتورة: ${formatReceiptMoney(totalAllSavings, options.settings)} ج.م
+      <div class="receipt-savings-banner" style="margin-top: 6px; padding: 4px 6px; border: 1.5px dashed #000; border-radius: 4px; text-align: center; font-weight: 800; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000; display: flex; align-items: center; justify-content: center; gap: 5px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: inline-block;">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+          <circle cx="7" cy="7" r="1.5" fill="#000"/>
+        </svg>
+        <span>إجمالي ما وفّرته في هذه الفاتورة: ${formatReceiptMoney(totalAllSavings, options.settings)} ج.م</span>
       </div>
     `
     : '';
@@ -434,6 +441,8 @@ export function buildReceiptDocument(options: {
   const showDocumentNumber = getPrintOption(options.settings, 'printShowDocumentNumber', true);
   const showOrderType = getPrintOption(options.settings, 'printShowOrderType', true);
 
+  const showDate = getPrintOption(options.settings, 'printShowDate', true);
+
   const partyLabel = options.isPurchase ? 'المورد' : (options.isReturn ? 'العميل' : 'العميل');
   const partyValue = options.isPurchase
     ? (options.supplierName || options.customerName || '—')
@@ -443,7 +452,7 @@ export function buildReceiptDocument(options: {
     ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || (options.isPurchase ? 'فاتورة شراء' : (options.isReturn ? 'إيصال مرتجع مبيعات' : 'فاتورة')) }] : []),
     ...(showDocumentNumber ? [{ label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' }] : []),
     ...(options.referenceInvoice ? [{ label: 'مرجع الفاتورة الأصلية', value: options.referenceInvoice }] : []),
-    { label: 'التاريخ', value: options.dateText || '—' },
+    ...(showDate ? [{ label: 'التاريخ', value: options.dateText || '—' }] : []),
     ...(showCustomer ? [{ label: partyLabel, value: partyValue }] : []),
     ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
     ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerAddress ? [{ label: 'عنوان العميل', value: options.customerAddress }] : []),

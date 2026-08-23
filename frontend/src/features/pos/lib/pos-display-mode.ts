@@ -77,11 +77,25 @@ export async function enterDocumentFullscreen(target?: Element | null) {
   const element = target || document.documentElement;
   if (!element || !('requestFullscreen' in element)) return false;
   await (element as Element & { requestFullscreen: () => Promise<void> }).requestFullscreen();
+  if ('keyboard' in navigator && typeof (navigator as any).keyboard?.lock === 'function') {
+    try {
+      await (navigator as any).keyboard.lock(['Escape']);
+    } catch {
+      // ignore
+    }
+  }
   return true;
 }
 
 export async function exitDocumentFullscreen() {
   if (typeof document === 'undefined' || !document.fullscreenElement || !document.exitFullscreen) return false;
+  if ('keyboard' in navigator && typeof (navigator as any).keyboard?.unlock === 'function') {
+    try {
+      (navigator as any).keyboard.unlock();
+    } catch {
+      // ignore
+    }
+  }
   await document.exitFullscreen();
   return true;
 }

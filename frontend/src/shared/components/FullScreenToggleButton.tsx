@@ -19,8 +19,26 @@ export function FullScreenToggleButton() {
       }
     } else {
       // Browser fallback
-      const handleFsChange = () => {
-        setIsFullscreen(Boolean(document.fullscreenElement));
+      const handleFsChange = async () => {
+        const isFS = Boolean(document.fullscreenElement);
+        setIsFullscreen(isFS);
+        if (isFS) {
+          if ('keyboard' in navigator && typeof (navigator as any).keyboard?.lock === 'function') {
+            try {
+              await (navigator as any).keyboard.lock(['Escape']);
+            } catch {
+              // ignore
+            }
+          }
+        } else {
+          if ('keyboard' in navigator && typeof (navigator as any).keyboard?.unlock === 'function') {
+            try {
+              (navigator as any).keyboard.unlock();
+            } catch {
+              // ignore
+            }
+          }
+        }
       };
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'F11') {
@@ -47,12 +65,26 @@ export function FullScreenToggleButton() {
       if (!document.fullscreenElement) {
         try {
           await document.documentElement.requestFullscreen();
+          if ('keyboard' in navigator && typeof (navigator as any).keyboard?.lock === 'function') {
+            try {
+              await (navigator as any).keyboard.lock(['Escape']);
+            } catch {
+              // ignore
+            }
+          }
           setIsFullscreen(true);
         } catch {
           // ignore
         }
       } else {
         try {
+          if ('keyboard' in navigator && typeof (navigator as any).keyboard?.unlock === 'function') {
+            try {
+              (navigator as any).keyboard.unlock();
+            } catch {
+              // ignore
+            }
+          }
           await document.exitFullscreen();
           setIsFullscreen(false);
         } catch {

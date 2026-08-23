@@ -355,6 +355,8 @@ function ProductNameField({ value, onChange, allProducts, disabled, label, place
 
 export interface NewProductFormProps {
   mode?: 'page' | 'modal';
+  modalTitle?: string;
+  submitLabel?: string;
   initialName?: string;
   initialBarcode?: string;
   onCancel?: () => void;
@@ -363,6 +365,8 @@ export interface NewProductFormProps {
 
 export function NewProductForm({
   mode = 'page',
+  modalTitle,
+  submitLabel,
   initialName = '',
   initialBarcode = '',
   onCancel,
@@ -572,9 +576,11 @@ export function NewProductForm({
   }
 
   const builderMode = watchedItemKind === 'fashion' ? 'fashion' : 'standard';
-  const submitText = usesVariantBuilder
-    ? (mode === 'modal' ? 'حفظ الصنف والمتغيرات وإضافة للسلة' : 'حفظ الصنف بجميع المتغيرات')
-    : (mode === 'modal' ? 'حفظ وإضافة للسلة' : 'حفظ الصنف');
+  const submitText = submitLabel
+    ? submitLabel
+    : (usesVariantBuilder
+      ? (mode === 'modal' ? 'حفظ الصنف والمتغيرات وإضافة للسلة' : 'حفظ الصنف بجميع المتغيرات')
+      : (mode === 'modal' ? 'حفظ وإضافة للسلة' : 'حفظ الصنف'));
 
   const onSubmit = form.handleSubmit((values) => {
     mutation.mutate({ ...values, itemKind: watchedItemKind, units, fashionVariantRows, groupedEntryEnabled: usesVariantBuilder });
@@ -624,7 +630,7 @@ export function NewProductForm({
                 <button type="button" className="document-prototype-back-link" onClick={handleCancelAction} aria-label="الرجوع">←</button>
               ) : null}
               <h1 style={{ fontSize: mode === 'modal' ? '1.25rem' : '1.5rem', margin: 0 }}>
-                {mode === 'modal' ? 'إضافة صنف جديد سريعاً إلى السلة' : 'إضافة صنف جديد'}
+                {modalTitle || (mode === 'modal' ? 'إضافة صنف جديد سريعاً إلى السلة' : 'إضافة صنف جديد')}
               </h1>
             </div>
 
@@ -637,7 +643,7 @@ export function NewProductForm({
                 onClick={onSubmit}
                 disabled={isFormDisabled || (usesVariantBuilder && (!fashionVariantRows.length || duplicateFashionBarcodes > 0 || !String(watchedStyleCode || '').trim()))}
               >
-                {isFormDisabled ? 'جارٍ الحفظ...' : submitText}
+                {mutation.isPending ? 'جارٍ الحفظ...' : submitText}
               </Button>
             </div>
           </div>

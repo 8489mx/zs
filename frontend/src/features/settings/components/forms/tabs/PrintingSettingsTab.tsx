@@ -204,12 +204,28 @@ export function PrintingSettingsTab({
             إظهار المخزن
           </label>
           <label className="settings-print-option" style={checkboxStyle}>
+            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDate')} disabled={disabled} />
+            إظهار تاريخ ووقت الفاتورة
+          </label>
+          <label className="settings-print-option" style={checkboxStyle}>
             <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTax')} disabled={disabled} />
             إظهار الضريبة
           </label>
           <label className="settings-print-option" style={checkboxStyle}>
             <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentMethod')} disabled={disabled} />
             إظهار طريقة الدفع
+          </label>
+          <label className="settings-print-option" style={checkboxStyle}>
+            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemOffers')} disabled={disabled} />
+            إظهار تفاصيل عروض الأصناف (أصلي / وفرت)
+          </label>
+          <label className="settings-print-option" style={checkboxStyle}>
+            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDiscountBreakdown')} disabled={disabled} />
+            إظهار تفصيل سطور الخصومات في الإجماليات
+          </label>
+          <label className="settings-print-option" style={checkboxStyle}>
+            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowSavingsBanner')} disabled={disabled} />
+            إظهار شريط إجمالي التوفير (وفرت بالفاتورة)
           </label>
           <label className="settings-print-option" style={checkboxStyle}>
             <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemSummary')} disabled={disabled} />

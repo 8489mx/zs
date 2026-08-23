@@ -161,6 +161,10 @@ export interface AppSettings {
   printShowPaymentMethod?: boolean;
   printShowItemSummary?: boolean;
   printShowPaymentBreakdown?: boolean;
+  printShowDate?: boolean;
+  printShowItemOffers?: boolean;
+  printShowDiscountBreakdown?: boolean;
+  printShowSavingsBanner?: boolean;
   printShowFooter?: boolean;
   printCompactReceipt?: boolean;
   posReceiptTheme?: 'boxed' | 'classic' | 'ultra-compact' | string;
