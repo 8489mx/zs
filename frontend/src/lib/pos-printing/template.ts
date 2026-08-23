@@ -122,7 +122,7 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
     const hasOffer = (item.originalPrice && item.originalPrice > Number(item.price || 0)) || (item.offerDiscount && Number(item.offerDiscount) > 0);
     const offerHtml = hasOffer
       ? `<div class="item-offer-line" style="font-size: 0.82em; color: #000; margin-top: 2px; font-style: normal;">
-          <strong>[عرض]</strong> أصلي: ${formatReceiptMoney(Number(item.originalPrice || (Number(item.price || 0) + Number(item.offerDiscount || 0))), settings)} | خصم: ${formatReceiptMoney(Number(item.offerDiscount || (Number(item.originalPrice || 0) - Number(item.price || 0))), settings)}-
+          <strong>[عرض]</strong> أصلي: ${formatReceiptMoney(Number(item.originalPrice || (Number(item.price || 0) + Number(item.offerDiscount || 0))), settings)} | وفرت: ${formatReceiptMoney(Number(item.offerDiscount || (Number(item.originalPrice || 0) - Number(item.price || 0))), settings)}
          </div>`
       : '';
     return `
@@ -230,9 +230,9 @@ function renderTotals(options: {
   ] : [
     ...(hasOffersSavings ? [
       { label: 'الإجمالي قبل الخصومات', value: formatReceiptMoney(grossSubtotal, options.settings) },
-      { label: 'إجمالي خصومات العروض', value: `${formatReceiptMoney(totalOffersSavings, options.settings)}-` },
+      { label: 'إجمالي خصومات العروض', value: `-${formatReceiptMoney(totalOffersSavings, options.settings)}` },
     ] : (showTax ? [{ label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) }] : [])),
-    ...(hasDiscount ? [{ label: discountLabel, value: `${formatReceiptMoney(Number(options.discount || 0), options.settings)}-` }] : []),
+    ...(hasDiscount ? [{ label: discountLabel, value: `-${formatReceiptMoney(Number(options.discount || 0), options.settings)}` }] : []),
     ...(hasDeliveryFee ? [{ label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) }] : []),
     ...(showTax && !hasOffersSavings ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
@@ -251,7 +251,7 @@ function renderTotals(options: {
   const savingsBannerHtml = (!options.isReturn && totalAllSavings > 0.0001)
     ? `
       <div class="receipt-savings-banner" style="margin-top: 6px; padding: 4px 6px; border: 1.5px dashed #000; border-radius: 4px; text-align: center; font-weight: 800; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000;">
-        🎉 إجمالي ما وفّرته في هذه الفاتورة: ${formatReceiptMoney(totalAllSavings, options.settings)}
+        🎉 إجمالي ما وفّرته في هذه الفاتورة: ${formatReceiptMoney(totalAllSavings, options.settings)} ج.م
       </div>
     `
     : '';
@@ -315,7 +315,7 @@ export function getInvoiceStyles(compact = false) {
     .meta-line:last-child { border-bottom: 0; }
     .meta-line.strong { font-weight: 800; font-size: ${compact ? '12.5px' : '14px'}; }
     .meta-label { color: #000; white-space: nowrap; font-weight: 700; text-align: right; }
-    .meta-value { text-align: left; font-weight: 500; color: #000; overflow-wrap: anywhere; }
+    .meta-value { text-align: left; font-weight: 500; color: #000; overflow-wrap: anywhere; direction: ltr; unicode-bidi: isolate; }
     .invoice-items-card { padding: 0; }
     .invoice-items-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: auto; }
     .invoice-items-table th,
