@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface DialogShellProps {
   open: boolean;
@@ -98,12 +99,14 @@ export function DialogShell({
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
+  const effectiveZIndex = zIndex && zIndex >= 1000 ? zIndex : 10000 + (zIndex || 0);
+
+  return createPortal(
     <div
       className={`dialog-overlay ${overlayClassName}`.trim()}
-      style={{ zIndex }}
+      style={{ zIndex: effectiveZIndex }}
       onClick={(event) => {
         if (!closeOnBackdrop) return;
         if (event.target === event.currentTarget) onClose();
@@ -136,6 +139,7 @@ export function DialogShell({
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

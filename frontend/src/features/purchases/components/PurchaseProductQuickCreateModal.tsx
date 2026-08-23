@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { NewProductForm } from '@/features/products/components/NewProductForm';
 import type { Product } from '@/types/domain';
 
@@ -32,18 +33,18 @@ export function PurchaseProductQuickCreateModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
       className="dialog-overlay purchase-new-product-modal-overlay"
       role="presentation"
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
         backdropFilter: 'blur(3px)',
-        zIndex: 9999,
+        zIndex: 10000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -88,6 +89,7 @@ export function PurchaseProductQuickCreateModal({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

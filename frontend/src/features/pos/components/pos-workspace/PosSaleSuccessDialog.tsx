@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -134,11 +135,11 @@ export function PosSaleSuccessDialog({
     };
   }, [onClose, onNewSale, onPrintA4, onPrintReceipt, open, sale, triggerWhatsapp]);
 
-  if (!open || !sale) return null;
+  if (!open || !sale || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
-      className="pos-sale-success-modal-overlay"
+      className="dialog-overlay pos-sale-success-modal-overlay"
       role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -146,12 +147,14 @@ export function PosSaleSuccessDialog({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 90,
+        zIndex: 10000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 16,
-        background: 'rgba(15, 23, 42, 0.36)',
+        background: 'rgba(15, 23, 42, 0.45)',
+        backdropFilter: 'blur(3px)',
+        WebkitBackdropFilter: 'blur(3px)',
       }}
     >
       <section
@@ -223,6 +226,7 @@ export function PosSaleSuccessDialog({
           </div>
         ) : null}
       </section>
-    </div>
+    </div>,
+    document.body
   );
 }

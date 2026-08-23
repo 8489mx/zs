@@ -1,22 +1,20 @@
 .pos-checkout-dialog-card {
-  max-height: calc(100vh - 48px);
-  overflow: hidden;
+  max-height: none;
+  overflow: visible;
 }
 
 .pos-checkout-dialog-card > .card-body,
 .pos-checkout-dialog-card .card-body {
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .pos-checkout-dialog {
   display: grid;
   gap: 14px;
-  max-height: calc(100vh - 150px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-inline-end: 4px;
-  scrollbar-gutter: stable;
+  overflow: visible;
+  max-height: none;
+  padding-inline-end: 0;
 }
 
 .pos-checkout-dialog-section {
@@ -294,10 +292,6 @@
 }
 
 @media (max-width: 860px) {
-  .pos-checkout-dialog {
-    max-height: calc(100vh - 120px);
-  }
-
   .pos-checkout-dialog-summary,
   .pos-checkout-payment-summary,
   .pos-checkout-payment-methods,
@@ -326,13 +320,8 @@
 }
 
 @media (max-width: 560px) {
-  .pos-checkout-dialog-card {
-    max-height: calc(100vh - 18px);
-  }
-
   .pos-checkout-dialog {
     gap: 10px;
-    max-height: calc(100vh - 96px);
     padding-inline-end: 0;
   }
 

@@ -120,10 +120,12 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
          </div>`
       : '';
     const showItemOffers = getPrintOption(settings, 'printShowItemOffers', true);
-    const hasOffer = (item.originalPrice && item.originalPrice > Number(item.price || 0)) || (item.offerDiscount && Number(item.offerDiscount) > 0);
+    const origPrice = Number(item.originalPrice || (Number(item.price || 0) + Number(item.offerDiscount || 0)));
+    const savedAmount = Number(item.offerDiscount || (Number(item.originalPrice || 0) - Number(item.price || 0)));
+    const hasOffer = origPrice > Number(item.price || 0) && savedAmount > 0;
     const offerHtml = (hasOffer && showItemOffers)
-      ? `<div class="item-offer-line" style="font-size: 0.82em; color: #000; margin-top: 2px; font-style: normal;">
-          <strong>[عرض]</strong> أصلي: ${formatReceiptMoney(Number(item.originalPrice || (Number(item.price || 0) + Number(item.offerDiscount || 0))), settings)} | وفرت: ${formatReceiptMoney(Number(item.offerDiscount || (Number(item.originalPrice || 0) - Number(item.price || 0))), settings)}
+      ? `<div class="item-offer-line" style="font-size: 0.85em; line-height: 1.25; color: #000; margin-top: 1px;">
+          <strong style="font-weight: 800;">وفرت: ${formatReceiptMoney(savedAmount, settings)}</strong> <span style="font-weight: 600; color: #000; font-size: 0.95em;">(بدلاً من ${formatReceiptMoney(origPrice, settings)})</span>
          </div>`
       : '';
     return `
@@ -263,10 +265,12 @@ function renderTotals(options: {
 
   const savingsBannerHtml = (!options.isReturn && totalAllSavings > 0.0001 && showSavingsBanner)
     ? `
-      <div class="receipt-savings-banner" style="margin-top: 6px; padding: 4px 6px; border: 1.5px dashed #000; border-radius: 4px; text-align: center; font-weight: 800; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000; display: flex; align-items: center; justify-content: center; gap: 5px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: inline-block;">
-          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-          <circle cx="7" cy="7" r="1.5" fill="#000"/>
+      <div class="receipt-savings-banner" style="margin-top: 6px; padding: 4px 6px; border: 1.5px dashed #000; border-radius: 4px; text-align: center; font-weight: 800; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: inline-block;">
+          <circle cx="12" cy="12" r="9.5"/>
+          <line x1="16" y1="8" x2="8" y2="16"/>
+          <circle cx="9" cy="8.5" r="1.3" fill="#000"/>
+          <circle cx="15" cy="15.5" r="1.3" fill="#000"/>
         </svg>
         <span>إجمالي ما وفّرته في هذه الفاتورة: ${formatReceiptMoney(totalAllSavings, options.settings)} ج.م</span>
       </div>
