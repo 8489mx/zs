@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { getErrorMessage } from '@/lib/errors';
 import { http } from '@/lib/http';
@@ -97,15 +98,17 @@ export function QuickCashAdvanceModal() {
           <p className="muted">لا تملك صلاحية الوصول لقسم السلف.</p>
         ) : (
           <form className="form-grid" onSubmit={handleSubmit}>
-            <label className="field field-wide">
-              <span>الموظف *</span>
-              <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} required>
-                <option value="">اختيار الموظف</option>
-                {employees.map((emp: any) => (
-                  <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>
-                ))}
-              </select>
-            </label>
+            <div className="field field-wide" style={{ marginBottom: 12 }}>
+              <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155', marginBottom: 4, display: 'block' }}>الموظف *</span>
+              <CustomSelect
+                value={employeeId}
+                onChange={(val) => setEmployeeId(val)}
+                options={[
+                  { value: '', label: 'اختيار الموظف' },
+                  ...employees.map((emp: any) => ({ value: emp.id, label: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.name })),
+                ]}
+              />
+            </div>
             
             <label className="field field-wide">
               <span>المبلغ *</span>

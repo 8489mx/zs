@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee } from '@/types/domain';
 import { useHrWorkspace } from '@/features/hr/hooks/useHr';
@@ -238,21 +239,22 @@ export function EmployeesPage() {
               style={{ width: '220px', minWidth: '170px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
             />
 
-            <select
-              value={status}
-              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-              style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
-            >
-              {STATUS_FILTERS.map((entry) => <option key={entry.value || 'all'} value={entry.value}>{entry.label}</option>)}
-            </select>
+            <div style={{ width: '150px' }}>
+              <CustomSelect
+                value={status}
+                onChange={(val) => { setStatus(val); setPage(1); }}
+                options={STATUS_FILTERS}
+              />
+            </div>
 
-            <select
-              value={completionFilter}
-              onChange={(e) => { setCompletionFilter(e.target.value as CompletionFilter); setPage(1); }}
-              style={{ width: 'auto', minWidth: '130px', maxWidth: '160px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
-            >
-              {COMPLETION_FILTERS.map((entry) => <option key={entry.value || 'all-completion'} value={entry.value}>{entry.label}</option>)}
-            </select>
+            <div style={{ width: '160px' }}>
+              <CustomSelect
+                value={completionFilter}
+                onChange={(val) => { setCompletionFilter(val as CompletionFilter); setPage(1); }}
+                options={COMPLETION_FILTERS}
+              />
+            </div>
+
 
             {(search || status || completionFilter) && (
               <Button

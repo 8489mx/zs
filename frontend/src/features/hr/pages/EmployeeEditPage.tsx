@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { getErrorMessage } from '@/lib/errors';
 import type { HrEmployee } from '@/types/domain';
 import { useHrMutations, useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
@@ -206,14 +207,14 @@ export function EmployeeEditPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>حالة الموظف</label>
-                  <select
+                  <CustomSelect
                     value={draft.status}
-                    onChange={(e) => setDraft((current) => ({ ...current, status: e.target.value === 'inactive' ? 'inactive' : 'active' }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  >
-                    <option value="active">نشط</option>
-                    <option value="inactive">غير نشط</option>
-                  </select>
+                    onChange={(val) => setDraft((current) => ({ ...current, status: val === 'inactive' ? 'inactive' : 'active' }))}
+                    options={[
+                      { value: 'active', label: 'نشط' },
+                      { value: 'inactive', label: 'غير نشط' },
+                    ]}
+                  />
                 </div>
               </div>
             </div>
@@ -225,28 +226,29 @@ export function EmployeeEditPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>نوع الأجر</label>
-                  <select
+                  <CustomSelect
                     value={draft.compensationType}
-                    onChange={(e) => setDraft((current) => ({ ...current, compensationType: e.target.value === 'hourly' ? 'hourly' : 'monthly' }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  >
-                    <option value="monthly">راتب شهري ثابت</option>
-                    <option value="hourly">أجر بالساعة</option>
-                  </select>
+                    onChange={(val) => setDraft((current) => ({ ...current, compensationType: val === 'hourly' ? 'hourly' : 'monthly' }))}
+                    options={[
+                      { value: 'monthly', label: 'راتب شهري ثابت' },
+                      { value: 'hourly', label: 'أجر بالساعة' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>دورة القبض</label>
-                  <select
+                  <CustomSelect
                     value={draft.payFrequency}
-                    onChange={(e) => setDraft((current) => ({ ...current, payFrequency: e.target.value as any }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  >
-                    <option value="monthly">شهري</option>
-                    <option value="weekly">أسبوعي</option>
-                    <option value="biweekly">نصف شهري</option>
-                    <option value="daily">يومي</option>
-                  </select>
+                    onChange={(val) => setDraft((current) => ({ ...current, payFrequency: val as any }))}
+                    options={[
+                      { value: 'monthly', label: 'شهري' },
+                      { value: 'weekly', label: 'أسبوعي' },
+                      { value: 'biweekly', label: 'نصف شهري' },
+                      { value: 'daily', label: 'يومي' },
+                    ]}
+                  />
                 </div>
+
                 {draft.compensationType === 'hourly' ? (
                   <>
                     <div>
@@ -311,36 +313,36 @@ export function EmployeeEditPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>القسم</label>
-                  <select
+                  <CustomSelect
                     value={draft.departmentId}
-                    onChange={(e) => setDraft((current) => ({ ...current, departmentId: e.target.value }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  >
-                    <option value="">اختيار</option>
-                    {departments.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
-                  </select>
+                    onChange={(val) => setDraft((current) => ({ ...current, departmentId: val }))}
+                    options={[
+                      { value: '', label: 'اختيار' },
+                      ...departments.map((entry) => ({ value: entry.id, label: entry.name })),
+                    ]}
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>المسمى الوظيفي</label>
-                  <select
+                  <CustomSelect
                     value={draft.jobTitleId}
-                    onChange={(e) => setDraft((current) => ({ ...current, jobTitleId: e.target.value }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  >
-                    <option value="">اختيار</option>
-                    {jobTitles.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
-                  </select>
+                    onChange={(val) => setDraft((current) => ({ ...current, jobTitleId: val }))}
+                    options={[
+                      { value: '', label: 'اختيار' },
+                      ...jobTitles.map((entry) => ({ value: entry.id, label: entry.name })),
+                    ]}
+                  />
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الوظيفة/المنصب</label>
-                  <select
+                  <CustomSelect
                     value={draft.positionId}
-                    onChange={(e) => setDraft((current) => ({ ...current, positionId: e.target.value }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  >
-                    <option value="">اختيار</option>
-                    {positions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
-                  </select>
+                    onChange={(val) => setDraft((current) => ({ ...current, positionId: val }))}
+                    options={[
+                      { value: '', label: 'اختيار' },
+                      ...positions.map((entry) => ({ value: entry.id, label: entry.name })),
+                    ]}
+                  />
                 </div>
               </div>
             </div>
@@ -390,30 +392,31 @@ export function EmployeeEditPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>سياسة التأخير</label>
-                  <select
+                  <CustomSelect
                     value={draft.delayPolicy}
-                    onChange={(e) => setDraft((current) => ({ ...current, delayPolicy: e.target.value }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  >
-                    <option value="inherit">حسب سياسة المؤسسة</option>
-                    <option value="standard">قياسي (دقائق)</option>
-                    <option value="progressive">تصاعدي</option>
-                    <option value="strict">صارم</option>
-                    <option value="disabled">معطل</option>
-                  </select>
+                    onChange={(val) => setDraft((current) => ({ ...current, delayPolicy: val }))}
+                    options={[
+                      { value: 'inherit', label: 'حسب سياسة المؤسسة' },
+                      { value: 'standard', label: 'قياسي (دقائق)' },
+                      { value: 'progressive', label: 'تصاعدي' },
+                      { value: 'strict', label: 'صارم' },
+                      { value: 'disabled', label: 'معطل' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>سياسة الإضافي</label>
-                  <select
+                  <CustomSelect
                     value={draft.overtimePolicy}
-                    onChange={(e) => setDraft((current) => ({ ...current, overtimePolicy: e.target.value as any }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  >
-                    <option value="review_only">مراجعة واعتماد</option>
-                    <option value="auto_approved">اعتماد تلقائي</option>
-                    <option value="disabled">معطل</option>
-                  </select>
+                    onChange={(val) => setDraft((current) => ({ ...current, overtimePolicy: val as any }))}
+                    options={[
+                      { value: 'review_only', label: 'مراجعة واعتماد' },
+                      { value: 'auto_approved', label: 'اعتماد تلقائي' },
+                      { value: 'disabled', label: 'معطل' },
+                    ]}
+                  />
                 </div>
+
               </div>
             </div>
 

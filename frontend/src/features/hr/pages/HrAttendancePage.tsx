@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrAttendanceException, HrAttendanceRecord } from '@/types/domain';
 import { useHrAttendance, useHrAttendanceExceptions, useHrMutations } from '@/features/hr/hooks/useHr';
@@ -440,22 +441,25 @@ export function HrAttendancePage() {
                     header: 'الحالة',
                     className: 'col-fit',
                     cell: (row) => (
-                      <select
-                        value={draftByEmployeeId[String(row.employeeId)]?.status || ''}
-                        onChange={(e) => updateDraft(String(row.employeeId), { status: e.target.value })}
-                        style={{ padding: '2px 6px', fontSize: '0.85rem' }}
-                      >
-                        <option value="">غير مسجل</option>
-                        <option value="present">حاضر</option>
-                        <option value="absent">غائب</option>
-                        <option value="late">متأخر</option>
-                        <option value="early_leave">انصراف مبكر</option>
-                        <option value="leave">إجازة</option>
-                        <option value="half_day">نصف يوم</option>
-                        <option value="excused">بعذر</option>
-                      </select>
+                      <div style={{ width: '130px' }}>
+                        <CustomSelect
+                          value={draftByEmployeeId[String(row.employeeId)]?.status || ''}
+                          onChange={(val) => updateDraft(String(row.employeeId), { status: val })}
+                          options={[
+                            { value: '', label: 'غير مسجل' },
+                            { value: 'present', label: 'حاضر' },
+                            { value: 'absent', label: 'غائب' },
+                            { value: 'late', label: 'متأخر' },
+                            { value: 'early_leave', label: 'انصراف مبكر' },
+                            { value: 'leave', label: 'إجازة' },
+                            { value: 'half_day', label: 'نصف يوم' },
+                            { value: 'excused', label: 'بعذر' },
+                          ]}
+                        />
+                      </div>
                     ),
                   },
+
                   {
                     key: 'notes',
                     header: 'ملاحظات',

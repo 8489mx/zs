@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
 import type { HrEmployee, HrEmployeeAsset } from '@/types/domain';
@@ -206,10 +207,14 @@ export function HrAssetsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الموظف <span style={{ color: '#dc2626' }}>*</span></label>
-                  <select value={form.employeeId} onChange={(event) => setForm((prev) => ({ ...prev, employeeId: event.target.value }))} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }}>
-                    <option value="">اختر الموظف...</option>
-                    {employees.map((employee) => <option key={employee.id} value={employee.id}>{employeeDisplay(employee)}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.employeeId}
+                    onChange={(val) => setForm((prev) => ({ ...prev, employeeId: val }))}
+                    options={[
+                      { value: '', label: 'اختر الموظف...' },
+                      ...employees.map((employee) => ({ value: employee.id, label: employeeDisplay(employee) })),
+                    ]}
+                  />
                   {errors.employeeId ? <small style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>{errors.employeeId}</small> : null}
                 </div>
 
@@ -222,13 +227,18 @@ export function HrAssetsPage() {
                 ) : (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>نوع العهدة <span style={{ color: '#dc2626' }}>*</span></label>
-                    <select value={form.assetType} onChange={(event) => setForm((prev) => ({ ...prev, assetType: event.target.value }))} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', fontSize: '0.85rem', boxSizing: 'border-box' }}>
-                      <option value="">اختر النوع...</option>
-                      {assetTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                    </select>
+                    <CustomSelect
+                      value={form.assetType}
+                      onChange={(val) => setForm((prev) => ({ ...prev, assetType: val }))}
+                      options={[
+                        { value: '', label: 'اختر النوع...' },
+                        ...assetTypeOptions.map((opt) => ({ value: opt, label: opt })),
+                      ]}
+                    />
                     {errors.assetType ? <small style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>{errors.assetType}</small> : null}
                   </div>
                 )}
+
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{activeTab === 'cash' ? 'الغرض / البيان *' : 'اسم العهدة / الأصل *'}</label>
@@ -329,14 +339,17 @@ export function HrAssetsPage() {
               style={{ width: '190px', minWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
             />
 
-            <select
-              value={departmentFilter}
-              onChange={(event) => { setDepartmentFilter(event.target.value); setPage(1); }}
-              style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
-            >
-              <option value="all">كل الأقسام</option>
-              {departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
+            <div style={{ width: '150px' }}>
+              <CustomSelect
+                value={departmentFilter}
+                onChange={(val) => { setDepartmentFilter(val); setPage(1); }}
+                options={[
+                  { value: 'all', label: 'كل الأقسام' },
+                  ...departmentOptions.map((option) => ({ value: option.value, label: option.label })),
+                ]}
+              />
+            </div>
+
 
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', marginRight: 'auto' }}>
               {statusOptions.filter((option) => activeTab === 'physical' || !['damaged', 'lost'].includes(option.value)).map((option) => (

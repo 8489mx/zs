@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrLeaveRequest, HrLeaveType } from '@/types/domain';
 import { useHrLeaveRequests, useHrLeaveTypes, useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
@@ -286,14 +287,17 @@ export function HrLeavesPage() {
               style={{ width: '190px', minWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
             />
 
-            <select
-              value={leaveTypeFilter}
-              onChange={(event) => { setLeaveTypeFilter(event.target.value); setPage(1); }}
-              style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
-            >
-              <option value="all">كل أنواع الإجازات</option>
-              {leaveTypes.map((type) => <option key={type.id} value={String(type.id)}>{text(type.name) || '—'}</option>)}
-            </select>
+            <div style={{ width: '160px' }}>
+              <CustomSelect
+                value={leaveTypeFilter}
+                onChange={(val) => { setLeaveTypeFilter(val); setPage(1); }}
+                options={[
+                  { value: 'all', label: 'كل أنواع الإجازات' },
+                  ...leaveTypes.map((type) => ({ value: String(type.id), label: text(type.name) || '—' })),
+                ]}
+              />
+            </div>
+
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>من:</span>

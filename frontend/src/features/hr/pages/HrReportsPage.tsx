@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrEmployeeAsset, HrLeaveRequest, HrLoan, HrPayrollRun } from '@/types/domain';
 import {
@@ -198,22 +199,25 @@ export function HrReportsPage() {
               <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' }} />
             </div>
 
-            <select
-              value={departmentFilter}
-              onChange={(event) => setDepartmentFilter(event.target.value)}
-              style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
-            >
-              <option value="all">كل الأقسام</option>
-              {departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
+            <div style={{ width: '150px' }}>
+              <CustomSelect
+                value={departmentFilter}
+                onChange={(val) => setDepartmentFilter(val)}
+                options={[
+                  { value: 'all', label: 'كل الأقسام' },
+                  ...departmentOptions.map((option) => ({ value: option.value, label: option.label })),
+                ]}
+              />
+            </div>
 
-            <select
-              value={reportType}
-              onChange={(event) => setReportType(event.target.value as ReportType)}
-              style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
-            >
-              {reportTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
+            <div style={{ width: '160px' }}>
+              <CustomSelect
+                value={reportType}
+                onChange={(val) => setReportType(val as ReportType)}
+                options={reportTypeOptions}
+              />
+            </div>
+
           </div>
 
           <QueryFeedback isLoading={loading} isError={isError} error={error} isEmpty={!hasAnyData} loadingText="جارٍ تحميل التقارير..." errorTitle="تعذر تحميل تقارير الموارد البشرية" emptyTitle="لا توجد بيانات كافية لعرض التقرير.">

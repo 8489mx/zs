@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import type { HrEmployee, HrLeaveType } from '@/types/domain';
 import {
   calculateInclusiveDays,
@@ -48,28 +49,29 @@ export function HrLeavesCreateRequestCard({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '10px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>الموظف <span style={{ color: '#dc2626' }}>*</span></label>
-          <select
+          <CustomSelect
             value={leaveForm.employeeId}
-            onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, employeeId: normalizeArabicDigits(event.target.value) }))}
-            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
-          >
-            <option value="">اختر الموظف...</option>
-            {employees.map((employee) => <option key={employee.id} value={employee.id}>{employeeDisplay(employee)}</option>)}
-          </select>
+            onChange={(val) => onLeaveFormChange((prev) => ({ ...prev, employeeId: normalizeArabicDigits(val) }))}
+            options={[
+              { value: '', label: 'اختر الموظف...' },
+              ...employees.map((employee) => ({ value: employee.id, label: employeeDisplay(employee) })),
+            ]}
+          />
           {errors.employeeId ? <small style={{ color: '#dc2626', fontSize: '0.725rem', marginTop: '2px', display: 'block' }}>{errors.employeeId}</small> : null}
         </div>
         <div>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>نوع الإجازة <span style={{ color: '#dc2626' }}>*</span></label>
-          <select
+          <CustomSelect
             value={leaveForm.leaveTypeId}
-            onChange={(event) => onLeaveFormChange((prev) => ({ ...prev, leaveTypeId: normalizeArabicDigits(event.target.value) }))}
-            style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.825rem', boxSizing: 'border-box' }}
-          >
-            <option value="">اختر النوع...</option>
-            {leaveTypes.map((type) => <option key={type.id} value={type.id}>{text(type.name) || '—'}</option>)}
-          </select>
+            onChange={(val) => onLeaveFormChange((prev) => ({ ...prev, leaveTypeId: normalizeArabicDigits(val) }))}
+            options={[
+              { value: '', label: 'اختر النوع...' },
+              ...leaveTypes.map((type) => ({ value: type.id, label: text(type.name) || '—' })),
+            ]}
+          />
           {errors.leaveTypeId ? <small style={{ color: '#dc2626', fontSize: '0.725rem', marginTop: '2px', display: 'block' }}>{errors.leaveTypeId}</small> : null}
         </div>
+
         <div>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>من تاريخ <span style={{ color: '#dc2626' }}>*</span></label>
           <input
