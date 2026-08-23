@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { Category, Product, ProductUnit, Supplier } from '@/types/domain';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
+import { AlertTriangleIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import { useSettingsQuery, useCategoriesQuery, useSuppliersQuery, useProductsQuery, useLocationsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useCreateProductMutation } from '@/features/products/hooks/useCreateProductMutation';
 import { productsApi } from '@/features/products/api/products.api';
@@ -335,8 +336,8 @@ function ProductNameField({ value, onChange, allProducts, disabled, label, place
             overflowY: 'auto',
             padding: 4,
           }}>
-            <div style={{ padding: '6px 10px', fontSize: 12, color: '#92400e', background: '#fffbeb', borderRadius: 6, marginBottom: 4 }}>
-              ⚠ أصناف مشابهة موجودة مسبقاً:
+            <div style={{ padding: '6px 10px', fontSize: 12, color: '#92400e', background: '#fffbeb', borderRadius: 6, marginBottom: 4, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangleIcon size={14} color="#d97706" /> أصناف مشابهة موجودة مسبقاً:
             </div>
             {similarProducts.map((p) => (
               <div key={p.id} style={{ padding: '6px 10px', fontSize: 13, color: '#374151', borderRadius: 6 }}>
@@ -922,7 +923,9 @@ export function NewProductForm({
             <div style={{ marginTop: '0.85rem', paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>
                 <input type="checkbox" {...form.register('trackSerials')} disabled={isFormDisabled} style={{ width: 18, height: 18 }} />
-                <span>📱 تتبع أرقام IMEI / السيريال المنفرد لهذا الصنف (للهواتف والأجهزة الإلكترونية)</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <SmartphoneIcon size={16} color="#166534" /> تتبع أرقام IMEI / السيريال المنفرد لهذا الصنف (للهواتف والأجهزة الإلكترونية)
+                </span>
               </label>
             </div>
           )}

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
+import { ClipboardIcon, CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -488,17 +489,17 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
             type="button"
             variant={activeSubTab === 'invoices' ? 'primary' : 'secondary'}
             onClick={() => setActiveSubTab('invoices')}
-            style={{ fontWeight: 700 }}
+            style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            📋 فواتير المشتريات والمعاملات ({ledgerEntries.length})
+            <ClipboardIcon size={16} /> فواتير المشتريات والمعاملات ({ledgerEntries.length})
           </Button>
           <Button
             type="button"
             variant={activeSubTab === 'schedule' ? 'primary' : 'secondary'}
             onClick={() => setActiveSubTab('schedule')}
-            style={{ fontWeight: 700 }}
+            style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            📅 جدول الأقساط والدفعات ({rows.length})
+            <CalendarIcon size={16} /> جدول الأقساط والدفعات ({rows.length})
           </Button>
         </div>
 

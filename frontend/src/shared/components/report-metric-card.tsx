@@ -1,4 +1,6 @@
 import { AnimatedValue } from '@/shared/components/animated-value';
+import { BarChartIcon, CheckCircleIcon, AlertTriangleIcon, AlertCircleIcon } from '@/shared/components/icons/AppIcons';
+import React from 'react';
 
 interface ReportMetricCardProps {
   label: string;
@@ -10,11 +12,11 @@ interface ReportMetricCardProps {
   progress?: number;
 }
 
-const TONE_ICONS: Record<string, string> = {
-  primary: '📊',
-  success: '✅',
-  warning: '⚠️',
-  danger: '🔴',
+const TONE_ICONS: Record<string, React.ReactNode> = {
+  primary: <BarChartIcon size={16} />,
+  success: <CheckCircleIcon size={16} color="var(--color-success, #16a34a)" />,
+  warning: <AlertTriangleIcon size={16} color="var(--color-warning, #d97706)" />,
+  danger: <AlertCircleIcon size={16} color="var(--color-danger, #dc2626)" />,
 };
 
 export function ReportMetricCard({
@@ -33,7 +35,7 @@ export function ReportMetricCard({
       <div className="rmc-accent-bar" aria-hidden="true" />
       <div className="rmc-body">
         <div className="rmc-header">
-          <span className="rmc-icon" aria-hidden="true">{TONE_ICONS[tone] || '📊'}</span>
+          <span className="rmc-icon" aria-hidden="true">{TONE_ICONS[tone] || <BarChartIcon size={16} />}</span>
           <span className="report-metric-label">{label}</span>
         </div>
         <strong className="report-metric-value">

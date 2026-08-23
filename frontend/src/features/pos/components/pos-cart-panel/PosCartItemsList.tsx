@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { FileTextIcon, TagIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
@@ -84,8 +85,8 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   {!item.notes && allowItemNotes && (
                     <button
                       type="button"
-                      title="إضافة ملاحظة"
-                      style={{ fontSize: '0.85rem', color: '#94a3b8', background: 'none', border: 'none', padding: '0 4px', cursor: 'pointer', opacity: isSelected ? 1 : 0.4 }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: '#6b7280' }}
+                      title="إضافة ملاحظة على الصنف"
                       onClick={(e) => {
                         e.stopPropagation();
                         const newNotes = window.prompt('ملاحظات الصنف:', '');
@@ -94,7 +95,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                         }
                       }}
                     >
-                      📝
+                      <FileTextIcon size={14} />
                     </button>
                   )}
                 </div>
@@ -117,13 +118,13 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   </div>
                 )}
                 {item.offerName && (
-                  <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '2px', fontWeight: 500 }}>
-                    🏷️ {item.offerName}
+                  <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '2px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <TagIcon size={12} color="#10b981" /> {item.offerName}
                   </div>
                 )}
                 {item.serials && item.serials.length > 0 && (
-                  <div style={{ fontSize: '0.72rem', color: '#7e22ce', background: '#faf5ff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e9d5ff', marginTop: '3px', direction: 'ltr', textAlign: 'right' }}>
-                    📱 IMEI: <strong>{item.serials.join(', ')}</strong>
+                  <div style={{ fontSize: '0.72rem', color: '#7e22ce', background: '#faf5ff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e9d5ff', marginTop: '3px', direction: 'ltr', textAlign: 'right', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                    <strong>{item.serials.join(', ')}</strong> :IMEI <SmartphoneIcon size={12} color="#7e22ce" />
                   </div>
                 )}
                 {onItemModifiersClick && allowItemModifiers && (

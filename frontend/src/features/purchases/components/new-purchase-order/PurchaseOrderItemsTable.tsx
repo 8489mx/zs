@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { useTranslation } from '../../utils/i18n-purchase-prototype';
@@ -216,6 +217,9 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                             color: '#7e22ce',
                             cursor: 'pointer',
                             fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
                           }}
                           onClick={() => {
                             const currentText = (line.serials || []).join('\n');
@@ -235,7 +239,8 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                             }
                           }}
                         >
-                          📱 {line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : '+ إدخال أرقام السيريال / الـ IMEI'}
+                          <SmartphoneIcon size={12} color="#7e22ce" />
+                          <span>{line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : '+ إدخال أرقام السيريال / الـ IMEI'}</span>
                         </button>
                       </div>
                     ) : null}

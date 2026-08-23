@@ -1,6 +1,7 @@
 import { Fragment, useState, useMemo } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
+import { FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -277,7 +278,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                               cursor: 'pointer',
                             }}
                           >
-                            <span>📝 ملاحظة</span>
+                            <span><FileTextIcon size={12} style={{ marginInlineEnd: '4px' }} />ملاحظة</span>
                           </button>
                         ) : (
                           <span style={{ color: '#cbd5e1' }}>—</span>
@@ -369,7 +370,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                               cursor: 'pointer',
                             }}
                           >
-                            <span>📝 ملاحظة</span>
+                            <span><FileTextIcon size={12} style={{ marginInlineEnd: '4px' }} />ملاحظة</span>
                           </button>
                         ) : (
                           <span style={{ color: '#cbd5e1' }}>—</span>
@@ -450,7 +451,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                                 cursor: 'pointer',
                               }}
                             >
-                              <span>📝 ملاحظة</span>
+                              <span><FileTextIcon size={12} style={{ marginInlineEnd: '4px' }} />ملاحظة</span>
                             </button>
                           ) : (
                             <span style={{ color: '#cbd5e1' }}>—</span>
@@ -495,8 +496,8 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             <div style={{ padding: '20px 24px' }} dir="rtl">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
-                    📝
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileTextIcon size={18} color="#2563eb" />
                   </div>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>ملاحظات الصنف</h3>

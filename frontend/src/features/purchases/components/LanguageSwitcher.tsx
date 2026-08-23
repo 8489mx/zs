@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { GlobeIcon } from '@/shared/components/icons/AppIcons';
 import { useTranslation } from '../utils/i18n-purchase-prototype';
 
 export function LanguageSwitcher() {
@@ -33,8 +34,9 @@ export function LanguageSwitcher() {
         aria-label="Language"
         title="Language"
         onClick={() => setIsOpen(!isOpen)}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
       >
-        🌐
+        <GlobeIcon size={18} />
       </button>
 
       {isOpen && (

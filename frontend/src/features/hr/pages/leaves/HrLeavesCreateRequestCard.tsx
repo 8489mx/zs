@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import type { HrEmployee, HrLeaveType } from '@/types/domain';
 import {
@@ -42,7 +43,9 @@ export function HrLeavesCreateRequestCard({
   return (
     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-        <strong style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a' }}>📝 إضافة طلب إجازة جديد</strong>
+        <strong style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <FileTextIcon size={16} /> إضافة طلب إجازة جديد
+        </strong>
         <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>✕ إغلاق</Button>
       </div>
 

@@ -1,5 +1,6 @@
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { AlertTriangleIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Field } from '@/shared/ui/field';
@@ -419,10 +420,18 @@ export function PricingCenterPage() {
                       justifyContent: 'space-between',
                     }}
                   >
-                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: summary.belowCostCount > 0 ? '#92400e' : '#166534' }}>
-                      {summary.belowCostCount > 0
-                        ? `⚠️ ${summary.belowCostCount} صنف سينخفض عن سعر الشراء والتكلفة!`
-                        : '✅ جميع الأسعار المعدلة أعلى من سعر التكلفة'}
+                    <span style={{ fontSize: '0.76rem', fontWeight: 700, color: summary.belowCostCount > 0 ? '#92400e' : '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {summary.belowCostCount > 0 ? (
+                        <>
+                          <AlertTriangleIcon size={14} color="#d97706" />
+                          <span>{summary.belowCostCount} صنف سينخفض عن سعر الشراء والتكلفة!</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircleIcon size={14} color="#16a34a" />
+                          <span>جميع الأسعار المعدلة أعلى من سعر التكلفة</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 ) : (

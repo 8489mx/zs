@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
+import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { POS_SHORTCUTS, getStartupIssues, type PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 
 export function PosWorkspaceQuickShortcuts() {
@@ -43,7 +44,7 @@ export function PosWorkspaceStartupIssues({ pos, onRequestOpenShift }: { pos: Po
           marginBottom: '6px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>⚠️</span>
+            <AlertTriangleIcon size={16} color="#d97706" />
             <span>لا توجد وردية مفتوحة — يلزم فتح وردية لتسجيل المبيعات.</span>
           </div>
           <Button

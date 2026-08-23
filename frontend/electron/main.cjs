@@ -100,6 +100,25 @@ let isBackendReady = false;
 let isMainWindowRendered = false;
 let hasRevealedApp = false;
 
+function toggleFullScreen(win = mainWindow) {
+  if (!win || win.isDestroyed()) return false;
+  const isFS = win.isFullScreen();
+  if (isFS) {
+    win.setFullScreen(false);
+    win.maximize();
+    if (!win.isDestroyed()) {
+      win.webContents.send('fullscreen-changed', false);
+    }
+    return false;
+  } else {
+    win.setFullScreen(true);
+    if (!win.isDestroyed()) {
+      win.webContents.send('fullscreen-changed', true);
+    }
+    return true;
+  }
+}
+
 const tryRevealApp = () => {
   if (hasRevealedApp) return;
   if (!isBackendReady || !isMainWindowRendered) return;
@@ -107,6 +126,7 @@ const tryRevealApp = () => {
 
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.maximize();
+    mainWindow.setFullScreen(true);
     mainWindow.show();
   }
 
@@ -132,6 +152,7 @@ const createMainWindow = (customLoadHandler) => {
     backgroundColor: '#ffffff',
     icon: path.join(__dirname, '../public/logo_cropped.png'),
     autoHideMenuBar: true,
+    fullscreenable: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -149,6 +170,26 @@ const createMainWindow = (customLoadHandler) => {
 
   mainWindow.webContents.on('will-prevent-unload', (event) => {
     mainWindow.webContents.send('show-custom-close-dialog');
+  });
+
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F11' && input.type === 'keyDown') {
+      toggleFullScreen(mainWindow);
+      event.preventDefault();
+    }
+  });
+
+  mainWindow.on('enter-full-screen', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('fullscreen-changed', true);
+    }
+  });
+
+  mainWindow.on('leave-full-screen', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.maximize();
+      mainWindow.webContents.send('fullscreen-changed', false);
+    }
   });
 
   mainWindow.once('ready-to-show', () => {
@@ -387,6 +428,29 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-runtime-config', () => currentConfig);
   ipcMain.on('force-close-app', () => {
     app.exit(0);
+  });
+
+  // Handle IPC for Fullscreen
+  ipcMain.handle('toggle-fullscreen', () => {
+    return toggleFullScreen(mainWindow);
+  });
+  ipcMain.handle('get-fullscreen-state', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      return mainWindow.isFullScreen();
+    }
+    return false;
+  });
+  ipcMain.handle('set-fullscreen', (event, flag) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (flag) {
+        mainWindow.setFullScreen(true);
+      } else {
+        mainWindow.setFullScreen(false);
+        mainWindow.maximize();
+      }
+      return mainWindow.isFullScreen();
+    }
+    return false;
   });
 
   // Handle IPC for Silent Printing

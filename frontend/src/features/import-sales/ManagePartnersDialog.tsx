@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
 import { usePartnersQuery, useCreatePartnerMutation, useDeletePartnerMutation, useUpdatePartnerMutation, Partner } from './api/shipments.api';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -211,7 +212,10 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
                         {!isPercentageValid && (
                           <tr>
                             <td colSpan={4} style={{ padding: '8px 16px', background: 'var(--red-50)', color: 'var(--red-700)', fontSize: '13px', textAlign: 'center' }}>
-                              ⚠️ تنبيه: إجمالي نسب الأرباح لا يساوي 100%. يرجى الضغط على زر "إعادة حساب النسب" أو تعديلها يدوياً حتى لا تفقد جزء من الأرباح.
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                                <AlertTriangleIcon size={16} color="#b91c1c" />
+                                <span>تنبيه: إجمالي نسب الأرباح لا يساوي 100%. يرجى الضغط على زر "إعادة حساب النسب" أو تعديلها يدوياً حتى لا تفقد جزء من الأرباح.</span>
+                              </span>
                             </td>
                           </tr>
                         )}

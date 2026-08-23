@@ -4,6 +4,7 @@ import { settingsApi, type OfflineRelease } from '@/features/settings/api/settin
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { Button } from '@/shared/ui/button';
+import { CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '—';
@@ -79,8 +80,9 @@ export function OfflineReleasesPage() {
 
       {/* ── Active release banner ─────────────────────────────────────── */}
       {activeRelease && (
-        <div className="success-box" style={{ marginBottom: 8 }}>
-          <strong>✅ النسخة المعتمدة حالياً للعملاء:</strong>{' '}
+        <div className="success-box" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircleIcon size={16} color="#16a34a" />
+          <strong>النسخة المعتمدة حالياً للعملاء:</strong>{' '}
           <span style={{ fontFamily: 'monospace', fontSize: 15 }}>v{activeRelease.version}</span>
           {activeRelease.promotedBy && (
             <span className="muted"> — اعتمدها {activeRelease.promotedBy} في {formatDate(activeRelease.promotedAt)}</span>
@@ -125,7 +127,12 @@ export function OfflineReleasesPage() {
             <small className="muted">اختياري — ما الذي تغيّر في هذا الإصدار؟</small>
           </Field>
           {formError && <div className="warning-box" style={{ gridColumn: '1 / -1' }}>{formError}</div>}
-          {createMutation.isSuccess && <div className="success-box" style={{ gridColumn: '1 / -1' }}>✅ تم إنشاء الإصدار بنجاح</div>}
+          {createMutation.isSuccess && (
+            <div className="success-box" style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircleIcon size={16} color="#16a34a" />
+              <span>تم إنشاء الإصدار بنجاح</span>
+            </div>
+          )}
           <div className="actions" style={{ gridColumn: '1 / -1' }}>
             <Button type="submit" variant="primary" disabled={createMutation.isPending}>
               {createMutation.isPending ? 'جاري الحفظ...' : '+ إنشاء إصدار'}
@@ -166,7 +173,9 @@ export function OfflineReleasesPage() {
                     </td>
                     <td>
                       {release.isActive ? (
-                        <span className="status-badge status-posted">✅ مفعّل</span>
+                        <span className="status-badge status-posted" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircleIcon size={12} color="#16a34a" /> مفعّل
+                        </span>
                       ) : (
                         <span className="status-badge status-draft">Draft</span>
                       )}
@@ -193,7 +202,7 @@ export function OfflineReleasesPage() {
                     <td>
                       <div className="actions" style={{ gap: 6 }}>
                         {!release.isActive && (
-                          <Button
+                           <Button
                             variant="primary"
                             type="button"
                             disabled={promoteMutation.isPending}
@@ -222,8 +231,9 @@ export function OfflineReleasesPage() {
         )}
 
         {(promoteMutation.isSuccess || deactivateMutation.isSuccess) && (
-          <div className="success-box" style={{ marginTop: 12 }}>
-            ✅ {promoteMutation.data?.message || deactivateMutation.data?.message}
+          <div className="success-box" style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <CheckCircleIcon size={16} color="#16a34a" />
+            <span>{promoteMutation.data?.message || deactivateMutation.data?.message}</span>
           </div>
         )}
         {(promoteMutation.isError || deactivateMutation.isError) && (

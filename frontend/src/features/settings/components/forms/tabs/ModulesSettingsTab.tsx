@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
+import { LightbulbIcon } from '@/shared/components/icons/AppIcons';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { MAINTENANCE_PROFILES, getMaintenanceProfile, type MaintenanceProfileKey } from '@/features/maintenance/constants/maintenance-profiles';
@@ -674,7 +675,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             </div>
 
             <div style={{ marginTop: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#475569' }}>
-              <span style={{ color: '#2563eb', fontWeight: 900 }}>💡</span>
+              <LightbulbIcon size={16} color="#2563eb" />
               <span>يمكنك التبديل بين أنشطة الصيانة في أي وقت لتكييف الواجهات بما يلائم عملك دون التأثير على التذاكر والسجلات السابقة.</span>
             </div>
           </div>

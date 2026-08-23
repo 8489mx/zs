@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { useSettingsQuery, useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -1724,8 +1725,9 @@ export function MaintenanceTicketsPage() {
                         {isUnrep ? '✕ تعذر إصلاح الجهاز (تم إلغاء رسوم الصيانة)' : '✕ تم إلغاء تذكرة الصيانة'}
                       </div>
                       {advancePaid > 0 ? (
-                        <div style={{ fontSize: '0.78rem', color: '#c2410c', marginTop: '3px', fontWeight: 600 }}>
-                          ⚠️ مستحق رد العربون للعميل بالكامل: {advancePaid.toFixed(2)} ج.م عند تسليم الجهاز
+                        <div style={{ fontSize: '0.78rem', color: '#c2410c', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <AlertTriangleIcon size={14} color="#c2410c" />
+                          <span>مستحق رد العربون للعميل بالكامل: {advancePaid.toFixed(2)} ج.م عند تسليم الجهاز</span>
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>

@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { ReceiptIcon, TagIcon, FileTextIcon, MessageSquareIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
 import { buildCode128Svg } from '@/lib/barcode';
 import { escapeHtml, printHtmlDocument } from '@/lib/browser';
 import type { MaintenanceTicket } from '@/types/domain-models/maintenance';
@@ -502,9 +503,12 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
                 boxShadow: printMode === 'receipt' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              🧾 إيصال العميل
+              <ReceiptIcon size={16} /> إيصال العميل
             </button>
             <button
               type="button"
@@ -519,9 +523,12 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
                 boxShadow: printMode === 'sticker' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              🏷️ ستيكر ظهر الجهاز
+              <TagIcon size={16} /> ستيكر ظهر الجهاز
             </button>
           </div>
 
@@ -537,7 +544,7 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
                   style={{ fontWeight: 700, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
                   title="تنزيل الإيصال كملف PDF"
                 >
-                  <span>📄</span>
+                  <FileTextIcon size={14} />
                   <span>{isExportingPdf ? 'جاري التحميل...' : 'PDF'}</span>
                 </button>
                 <button
@@ -549,12 +556,13 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
                   title="إرسال عبر واتساب مع تحميل ملف PDF"
                 >
                   <span>واتساب</span>
-                  <span>💬</span>
+                  <MessageSquareIcon size={14} color="#ffffff" />
                 </button>
               </>
             )}
-            <Button variant="primary" onClick={handlePrint} style={{ fontWeight: 800, padding: '6px 14px' }}>
-              {printMode === 'receipt' ? '🖨️ طباعة (80mm)' : '🖨️ طباعة الستيكر'}
+            <Button variant="primary" onClick={handlePrint} style={{ fontWeight: 800, padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <PrinterIcon size={16} color="#ffffff" />
+              <span>{printMode === 'receipt' ? 'طباعة (80mm)' : 'طباعة الستيكر'}</span>
             </Button>
           </div>
         </div>

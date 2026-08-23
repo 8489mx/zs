@@ -1,3 +1,4 @@
+import { LinkIcon } from '@/shared/components/icons/AppIcons';
 
 function BulkActionBar({
   count,
@@ -35,9 +36,9 @@ function BulkActionBar({
       <button
         type="button"
         onClick={onAssign}
-        style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#b45309', fontSize: '12px', cursor: 'pointer', fontWeight: 700 }}
+        style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#b45309', fontSize: '12px', cursor: 'pointer', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
       >
-        🔗 ربط بمخزن
+        <LinkIcon size={14} color="#b45309" /> ربط بمخزن
       </button>
       <button
         type="button"

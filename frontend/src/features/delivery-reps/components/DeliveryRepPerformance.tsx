@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { StarIcon } from '@/shared/components/icons/AppIcons';
 import { deliveryRepsApi } from '../api/delivery-reps.api';
 
 export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
@@ -38,20 +39,21 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
     
     return (
       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-        {[...Array(fullStars)].map((_, i) => <span key={`f-${i}`} style={{ color: '#eab308', fontSize: '24px' }}>★</span>)}
+        {[...Array(fullStars)].map((_, i) => (
+          <StarIcon key={`f-${i}`} size={22} color="#eab308" fill="#eab308" />
+        ))}
         {hasHalfStar && (
-          <span style={{ 
-            fontSize: '24px', 
-            background: 'linear-gradient(to left, #eab308 50%, #cbd5e1 50%)', 
-            WebkitBackgroundClip: 'text', 
-            WebkitTextFillColor: 'transparent',
-            display: 'inline-block'
-          }}>
-            ★
+          <span style={{ position: 'relative', display: 'inline-block', width: 22, height: 22 }}>
+            <StarIcon size={22} color="#cbd5e1" fill="#cbd5e1" />
+            <span style={{ position: 'absolute', top: 0, right: 0, width: '50%', overflow: 'hidden', height: '100%' }}>
+              <StarIcon size={22} color="#eab308" fill="#eab308" />
+            </span>
           </span>
         )}
-        {[...Array(emptyStars)].map((_, i) => <span key={`e-${i}`} style={{ color: '#cbd5e1', fontSize: '24px' }}>★</span>)}
-        <span style={{ marginLeft: '8px', fontWeight: 'bold', fontSize: '18px', color: '#334155' }}>{rating}/5</span>
+        {[...Array(emptyStars)].map((_, i) => (
+          <StarIcon key={`e-${i}`} size={22} color="#cbd5e1" fill="#cbd5e1" />
+        ))}
+        <span style={{ marginInlineStart: '8px', fontWeight: 'bold', fontSize: '18px', color: '#334155' }}>{rating}/5</span>
       </div>
     );
   };

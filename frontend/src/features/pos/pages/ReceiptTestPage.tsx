@@ -2,6 +2,20 @@ import { useState, useMemo } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import {
+  PrinterIcon,
+  ClipboardIcon,
+  ShoppingCartIcon,
+  SettingsIcon,
+  PaletteIcon,
+  BuildingIcon,
+  UserIcon,
+  FileTextIcon,
+  ShieldCheckIcon,
+  SmartphoneIcon,
+  CheckCircleIcon,
+  LightbulbIcon
+} from '@/shared/components/icons/AppIcons';
 import { buildQrSvg } from '@/lib/qrcode';
 import { printSmallReceiptDocument, getSmallReceiptStyles } from '@/lib/small-receipt-printer';
 import { escapeHtml } from '@/lib/browser/escape';
@@ -366,7 +380,7 @@ export function ReceiptTestPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: 14 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: '1.4rem' }}>🖨️</span>
+            <PrinterIcon size={24} color="#0f172a" />
             <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>مختبر الإيصالات الحرارية المصغرة (&lt; 8 سم)</h1>
             <span style={{ background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: 6, fontSize: '0.8rem', fontWeight: 700, border: '1px solid #a7f3d0' }}>
               المسار الخاص: /qz
@@ -379,14 +393,14 @@ export function ReceiptTestPage() {
 
         {/* Presets and Global Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Button type="button" variant="secondary" onClick={() => applyPreset(TRAFFIC_RECEIPT_PRESET)}>
-            📋 نموذج إيصال المرور (مطابق للأصل 100%)
+          <Button type="button" variant="secondary" onClick={() => applyPreset(TRAFFIC_RECEIPT_PRESET)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <ClipboardIcon size={16} /> نموذج إيصال المرور (مطابق للأصل 100%)
           </Button>
-          <Button type="button" variant="secondary" onClick={() => applyPreset(POS_MINI_RECEIPT_PRESET)}>
-            🛒 نموذج كاشير مصغر (58mm)
+          <Button type="button" variant="secondary" onClick={() => applyPreset(POS_MINI_RECEIPT_PRESET)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <ShoppingCartIcon size={16} /> نموذج كاشير مصغر (58mm)
           </Button>
-          <Button type="button" variant="primary" onClick={handlePrint} style={{ fontWeight: 800, padding: '8px 20px' }}>
-            🖨️ طباعة فورية ({widthMm} مم)
+          <Button type="button" variant="primary" onClick={handlePrint} style={{ fontWeight: 800, padding: '8px 20px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <PrinterIcon size={16} color="#ffffff" /> طباعة فورية ({widthMm} مم)
           </Button>
         </div>
       </div>
@@ -398,7 +412,7 @@ export function ReceiptTestPage() {
         <div className="stack gap-16">
           
           {/* Card 1: Thermal Paper & Size Settings */}
-          <Card title="⚙️ إعدادات مقاس الورق والخط للطباعة">
+          <Card title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><SettingsIcon size={18} /> إعدادات مقاس الورق والخط للطباعة</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 10 }}>
               <Field label="عرض الورق (Paper Width)">
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -464,7 +478,7 @@ export function ReceiptTestPage() {
           </Card>
 
           {/* NEW CARD: Advanced Styling */}
-          <Card title="🎨 التحكم المتقدم بالتصميم (مسافات وخطوط)">
+          <Card title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><PaletteIcon size={18} /> التحكم المتقدم بالتصميم (مسافات وخطوط)</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 10 }}>
               <Field label="تباعد الأسطر (Line Height)">
                 <input type="number" step="0.05" className="input" value={lineHeight} onChange={(e) => setLineHeight(Number(e.target.value))} />
@@ -502,7 +516,7 @@ export function ReceiptTestPage() {
           </Card>
 
           {/* Card 2: Header Information */}
-          <Card title="🏛️ بيانات الترويسة والعنوان">
+          <Card title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><BuildingIcon size={18} /> بيانات الترويسة والعنوان</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
               <Field label="سطر الترويسة 1">
                 <input className="input" value={headerLine1} onChange={(e) => setHeaderLine1(e.target.value)} />
@@ -526,7 +540,7 @@ export function ReceiptTestPage() {
           </Card>
 
           {/* Card 3: Violation & Driver / Subject Info */}
-          <Card title="👤 بيانات المخالفة / المركبة / العميل">
+          <Card title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><UserIcon size={18} /> بيانات المخالفة / المركبة / العميل</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
               <Field label="رقم المخالفة / الإيصال">
                 <input className="input" value={violationNo} onChange={(e) => setViolationNo(e.target.value)} style={{ fontFamily: 'Arial', fontWeight: 'bold' }} />
@@ -549,7 +563,7 @@ export function ReceiptTestPage() {
           </Card>
 
           {/* Card 4: Violations / Items list */}
-          <Card title="📑 بنود المخالفات / التفاصيل المسجلة">
+          <Card title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><FileTextIcon size={18} /> بنود المخالفات / التفاصيل المسجلة</span>}>
             <div style={{ marginTop: 10 }} className="stack gap-10">
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
@@ -612,7 +626,7 @@ export function ReceiptTestPage() {
           </Card>
 
           {/* Card 5: Officer, Date & Location */}
-          <Card title="👮 بيانات المحرر والزمان والمكان">
+          <Card title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><ShieldCheckIcon size={18} /> بيانات المحرر والزمان والمكان</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
               <Field label="التاريخ">
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -655,7 +669,7 @@ export function ReceiptTestPage() {
           </Card>
 
           {/* Card 6: QR Code */}
-          <Card title="📱 رمز الاستجابة السريعة (QR Code)">
+          <Card title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><SmartphoneIcon size={18} /> رمز الاستجابة السريعة (QR Code)</span>}>
             <div style={{ marginTop: 10 }}>
               <Field label="محتوى / نص رمز الـ QR (الافتراضي مطابق لرقم المخالفة)">
                 <textarea
@@ -692,11 +706,11 @@ export function ReceiptTestPage() {
               </div>
 
               <div style={{ display: 'flex', gap: 6 }}>
-                <Button type="button" variant="secondary" onClick={handleCopyHtml} style={{ fontSize: '0.82rem', padding: '4px 10px' }}>
-                  {copied ? '✅ تم النسخ!' : '📋 نسخ HTML'}
+                <Button type="button" variant="secondary" onClick={handleCopyHtml} style={{ fontSize: '0.82rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  {copied ? <><CheckCircleIcon size={14} color="#16a34a" /> تم النسخ!</> : <><ClipboardIcon size={14} /> نسخ HTML</>}
                 </Button>
-                <Button type="button" variant="primary" onClick={handlePrint} style={{ fontSize: '0.85rem', fontWeight: 700, padding: '4px 12px' }}>
-                  🖨️ طباعة
+                <Button type="button" variant="primary" onClick={handlePrint} style={{ fontSize: '0.85rem', fontWeight: 700, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <PrinterIcon size={14} color="#ffffff" /> طباعة
                 </Button>
               </div>
             </div>
@@ -736,8 +750,8 @@ export function ReceiptTestPage() {
             </div>
 
             {/* Paper Info Note */}
-            <div style={{ marginTop: 12, textAlign: 'center', fontSize: '0.8rem', color: '#64748b' }}>
-              💡 المعاينة والطباعة مطابقة بنسبة 100% بالمليمتر لشكل الإيصال الحقيقي وحجم الباركود.
+            <div style={{ marginTop: 12, textAlign: 'center', fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <LightbulbIcon size={16} color="#eab308" /> المعاينة والطباعة مطابقة بنسبة 100% بالمليمتر لشكل الإيصال الحقيقي وحجم الباركود.
             </div>
           </div>
         </div>

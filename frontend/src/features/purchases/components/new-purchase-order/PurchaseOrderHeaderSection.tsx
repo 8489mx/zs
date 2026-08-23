@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { PaperclipIcon } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -279,7 +280,9 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
           <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {props.attachments.map((att, index) => (
               <div key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: '#f8fafc', border: '1px solid var(--border-light)', borderRadius: '6px', fontSize: '0.78rem' }}>
-                <span>📎 {att.fileName}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <PaperclipIcon size={14} color="#64748b" /> {att.fileName}
+                </span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>({(att.fileSize / 1024).toFixed(0)} KB)</span>
                 <button type="button" onClick={() => props.onRemoveAttachment(index)} style={{ color: 'var(--danger-color)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}>✕</button>
               </div>

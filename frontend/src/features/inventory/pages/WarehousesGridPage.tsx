@@ -5,6 +5,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
+import { NetworkIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
@@ -131,8 +132,9 @@ export function WarehousesGridPage() {
             <Button 
               variant="secondary"
               onClick={() => navigate('/inventory/tree')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              🌳 شجرة المخازن الشاملة
+              <NetworkIcon size={16} /> شجرة المخازن الشاملة
             </Button>
           </div>
         )}
@@ -294,7 +296,8 @@ export function WarehousesGridPage() {
                   }}>
                     <div>
                       <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                        <span>📦 {productCount} {productCount === 1 ? 'صنف' : 'أصناف'}</span>
+                        <PackageIcon size={14} color="#64748b" />
+                        <span>{productCount} {productCount === 1 ? 'صنف' : 'أصناف'}</span>
                       </span>
                       <strong style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary, #170c5c)' }}>
                         {formatCurrency(locValue)}

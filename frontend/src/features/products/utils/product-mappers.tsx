@@ -1,6 +1,7 @@
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
 import { getProductLocationDisplayName } from './product-location.utils';
+import { FileTextIcon } from '@/shared/components/icons/AppIcons';
 
 export function matchProductSearch(product: Product, search: string, categoryName = '', supplierName = '') {
   const q = search.trim().toLowerCase();
@@ -58,7 +59,7 @@ export function getProductColumns(categoryNames: Record<string, string>, supplie
       cell: (product: Product) => (
         product.notes ? (
           <span title={product.notes} style={{ color: '#1d4ed8', fontWeight: 700, fontSize: '0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-            📝 ملاحظة
+            <FileTextIcon size={12} color="#1d4ed8" /> ملاحظة
           </span>
         ) : '—'
       )

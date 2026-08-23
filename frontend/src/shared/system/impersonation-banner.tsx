@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
 import { saasAdminApi } from '@/features/saas-admin/api/saas-admin.api';
 import { resetAuthenticatedClient } from '@/lib/query-client-session';
+import { EyeIcon } from '@/shared/components/icons/AppIcons';
 
 export function ImpersonationBanner() {
   const user = useAuthStore((state) => state.user);
@@ -55,7 +56,7 @@ export function ImpersonationBanner() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>👁️</span>
+        <EyeIcon size={20} color="#93c5fd" />
         <strong style={{ color: '#93c5fd', fontSize: '0.95rem' }}>وضع تصفح النسخة كمسؤول:</strong>
         <span style={{ fontSize: '0.9rem' }}>
           أنت الآن تتصفح نظام <strong>{targetName}</strong> كالمستخدم (<strong>{ownerName}</strong>).

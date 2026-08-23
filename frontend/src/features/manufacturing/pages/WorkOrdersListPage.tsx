@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
+import { CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { DataTable } from '@/shared/ui/data-table';
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
@@ -212,8 +213,8 @@ export default function WorkOrdersListPage() {
                 return (
                   <details key={dateLabel} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }} open={dateFilter === 'today' || dateLabel === new Date().toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}>
                     <summary style={{ padding: '16px', background: '#f9fafb', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '18px' }}>📅</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CalendarIcon size={18} color="#475569" />
                         <span>{dateLabel}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', fontSize: '13px', fontWeight: 'normal', color: '#6b7280' }}>

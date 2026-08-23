@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { SearchIcon, XCircleIcon, ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { productSerialsApi, type ProductSerialItem } from '../api/product-serials.api';
 
 interface SerialLookupModalProps {
@@ -43,8 +44,8 @@ export function SerialLookupModal({ open, onClose }: SerialLookupModalProps) {
   return (
     <DialogShell open={open} onClose={handleClose} ariaLabel="فحص واستعلام عن السيريال والـ IMEI والضمان">
       <div className="page-stack" dir="rtl" style={{ gap: '16px', minWidth: '320px', maxWidth: '560px' }}>
-        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
-          🔍 فحص واستعلام عن السيريال والـ IMEI والضمان
+        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SearchIcon size={20} color="#2563eb" /> فحص واستعلام عن السيريال والـ IMEI والضمان
         </h3>
         {/* Search Bar */}
         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px' }}>
@@ -78,7 +79,7 @@ export function SerialLookupModal({ open, onClose }: SerialLookupModalProps) {
         {/* Not Found */}
         {result === 'not_found' && (
           <div style={{ padding: '24px', textAlign: 'center', background: '#fff1f2', borderRadius: '8px', border: '1px solid #fecdd3' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>❌</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}><XCircleIcon size={36} color="#ef4444" /></div>
             <strong style={{ color: '#be123c', display: 'block', fontSize: '1.05rem' }}>رقم السيريال / الـ IMEI غير مسجل في النظام</strong>
             <p style={{ color: '#9f1239', fontSize: '0.85rem', margin: '4px 0 0' }}>
               تأكد من صحة الرقم المكتوب أو مسح الباركود بشكل دقيق.
@@ -105,16 +106,19 @@ export function SerialLookupModal({ open, onClose }: SerialLookupModalProps) {
                 <span style={{ color: '#64748b' }}>حالة الجهاز: </span>
                 <span
                   style={{
-                    display: 'inline-block',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                     padding: '2px 8px',
                     borderRadius: '12px',
                     fontSize: '0.75rem',
                     fontWeight: 600,
-                    background: result.status === 'in_stock' ? '#dcfce7' : result.status === 'sold' ? '#dbeafe' : '#f1f5f9',
-                    color: result.status === 'in_stock' ? '#166534' : result.status === 'sold' ? '#1e40af' : '#475569',
+                    background: result.status === 'in_stock' ? '#dcfce7' : result.status === 'sold' ? '#dbeafe' : '#fef3c7',
+                    color: result.status === 'in_stock' ? '#166534' : result.status === 'sold' ? '#1e40af' : '#92400e',
                   }}
                 >
-                  {result.status === 'in_stock' ? '🟢 متاح بالمخزن' : result.status === 'sold' ? '🔵 تم البيع' : result.status === 'returned' ? '🟠 مرتجع' : result.status}
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: result.status === 'in_stock' ? '#16a34a' : result.status === 'sold' ? '#2563eb' : '#d97706' }} />
+                  {result.status === 'in_stock' ? 'متاح بالمخزن' : result.status === 'sold' ? 'تم البيع' : result.status === 'returned' ? 'مرتجع' : result.status}
                 </span>
               </div>
 
@@ -152,8 +156,8 @@ export function SerialLookupModal({ open, onClose }: SerialLookupModalProps) {
               )}
 
               {result.warrantyEndDate && (
-                <div style={{ gridColumn: 'span 2', background: '#fef3c7', padding: '8px 12px', borderRadius: '6px', color: '#92400e' }}>
-                  🛡️ <strong>فترة الضمان سارية حتى:</strong> {new Date(result.warrantyEndDate).toLocaleDateString('ar-EG')}
+                <div style={{ gridColumn: 'span 2', background: '#fef3c7', padding: '8px 12px', borderRadius: '6px', color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheckIcon size={16} color="#d97706" /> <strong>فترة الضمان سارية حتى:</strong> {new Date(result.warrantyEndDate).toLocaleDateString('ar-EG')}
                 </div>
               )}
             </div>

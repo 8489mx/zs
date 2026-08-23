@@ -29,6 +29,7 @@ import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { SearchIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
 
 
@@ -529,6 +530,12 @@ export function AppShell({ children }: PropsWithChildren) {
     const toggleChrome = () => setIsPosChromeHidden((current) => !current);
     const toggleFullscreen = async () => {
       try {
+        const electronRuntime = (window as any).electronRuntime;
+        if (electronRuntime && typeof electronRuntime.toggleFullScreen === 'function') {
+          const isFS = await electronRuntime.toggleFullScreen();
+          setIsPosChromeHidden(Boolean(isFS));
+          return;
+        }
         if (!document.fullscreenElement) {
           await document.documentElement.requestFullscreen?.();
           setIsPosChromeHidden(true);
@@ -547,8 +554,12 @@ export function AppShell({ children }: PropsWithChildren) {
         return;
       }
       if (event.key === 'F11') {
-        event.preventDefault();
-        void toggleFullscreen();
+        // In Electron, F11 is already handled by main process, but for browser fallback:
+        const electronRuntime = (window as any).electronRuntime;
+        if (!electronRuntime) {
+          event.preventDefault();
+          void toggleFullscreen();
+        }
       }
     };
     const handleFullscreenChange = () => {
@@ -562,11 +573,21 @@ export function AppShell({ children }: PropsWithChildren) {
     window.addEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome);
     window.addEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    const electronRuntime = (window as any).electronRuntime;
+    let unsubscribeElectronFs: (() => void) | undefined;
+    if (electronRuntime && typeof electronRuntime.onFullScreenChange === 'function') {
+      unsubscribeElectronFs = electronRuntime.onFullScreenChange((isFS: boolean) => {
+        setIsPosChromeHidden(Boolean(isFS));
+      });
+    }
+
     return () => {
       window.removeEventListener('keydown', handleKeydown);
       window.removeEventListener(POS_TOGGLE_CHROME_EVENT, toggleChrome);
       window.removeEventListener(POS_TOGGLE_FULLSCREEN_EVENT, toggleFullscreen);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (unsubscribeElectronFs) unsubscribeElectronFs();
     };
   }, [isPosRoute]);
 
@@ -781,7 +802,7 @@ export function AppShell({ children }: PropsWithChildren) {
             })}
             {isSearchingSidebar && totalMatchingItemsCount === 0 ? (
               <div className="sidebar-search-empty-state">
-                <span className="sidebar-search-empty-state-icon">🔍</span>
+                <span className="sidebar-search-empty-state-icon"><SearchIcon size={24} color="#94a3b8" /></span>
                 <p className="sidebar-search-empty-state-text">لا توجد قوائم تطابق "{sidebarSearchQuery}"</p>
               </div>
             ) : null}
@@ -910,7 +931,9 @@ export function AppShell({ children }: PropsWithChildren) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#64748b' }}>حالة الربط والبيانات:</span>
-                <span style={{ color: '#059669', fontWeight: 700 }}>✅ متصل ومؤمّن</span>
+                <span style={{ color: '#059669', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircleIcon size={14} color="#059669" /> متصل ومؤمّن
+                </span>
               </div>
             </div>
 

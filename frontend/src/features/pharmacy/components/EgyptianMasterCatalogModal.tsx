@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { pharmacyApi, MasterDrugItem } from '../api/pharmacy.api';
 import { IconSparkles, IconSearch, IconCheck } from './PharmacyIcons';
@@ -258,8 +259,8 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
                       </td>
                       <td style={{ padding: '10px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
                         {d.controlled_level === 'table_1' ? (
-                          <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, display: 'inline-block' }}>
-                            جدول أول ⚠️
+                          <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertTriangleIcon size={12} color="#b91c1c" /> جدول أول
                           </span>
                         ) : d.controlled_level === 'table_2' ? (
                           <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, display: 'inline-block' }}>

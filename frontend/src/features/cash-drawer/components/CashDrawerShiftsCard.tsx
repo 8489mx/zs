@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
+import { CreditCardIcon, RefreshCwIcon, ScaleIcon, FileTextIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
@@ -317,8 +318,8 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                           }}>
                             {/* Card 1: Sales breakdown */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                                💳 مبيعات وطرق الدفع
+                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <CreditCardIcon size={16} /> مبيعات وطرق الدفع
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -354,8 +355,8 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
 
                             {/* Card 2: Movements & Returns */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                                🔄 الحركات والمسحوبات والمصروفات
+                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <RefreshCwIcon size={16} /> الحركات والمسحوبات والمصروفات
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
                                 {Number(row.cashDrawerDeliveryCashInTotal || 0) > 0 ? (
@@ -415,8 +416,8 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
 
                             {/* Card 3: Reconciliation & Cash */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                                ⚖️ جرد النقدية وإجمالي الدرج
+                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <ScaleIcon size={16} /> جرد النقدية وإجمالي الدرج
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -465,8 +466,8 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
 
                             {/* Card 4: Notes & Manager Approval */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                                📝 الملاحظات والاعتماد
+                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <FileTextIcon size={16} /> الملاحظات والاعتماد
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
                                 <div>
@@ -479,7 +480,9 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                 </div>
                                 {row.closedByName && row.openedByName && row.closedByName.trim().toLowerCase() !== row.openedByName.trim().toLowerCase() ? (
                                   <div style={{ borderTop: '1px dashed #f59e0b', paddingTop: '6px', marginTop: '2px', background: '#fffbeb', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fde68a' }}>
-                                    <span style={{ color: '#b45309', display: 'block', marginBottom: '2px', fontWeight: 700 }}>⚠️ إغلاق إداري:</span>
+                                    <span style={{ color: '#b45309', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px', fontWeight: 700 }}>
+                                      <AlertTriangleIcon size={14} color="#b45309" /> إغلاق إداري:
+                                    </span>
                                     <span style={{ color: '#92400e', fontWeight: 600 }}>
                                       تم إغلاق الوردية بواسطة ({row.closedByName})
                                     </span>

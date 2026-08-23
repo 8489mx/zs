@@ -1,7 +1,7 @@
 import type { CSSProperties, PropsWithChildren, ReactNode } from 'react';
 
 interface CardProps {
-  title?: string;
+  title?: ReactNode;
   description?: string;
   actions?: ReactNode;
   className?: string;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { CompassIcon, PackageIcon, ReceiptIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
 import { ClientPortal } from '@/shared/components/ClientPortal';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -122,7 +123,7 @@ export function GlobalSearchModal() {
             <div className="global-search-group-title">الصفحات والتنقل</div>
             {navMatches.map((item) => (
               <div key={item.key} className="global-search-item" onClick={() => handleNavigate(item.to)}>
-                <div className="global-search-item-icon">🧭</div>
+                <div className="global-search-item-icon"><CompassIcon size={18} /></div>
                 <div className="global-search-item-content">
                   <span className="global-search-item-title">{item.label}</span>
                   <span className="global-search-item-subtitle">{item.to}</span>
@@ -136,7 +137,7 @@ export function GlobalSearchModal() {
             <div className="global-search-group-title">المنتجات</div>
             {products.map((p: Product) => (
               <div key={p.id} className="global-search-item" onClick={() => handleNavigate(`/products/${p.id}/edit`)}>
-                <div className="global-search-item-icon">📦</div>
+                <div className="global-search-item-icon"><PackageIcon size={18} /></div>
                 <div className="global-search-item-content">
                   <span className="global-search-item-title">{p.name}</span>
                   <span className="global-search-item-subtitle">{p.barcode ? `باركود: ${p.barcode}` : 'بدون باركود'}</span>
@@ -151,7 +152,7 @@ export function GlobalSearchModal() {
             <div className="global-search-group-title">فواتير المبيعات</div>
             {sales.map((s: Sale) => (
               <div key={s.id} className="global-search-item" onClick={() => handleNavigate(`/sales`)}>
-                <div className="global-search-item-icon">🧾</div>
+                <div className="global-search-item-icon"><ReceiptIcon size={18} /></div>
                 <div className="global-search-item-content">
                   <span className="global-search-item-title">فاتورة مبيعات #{s.docNo || s.id.slice(0, 8)}</span>
                   <span className="global-search-item-subtitle">الإجمالي: {s.total}</span>
@@ -166,7 +167,7 @@ export function GlobalSearchModal() {
             <div className="global-search-group-title">العملاء</div>
             {customers.map((c: Customer) => (
               <div key={c.id} className="global-search-item" onClick={() => handleNavigate(`/customers`)}>
-                <div className="global-search-item-icon">👥</div>
+                <div className="global-search-item-icon"><UsersIcon size={18} /></div>
                 <div className="global-search-item-content">
                   <span className="global-search-item-title">{c.name}</span>
                   <span className="global-search-item-subtitle">{c.phone || 'بدون هاتف'}</span>

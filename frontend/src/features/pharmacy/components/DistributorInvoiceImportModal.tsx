@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { ClipboardIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { pharmacyApi } from '../api/pharmacy.api';
 import { IconPlus, IconTrash, IconCheck } from './PharmacyIcons';
@@ -229,8 +230,8 @@ export function DistributorInvoiceImportModal({
 
         {/* Quick Paste Raw Excel Area */}
         <details style={{ fontSize: '0.78rem', color: '#475569' }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary, #1e1b4b)' }}>
-            📋 لصق بيانات مباشرة من ملف Excel / CSV الموزع
+          <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--primary, #1e1b4b)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <ClipboardIcon size={16} /> لصق بيانات مباشرة من ملف Excel / CSV الموزع
           </summary>
           <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
             <textarea

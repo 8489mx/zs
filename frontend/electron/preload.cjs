@@ -31,6 +31,14 @@ contextBridge.exposeInMainWorld('electronRuntime', {
   switchToLanClient: (opts) => ipcRenderer.invoke('switch-to-lan-client', opts),
   testLanServer: (opts) => ipcRenderer.invoke('test-lan-server', opts),
   forceCloseApp: () => ipcRenderer.send('force-close-app'),
+  toggleFullScreen: () => ipcRenderer.invoke('toggle-fullscreen'),
+  getFullScreenState: () => ipcRenderer.invoke('get-fullscreen-state'),
+  setFullScreen: (flag) => ipcRenderer.invoke('set-fullscreen', flag),
+  onFullScreenChange: (callback) => {
+    const handler = (_event, isFullScreen) => callback(isFullScreen);
+    ipcRenderer.on('fullscreen-changed', handler);
+    return () => ipcRenderer.removeListener('fullscreen-changed', handler);
+  },
   onShowCustomCloseDialog: (callback) => {
     ipcRenderer.on('show-custom-close-dialog', callback);
     return () => ipcRenderer.removeListener('show-custom-close-dialog', callback);

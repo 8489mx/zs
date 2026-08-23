@@ -5,6 +5,7 @@ import { Fragment } from 'react';
 import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
 import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
+import { FullScreenToggleButton } from '@/shared/components/FullScreenToggleButton';
 
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ export function GlobalAppToolbar() {
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
             </svg>
           </button>
+          <FullScreenToggleButton />
           <ManagerNotificationsBell />
           <AppAccountMenu />
         </div>

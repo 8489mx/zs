@@ -9,6 +9,7 @@ import { SubmitButton } from '@/shared/components/submit-button';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { FormResetButton } from '@/shared/components/form-reset-button';
 import { Button } from '@/shared/ui/button';
+import { SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { useMutationFeedbackReset } from '@/shared/hooks/use-mutation-feedback-reset';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
@@ -425,7 +426,9 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
           <div className="field span-full" style={{ padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', marginTop: '4px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#166534', margin: 0 }}>
               <input type="checkbox" {...form.register('trackSerials')} disabled={mutation.isPending} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-              <span>📱 تتبع أرقام السيريال / الـ IMEI لهذا الصنف (للهواتف، الأجهزة، وقطع الإلكترونيات)</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <SmartphoneIcon size={16} color="#166534" /> تتبع أرقام السيريال / الـ IMEI لهذا الصنف (للهواتف، الأجهزة، وقطع الإلكترونيات)
+              </span>
             </label>
             <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: '4px', marginInlineStart: '28px' }}>
               يتيح تتبع كل جهاز برقم السيريال/IMEI المنفرد، تسجيل السيريالات عند الشراء، وخصمها بالمسح المباشر في الكاشير ومتابعة الضمان.

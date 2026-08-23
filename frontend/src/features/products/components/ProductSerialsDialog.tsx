@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import { productSerialsApi, type ProductSerialItem } from '../api/product-serials.api';
 import type { Product } from '@/types/domain';
 
@@ -70,8 +71,8 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
   return (
     <DialogShell open={open} onClose={onClose} ariaLabel={`إدارة أرقام السيريال: ${product.name}`}>
       <div className="page-stack" dir="rtl" style={{ gap: '16px' }}>
-        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
-          📱 إدارة أرقام السيريال والـ IMEI: {product.name}
+        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SmartphoneIcon size={20} color="#6366f1" /> إدارة أرقام السيريال والـ IMEI: {product.name}
         </h3>
 
         {/* Quick Stats Banner */}
@@ -189,16 +190,19 @@ export function ProductSerialsDialog({ open, product, onClose }: ProductSerialsD
                     <td style={{ padding: '8px 12px' }}>
                       <span
                         style={{
-                          display: 'inline-block',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
                           padding: '2px 8px',
                           borderRadius: '12px',
                           fontSize: '0.75rem',
                           fontWeight: 600,
-                          background: s.status === 'in_stock' ? '#dcfce7' : s.status === 'sold' ? '#dbeafe' : '#f1f5f9',
-                          color: s.status === 'in_stock' ? '#166534' : s.status === 'sold' ? '#1e40af' : '#475569',
+                          background: s.status === 'in_stock' ? '#dcfce7' : s.status === 'sold' ? '#dbeafe' : '#fef3c7',
+                          color: s.status === 'in_stock' ? '#166534' : s.status === 'sold' ? '#1e40af' : '#92400e',
                         }}
                       >
-                        {s.status === 'in_stock' ? '🟢 متاح بالمخزن' : s.status === 'sold' ? '🔵 تم البيع' : s.status === 'returned' ? '🟠 مرتجع' : s.status}
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.status === 'in_stock' ? '#16a34a' : s.status === 'sold' ? '#2563eb' : '#d97706' }} />
+                        {s.status === 'in_stock' ? 'متاح بالمخزن' : s.status === 'sold' ? 'تم البيع' : s.status === 'returned' ? 'مرتجع' : s.status}
                       </span>
                     </td>
                     <td style={{ padding: '8px 12px', fontSize: '0.8rem' }}>

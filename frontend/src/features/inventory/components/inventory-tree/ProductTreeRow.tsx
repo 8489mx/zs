@@ -1,4 +1,5 @@
 import type { ProductRow } from './inventoryTree.types';
+import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 
 function ProductTreeRow({
   product,
@@ -57,8 +58,8 @@ function ProductTreeRow({
         <span style={{ fontWeight: 600, fontSize: '13.5px', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</span>
         {product.barcode && <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{product.barcode}</span>}
         {isUnassigned && (
-          <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '10.5px', fontWeight: 700, padding: '1px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', width: 'fit-content' }}>
-            غير مربوط بمخزن ⚠️
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px', fontSize: '10.5px', fontWeight: 700, padding: '1px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', width: 'fit-content' }}>
+            <AlertTriangleIcon size={12} color="#d97706" /> غير مربوط بمخزن
           </span>
         )}
       </div>

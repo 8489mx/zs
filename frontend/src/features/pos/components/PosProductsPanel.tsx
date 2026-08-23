@@ -2,6 +2,7 @@ import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type Keyb
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
+import { StarIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 import { sharedProductsApi } from '@/shared/api/products';
 import {
@@ -806,7 +807,7 @@ function PosProductsPanelComponent({
                         onClick={() => toggleFavorite(group.key)}
                         aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
                       >
-                        ★
+                        <StarIcon size={14} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#94a3b8'} />
                       </button>
                     </div>
 
@@ -922,7 +923,7 @@ function PosProductsPanelComponent({
                           flexShrink: 0,
                         }}
                       >
-                        ★
+                        <StarIcon size={14} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#cbd5e1'} />
                       </button>
                     </div>
 

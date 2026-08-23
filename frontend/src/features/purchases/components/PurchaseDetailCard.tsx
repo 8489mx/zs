@@ -1,6 +1,7 @@
 import type { Purchase } from '@/types/domain';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
+import { FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { PurchasePaymentScheduleCard } from '@/features/purchases/components/PurchasePaymentScheduleCard';
@@ -68,7 +69,7 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
               const url = resolveRequestUrl(att.fileUrl);
               return (
                 <a key={att.id || idx} href={url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', textDecoration: 'none', color: 'inherit', background: 'var(--surface-color)' }}>
-                  <span style={{ fontSize: '1.2em' }}>📄</span>
+                  <FileTextIcon size={18} color="#64748b" />
                   <span style={{ fontSize: '0.9em' }}>{att.fileName || `مرفق ${idx + 1}`}</span>
                 </a>
               );

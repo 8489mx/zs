@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
+import { WarehouseIcon, AlertTriangleIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { catalogApi } from '@/shared/api/catalog';
 import type { ProductRow, SortMode } from '../components/inventory-tree/inventoryTree.types';
@@ -220,8 +221,8 @@ export function InventoryTreePage() {
               <Button variant="primary" onClick={() => navigate('/inventory/issue-order/new')}>
                 + إذن صرف جديد
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')}>
-                🏢 أماكن المخزون
+              <Button variant="secondary" onClick={() => navigate('/inventory/warehouses')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <WarehouseIcon size={16} /> أماكن المخزون
               </Button>
             </div>
           )}
@@ -306,7 +307,9 @@ export function InventoryTreePage() {
             onChange={(e) => { setShowUnassigned(e.target.checked); if (e.target.checked) setShowOnlyWithStock(false); }}
             style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
           />
-          غير مربوطة بمخزن ⚠️
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            غير مربوطة بمخزن <AlertTriangleIcon size={14} color="#d97706" />
+          </span>
         </label>
         {(search || filterLocationId || showOnlyWithStock || showUnassigned || sortMode !== 'default') && (
           <Button
@@ -343,12 +346,11 @@ export function InventoryTreePage() {
       {/* Tree */}
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary, #888)' }}>
-          <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
           جاري التحميل...
         </div>
       ) : filteredRows.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary, #888)' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔍</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}><SearchIcon size={40} color="#94a3b8" /></div>
           لا توجد نتائج
         </div>
       ) : (

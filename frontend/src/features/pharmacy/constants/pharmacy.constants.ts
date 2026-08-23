@@ -78,9 +78,9 @@ export const INSURANCE_PROVIDERS = [
 ];
 
 export const CLINICAL_SERVICE_LABELS: Record<string, { title: string; unit: string; icon: string }> = {
-  blood_pressure: { title: 'قياس ضغط الدم', unit: 'mmHg', icon: '🩺' },
-  blood_glucose: { title: 'قياس السكر بالدم', unit: 'mg/dL', icon: '🩸' },
-  weight_bmi: { title: 'قياس الوزن وكتلة الجسم', unit: 'kg', icon: '⚖️' },
-  injection: { title: 'إعطاء حقنة عضل / وريد', unit: 'حقنة', icon: '💉' },
-  wound_dressing: { title: 'غيار وتطهير جروح', unit: 'جلسة', icon: '🩹' },
+  blood_pressure: { title: 'قياس ضغط الدم', unit: 'mmHg', icon: 'stethoscope' },
+  blood_glucose: { title: 'قياس السكر بالدم', unit: 'mg/dL', icon: 'droplet' },
+  weight_bmi: { title: 'قياس الوزن وكتلة الجسم', unit: 'kg', icon: 'scale' },
+  injection: { title: 'إعطاء حقنة عضل / وريد', unit: 'حقنة', icon: 'syringe' },
+  wound_dressing: { title: 'غيار وتطهير جروح', unit: 'جلسة', icon: 'bandage' },
 };

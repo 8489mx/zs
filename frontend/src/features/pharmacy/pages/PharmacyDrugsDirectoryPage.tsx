@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { Button } from '@/shared/ui/button';
+import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { pharmacyApi } from '../api/pharmacy.api';
@@ -370,8 +371,8 @@ export default function PharmacyDrugsDirectoryPage() {
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         {drug.controlled_level === 'table_1' ? (
-                          <span style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                            جدول أول ⚠️
+                          <span style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertTriangleIcon size={12} color="#b91c1c" /> جدول أول
                           </span>
                         ) : drug.controlled_level === 'table_2' ? (
                           <span style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
