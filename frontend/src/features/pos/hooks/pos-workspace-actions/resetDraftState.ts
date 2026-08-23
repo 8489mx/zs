@@ -9,6 +9,8 @@ export function resetDraftState(params: PosWorkspaceActionParams) {
   params.setDeliveryFee(0);
   params.setDiscountApprovalGranted(false);
   params.setDiscountApprovalSecret('');
+  params.setWholesaleApprovalGranted(false);
+  params.setWholesaleApprovalSecret('');
   params.setCashAmount(0);
   params.setCardAmount(0);
   params.setTransferAmount(0);

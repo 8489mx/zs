@@ -8,6 +8,7 @@ import { useSplitter } from '@/shared/hooks/useSplitter';
 import { useAuthStore } from '@/stores/auth-store';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
+import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { RefObject } from 'react';
 
 interface PosWorkspaceMainContentProps {
@@ -34,6 +35,7 @@ interface PosWorkspaceMainContentProps {
   onFocusBarcodeEntry: () => void;
   onRequestOpenShift?: () => void;
   onOpenNewProduct?: (params?: { name?: string; barcode?: string }) => void;
+  onPriceTypeChange?: (value: PosPriceType) => void;
 }
 
 export function PosWorkspaceMainContent({
@@ -60,6 +62,7 @@ export function PosWorkspaceMainContent({
   onFocusBarcodeEntry,
   onRequestOpenShift,
   onOpenNewProduct,
+  onPriceTypeChange,
 }: PosWorkspaceMainContentProps) {
   const user = useAuthStore((state) => state.user);
   const defaultLeft = posMode === 'scanner' ? 75 : 65;
@@ -93,7 +96,7 @@ export function PosWorkspaceMainContent({
             onSearchChange={pos.setSearch}
             onSearchSubmitFirstResult={onSubmitFirstSearchResult}
             priceType={pos.priceType}
-            onPriceTypeChange={pos.setPriceType}
+            onPriceTypeChange={onPriceTypeChange || pos.setPriceType}
             products={pos.filteredSaleProducts}
             recentProducts={pos.recentProducts}
             productFilter={pos.productFilter}

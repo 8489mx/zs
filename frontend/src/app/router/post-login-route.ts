@@ -5,7 +5,7 @@ import type { AuthTenant, AuthUser } from '@/types/auth';
 const SETUP_ENTRY_ROUTE = '/settings/core?setup=1';
 
 const ROUTE_PREFERENCES: Record<AuthUser['role'], string[]> = {
-  cashier: ['/pos', '/cash-drawer', '/sales', '/customers', '/'],
+  cashier: ['/pos', '/cash-drawer', '/sales', '/customers', '/services', '/expenses', '/'],
   admin: ['/', '/pos', '/sales', '/inventory', '/accounts', '/treasury', '/purchases', '/reports/overview', '/customers', '/suppliers', '/products', '/returns', '/cash-drawer', '/services', '/settings'],
   super_admin: ['/', '/pos', '/settings', '/sales', '/inventory', '/reports/overview', '/accounts', '/treasury', '/purchases', '/products', '/returns', '/cash-drawer', '/customers', '/suppliers', '/services'],
 };

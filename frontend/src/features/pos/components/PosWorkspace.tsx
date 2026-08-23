@@ -3,6 +3,7 @@ import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosW
 import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
 import { PosWorkspaceDiscountDialog } from '@/features/pos/components/pos-workspace/PosWorkspaceDiscountDialog';
+import { PosWorkspaceWholesaleDialog } from '@/features/pos/components/pos-workspace/PosWorkspaceWholesaleDialog';
 import { PosWorkspaceMainContent } from '@/features/pos/components/pos-workspace/PosWorkspaceMainContent';
 import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCheckoutDialog';
 import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/PosHeldDraftsDialog';
@@ -24,12 +25,14 @@ import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import { parseWeightedBarcode, matchProductByWeightedCode } from '@/features/pos/lib/weighted-barcode';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
+import type { PosPriceType } from '@/features/pos/types/pos.types';
 
 export function PosWorkspace() {
   const pos = usePosWorkspace();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannerSubmitRef = useRef<{ code: string; at: number }>({ code: '', at: 0 });
   const [discountApprovalDialogOpen, setDiscountApprovalDialogOpen] = useState(false);
+  const [wholesaleApprovalDialogOpen, setWholesaleApprovalDialogOpen] = useState(false);
   const [clearCartConfirmOpen, setClearCartConfirmOpen] = useState(false);
   const [lineDeleteConfirmKey, setLineDeleteConfirmKey] = useState('');
   const [heldDeleteConfirmId, setHeldDeleteConfirmId] = useState('');
@@ -47,6 +50,14 @@ export function PosWorkspace() {
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
+
+  const handlePriceTypeChange = useCallback((nextPriceType: PosPriceType) => {
+    if (nextPriceType === 'wholesale' && !pos.canSellWholesale) {
+      setWholesaleApprovalDialogOpen(true);
+      return;
+    }
+    pos.setPriceType(nextPriceType);
+  }, [pos.canSellWholesale, pos.setPriceType]);
 
   const handleOpenNewProduct = useCallback((params?: { name?: string; barcode?: string }) => {
     setNewProductInitialName(params?.name || '');
@@ -355,6 +366,7 @@ export function PosWorkspace() {
         onFocusBarcodeEntry={focusBarcodeEntry}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenNewProduct={handleOpenNewProduct}
+        onPriceTypeChange={handlePriceTypeChange}
       />
 
       <PosCheckoutDialog
@@ -372,6 +384,13 @@ export function PosWorkspace() {
         open={discountApprovalDialogOpen}
         pos={pos}
         onClose={() => setDiscountApprovalDialogOpen(false)}
+        onFocusBarcodeEntry={focusBarcodeEntry}
+      />
+
+      <PosWorkspaceWholesaleDialog
+        open={wholesaleApprovalDialogOpen}
+        pos={pos}
+        onClose={() => setWholesaleApprovalDialogOpen(false)}
         onFocusBarcodeEntry={focusBarcodeEntry}
       />
 

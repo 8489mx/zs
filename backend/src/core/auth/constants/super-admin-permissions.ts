@@ -32,6 +32,7 @@ export const SUPER_ADMIN_PERMISSIONS = [
   'canPrint',
   'canDiscount',
   'canEditPrice',
+  'canSellWholesale',
   'canViewProfit',
   'canDelete',
   'canEditInvoices',

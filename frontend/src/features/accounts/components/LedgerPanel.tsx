@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import type { Customer, CustomerLedgerEntry, LedgerPagination, LedgerSummary, Supplier, SupplierLedgerEntry } from '@/types/domain';
 import { documentDetailsApi } from '@/shared/api/document-details';
 import { AccountsInvoiceDetailCard } from '@/features/accounts/components/AccountsInvoiceDetailCard';
+import { formatLedgerEntryType } from '@/features/accounts/utils/ledger-format.utils';
 
 type Entry = CustomerLedgerEntry | SupplierLedgerEntry;
 type SupportedDocumentType = 'sale' | 'purchase';
@@ -162,7 +163,7 @@ export function LedgerPanel({
         rows={entries}
         empty={<div className="muted small">{value ? 'لا توجد قيود مطابقة لهذا الكشف.' : 'اختر عنصرًا لعرض الكشف.'}</div>}
         columns={[
-          { key: 'type', header: 'النوع', cell: (entry) => readEntryText(entry, ['entry_type', 'entryType', 'type']) || 'قيد' },
+          { key: 'type', header: 'النوع', cell: (entry) => formatLedgerEntryType(readEntryText(entry, ['entry_type', 'entryType', 'type']), readEntryText(entry, ['note', 'description'])) },
           { key: 'note', header: 'الملاحظة', cell: (entry) => readEntryText(entry, ['note', 'description']) || '—' },
           { key: 'date', header: 'التاريخ', cell: (entry) => formatDate(readEntryText(entry, ['created_at', 'createdAt', 'date'])) },
           { key: 'debit', header: 'مدين', className: 'numeric-cell', cell: (entry) => formatCurrency(Number((entry as Entry & Record<string, unknown>).debit || 0)) },

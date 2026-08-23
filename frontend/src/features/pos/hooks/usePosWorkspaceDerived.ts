@@ -26,6 +26,7 @@ interface PosWorkspaceDerivedParams {
   discount: number;
   deliveryFee: number;
   discountApprovalGranted?: boolean;
+  wholesaleApprovalGranted?: boolean;
   paidAmount: number;
   paymentType: PaymentType;
   paymentChannel: PaymentChannel;
@@ -170,6 +171,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   }, [openShiftByUserId, openShiftList, params.authUserId]);
   const canApplyDiscount = authPermissionSet.has('canDiscount') || authPermissionSet.has('*') || Boolean(params.discountApprovalGranted);
   const canEditPrice = authPermissionSet.has('canEditPrice') || authPermissionSet.has('*');
+  const canSellWholesale = authPermissionSet.has('canSellWholesale') || authPermissionSet.has('*') || Boolean(params.wholesaleApprovalGranted);
   const hasOperationalSetup = Boolean(branchList.length > 0 && locationList.length > 0);
   const hasCatalogReady = Boolean(productList.length > 0);
   const requiresCashierShift = params.paymentType !== 'credit';
@@ -284,6 +286,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     hasInvalidCartLine,
     canApplyDiscount,
     canEditPrice,
+    canSellWholesale,
     canOpenCheckout,
     checkoutDisabledReason,
     canSubmitSale,

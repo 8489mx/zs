@@ -2,13 +2,13 @@ import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 
 export const DEFAULT_ADMIN_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','canManageBranchStock','cashDrawer','deliveryReps'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','audit','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','hrPayrollApprove','hrSalaryView','hrSalaryManage','settings','pricingCenterView','pricingCenterManage','canEditUsers','canManageUsers','canManageSettings','canManageBackups','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canDelete','canEditInvoices','canAdjustInventory','canManageBranchStock','cashDrawer','deliveryReps'
 ];
 export const DEFAULT_OPERATOR_PERMS = [
-  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','settings','pricingCenterView','pricingCenterManage','cashDrawer','deliveryReps','canPrint','canDiscount','canEditPrice','canViewProfit','canEditInvoices','canAdjustInventory','canManageBranchStock','canManageSettings'
+  'dashboard','products','sales','purchases','inventory','suppliers','customers','accounts','accounting','returns','reports','treasury','services','hr','hrEmployees','hrAttendance','hrContracts','hrLoans','hrPayrollView','hrPayrollManage','settings','pricingCenterView','pricingCenterManage','cashDrawer','deliveryReps','canPrint','canDiscount','canEditPrice','canSellWholesale','canViewProfit','canEditInvoices','canAdjustInventory','canManageBranchStock','canManageSettings'
 ];
 export const DEFAULT_CASHIER_PERMS = [
-  'sales', 'cashDrawer', 'customers', 'suppliers', 'accounts', 'purchases', 'products', 'returns', 'deliveryReps', 'hr', 'hrAttendance', 'canPrint'
+  'sales', 'cashDrawer', 'customers', 'suppliers', 'accounts', 'purchases', 'products', 'returns', 'deliveryReps', 'hr', 'hrAttendance', 'canPrint', 'services', 'treasury'
 ];
 
 export const PERMISSION_LABELS: Record<string, string> = {
@@ -29,6 +29,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   canPrint: 'الطباعة',
   canDiscount: 'تعديل الخصم',
   canEditPrice: 'تعديل السعر',
+  canSellWholesale: 'البيع بسعر الجملة',
   canEditInvoices: 'تعديل الفواتير',
   canAdjustInventory: 'تعديل رصيد المخزون',
   canManageBranchStock: 'إدارة مخزون الفروع',
@@ -62,7 +63,7 @@ export function getPermissionLabel(permission: string) {
 export const USER_PERMISSION_GROUPS = [
   { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'accounting', 'reports', 'pricingCenterView', 'deliveryReps'] },
   { title: 'الموارد البشرية', items: ['hr', 'hrEmployees', 'hrAttendance', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove'] },
-  { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canEditInvoices', 'canAdjustInventory', 'canManageBranchStock', 'pricingCenterManage'] },
+  { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canSellWholesale', 'canEditInvoices', 'canAdjustInventory', 'canManageBranchStock', 'pricingCenterManage'] },
   { title: 'إدارة النظام', items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups'] },
   { title: 'بيانات حساسة', items: ['canViewProfit', 'hrSalaryView', 'hrSalaryManage', 'audit', 'treasury', 'services', 'canDelete'] }
 ] as const;

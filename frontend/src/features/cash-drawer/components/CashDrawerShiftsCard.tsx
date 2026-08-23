@@ -188,15 +188,15 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                 return (
                   <React.Fragment key={row.id}>
                     <tr
-                      onClick={() => toggleExpand(row.id)}
+                      onClick={() => { if (canViewSensitiveTotals) toggleExpand(row.id); }}
                       style={{
-                        cursor: 'pointer',
+                        cursor: canViewSensitiveTotals ? 'pointer' : 'default',
                         borderBottom: isExpanded ? 'none' : '1px solid #f1f5f9',
                         background: isExpanded ? '#f8fafc' : '#ffffff',
                         transition: 'background-color 0.15s ease',
                       }}
-                      onMouseEnter={(e) => { if (!isExpanded) e.currentTarget.style.background = '#fcfdfe'; }}
-                      onMouseLeave={(e) => { if (!isExpanded) e.currentTarget.style.background = '#ffffff'; }}
+                      onMouseEnter={(e) => { if (!isExpanded && canViewSensitiveTotals) e.currentTarget.style.background = '#fcfdfe'; }}
+                      onMouseLeave={(e) => { if (!isExpanded && canViewSensitiveTotals) e.currentTarget.style.background = '#ffffff'; }}
                     >
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -265,45 +265,47 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                             </button>
                           ) : null}
 
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(row.id)}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              background: isExpanded ? '#e2e8f0' : '#f1f5f9',
-                              color: '#334155',
-                              border: '1px solid #cbd5e1',
-                              fontWeight: 600,
-                              fontSize: '0.82rem',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s',
-                            }}
-                          >
-                            <span>{isExpanded ? 'إخفاء' : 'التفاصيل'}</span>
-                            <svg
-                              viewBox="0 0 24 24"
-                              width="14"
-                              height="14"
-                              stroke="currentColor"
-                              strokeWidth="2.2"
-                              fill="none"
+                          {canViewSensitiveTotals ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(row.id)}
                               style={{
-                                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.2s',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                background: isExpanded ? '#e2e8f0' : '#f1f5f9',
+                                color: '#334155',
+                                border: '1px solid #cbd5e1',
+                                fontWeight: 600,
+                                fontSize: '0.82rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
                               }}
                             >
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                          </button>
+                              <span>{isExpanded ? 'إخفاء' : 'التفاصيل'}</span>
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="14"
+                                height="14"
+                                stroke="currentColor"
+                                strokeWidth="2.2"
+                                fill="none"
+                                style={{
+                                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                  transition: 'transform 0.2s',
+                                }}
+                              >
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                              </svg>
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
 
-                    {isExpanded && (
+                    {isExpanded && canViewSensitiveTotals && (
                       <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                         <td colSpan={SINGLE_STORE_MODE ? 6 : 7} style={{ padding: '0 16px 20px' }}>
                           <div style={{

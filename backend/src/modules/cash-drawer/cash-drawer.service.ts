@@ -333,7 +333,34 @@ export class CashDrawerService {
     query = sql<ShiftRow>`${query} order by s.id desc`;
     const result = await query.execute(this.db);
     const hydratedRows = await Promise.all((result.rows ?? []).map((row) => this.hydrateShiftRow(row, auth)));
-    return hydratedRows.map((row) => mapCashDrawerShiftRow(row));
+    const mapped = hydratedRows.map((row) => mapCashDrawerShiftRow(row));
+    if (auth.role === 'cashier') {
+      return mapped.map((row) => ({
+        ...row,
+        expectedCash: 0,
+        variance: 0,
+        cashSalesTotal: 0,
+        cardSalesTotal: 0,
+        walletSalesTotal: 0,
+        instapaySalesTotal: 0,
+        creditSalesTotal: 0,
+        shiftSalesTotal: 0,
+        cashDrawerMovementTotal: 0,
+        cashDrawerCashInTotal: 0,
+        cashDrawerDeliveryCashInTotal: 0,
+        cashDrawerManualCashInTotal: 0,
+        cashDrawerCashOutTotal: 0,
+        supplierPaymentsTotal: 0,
+        expensesTotal: 0,
+        serviceCashTotal: 0,
+        serviceCardTotal: 0,
+        serviceTotal: 0,
+        saleReturnCashRefundTotal: 0,
+        saleReturnCardRefundTotal: 0,
+        saleReturnTotal: 0,
+      }));
+    }
+    return mapped;
   }
 
   private async getShift(shiftId: number, auth: AuthContext): Promise<ShiftRow | null> {

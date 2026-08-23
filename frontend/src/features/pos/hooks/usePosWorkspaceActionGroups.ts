@@ -23,6 +23,10 @@ export interface PosWorkspaceActionParams {
   setDiscountApprovalGranted: Dispatch<SetStateAction<boolean>>;
   discountApprovalSecret: string;
   setDiscountApprovalSecret: Dispatch<SetStateAction<string>>;
+  wholesaleApprovalGranted: boolean;
+  setWholesaleApprovalGranted: Dispatch<SetStateAction<boolean>>;
+  wholesaleApprovalSecret: string;
+  setWholesaleApprovalSecret: Dispatch<SetStateAction<string>>;
   cashAmount: number;
   setCashAmount: Dispatch<SetStateAction<number>>;
   cardAmount: number;
