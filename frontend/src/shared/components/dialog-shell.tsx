@@ -24,7 +24,7 @@ export function DialogShell({
   onClose,
   children,
   width = 'min(720px, 100%)',
-  zIndex = 70,
+  zIndex = 10000,
   closeOnBackdrop = true,
   showCloseButton = false,
   ariaLabel,

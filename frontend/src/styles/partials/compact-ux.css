@@ -5,30 +5,55 @@
 .page-header {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: stretch;
-  gap: 10px;
-  padding: 14px 18px;
+  gap: 8px;
+  padding: 10px 16px;
   border-radius: 8px;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
 }
 
 .page-header-copy {
-  gap: 6px;
-  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
 }
 
 .page-header-title-row {
+  display: inline-flex;
+  align-items: center;
   gap: 10px;
 }
 
 .page-header-title {
-  font-size: 24px;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
 }
 
 .page-header-description {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.4;
 }
 
 .page-header-toolbar {

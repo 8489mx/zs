@@ -1,14 +1,18 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { Fragment } from 'react';
 import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
 import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
+import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
 
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { breadcrumbs, toggleMobileSidebar, setGlobalSearchOpen } = useToolbarStore();
   const { data: updateInfo } = useOfflineUpdateCheck('desktop');
+
+  const activeBreadcrumbs = resolveAutoBreadcrumbs(location.pathname, breadcrumbs);
 
   return (
     <div className="purchase-prototype-workspace-toolbar">
@@ -26,8 +30,8 @@ export function GlobalAppToolbar() {
           </svg>
         </button>
         <div className="purchase-prototype-breadcrumb">
-          {breadcrumbs.map((crumb, index) => {
-            const isLast = index === breadcrumbs.length - 1;
+          {activeBreadcrumbs.map((crumb, index) => {
+            const isLast = index === activeBreadcrumbs.length - 1;
             return (
               <Fragment key={index}>
                 {isLast ? (

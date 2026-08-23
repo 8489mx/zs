@@ -30,39 +30,40 @@ export function PageHeader({
   const showNav = navigation !== undefined ? navigation : (isHrPage ? <HrSectionNav /> : null);
 
   return (
-    <div className={`page-header ${className}`.trim()} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '12px' }}>
-        <div className="page-header-copy">
+    <div className={`page-header ${className}`.trim()}>
+      <div className="page-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px', minHeight: '34px' }}>
+        <div className="page-header-copy" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {!hideTitle && (
-            <div className="page-header-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="page-header-title-row" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {onBack && (
                 <button
                   type="button"
                   onClick={onBack}
                   aria-label="العودة"
                   style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--surface-color)',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
                     cursor: 'pointer',
-                    color: 'var(--text-secondary)',
+                    color: '#475569',
+                    fontSize: '1rem',
                   }}
                 >
                   &rarr;
                 </button>
               )}
-              <h1 className="page-header-title">{title}</h1>
-              {badge ? <div className="page-header-badge">{badge}</div> : null}
+              <h1 className="page-header-title" style={{ margin: 0, lineHeight: 1.2, display: 'flex', alignItems: 'center' }}>{title}</h1>
+              {badge ? <div className="page-header-badge" style={{ display: 'inline-flex', alignItems: 'center' }}>{badge}</div> : null}
             </div>
           )}
-          {description ? <p className="page-header-description">{description}</p> : null}
+          {description ? <div className="page-header-description text-muted" style={{ fontSize: '0.8rem' }}>{description}</div> : null}
         </div>
-        {actions ? <div className="page-header-actions">{actions}</div> : null}
+        {actions ? <div className="page-header-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>{actions}</div> : null}
       </div>
 
       {showNav ? (
@@ -71,7 +72,7 @@ export function PageHeader({
           style={{
             width: '100%',
             borderTop: '1px solid rgba(226, 232, 240, 0.8)',
-            paddingTop: '12px',
+            paddingTop: '8px',
             marginTop: '2px',
           }}
         >

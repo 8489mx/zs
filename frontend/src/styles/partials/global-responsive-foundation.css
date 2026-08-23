@@ -14,6 +14,15 @@ body,
   max-width: 100%;
 }
 
+:where(.content-wrap):not(.content-wrap-pos-focus) {
+  padding-top: 14px !important;
+}
+
+:where(.content-wrap > *, .content-wrap > .page-stack, .content-wrap > .page-shell, .content-wrap > main, .document-prototype-column):not(.pos-workspace, .pos-page, .cashier-page, .content-wrap-pos-focus) {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
 :where(.page-shell, .page-stack):not(.pos-workspace, .pos-page, .cashier-page, .content-wrap-pos-focus) {
   gap: clamp(10px, 1.1vw, 18px);
 }

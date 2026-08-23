@@ -4,10 +4,6 @@
   gap: 10px;
 }
 
-.cash-drawer-page .page-header {
-  padding-bottom: 10px;
-}
-
 .cash-drawer-page .cash-drawer-forms-grid {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
 }
@@ -23,10 +19,6 @@
 
 .audit-page {
   gap: 12px;
-}
-
-.audit-page .page-header {
-  padding-bottom: 10px;
 }
 
 .audit-page .page-header .page-header-description {

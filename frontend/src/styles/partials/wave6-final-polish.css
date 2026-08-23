@@ -61,14 +61,6 @@
   line-height: 1.25;
 }
 
-.customers-page .page-header,
-.suppliers-page .page-header,
-.services-page .page-header,
-.cash-drawer-page .page-header,
-.audit-page .page-header {
-  padding-block: 14px;
-}
-
 .customers-page .page-header .page-header-description,
 .suppliers-page .page-header .page-header-description,
 .services-page .page-header .page-header-description,
