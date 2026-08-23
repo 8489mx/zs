@@ -9,17 +9,6 @@ import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
 
-function buildDescription(pos: PosWorkspaceState, offlineQueueCount: number) {
-  if (pos.isLoading) return 'جاري تهيئة بيئة نقطة البيع...';
-  if (offlineQueueCount > 0) return `يوجد ${offlineQueueCount} فواتير معلقة تنتظر عودة الإنترنت ليتم مزامنتها.`;
-  if (!pos.hasOperationalSetup) return 'أكمل تعريف المتجر ونقطة التشغيل أولًا، ثم ارجع لنقطة البيع لإتمام البيع من نفس الشاشة.';
-  if (!pos.hasCatalogReady) return 'أضف صنفًا واحدًا على الأقل حتى تظهر تجربة البيع اليومية بشكل كامل.';
-  if (pos.requiresCashierShift && !pos.ownOpenShift) return 'افتح وردية لهذا المستخدم أولًا حتى يبدأ البيع النقدي أو الشبكة بدون تعطيل.';
-  if (!pos.cart.length) return 'ابدأ بالباركود أو البحث السريع، ثم راجع السلة والدفع من العمود المقابل.';
-  if (pos.canSubmitSale) return 'السلة جاهزة الآن. راجع الإجمالي والدفع ثم أكد البيع مباشرة.';
-  return `راجع السلة الحالية. ${pos.canSubmitHint || 'أكمل المطلوب أولًا قبل تأكيد الفاتورة.'}`;
-}
-
 interface PosWorkspaceHeaderProps {
   pos: PosWorkspaceState;
   posMode: PosSaleMode;
@@ -39,7 +28,6 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
   return (
     <PageHeader
       title="نقطة البيع"
-      description={buildDescription(pos, offlineQueue.length)}
       badge={(
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', direction: 'ltr', color: '#0f172a' }} aria-label="Z ERP">
           <ZErpIcon size={38} />

@@ -1,5 +1,6 @@
 import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
@@ -54,29 +55,47 @@ export function ReturnsCreateCard(props: Props) {
     <FormSection title="إنشاء مرتجع جديد" actions={<span className="nav-pill">إنشاء</span>} className="workspace-panel returns-create-card">
       <div className="form-grid">
         <Field label="نوع المرتجع">
-          <select value={form.type} onChange={(e) => onFormChange((current) => ({ ...current, type: e.target.value as 'sale' | 'purchase', invoiceId: '', settlementMode: 'refund', refundMethod: 'cash' }))}>
-            <option value="sale">مرتجع بيع</option>
-            <option value="purchase">مرتجع شراء</option>
-          </select>
+          <CustomSelect
+            value={form.type}
+            onChange={(val) => onFormChange((current) => ({ ...current, type: val as 'sale' | 'purchase', invoiceId: '', settlementMode: 'refund', refundMethod: 'cash' }))}
+            options={[
+              { value: 'sale', label: 'مرتجع بيع' },
+              { value: 'purchase', label: 'مرتجع شراء' },
+            ]}
+          />
         </Field>
         <Field label="الفاتورة">
-          <select value={form.invoiceId} onChange={(e) => onFormChange((current) => ({ ...current, invoiceId: e.target.value }))}>
-            <option value="">اختر الفاتورة</option>
-            {invoiceRows.map((invoice) => <option key={invoice.id} value={invoice.id}>{invoice.docNo || invoice.id}</option>)}
-          </select>
+          <CustomSelect
+            value={form.invoiceId}
+            onChange={(val) => onFormChange((current) => ({ ...current, invoiceId: val }))}
+            options={[
+              { value: '', label: 'اختر الفاتورة' },
+              ...invoiceRows.map((invoice) => ({ value: invoice.id, label: invoice.docNo || invoice.id })),
+            ]}
+          />
         </Field>
         <Field label="آلية التسوية">
-          <select value={form.settlementMode} onChange={(e) => onFormChange((current) => ({ ...current, settlementMode: e.target.value as 'refund' | 'store_credit', refundMethod: e.target.value === 'refund' ? current.refundMethod : 'cash' }))}>
-            <option value="refund">استرجاع المبلغ</option>
-            {canUseCreditSettlement ? <option value="store_credit">رصيد متجر</option> : null}
-          </select>
+          <CustomSelect
+            value={form.settlementMode}
+            onChange={(val) => onFormChange((current) => ({ ...current, settlementMode: val as 'refund' | 'store_credit', refundMethod: val === 'refund' ? current.refundMethod : 'cash' }))}
+            options={[
+              { value: 'refund', label: 'استرجاع المبلغ' },
+              ...(canUseCreditSettlement ? [{ value: 'store_credit', label: 'رصيد متجر' }] : []),
+            ]}
+          />
         </Field>
         <Field label="طريقة الرد">
-          <select value={form.refundMethod} disabled={!settlementNeedsRefundMethod} onChange={(e) => onFormChange((current) => ({ ...current, refundMethod: e.target.value as 'cash' | 'card' }))}>
-            <option value="cash">نقدي</option>
-            <option value="card">بطاقة</option>
-          </select>
+          <CustomSelect
+            value={form.refundMethod}
+            disabled={!settlementNeedsRefundMethod}
+            onChange={(val) => onFormChange((current) => ({ ...current, refundMethod: val as 'cash' | 'card' }))}
+            options={[
+              { value: 'cash', label: 'نقدي' },
+              { value: 'card', label: 'بطاقة' },
+            ]}
+          />
         </Field>
+
         <Field label="ملاحظة إضافية (اختياري)">
           <textarea rows={3} value={form.note} onChange={(e) => onFormChange((current) => ({ ...current, note: e.target.value }))} placeholder="أي ملاحظة تظهر في سجل المرتجع" />
         </Field>

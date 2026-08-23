@@ -72,8 +72,18 @@
   justify-content: space-between;
 }
 
+.pos-page-header .page-header-row {
+  flex-wrap: nowrap !important;
+  gap: 12px;
+}
+
 .pos-page-header .page-header-copy {
   margin: 0;
+  flex-shrink: 0;
+}
+
+.pos-page-header .page-header-description {
+  display: none !important;
 }
 
 /* POS shortcuts strip */

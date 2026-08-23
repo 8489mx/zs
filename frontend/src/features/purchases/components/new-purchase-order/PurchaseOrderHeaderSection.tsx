@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { useTranslation } from '../../utils/i18n-purchase-prototype';
@@ -69,22 +70,22 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
         title={t('new_purchase_order') as string}
         onBack={props.onNavigateBack}
         badge={
-          <span className={`document-prototype-status-badge is-${props.documentStatus}`}>
-            {props.documentStatus === 'confirmed' ? t('status_confirmed') : t('status_draft')}
-          </span>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span className={`document-prototype-status-badge is-${props.documentStatus}`}>
+              {props.documentStatus === 'confirmed' ? t('status_confirmed') : t('status_draft')}
+            </span>
+            <span className="nav-pill" style={{ fontWeight: 700, color: '#0f172a' }}>
+              الإجمالي: {formatMoney(props.total, props.language)}
+            </span>
+            {props.attachmentsCount > 0 && (
+              <span className="nav-pill">
+                أوامر مرفقة ({props.attachmentsCount})
+              </span>
+            )}
+          </div>
         }
         actions={
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div className="document-smart-buttons-box" style={{ marginRight: '16px' }}>
-              <button className="document-smart-button">
-                <span className="document-smart-button-value">{formatMoney(props.total, props.language)}</span>
-                <span className="document-smart-button-label">الإجمالي</span>
-              </button>
-              <button className="document-smart-button">
-                <span className="document-smart-button-value">{props.attachmentsCount || 0}</span>
-                <span className="document-smart-button-label">أوامر مرفقة</span>
-              </button>
-            </div>
+          <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Button
               variant="secondary"
               type="button"
@@ -93,7 +94,7 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
               style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
             >
               <span aria-hidden="true" className="purchase-prototype-save-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
                   <path d="M3 6h18"></path>
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                   <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -217,17 +218,17 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
             dropdownClassName={props.purchaseDropdownClassName}
           />
           <Field label="طريقة الدفع">
-            <select
-              className="purchase-prototype-field-input purchase-prototype-meta-input"
+            <CustomSelect
               value={props.paymentType}
-              onChange={(event) => {
+              onChange={(val) => {
                 props.markDocumentDirty();
-                props.setPaymentType(event.target.value as 'cash' | 'credit');
+                props.setPaymentType(val as 'cash' | 'credit');
               }}
-            >
-              <option value="credit">آجل (يضاف لمديونية المورد)</option>
-              <option value="cash">كاش (دفع فوري من الخزينة)</option>
-            </select>
+              options={[
+                { value: 'credit', label: 'آجل (يضاف لمديونية المورد)' },
+                { value: 'cash', label: 'كاش (دفع فوري من الخزينة)' },
+              ]}
+            />
           </Field>
 
           {/* Row 2: التاريخ - التاريخ المطلوب - العملة */}
@@ -258,21 +259,20 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
             />
           </Field>
           <Field label={t('currency')} error={props.validationErrors.currency}>
-            <select
-              ref={props.currencyInputRef as any}
-              className="purchase-prototype-field-input purchase-prototype-meta-input"
+            <CustomSelect
               value={props.currency}
-              onChange={(event) => {
+              onChange={(val) => {
                 props.markDocumentDirty();
                 props.clearDocumentFieldError('currency');
-                props.setCurrency(event.target.value);
+                props.setCurrency(val);
               }}
-            >
-              {SUPPORTED_CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
+              options={SUPPORTED_CURRENCIES.map((c) => ({
+                value: c.code,
+                label: c.label,
+              }))}
+            />
           </Field>
+
         </div>
 
         {props.attachments.length > 0 && (
