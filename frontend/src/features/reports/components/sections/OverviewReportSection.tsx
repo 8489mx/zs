@@ -85,35 +85,7 @@ export function OverviewReportSection({
 
   return (
     <div className="page-stack" style={{ gap: '12px' }}>
-      {/* 1. Executive Summary KPIs Strip */}
-      <QueryCard
-        title="الملخص التنفيذي"
-        className="reports-executive-card reports-executive-card--compact"
-        isLoading={reportQuery.isLoading}
-        isError={reportQuery.isError}
-        error={reportQuery.error}
-        isEmpty={!report}
-        loadingText="جاري تحميل التقرير..."
-        emptyTitle="لا توجد بيانات للفترة الحالية"
-        emptyHint="جرّب تغيير الفترة أو إضافة عمليات جديدة."
-      >
-        <div className="reports-premium-summary-strip reports-premium-summary-strip--compact" aria-label="أهم أرقام الفترة">
-          {premiumStats.map((stat) => (
-            <div className={`reports-premium-stat reports-premium-stat-compact reports-premium-stat-${stat.tone}`} key={stat.label}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{stat.label}</span>
-                <small>{stat.helper}</small>
-              </div>
-              <strong><AnimatedValue value={stat.value} formatter={formatCurrency} /></strong>
-              <span className="reports-premium-stat-rail" style={{ '--reports-stat-progress': `${stat.progress}%` } as CSSProperties} aria-hidden="true">
-                <i />
-              </span>
-            </div>
-          ))}
-        </div>
-      </QueryCard>
-
-      {/* 2. Visual Command Center: Side-by-Side Charts (Area Trend + Margin Donut) */}
+      {/* 1. Visual Command Center: Side-by-Side Charts (Area Trend + Margin Donut) */}
       <div className="reports-charts-hub-grid">
         {/* Right (65%): Sales & Purchases Area Trend Chart */}
         <FormSection
@@ -230,7 +202,7 @@ export function OverviewReportSection({
         </FormSection>
       </div>
 
-      {/* 3. Secondary Bar Chart: Shifts Performance */}
+      {/* 2. Secondary Bar Chart: Shifts Performance */}
       <FormSection title="المبيعات حسب فترات العمل (الورديات)" description="مقارنة مبيعات فترات اليوم (النهار مقابل الليل)." actions={<span className="nav-pill">الورديات</span>}>
         <div style={{ marginTop: '12px' }}>
           <ShiftAnalysisChart data={[
@@ -240,6 +212,34 @@ export function OverviewReportSection({
           ]} height={220} />
         </div>
       </FormSection>
+
+      {/* 3. Executive Summary KPIs Strip (Now placed after the charts) */}
+      <QueryCard
+        title="الملخص التنفيذي للأداء المالي"
+        className="reports-executive-card reports-executive-card--compact"
+        isLoading={reportQuery.isLoading}
+        isError={reportQuery.isError}
+        error={reportQuery.error}
+        isEmpty={!report}
+        loadingText="جاري تحميل التقرير..."
+        emptyTitle="لا توجد بيانات للفترة الحالية"
+        emptyHint="جرّب تغيير الفترة أو إضافة عمليات جديدة."
+      >
+        <div className="reports-premium-summary-strip reports-premium-summary-strip--compact" aria-label="أهم أرقام الفترة">
+          {premiumStats.map((stat) => (
+            <div className={`reports-premium-stat reports-premium-stat-compact reports-premium-stat-${stat.tone}`} key={stat.label}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{stat.label}</span>
+                <small>{stat.helper}</small>
+              </div>
+              <strong><AnimatedValue value={stat.value} formatter={formatCurrency} /></strong>
+              <span className="reports-premium-stat-rail" style={{ '--reports-stat-progress': `${stat.progress}%` } as CSSProperties} aria-hidden="true">
+                <i />
+              </span>
+            </div>
+          ))}
+        </div>
+      </QueryCard>
 
       {/* 4. Detailed Financial Breakdown Cards (3 Columns) */}
       <div className="three-column-grid reports-unified-grid">

@@ -29,9 +29,10 @@ export function SalesTrendChart({ data, height = 300 }: SalesTrendChartProps) {
   }
 
   return (
-    <div style={{ width: '100%', height }}>
+    <div className="reports-chart-draw-in" style={{ width: '100%', height }}>
       <ResponsiveContainer>
         <AreaChart
+          key={data.map(d => `${d.name}-${d.sales}-${d.purchases || 0}`).join('_')}
           data={data}
           margin={{
             top: 10,
@@ -80,7 +81,10 @@ export function SalesTrendChart({ data, height = 300 }: SalesTrendChartProps) {
             strokeWidth={3}
             fillOpacity={1} 
             fill="url(#colorSales)" 
-            animationDuration={1500}
+            isAnimationActive={true}
+            animationDuration={1600}
+            animationEasing="ease-out"
+            animationBegin={100}
           />
           {data.some(d => d.purchases !== undefined) && (
             <Area 
@@ -91,7 +95,10 @@ export function SalesTrendChart({ data, height = 300 }: SalesTrendChartProps) {
               strokeWidth={3}
               fillOpacity={1} 
               fill="url(#colorPurchases)" 
-              animationDuration={1500}
+              isAnimationActive={true}
+              animationDuration={1600}
+              animationEasing="ease-out"
+              animationBegin={200}
             />
           )}
         </AreaChart>

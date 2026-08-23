@@ -39,9 +39,10 @@ export function ShiftAnalysisChart({ data, height = 300 }: ShiftAnalysisChartPro
   }
 
   return (
-    <div style={{ width: '100%', height }}>
+    <div className="reports-chart-draw-in" style={{ width: '100%', height }}>
       <ResponsiveContainer>
         <BarChart
+          key={data.map(d => `${d.shift}-${d.sales}`).join('_')}
           data={data}
           margin={{
             top: 10,
@@ -73,7 +74,14 @@ export function ShiftAnalysisChart({ data, height = 300 }: ShiftAnalysisChartPro
             contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             labelStyle={{ color: 'var(--text-muted, #64748b)', fontWeight: 'bold', marginBottom: 4 }}
           />
-          <Bar dataKey="sales" radius={[6, 6, 0, 0]} animationDuration={1500}>
+          <Bar 
+            dataKey="sales" 
+            radius={[6, 6, 0, 0]} 
+            isAnimationActive={true}
+            animationDuration={1500}
+            animationEasing="ease-out"
+            animationBegin={150}
+          >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}

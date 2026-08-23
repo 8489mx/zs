@@ -652,6 +652,21 @@
   margin-inline-start: 4px !important;
 }
 
+/* ==========================================================================
+   Dynamic Chart Entrance Animations
+   ========================================================================== */
+@keyframes chartSmoothDrawIn {
+  from {
+    opacity: 0.2;
+    transform: translateY(12px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
 
-
-
+.reports-chart-draw-in {
+  animation: chartSmoothDrawIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: bottom center;
+}
