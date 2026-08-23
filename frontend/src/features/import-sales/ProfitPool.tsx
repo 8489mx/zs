@@ -39,17 +39,18 @@ export default function ProfitPool() {
         />
 
         <FormSection title="تحديد الفترة الزمنية">
-          <div style={{ display: 'flex', gap: '1rem', padding: '1rem', alignItems: 'flex-end' }}>
-            <div className="form-group">
-              <label>من تاريخ</label>
-              <input type="date" className="input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          <div style={{ display: 'flex', gap: '12px', padding: '12px 14px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', height: '16px', lineHeight: '16px', margin: 0 }}>من تاريخ</label>
+              <input type="date" className="input" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ height: '38px', minHeight: '38px', boxSizing: 'border-box', borderRadius: '6px', fontSize: '0.825rem', padding: '6px 10px' }} />
             </div>
-            <div className="form-group">
-              <label>إلى تاريخ</label>
-              <input type="date" className="input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', height: '16px', lineHeight: '16px', margin: 0 }}>إلى تاريخ</label>
+              <input type="date" className="input" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ height: '38px', minHeight: '38px', boxSizing: 'border-box', borderRadius: '6px', fontSize: '0.825rem', padding: '6px 10px' }} />
             </div>
-            <div className="form-group">
-              <Button variant="primary" onClick={() => refetch()}>تحديث التقرير</Button>
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <span style={{ height: '16px' }} />
+              <Button variant="primary" onClick={() => refetch()} style={{ height: '38px', minHeight: '38px', boxSizing: 'border-box', borderRadius: '6px', fontSize: '0.825rem', fontWeight: 700, padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>تحديث التقرير</Button>
             </div>
           </div>
         </FormSection>

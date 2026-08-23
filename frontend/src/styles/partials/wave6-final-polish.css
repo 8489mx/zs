@@ -309,3 +309,128 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Reports Range Toolbar Unified Sizing (Inputs, Selects, Buttons)
+   ========================================================================== */
+.reports-range-grid,
+.reports-range-grid--compact {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(130px, 150px) !important;
+  gap: 10px !important;
+  align-items: flex-end !important;
+  margin-bottom: 8px !important;
+}
+
+.reports-range-grid .field,
+.reports-range-grid--compact .field,
+.reports-range-grid .reports-action-field,
+.reports-range-grid--compact .reports-action-field {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  gap: 5px !important;
+  margin-bottom: 0 !important;
+  min-width: 0 !important;
+}
+
+.reports-range-grid .field > span,
+.reports-range-grid .field > label,
+.reports-range-grid--compact .field > span,
+.reports-range-grid--compact .field > label,
+.reports-range-grid .reports-action-field > span,
+.reports-range-grid--compact .reports-action-field > span {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  line-height: 16px !important;
+  height: 16px !important;
+}
+
+.reports-range-grid input[type="date"],
+.reports-range-grid input,
+.reports-range-grid select,
+.reports-range-grid .button,
+.reports-range-grid .btn,
+.reports-range-grid--compact input[type="date"],
+.reports-range-grid--compact input,
+.reports-range-grid--compact select,
+.reports-range-grid--compact .button,
+.reports-range-grid--compact .btn {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  box-sizing: border-box !important;
+  border-radius: 6px !important;
+  font-size: 0.825rem !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+.reports-range-grid input[type="date"],
+.reports-range-grid--compact input[type="date"] {
+  padding: 6px 10px !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.reports-range-grid select,
+.reports-range-grid--compact select {
+  padding: 6px 10px 6px 26px !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  background-position: left 8px center !important;
+}
+
+.reports-range-grid .reports-action-field .button,
+.reports-range-grid .reports-action-field .btn,
+.reports-range-grid--compact .reports-action-field .button,
+.reports-range-grid--compact .reports-action-field .btn {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+  background: var(--primary, #170c5c) !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+@media (max-width: 1100px) {
+  .reports-range-grid,
+  .reports-range-grid--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) 1fr !important;
+  }
+  .reports-range-grid .reports-action-field,
+  .reports-range-grid--compact .reports-action-field {
+    grid-column: span 1 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .reports-range-grid,
+  .reports-range-grid--compact {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .reports-range-grid .reports-action-field,
+  .reports-range-grid--compact .reports-action-field {
+    grid-column: span 2 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .reports-range-grid,
+  .reports-range-grid--compact {
+    grid-template-columns: 1fr !important;
+  }
+  .reports-range-grid .reports-action-field,
+  .reports-range-grid--compact .reports-action-field {
+    grid-column: span 1 !important;
+  }
+}
+
