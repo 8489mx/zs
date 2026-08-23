@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyBatch } from '../types/pharmacy.types';
@@ -410,34 +411,29 @@ export default function PharmacyBatchesExpiryPage() {
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                       الموزع / المورد
                     </label>
-                    <select
-                      className="purchase-prototype-field-input"
+                    <CustomSelect
                       value={editingBatch.supplier_name || MAJOR_DISTRIBUTORS[0]}
-                      onChange={(e) => setEditingBatch({ ...editingBatch, supplier_name: e.target.value })}
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    >
-                      {MAJOR_DISTRIBUTORS.map((d) => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => setEditingBatch({ ...editingBatch, supplier_name: val })}
+                      options={MAJOR_DISTRIBUTORS.map((d) => ({ value: d, label: d }))}
+                    />
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                       حالة التشغيلة
                     </label>
-                    <select
-                      className="purchase-prototype-field-input"
+                    <CustomSelect
                       value={editingBatch.status || 'active'}
-                      onChange={(e) => setEditingBatch({ ...editingBatch, status: e.target.value as any })}
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    >
-                      <option value="active">صلاحية سارية</option>
-                      <option value="near_expiry">وشيك الانتهاء</option>
-                      <option value="expired">منتهي الصلاحية</option>
-                      <option value="returned">تم إرجاعه للموزع</option>
-                    </select>
+                      onChange={(val) => setEditingBatch({ ...editingBatch, status: val as any })}
+                      options={[
+                        { value: 'active', label: 'صلاحية سارية' },
+                        { value: 'near_expiry', label: 'وشيك الانتهاء' },
+                        { value: 'expired', label: 'منتهي الصلاحية' },
+                        { value: 'returned', label: 'تم إرجاعه للموزع' },
+                      ]}
+                    />
                   </div>
+
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>

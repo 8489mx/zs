@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { pharmacyApi } from '../api/pharmacy.api';
 import { IconPlus, IconTrash, IconCheck } from './PharmacyIcons';
 
@@ -147,7 +148,7 @@ export function DistributorInvoiceImportModal({
   const totalCostSum = lines.reduce((acc, l) => acc + Number(l.quantity || 0) * Number(l.costPrice || 0), 0);
 
   return (
-    <DialogShell open={open} onClose={onClose} width="min(1050px, 95vw)" ariaLabel="استيراد فواتير الموزعين الإلكترونية">
+    <DialogShell open={open} onClose={onClose} width="min(1240px, 96vw)" ariaLabel="استيراد فواتير الموزعين الإلكترونية">
       <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
@@ -187,20 +188,20 @@ export function DistributorInvoiceImportModal({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div>
             <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>شركة التوزيع / المورد</label>
-            <select
+            <CustomSelect
               value={distributor}
-              onChange={(e) => setDistributor(e.target.value)}
-              className="purchase-prototype-field-input"
-              style={{ width: '100%', boxSizing: 'border-box' }}
-            >
-              <option value="الشركة المتحدة للصيادلة (UCP)">الشركة المتحدة للصيادلة (UCP)</option>
-              <option value="ابن سينا فارما (Ibnsina)">ابن سينا فارما (Ibnsina)</option>
-              <option value="فارما أوفرسيز (PharmaOverseas)">فارما أوفرسيز (PharmaOverseas)</option>
-              <option value="الشركة المصرية لتجارة الأدوية">الشركة المصرية لتجارة الأدوية</option>
-              <option value="مالتي فارما (MultiPharma)">مالتي فارما (MultiPharma)</option>
-              <option value="موزع / مخزن أدوية آخر">موزع / مخزن أدوية آخر</option>
-            </select>
+              onChange={(val) => setDistributor(val)}
+              options={[
+                { value: 'الشركة المتحدة للصيادلة (UCP)', label: 'الشركة المتحدة للصيادلة (UCP)' },
+                { value: 'ابن سينا فارما (Ibnsina)', label: 'ابن سينا فارما (Ibnsina)' },
+                { value: 'فارما أوفرسيز (PharmaOverseas)', label: 'فارما أوفرسيز (PharmaOverseas)' },
+                { value: 'الشركة المصرية لتجارة الأدوية', label: 'الشركة المصرية لتجارة الأدوية' },
+                { value: 'مالتي فارما (MultiPharma)', label: 'مالتي فارما (MultiPharma)' },
+                { value: 'موزع / مخزن أدوية آخر', label: 'موزع / مخزن أدوية آخر' },
+              ]}
+            />
           </div>
+
 
           <div>
             <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>رقم الفاتورة الإلكترونية</label>

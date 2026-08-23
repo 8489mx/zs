@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyPrescription, PrescribedItem } from '../types/pharmacy.types';
@@ -387,17 +388,13 @@ export default function PharmacyPrescriptionsPage() {
                   <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                     شركة التأمين / التعاقد
                   </label>
-                  <select
-                    className="purchase-prototype-field-input"
+                  <CustomSelect
                     value={editingRx.insurance_provider || INSURANCE_PROVIDERS[0]}
-                    onChange={(e) => setEditingRx({ ...editingRx, insurance_provider: e.target.value })}
-                    style={{ width: '100%', boxSizing: 'border-box' }}
-                  >
-                    {INSURANCE_PROVIDERS.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setEditingRx({ ...editingRx, insurance_provider: val })}
+                    options={INSURANCE_PROVIDERS.map((p) => ({ value: p, label: p }))}
+                  />
                 </div>
+
 
                 <div>
                   <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>

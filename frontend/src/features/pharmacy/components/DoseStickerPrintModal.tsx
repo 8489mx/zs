@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { IconPrinter } from './PharmacyIcons';
 
 interface Props {
@@ -106,41 +107,40 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
             <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
               الجرعة والتكرار:
             </label>
-            <select
-              className="purchase-prototype-field-input"
+            <CustomSelect
               value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-              style={{ width: '100%', boxSizing: 'border-box' }}
-            >
-              <option value="قرص مرة واحدة يومياً">قرص مرة واحدة يومياً</option>
-              <option value="قرص كل 12 ساعة (مرتين يومياً)">قرص كل 12 ساعة (مرتين يومياً)</option>
-              <option value="قرص كل 8 ساعات (3 مرات يومياً)">قرص كل 8 ساعات (3 مرات يومياً)</option>
-              <option value="قرص كل 6 ساعات (4 مرات يومياً)">قرص كل 6 ساعات (4 مرات يومياً)</option>
-              <option value="ملعقة كبيرة (10 مل) 3 مرات يومياً">ملعقة كبيرة (10 مل) 3 مرات يومياً</option>
-              <option value="ملعقة صغيرة (5 مل) 3 مرات يومياً">ملعقة صغيرة (5 مل) 3 مرات يومياً</option>
-              <option value="نقطتان في كل عين 3 مرات يومياً">نقطتان في كل عين 3 مرات يومياً</option>
-              <option value="دهان موضعي مرتين يومياً">دهان موضعي مرتين يومياً</option>
-              <option value="كيس فوار على نصف كوب ماء مرتين يومياً">كيس فوار على نصف كوب ماء مرتين يومياً</option>
-            </select>
+              onChange={(val) => setFrequency(val)}
+              options={[
+                { value: 'قرص مرة واحدة يومياً', label: 'قرص مرة واحدة يومياً' },
+                { value: 'قرص كل 12 ساعة (مرتين يومياً)', label: 'قرص كل 12 ساعة (مرتين يومياً)' },
+                { value: 'قرص كل 8 ساعات (3 مرات يومياً)', label: 'قرص كل 8 ساعات (3 مرات يومياً)' },
+                { value: 'قرص كل 6 ساعات (4 مرات يومياً)', label: 'قرص كل 6 ساعات (4 مرات يومياً)' },
+                { value: 'ملعقة كبيرة (10 مل) 3 مرات يومياً', label: 'ملعقة كبيرة (10 مل) 3 مرات يومياً' },
+                { value: 'ملعقة صغيرة (5 مل) 3 مرات يومياً', label: 'ملعقة صغيرة (5 مل) 3 مرات يومياً' },
+                { value: 'نقطتان في كل عين 3 مرات يومياً', label: 'نقطتان في كل عين 3 مرات يومياً' },
+                { value: 'دهان موضعي مرتين يومياً', label: 'دهان موضعي مرتين يومياً' },
+                { value: 'كيس فوار على نصف كوب ماء مرتين يومياً', label: 'كيس فوار على نصف كوب ماء مرتين يومياً' },
+              ]}
+            />
           </div>
 
           <div>
             <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
               توقيت التناول:
             </label>
-            <select
-              className="purchase-prototype-field-input"
+            <CustomSelect
               value={timing}
-              onChange={(e) => setTiming(e.target.value)}
-              style={{ width: '100%', boxSizing: 'border-box' }}
-            >
-              <option value="بعد الأكل مباشرة">بعد الأكل مباشرة</option>
-              <option value="قبل الأكل بنصف ساعة على معدة فارغة">قبل الأكل بنصف ساعة على معدة فارغة</option>
-              <option value="وسط الأكل">وسط الأكل</option>
-              <option value="قبل النوم مباشرة">قبل النوم مباشرة</option>
-              <option value="عند اللزوم أو الألم الشديد فقط">عند اللزوم أو الألم الشديد فقط</option>
-            </select>
+              onChange={(val) => setTiming(val)}
+              options={[
+                { value: 'بعد الأكل مباشرة', label: 'بعد الأكل مباشرة' },
+                { value: 'قبل الأكل بنصف ساعة على معدة فارغة', label: 'قبل الأكل بنصف ساعة على معدة فارغة' },
+                { value: 'وسط الأكل', label: 'وسط الأكل' },
+                { value: 'قبل النوم مباشرة', label: 'قبل النوم مباشرة' },
+                { value: 'عند اللزوم أو الألم الشديد فقط', label: 'عند اللزوم أو الألم الشديد فقط' },
+              ]}
+            />
           </div>
+
 
           <div style={{ gridColumn: 'span 2' }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>

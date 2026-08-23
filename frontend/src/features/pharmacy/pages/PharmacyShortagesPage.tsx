@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyShortage } from '../types/pharmacy.types';
@@ -227,27 +228,26 @@ export default function PharmacyShortagesPage() {
             title="الكمية المطلوبة بالعلب"
           />
 
-          <select
-            className="purchase-prototype-field-input"
-            value={quickDist}
-            onChange={(e) => setQuickDist(e.target.value)}
-            style={{ width: '140px', fontSize: '0.82rem', background: '#fff' }}
-          >
-            {MAJOR_DISTRIBUTORS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
+          <div style={{ width: '150px' }}>
+            <CustomSelect
+              value={quickDist}
+              onChange={(val) => setQuickDist(val)}
+              options={MAJOR_DISTRIBUTORS.map((d) => ({ value: d, label: d }))}
+            />
+          </div>
 
-          <select
-            className="purchase-prototype-field-input"
-            value={quickPriority}
-            onChange={(e) => setQuickPriority(e.target.value as any)}
-            style={{ width: '110px', fontSize: '0.82rem', background: '#fff' }}
-          >
-            <option value="normal">عادي</option>
-            <option value="urgent">عاجل جداً</option>
-            <option value="customer_request">طلب مريض</option>
-          </select>
+          <div style={{ width: '130px' }}>
+            <CustomSelect
+              value={quickPriority}
+              onChange={(val) => setQuickPriority(val as any)}
+              options={[
+                { value: 'normal', label: 'عادي' },
+                { value: 'urgent', label: 'عاجل جداً' },
+                { value: 'customer_request', label: 'طلب مريض' },
+              ]}
+            />
+          </div>
+
 
           <Button
             type="submit"
@@ -299,18 +299,20 @@ export default function PharmacyShortagesPage() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flex: '1 1 340px', maxWidth: '520px' }}>
-            <select
-              className="purchase-prototype-field-input"
-              value={priorityFilter}
-              onChange={(e) => { setPriorityFilter(e.target.value); setPage(1); }}
-              style={{ padding: '6px 10px', fontSize: '0.82rem', background: '#fff', width: '130px' }}
-            >
-              <option value="all">كل الأولويات</option>
-              <option value="urgent">عاجل جداً</option>
-              <option value="customer_request">طلب عميل</option>
-              <option value="normal">عادي</option>
-            </select>
+          <div style={{ display: 'flex', gap: '8px', flex: '1 1 340px', maxWidth: '520px', alignItems: 'center' }}>
+            <div style={{ width: '140px' }}>
+              <CustomSelect
+                value={priorityFilter}
+                onChange={(val) => { setPriorityFilter(val); setPage(1); }}
+                options={[
+                  { value: 'all', label: 'كل الأولويات' },
+                  { value: 'urgent', label: 'عاجل جداً' },
+                  { value: 'customer_request', label: 'طلب عميل' },
+                  { value: 'normal', label: 'عادي' },
+                ]}
+              />
+            </div>
+
 
             <div style={{ position: 'relative', flex: 1 }}>
               <input
@@ -388,31 +390,20 @@ export default function PharmacyShortagesPage() {
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px' }}>
-                      <select
-                        className="purchase-prototype-field-input"
-                        value={s.status}
-                        onChange={(e) => statusMutation.mutate({ id: s.id, status: e.target.value })}
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          background:
-                            s.status === 'received'
-                              ? '#dcfce7'
-                              : s.status === 'ordered'
-                              ? '#e0f2fe'
-                              : s.status === 'unavailable'
-                              ? '#fee2e2'
-                              : '#fff',
-                        }}
-                      >
-                        <option value="needed">مطلوب</option>
-                        <option value="ordered">تم الطلب</option>
-                        <option value="received">تم الاستلام</option>
-                        <option value="unavailable">غير متوفر بالسوق</option>
-                      </select>
+                      <div style={{ width: '130px' }}>
+                        <CustomSelect
+                          value={s.status}
+                          onChange={(val) => statusMutation.mutate({ id: s.id, status: val })}
+                          options={[
+                            { value: 'needed', label: 'مطلوب' },
+                            { value: 'ordered', label: 'تم الطلب' },
+                            { value: 'received', label: 'تم الاستلام' },
+                            { value: 'unavailable', label: 'غير متوفر بالسوق' },
+                          ]}
+                        />
+                      </div>
                     </td>
+
                     <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                       <Button
                         variant="secondary"
@@ -490,16 +481,11 @@ export default function PharmacyShortagesPage() {
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                       الشركة الموزعة المفضلة
                     </label>
-                    <select
-                      className="purchase-prototype-field-input"
+                    <CustomSelect
                       value={editingShortage.suggested_distributor || MAJOR_DISTRIBUTORS[0]}
-                      onChange={(e) => setEditingShortage({ ...editingShortage, suggested_distributor: e.target.value })}
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    >
-                      {MAJOR_DISTRIBUTORS.map((d) => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => setEditingShortage({ ...editingShortage, suggested_distributor: val })}
+                      options={MAJOR_DISTRIBUTORS.map((d) => ({ value: d, label: d }))}
+                    />
                   </div>
 
                   <div>
@@ -520,17 +506,17 @@ export default function PharmacyShortagesPage() {
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                       الأولوية
                     </label>
-                    <select
-                      className="purchase-prototype-field-input"
+                    <CustomSelect
                       value={editingShortage.priority || 'normal'}
-                      onChange={(e) => setEditingShortage({ ...editingShortage, priority: e.target.value as any })}
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    >
-                      <option value="urgent">عاجل جداً (نقص شديد)</option>
-                      <option value="customer_request">طلب مريض محجوز</option>
-                      <option value="normal">عادي (طلبية دورية)</option>
-                    </select>
+                      onChange={(val) => setEditingShortage({ ...editingShortage, priority: val as any })}
+                      options={[
+                        { value: 'urgent', label: 'عاجل جداً (نقص شديد)' },
+                        { value: 'customer_request', label: 'طلب مريض محجوز' },
+                        { value: 'normal', label: 'عادي (طلبية دورية)' },
+                      ]}
+                    />
                   </div>
+
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>

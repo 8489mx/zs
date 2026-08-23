@@ -333,6 +333,27 @@ export class PharmacyService {
       importedItemsCount++;
     }
 
+    // Record a single bulk cash outflow for the total invoice cost
+    if (totalCostSum > 0) {
+      try {
+        await this.db
+          .insertInto('treasury_transactions')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            txn_type: 'expense',
+            amount: -totalCostSum,
+            note: `فاتورة موزع: ${dto.distributor}${dto.invoiceNumber ? ` رقم ${dto.invoiceNumber}` : ''} — ${importedItemsCount} صنف — إجمالي التكلفة: ${totalCostSum.toFixed(2)} ج`,
+            reference_type: 'pharmacy_batch',
+            reference_id: null,
+            created_by: auth.userId ? Number(auth.userId) : null,
+          } as any)
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record distributor invoice to treasury:', err);
+      }
+    }
+
     return {
       success: true,
       distributor: dto.distributor,
@@ -592,7 +613,7 @@ export class PharmacyService {
         .executeTakeFirstOrThrow();
     }
 
-    return await this.db
+    const batch = await this.db
       .insertInto('pharmacy_batches')
       .values({
         tenant_id: scope.tenantId,
@@ -610,6 +631,31 @@ export class PharmacyService {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    // Record cash outflow for batch purchase cost
+    const totalBatchCost = Number(dto.quantity || 0) * Number(dto.unitCost || 0);
+    if (totalBatchCost > 0) {
+      try {
+        await this.db
+          .insertInto('treasury_transactions')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            txn_type: 'expense',
+            amount: -totalBatchCost,
+            note: `شراء دواء - دفعة ${dto.batchNumber} — كمية: ${dto.quantity} وحدة × ${Number(dto.unitCost).toFixed(2)} ج${dto.supplierName ? ` — المورد: ${dto.supplierName}` : ''}`,
+            reference_type: 'pharmacy_batch',
+            reference_id: Number(batch.id),
+            location_id: dto.locationId ?? null,
+            created_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record pharmacy batch purchase to treasury:', err);
+      }
+    }
+
+    return batch;
   }
 
   // -------------------------------------------------------------
@@ -708,7 +754,7 @@ export class PharmacyService {
         .executeTakeFirstOrThrow();
     }
 
-    return await this.db
+    const rx = await this.db
       .insertInto('pharmacy_prescriptions')
       .values({
         tenant_id: scope.tenantId,
@@ -733,6 +779,33 @@ export class PharmacyService {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    // Record cash revenue for patient cash payment (excluding insurance portion)
+    const patientCash = Number(dto.patientAmount || dto.totalAmount || 0);
+    if (patientCash > 0 && (dto.status || 'dispensed') === 'dispensed') {
+      try {
+        const insuranceSuffix = dto.insuranceProvider && Number(dto.insuranceAmount || 0) > 0
+          ? ` (التأمين ${dto.insuranceProvider}: ${Number(dto.insuranceAmount).toFixed(2)} ج)`
+          : '';
+        await this.db
+          .insertInto('treasury_transactions')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            txn_type: 'revenue',
+            amount: patientCash,
+            note: `صرف روشتة ${rxNo} — العميل: ${dto.customerName} — إجمالي: ${Number(dto.totalAmount || 0).toFixed(2)} ج — نقدي: ${patientCash.toFixed(2)} ج${insuranceSuffix}`,
+            reference_type: 'pharmacy_prescription',
+            reference_id: Number(rx.id),
+            created_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record pharmacy prescription revenue to treasury:', err);
+      }
+    }
+
+    return rx;
   }
 
   // -------------------------------------------------------------
@@ -866,7 +939,7 @@ export class PharmacyService {
 
   async createClinicalService(auth: AuthContext, dto: UpsertClinicalServiceDto) {
     const scope = requireTenantScope(auth);
-    return await this.db
+    const service = await this.db
       .insertInto('pharmacy_clinical_services')
       .values({
         tenant_id: scope.tenantId,
@@ -881,6 +954,30 @@ export class PharmacyService {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    // Record revenue if a fee was collected
+    const fee = Number(dto.fee || 0);
+    if (fee > 0) {
+      try {
+        await this.db
+          .insertInto('treasury_transactions')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            txn_type: 'revenue',
+            amount: fee,
+            note: `خدمة صيدلانية: ${dto.serviceType} — العميل: ${dto.customerName} — رسوم: ${fee.toFixed(2)} ج`,
+            reference_type: 'pharmacy_clinical_service',
+            reference_id: Number(service.id),
+            created_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record pharmacy clinical service fee to treasury:', err);
+      }
+    }
+
+    return service;
   }
 
   // -------------------------------------------------------------

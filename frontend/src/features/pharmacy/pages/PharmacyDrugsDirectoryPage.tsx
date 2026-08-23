@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyDrug } from '../types/pharmacy.types';
@@ -265,35 +266,34 @@ export default function PharmacyDrugsDirectoryPage() {
           </div>
 
           <div>
-            <select
+            <CustomSelect
               value={selectedDosageForm}
-              onChange={(e) => setSelectedDosageForm(e.target.value)}
-              className="purchase-prototype-field-input"
-              style={{ width: '100%' }}
-            >
-              <option value="all">جميع الأشكال الصيدلانية</option>
-              <option value="أقراص (Tablets)">أقراص (Tablets)</option>
-              <option value="كبسولات (Capsules)">كبسولات (Capsules)</option>
-              <option value="شراب (Syrup)">شراب (Syrup)</option>
-              <option value="أمبولات حقن (Ampoules)">حقن وأمبولات (Injections)</option>
-              <option value="كريم جلدي (Cream)">كريمات ومراهم (Topicals)</option>
-              <option value="قطرة / بخاخ أنف (Drops/Spray)">قطرات وبخاخات</option>
-            </select>
+              onChange={(val) => setSelectedDosageForm(val)}
+              options={[
+                { value: 'all', label: 'جميع الأشكال الصيدلانية' },
+                { value: 'أقراص (Tablets)', label: 'أقراص (Tablets)' },
+                { value: 'كبسولات (Capsules)', label: 'كبسولات (Capsules)' },
+                { value: 'شراب (Syrup)', label: 'شراب (Syrup)' },
+                { value: 'أمبولات حقن (Ampoules)', label: 'حقن وأمبولات (Injections)' },
+                { value: 'كريم جلدي (Cream)', label: 'كريمات ومراهم (Topicals)' },
+                { value: 'قطرة / بخاخ أنف (Drops/Spray)', label: 'قطرات وبخاخات' },
+              ]}
+            />
           </div>
 
           <div>
-            <select
+            <CustomSelect
               value={selectedControlled}
-              onChange={(e) => setSelectedControlled(e.target.value)}
-              className="purchase-prototype-field-input"
-              style={{ width: '100%' }}
-            >
-              <option value="all">جميع مستويات الرقابة</option>
-              <option value="none">عادي (OTC / غير مجدول)</option>
-              <option value="table_1">جدول أول (أدوية مؤثرة)</option>
-              <option value="table_2">جدول ثانٍ (رقابة مشددة)</option>
-            </select>
+              onChange={(val) => setSelectedControlled(val)}
+              options={[
+                { value: 'all', label: 'جميع مستويات الرقابة' },
+                { value: 'none', label: 'عادي (OTC / غير مجدول)' },
+                { value: 'table_1', label: 'جدول أول (أدوية مؤثرة)' },
+                { value: 'table_2', label: 'جدول ثانٍ (رقابة مشددة)' },
+              ]}
+            />
           </div>
+
         </div>
 
         {/* Drugs Directory Table */}
@@ -502,21 +502,20 @@ export default function PharmacyDrugsDirectoryPage() {
 
                 <div>
                   <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>الشكل الصيدلي</label>
-                  <select
+                  <CustomSelect
                     value={formData.dosage_form}
-                    onChange={(e) => setFormData({ ...formData, dosage_form: e.target.value })}
-                    className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
-                  >
-                    <option value="أقراص (Tablets)">أقراص (Tablets)</option>
-                    <option value="كبسولات (Capsules)">كبسولات (Capsules)</option>
-                    <option value="شراب (Syrup)">شراب (Syrup)</option>
-                    <option value="أمبولات حقن (Ampoules)">أمبولات حقن (Ampoules)</option>
-                    <option value="فوار (Sachets)">فوار وأكياس (Sachets)</option>
-                    <option value="كريم جلدي (Cream)">كريم موضعي (Cream)</option>
-                    <option value="مرهم (Ointment)">مرهم (Ointment)</option>
-                    <option value="قطرة / بخاخ أنف (Drops/Spray)">قطرة / بخاخ</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, dosage_form: val })}
+                    options={[
+                      { value: 'أقراص (Tablets)', label: 'أقراص (Tablets)' },
+                      { value: 'كبسولات (Capsules)', label: 'كبسولات (Capsules)' },
+                      { value: 'شراب (Syrup)', label: 'شراب (Syrup)' },
+                      { value: 'أمبولات حقن (Ampoules)', label: 'أمبولات حقن (Ampoules)' },
+                      { value: 'فوار (Sachets)', label: 'فوار وأكياس (Sachets)' },
+                      { value: 'كريم جلدي (Cream)', label: 'كريم موضعي (Cream)' },
+                      { value: 'مرهم (Ointment)', label: 'مرهم (Ointment)' },
+                      { value: 'قطرة / بخاخ أنف (Drops/Spray)', label: 'قطرة / بخاخ' },
+                    ]}
+                  />
                 </div>
 
                 <div>
@@ -599,17 +598,17 @@ export default function PharmacyDrugsDirectoryPage() {
 
                 <div>
                   <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155' }}>جدول الرقابة الدوائية</label>
-                  <select
+                  <CustomSelect
                     value={formData.controlled_level}
-                    onChange={(e) => setFormData({ ...formData, controlled_level: e.target.value as any })}
-                    className="purchase-prototype-field-input"
-                    style={{ width: '100%', marginTop: '4px', boxSizing: 'border-box' }}
-                  >
-                    <option value="none">عادي (غير مجدول OTC)</option>
-                    <option value="table_1">جدول أول (مؤثر / عهدة)</option>
-                    <option value="table_2">جدول ثانٍ (رقابة مشددة)</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, controlled_level: val as any })}
+                    options={[
+                      { value: 'none', label: 'عادي (غير مجدول OTC)' },
+                      { value: 'table_1', label: 'جدول أول (مؤثر / عهدة)' },
+                      { value: 'table_2', label: 'جدول ثانٍ (رقابة مشددة)' },
+                    ]}
+                  />
                 </div>
+
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>

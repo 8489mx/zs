@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { CustomSelect } from '@/shared/ui/custom-select';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyClinicalService } from '../types/pharmacy.types';
@@ -229,19 +230,19 @@ export default function PharmacyClinicalServicesPage() {
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
                       نوع الخدمة
                     </label>
-                    <select
-                      className="purchase-prototype-field-input"
+                    <CustomSelect
                       value={newService.service_type || 'blood_pressure'}
-                      onChange={(e) => setNewService({ ...newService, service_type: e.target.value as any })}
-                      style={{ width: '100%', fontWeight: 700, boxSizing: 'border-box' }}
-                    >
-                      <option value="blood_pressure">قياس ضغط الدم والنبض</option>
-                      <option value="blood_glucose">قياس السكر بالدم (صائم / عشوائي)</option>
-                      <option value="weight_bmi">قياس الوزن ومؤشر كتلة الجسم</option>
-                      <option value="injection">إعطاء حقنة عضل / وريد</option>
-                      <option value="wound_dressing">غيار وتطهير جروح</option>
-                    </select>
+                      onChange={(val) => setNewService({ ...newService, service_type: val as any })}
+                      options={[
+                        { value: 'blood_pressure', label: 'قياس ضغط الدم والنبض' },
+                        { value: 'blood_glucose', label: 'قياس السكر بالدم (صائم / عشوائي)' },
+                        { value: 'weight_bmi', label: 'قياس الوزن ومؤشر كتلة الجسم' },
+                        { value: 'injection', label: 'إعطاء حقنة عضل / وريد' },
+                        { value: 'wound_dressing', label: 'غيار وتطهير جروح' },
+                      ]}
+                    />
                   </div>
+
 
                   <div>
                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
