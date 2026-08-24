@@ -17,6 +17,7 @@ import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
 import { bomsApi } from '@/shared/api/boms.api';
 import { ComboComponentsEditor } from '@/features/products/components/ComboComponentsEditor';
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
+import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
 
@@ -338,6 +339,13 @@ export function EditProductPage() {
                 <input
                   className="purchase-prototype-field-input"
                   {...form.register('name')}
+                  onChange={(e) => {
+                    form.setValue('name', e.target.value, { shouldDirty: true, shouldValidate: true });
+                    const guessed = guessProductIcon(e.target.value, undefined, settingsQuery.data?.businessIndustry);
+                    if (guessed) {
+                      form.setValue('icon', guessed, { shouldDirty: true });
+                    }
+                  }}
                   disabled={isFormDisabled}
                   style={{ flex: 1, fontWeight: 600 }}
                   placeholder={watchedItemKind === 'fashion' ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}

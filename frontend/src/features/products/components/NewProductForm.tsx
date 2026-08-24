@@ -18,6 +18,7 @@ import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
+import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
 
 const normalizeLookupText = (value: unknown) => normalizeArabicSearchKey(value);
 
@@ -778,7 +779,13 @@ export function NewProductForm({
             <ProductNameField
               label={usesVariantBuilder ? 'اسم الصنف الأساسي' : 'اسم الصنف'}
               value={watchedName || ''}
-              onChange={(v) => form.setValue('name', v, { shouldDirty: true, shouldValidate: true })}
+              onChange={(v) => {
+                form.setValue('name', v, { shouldDirty: true, shouldValidate: true });
+                const guessed = guessProductIcon(v, undefined, settingsQuery.data?.businessIndustry);
+                if (guessed) {
+                  form.setValue('icon', guessed, { shouldDirty: true });
+                }
+              }}
               allProducts={allProducts}
               disabled={isFormDisabled}
               placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}

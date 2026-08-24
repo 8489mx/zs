@@ -1,4 +1,5 @@
 import { Fragment, useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { FileTextIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
@@ -7,6 +8,9 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
+import { productsApi } from '@/features/products/api/products.api';
+import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
+import { invalidateCatalogDomain } from '@/app/query-invalidation';
 
 import { getProductLocationDisplayName } from '../utils/product-location.utils';
 import { ProductsMatrixView } from './ProductsMatrixView';
@@ -87,9 +91,12 @@ function groupProducts(products: Product[]): ProductGroup[] {
 }
 
 export function ProductsTableCard(props: ProductsTableCardProps) {
+  const queryClient = useQueryClient();
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [activeNoteModal, setActiveNoteModal] = useState<{ productName: string; note: string } | null>(null);
+  const [isAutoAssigning, setIsAutoAssigning] = useState(false);
+  const [autoAssignMsg, setAutoAssignMsg] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null);
 
   const filteredProducts = useMemo(() => {
     if (!selectedCategoryId) return props.visibleProducts;
@@ -117,6 +124,47 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
     props.onSelectedIdsChange(Array.from(next));
   }
 
+  async function handleAutoAssignIcons() {
+    try {
+      setIsAutoAssigning(true);
+      setAutoAssignMsg(null);
+
+      // Fetch all products across entire catalog
+      const { products } = await productsApi.listAll();
+      const updates: Array<{ id: number; icon: string }> = [];
+
+      for (const p of products) {
+        const catName = p.categoryId ? props.categoryNames[String(p.categoryId)] : undefined;
+        const guessed = guessProductIcon(p.name, catName);
+        if (guessed && (!p.icon || p.icon !== guessed)) {
+          updates.push({ id: Number(p.id), icon: guessed });
+        }
+      }
+
+      if (updates.length === 0) {
+        setAutoAssignMsg({
+          type: 'info',
+          text: 'تم الفحص الذكي: جميع الأصناف مضبوطة ولديها أيقونات متطابقة بالفعل.'
+        });
+        return;
+      }
+
+      const res = await productsApi.bulkUpdateIcons(updates);
+      await invalidateCatalogDomain(queryClient, { includeProducts: true });
+      setAutoAssignMsg({
+        type: 'success',
+        text: `تم بنجاح ضبط وتعيين الأيقونات لعدد (${res.updated || updates.length}) صنف تلقائياً!`
+      });
+    } catch {
+      setAutoAssignMsg({
+        type: 'error',
+        text: 'حدث خطأ أثناء ضبط الأيقونات، يرجى إعادة المحاولة.'
+      });
+    } finally {
+      setIsAutoAssigning(false);
+    }
+  }
+
   return (
     <FormSection 
       title="قائمة الأصناف الحالية" 
@@ -124,12 +172,60 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
       actions={
         <div className="actions compact-actions">
           <span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span>
+          <Button
+            variant="secondary"
+            onClick={() => void handleAutoAssignIcons()}
+            disabled={isAutoAssigning}
+            style={{
+              background: '#eff6ff',
+              color: '#1d4ed8',
+              borderColor: '#bfdbfe',
+              fontWeight: 700,
+              fontSize: '12px',
+            }}
+            title="فحص أسماء الأصناف وتعيين الأيقونات المناسبة لها تلقائياً"
+          >
+            {isAutoAssigning ? 'جارٍ الضبط الذكي...' : '🪄 ضبط الأيقونات تلقائياً'}
+          </Button>
           <Button variant="secondary" onClick={props.onExportCsv}>تصدير Excel</Button>
           <Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button>
         </div>
       } 
       className="workspace-panel"
     >
+      {autoAssignMsg && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '8px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '13px',
+            fontWeight: 600,
+            background: autoAssignMsg.type === 'success' ? '#f0fdf4' : autoAssignMsg.type === 'info' ? '#eff6ff' : '#fef2f2',
+            color: autoAssignMsg.type === 'success' ? '#15803d' : autoAssignMsg.type === 'info' ? '#1d4ed8' : '#b91c1c',
+            border: `1px solid ${autoAssignMsg.type === 'success' ? '#bbf7d0' : autoAssignMsg.type === 'info' ? '#bfdbfe' : '#fecaca'}`,
+          }}
+        >
+          <span>{autoAssignMsg.text}</span>
+          <button
+            type="button"
+            onClick={() => setAutoAssignMsg(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 700,
+              color: 'inherit',
+              padding: '0 4px',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <div className="products-table-toolbar" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: '1 1 320px' }}>

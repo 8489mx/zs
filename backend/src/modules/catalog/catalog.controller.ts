@@ -86,6 +86,15 @@ export class CatalogController {
     return this.catalogService.createProduct(payload, req.authContext!);
   }
 
+  @Post('products/bulk-icons')
+  @RequirePermissions('products')
+  bulkUpdateIcons(
+    @Body() payload: { updates: Array<{ id: number; icon: string }> },
+    @Req() req: RequestWithAuth,
+  ): Promise<{ ok: boolean; updated: number }> {
+    return this.catalogService.bulkUpdateIcons(payload?.updates || [], req.authContext!);
+  }
+
   @Put('products/:id')
   @RequirePermissions('products')
   updateProduct(

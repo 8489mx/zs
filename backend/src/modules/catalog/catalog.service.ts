@@ -27,6 +27,7 @@ export class CatalogService {
   deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.deleteProduct(id, actor); }
   getNextStyleCode(actor: AuthContext): Promise<{ styleCode: string }> { return this.productService.getNextStyleCode(actor); }
   allocateStyleCode(actor: AuthContext): Promise<{ styleCode: string }> { return this.productService.allocateStyleCode(actor); }
+  bulkUpdateIcons(updates: Array<{ id: number; icon: string }>, actor: AuthContext): Promise<{ ok: boolean; updated: number }> { return this.productService.bulkUpdateIcons(updates, actor); }
 
   listProductSerials(productId: number, query: Record<string, unknown>, actor: AuthContext) {
     return this.serialsService.listSerials(productId, query as any, actor);

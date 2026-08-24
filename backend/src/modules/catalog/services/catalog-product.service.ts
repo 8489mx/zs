@@ -1490,5 +1490,39 @@ export class CatalogProductService {
 
     return mapped[0];
   }
+
+  async bulkUpdateIcons(updates: Array<{ id: number; icon: string }>, actor: AuthContext): Promise<{ ok: boolean; updated: number }> {
+    if (!updates || !updates.length) return { ok: true, updated: 0 };
+    let count = 0;
+    await this.db.transaction().execute(async (trx) => {
+      for (const update of updates) {
+        const prod = await trx
+          .selectFrom('products')
+          .select(['id', 'metadata'])
+          .where('id', '=', Number(update.id))
+          .where(this.tenantPredicate(actor))
+          .executeTakeFirst();
+        if (!prod) continue;
+
+        let meta: Record<string, any> = {};
+        if (typeof prod.metadata === 'string') {
+          try { meta = JSON.parse(prod.metadata); } catch {}
+        } else if (prod.metadata && typeof prod.metadata === 'object') {
+          meta = { ...(prod.metadata as Record<string, any>) };
+        }
+        meta.icon = update.icon;
+
+        await trx
+          .updateTable('products')
+          .set({ metadata: JSON.stringify(meta) })
+          .where('id', '=', Number(update.id))
+          .where(this.tenantPredicate(actor))
+          .execute();
+        count++;
+      }
+    });
+
+    return { ok: true, updated: count };
+  }
 }
 

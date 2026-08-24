@@ -21,6 +21,7 @@ import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
+import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
 
 interface ProductFormProps {
   categories: Category[];
@@ -342,7 +343,19 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
               industry={settingsQuery.data?.businessIndustry}
               disabled={mutation.isPending}
             />
-            <input style={{ flex: 1 }} {...form.register('name')} disabled={mutation.isPending} placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : undefined} />
+            <input
+              style={{ flex: 1 }}
+              {...form.register('name')}
+              onChange={(e) => {
+                form.setValue('name', e.target.value, { shouldDirty: true, shouldValidate: true });
+                const guessed = guessProductIcon(e.target.value, undefined, settingsQuery.data?.businessIndustry);
+                if (guessed) {
+                  form.setValue('icon', guessed, { shouldDirty: true });
+                }
+              }}
+              disabled={mutation.isPending}
+              placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : undefined}
+            />
           </div>
           {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
         </div>

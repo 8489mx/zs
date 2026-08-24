@@ -41,6 +41,7 @@ export const productsApi = {
   create: (payload: unknown) => http<unknown>('/api/products', { method: 'POST', body: JSON.stringify(payload) }),
   get: (id: string) => http<Product>(`/api/products/${id}`),
   update: (id: string, payload: unknown) => http<unknown>(`/api/products/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  bulkUpdateIcons: (updates: Array<{ id: number; icon: string }>) => http<{ ok: boolean; updated: number }>('/api/products/bulk-icons', { method: 'POST', body: JSON.stringify({ updates }) }),
   remove: (id: string) => http<{ ok: boolean }>(`/api/products/${id}`, { method: 'DELETE' }),
   createCategory: (payload: { name: string }) => http<unknown>('/api/categories', { method: 'POST', body: JSON.stringify(payload) }),
   updateCategory: (id: string, payload: { name: string }) => http<unknown>(`/api/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
