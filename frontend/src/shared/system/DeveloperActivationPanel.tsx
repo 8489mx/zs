@@ -7,23 +7,29 @@ import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 import { useAuthStore } from '@/stores/auth-store';
 
 const AVAILABLE_FEATURES = [
-  { id: 'catalog', name: 'المنتجات' },
-  { id: 'sales', name: 'المبيعات' },
+  { id: 'catalog', name: 'المنتجات والأصناف' },
+  { id: 'sales', name: 'المبيعات ونقاط البيع' },
   { id: 'sessions', name: 'ورديات العمل' },
-  { id: 'cashDrawer', name: 'صندوق الكاشير' },
-  { id: 'purchases', name: 'المشتريات' },
-  { id: 'inventory', name: 'المخزون المتقدم' },
-  { id: 'reports', name: 'التقارير المتقدمة' },
-  { id: 'hr', name: 'الموارد البشرية' },
-  { id: 'manufacturing', name: 'التصنيع' },
-  { id: 'accounting', name: 'الحسابات العامة' },
+  { id: 'cashDrawer', name: 'صندوق الكاشير والخزينة' },
+  { id: 'purchases', name: 'المشتريات والموردين' },
+  { id: 'inventory', name: 'المخزون المتقدم والجرد' },
+  { id: 'reports', name: 'التقارير المتقدمة وسجل النشاط' },
+  { id: 'hr', name: 'الموارد البشرية والرواتب' },
+  { id: 'manufacturing', name: 'التصنيع والإنتاج' },
+  { id: 'accounting', name: 'الحسابات العامة وشجرة الحسابات' },
   { id: 'deliveryReps', name: 'مناديب التوصيل' },
-  { id: 'taxIntegration', name: 'الربط الضريبي' },
+  { id: 'taxIntegration', name: 'الربط الضريبي والفاتورة الإلكترونية' },
+  { id: 'import', name: 'الاستيراد والحاويات والشراكة' },
+  { id: 'pharmacy', name: 'الصيدليات والأدوية والروشتات' },
+  { id: 'maintenance', name: 'إدارة الصيانة والأجهزة' },
+  { id: 'restaurant', name: 'المطاعم والكافيهات والطاولات' },
+  { id: 'clothing', name: 'المتغيرات والمقاسات والألوان' },
 ];
 
 export function DeveloperActivationPanel() {
-  
-  const tenant = useAuthStore(s => s.tenant);
+  const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
+  const isSuperAdmin = user?.role === 'super_admin';
   const [open, setOpen] = useState(false);
   
   const [masterPassword, setMasterPassword] = useState('');
@@ -42,9 +48,10 @@ export function DeveloperActivationPanel() {
     }
   }, [open, tenant]);
 
-  // Listen for Ctrl+Alt+Shift+L
+  // Listen for Ctrl+Alt+Shift+L (Exclusively for Super Admin)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (user?.role !== 'super_admin') return;
       if (e.ctrlKey && e.altKey && e.shiftKey && (e.code === 'KeyL' || e.key.toLowerCase() === 'l')) {
         e.preventDefault();
         e.stopPropagation();
@@ -53,7 +60,7 @@ export function DeveloperActivationPanel() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [user?.role]);
 
   const featurePlansQuery = useQuery({
     queryKey: ['saas-feature-plans'],
@@ -81,7 +88,7 @@ export function DeveloperActivationPanel() {
     },
   });
 
-  if (!open) return null;
+  if (!open || !isSuperAdmin) return null;
 
   const toggleFeature = (featId: string) => {
     setExtraFeatures(prev => {
