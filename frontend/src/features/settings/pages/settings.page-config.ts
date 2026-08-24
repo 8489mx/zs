@@ -3,7 +3,7 @@ export type SettingsSectionKey = 'core' | 'reference' | 'backup' | 'users' | 'sy
 const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
   { key: 'core', label: 'إعدادات النظام' },
   { key: 'reference', label: 'أماكن المخزون' },
-  { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', offlineOnly: true, adminOnly: true },
+  { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', offlineOnly: true, superAdminOnly: true },
   { key: 'users', label: 'المستخدمون والصلاحيات', adminOnly: true },
   { key: 'system-updates', label: 'الإصدارات والتحديثات', offlineOnly: true },
   { key: 'backup', label: 'النسخ والاستيراد' },

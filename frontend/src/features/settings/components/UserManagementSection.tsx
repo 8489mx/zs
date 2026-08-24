@@ -21,6 +21,7 @@ import { ReportMetricCard } from '@/shared/components/report-metric-card';
 import { employeeReportsApi } from '@/shared/api/employee-reports';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function UserManagementSection({ branches, setupMode = false, setupStepKey = null, onSetupAdvance }: { branches: Branch[]; setupMode?: boolean; setupStepKey?: SetupStepKey | null; onSetupAdvance?: () => void }) {
   const controller = useUserManagementController({ setupMode, setupStepKey, onSetupAdvance });
@@ -83,6 +84,13 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
+  const authUser = useAuthStore((s) => s.user);
+  const authTenant = useAuthStore((s) => s.tenant);
+  const isSuperAdmin = authUser?.role === 'super_admin';
+  const planId = authTenant?.planId || 'plan_basic';
+  const maxAllowedUsers = isSuperAdmin ? Infinity : planId === 'plan_ultimate' ? Infinity : planId === 'plan_pro' ? 10 : 3;
+  const isUserLimitReached = !isSuperAdmin && (userSummary.totalItems || 0) >= maxAllowedUsers;
+
   return (
     <>
       <FormSection
@@ -90,7 +98,31 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
         title="المستخدمون والصلاحيات"
         actions={(
           <div className="actions compact-actions">
-            {!setupMode ? <Button type="button" variant="primary" onClick={() => { startNewUser('cashier'); setIsEditorOpen(true); }}>+ مستخدم جديد</Button> : null}
+            {!setupMode ? (
+              isUserLimitReached ? (
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    padding: '5px 10px',
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'help',
+                  }}
+                  title={`وصلت للحد الأقصى في باقتك (${maxAllowedUsers} مستخدمين). يرجى ترقية الباقة لإضافة مستخدمين جدد.`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                  الحد الأقصى للباقة ({maxAllowedUsers} مستخدمين)
+                </span>
+              ) : (
+                <Button type="button" variant="primary" onClick={() => { startNewUser('cashier'); setIsEditorOpen(true); }}>+ مستخدم جديد</Button>
+              )
+            ) : null}
             {!setupMode ? <Button type="button" variant="secondary" onClick={async () => { const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter }); exportUsersCsv('users-results.csv', payload.rows.map(normalizeUserRecord)); }}>تصدير النتائج</Button> : null}
             {!setupMode ? <Button type="button" variant="secondary" onClick={async () => { const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter }); printUsersList('قائمة المستخدمين', payload.rows.map(normalizeUserRecord)); }}>طباعة النتائج</Button> : null}
           </div>

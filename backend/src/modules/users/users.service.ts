@@ -124,6 +124,19 @@ export class UsersService {
     await this.ensureUniqueUsername(payload.username, actor);
     assertStrongPassword(payload.password);
 
+    if (actor.role !== 'super_admin') {
+      const activeUsers = await this.db.selectFrom('users').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
+      const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features']).where('id', '=', scope.tenantId).executeTakeFirst();
+      
+      let maxUsers = 3; // Default for basic/starter (1 admin + 2 cashiers)
+      if (tenant?.plan_id === 'plan_pro') maxUsers = 10;
+      else if (tenant?.plan_id === 'plan_ultimate') maxUsers = 100;
+      
+      if (activeUsers.length >= maxUsers) {
+        throw new AppError(`وصلت للحد الأقصى لعدد المستخدمين في باقتك (${maxUsers} مستخدمين). يرجى ترقية الباقة لإضافة مستخدمين جدد.`, 'PLAN_USER_LIMIT_REACHED', 403);
+      }
+    }
+
     const passwordRecord = await createPasswordRecord(payload.password);
     const result = await this.db
       .insertInto('users')
