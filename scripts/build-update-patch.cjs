@@ -161,6 +161,7 @@ async function main() {
 
     fs.writeFileSync(path.join(runtimeReleasesDir, `manifest-${version}.json`), JSON.stringify(fullManifest, null, 2), 'utf8');
     fs.writeFileSync(path.join(rootReleasesDir, `manifest-${version}.json`), JSON.stringify(fullManifest, null, 2), 'utf8');
+    fs.writeFileSync(path.join(rootReleasesDir, 'manifest-latest.json'), JSON.stringify(fullManifest, null, 2), 'utf8');
 
     // Clean up staging
     console.log('[build-update-patch] Cleaning up staging directory...');
