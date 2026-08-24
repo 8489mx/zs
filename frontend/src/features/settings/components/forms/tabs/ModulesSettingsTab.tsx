@@ -207,32 +207,22 @@ function ProfileVectorIcon({ type, size = 20 }: { type: string; size?: number })
   return <MaintenanceWrenchIcon size={size} />;
 }
 
-const premiumCardStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  padding: '14px 18px',
-  background: '#ffffff',
-  border: '1px solid #e2e8f0',
-  borderRadius: '10px',
-  cursor: 'pointer',
-  transition: 'all 0.15s ease',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-  gap: '12px',
-};
+function CrownIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
+    </svg>
+  );
+}
 
-const iconBadgeStyle = {
-  width: '38px',
-  height: '38px',
-  borderRadius: '8px',
-  background: '#f8fafc',
-  border: '1px solid #e2e8f0',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#0f172a',
-  flexShrink: 0,
-};
+function LockIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineEnd: '3px' }}>
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
 
 const premiumCardTextStyle = {
   display: 'flex',
@@ -259,13 +249,53 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const hasPharmacyFeature = useHasFeature('pharmacy') || isSuperAdmin;
   const hasEnterpriseFeature = useHasFeature('accounting') || isSuperAdmin;
 
-  const clothingModuleEnabled = form.watch('clothingModuleEnabled');
-  const weightedBarcodeEnabled = form.watch('weightedBarcodeEnabled');
-  const enableMaintenance = form.watch('enableMobileStoreFeatures');
+  const isManufacturingActive = form.watch('manufacturingModuleEnabled');
+  const isComboActive = form.watch('comboModuleEnabled');
+  const isImportActive = form.watch('importModuleEnabled');
+  const isRestaurantActive = form.watch('restaurantModuleEnabled');
+  const isPosMetaActive = form.watch('posShowCartMeta');
+  const isMaintenanceActive = form.watch('enableMobileStoreFeatures');
+  const enableMaintenance = isMaintenanceActive;
+  const isPharmacyActive = form.watch('enablePharmacyModule');
+  const isClothingActive = form.watch('clothingModuleEnabled');
+  const clothingModuleEnabled = isClothingActive;
+  const isWeightedActive = form.watch('weightedBarcodeEnabled');
+  const weightedBarcodeEnabled = isWeightedActive;
+  const isEnterpriseActive = form.watch('enableEnterpriseFeatures');
+
   const currentProfileKey = form.watch('maintenanceProfile') || 'mobile';
   const currentProfile = getMaintenanceProfile(currentProfileKey);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  const getCardStyle = (isActive: boolean, hasFeature: boolean) => ({
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: '14px 18px',
+    background: !hasFeature ? '#f8fafc' : isActive ? '#f0fdf4' : '#ffffff',
+    border: !hasFeature ? '1px dashed #cbd5e1' : isActive ? '1.5px solid #86efac' : '1px solid #e2e8f0',
+    borderRadius: '10px',
+    cursor: !hasFeature ? 'not-allowed' : 'pointer',
+    transition: 'all 0.15s ease',
+    boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.03)' : '0 1px 3px rgba(0,0,0,0.02)',
+    gap: '12px',
+    opacity: !hasFeature ? 0.7 : 1,
+  });
+
+  const getIconBadgeStyle = (isActive: boolean) => ({
+    width: '38px',
+    height: '38px',
+    borderRadius: '8px',
+    background: isActive ? '#dcfce7' : '#f8fafc',
+    border: isActive ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    color: isActive ? '#15803d' : '#0f172a',
+    flexShrink: 0,
+    transition: 'all 0.15s ease',
+  });
 
   return (
     <div style={{ display: activeTab === 'modules' ? 'block' : 'none' }}>
@@ -282,8 +312,10 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           fontSize: '0.8rem',
           color: '#92400e',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.1rem' }}>👑</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ color: '#d97706', display: 'flex', alignItems: 'center' }}>
+              <CrownIcon size={18} />
+            </span>
             <span><strong>وضع السوبر أدمن:</strong> يمكنك تفعيل وتجربة أي موديول على هذه المنشأة بحرية كاملة، أو إدارة الباقات من لوحة التحكم المركزية.</span>
           </div>
           <span style={{ fontSize: '0.72rem', background: '#fef3c7', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid #fde68a' }}>
@@ -297,16 +329,18 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '12px' }}>
           
           {/* التصنيع والإنتاج */}
-          <label style={{ ...premiumCardStyle, ...(!hasManufacturingFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
+          <label style={getCardStyle(Boolean(isManufacturingActive), hasManufacturingFeature)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
+              <div style={getIconBadgeStyle(Boolean(isManufacturingActive))}>
                 <FactoryIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>التصنيع والإنتاج</strong>
                   {!hasManufacturingFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
                   )}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يضيف خيارات المكونات، وصفات الإنتاج، وأوامر التصنيع</small>
@@ -316,9 +350,9 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* العروض المجمعة والوجبات */}
-          <label style={premiumCardStyle}>
+          <label style={getCardStyle(Boolean(isComboActive), true)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
+              <div style={getIconBadgeStyle(Boolean(isComboActive))}>
                 <ComboPackageIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
@@ -330,16 +364,18 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* موديول الاستيراد والشراكة */}
-          <label style={{ ...premiumCardStyle, ...(!hasImportFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
+          <label style={getCardStyle(Boolean(isImportActive), hasImportFeature)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
+              <div style={getIconBadgeStyle(Boolean(isImportActive))}>
                 <CargoShipIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الاستيراد والشراكة</strong>
                   {!hasImportFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
                   )}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الحاويات، مسير الشحن، وتوزيع الأرباح</small>
@@ -349,16 +385,18 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* موديول المطاعم والكافيهات */}
-          <label style={{ ...premiumCardStyle, ...(!hasRestaurantFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
+          <label style={getCardStyle(Boolean(isRestaurantActive), hasRestaurantFeature)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
+              <div style={getIconBadgeStyle(Boolean(isRestaurantActive))}>
                 <UtensilsIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المطاعم والكافيهات</strong>
                   {!hasRestaurantFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
                   )}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل نظام الطاولات والمطبخ وأنواع الطلبات</small>
@@ -368,9 +406,9 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* اختيار الطاولة والعميل بالكاشير */}
-          <label style={premiumCardStyle}>
+          <label style={getCardStyle(Boolean(isPosMetaActive), true)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
+              <div style={getIconBadgeStyle(Boolean(isPosMetaActive))}>
                 <TableCustomerIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
@@ -382,17 +420,19 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* ===== موديول إدارة الصيانة الشامل مع محدد الأنشطة ===== */}
-          <div style={{ ...premiumCardStyle, flexDirection: 'column', alignItems: 'stretch', gap: '10px', ...(!hasMaintenanceFeature ? { opacity: 0.7, background: '#f8fafc' } : {}) }}>
+          <div style={{ ...getCardStyle(Boolean(isMaintenanceActive), hasMaintenanceFeature), flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={iconBadgeStyle}>
+                <div style={getIconBadgeStyle(Boolean(isMaintenanceActive))}>
                   <MaintenanceWrenchIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
                     {!hasMaintenanceFeature && (
-                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                        <LockIcon size={11} /> ترقية مطلوبة
+                      </span>
                     )}
                   </div>
                   <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تتبع السيريال، استلام الأجهزة، فحص الضمان، وحساب المصنعية</small>
@@ -412,11 +452,11 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               />
             </div>
 
-            {enableMaintenance && hasMaintenanceFeature && (
+            {isMaintenanceActive && hasMaintenanceFeature && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 10px', marginTop: '2px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
                   <span style={{ color: '#64748b' }}>نشاط الصيانة المحدد:</span>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#2563eb', fontWeight: 800 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#15803d', fontWeight: 800 }}>
                     <ProfileVectorIcon type={currentProfile.iconType} size={15} />
                     <span>{currentProfile.shortTitle}</span>
                   </div>
@@ -448,16 +488,18 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </div>
 
           {/* موديول الصيدليات والأدوية */}
-          <label style={{ ...premiumCardStyle, ...(!hasPharmacyFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
+          <label style={getCardStyle(Boolean(isPharmacyActive), hasPharmacyFeature)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ ...iconBadgeStyle, color: '#16a34a' }}>
+              <div style={getIconBadgeStyle(Boolean(isPharmacyActive))}>
                 <PharmacyCrossIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الصيدليات والأدوية</strong>
                   {!hasPharmacyFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
                   )}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>دليل الأدوية، المواد الفعالة والمثائل، الروشتات والتأمين، الصلاحيات ونواقص الأدوية</small>
@@ -467,9 +509,9 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* موديول المتغيرات والأصناف المتعددة */}
-          <label style={premiumCardStyle}>
+          <label style={getCardStyle(Boolean(isClothingActive), true)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ ...iconBadgeStyle, color: '#2563eb' }}>
+              <div style={getIconBadgeStyle(Boolean(isClothingActive))}>
                 <VariantsLayersIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
@@ -481,9 +523,9 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* باركود الميزان */}
-          <label style={premiumCardStyle}>
+          <label style={getCardStyle(Boolean(isWeightedActive), true)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
+              <div style={getIconBadgeStyle(Boolean(isWeightedActive))}>
                 <ScaleIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
@@ -495,16 +537,18 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* موديول الشركات والمحاسبة المتقدمة */}
-          <label style={{ ...premiumCardStyle, ...(!hasEnterpriseFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
+          <label style={getCardStyle(Boolean(isEnterpriseActive), hasEnterpriseFeature)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={iconBadgeStyle}>
+              <div style={getIconBadgeStyle(Boolean(isEnterpriseActive))}>
                 <EnterpriseIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشركات والمحاسبة المتقدمة</strong>
                   {!hasEnterpriseFeature && (
-                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
                   )}
                 </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل مراكز التكلفة، ربط الفواتير بالمشاريع، وشروط التعاقد</small>

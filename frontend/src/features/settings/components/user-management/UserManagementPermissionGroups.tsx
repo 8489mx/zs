@@ -120,9 +120,14 @@ export function UserManagementPermissionGroups({
           marginTop: '6px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <strong style={{ fontSize: '0.88rem', color: '#92400e', fontWeight: 800 }}>
-              خاص بالسوبر أدمن (إدارة المنصة المركزية)
-            </strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
+              </svg>
+              <strong style={{ fontSize: '0.88rem', color: '#92400e', fontWeight: 800 }}>
+                خاص بالسوبر أدمن (إدارة المنصة المركزية)
+              </strong>
+            </div>
             <span style={{ fontSize: '0.72rem', background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '8px', fontWeight: 700, border: '1px solid #fde68a' }}>
               صلاحية منصة شاملة
             </span>
