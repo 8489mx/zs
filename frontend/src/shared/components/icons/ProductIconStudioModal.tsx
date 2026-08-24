@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import {
@@ -32,10 +32,33 @@ export function ProductIconStudioModal({
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [internalLoading, setInternalLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null);
+  
+  // Real-time catalog stats
+  const [stats, setStats] = useState<{ total: number; withIcon: number; withoutIcon: number } | null>(null);
 
   const sampleIcons = ['tea-bag', 'coffee-beans', 'tshirt', 'perfume-spray', 'pill-capsule', 'smartphone', 'cooking-oil', 'cart-shopping'];
   const currentColor = getEffectiveIconColor(settings);
   const isLoading = isBulkLoading || internalLoading;
+
+  useEffect(() => {
+    if (!open) return;
+    let isMounted = true;
+    productsApi.listAll()
+      .then(({ products }) => {
+        if (!isMounted) return;
+        const total = products.length;
+        const withIcon = products.filter((p) => Boolean(p.icon)).length;
+        setStats({
+          total,
+          withIcon,
+          withoutIcon: total - withIcon,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [open, statusMessage]);
 
   async function handleInternalAutoAssign() {
     if (onBulkAutoAssign) {
@@ -58,7 +81,7 @@ export function ProductIconStudioModal({
       if (updates.length === 0) {
         setStatusMessage({
           type: 'info',
-          text: 'تم الفحص: جميع الأصناف مضبوطة ولديها أيقونات متطابقة بالفعل.'
+          text: 'تم الفحص: جميع أصناف المنظومة مضبوطة ولديها أيقونات متوافقة بالفعل.'
         });
         return;
       }
@@ -69,12 +92,12 @@ export function ProductIconStudioModal({
       await queryClient.invalidateQueries({ queryKey: ['products'] });
       setStatusMessage({
         type: 'success',
-        text: `تم بنجاح ضبط وتعيين الأيقونات لعدد (${res.updated || updates.length}) صنف تلقائياً.`
+        text: `تم بنجاح تعيين الأيقونات تلقائياً لعدد (${res.updated || updates.length}) صنف.`
       });
     } catch {
       setStatusMessage({
         type: 'error',
-        text: 'حدث خطأ أثناء ضبط الأيقونات، يرجى إعادة المحاولة.'
+        text: 'حدث خطأ أثناء تنفيذ الضبط التلقائي، يرجى المحاولة ثانية.'
       });
     } finally {
       setInternalLoading(false);
@@ -97,7 +120,7 @@ export function ProductIconStudioModal({
       if (updates.length === 0) {
         setStatusMessage({
           type: 'info',
-          text: 'جميع الأصناف في النظام خالية من الأيقونات بالفعل.'
+          text: 'جميع الأصناف في المنظومة خالية من الأيقونات بالفعل.'
         });
         return;
       }
@@ -108,7 +131,7 @@ export function ProductIconStudioModal({
       await queryClient.invalidateQueries({ queryKey: ['products'] });
       setStatusMessage({
         type: 'success',
-        text: `تم بنجاح تفريغ وإزالة الأيقونات لعدد (${updates.length}) صنف والعودة للحالة بدون أيقونات.`
+        text: `تم بنجاح تفريغ الأيقونات لعدد (${updates.length}) صنف والعودة للحالة النقية بدون أيقونات.`
       });
     } catch {
       setStatusMessage({
@@ -125,23 +148,34 @@ export function ProductIconStudioModal({
       open={open}
       onClose={onClose}
       ariaLabel="استوديو وتخصيص أيقونات الأصناف"
-      width="min(680px, 95vw)"
+      width="min(660px, 95vw)"
     >
-      <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Luxury Header */}
+      <div
+        style={{
+          padding: '18px 22px 14px',
+          borderBottom: '1px solid #f1f5f9',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'linear-gradient(180deg, #ffffff 0%, #fafafa 100%)',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{
               width: '38px',
               height: '38px',
               borderRadius: '10px',
-              background: '#0f172a',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.12)',
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
               <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
               <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
@@ -150,21 +184,67 @@ export function ProductIconStudioModal({
             </svg>
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>استوديو وتخصيص أيقونات الأصناف</h3>
-            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>التحكم في سمة الألوان وخيارات العرض والإزالة الشاملة للأيقونات</p>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
+              استوديو ومظهر أيقونات الأصناف
+            </h3>
+            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+              التحكم الشامل في ألوان الهوية البصرية وخيارات الإسناد الذكي والتفريغ
+            </p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          style={{ border: 'none', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 800 }}
+          style={{
+            border: 'none',
+            background: '#f1f5f9',
+            color: '#64748b',
+            borderRadius: '50%',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontWeight: 800,
+            fontSize: '12px',
+            transition: 'background 0.15s ease',
+          }}
         >
           ✕
         </button>
       </div>
 
-      <div style={{ padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Status Message */}
+      <div style={{ padding: '16px 22px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Enterprise Catalog Stats Row */}
+        {stats && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '8px',
+              padding: '8px 10px',
+              background: '#f8fafc',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>إجمالي الأصناف</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{stats.total}</div>
+            </div>
+            <div style={{ textAlign: 'center', borderInlineStart: '1px solid #e2e8f0', borderInlineEnd: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>مُعيّن لها أيقونة</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#15803d' }}>{stats.withIcon}</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>بدون أيقونة</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#475569' }}>{stats.withoutIcon}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Status Toast Banner */}
         {statusMessage && (
           <div
             style={{
@@ -173,48 +253,56 @@ export function ProductIconStudioModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              fontSize: '0.82rem',
+              fontSize: '0.8rem',
               fontWeight: 600,
-              background: statusMessage.type === 'success' ? '#f0fdf4' : statusMessage.type === 'info' ? '#eff6ff' : '#fef2f2',
-              color: statusMessage.type === 'success' ? '#15803d' : statusMessage.type === 'info' ? '#1d4ed8' : '#b91c1c',
-              border: `1px solid ${statusMessage.type === 'success' ? '#bbf7d0' : statusMessage.type === 'info' ? '#bfdbfe' : '#fecaca'}`,
+              background: statusMessage.type === 'success' ? '#f0fdf4' : statusMessage.type === 'info' ? '#f0f9ff' : '#fef2f2',
+              color: statusMessage.type === 'success' ? '#166534' : statusMessage.type === 'info' ? '#0369a1' : '#991b1b',
+              border: `1px solid ${statusMessage.type === 'success' ? '#bbf7d0' : statusMessage.type === 'info' ? '#bae6fd' : '#fecaca'}`,
             }}
           >
             <span>{statusMessage.text}</span>
             <button
               type="button"
               onClick={() => setStatusMessage(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, color: 'inherit' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, color: 'inherit', padding: '0 4px' }}
             >
               ✕
             </button>
           </div>
         )}
 
-        {/* Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+        {/* Ultra-Clean Segmented Control */}
+        <div
+          style={{
+            display: 'flex',
+            padding: '3px',
+            background: '#f1f5f9',
+            borderRadius: '9px',
+            gap: '4px',
+          }}
+        >
           <button
             type="button"
             onClick={() => setActiveTab('theme')}
             style={{
               flex: 1,
-              padding: '8px 16px',
-              borderRadius: '8px',
-              fontSize: '0.84rem',
-              fontWeight: 700,
+              padding: '7px 12px',
+              borderRadius: '7px',
+              fontSize: '0.82rem',
+              fontWeight: activeTab === 'theme' ? 700 : 600,
               border: 'none',
               cursor: 'pointer',
               background: activeTab === 'theme' ? '#ffffff' : 'transparent',
               color: activeTab === 'theme' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'theme' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              transition: 'all 0.15s ease',
+              boxShadow: activeTab === 'theme' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
+              transition: 'all 0.15s ease',
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 0 0 14v6"/>
             </svg>
             <span>ألوان وسمات الأيقونات</span>
@@ -224,53 +312,54 @@ export function ProductIconStudioModal({
             onClick={() => setActiveTab('manage')}
             style={{
               flex: 1,
-              padding: '8px 16px',
-              borderRadius: '8px',
-              fontSize: '0.84rem',
-              fontWeight: 700,
+              padding: '7px 12px',
+              borderRadius: '7px',
+              fontSize: '0.82rem',
+              fontWeight: activeTab === 'manage' ? 700 : 600,
               border: 'none',
               cursor: 'pointer',
               background: activeTab === 'manage' ? '#ffffff' : 'transparent',
               color: activeTab === 'manage' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'manage' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              transition: 'all 0.15s ease',
+              boxShadow: activeTab === 'manage' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
+              transition: 'all 0.15s ease',
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
             <span>إدارة وضبط الأيقونات</span>
           </button>
         </div>
 
+        {/* TAB 1: Theme & Color Styling */}
         {activeTab === 'theme' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Live Preview Box */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Live Preview Slate */}
             <div
               style={{
-                background: '#f8fafc',
+                background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
                 border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '14px 16px',
+                borderRadius: '10px',
+                padding: '12px 14px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '10px',
+                gap: '8px',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>معاينة حية للمظهر في النظام:</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: currentColor, background: '#ffffff', padding: '2px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569' }}>معاينة مباشرة لهوية الأيقونات في المنظومة:</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: currentColor, background: '#ffffff', padding: '2px 8px', borderRadius: '5px', border: '1px solid #cbd5e1', fontFamily: 'monospace' }}>
                   {currentColor}
                 </span>
               </div>
               <div
                 style={{
                   display: 'flex',
-                  gap: '10px',
+                  gap: '8px',
                   overflowX: 'auto',
                   padding: '4px 2px',
                 }}
@@ -279,8 +368,8 @@ export function ProductIconStudioModal({
                   <div
                     key={iconId}
                     style={{
-                      width: '44px',
-                      height: '44px',
+                      width: '40px',
+                      height: '40px',
                       borderRadius: '8px',
                       background: '#ffffff',
                       border: '1px solid #e2e8f0',
@@ -291,7 +380,7 @@ export function ProductIconStudioModal({
                       flexShrink: 0,
                     }}
                   >
-                    <ProductIcon name={iconId} size={22} color={currentColor} />
+                    <ProductIcon name={iconId} size={20} color={currentColor} />
                   </div>
                 ))}
               </div>
@@ -299,14 +388,14 @@ export function ProductIconStudioModal({
 
             {/* Presets Grid */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                اختر سمة الألوان لجميع الأيقونات:
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                اختر سمة ولون الأيقونات لجميع الشاشات:
               </label>
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                  gap: '8px',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))',
+                  gap: '7px',
                 }}
               >
                 {ICON_COLOR_PRESETS.map((preset) => {
@@ -319,20 +408,21 @@ export function ProductIconStudioModal({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        padding: '10px 12px',
+                        gap: '8px',
+                        padding: '9px 10px',
                         borderRadius: '8px',
-                        border: isSelected ? '2px solid #0f172a' : '1px solid #e2e8f0',
-                        background: isSelected ? '#f8fafc' : '#ffffff',
+                        border: isSelected ? '1.5px solid #0f172a' : '1px solid #e2e8f0',
+                        background: isSelected ? '#ffffff' : '#fafafa',
                         cursor: 'pointer',
                         textAlign: 'start',
                         transition: 'all 0.15s ease',
+                        boxShadow: isSelected ? '0 1px 4px rgba(15, 23, 42, 0.08)' : 'none',
                       }}
                     >
                       <div
                         style={{
-                          width: '18px',
-                          height: '18px',
+                          width: '16px',
+                          height: '16px',
                           borderRadius: '50%',
                           background: preset.color,
                           border: '2px solid #ffffff',
@@ -340,7 +430,7 @@ export function ProductIconStudioModal({
                           flexShrink: 0,
                         }}
                       />
-                      <span style={{ fontSize: '0.78rem', fontWeight: isSelected ? 800 : 600, color: isSelected ? '#0f172a' : '#475569' }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: isSelected ? 800 : 600, color: isSelected ? '#0f172a' : '#475569' }}>
                         {preset.label}
                       </span>
                     </button>
@@ -356,9 +446,9 @@ export function ProductIconStudioModal({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '12px',
+                  padding: '10px 12px',
                   background: '#f8fafc',
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   border: '1px solid #e2e8f0',
                 }}
               >
@@ -367,53 +457,53 @@ export function ProductIconStudioModal({
                   value={settings.customColor}
                   onChange={(e) => settings.update({ customColor: e.target.value })}
                   style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
                     border: '1px solid #cbd5e1',
                     cursor: 'pointer',
                     padding: 0,
                   }}
                 />
                 <div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>كود اللون المخصص:</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>كود اللون المخصص:</div>
                   <input
                     type="text"
                     value={settings.customColor}
                     onChange={(e) => settings.update({ customColor: e.target.value })}
                     style={{
-                      marginTop: '4px',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
+                      marginTop: '3px',
+                      padding: '3px 8px',
+                      borderRadius: '5px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '0.8rem',
+                      fontSize: '0.78rem',
                       fontFamily: 'monospace',
-                      width: '110px',
+                      width: '95px',
                     }}
                   />
                 </div>
               </div>
             )}
 
-            {/* Visibility Toggle */}
+            {/* Visibility Toggle Row */}
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '14px 16px',
-                background: '#f8fafc',
-                borderRadius: '10px',
+                padding: '12px 14px',
+                background: '#fafafa',
+                borderRadius: '8px',
                 border: '1px solid #e2e8f0',
               }}
             >
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>إظهار الأيقونات في الشاشات</div>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
-                  تفعيل أو إخفاء عرض الأيقونات في شاشات الكاشير وجداول الأصناف دون مسحها
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>إظهار الأيقونات في الشاشات</div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '1px' }}>
+                  إمكانية إخفاء الأيقونات من شاشات الكاشير وجداول الأصناف بنقرة واحدة
                 </div>
               </div>
-              <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px', cursor: 'pointer' }}>
+              <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '22px', cursor: 'pointer', flexShrink: 0 }}>
                 <input
                   type="checkbox"
                   checked={settings.showIcons}
@@ -428,7 +518,7 @@ export function ProductIconStudioModal({
                     right: 0,
                     bottom: 0,
                     background: settings.showIcons ? '#0f172a' : '#cbd5e1',
-                    borderRadius: '24px',
+                    borderRadius: '22px',
                     transition: '0.2s',
                   }}
                 >
@@ -436,14 +526,14 @@ export function ProductIconStudioModal({
                     style={{
                       position: 'absolute',
                       content: '',
-                      height: '18px',
-                      width: '18px',
+                      height: '16px',
+                      width: '16px',
                       left: '3px',
                       bottom: '3px',
                       background: 'white',
                       borderRadius: '50%',
                       transition: '0.2s',
-                      transform: settings.showIcons ? 'translateX(20px)' : 'translateX(0)',
+                      transform: settings.showIcons ? 'translateX(18px)' : 'translateX(0)',
                     }}
                   />
                 </span>
@@ -452,115 +542,169 @@ export function ProductIconStudioModal({
           </div>
         )}
 
+        {/* TAB 2: Smart Operations & Bulk Management */}
         {activeTab === 'manage' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Auto Assign Card */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Action Row 1: Smart AI Auto-Assign */}
             <div
               style={{
-                padding: '16px',
+                padding: '14px 16px',
                 borderRadius: '10px',
                 border: '1px solid #e2e8f0',
-                background: '#f8fafc',
+                background: '#ffffff',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '14px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '9px',
+                    background: '#eff6ff',
+                    color: '#2563eb',
+                    border: '1px solid #dbeafe',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/>
                     <path d="m14 7 3 3"/>
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>الضبط والتعيين الذكي التلقائي</div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px' }}>
-                    تحليل أسماء كافة الأصناف في المنظومة وتعيين الأيقونة المناسبة لكل صنف تلقائياً.
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>الضبط والتعيين الذكي للأصناف</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                    تحليل أسماء الأصناف وتعيين الأيقونة المتوافقة تلقائياً لكافة الأصناف
                   </div>
                 </div>
               </div>
+
               <button
                 type="button"
                 disabled={isLoading}
                 onClick={handleInternalAutoAssign}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
+                  padding: '7px 14px',
+                  borderRadius: '7px',
                   background: '#0f172a',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 700,
-                  fontSize: '0.82rem',
+                  fontSize: '0.78rem',
                   cursor: isLoading ? 'not-allowed' : 'pointer',
-                  alignSelf: 'flex-start',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.1)',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
                 }}
               >
-                {isLoading ? 'جارٍ المعالجة...' : 'تنفيذ الضبط الذكي لكافة الأصناف'}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/>
+                </svg>
+                <span>{isLoading ? 'جارٍ الضبط...' : 'بدء الضبط الذكي'}</span>
               </button>
             </div>
 
-            {/* Clear All Icons Card */}
+            {/* Action Row 2: Bulk Clear */}
             <div
               style={{
-                padding: '16px',
+                padding: '14px 16px',
                 borderRadius: '10px',
                 border: '1px solid #fee2e2',
-                background: '#fffbfb',
+                background: '#ffffff',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                  </svg>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#991b1b' }}>إزالة وتفريغ الأيقونات من قاعدة البيانات</div>
-                  <div style={{ fontSize: '0.78rem', color: '#b91c1c', marginTop: '3px' }}>
-                    مسح كافة الأيقونات المعينة من جميع المنتجات والعودة للحالة بدون أيقونات.
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '9px',
+                      background: '#fff1f2',
+                      color: '#e11d48',
+                      border: '1px solid #ffe4e6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#991b1b' }}>تفريغ وإلغاء جميع الأيقونات</div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                      مسح الأيقونات المعينة لجميع المنتجات والعودة للحالة النقية بدون أيقونات
+                    </div>
                   </div>
                 </div>
+
+                {!showClearConfirm && (
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => setShowClearConfirm(true)}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '7px',
+                      background: '#ffffff',
+                      color: '#dc2626',
+                      border: '1px solid #fca5a5',
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                    </svg>
+                    <span>إلغاء وتفريغ الكل</span>
+                  </button>
+                )}
               </div>
 
-              {!showClearConfirm ? (
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => setShowClearConfirm(true)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    background: '#dc2626',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.82rem',
-                    cursor: isLoading ? 'not-allowed' : 'pointer',
-                    alignSelf: 'flex-start',
-                  }}
-                >
-                  إلغاء وتفريغ جميع الأيقونات
-                </button>
-              ) : (
+              {/* Inline Confirmation Bar */}
+              {showClearConfirm && (
                 <div
                   style={{
-                    background: '#ffffff',
-                    padding: '14px',
-                    borderRadius: '8px',
-                    border: '1px solid #fca5a5',
                     display: 'flex',
-                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                     gap: '10px',
+                    padding: '10px 12px',
+                    background: '#fff1f2',
+                    borderRadius: '8px',
+                    border: '1px solid #fecdd3',
                   }}
                 >
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#991b1b' }}>
-                    تأكيد: هل ترغب بالتأكيد في تفريغ وإزالة الأيقونات من كافة الأصناف في النظام؟
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#991b1b' }}>
+                    تأكيد: هل ترغب بالتأكيد في تفريغ وإزالة الأيقونات من كافة الأصناف؟
+                  </span>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                     <button
                       type="button"
                       disabled={isLoading}
@@ -569,29 +713,29 @@ export function ProductIconStudioModal({
                         handleInternalClearIcons();
                       }}
                       style={{
-                        padding: '6px 16px',
+                        padding: '5px 12px',
                         borderRadius: '6px',
                         background: '#dc2626',
                         color: '#ffffff',
                         border: 'none',
                         fontWeight: 700,
-                        fontSize: '0.8rem',
+                        fontSize: '0.76rem',
                         cursor: isLoading ? 'not-allowed' : 'pointer',
                       }}
                     >
-                      {isLoading ? 'جارٍ المسح...' : 'نعم، قم بالإزالة الآن'}
+                      {isLoading ? 'جارٍ المسح...' : 'نعم، أفرغ الآن'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowClearConfirm(false)}
                       style={{
-                        padding: '6px 14px',
+                        padding: '5px 10px',
                         borderRadius: '6px',
-                        background: '#f1f5f9',
+                        background: '#ffffff',
                         color: '#475569',
                         border: '1px solid #cbd5e1',
                         fontWeight: 600,
-                        fontSize: '0.8rem',
+                        fontSize: '0.76rem',
                         cursor: 'pointer',
                       }}
                     >
