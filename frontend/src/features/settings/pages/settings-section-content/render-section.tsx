@@ -202,7 +202,7 @@ export function renderBackupSection(props: SharedSettingsSectionProps) {
 }
 
 export function renderUsersSection(props: SharedSettingsSectionProps) {
-  if (props.currentUserRole !== 'super_admin') return null;
+  if (props.currentUserRole !== 'super_admin' && props.currentUserRole !== 'admin') return null;
   return <UserManagementSection branches={props.branches} setupMode={props.setupMode} setupStepKey={props.setupStepKey || null} onSetupAdvance={props.onSetupAdvance} />;
 }
 
