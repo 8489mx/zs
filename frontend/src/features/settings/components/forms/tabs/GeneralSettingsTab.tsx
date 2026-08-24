@@ -7,14 +7,14 @@ import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboC
 import { CustomSelect } from '@/shared/ui/custom-select';
 
 const INDUSTRY_OPTIONS = [
-  { value: 'general', label: '🌐 تجارة عامة ومتنوعة (افتراضي)' },
-  { value: 'spices', label: '🌿 عطارة وبقوليات ومحامص' },
-  { value: 'fashion', label: '👔 ملابس وأحذية وأزياء' },
-  { value: 'perfumes', label: '🧼 عطور ومستحضرات تجميل ومنظفات' },
-  { value: 'pharmacy', label: '💊 صيدلية ومستلزمات طبية' },
-  { value: 'electronics', label: '📱 موبايلات وإلكترونيات وصيانة' },
-  { value: 'supermarket', label: '🛒 سوبر ماركت وبقالة وأغذية' },
-  { value: 'cafe', label: '☕ كافيهات ومطاعم وسناك' },
+  { value: 'general', label: 'تجارة عامة ومتنوعة (افتراضي)' },
+  { value: 'spices', label: 'عطارة وبقوليات ومحامص' },
+  { value: 'fashion', label: 'ملابس وأحذية وأزياء' },
+  { value: 'perfumes', label: 'عطور ومستحضرات تجميل ومنظفات' },
+  { value: 'pharmacy', label: 'صيدلية ومستلزمات طبية' },
+  { value: 'electronics', label: 'موبايلات وإلكترونيات وصيانة' },
+  { value: 'supermarket', label: 'سوبر ماركت وبقالة وأغذية' },
+  { value: 'cafe', label: 'كافيهات ومطاعم وسناك' },
 ];
 
 interface GeneralTabProps {
