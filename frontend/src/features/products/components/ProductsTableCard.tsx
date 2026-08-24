@@ -292,11 +292,20 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {product.icon && (
-                            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#f1f5f9', color: '#170c5c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <ProductIcon name={product.icon} size={16} />
-                            </div>
-                          )}
+                          <div style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '6px',
+                            background: product.icon ? '#eff6ff' : '#f8fafc',
+                            color: product.icon ? '#1d4ed8' : '#94a3b8',
+                            border: product.icon ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <ProductIcon name={product.icon || 'box-package'} size={16} />
+                          </div>
                           <div>
                             <strong>{product.name}</strong>
                             <div className="muted small">{(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>

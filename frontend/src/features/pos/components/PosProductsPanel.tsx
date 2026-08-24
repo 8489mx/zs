@@ -828,11 +828,20 @@ function PosProductsPanelComponent({
                       onFocus={() => setSelectedIndex(index)}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        {group.products[0]?.icon && (
-                          <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#eff6ff', color: '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <ProductIcon name={group.products[0].icon} size={18} />
-                          </div>
-                        )}
+                        <div style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          background: group.products[0]?.icon ? '#eff6ff' : '#f8fafc',
+                          color: group.products[0]?.icon ? '#1d4ed8' : '#94a3b8',
+                          border: group.products[0]?.icon ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <ProductIcon name={group.products[0]?.icon || 'box-package'} size={16} />
+                        </div>
                         <strong style={{ flex: 1 }}>{group.title}</strong>
                       </div>
                       <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
@@ -894,11 +903,20 @@ function PosProductsPanelComponent({
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
-                        {group.products[0]?.icon && (
-                          <div style={{ width: '24px', height: '24px', borderRadius: '5px', background: '#eff6ff', color: '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <ProductIcon name={group.products[0].icon} size={15} />
-                          </div>
-                        )}
+                        <div style={{
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '5px',
+                          background: group.products[0]?.icon ? '#eff6ff' : '#f8fafc',
+                          color: group.products[0]?.icon ? '#1d4ed8' : '#94a3b8',
+                          border: group.products[0]?.icon ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <ProductIcon name={group.products[0]?.icon || 'box-package'} size={15} />
+                        </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <strong
                             style={{
