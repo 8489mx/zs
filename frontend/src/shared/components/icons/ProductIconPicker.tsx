@@ -51,6 +51,17 @@ export function ProductIconPicker({
     });
   }, [searchQuery, activeCategory]);
 
+  function getDisplayTitle(name: string): string {
+    if (!name) return '';
+    const parts = name.split(' و');
+    if (parts.length > 1 && parts[0].length >= 3) {
+      return parts[0].trim();
+    }
+    const words = name.split(/\s+/);
+    if (words.length <= 3) return name;
+    return words.slice(0, 3).join(' ');
+  }
+
   return (
     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
       {/* Trigger Button */}
@@ -98,15 +109,13 @@ export function ProductIconPicker({
             borderRadius: '50%',
             width: '16px',
             height: '16px',
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            fontSize: '10px',
             cursor: 'pointer',
-            fontSize: '9px',
-            fontWeight: 800,
             padding: 0,
             lineHeight: 1,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
             zIndex: 2,
           }}
         >
@@ -114,12 +123,12 @@ export function ProductIconPicker({
         </button>
       )}
 
-      {/* Icon Selector Modal */}
+      {/* Modal Dialog */}
       <DialogShell
         open={isOpen}
         onClose={() => setIsOpen(false)}
         ariaLabel="مكتبة أيقونات الأصناف"
-        width="min(720px, 95vw)"
+        width="min(760px, 95vw)"
       >
         <div style={{ padding: '16px 20px 8px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -135,37 +144,80 @@ export function ProductIconPicker({
           </button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '12px 16px 20px' }}>
-          {/* Search Input */}
+          {/* Search Box */}
           <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
-              <SearchIcon size={16} />
-            </span>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="ابحث عن أيقونة (مثال: بهارات، قهوة، تيشيرت، عطر، موبايل، علاج)..."
+              autoFocus
+              className="purchase-prototype-field-input"
               style={{
                 width: '100%',
-                padding: '8px 36px 8px 12px',
+                height: '40px',
+                paddingInlineStart: '38px',
+                paddingInlineEnd: searchQuery ? '32px' : '14px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
-                fontSize: '0.84rem',
-                outline: 'none',
+                background: '#ffffff',
+                fontSize: '13px',
+                boxSizing: 'border-box',
               }}
-              autoFocus
             />
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                insetInlineStart: '12px',
+                color: '#94a3b8',
+                display: 'flex',
+                pointerEvents: 'none',
+              }}
+            >
+              <SearchIcon size={16} />
+            </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  insetInlineEnd: '12px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  padding: 0,
+                }}
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          {/* Category Tabs */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+          {/* Categories Filter Tabs */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '6px',
+              overflowX: 'auto',
+              paddingBottom: '4px',
+              scrollbarWidth: 'thin',
+            }}
+          >
             <button
               type="button"
               onClick={() => setActiveCategory('all')}
               style={{
-                padding: '4px 10px',
+                padding: '4px 12px',
                 borderRadius: '6px',
-                fontSize: '0.76rem',
+                fontSize: '0.78rem',
                 fontWeight: 700,
                 border: 'none',
                 cursor: 'pointer',
@@ -214,15 +266,16 @@ export function ProductIconPicker({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
               gap: '10px',
-              maxHeight: '380px',
+              maxHeight: '400px',
               overflowY: 'auto',
-              padding: '4px',
+              padding: '6px',
             }}
           >
             {filteredIcons.map((icon) => {
               const isSelected = value === icon.id;
+              const displayTitle = getDisplayTitle(icon.name);
               return (
                 <button
                   key={icon.id}
@@ -231,45 +284,54 @@ export function ProductIconPicker({
                     onChange(icon.id);
                     setIsOpen(false);
                   }}
+                  title={icon.name}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    padding: '12px 6px',
+                    padding: '10px 6px',
+                    minHeight: '84px',
                     borderRadius: '10px',
-                    border: isSelected ? '2px solid #170c5c' : '1px solid #e2e8f0',
+                    border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
                     background: isSelected ? '#eff6ff' : '#ffffff',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     textAlign: 'center',
+                    overflow: 'hidden',
+                    boxShadow: isSelected ? '0 2px 4px rgba(37,99,235,0.1)' : 'none',
                   }}
                 >
                   <div
                     style={{
-                      width: '40px',
-                      height: '40px',
+                      width: '38px',
+                      height: '38px',
                       borderRadius: '8px',
                       background: isSelected ? '#dbeafe' : '#f8fafc',
-                      color: isSelected ? '#1e40af' : '#334155',
+                      color: isSelected ? '#1d4ed8' : '#334155',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transition: 'all 0.15s ease',
+                      flexShrink: 0,
                     }}
                   >
-                    {icon.svg({ size: 24, color: isSelected ? '#1e40af' : '#334155' })}
+                    {icon.svg({ size: 22, color: isSelected ? '#1d4ed8' : '#334155' })}
                   </div>
                   <span
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.74rem',
                       fontWeight: isSelected ? 800 : 600,
-                      color: isSelected ? '#1e40af' : '#475569',
-                      lineHeight: 1.2,
+                      color: isSelected ? '#1d4ed8' : '#334155',
+                      lineHeight: 1.25,
+                      maxWidth: '100%',
+                      padding: '0 2px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {icon.name}
+                    {displayTitle}
                   </span>
                 </button>
               );
