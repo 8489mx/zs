@@ -91,6 +91,34 @@ class ProductFashionVariantDto {
   @IsNumber()
   @Min(0)
   stock?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  costPrice?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  retailPrice?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  wholesalePrice?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minStock?: number;
+
+  @IsOptional()
+  @IsString()
+  sku?: string;
 }
 
 export class UpsertProductDto {
@@ -233,6 +261,11 @@ export type NormalizedFashionVariant = {
   size: string;
   barcode: string;
   stock: number;
+  costPrice?: number;
+  retailPrice?: number;
+  wholesalePrice?: number;
+  minStock?: number;
+  sku?: string;
 };
 
 export type NormalizedUpsertProduct = {

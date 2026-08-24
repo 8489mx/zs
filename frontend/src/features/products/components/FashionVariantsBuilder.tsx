@@ -83,6 +83,9 @@ interface FashionVariantsBuilderProps {
   sizesValue: string;
   defaultStock: number;
   barcodePrefix: string;
+  parentCostPrice?: number;
+  parentRetailPrice?: number;
+  parentWholesalePrice?: number;
   rows: FashionVariantDraft[];
   disabled?: boolean;
   onColorsChange: (value: string) => void;
@@ -100,6 +103,9 @@ export function FashionVariantsBuilder({
   sizesValue,
   defaultStock,
   barcodePrefix,
+  parentCostPrice,
+  parentRetailPrice,
+  parentWholesalePrice: _parentWholesalePrice,
   rows,
   disabled,
   onColorsChange,
@@ -177,6 +183,12 @@ export function FashionVariantsBuilder({
     onRowsChange(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
   }
 
+  function deleteRow(index: number) {
+    const next = [...rows];
+    next.splice(index, 1);
+    onRowsChange(next);
+  }
+
   function applyDefaultStockToAll() {
     onRowsChange(rows.map((row) => ({ ...row, stock: Number(defaultStock || 0) })));
   }
@@ -189,6 +201,18 @@ export function FashionVariantsBuilder({
         ...row,
         barcode: `${prefix}-${String(index + 1).padStart(3, '0')}`,
       })),
+    );
+  }
+
+  function generateSequentialSkus() {
+    const prefix = suggestedPrefix || 'VAR';
+    onRowsChange(
+      rows.map((row) => {
+        const colorPart = (row.color || '').trim().replace(/\s+/g, '-');
+        const sizePart = (row.size || '').trim().replace(/\s+/g, '-');
+        const generated = [prefix, colorPart, sizePart].filter(Boolean).join('-');
+        return { ...row, sku: generated };
+      }),
     );
   }
 
@@ -522,6 +546,9 @@ export function FashionVariantsBuilder({
             <Button type="button" variant="secondary" disabled={disabled || !rows.length || !suggestedPrefix} onClick={generateSequentialBarcodes} style={{ fontSize: '0.78rem' }}>
               توليد باركودات متسلسلة
             </Button>
+            <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={generateSequentialSkus} style={{ fontSize: '0.78rem' }}>
+              توليد أكواد SKU
+            </Button>
             <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={clearBarcodes} style={{ fontSize: '0.78rem' }}>
               مسح كل الباركودات
             </Button>
@@ -530,39 +557,127 @@ export function FashionVariantsBuilder({
 
         {/* Matrix Table of Generated Rows */}
         {!rows.length ? (
-          <div style={{ textAlign: 'center', padding: '16px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#64748b', fontSize: '0.84rem' }}>
+          <div style={{ textAlign: 'center', padding: '24px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#64748b', fontSize: '0.84rem' }}>
             أدخل قيمة واحدة على الأقل في <strong>{templateConfig.primaryLabel}</strong> لتجهيز الأصناف الفرعية تلقائياً.
           </div>
         ) : (
-          <div className="page-stack" style={{ gap: 6 }}>
-            {rows.map((row, index) => (
-              <div
-                key={`${row.color || 'primary'}-${row.size || 'secondary'}-${index}`}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(110px, 140px)',
-                  gap: 8,
-                  alignItems: 'center',
-                  padding: '8px 12px',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 8,
-                  background: '#ffffff',
-                }}
-              >
-                <Field label={templateConfig.primarySingleLabel}>
-                  <input className="purchase-prototype-field-input" value={row.color} readOnly disabled style={{ fontWeight: 700, color: '#0f172a', background: '#f8fafc' }} />
-                </Field>
-                <Field label={templateConfig.secondarySingleLabel}>
-                  <input className="purchase-prototype-field-input" value={row.size} readOnly disabled style={{ background: '#f8fafc' }} />
-                </Field>
-                <Field label="الباركود">
-                  <input className="purchase-prototype-field-input" value={row.barcode} onChange={(event) => updateRow(index, { barcode: event.target.value })} disabled={disabled} placeholder="اختياري أو امسح الباركود" />
-                </Field>
-                <Field label="المخزون الافتتاحي">
-                  <input className="purchase-prototype-field-input" type="number" value={Number(row.stock || 0)} onChange={(event) => updateRow(index, { stock: Number(event.target.value || 0) })} disabled={disabled} min={0} />
-                </Field>
-              </div>
-            ))}
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflowX: 'auto', background: '#ffffff' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.8rem', minWidth: '780px' }}>
+              <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <tr style={{ color: '#475569', fontWeight: 700 }}>
+                  <th style={{ padding: '8px 8px', width: '32px', textAlign: 'center', verticalAlign: 'middle' }}>#</th>
+                  <th style={{ padding: '8px 10px', width: '15%', verticalAlign: 'middle' }}>{templateConfig.primarySingleLabel}</th>
+                  <th style={{ padding: '8px 10px', width: '13%', verticalAlign: 'middle' }}>{templateConfig.secondarySingleLabel}</th>
+                  <th style={{ padding: '8px 8px', width: '15%', verticalAlign: 'middle' }}>رمز SKU</th>
+                  <th style={{ padding: '8px 8px', width: '17%', verticalAlign: 'middle' }}>الباركود</th>
+                  <th style={{ padding: '8px 8px', width: '13%', verticalAlign: 'middle' }}>سعر البيع (ج.م)</th>
+                  <th style={{ padding: '8px 8px', width: '13%', verticalAlign: 'middle' }}>سعر التكلفة (ج.م)</th>
+                  <th style={{ padding: '8px 8px', width: '10%', textAlign: 'center', verticalAlign: 'middle' }}>الرصيد</th>
+                  <th style={{ padding: '8px 4px', width: '36px', textAlign: 'center', verticalAlign: 'middle' }}>حذف</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr
+                    key={`${row.color || 'primary'}-${row.size || 'secondary'}-${index}`}
+                    style={{ borderBottom: '1px solid #f1f5f9', background: index % 2 === 0 ? '#ffffff' : '#fafafa' }}
+                  >
+                    <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle', color: '#94a3b8', fontSize: '0.74rem' }}>
+                      {index + 1}
+                    </td>
+                    <td style={{ padding: '6px 10px', verticalAlign: 'middle' }}>
+                      <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>{row.color || '-'}</span>
+                    </td>
+                    <td style={{ padding: '6px 10px', verticalAlign: 'middle' }}>
+                      <span style={{ color: '#475569', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 600 }}>
+                        {row.size || '-'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                      <input
+                        className="purchase-prototype-field-input"
+                        value={row.sku || ''}
+                        onChange={(event) => updateRow(index, { sku: event.target.value })}
+                        disabled={disabled}
+                        placeholder="اختياري SKU..."
+                        style={{ height: '30px', fontSize: '0.76rem', padding: '4px 8px' }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                      <input
+                        className="purchase-prototype-field-input"
+                        value={row.barcode}
+                        onChange={(event) => updateRow(index, { barcode: event.target.value })}
+                        disabled={disabled}
+                        placeholder="الباركود الدولي..."
+                        style={{ height: '30px', fontSize: '0.76rem', fontFamily: 'monospace', padding: '4px 8px' }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                      <input
+                        className="purchase-prototype-field-input"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={row.retailPrice !== undefined && row.retailPrice !== null ? row.retailPrice : ''}
+                        onChange={(event) => updateRow(index, { retailPrice: event.target.value === '' ? undefined : Number(event.target.value) })}
+                        disabled={disabled}
+                        placeholder={parentRetailPrice ? `افتراضي: ${parentRetailPrice}` : '0.00'}
+                        style={{ height: '30px', fontSize: '0.78rem', fontWeight: 700, color: '#16a34a', padding: '4px 8px' }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                      <input
+                        className="purchase-prototype-field-input"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={row.costPrice !== undefined && row.costPrice !== null ? row.costPrice : ''}
+                        onChange={(event) => updateRow(index, { costPrice: event.target.value === '' ? undefined : Number(event.target.value) })}
+                        disabled={disabled}
+                        placeholder={parentCostPrice ? `افتراضي: ${parentCostPrice}` : '0.00'}
+                        style={{ height: '30px', fontSize: '0.78rem', color: '#475569', padding: '4px 8px' }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <input
+                        className="purchase-prototype-field-input"
+                        type="number"
+                        min={0}
+                        value={Number(row.stock || 0)}
+                        onChange={(event) => updateRow(index, { stock: Number(event.target.value || 0) })}
+                        disabled={disabled}
+                        style={{ height: '30px', fontSize: '0.78rem', textAlign: 'center', fontWeight: 700, padding: '4px' }}
+                      />
+                    </td>
+                    <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <button
+                        type="button"
+                        onClick={() => deleteRow(index)}
+                        disabled={disabled}
+                        title="حذف هذا الصنف الفرعي"
+                        style={{
+                          border: 'none',
+                          background: '#fee2e2',
+                          color: '#b91c1c',
+                          borderRadius: '6px',
+                          width: '26px',
+                          height: '26px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 

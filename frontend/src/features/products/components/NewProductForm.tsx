@@ -961,6 +961,9 @@ export function NewProductForm({
                 sizesValue={watchedFashionSizes || ''}
                 defaultStock={watchedVariantStock}
                 barcodePrefix={variantBarcodePrefix}
+                parentCostPrice={Number(watchedCostPrice || 0)}
+                parentRetailPrice={Number(watchedRetailPrice || 0)}
+                parentWholesalePrice={Number(watchedWholesalePrice || 0)}
                 rows={fashionVariantRows}
                 disabled={isFormDisabled}
                 onColorsChange={(value) => form.setValue('fashionColors', value, { shouldDirty: true, shouldValidate: true })}

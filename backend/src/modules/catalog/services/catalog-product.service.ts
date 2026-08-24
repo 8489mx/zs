@@ -1024,6 +1024,11 @@ export class CatalogProductService {
           size: normalizeArabicInput(entry.size),
           barcode: String(entry.barcode || '').trim(),
           stock: Math.max(0, Number(entry.stock || 0)),
+          costPrice: entry.costPrice !== undefined && entry.costPrice !== null && !isNaN(Number(entry.costPrice)) && Number(entry.costPrice) > 0 ? Number(entry.costPrice) : undefined,
+          retailPrice: entry.retailPrice !== undefined && entry.retailPrice !== null && !isNaN(Number(entry.retailPrice)) && Number(entry.retailPrice) > 0 ? Number(entry.retailPrice) : undefined,
+          wholesalePrice: entry.wholesalePrice !== undefined && entry.wholesalePrice !== null && !isNaN(Number(entry.wholesalePrice)) && Number(entry.wholesalePrice) > 0 ? Number(entry.wholesalePrice) : undefined,
+          minStock: entry.minStock !== undefined && entry.minStock !== null && !isNaN(Number(entry.minStock)) && Number(entry.minStock) >= 0 ? Number(entry.minStock) : undefined,
+          sku: entry.sku ? String(entry.sku).trim() : undefined,
         }))
         .filter((entry) => entry.color || entry.size)
         .map((entry) => [`${normalizeArabicSearch(entry.color)}::${normalizeArabicSearch(entry.size)}`, entry]),
@@ -1276,6 +1281,10 @@ export class CatalogProductService {
             color: variant.color,
             size: variant.size,
             stock: variant.stock,
+            costPrice: variant.costPrice !== undefined && variant.costPrice !== null && !isNaN(Number(variant.costPrice)) && Number(variant.costPrice) > 0 ? Number(variant.costPrice) : normalized.costPrice,
+            retailPrice: variant.retailPrice !== undefined && variant.retailPrice !== null && !isNaN(Number(variant.retailPrice)) && Number(variant.retailPrice) > 0 ? Number(variant.retailPrice) : normalized.retailPrice,
+            wholesalePrice: variant.wholesalePrice !== undefined && variant.wholesalePrice !== null && !isNaN(Number(variant.wholesalePrice)) && Number(variant.wholesalePrice) > 0 ? Number(variant.wholesalePrice) : normalized.wholesalePrice,
+            minStock: variant.minStock !== undefined && variant.minStock !== null && !isNaN(Number(variant.minStock)) && Number(variant.minStock) >= 0 ? Number(variant.minStock) : normalized.minStock,
             fashionVariants: [],
           };
         })

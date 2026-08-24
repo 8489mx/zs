@@ -8,10 +8,11 @@ import type { ProductUnit } from '@/types/domain';
 import type { ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
+import type { FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 
 export type ProductFormValues = ProductFormOutput & {
   units?: ProductUnit[];
-  fashionVariantRows?: Array<{ color: string; size: string; barcode?: string; stock?: number }>;
+  fashionVariantRows?: FashionVariantDraft[];
   groupedEntryEnabled?: boolean;
 };
 
@@ -30,6 +31,11 @@ function buildFashionVariants(values: ProductFormValues) {
           size: normalizeArabicInput(row.size),
           barcode: String(row.barcode || '').trim(),
           stock: Math.max(0, Number(row.stock || 0)),
+          costPrice: row.costPrice !== undefined && row.costPrice !== null && !isNaN(Number(row.costPrice)) && Number(row.costPrice) > 0 ? Number(row.costPrice) : undefined,
+          retailPrice: row.retailPrice !== undefined && row.retailPrice !== null && !isNaN(Number(row.retailPrice)) && Number(row.retailPrice) > 0 ? Number(row.retailPrice) : undefined,
+          wholesalePrice: row.wholesalePrice !== undefined && row.wholesalePrice !== null && !isNaN(Number(row.wholesalePrice)) && Number(row.wholesalePrice) > 0 ? Number(row.wholesalePrice) : undefined,
+          minStock: row.minStock !== undefined && row.minStock !== null && !isNaN(Number(row.minStock)) && Number(row.minStock) >= 0 ? Number(row.minStock) : undefined,
+          sku: row.sku ? String(row.sku).trim() : undefined,
         }))
         .filter((row) => row.color || row.size)
     : [];

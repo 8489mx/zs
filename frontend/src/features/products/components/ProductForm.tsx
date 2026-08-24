@@ -449,6 +449,9 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
             sizesValue={watchedFashionSizes || ''}
             defaultStock={watchedVariantStock}
             barcodePrefix={variantBarcodePrefix}
+            parentCostPrice={Number(form.watch('costPrice') || 0)}
+            parentRetailPrice={Number(form.watch('retailPrice') || 0)}
+            parentWholesalePrice={Number(form.watch('wholesalePrice') || 0)}
             rows={fashionVariantRows}
             disabled={mutation.isPending}
             onColorsChange={(value) => form.setValue('fashionColors', value, { shouldDirty: true, shouldValidate: true })}

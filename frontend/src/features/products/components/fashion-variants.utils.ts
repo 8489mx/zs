@@ -5,6 +5,11 @@ export interface FashionVariantDraft {
   size: string;
   barcode: string;
   stock: number;
+  costPrice?: number;
+  retailPrice?: number;
+  wholesalePrice?: number;
+  minStock?: number;
+  sku?: string;
 }
 
 function makeVariantKey(color: string, size: string) {
