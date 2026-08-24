@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, session, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, Menu, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
@@ -85,10 +85,25 @@ function getLoadingHtmlPath() {
 let loadingWindow = null;
 let mainWindow = null;
 
+const getDisplayDimensions = () => {
+  try {
+    const primaryDisplay = screen && screen.getPrimaryDisplay ? screen.getPrimaryDisplay() : null;
+    if (primaryDisplay && primaryDisplay.workAreaSize) {
+      return {
+        width: Math.max(1024, primaryDisplay.workAreaSize.width),
+        height: Math.max(700, primaryDisplay.workAreaSize.height)
+      };
+    }
+  } catch (e) {}
+  return { width: 1280, height: 800 };
+};
+
 const createLoadingWindow = () => {
+  const { width, height } = getDisplayDimensions();
+
   loadingWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width,
+    height,
     backgroundColor: '#0d1322',
     icon: path.join(__dirname, '../public/logo_cropped.png'),
     autoHideMenuBar: true,
@@ -120,6 +135,7 @@ function toggleFullScreen(win = mainWindow) {
     }
     return false;
   } else {
+    win.maximize();
     win.setFullScreen(true);
     if (!win.isDestroyed()) {
       win.webContents.send('fullscreen-changed', true);
@@ -134,9 +150,15 @@ const tryRevealApp = () => {
   hasRevealedApp = true;
 
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.maximize();
-    mainWindow.setFullScreen(true);
     mainWindow.show();
+    mainWindow.maximize();
+    setImmediate(() => {
+      try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.setFullScreen(true);
+        }
+      } catch (e) {}
+    });
   }
 
   if (loadingWindow && !loadingWindow.isDestroyed()) {
@@ -155,9 +177,11 @@ const createMainWindow = (customLoadHandler) => {
   if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
   Menu.setApplicationMenu(null);
 
+  const { width, height } = getDisplayDimensions();
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width,
+    height,
     backgroundColor: '#ffffff',
     icon: path.join(__dirname, '../public/logo_cropped.png'),
     autoHideMenuBar: true,
