@@ -16,6 +16,7 @@ import { getProductLocationDisplayName } from '../utils/product-location.utils';
 import { ProductsMatrixView } from './ProductsMatrixView';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { ProductIconStudioModal } from '@/shared/components/icons/ProductIconStudioModal';
+import { useProductIconSettings } from '@/shared/components/icons/product-icon-theme';
 
 export interface ProductsTableCardProps {
   search: string;
@@ -93,6 +94,7 @@ function groupProducts(products: Product[]): ProductGroup[] {
 
 export function ProductsTableCard(props: ProductsTableCardProps) {
   const queryClient = useQueryClient();
+  const iconSettings = useProductIconSettings();
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [activeNoteModal, setActiveNoteModal] = useState<{ productName: string; note: string } | null>(null);
@@ -213,14 +215,14 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             onClick={() => setIsStudioOpen(true)}
             style={{
               background: '#f8fafc',
-              color: '#334155',
+              color: '#0f172a',
               borderColor: '#cbd5e1',
               fontWeight: 700,
               fontSize: '12px',
             }}
             title="تخصيص ألوان الأيقونات لكل المنظومة أو إلغاء وتفريغ الأيقونات"
           >
-            🎨 تخصيص الأيقونات
+            تخصيص الأيقونات
           </Button>
           <Button
             variant="secondary"
@@ -235,7 +237,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             }}
             title="فحص أسماء الأصناف وتعيين الأيقونات المناسبة لها تلقائياً"
           >
-            {isAutoAssigning ? 'جارٍ الضبط الذكي...' : '🪄 ضبط الأيقونات تلقائياً'}
+            {isAutoAssigning ? 'جارٍ الضبط الذكي...' : 'ضبط الأيقونات ذكياً'}
           </Button>
           <Button variant="secondary" onClick={props.onExportCsv}>تصدير Excel</Button>
           <Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button>
@@ -438,20 +440,22 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '6px',
-                            background: product.icon ? '#eff6ff' : '#f8fafc',
-                            color: product.icon ? '#1d4ed8' : '#94a3b8',
-                            border: product.icon ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}>
-                            <ProductIcon name={product.icon || 'box-package'} size={16} />
-                          </div>
+                          {iconSettings.showIcons && product.icon ? (
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              background: '#f8fafc',
+                              color: 'var(--product-icon-color, #2563eb)',
+                              border: '1px solid #e2e8f0',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <ProductIcon name={product.icon} size={16} fallback={false} />
+                            </div>
+                          ) : null}
                           <div>
                             <strong>{product.name}</strong>
                             <div className="muted small">{(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>

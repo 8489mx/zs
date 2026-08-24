@@ -17,6 +17,7 @@ import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { ProductIconStudioModal } from '@/shared/components/icons/ProductIconStudioModal';
+import { useProductIconSettings } from '@/shared/components/icons/product-icon-theme';
 
 interface PosProductsPanelProps {
   search: string;
@@ -256,6 +257,7 @@ function PosProductsPanelComponent({
     const categoriesQuery = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });
     categories = categoriesQuery.data || [];
   } catch {}
+  const iconSettings = useProductIconSettings();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
 
@@ -819,31 +821,98 @@ function PosProductsPanelComponent({
         {canShowScannerResults ? (
           <>
             <div className={`product-pick-grid pos-product-group-grid ${cardDensity === 'compact' ? 'pos-product-group-grid-density-compact' : ''}`}>
-            {displayedGroups.map((group, index) => {
-              const isSelected = index === selectedIndex;
-              const isFavorite = favoriteKeySet.has(group.key);
-              const priceLabel = group.minPrice === group.maxPrice
-                ? formatCurrency(group.minPrice)
-                : `${formatCurrency(group.minPrice)} - ${formatCurrency(group.maxPrice)}`;
+              {displayedGroups.map((group, index) => {
+                const isSelected = index === selectedIndex;
+                const isFavorite = favoriteKeySet.has(group.key);
+                const priceLabel = group.minPrice === group.maxPrice
+                  ? formatCurrency(group.minPrice)
+                  : `${formatCurrency(group.minPrice)} - ${formatCurrency(group.maxPrice)}`;
 
-              if (cardDensity === 'comfortable') {
-                // Classic Comfortable Card (Default)
-                return (
-                  <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
-                    <div className="pos-group-card-top">
-                      <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
-                        {group.hasVariants ? `${group.products.length} فرع` : 'مباشر'}
-                      </span>
+                const rawIcon = group.products[0]?.icon;
+                const showCardIcon = iconSettings.showIcons && Boolean(rawIcon);
+
+                if (cardDensity === 'comfortable') {
+                  // Classic Comfortable Card (Default)
+                  return (
+                    <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
+                      <div className="pos-group-card-top">
+                        <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
+                          {group.hasVariants ? `${group.products.length} فرع` : 'مباشر'}
+                        </span>
+                        <button
+                          type="button"
+                          className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
+                          onClick={() => toggleFavorite(group.key)}
+                          aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                        >
+                          <StarIcon size={14} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#94a3b8'} />
+                        </button>
+                      </div>
+
                       <button
+                        ref={(node) => { groupRefs.current[index] = node; }}
                         type="button"
-                        className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
-                        onClick={() => toggleFavorite(group.key)}
-                        aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                        className="pos-group-card-action"
+                        onClick={() => {
+                          setSelectedIndex(index);
+                          activateGroup(group);
+                        }}
+                        onFocus={() => setSelectedIndex(index)}
                       >
-                        <StarIcon size={14} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#94a3b8'} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          {showCardIcon && (
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              background: '#f8fafc',
+                              color: 'var(--product-icon-color, #2563eb)',
+                              border: '1px solid #e2e8f0',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <ProductIcon name={rawIcon} size={16} fallback={false} />
+                            </div>
+                          )}
+                          <strong style={{ flex: 1 }}>{group.title}</strong>
+                        </div>
+                        <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
+                        {group.hasVariants ? (
+                          <div className="pos-group-tags">
+                            {group.colors.slice(0, 3).map((color) => <span key={`${group.key}-${color}`} className="pos-group-tag">{color}</span>)}
+                            {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
+                          </div>
+                        ) : null}
+                        <div className="pick-meta-row pos-pick-meta-row">
+                          <span>{priceLabel}</span>
+                          <span className="small muted">{group.hasVariants ? 'افتح الاختيارات' : 'أضف الآن'}</span>
+                        </div>
                       </button>
-                    </div>
+                    </article>
+                  );
+                }
 
+                // Refined Soothing Compact Card
+                return (
+                  <article
+                    key={group.key}
+                    className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}
+                    style={{
+                      background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                      border: isSelected ? '2px solid #0f172a' : '1px solid rgba(148, 163, 184, 0.28)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      boxShadow: isSelected ? '0 4px 12px rgba(15, 23, 42, 0.12)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '94px',
+                      transition: 'all 0.15s ease',
+                      position: 'relative',
+                    }}
+                  >
                     <button
                       ref={(node) => { groupRefs.current[index] = node; }}
                       type="button"
@@ -853,180 +922,120 @@ function PosProductsPanelComponent({
                         activateGroup(group);
                       }}
                       onFocus={() => setSelectedIndex(index)}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        textAlign: 'right',
+                        padding: 0,
+                        width: '100%',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        flex: 1,
+                        justifyContent: 'space-between',
+                      }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <div style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '6px',
-                          background: group.products[0]?.icon ? '#eff6ff' : '#f8fafc',
-                          color: group.products[0]?.icon ? '#1d4ed8' : '#94a3b8',
-                          border: group.products[0]?.icon ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}>
-                          <ProductIcon name={group.products[0]?.icon || 'box-package'} size={16} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                          {showCardIcon && (
+                            <div style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '5px',
+                              background: '#f8fafc',
+                              color: 'var(--product-icon-color, #2563eb)',
+                              border: '1px solid #e2e8f0',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <ProductIcon name={rawIcon} size={15} fallback={false} />
+                            </div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <strong
+                              style={{
+                                fontSize: '0.88rem',
+                                fontWeight: 800,
+                                color: '#0f172a',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                lineHeight: 1.3,
+                              }}
+                            >
+                              {group.title}
+                            </strong>
+                            {group.hasVariants ? (
+                              <div style={{ marginTop: '3px' }}>
+                                <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
+                                  {group.products.length} مقاسات
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
-                        <strong style={{ flex: 1 }}>{group.title}</strong>
+
+                        <button
+                          type="button"
+                          className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(group.key);
+                          }}
+                          aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: isFavorite ? '#f59e0b' : '#cbd5e1',
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            padding: 0,
+                            lineHeight: 1,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <StarIcon size={14} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#cbd5e1'} />
+                        </button>
                       </div>
-                      <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
-                      {group.hasVariants ? (
-                        <div className="pos-group-tags">
-                          {group.colors.slice(0, 3).map((color) => <span key={`${group.key}-${color}`} className="pos-group-tag">{color}</span>)}
-                          {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
-                        </div>
-                      ) : null}
-                      <div className="pick-meta-row pos-pick-meta-row">
-                        <span>{priceLabel}</span>
-                        <span className="small muted">{group.hasVariants ? 'افتح الاختيارات' : 'أضف الآن'}</span>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderTop: '1px solid rgba(148, 163, 184, 0.16)',
+                          paddingTop: '5px',
+                          marginTop: 'auto',
+                          width: '100%',
+                        }}
+                      >
+                        <strong style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
+                          {priceLabel}
+                        </strong>
+
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            background: group.hasVariants ? '#eff6ff' : '#ecfdf5',
+                            color: group.hasVariants ? '#1d4ed8' : '#047857',
+                            border: group.hasVariants ? '1px solid #dbeafe' : '1px solid #a7f3d0',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          {group.hasVariants ? 'خيارات ▾' : '+ أضف'}
+                        </span>
                       </div>
                     </button>
                   </article>
                 );
-              }
-
-              // Refined Soothing Compact Card
-              return (
-                <article
-                  key={group.key}
-                  className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}
-                  style={{
-                    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-                    border: isSelected ? '2px solid #0f172a' : '1px solid rgba(148, 163, 184, 0.28)',
-                    borderRadius: '8px',
-                    padding: '8px 10px',
-                    boxShadow: isSelected ? '0 4px 12px rgba(15, 23, 42, 0.12)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    minHeight: '94px',
-                    transition: 'all 0.15s ease',
-                    position: 'relative',
-                  }}
-                >
-                  <button
-                    ref={(node) => { groupRefs.current[index] = node; }}
-                    type="button"
-                    className="pos-group-card-action"
-                    onClick={() => {
-                      setSelectedIndex(index);
-                      activateGroup(group);
-                    }}
-                    onFocus={() => setSelectedIndex(index)}
-                    style={{
-                      border: 'none',
-                      background: 'transparent',
-                      textAlign: 'right',
-                      padding: 0,
-                      width: '100%',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      flex: 1,
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          width: '26px',
-                          height: '26px',
-                          borderRadius: '5px',
-                          background: group.products[0]?.icon ? '#eff6ff' : '#f8fafc',
-                          color: group.products[0]?.icon ? '#1d4ed8' : '#94a3b8',
-                          border: group.products[0]?.icon ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}>
-                          <ProductIcon name={group.products[0]?.icon || 'box-package'} size={15} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <strong
-                            style={{
-                              fontSize: '0.88rem',
-                              fontWeight: 800,
-                              color: '#0f172a',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                              lineHeight: 1.3,
-                            }}
-                          >
-                            {group.title}
-                          </strong>
-                          {group.hasVariants ? (
-                            <div style={{ marginTop: '3px' }}>
-                              <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
-                                {group.products.length} مقاسات
-                              </span>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(group.key);
-                        }}
-                        aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: isFavorite ? '#f59e0b' : '#cbd5e1',
-                          fontSize: '1rem',
-                          cursor: 'pointer',
-                          padding: 0,
-                          lineHeight: 1,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <StarIcon size={14} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#cbd5e1'} />
-                      </button>
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        borderTop: '1px solid rgba(148, 163, 184, 0.16)',
-                        paddingTop: '5px',
-                        marginTop: 'auto',
-                        width: '100%',
-                      }}
-                    >
-                      <strong style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                        {priceLabel}
-                      </strong>
-
-                      <span
-                        style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          padding: '2px 7px',
-                          borderRadius: '5px',
-                          background: group.hasVariants ? '#eff6ff' : '#ecfdf5',
-                          color: group.hasVariants ? '#1d4ed8' : '#047857',
-                          border: group.hasVariants ? '1px solid #dbeafe' : '1px solid #a7f3d0',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        {group.hasVariants ? 'خيارات ▾' : '+ أضف'}
-                      </span>
-                    </div>
-                  </button>
-                </article>
-              );
-            })}
+              })}
             </div>
 
             {hasMoreTouchGroups ? (

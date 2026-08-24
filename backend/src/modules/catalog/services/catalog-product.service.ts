@@ -1510,11 +1510,16 @@ export class CatalogProductService {
         } else if (prod.metadata && typeof prod.metadata === 'object') {
           meta = { ...(prod.metadata as Record<string, any>) };
         }
-        meta.icon = update.icon;
+
+        if (!update.icon || !String(update.icon).trim()) {
+          delete meta.icon;
+        } else {
+          meta.icon = String(update.icon).trim();
+        }
 
         await trx
           .updateTable('products')
-          .set({ metadata: JSON.stringify(meta) })
+          .set({ metadata: Object.keys(meta).length ? JSON.stringify(meta) : null })
           .where('id', '=', Number(update.id))
           .where(this.tenantPredicate(actor))
           .execute();

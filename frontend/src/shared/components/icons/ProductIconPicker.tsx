@@ -213,6 +213,27 @@ export function ProductIconPicker({
           >
             <button
               type="button"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+              }}
+              style={{
+                padding: '4px 12px',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: !value ? '1px solid #fca5a5' : '1px dashed #cbd5e1',
+                cursor: 'pointer',
+                background: !value ? '#fef2f2' : '#ffffff',
+                color: !value ? '#dc2626' : '#64748b',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              بدون أيقونة
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveCategory('all')}
               style={{
                 padding: '4px 12px',
