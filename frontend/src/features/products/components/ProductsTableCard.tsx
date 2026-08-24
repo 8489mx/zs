@@ -440,7 +440,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {iconSettings.showIcons && product.icon ? (
+                          {iconSettings.showIcons ? (
                             <div style={{
                               width: '28px',
                               height: '28px',
@@ -453,7 +453,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                               justifyContent: 'center',
                               flexShrink: 0
                             }}>
-                              <ProductIcon name={product.icon} size={16} fallback={false} />
+                              <ProductIcon name={product.icon || 'box-package'} size={16} />
                             </div>
                           ) : null}
                           <div>
@@ -548,12 +548,30 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       <td>
                         <div
                           onClick={() => toggleExpand(group.key)}
-                          style={{ cursor: 'pointer', userSelect: 'none' }}
+                          style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
                           title={isExpanded ? 'طي الأصناف الفرعية' : 'توسيع الأصناف الفرعية'}
                         >
-                          <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>{baseName}</strong>
-                          <div className="muted small" style={{ fontSize: '0.74rem', marginTop: '2px', color: '#64748b' }}>
-                            {group.children.length} فرعيات{group.representative.styleCode ? ` • كود ${group.representative.styleCode}` : ''}
+                          {iconSettings.showIcons ? (
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              background: '#f8fafc',
+                              color: 'var(--product-icon-color, #2563eb)',
+                              border: '1px solid #e2e8f0',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              <ProductIcon name={group.representative.icon || 'box-package'} size={16} />
+                            </div>
+                          ) : null}
+                          <div>
+                            <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>{baseName}</strong>
+                            <div className="muted small" style={{ fontSize: '0.74rem', marginTop: '2px', color: '#64748b' }}>
+                              {group.children.length} فرعيات{group.representative.styleCode ? ` • كود ${group.representative.styleCode}` : ''}
+                            </div>
                           </div>
                         </div>
                       </td>

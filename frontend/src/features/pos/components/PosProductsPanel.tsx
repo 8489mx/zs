@@ -829,7 +829,7 @@ function PosProductsPanelComponent({
                   : `${formatCurrency(group.minPrice)} - ${formatCurrency(group.maxPrice)}`;
 
                 const rawIcon = group.products[0]?.icon;
-                const showCardIcon = iconSettings.showIcons && Boolean(rawIcon);
+                const showCardIcon = iconSettings.showIcons;
 
                 if (cardDensity === 'comfortable') {
                   // Classic Comfortable Card (Default)
@@ -873,7 +873,7 @@ function PosProductsPanelComponent({
                               justifyContent: 'center',
                               flexShrink: 0
                             }}>
-                              <ProductIcon name={rawIcon} size={16} fallback={false} />
+                              <ProductIcon name={rawIcon || 'box-package'} size={16} />
                             </div>
                           )}
                           <strong style={{ flex: 1 }}>{group.title}</strong>
@@ -950,7 +950,7 @@ function PosProductsPanelComponent({
                               justifyContent: 'center',
                               flexShrink: 0
                             }}>
-                              <ProductIcon name={rawIcon} size={15} fallback={false} />
+                              <ProductIcon name={rawIcon || 'box-package'} size={15} />
                             </div>
                           )}
                           <div style={{ flex: 1, minWidth: 0 }}>
