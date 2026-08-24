@@ -136,11 +136,11 @@ export function UserManagementEditorCard({
             style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '28px' }}
             value={draft.role}
             onChange={(e) => onApplyRolePermissions(e.target.value === 'super_admin' ? 'super_admin' : e.target.value === 'admin' ? 'admin' : 'cashier')}
-            disabled={currentUserRole !== 'super_admin' || draft.role === 'super_admin'}
+            disabled={currentUserRole !== 'super_admin' && draft.role === 'super_admin'}
           >
-            <option value="cashier">كاشير (مستخدم عادي)</option>
-            <option value="admin">مدير نظام (مشرف)</option>
-            {currentUserRole === 'super_admin' ? <option value="super_admin">سوبر ادمن (صلاحيات كاملة)</option> : null}
+            <option value="cashier">كاشير (مستخدم مبيعات وتشغيل)</option>
+            <option value="admin">مدير / مالك المنشأة (كامل صلاحيات المنشأة)</option>
+            {currentUserRole === 'super_admin' ? <option value="super_admin">سوبر أدمن (إدارة المنصة المركزية)</option> : null}
           </select>
         </div>
 

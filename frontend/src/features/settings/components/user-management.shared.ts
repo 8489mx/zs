@@ -171,8 +171,8 @@ export function getFilteredPermissionGroups(tenantFeatures?: string[] | null): P
 }
 
 export const USER_ROLE_TEMPLATES = {
-  cashier: { label: 'كاشير', role: 'cashier', permissions: [...DEFAULT_CASHIER_PERMS] },
-  owner: { label: 'مالك / مدير', role: 'admin', permissions: [...DEFAULT_ADMIN_PERMS] },
+  cashier: { label: 'كاشير (مستخدم عادي)', role: 'cashier', permissions: [...DEFAULT_CASHIER_PERMS] },
+  owner: { label: 'مدير / مالك المنشأة', role: 'admin', permissions: [...DEFAULT_ADMIN_PERMS] },
   inventory: { label: 'مسؤول مخزون', role: 'admin', permissions: ['dashboard','products','inventory','purchases','suppliers','reports','pricingCenterView','pricingCenterManage','canPrint','canAdjustInventory','canManageBranchStock'] },
   accountant: { label: 'محاسب', role: 'admin', permissions: ['dashboard','accounts','accounting','reports','customers','suppliers','treasury','canPrint','canViewProfit'] }
 } as const;
@@ -183,7 +183,7 @@ export function blankUserDraft(role: 'super_admin' | 'admin' | 'cashier' = 'cash
     username: '',
     password: '',
     role,
-    permissions: role === 'super_admin' ? [...DEFAULT_ADMIN_PERMS] : role === 'admin' ? [...DEFAULT_OPERATOR_PERMS] : [...DEFAULT_CASHIER_PERMS],
+    permissions: role === 'super_admin' ? [...DEFAULT_ADMIN_PERMS] : role === 'admin' ? [...DEFAULT_ADMIN_PERMS] : [...DEFAULT_CASHIER_PERMS],
     name: '',
     branchIds: [],
     defaultBranchId: '',
@@ -210,7 +210,7 @@ export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | un
       : role === 'super_admin'
         ? [...DEFAULT_ADMIN_PERMS]
         : role === 'admin'
-          ? [...DEFAULT_OPERATOR_PERMS]
+          ? [...DEFAULT_ADMIN_PERMS]
           : [...DEFAULT_CASHIER_PERMS],
     name: String(user?.name || user?.username || ''),
     branchIds: Array.isArray(user?.branchIds) ? (user.branchIds || []).map((branchId) => String(branchId)).filter(Boolean) : [],

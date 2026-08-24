@@ -93,7 +93,6 @@ export function UserManagementPermissionGroups({
                         style={checkboxStyle}
                         checked={isChecked}
                         onChange={() => onTogglePermission(permission)}
-                        disabled={role === 'super_admin'}
                       />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                         <span style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>{getPermissionLabel(permission)}</span>
@@ -107,6 +106,32 @@ export function UserManagementPermissionGroups({
           );
         })}
       </div>
+
+      {/* بطاقة خاصة ومستقلة للسوبر أدمن (إدارة المنصة المركزية) */}
+      {role === 'super_admin' ? (
+        <div style={{
+          padding: '14px 16px',
+          border: '1px solid #fde68a',
+          borderRadius: '10px',
+          background: '#fffdf5',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          marginTop: '6px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <strong style={{ fontSize: '0.88rem', color: '#92400e', fontWeight: 800 }}>
+              خاص بالسوبر أدمن (إدارة المنصة المركزية)
+            </strong>
+            <span style={{ fontSize: '0.72rem', background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '8px', fontWeight: 700, border: '1px solid #fde68a' }}>
+              صلاحية منصة شاملة
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.76rem', color: '#78350f', lineHeight: 1.6 }}>
+            هذا الحساب يملك رتبة <strong>سوبر أدمن المنصة</strong>؛ تشمل صلاحياته الحصرية الوصول للوحة تحكم المستأجرين (SaaS Tenants)، إدارة وتعديل الباقات والاشتراكات، والتحكم في إعدادات السيرفر وقواعد البيانات المركزية.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
