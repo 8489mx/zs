@@ -5,6 +5,8 @@ import { downloadEntityListCsv, printEntityList } from '@/features/settings/comp
 import type { Branch, Location } from '@/types/domain';
 import { BranchRowActions, LocationRowActions } from './row-actions';
 import type { BranchActionState, LocationActionState, ReferenceDeleteConfirmState } from './types';
+import { useAuthStore } from '@/stores/auth-store';
+import { useHasFeature } from '@/shared/hooks/use-permission';
 
 export function BranchReferenceCard(props: {
   locations?: Location[];
@@ -30,6 +32,11 @@ export function BranchReferenceCard(props: {
 }) {
   const { branches, branchList, filteredCount, branchSearch, branchFilter, setBranchSearch, setBranchFilter, resetBranchFilters, copyVisibleBranches: _copyVisibleBranches, branchesQuery, canManageSettings, setEditingBranch, setDeleteConfirm, branchActionBusy, setupMode, onShowAddBranch } = props;
 
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = user?.role === 'super_admin';
+  const hasMultiBranch = useHasFeature('multi_branch') || useHasFeature('branches') || isSuperAdmin;
+  const isBranchLimitReached = !hasMultiBranch && branches.length >= 1;
+
   return (
     <QueryCard
       title={`الفروع (${branches.length})`}
@@ -37,9 +44,31 @@ export function BranchReferenceCard(props: {
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           {canManageSettings && onShowAddBranch && (
-            <Button variant="primary" onClick={onShowAddBranch} style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#0f172a' }}>
-              + إضافة فرع
-            </Button>
+            isBranchLimitReached ? (
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '4px 8px',
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #fde68a',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'help',
+                }}
+                title="وصلت للحد الأقصى في باقتك (فرع واحد). يرجى الترقية لإضافة فروع جديدة."
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                الحد الأقصى (فرع 1)
+              </span>
+            ) : (
+              <Button variant="primary" onClick={onShowAddBranch} style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#0f172a' }}>
+                + إضافة فرع
+              </Button>
+            )
           )}
           <Button variant="secondary" onClick={() => downloadEntityListCsv('branches.csv', ['name', 'code'], branchList.map((branch) => [branch.name || '', branch.code || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
             تصدير
@@ -169,6 +198,11 @@ export function LocationReferenceCard(props: {
 }) {
   const { locations, locationList, filteredCount, locationSearch, locationFilter, setLocationSearch, setLocationFilter, resetLocationFilters, locationsQuery, canManageSettings, setEditingLocation, setDeleteConfirm, locationActionBusy, onShowAddLocation } = props;
 
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = user?.role === 'super_admin';
+  const hasMultiWarehouse = useHasFeature('inventory') || isSuperAdmin;
+  const isLocationLimitReached = !hasMultiWarehouse && locations.length >= 1;
+
   return (
     <QueryCard
       title={`المخازن والمواقع (${locations.length})`}
@@ -176,9 +210,31 @@ export function LocationReferenceCard(props: {
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           {canManageSettings && onShowAddLocation && (
-            <Button variant="primary" onClick={onShowAddLocation} style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#0f172a' }}>
-              + إضافة مخزن
-            </Button>
+            isLocationLimitReached ? (
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '4px 8px',
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #fde68a',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'help',
+                }}
+                title="وصلت للحد الأقصى في باقتك (مخزن واحد). يرجى تفعيل موديول المخزون المتقدم لإضافة مخازن إضافية."
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                الحد الأقصى (مخزن 1)
+              </span>
+            ) : (
+              <Button variant="primary" onClick={onShowAddLocation} style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#0f172a' }}>
+                + إضافة مخزن
+              </Button>
+            )
           )}
           <Button variant="secondary" onClick={() => downloadEntityListCsv('locations.csv', ['name', 'code', 'branch'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
             تصدير

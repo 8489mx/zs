@@ -126,6 +126,19 @@ export class SettingsService {
     const code = String(payload.code || '').trim();
     if (!name) throw new AppError('Branch name is required', 'BRANCH_NAME_REQUIRED', 400);
 
+    if (actor.role !== 'super_admin') {
+      const activeBranches = await this.db.selectFrom('branches').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
+      const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features']).where('id', '=', scope.tenantId).executeTakeFirst();
+      const planFeatures = tenant?.plan_id ? (await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', tenant.plan_id).execute()).map(f => f.feature_code) : [];
+      const extraFeatures = Array.isArray(tenant?.extra_features) ? tenant?.extra_features : typeof tenant?.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
+      const allFeatures = new Set([...planFeatures, ...extraFeatures]);
+      
+      const hasMultiBranch = allFeatures.has('multi_branch') || allFeatures.has('branches') || allFeatures.has('inventory');
+      if (!hasMultiBranch && activeBranches.length >= 1) {
+        throw new AppError('وصلت للحد الأقصى المسموح به في باقتك (فرع واحد). يرجى ترقية الباقة لإضافة فروع جديدة.', 'PLAN_LIMIT_REACHED', 403);
+      }
+    }
+
     const inserted = await this.db.transaction().execute(async (trx) => {
       // 1. Insert Branch
       const newBranch = await trx.insertInto('branches').values({ name, code, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId, sales_stock_mode: 'single_location', allow_external_sales_stock: false }).returning(['id', 'name', 'code']).executeTakeFirstOrThrow();
@@ -176,6 +189,20 @@ export class SettingsService {
       throw new AppError('يجب ربط رصيد الفرع بفرع محدد', 'BRANCH_REQUIRED_FOR_BRANCH_STOCK', 400);
     }
     if (!name) throw new AppError('Location name is required', 'LOCATION_NAME_REQUIRED', 400);
+
+    if (actor.role !== 'super_admin') {
+      const activeLocations = await this.db.selectFrom('stock_locations').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
+      const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features']).where('id', '=', scope.tenantId).executeTakeFirst();
+      const planFeatures = tenant?.plan_id ? (await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', tenant.plan_id).execute()).map(f => f.feature_code) : [];
+      const extraFeatures = Array.isArray(tenant?.extra_features) ? tenant?.extra_features : typeof tenant?.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
+      const allFeatures = new Set([...planFeatures, ...extraFeatures]);
+      
+      const hasAdvancedInventory = allFeatures.has('inventory');
+      if (!hasAdvancedInventory && activeLocations.length >= 1) {
+        throw new AppError('وصلت للحد الأقصى المسموح به في باقتك (مخزن واحد). يرجى ترقية الباقة لتفعيل موديول المخزون لإضافة مخازن إضافية.', 'PLAN_LIMIT_REACHED', 403);
+      }
+    }
+
     if (branchId !== null) {
       const branch = await this.db.selectFrom('branches').select(['id']).where('id', '=', branchId).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
       if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);

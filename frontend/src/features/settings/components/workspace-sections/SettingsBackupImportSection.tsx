@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench';
 import { SnapshotList, type BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import type { BackupConfigResponse } from '@/features/settings/api/settings.api';
+import { useAuthStore } from '@/stores/auth-store';
 
 export interface BackupConfigQueryState {
   isLoading: boolean;
@@ -216,6 +217,8 @@ export function SettingsBackupImportSection({
   downloadTemplate,
   onExportData,
 }: SettingsBackupImportSectionProps) {
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = user?.role === 'super_admin';
   const [isSnapshotsOpen, setIsSnapshotsOpen] = useState(false);
   const summaryPairs = formatSummaryPairs(backupResult);
   const resolvedFolder = backupFolderPathDraft || backupConfigQuery.data?.folderPath || backupConfigQuery.data?.defaultFolderPath || 'D:\\ZS Backups';
@@ -395,17 +398,27 @@ export function SettingsBackupImportSection({
                   />
                 </label>
 
-                <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#ffffff', border: '1px dashed #fca5a5', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s ease' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#b91c1c' }}>استعادة من ملف</span>
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>تستبدل البيانات الحالية</span>
-                  <input
-                    type="file"
-                    style={{ display: 'none' }}
-                    accept=".zip,application/zip,application/json,.json"
-                    disabled={!canManageBackups || backupBusy}
-                    onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }}
-                  />
-                </label>
+                {isSuperAdmin ? (
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#ffffff', border: '1px dashed #fca5a5', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s ease' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#b91c1c' }}>استعادة من ملف</span>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>تستبدل البيانات الحالية</span>
+                    <input
+                      type="file"
+                      style={{ display: 'none' }}
+                      accept=".zip,application/zip,application/json,.json"
+                      disabled={!canManageBackups || backupBusy}
+                      onChange={(e) => { const file = e.target.files?.[0]; if (file) onRequestRestoreFile(file); e.currentTarget.value = ''; }}
+                    />
+                  </label>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center', opacity: 0.8, cursor: 'not-allowed' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>استعادة من ملف</span>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                      خاص بالسوبر أدمن
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Backup Message feedback */}
@@ -445,7 +458,7 @@ export function SettingsBackupImportSection({
               <SnapshotList
                 snapshots={snapshots}
                 onDownload={handleSnapshotDownload}
-                onRestore={canManageBackups ? onRequestRestoreSnapshot : () => undefined}
+                onRestore={isSuperAdmin && canManageBackups ? onRequestRestoreSnapshot : () => undefined}
                 restoringId={restoreSnapshotId}
               />
             </div>
