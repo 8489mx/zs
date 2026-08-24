@@ -5,16 +5,17 @@ import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboCreateStyle } from '@/features/settings/components/forms/settings-forms.shared';
 import { CustomSelect } from '@/shared/ui/custom-select';
+import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 
 const INDUSTRY_OPTIONS = [
-  { value: 'general', label: 'تجارة عامة ومتنوعة (افتراضي)' },
-  { value: 'spices', label: 'عطارة وبقوليات ومحامص' },
-  { value: 'fashion', label: 'ملابس وأحذية وأزياء' },
-  { value: 'perfumes', label: 'عطور ومستحضرات تجميل ومنظفات' },
-  { value: 'pharmacy', label: 'صيدلية ومستلزمات طبية' },
-  { value: 'electronics', label: 'موبايلات وإلكترونيات وصيانة' },
-  { value: 'supermarket', label: 'سوبر ماركت وبقالة وأغذية' },
-  { value: 'cafe', label: 'كافيهات ومطاعم وسناك' },
+  { value: 'general', label: 'تجارة عامة ومتنوعة (افتراضي)', icon: <ProductIcon name="box-package" size={16} /> },
+  { value: 'spices', label: 'عطارة وبقوليات ومحامص', icon: <ProductIcon name="spice-mortar" size={16} /> },
+  { value: 'fashion', label: 'ملابس وأحذية وأزياء', icon: <ProductIcon name="tshirt" size={16} /> },
+  { value: 'perfumes', label: 'عطور ومستحضرات تجميل ومنظفات', icon: <ProductIcon name="perfume-spray" size={16} /> },
+  { value: 'pharmacy', label: 'صيدلية ومستلزمات طبية', icon: <ProductIcon name="pill-capsule" size={16} /> },
+  { value: 'electronics', label: 'موبايلات وإلكترونيات وصيانة', icon: <ProductIcon name="smartphone" size={16} /> },
+  { value: 'supermarket', label: 'سوبر ماركت وبقالة وأغذية', icon: <ProductIcon name="can-food" size={16} /> },
+  { value: 'cafe', label: 'كافيهات ومطاعم وسناك', icon: <ProductIcon name="coffee-cup" size={16} /> },
 ];
 
 interface GeneralTabProps {

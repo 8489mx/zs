@@ -5,6 +5,7 @@ export interface SelectOption {
   value: string | number;
   label: string;
   hint?: string;
+  icon?: React.ReactNode;
 }
 
 export interface CustomSelectProps {
@@ -150,6 +151,24 @@ export function CustomSelect({
       style={{ position: 'relative', width: '100%', ...style }}
     >
       <div style={{ position: 'relative' }}>
+        {selectedOption?.icon && !isSearching && (
+          <div
+            style={{
+              position: 'absolute',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#334155',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          >
+            {selectedOption.icon}
+          </div>
+        )}
         <input
           ref={inputRef}
           type="text"
@@ -161,7 +180,7 @@ export function CustomSelect({
             width: '100%',
             height: '34px',
             background: disabled ? '#f8fafc' : '#ffffff',
-            padding: '6px 26px 6px 10px',
+            padding: selectedOption?.icon && !isSearching ? '6px 26px 6px 32px' : '6px 26px 6px 10px',
             borderRadius: '6px',
             border: '1px solid #cbd5e1',
             boxSizing: 'border-box',
@@ -258,11 +277,34 @@ export function CustomSelect({
                   onMouseEnter={() => setHighlightedIndex(index)}
                   style={{
                     fontWeight: isSelected || isHighlighted ? 700 : 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px',
                   }}
                 >
-                  <span>{opt.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                    {opt.icon && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '4px',
+                          background: isSelected ? '#170c5c' : '#f1f5f9',
+                          color: isSelected ? '#ffffff' : '#334155',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {opt.icon}
+                      </span>
+                    )}
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.label}</span>
+                  </div>
                   {opt.hint && (
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{opt.hint}</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', flexShrink: 0 }}>{opt.hint}</span>
                   )}
                 </div>
               );
