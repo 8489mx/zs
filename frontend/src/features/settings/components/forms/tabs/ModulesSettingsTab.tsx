@@ -4,6 +4,7 @@ import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/
 import { FormSection } from '@/shared/components/form-section';
 import { LightbulbIcon } from '@/shared/components/icons/AppIcons';
 import { useHasFeature } from '@/shared/hooks/use-permission';
+import { useAuthStore } from '@/stores/auth-store';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { MAINTENANCE_PROFILES, getMaintenanceProfile, type MaintenanceProfileKey } from '@/features/maintenance/constants/maintenance-profiles';
 
@@ -248,7 +249,16 @@ const premiumCheckboxInputStyle = {
 };
 
 export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProps) {
-  const hasManufacturingFeature = useHasFeature('manufacturing');
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  const hasManufacturingFeature = useHasFeature('manufacturing') || isSuperAdmin;
+  const hasImportFeature = useHasFeature('import') || isSuperAdmin;
+  const hasRestaurantFeature = useHasFeature('restaurant') || isSuperAdmin;
+  const hasMaintenanceFeature = useHasFeature('maintenance') || isSuperAdmin;
+  const hasPharmacyFeature = useHasFeature('pharmacy') || isSuperAdmin;
+  const hasEnterpriseFeature = useHasFeature('accounting') || isSuperAdmin;
+
   const clothingModuleEnabled = form.watch('clothingModuleEnabled');
   const weightedBarcodeEnabled = form.watch('weightedBarcodeEnabled');
   const enableMaintenance = form.watch('enableMobileStoreFeatures');
@@ -259,24 +269,53 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
 
   return (
     <div style={{ display: activeTab === 'modules' ? 'block' : 'none' }}>
+      {isSuperAdmin && (
+        <div style={{
+          padding: '10px 16px',
+          marginBottom: '14px',
+          background: '#fffdf5',
+          border: '1px solid #fde68a',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '0.8rem',
+          color: '#92400e',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.1rem' }}>👑</span>
+            <span><strong>وضع السوبر أدمن:</strong> يمكنك تفعيل وتجربة أي موديول على هذه المنشأة بحرية كاملة، أو إدارة الباقات من لوحة التحكم المركزية.</span>
+          </div>
+          <span style={{ fontSize: '0.72rem', background: '#fef3c7', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid #fde68a' }}>
+            تحكم مركزي
+          </span>
+        </div>
+      )}
+
       {/* ===== موديولات النظام ===== */}
       <FormSection title="موديولات النظام" description={<>شغّل الأجزاء التي تحتاجها لنشاطك، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
         <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '12px' }}>
-          {hasManufacturingFeature && (
-            <label style={premiumCardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={iconBadgeStyle}>
-                  <FactoryIcon size={20} />
-                </div>
-                <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>التصنيع والإنتاج</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يضيف خيارات المكونات، وصفات الإنتاج، وأوامر التصنيع</small>
-                </div>
+          
+          {/* التصنيع والإنتاج */}
+          <label style={{ ...premiumCardStyle, ...(!hasManufacturingFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={iconBadgeStyle}>
+                <FactoryIcon size={20} />
               </div>
-              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('manufacturingModuleEnabled')} disabled={disabled} />
-            </label>
-          )}
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>التصنيع والإنتاج</strong>
+                  {!hasManufacturingFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يضيف خيارات المكونات، وصفات الإنتاج، وأوامر التصنيع</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('manufacturingModuleEnabled')} disabled={disabled || !hasManufacturingFeature} />
+          </label>
 
+          {/* العروض المجمعة والوجبات */}
           <label style={premiumCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={iconBadgeStyle}>
@@ -290,32 +329,45 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('comboModuleEnabled')} disabled={disabled} />
           </label>
 
-          <label style={premiumCardStyle}>
+          {/* موديول الاستيراد والشراكة */}
+          <label style={{ ...premiumCardStyle, ...(!hasImportFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={iconBadgeStyle}>
                 <CargoShipIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الاستيراد والشراكة</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الاستيراد والشراكة</strong>
+                  {!hasImportFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                  )}
+                </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة الحاويات، مسير الشحن، وتوزيع الأرباح</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('importModuleEnabled')} disabled={disabled} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('importModuleEnabled')} disabled={disabled || !hasImportFeature} />
           </label>
 
-          <label style={premiumCardStyle}>
+          {/* موديول المطاعم والكافيهات */}
+          <label style={{ ...premiumCardStyle, ...(!hasRestaurantFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={iconBadgeStyle}>
                 <UtensilsIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المطاعم والكافيهات</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول المطاعم والكافيهات</strong>
+                  {!hasRestaurantFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                  )}
+                </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل نظام الطاولات والمطبخ وأنواع الطلبات</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('restaurantModuleEnabled')} disabled={disabled} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('restaurantModuleEnabled')} disabled={disabled || !hasRestaurantFeature} />
           </label>
 
+          {/* اختيار الطاولة والعميل بالكاشير */}
           <label style={premiumCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={iconBadgeStyle}>
@@ -330,14 +382,19 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* ===== موديول إدارة الصيانة الشامل مع محدد الأنشطة ===== */}
-          <div style={{ ...premiumCardStyle, flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
+          <div style={{ ...premiumCardStyle, flexDirection: 'column', alignItems: 'stretch', gap: '10px', ...(!hasMaintenanceFeature ? { opacity: 0.7, background: '#f8fafc' } : {}) }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={iconBadgeStyle}>
                   <MaintenanceWrenchIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
+                    {!hasMaintenanceFeature && (
+                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                    )}
+                  </div>
                   <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تتبع السيريال، استلام الأجهزة، فحص الضمان، وحساب المصنعية</small>
                 </div>
               </div>
@@ -351,11 +408,11 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                     }
                   }
                 })}
-                disabled={disabled}
+                disabled={disabled || !hasMaintenanceFeature}
               />
             </div>
 
-            {enableMaintenance && (
+            {enableMaintenance && hasMaintenanceFeature && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 10px', marginTop: '2px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
                   <span style={{ color: '#64748b' }}>نشاط الصيانة المحدد:</span>
@@ -390,19 +447,26 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             )}
           </div>
 
-          <label style={premiumCardStyle}>
+          {/* موديول الصيدليات والأدوية */}
+          <label style={{ ...premiumCardStyle, ...(!hasPharmacyFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ ...iconBadgeStyle, color: '#16a34a' }}>
                 <PharmacyCrossIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الصيدليات والأدوية</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الصيدليات والأدوية</strong>
+                  {!hasPharmacyFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                  )}
+                </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>دليل الأدوية، المواد الفعالة والمثائل، الروشتات والتأمين، الصلاحيات ونواقص الأدوية</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enablePharmacyModule')} disabled={disabled} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enablePharmacyModule')} disabled={disabled || !hasPharmacyFeature} />
           </label>
 
+          {/* موديول المتغيرات والأصناف المتعددة */}
           <label style={premiumCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ ...iconBadgeStyle, color: '#2563eb' }}>
@@ -416,6 +480,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('clothingModuleEnabled')} disabled={disabled} />
           </label>
 
+          {/* باركود الميزان */}
           <label style={premiumCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={iconBadgeStyle}>
@@ -429,17 +494,23 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('weightedBarcodeEnabled')} disabled={disabled} />
           </label>
 
-          <label style={premiumCardStyle}>
+          {/* موديول الشركات والمحاسبة المتقدمة */}
+          <label style={{ ...premiumCardStyle, ...(!hasEnterpriseFeature ? { opacity: 0.7, cursor: 'not-allowed', background: '#f8fafc' } : {}) }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={iconBadgeStyle}>
                 <EnterpriseIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
-                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشركات والمحاسبة المتقدمة</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشركات والمحاسبة المتقدمة</strong>
+                  {!hasEnterpriseFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>🔒 ترقية مطلوبة</span>
+                  )}
+                </div>
                 <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل مراكز التكلفة، ربط الفواتير بالمشاريع، وشروط التعاقد</small>
               </div>
             </div>
-            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enableEnterpriseFeatures')} disabled={disabled} />
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enableEnterpriseFeatures')} disabled={disabled || !hasEnterpriseFeature} />
           </label>
         </div>
 

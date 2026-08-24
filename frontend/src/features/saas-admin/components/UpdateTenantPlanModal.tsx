@@ -13,18 +13,23 @@ interface UpdateTenantPlanModalProps {
 }
 
 const AVAILABLE_FEATURES = [
-  { id: 'catalog', name: 'المنتجات' },
-  { id: 'sales', name: 'المبيعات' },
+  { id: 'catalog', name: 'المنتجات والأصناف' },
+  { id: 'sales', name: 'المبيعات ونقاط البيع' },
   { id: 'sessions', name: 'ورديات العمل' },
-  { id: 'cashDrawer', name: 'صندوق الكاشير' },
-  { id: 'purchases', name: 'المشتريات' },
-  { id: 'inventory', name: 'المخزون المتقدم' },
-  { id: 'reports', name: 'التقارير المتقدمة' },
-  { id: 'hr', name: 'الموارد البشرية' },
-  { id: 'manufacturing', name: 'التصنيع' },
-  { id: 'accounting', name: 'الحسابات العامة' },
+  { id: 'cashDrawer', name: 'صندوق الكاشير والخزينة' },
+  { id: 'purchases', name: 'المشتريات والموردين' },
+  { id: 'inventory', name: 'المخزون المتقدم والجرد' },
+  { id: 'reports', name: 'التقارير المتقدمة وسجل النشاط' },
+  { id: 'hr', name: 'الموارد البشرية والرواتب' },
+  { id: 'manufacturing', name: 'التصنيع والإنتاج' },
+  { id: 'accounting', name: 'الحسابات العامة وشجرة الحسابات' },
   { id: 'deliveryReps', name: 'مناديب التوصيل' },
-  { id: 'taxIntegration', name: 'الربط الضريبي' },
+  { id: 'taxIntegration', name: 'الربط الضريبي والفاتورة الإلكترونية' },
+  { id: 'import', name: 'الاستيراد والحاويات والشراكة' },
+  { id: 'pharmacy', name: 'الصيدليات والأدوية والروشتات' },
+  { id: 'maintenance', name: 'إدارة الصيانة والأجهزة' },
+  { id: 'restaurant', name: 'المطاعم والكافيهات والطاولات' },
+  { id: 'clothing', name: 'المتغيرات والمقاسات والألوان' },
 ];
 
 export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTenantPlanModalProps) {
