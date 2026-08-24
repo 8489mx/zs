@@ -266,27 +266,12 @@ export function EditProductPage() {
 
         {/* 1. Core Info & Pricing */}
         <div className="product-compact-card">
-          <div className="product-compact-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <h3 className="product-compact-card-title" style={{ margin: 0 }}>بيانات الصنف والأسعار</h3>
-              {clothingModuleEnabled ? (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>طبيعة الصنف:</span>
-                  <select
-                    style={{ padding: '2px 8px', fontSize: '0.76rem', height: '26px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', fontWeight: 600, color: '#1e293b' }}
-                    {...form.register('itemKind')}
-                    disabled={isFormDisabled}
-                  >
-                    <option value="standard">صنف عادي (بسيط)</option>
-                    <option value="fashion">صنف بمتغيرات / Variant</option>
-                  </select>
-                </div>
-              ) : null}
-            </div>
+          <div className="product-compact-card-header">
+            <h3 className="product-compact-card-title">بيانات الصنف والأسعار</h3>
             <span className="muted small">المعلومات الأساسية وقائمة الأسعار</span>
           </div>
 
-          <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: clothingModuleEnabled ? 'repeat(4, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))', gap: '10px', marginBottom: '0.85rem' }}>
             <Field label="نوع الصنف">
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
                 <option value="product">منتج تام للبيع (مخزني)</option>
@@ -296,6 +281,15 @@ export function EditProductPage() {
                 ) : null}
               </select>
             </Field>
+
+            {clothingModuleEnabled ? (
+              <Field label="طبيعة الصنف">
+                <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>
+                  <option value="standard">صنف عادي (بسيط)</option>
+                  <option value="fashion">صنف بمتغيرات / Variant</option>
+                </select>
+              </Field>
+            ) : null}
 
             <div className="field">
               <label>اسم الصنف</label>
