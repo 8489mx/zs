@@ -16,6 +16,7 @@ import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, t
 import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
 import { bomsApi } from '@/shared/api/boms.api';
 import { ComboComponentsEditor } from '@/features/products/components/ComboComponentsEditor';
+import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
 
@@ -280,28 +281,51 @@ export function EditProductPage() {
                 ) : null}
               </select>
             </Field>
-            {clothingModuleEnabled ? (
+
+            <div className="field">
+              <label>اسم الصنف</label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <ProductIconPicker
+                  value={form.watch('icon')}
+                  onChange={(iconId) => form.setValue('icon', iconId, { shouldDirty: true })}
+                  industry={settingsQuery.data?.businessIndustry}
+                  disabled={isFormDisabled}
+                />
+                <input
+                  className="purchase-prototype-field-input"
+                  {...form.register('name')}
+                  disabled={isFormDisabled}
+                  style={{ flex: 1, fontWeight: 600 }}
+                  placeholder="اسم الصنف"
+                />
+              </div>
+              {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
+            </div>
+
+            <Field label="الباركود">
+              <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
+            </Field>
+          </div>
+
+          {clothingModuleEnabled ? (
+            <div className="product-form-grid-3" style={{ marginBottom: '0.85rem', padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
               <Field label="طبيعة الصنف">
                 <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>
                   <option value="standard">صنف عادي (بسيط)</option>
                   <option value="fashion">صنف بمتغيرات / Variant</option>
                 </select>
               </Field>
-            ) : null}
-            <Field label="اسم الصنف" error={form.formState.errors.name?.message}>
-              <input className="purchase-prototype-field-input" {...form.register('name')} disabled={isFormDisabled} style={{ fontWeight: 600 }} />
-            </Field>
-            <Field label="الباركود">
-              <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
-            </Field>
-            {watchedItemKind === 'fashion' ? (
-              <Field label="كود الموديل / الصنف الرئيسي">
-                <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري - أرقام فقط" />
-              </Field>
-            ) : null}
-            {watchedItemKind === 'fashion' ? <Field label="الخاصية 1 (اللون / الرائحة)"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
-            {watchedItemKind === 'fashion' ? <Field label="الخاصية 2 (المقاس / الحجم)"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field> : null}
-          </div>
+              {watchedItemKind === 'fashion' ? (
+                <>
+                  <Field label="كود الموديل / الصنف الرئيسي">
+                    <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري - أرقام فقط" />
+                  </Field>
+                  <Field label="الخاصية 1 (اللون / الرائحة)"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field>
+                  <Field label="الخاصية 2 (المقاس / الحجم)"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field>
+                </>
+              ) : null}
+            </div>
+          ) : null}
 
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
             <div className="product-form-grid-3">
