@@ -312,21 +312,20 @@ function ProductNameField({ value, onChange, allProducts, disabled, label, place
 
   return (
     <div className="field">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-        <label style={{ margin: 0 }}>{label}</label>
+      <label>{label}</label>
+      <div style={{ position: 'relative', display: 'flex', gap: '6px', alignItems: 'center' }}>
         {iconPicker}
-      </div>
-      <div style={{ position: 'relative' }}>
-        <input
-          className="purchase-prototype-field-input"
-          value={value}
-          onChange={(e) => { onChange(e.target.value); setShowSuggestions(true); }}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => window.setTimeout(() => setShowSuggestions(false), 150)}
-          disabled={disabled}
-          placeholder={placeholder}
-          style={{ width: '100%' }}
-        />
+        <div style={{ position: 'relative', flex: 1 }}>
+          <input
+            className="purchase-prototype-field-input"
+            value={value}
+            onChange={(e) => { onChange(e.target.value); setShowSuggestions(true); }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => window.setTimeout(() => setShowSuggestions(false), 150)}
+            disabled={disabled}
+            placeholder={placeholder}
+            style={{ width: '100%' }}
+          />
         {showSuggestions && similarProducts.length > 0 && (
           <div style={{
             position: 'absolute',
@@ -354,6 +353,7 @@ function ProductNameField({ value, onChange, allProducts, disabled, label, place
             ))}
           </div>
         )}
+        </div>
       </div>
       {error && <small className="field-error">{error}</small>}
     </div>

@@ -52,64 +52,62 @@ export function ProductIconPicker({
   }, [searchQuery, activeCategory]);
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
       {/* Trigger Button */}
       <button
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(true)}
+        title={selectedIcon ? `أيقونة الصنف: ${selectedIcon.name} (اضغط للتغيير)` : 'اختر أيقونة الصنف (SVG)'}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '4px 10px 4px 6px',
-          background: value ? '#f0fdf4' : '#ffffff',
-          border: value ? '1px solid #86efac' : '1px solid #cbd5e1',
-          borderRadius: '8px',
+          justifyContent: 'center',
+          width: '36px',
+          height: '34px',
+          padding: 0,
+          background: value ? '#eff6ff' : '#f8fafc',
+          border: value ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+          borderRadius: '6px',
           cursor: disabled ? 'not-allowed' : 'pointer',
           transition: 'all 0.15s ease',
-          fontSize: '0.82rem',
-          color: '#0f172a',
-          fontWeight: 600,
+          color: value ? '#1d4ed8' : '#94a3b8',
+          flexShrink: 0,
+          boxSizing: 'border-box',
         }}
       >
-        <div
-          style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '6px',
-            background: value ? '#dcfce7' : '#f1f5f9',
-            color: value ? '#166534' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <ProductIcon name={value} size={18} color={value ? '#166534' : '#64748b'} />
-        </div>
-        <span>{selectedIcon ? selectedIcon.name : 'أيقونة الصنف (SVG)'}</span>
+        <ProductIcon name={value || 'box-package'} size={18} color={value ? '#1d4ed8' : '#94a3b8'} />
       </button>
 
       {/* Clear Icon Button */}
       {value && !disabled && (
         <button
           type="button"
-          onClick={() => onChange('')}
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange('');
+          }}
           title="إزالة الأيقونة"
           style={{
-            border: 'none',
+            position: 'absolute',
+            top: '-5px',
+            right: '-5px',
+            border: '1px solid #fca5a5',
             background: '#fee2e2',
             color: '#b91c1c',
             borderRadius: '50%',
-            width: '22px',
-            height: '22px',
+            width: '16px',
+            height: '16px',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            fontSize: '0.75rem',
-            fontWeight: 700,
+            fontSize: '9px',
+            fontWeight: 800,
+            padding: 0,
+            lineHeight: 1,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            zIndex: 2,
           }}
         >
           ✕

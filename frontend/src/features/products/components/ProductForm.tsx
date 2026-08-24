@@ -334,16 +334,16 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
           </Field>
         ) : null}
         <div className="field">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <label style={{ margin: 0 }}>{usesVariantBuilder ? 'اسم الصنف الأساسي' : 'اسم الصنف'}</label>
+          <label>{usesVariantBuilder ? 'اسم الصنف الأساسي' : 'اسم الصنف'}</label>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
             <ProductIconPicker
               value={form.watch('icon')}
               onChange={(iconId) => form.setValue('icon', iconId, { shouldDirty: true })}
               industry={settingsQuery.data?.businessIndustry}
               disabled={mutation.isPending}
             />
+            <input style={{ flex: 1 }} {...form.register('name')} disabled={mutation.isPending} placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : undefined} />
           </div>
-          <input {...form.register('name')} disabled={mutation.isPending} placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : undefined} />
           {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
         </div>
 
