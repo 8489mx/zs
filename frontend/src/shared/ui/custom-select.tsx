@@ -172,6 +172,16 @@ export function CustomSelect({
         <input
           ref={inputRef}
           type="text"
+          name="custom_select_search_field"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-form-type="other"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
           disabled={disabled}
           value={query}
           placeholder={placeholder}
@@ -198,6 +208,10 @@ export function CustomSelect({
             if (disabled) return;
             setIsOpen(true);
             inputRef.current?.select();
+          }}
+          onClick={() => {
+            if (disabled) return;
+            if (!isOpen) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
         />

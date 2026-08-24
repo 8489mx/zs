@@ -152,6 +152,16 @@ export function UnitCombobox({ value, onChange, placeholder = 'اختر أو ا�
         <input
           ref={inputRef}
           type="text"
+          name="unit_combobox_search"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-form-type="other"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
           disabled={disabled}
           value={isOpen ? searchTerm : value}
           placeholder={placeholder}

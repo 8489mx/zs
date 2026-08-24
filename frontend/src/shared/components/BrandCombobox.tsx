@@ -207,6 +207,16 @@ export function BrandCombobox({
       <div style={{ position: 'relative' }}>
         <input
           type="text"
+          name="brand_combobox_search"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-form-type="other"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
           className="purchase-prototype-field-input"
           value={value}
           onChange={(e) => {
