@@ -1093,7 +1093,7 @@ const ICONS_MAP = new Map<string, ProductIconItem>(PRODUCT_SVG_ICONS.map((i) => 
 export function ProductIcon({
   name,
   size = 20,
-  color = 'currentColor',
+  color,
   className = '',
   fallback = true,
 }: {
@@ -1103,18 +1103,20 @@ export function ProductIcon({
   className?: string;
   fallback?: boolean;
 }) {
+  const iconColor = color || 'var(--product-icon-color, #2563eb)';
+
   if (!name) {
     if (!fallback) return null;
     const defaultIcon = ICONS_MAP.get('box-package');
-    return defaultIcon ? defaultIcon.svg({ size, color, className }) : null;
+    return defaultIcon ? defaultIcon.svg({ size, color: iconColor, className: `z-product-icon ${className}` }) : null;
   }
 
   const iconItem = ICONS_MAP.get(name);
   if (!iconItem) {
     if (!fallback) return null;
     const defaultIcon = ICONS_MAP.get('box-package');
-    return defaultIcon ? defaultIcon.svg({ size, color, className }) : null;
+    return defaultIcon ? defaultIcon.svg({ size, color: iconColor, className: `z-product-icon ${className}` }) : null;
   }
 
-  return iconItem.svg({ size, color, className });
+  return iconItem.svg({ size, color: iconColor, className: `z-product-icon ${className}` });
 }

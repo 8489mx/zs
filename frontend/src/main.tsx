@@ -47,6 +47,9 @@ window.addEventListener('unhandledrejection', (event) => {
 
 import { ActivationGuard } from '@/shared/components/ActivationGuard';
 import { SilentErrorBoundary } from '@/core/components/SilentErrorBoundary';
+import { initProductIconTheme } from '@/shared/components/icons/product-icon-theme';
+
+initProductIconTheme();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

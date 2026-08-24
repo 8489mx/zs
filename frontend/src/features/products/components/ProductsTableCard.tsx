@@ -15,6 +15,7 @@ import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { getProductLocationDisplayName } from '../utils/product-location.utils';
 import { ProductsMatrixView } from './ProductsMatrixView';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
+import { ProductIconStudioModal } from '@/shared/components/icons/ProductIconStudioModal';
 
 export interface ProductsTableCardProps {
   search: string;
@@ -96,6 +97,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [activeNoteModal, setActiveNoteModal] = useState<{ productName: string; note: string } | null>(null);
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [autoAssignMsg, setAutoAssignMsg] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null);
 
   const filteredProducts = useMemo(() => {
@@ -165,6 +167,40 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
     }
   }
 
+  async function handleClearAllIcons() {
+    try {
+      setIsAutoAssigning(true);
+      setAutoAssignMsg(null);
+
+      const { products } = await productsApi.listAll();
+      const updates = products
+        .filter((p) => Boolean(p.icon))
+        .map((p) => ({ id: Number(p.id), icon: '' }));
+
+      if (updates.length === 0) {
+        setAutoAssignMsg({
+          type: 'info',
+          text: 'جميع الأصناف في النظام خالية من الأيقونات بالفعل.'
+        });
+        return;
+      }
+
+      await productsApi.bulkUpdateIcons(updates);
+      await invalidateCatalogDomain(queryClient, { includeProducts: true });
+      setAutoAssignMsg({
+        type: 'success',
+        text: `تم بنجاح إزالة وتفريغ الأيقونات لعدد (${updates.length}) صنف، والعودة للحالة بدون أيقونات!`
+      });
+    } catch {
+      setAutoAssignMsg({
+        type: 'error',
+        text: 'حدث خطأ أثناء تفريغ الأيقونات، يرجى إعادة المحاولة.'
+      });
+    } finally {
+      setIsAutoAssigning(false);
+    }
+  }
+
   return (
     <FormSection 
       title="قائمة الأصناف الحالية" 
@@ -172,6 +208,20 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
       actions={
         <div className="actions compact-actions">
           <span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span>
+          <Button
+            variant="secondary"
+            onClick={() => setIsStudioOpen(true)}
+            style={{
+              background: '#f8fafc',
+              color: '#334155',
+              borderColor: '#cbd5e1',
+              fontWeight: 700,
+              fontSize: '12px',
+            }}
+            title="تخصيص ألوان الأيقونات لكل المنظومة أو إلغاء وتفريغ الأيقونات"
+          >
+            🎨 تخصيص الأيقونات
+          </Button>
           <Button
             variant="secondary"
             onClick={() => void handleAutoAssignIcons()}
@@ -761,6 +811,14 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             </div>
           </DialogShell>
         )}
+
+        <ProductIconStudioModal
+          open={isStudioOpen}
+          onClose={() => setIsStudioOpen(false)}
+          onBulkAutoAssign={() => void handleAutoAssignIcons()}
+          onBulkClearIcons={() => void handleClearAllIcons()}
+          isBulkLoading={isAutoAssigning}
+        />
       </QueryFeedback>
     </FormSection>
   );

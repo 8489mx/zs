@@ -16,6 +16,7 @@ import type { Product } from '@/types/domain';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
+import { ProductIconStudioModal } from '@/shared/components/icons/ProductIconStudioModal';
 
 interface PosProductsPanelProps {
   search: string;
@@ -256,6 +257,7 @@ function PosProductsPanelComponent({
     categories = categoriesQuery.data || [];
   } catch {}
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
 
   const categoryFilteredProducts = useMemo(() => {
     if (!selectedCategoryId) return products;
@@ -692,6 +694,31 @@ function PosProductsPanelComponent({
           >
             {cardDensity === 'compact' ? 'كروت مضغوطة' : 'كروت موسعة'}
           </button>
+
+          {/* Icon Theme Studio Button */}
+          <button
+            type="button"
+            onClick={() => setIsStudioOpen(true)}
+            title="تخصيص ألوان ومظهر أيقونات الأصناف"
+            style={{
+              padding: '4px 9px',
+              fontSize: '11px',
+              borderRadius: '7px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#334155',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>🎨</span>
+            <span>الأيقونات</span>
+          </button>
         </div>
 
         {visibleRecentGroups.length ? (
@@ -1026,6 +1053,11 @@ function PosProductsPanelComponent({
             searchInputRef={searchInputRef}
           />
         ) : null}
+
+        <ProductIconStudioModal
+          open={isStudioOpen}
+          onClose={() => setIsStudioOpen(false)}
+        />
       </div>
     </Card>
   );
