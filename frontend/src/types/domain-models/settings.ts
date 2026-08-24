@@ -16,6 +16,7 @@ export interface AppSettings {
   autoBackup?: 'on' | 'off' | string;
   accentColor?: string;
   logoData?: string;
+  businessIndustry?: string;
   currentBranchId?: string;
   currentLocationId?: string;
   printShowDocumentType?: boolean;

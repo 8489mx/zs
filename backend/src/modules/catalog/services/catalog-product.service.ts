@@ -930,6 +930,8 @@ export class CatalogProductService {
         units: context.unitsByProduct.get(String(product.id)) || [{ id: `base-${product.id}`, name: 'قطعة', multiplier: 1, barcode: product.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }],
         offers: context.offersByProduct.get(String(product.id)) || [],
         customerPrices: context.pricesByProduct.get(String(product.id)) || [],
+        icon: (product as any).metadata?.icon || (typeof (product as any).metadata === 'string' ? (() => { try { return JSON.parse((product as any).metadata)?.icon; } catch { return null; } })() : null) || null,
+        metadata: (product as any).metadata || null,
       };
       if (!context.canViewCost) delete mapped.costPrice;
       return mapped;
@@ -1055,6 +1057,8 @@ export class CatalogProductService {
       offers,
       customerPrices,
       fashionVariants,
+      icon: payload.icon ? String(payload.icon).trim() : undefined,
+      metadata: payload.metadata || (payload.icon ? { icon: String(payload.icon).trim() } : undefined),
       stock: payload.stock != null ? Number(payload.stock) : undefined,
       warehouseId: payload.warehouseId ? Number(payload.warehouseId) : undefined,
     };
@@ -1330,6 +1334,7 @@ export class CatalogProductService {
     await this.db.transaction().execute(async (trx) => {
       for (const draft of drafts) {
         const initialStockQty = Number(draft.stock || 0);
+        const metaObj = draft.metadata || (draft.icon ? { icon: draft.icon } : null);
         const result = await trx
           .insertInto('products')
           .values({
@@ -1351,6 +1356,7 @@ export class CatalogProductService {
             min_stock_qty: draft.minStock,
             default_location_id: resolvedLocationId,
             notes: draft.notes,
+            metadata: metaObj ? JSON.stringify(metaObj) : null,
             is_active: true,
             ...this.tenantFields(actor),
           } as any)
@@ -1404,6 +1410,7 @@ export class CatalogProductService {
       throw new AppError('Stock cannot be edited from product master data. Use inventory adjustment.', 'STOCK_UPDATE_FORBIDDEN', 400);
     }
 
+    const metaObj = normalized.metadata || (normalized.icon ? { icon: normalized.icon } : null);
     await this.db.transaction().execute(async (trx) => {
       await trx.updateTable('products').set({
         name: normalized.name,
@@ -1423,8 +1430,9 @@ export class CatalogProductService {
         min_stock_qty: normalized.minStock,
         default_location_id: normalized.warehouseId || null,
         notes: normalized.notes,
+        metadata: metaObj ? JSON.stringify(metaObj) : null,
         updated_at: sql`NOW()`,
-      }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      } as any).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
       await this.replaceProductRelations(trx, id, normalized, actor);
     });
 

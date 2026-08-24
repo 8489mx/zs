@@ -4,6 +4,18 @@ import type { Branch, Location } from '@/types/domain';
 import { SUPPORTED_CURRENCIES } from '@/lib/currencies';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboCreateStyle } from '@/features/settings/components/forms/settings-forms.shared';
+import { CustomSelect } from '@/shared/ui/custom-select';
+
+const INDUSTRY_OPTIONS = [
+  { value: 'general', label: '🌐 تجارة عامة ومتنوعة (افتراضي)' },
+  { value: 'spices', label: '🌿 عطارة وبقوليات ومحامص' },
+  { value: 'fashion', label: '👔 ملابس وأحذية وأزياء' },
+  { value: 'perfumes', label: '🧼 عطور ومستحضرات تجميل ومنظفات' },
+  { value: 'pharmacy', label: '💊 صيدلية ومستلزمات طبية' },
+  { value: 'electronics', label: '📱 موبايلات وإلكترونيات وصيانة' },
+  { value: 'supermarket', label: '🛒 سوبر ماركت وبقالة وأغذية' },
+  { value: 'cafe', label: '☕ كافيهات ومطاعم وسناك' },
+];
 
 interface GeneralTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -212,6 +224,20 @@ export function GeneralSettingsTab({
                 style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
             </RequiredField>
+
+            <div className="field">
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>نوع النشاط التجاري الرئيسي للمنشأة</span>
+                <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>يحدد تفضيلات الأيقونات والأدوات الذكية</span>
+              </label>
+              <CustomSelect
+                value={form.watch('businessIndustry') || 'general'}
+                onChange={(val) => form.setValue('businessIndustry', val as any, { shouldDirty: true, shouldValidate: true })}
+                options={INDUSTRY_OPTIONS}
+                disabled={disabled}
+                placeholder="اختر نوع النشاط..."
+              />
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div className="field">

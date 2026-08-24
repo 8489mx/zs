@@ -21,6 +21,7 @@ export const productFormSchema = z.object({
   warehouseId: z.string().optional().or(z.literal('')),
   binLocation: z.string().optional(),
   notes: z.string().optional(),
+  icon: z.string().optional(),
   trackSerials: z.boolean().default(false),
   isCombo: z.boolean().default(false),
   comboComponents: z.array(z.object({

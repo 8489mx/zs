@@ -15,6 +15,7 @@ import {
 import type { Product } from '@/types/domain';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
+import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 
 interface PosProductsPanelProps {
   search: string;
@@ -826,7 +827,14 @@ function PosProductsPanelComponent({
                       }}
                       onFocus={() => setSelectedIndex(index)}
                     >
-                      <strong>{group.title}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        {group.products[0]?.icon && (
+                          <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#eff6ff', color: '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <ProductIcon name={group.products[0].icon} size={18} />
+                          </div>
+                        )}
+                        <strong style={{ flex: 1 }}>{group.title}</strong>
+                      </div>
                       <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
                       {group.hasVariants ? (
                         <div className="pos-group-tags">
@@ -885,28 +893,35 @@ function PosProductsPanelComponent({
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <strong
-                          style={{
-                            fontSize: '0.88rem',
-                            fontWeight: 800,
-                            color: '#0f172a',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {group.title}
-                        </strong>
-                        {group.hasVariants ? (
-                          <div style={{ marginTop: '3px' }}>
-                            <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
-                              {group.products.length} مقاسات
-                            </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                        {group.products[0]?.icon && (
+                          <div style={{ width: '24px', height: '24px', borderRadius: '5px', background: '#eff6ff', color: '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <ProductIcon name={group.products[0].icon} size={15} />
                           </div>
-                        ) : null}
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <strong
+                            style={{
+                              fontSize: '0.88rem',
+                              fontWeight: 800,
+                              color: '#0f172a',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {group.title}
+                          </strong>
+                          {group.hasVariants ? (
+                            <div style={{ marginTop: '3px' }}>
+                              <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
+                                {group.products.length} مقاسات
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
 
                       <button

@@ -17,6 +17,7 @@ import { buildFashionVariantDrafts, splitFashionTokens, type FashionVariantDraft
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
+import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
 
 const normalizeLookupText = (value: unknown) => normalizeArabicSearchKey(value);
 
@@ -47,6 +48,7 @@ function getDefaultValues(
   return {
     name: initialName,
     barcode: initialBarcode,
+    itemType: 'product',
     itemKind,
     styleCode: '',
     color: '',
@@ -63,6 +65,7 @@ function getDefaultValues(
     supplierId: '',
     warehouseId: '',
     notes: '',
+    icon: '',
     trackSerials: false,
     isCombo: false,
     comboComponents: []
@@ -295,9 +298,10 @@ interface ProductNameFieldProps {
   label: string;
   placeholder?: string;
   error?: string;
+  iconPicker?: React.ReactNode;
 }
 
-function ProductNameField({ value, onChange, allProducts, disabled, label, placeholder, error }: ProductNameFieldProps) {
+function ProductNameField({ value, onChange, allProducts, disabled, label, placeholder, error, iconPicker }: ProductNameFieldProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const similarProducts = useMemo(() => {
@@ -308,7 +312,10 @@ function ProductNameField({ value, onChange, allProducts, disabled, label, place
 
   return (
     <div className="field">
-      <label>{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <label style={{ margin: 0 }}>{label}</label>
+        {iconPicker}
+      </div>
       <div style={{ position: 'relative' }}>
         <input
           className="purchase-prototype-field-input"
@@ -776,6 +783,14 @@ export function NewProductForm({
               disabled={isFormDisabled}
               placeholder={usesVariantBuilder ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}
               error={form.formState.errors.name?.message}
+              iconPicker={
+                <ProductIconPicker
+                  value={form.watch('icon')}
+                  onChange={(iconId) => form.setValue('icon', iconId, { shouldDirty: true })}
+                  industry={settingsQuery.data?.businessIndustry}
+                  disabled={isFormDisabled}
+                />
+              }
             />
 
             {usesVariantBuilder ? (

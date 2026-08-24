@@ -51,6 +51,7 @@ export interface Product {
   binLocation?: string;
   trackSerials?: boolean;
   matchedSerialNumber?: string | null;
+  icon?: string | null;
   metadata?: Record<string, any>;
 }
 

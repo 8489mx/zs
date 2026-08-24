@@ -10,6 +10,7 @@ import type { Product } from '@/types/domain';
 
 import { getProductLocationDisplayName } from '../utils/product-location.utils';
 import { ProductsMatrixView } from './ProductsMatrixView';
+import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 
 export interface ProductsTableCardProps {
   search: string;
@@ -290,9 +291,16 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                         <input type="checkbox" aria-label={`تحديد الصنف ${product.name}`} checked={props.selectedIds.includes(String(product.id))} onChange={(event) => toggleGroupSelection(group, event.target.checked)} />
                       </td>
                       <td>
-                        <div>
-                          <strong>{product.name}</strong>
-                          <div className="muted small">{(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {product.icon && (
+                            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#f1f5f9', color: '#170c5c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <ProductIcon name={product.icon} size={16} />
+                            </div>
+                          )}
+                          <div>
+                            <strong>{product.name}</strong>
+                            <div className="muted small">{(product.units || []).map((unit) => `${unit.name} × ${unit.multiplier || 1}`).join(' / ') || 'قطعة'}</div>
+                          </div>
                         </div>
                       </td>
                       <td>{product.barcode || '—'}</td>

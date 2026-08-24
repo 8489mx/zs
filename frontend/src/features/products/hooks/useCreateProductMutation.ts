@@ -90,6 +90,7 @@ function buildProductPayload(values: ProductFormValues) {
     warehouseId: values.warehouseId ? Number(values.warehouseId) : undefined,
     binLocation: normalizeArabicInput(values.binLocation || ''),
     notes: normalizeArabicInput(values.notes || ''),
+    icon: values.icon || undefined,
     units,
     customerPrices: [],
     fashionVariants,

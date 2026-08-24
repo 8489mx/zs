@@ -232,6 +232,13 @@ export class UpsertProductDto {
   @ValidateNested({ each: true })
   @Type(() => ProductFashionVariantDto)
   fashionVariants?: ProductFashionVariantDto[];
+
+  @IsOptional()
+  @IsString()
+  icon?: string;
+
+  @IsOptional()
+  metadata?: Record<string, any>;
 }
 
 export type NormalizedProductUnit = {
@@ -289,6 +296,8 @@ export type NormalizedUpsertProduct = {
   offers: NormalizedProductOffer[];
   customerPrices: NormalizedProductCustomerPrice[];
   fashionVariants: NormalizedFashionVariant[];
+  icon?: string;
+  metadata?: Record<string, any>;
   stock?: number;
   warehouseId?: number;
 };

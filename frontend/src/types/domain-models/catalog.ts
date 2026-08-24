@@ -56,6 +56,7 @@ export interface Product {
   activeLocationIds?: string[];
   trackSerials?: boolean;
   matchedSerialNumber?: string | null;
+  icon?: string | null;
 }
 
 export interface Category {

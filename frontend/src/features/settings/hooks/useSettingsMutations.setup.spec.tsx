@@ -44,6 +44,7 @@ const baseSettingsMutationValues = {
   autoBackup: 'on' as const,
   accentColor: '#170c5c',
   logoData: '',
+  businessIndustry: 'general' as const,
   currentBranchId: '',
   currentLocationId: '',
   manufacturingModuleEnabled: false,
