@@ -397,7 +397,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   });
 
   return (
-    <form id="settings-main-form" className="page-stack settings-core-form" dir="rtl" onSubmit={submit}>
+    <form id="settings-main-form" className="page-stack settings-core-form" dir="rtl" autoComplete="off" onSubmit={submit}>
       
 
         {/* الإشعارات والأخطاء */}

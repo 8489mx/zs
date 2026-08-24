@@ -332,6 +332,10 @@ export function GeneralSettingsTab({
               <input
                 className="purchase-prototype-field-input"
                 placeholder="مثال: محلات رجب العطار"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-lpignore="true"
                 {...form.register('storeName')}
                 disabled={disabled}
                 style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
@@ -361,6 +365,9 @@ export function GeneralSettingsTab({
                 <input
                   className="purchase-prototype-field-input"
                   placeholder="010xxxxxxxx"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  data-lpignore="true"
                   {...form.register('phone')}
                   disabled={disabled}
                   style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
@@ -372,6 +379,9 @@ export function GeneralSettingsTab({
                 <input
                   className="purchase-prototype-field-input"
                   placeholder="المدينة - الشارع"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  data-lpignore="true"
                   {...form.register('address')}
                   disabled={disabled}
                   style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
@@ -452,6 +462,14 @@ export function GeneralSettingsTab({
                     className="purchase-prototype-field-input"
                     value={branchQuery}
                     placeholder="ابحث أو اكتب اسم فرع جديد لإضافته"
+                    name="settings_branch_search"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-form-type="other"
+                    role="combobox"
+                    aria-expanded={branchMenuOpen}
                     disabled={disabled}
                     onFocus={() => setBranchMenuOpen(true)}
                     onChange={(event) => {
