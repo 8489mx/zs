@@ -6,6 +6,16 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboCreateStyle } from '@/features/settings/components/forms/settings-forms.shared';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
+import { useAuthStore } from '@/stores/auth-store';
+
+function LockIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle', marginInlineEnd: '3px' }}>
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
 
 const INDUSTRY_OPTIONS = [
   { value: 'general', label: 'تجارة عامة ومتنوعة (افتراضي)', icon: <ProductIcon name="box-package" size={16} /> },
@@ -204,6 +214,8 @@ export function GeneralSettingsTab({
   const brandName = form.watch('brandName');
   const accentColor = form.watch('accentColor') || '#170c5c';
   const logoData = form.watch('logoData');
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = user?.role === 'super_admin';
 
   if (activeTab !== 'general') return null;
 
@@ -345,17 +357,28 @@ export function GeneralSettingsTab({
             <div className="field">
               <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>نوع النشاط التجاري الرئيسي للمنشأة</span>
-                <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>يضبط الموديولات والأدوات تلقائياً</span>
+                {!isSuperAdmin ? (
+                  <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                    <LockIcon size={11} /> خاص بإدارة المنصة
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>يضبط الموديولات والأدوات تلقائياً</span>
+                )}
               </label>
               <CustomSelect
                 value={form.watch('businessIndustry') || 'general'}
                 onChange={(val) => applyIndustryAutomation(val, form.setValue)}
                 options={INDUSTRY_OPTIONS}
-                disabled={disabled}
+                disabled={disabled || !isSuperAdmin}
                 placeholder="اختر نوع النشاط..."
               />
               <div style={{ marginTop: '5px', fontSize: '0.74rem', color: '#475569', background: '#f8fafc', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                 {getIndustrySummary(form.watch('businessIndustry') || 'general')}
+                {!isSuperAdmin && (
+                  <div style={{ marginTop: '4px', fontSize: '0.7rem', color: '#92400e', fontWeight: 600 }}>
+                    ملاحظة: لتغيير نوع النشاط التجاري للمنشأة، يرجى التواصل مع إدارة المنصة (Super Admin).
+                  </div>
+                )}
               </div>
             </div>
 
