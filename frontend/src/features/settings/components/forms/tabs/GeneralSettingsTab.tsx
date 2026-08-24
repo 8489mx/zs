@@ -9,14 +9,126 @@ import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 
 const INDUSTRY_OPTIONS = [
   { value: 'general', label: 'تجارة عامة ومتنوعة (افتراضي)', icon: <ProductIcon name="box-package" size={16} /> },
-  { value: 'spices', label: 'عطارة وبقوليات ومحامص', icon: <ProductIcon name="spice-mortar" size={16} /> },
+  { value: 'spices', label: 'عطارة وبقوليات ومحامص', icon: <ProductIcon name="herb-leaf" size={16} /> },
   { value: 'fashion', label: 'ملابس وأحذية وأزياء', icon: <ProductIcon name="tshirt" size={16} /> },
   { value: 'perfumes', label: 'عطور ومستحضرات تجميل ومنظفات', icon: <ProductIcon name="perfume-spray" size={16} /> },
   { value: 'pharmacy', label: 'صيدلية ومستلزمات طبية', icon: <ProductIcon name="pill-capsule" size={16} /> },
   { value: 'electronics', label: 'موبايلات وإلكترونيات وصيانة', icon: <ProductIcon name="smartphone" size={16} /> },
-  { value: 'supermarket', label: 'سوبر ماركت وبقالة وأغذية', icon: <ProductIcon name="can-food" size={16} /> },
+  { value: 'supermarket', label: 'سوبر ماركت وبقالة وأغذية', icon: <ProductIcon name="cart-shopping" size={16} /> },
   { value: 'cafe', label: 'كافيهات ومطاعم وسناك', icon: <ProductIcon name="coffee-cup" size={16} /> },
 ];
+
+function applyIndustryAutomation(
+  industry: string,
+  setValue: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>['setValue']
+) {
+  setValue('businessIndustry', industry as any, { shouldDirty: true, shouldValidate: true });
+
+  switch (industry) {
+    case 'spices':
+      setValue('clothingModuleEnabled', true, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', true, { shouldDirty: true });
+      setValue('weightedBarcodeEnabled', true, { shouldDirty: true });
+      setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      break;
+
+    case 'supermarket':
+      setValue('weightedBarcodeEnabled', true, { shouldDirty: true });
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      setValue('clothingModuleEnabled', false, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
+      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      break;
+
+    case 'fashion':
+      setValue('clothingModuleEnabled', true, { shouldDirty: true });
+      setValue('defaultProductKind', 'fashion', { shouldDirty: true });
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
+      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      break;
+
+    case 'perfumes':
+      setValue('clothingModuleEnabled', true, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', true, { shouldDirty: true });
+      setValue('defaultProductKind', 'fashion', { shouldDirty: true });
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
+      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      break;
+
+    case 'pharmacy':
+      setValue('enablePharmacyModule', true, { shouldDirty: true });
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      setValue('clothingModuleEnabled', false, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
+      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      break;
+
+    case 'electronics':
+      setValue('enableMobileStoreFeatures', true, { shouldDirty: true });
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      setValue('clothingModuleEnabled', false, { shouldDirty: true });
+      setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
+      setValue('restaurantModuleEnabled', false, { shouldDirty: true });
+      break;
+
+    case 'cafe':
+      setValue('restaurantModuleEnabled', true, { shouldDirty: true });
+      setValue('posKitchenPrinterEnabled', true, { shouldDirty: true });
+      setValue('defaultPosMode', 'touch', { shouldDirty: true });
+      setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      setValue('clothingModuleEnabled', false, { shouldDirty: true });
+      setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
+      break;
+
+    case 'general':
+    default:
+      setValue('defaultPosMode', 'scanner', { shouldDirty: true });
+      setValue('defaultProductKind', 'standard', { shouldDirty: true });
+      break;
+  }
+}
+
+function getIndustrySummary(industry: string): string {
+  switch (industry) {
+    case 'spices':
+      return 'تم تفعيل خلطات وتصنيع التوابل + موديول المتغيرات والأوزان + باركود الميزان الإلكتروني.';
+    case 'supermarket':
+      return 'تم تفعيل باركود الميزان الإلكتروني + وضع الكاشير السريع (Scanner).';
+    case 'fashion':
+      return 'تم تفعيل موديول الملابس والمقاسات + مصفوفة الأصناف المتغيرة تلقائياً.';
+    case 'perfumes':
+      return 'تم تفعيل موديول تركيبات العطور + متغيرات الأحجام والعبوات تلقائياً.';
+    case 'pharmacy':
+      return 'تم تفعيل موديول الصيدلية والأدوية وتتبع تواريخ الصلاحية.';
+    case 'electronics':
+      return 'تم تفعيل موديول صيانة الموبايل وتتبع أرقام السيريال والـ IMEI.';
+    case 'cafe':
+      return 'تم تفعيل موديول المطاعم والكافيهات + طابعة المطبخ + شاشة اللمس.';
+    case 'general':
+    default:
+      return 'الوضع القياسي المتوازن لكافة الأنشطة التجارية المتنوعة.';
+  }
+}
 
 interface GeneralTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -229,15 +341,18 @@ export function GeneralSettingsTab({
             <div className="field">
               <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>نوع النشاط التجاري الرئيسي للمنشأة</span>
-                <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>يحدد تفضيلات الأيقونات والأدوات الذكية</span>
+                <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>يضبط الموديولات والأدوات تلقائياً</span>
               </label>
               <CustomSelect
                 value={form.watch('businessIndustry') || 'general'}
-                onChange={(val) => form.setValue('businessIndustry', val as any, { shouldDirty: true, shouldValidate: true })}
+                onChange={(val) => applyIndustryAutomation(val, form.setValue)}
                 options={INDUSTRY_OPTIONS}
                 disabled={disabled}
                 placeholder="اختر نوع النشاط..."
               />
+              <div style={{ marginTop: '5px', fontSize: '0.74rem', color: '#475569', background: '#f8fafc', padding: '5px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                {getIndustrySummary(form.watch('businessIndustry') || 'general')}
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

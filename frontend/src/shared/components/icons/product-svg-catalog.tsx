@@ -14,12 +14,12 @@ export interface IconCategoryMeta {
 }
 
 export const PRODUCT_ICON_CATEGORIES: IconCategoryMeta[] = [
-  { id: 'spices', title: 'عطارة وبقوليات ومحامص', iconName: 'spice-mortar' },
+  { id: 'spices', title: 'عطارة وبقوليات ومحامص', iconName: 'herb-leaf' },
   { id: 'fashion', title: 'ملابس وأحذية وأزياء', iconName: 'tshirt' },
   { id: 'perfumes', title: 'عطور ومستحضرات تجميل', iconName: 'perfume-spray' },
   { id: 'pharmacy', title: 'صيدلية ومستلزمات طبية', iconName: 'pill-capsule' },
   { id: 'electronics', title: 'موبايلات وإلكترونيات', iconName: 'smartphone' },
-  { id: 'supermarket', title: 'سوبرماركت وبقالة', iconName: 'can-food' },
+  { id: 'supermarket', title: 'سوبرماركت وبقالة', iconName: 'cart-shopping' },
   { id: 'cafe', title: 'كافيهات ومطاعم', iconName: 'coffee-cup' },
   { id: 'general', title: 'عام وتجاري', iconName: 'box-package' },
 ];
