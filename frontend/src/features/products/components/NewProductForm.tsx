@@ -478,6 +478,8 @@ export function NewProductForm({
   const watchedWarehouseId = useWatch({ control: form.control, name: 'warehouseId' });
   const watchedIsCombo = useWatch({ control: form.control, name: 'isCombo' });
   const watchedCostPrice = form.watch('costPrice');
+  const watchedRetailPrice = form.watch('retailPrice');
+  const watchedWholesalePrice = form.watch('wholesalePrice');
   const usesVariantBuilder = watchedItemKind === 'fashion' || groupedEntryEnabled;
 
   const colorTokens = useMemo(() => splitFashionTokens(watchedFashionColors), [watchedFashionColors]);
