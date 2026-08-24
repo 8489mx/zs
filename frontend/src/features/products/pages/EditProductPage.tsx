@@ -266,8 +266,23 @@ export function EditProductPage() {
 
         {/* 1. Core Info & Pricing */}
         <div className="product-compact-card">
-          <div className="product-compact-card-header">
-            <h3 className="product-compact-card-title">بيانات الصنف والأسعار</h3>
+          <div className="product-compact-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h3 className="product-compact-card-title" style={{ margin: 0 }}>بيانات الصنف والأسعار</h3>
+              {clothingModuleEnabled ? (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#f8fafc', padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>طبيعة الصنف:</span>
+                  <select
+                    style={{ padding: '2px 8px', fontSize: '0.76rem', height: '26px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', fontWeight: 600, color: '#1e293b' }}
+                    {...form.register('itemKind')}
+                    disabled={isFormDisabled}
+                  >
+                    <option value="standard">صنف عادي (بسيط)</option>
+                    <option value="fashion">صنف بمتغيرات / Variant</option>
+                  </select>
+                </div>
+              ) : null}
+            </div>
             <span className="muted small">المعلومات الأساسية وقائمة الأسعار</span>
           </div>
 
@@ -307,23 +322,13 @@ export function EditProductPage() {
             </Field>
           </div>
 
-          {clothingModuleEnabled ? (
+          {clothingModuleEnabled && watchedItemKind === 'fashion' ? (
             <div className="product-form-grid-3" style={{ marginBottom: '0.85rem', padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-              <Field label="طبيعة الصنف">
-                <select className="purchase-prototype-field-input" {...form.register('itemKind')} disabled={isFormDisabled}>
-                  <option value="standard">صنف عادي (بسيط)</option>
-                  <option value="fashion">صنف بمتغيرات / Variant</option>
-                </select>
+              <Field label="كود الموديل / الصنف الرئيسي">
+                <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري - أرقام فقط" />
               </Field>
-              {watchedItemKind === 'fashion' ? (
-                <>
-                  <Field label="كود الموديل / الصنف الرئيسي">
-                    <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="اختياري - أرقام فقط" />
-                  </Field>
-                  <Field label="الخاصية 1 (اللون / الرائحة)"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field>
-                  <Field label="الخاصية 2 (المقاس / الحجم)"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field>
-                </>
-              ) : null}
+              <Field label="الخاصية 1 (اللون / الرائحة)"><input className="purchase-prototype-field-input" {...form.register('color')} disabled={isFormDisabled} placeholder="اختياري" /></Field>
+              <Field label="الخاصية 2 (المقاس / الحجم)"><input className="purchase-prototype-field-input" {...form.register('size')} disabled={isFormDisabled} placeholder="اختياري" /></Field>
             </div>
           ) : null}
 
