@@ -44,6 +44,7 @@ export interface Product {
   itemType?: 'product' | 'raw_material' | 'service';
   itemKind?: 'standard' | 'fashion';
   styleCode?: string;
+  sku?: string;
   color?: string;
   size?: string;
   status?: string;
