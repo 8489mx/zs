@@ -520,6 +520,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('set-fullscreen', (event, flag) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       if (flag) {
+        mainWindow.maximize();
         mainWindow.setFullScreen(true);
       } else {
         mainWindow.setFullScreen(false);
