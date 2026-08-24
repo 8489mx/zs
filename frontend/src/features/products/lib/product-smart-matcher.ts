@@ -47,34 +47,37 @@ const RULES: MatchRule[] = [
   { icon: 'pickles-jar', keywords: ['مخلل', 'طرشي', 'زيتون مخلل', 'خيار مخلل', 'ليمون معصفر'] },
 
   // Supermarket & Groceries
-  { icon: 'milk-carton', keywords: ['حليب', 'لبن', 'لبن رايب', 'حليب بودرة', 'نيدو', 'جهينة', 'المراعي', 'milk'] },
-  { icon: 'cheese-wedge', keywords: ['جبنة', 'جبن', 'رومي', 'شيدر', 'موزاريلا', 'فيتا', 'براميلي', 'اسطنبولي', 'فلمنك', 'كيري', 'قريش', 'cheese'] },
-  { icon: 'yogurt-cup', keywords: ['زبادي', 'زبادي لايت', 'دانيت', 'دانون', 'قشطة', 'قشطه', 'yogurt'] },
+  { icon: 'milk-carton', keywords: ['حليب', 'لبن', 'لبن رايب', 'حليب بودرة', 'نيدو', 'جهينة', 'المراعي', 'بخيره', 'لمار', 'milk'] },
+  { icon: 'cheese-wedge', keywords: ['جبنة', 'جبن', 'رومي', 'شيدر', 'موزاريلا', 'فيتا', 'براميلي', 'اسطنبولي', 'فلمنك', 'كيري', 'قريش', 'دومتي', 'عبور لاند', 'طعمية', 'cheese'] },
+  { icon: 'yogurt-cup', keywords: ['زبادي', 'زبادي لايت', 'دانيت', 'دانون', 'قشطة', 'قشطه', 'زبادو', 'yogurt'] },
   { icon: 'egg-carton', keywords: ['بيض', 'بيض احمر', 'بيض ابيض', 'كرتونة بيض', 'طبق بيض', 'eggs'] },
   { icon: 'bread-loaf', keywords: ['خبز', 'عيش', 'فينو', 'توست', 'باتيه', 'كرواسون', 'مولتو', 'بقسماط', 'مخبوزات', 'bread'] },
-  { icon: 'pasta-noodles', keywords: ['مكرونة', 'مكرونه', 'نودلز', 'اندومي', 'شعرية', 'لسان عصفور', 'سباغيتي', 'pasta', 'noodles', 'indomie'] },
-  { icon: 'rice-bag', keywords: ['ارز', 'رز', 'سكر', 'دقيق', 'نشا', 'سميد', 'شيكارة', 'rice', 'sugar', 'flour'] },
-  { icon: 'canned-tuna', keywords: ['تونة', 'تونه', 'سردين', 'ماكريل', 'سلمون', 'بلوبيف', 'معلبات', 'tuna'] },
-  { icon: 'tomato-paste', keywords: ['صلصة', 'صلصه', 'كاتشب', 'مايونيز', 'مسطردة', 'خل', 'صويا صوص', 'ketchup'] },
-  { icon: 'cooking-oil', keywords: ['زيت', 'زيت قلي', 'زيت ذرة', 'زيت عباد', 'سمنة', 'سمنه', 'سمن', 'زبدة', 'زبد', 'ghee', 'butter'] },
-  { icon: 'chips-crisps', keywords: ['شيبسي', 'شيبس', 'دوريتوس', 'مقرمشات', 'سناكس', 'كرانشي', 'تايجر', 'بوزو', 'chips'] },
-  { icon: 'biscuit-cookies', keywords: ['بسكويت', 'بسكوت', 'كوكيز', 'ويفر', 'كيك', 'براونيز', 'توداي', 'اوريو', 'بيمبو', 'biscuit', 'oreo'] },
-  { icon: 'chocolate-bar', keywords: ['شوكولاتة', 'شوكولاته', 'شيكولاته', 'نوتيلا', 'جالكسي', 'كادبوري', 'كيت كات', 'سنيكرز', 'chocolate', 'nutella'] },
-  { icon: 'candy-sweet', keywords: ['حلوى', 'مصاصة', 'مصاصه', 'بونبون', 'لبان', 'توفي', 'جيلي', 'مارشملو', 'candy'] },
-  { icon: 'water-bottle', keywords: ['مياه', 'ماء', 'مياه معدنية', 'نستله', 'داساني', 'اكوافينا', 'بركة', 'جالون مياه', 'water'] },
-  { icon: 'juice-carton', keywords: ['عصير', 'جهينة عصير', 'بيتي عصير', 'راني', 'تانج', 'سنتوب', 'juice'] },
+  { icon: 'pasta-noodles', keywords: ['مكرونة', 'مكرونه', 'نودلز', 'اندومي', 'شعرية', 'لسان عصفور', 'سباغيتي', 'الملكة', 'ايطاليانو', 'كايرو', 'pasta', 'noodles', 'indomie'] },
+  { icon: 'rice-bag', keywords: ['ارز', 'رز', 'سكر', 'دقيق', 'نشا', 'سميد', 'شيكارة', 'الجمال', 'الكوثر', 'الضحى', 'ريحانة', 'الزمردة', 'المطبخ', 'rice', 'sugar', 'flour'] },
+  { icon: 'canned-tuna', keywords: ['تونة', 'تونه', 'سردين', 'ماكريل', 'سلمون', 'بلوبيف', 'معلبات', 'صن شاين', 'دولفين', 'tuna'] },
+  { icon: 'tomato-paste', keywords: ['صلصة', 'صلصه', 'كاتشب', 'مايونيز', 'مسطردة', 'خل', 'صويا صوص', 'هاينز', 'قها', 'ketchup'] },
+  { icon: 'cooking-oil', keywords: ['زيت', 'زيت قلي', 'زيت ذرة', 'زيت عباد', 'سمنة', 'سمنه', 'سمن', 'زبدة', 'زبد', 'المسعد', 'كريستال', 'عافية', 'سلايت', 'قلية', 'جنة', 'روابي', 'الهانم', 'صقر', 'جردل سمن', 'سايبة', 'سايبه', 'ghee', 'butter', 'oil'] },
+  { icon: 'chips-crisps', keywords: ['شيبسي', 'شيبس', 'دوريتوس', 'مقرمشات', 'سناكس', 'كرانشي', 'تايجر', 'بوزو', 'شيتوس', 'chips'] },
+  { icon: 'biscuit-cookies', keywords: ['بسكويت', 'بسكوت', 'كوكيز', 'ويفر', 'كيك', 'براونيز', 'توداي', 'اوريو', 'بيمبو', 'كعب الغزال', 'معمول', 'كحك', 'غريبة', 'منين', 'لوتس', 'biscuit', 'oreo'] },
+  { icon: 'chocolate-bar', keywords: ['شوكولاتة', 'شوكولاته', 'شيكولاته', 'نوتيلا', 'جالكسي', 'كادبوري', 'كيت كات', 'سنيكرز', 'مارو', 'شوكولاته خام', 'chocolate', 'nutella'] },
+  { icon: 'candy-sweet', keywords: ['حلوى', 'مصاصة', 'مصاصه', 'بونبون', 'لبان', 'توفي', 'جيلي', 'مارشملو', 'غزل بنات', 'candy'] },
+  { icon: 'water-bottle', keywords: ['مياه', 'ماء', 'ماء ورد', 'ماء زهر', 'مياه معدنية', 'نستله', 'داساني', 'اكوافينا', 'بركة', 'جالون مياه', 'امواج', 'water'] },
+  { icon: 'juice-carton', keywords: ['عصير', 'جهينة عصير', 'بيتي عصير', 'راني', 'تانج', 'سنتوب', 'فرغلي', 'قصب', 'juice'] },
   { icon: 'soda-can', keywords: ['بيبسي', 'كوكاكولا', 'سفن اب', 'ميرندا', 'سبرايت', 'شويبس', 'ريد بول', 'ستينج', 'فيروز', 'كانز', 'soda', 'pepsi', 'cola'] },
-  { icon: 'detergent-powder', keywords: ['مسحوق', 'اريال', 'برسيل', 'تايد', 'اوكسي', 'داوني', 'كومفورت', 'detergent', 'ariel', 'persil'] },
-  { icon: 'dish-soap', keywords: ['فيري', 'بريل', 'صابون سائل', 'فيبا', 'سائل مواعين', 'fairy', 'pril'] },
-  { icon: 'bleach-cleaner', keywords: ['كلور', 'كلوركس', 'فنيك', 'مطهر', 'ديتول', 'ملمع زجاج', 'منظف ارضيات', 'فلاش', 'dettol', 'clorox'] },
-  { icon: 'tissue-paper', keywords: ['مناديل', 'فاين', 'زيزينيا', 'وايت', 'مناديل تواليت', 'مناديل مطبخ', 'بكرة مناديل', 'tissues'] },
-  { icon: 'trash-bags', keywords: ['اكياس', 'أكياس', 'كيس قمامة', 'اكياس قمامة', 'فويل', 'استرتش', 'سلوفان'] },
-  { icon: 'frozen-food', keywords: ['مجمدات', 'بامية مجمدة', 'ملوخية مجمدة', 'بسلة مجمدة', 'بطاطس نصف مقلية', 'frozen'] },
-  { icon: 'ice-cream', keywords: ['ايس كريم', 'آيس كريم', 'ميجا', 'كونو', 'ستيك', 'جيلاتي', 'بوريو استيك', 'ice cream'] },
-  { icon: 'meat-steak', keywords: ['لحمة', 'لحم', 'مفروم', 'فراخ', 'دجاج', 'كبدة', 'سجق', 'سوسيس', 'بانيه', 'شيش', 'كفتة', 'meat', 'chicken'] },
-  { icon: 'fish-seafood', keywords: ['سمك', 'جمبري', 'سبيط', 'فيليه', 'سي فود', 'رنجة', 'فسيخ', 'fish', 'shrimp'] },
-  { icon: 'apple-fruit', keywords: ['تفاح', 'موز', 'برتقال', 'مانجو', 'فراولة', 'عنب', 'خوخ', 'بطيخ', 'كانتالوب', 'فاكهة', 'فواكه', 'apple', 'fruit'] },
-  { icon: 'carrot-veggie', keywords: ['طماطم', 'بطاطس', 'بصل', 'خيار', 'جزر', 'كوسة', 'باذنجان', 'ليمون', 'ثوم', 'خضار', 'خضروات', 'vegetables'] },
+  { icon: 'detergent-powder', keywords: ['مسحوق', 'اريال', 'برسيل', 'تايد', 'اوكسي', 'داوني', 'كومفورت', 'بونكس', 'detergent', 'ariel', 'persil'] },
+  { icon: 'dish-soap', keywords: ['فيري', 'بريل', 'صابون سائل', 'فيبا', 'سائل مواعين', 'اوكسي سائل', 'fairy', 'pril'] },
+  { icon: 'bleach-cleaner', keywords: ['كلور', 'كلوركس', 'فنيك', 'مطهر', 'ديتول', 'ملمع زجاج', 'منظف ارضيات', 'فلاش', 'جنرال', 'dettol', 'clorox'] },
+  { icon: 'tissue-paper', keywords: ['مناديل', 'فاين', 'زيزينيا', 'وايت', 'بايرا', 'بابيا', 'فاميليا', 'سندريلا', 'تواليت', 'سحب', 'مطبخ', 'بكرة مناديل', 'رول تواليت', 'رول مطبخ', 'tissues'] },
+  { icon: 'trash-bags', keywords: ['اكياس', 'أكياس', 'كيس قمامة', 'اكياس قمامة', 'فويل', 'استرتش', 'سلوفان', 'شنط بلاستيك', 'رول اكياس'] },
+  { icon: 'frozen-food', keywords: ['مجمدات', 'بامية مجمدة', 'ملوخية مجمدة', 'بسلة مجمدة', 'بطاطس نصف مقلية', 'بسمة', 'امريكانا', 'frozen'] },
+  { icon: 'ice-cream', keywords: ['ايس كريم', 'آيس كريم', 'ميجا', 'كونو', 'ستيك', 'جيلاتي', 'بوريو استيك', 'فريدو', 'ice cream'] },
+  { icon: 'meat-steak', keywords: ['لحمة', 'لحم', 'مفروم', 'فراخ', 'دجاج', 'كبدة', 'سجق', 'سوسيس', 'بانيه', 'شيش', 'كفتة', 'همبرجر', 'meat', 'chicken'] },
+  { icon: 'fish-seafood', keywords: ['سمك', 'جمبري', 'سبيط', 'فيليه', 'سي فود', 'رنجة', 'فسيخ', 'تونة طازة', 'fish', 'shrimp'] },
+  { icon: 'apple-fruit', keywords: ['تفاح', 'موز', 'برتقال', 'مانجو', 'فراولة', 'عنب', 'خوخ', 'بطيخ', 'كانتالوب', 'فاكهة', 'فواكه', 'رمان', 'جوافة', 'apple', 'fruit'] },
+  { icon: 'carrot-veggie', keywords: ['طماطم', 'بطاطس', 'بصل', 'خيار', 'جزر', 'كوسة', 'باذنجان', 'ليمون', 'ثوم', 'خضار', 'خضروات', 'فلفل اخضر', 'فلفل الوان', 'vegetables'] },
+
+  // Dates & Dry Fruit additions
+  { icon: 'dates-palms', keywords: ['تمر', 'بلح', 'عجوة', 'ياميش', 'قراصيا', 'مشمشية', 'مشمشيه', 'تين مجفف', 'زبيب', 'كرموز', 'dates'] },
 
   // Fashion & Apparel
   { icon: 'tshirt', keywords: ['تيشيرت', 'تي شيرت', 'تيشرت', 'تي شرت', 'توب', 'بولوشيرت', 'بولو', 'tshirt', 't-shirt', 'polo'] },
@@ -204,36 +207,53 @@ const RULES: MatchRule[] = [
   { icon: 'pet-food', keywords: ['دراي فود', 'طعام قطط', 'طعام كلاب', 'رمل قطط', 'عصافير', 'حبوب عصافير', 'pet food'] }
 ];
 
+const PACKAGING_PREFIXES = [
+  'بالته', 'بالتة', 'كرتونه', 'كرتونة', 'باكت', 'باكتة', 'كيس', 'طرد', 'لسته', 'لستة',
+  'علبه', 'علبة', 'شيكاره', 'شيكارة', 'جردل', 'جركن', 'برميل', 'صفيحه', 'صفيحة', 'عرض',
+  'قطعه', 'قطعة', 'دسته', 'دستة', 'رول', 'لفة', 'لفه', 'باكيت', 'باكيته'
+];
+
 export function guessProductIcon(productName: string, categoryName?: string, _industry?: string): string | null {
   if (!productName && !categoryName) return null;
 
-  const textToScan = normalizeText(`${productName || ''} ${categoryName || ''}`);
-  const words = textToScan.split(/\s+/).filter(Boolean);
+  const rawScan = normalizeText(`${productName || ''} ${categoryName || ''}`);
+  
+  // Cleaned version without packaging prefixes and unit abbreviations
+  const rawWords = rawScan.split(/\s+/).filter(Boolean);
+  const meaningfulWords = rawWords.filter(w => !PACKAGING_PREFIXES.includes(w) && !/^\d+[كgkmلl]?$/i.test(w));
+  const cleanedScan = meaningfulWords.join(' ');
 
-  // 1. Direct multi-word & exact keyword matching
-  for (const rule of RULES) {
-    for (const keyword of rule.keywords) {
-      const normalizedKeyword = normalizeText(keyword);
-      if (!normalizedKeyword) continue;
+  const targetsToScan = [rawScan, cleanedScan].filter(Boolean);
 
-      if (normalizedKeyword.includes(' ')) {
-        if (textToScan.includes(normalizedKeyword)) {
-          return rule.icon;
-        }
-      } else {
-        if (words.includes(normalizedKeyword) || words.some((w) => w.startsWith(normalizedKeyword) || w.endsWith(normalizedKeyword))) {
-          return rule.icon;
+  // 1. Direct multi-word & exact keyword matching on all targets
+  for (const textToScan of targetsToScan) {
+    const words = textToScan.split(/\s+/).filter(Boolean);
+    for (const rule of RULES) {
+      for (const keyword of rule.keywords) {
+        const normalizedKeyword = normalizeText(keyword);
+        if (!normalizedKeyword) continue;
+
+        if (normalizedKeyword.includes(' ')) {
+          if (textToScan.includes(normalizedKeyword)) {
+            return rule.icon;
+          }
+        } else {
+          if (words.includes(normalizedKeyword) || words.some((w) => w.startsWith(normalizedKeyword) || w.endsWith(normalizedKeyword))) {
+            return rule.icon;
+          }
         }
       }
     }
   }
 
   // 2. Substring matching for strong unique stems
-  for (const rule of RULES) {
-    for (const keyword of rule.keywords) {
-      const normalizedKeyword = normalizeText(keyword);
-      if (normalizedKeyword.length >= 3 && textToScan.includes(normalizedKeyword)) {
-        return rule.icon;
+  for (const textToScan of targetsToScan) {
+    for (const rule of RULES) {
+      for (const keyword of rule.keywords) {
+        const normalizedKeyword = normalizeText(keyword);
+        if (normalizedKeyword.length >= 3 && textToScan.includes(normalizedKeyword)) {
+          return rule.icon;
+        }
       }
     }
   }
