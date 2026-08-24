@@ -140,8 +140,8 @@ export const USER_PERMISSION_GROUPS: PermissionGroup[] = [
   { title: 'بيانات حساسة', items: ['canViewProfit', 'hrSalaryView', 'hrSalaryManage', 'audit', 'treasury', 'services', 'canDelete'] }
 ];
 
-export function getFilteredPermissionGroups(tenantFeatures?: string[] | null, isSuperAdminUser: boolean = false): PermissionGroup[] {
-  if (isSuperAdminUser || !tenantFeatures || !Array.isArray(tenantFeatures) || tenantFeatures.length === 0) {
+export function getFilteredPermissionGroups(tenantFeatures?: string[] | null): PermissionGroup[] {
+  if (!tenantFeatures || !Array.isArray(tenantFeatures) || tenantFeatures.length === 0) {
     return USER_PERMISSION_GROUPS;
   }
 

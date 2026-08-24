@@ -56,18 +56,17 @@ export function UserManagementPermissionGroups({
   role: 'super_admin' | 'admin' | 'cashier';
   onTogglePermission: (permission: string) => void;
 }) {
-  const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
 
   const visibleGroups = useMemo(() => {
-    return getFilteredPermissionGroups(tenant?.features, user?.role === 'super_admin');
-  }, [tenant?.features, user?.role]);
+    return getFilteredPermissionGroups(tenant?.features);
+  }, [tenant?.features]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>مجموعات الصلاحيات التفصيلية</span>
-        {tenant?.features && tenant.features.length > 0 && user?.role !== 'super_admin' ? (
+        {tenant?.features && tenant.features.length > 0 ? (
           <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid #bfdbfe' }}>
             مخصصة وفق باقة المنشأة الحالية
           </span>
