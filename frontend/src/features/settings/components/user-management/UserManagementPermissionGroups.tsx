@@ -1,4 +1,6 @@
-import { USER_PERMISSION_GROUPS, getPermissionLabel } from '@/features/settings/components/user-management.shared';
+import React, { useMemo } from 'react';
+import { useAuthStore } from '@/stores/auth-store';
+import { getFilteredPermissionGroups, getPermissionLabel } from '@/features/settings/components/user-management.shared';
 
 const optionStyle: React.CSSProperties = {
   cursor: 'pointer',
@@ -54,11 +56,25 @@ export function UserManagementPermissionGroups({
   role: 'super_admin' | 'admin' | 'cashier';
   onTogglePermission: (permission: string) => void;
 }) {
+  const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
+
+  const visibleGroups = useMemo(() => {
+    return getFilteredPermissionGroups(tenant?.features, user?.role === 'super_admin');
+  }, [tenant?.features, user?.role]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>مجموعات الصلاحيات التفصيلية</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>مجموعات الصلاحيات التفصيلية</span>
+        {tenant?.features && tenant.features.length > 0 && user?.role !== 'super_admin' ? (
+          <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid #bfdbfe' }}>
+            مخصصة وفق باقة المنشأة الحالية
+          </span>
+        ) : null}
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {USER_PERMISSION_GROUPS.map((group) => {
+        {visibleGroups.map((group) => {
           const activeInGroup = group.items.filter((p) => permissions.includes(p)).length;
           return (
             <div key={group.title} style={{ padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fafbfc' }}>
@@ -95,4 +111,5 @@ export function UserManagementPermissionGroups({
     </div>
   );
 }
+
 

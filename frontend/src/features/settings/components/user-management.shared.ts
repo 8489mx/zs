@@ -60,13 +60,115 @@ export function getPermissionLabel(permission: string) {
   return PERMISSION_LABELS[permission] || permission;
 }
 
-export const USER_PERMISSION_GROUPS = [
+export const PERMISSION_FEATURE_MAP: Record<string, string> = {
+  // Catalog / Products
+  products: 'catalog',
+  pricingCenterView: 'catalog',
+  pricingCenterManage: 'catalog',
+
+  // Sales & POS
+  sales: 'sales',
+  returns: 'sales',
+  canPrint: 'sales',
+  canDiscount: 'sales',
+  canEditPrice: 'sales',
+  canSellWholesale: 'sales',
+  canEditInvoices: 'sales',
+
+  // Sessions & Cash Drawer
+  cashDrawer: 'cashDrawer',
+  treasury: 'cashDrawer',
+
+  // Purchases & Suppliers
+  purchases: 'purchases',
+  suppliers: 'purchases',
+
+  // Inventory
+  inventory: 'inventory',
+  canAdjustInventory: 'inventory',
+  canManageBranchStock: 'inventory',
+
+  // Reports & Auditing
+  dashboard: 'reports',
+  reports: 'reports',
+  audit: 'reports',
+  canViewProfit: 'reports',
+
+  // Accounting & Accounts
+  accounts: 'accounting',
+  accounting: 'accounting',
+  customers: 'accounting',
+  services: 'accounting',
+
+  // Human Resources
+  hr: 'hr',
+  hrEmployees: 'hr',
+  hrAttendance: 'hr',
+  hrContracts: 'hr',
+  hrLoans: 'hr',
+  hrPayrollView: 'hr',
+  hrPayrollManage: 'hr',
+  hrPayrollApprove: 'hr',
+  hrSalaryView: 'hr',
+  hrSalaryManage: 'hr',
+
+  // Delivery Reps
+  deliveryReps: 'deliveryReps',
+
+  // Manufacturing
+  manufacturing: 'manufacturing',
+
+  // Core & System Management (Always Available to Tenant Admins)
+  settings: 'core',
+  canManageSettings: 'core',
+  canEditUsers: 'core',
+  canManageUsers: 'core',
+  canManageBackups: 'core',
+  canDelete: 'core',
+};
+
+export interface PermissionGroup {
+  title: string;
+  items: string[];
+}
+
+export const USER_PERMISSION_GROUPS: PermissionGroup[] = [
   { title: 'شاشات التشغيل اليومية', items: ['dashboard', 'sales', 'customers', 'cashDrawer', 'products', 'inventory', 'purchases', 'returns', 'suppliers', 'accounts', 'accounting', 'reports', 'pricingCenterView', 'deliveryReps'] },
   { title: 'الموارد البشرية', items: ['hr', 'hrEmployees', 'hrAttendance', 'hrContracts', 'hrLoans', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove'] },
   { title: 'تنفيذ العمليات', items: ['canPrint', 'canDiscount', 'canEditPrice', 'canSellWholesale', 'canEditInvoices', 'canAdjustInventory', 'canManageBranchStock', 'pricingCenterManage'] },
   { title: 'إدارة النظام', items: ['settings', 'canManageSettings', 'canEditUsers', 'canManageUsers', 'canManageBackups'] },
   { title: 'بيانات حساسة', items: ['canViewProfit', 'hrSalaryView', 'hrSalaryManage', 'audit', 'treasury', 'services', 'canDelete'] }
-] as const;
+];
+
+export function getFilteredPermissionGroups(tenantFeatures?: string[] | null, isSuperAdminUser: boolean = false): PermissionGroup[] {
+  if (isSuperAdminUser || !tenantFeatures || !Array.isArray(tenantFeatures) || tenantFeatures.length === 0) {
+    return USER_PERMISSION_GROUPS;
+  }
+
+  const enabledSet = new Set<string>([...tenantFeatures, 'core', 'sessions']);
+  if (enabledSet.has('sessions')) enabledSet.add('cashDrawer');
+  if (enabledSet.has('cashDrawer')) enabledSet.add('sessions');
+  // If sales or catalog is enabled, allow customers if not strictly accounting
+  if (enabledSet.has('sales') || enabledSet.has('catalog')) {
+    enabledSet.add('sales_basic');
+  }
+
+  return USER_PERMISSION_GROUPS.map((group) => {
+    const filteredItems = group.items.filter((itemKey) => {
+      const requiredFeature = PERMISSION_FEATURE_MAP[itemKey];
+      if (!requiredFeature || requiredFeature === 'core') return true;
+      if (itemKey === 'customers' && (enabledSet.has('sales') || enabledSet.has('accounting'))) {
+        return true;
+      }
+      return enabledSet.has(requiredFeature);
+    });
+
+    return {
+      title: group.title,
+      items: filteredItems,
+    };
+  }).filter((group) => group.items.length > 0);
+}
 
 export const USER_ROLE_TEMPLATES = {
   cashier: { label: 'كاشير', role: 'cashier', permissions: [...DEFAULT_CASHIER_PERMS] },
