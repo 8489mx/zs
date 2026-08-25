@@ -39,7 +39,7 @@ export function getSmallReceiptStyles(options: { widthMm?: number; marginMm?: nu
       width: 100%;
       max-width: ${widthMm}mm;
       margin: 0 auto;
-      padding: 2mm 3mm;
+      padding: 3mm 4mm;
       page-break-inside: avoid;
       break-inside: avoid;
       background: #fff;

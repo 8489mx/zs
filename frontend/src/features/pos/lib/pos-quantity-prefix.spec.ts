@@ -69,4 +69,25 @@ describe('parseQuantityPrefixQuery', () => {
       isSuffixQuantityChange: true,
     });
   });
+
+  it('exempts scale barcodes from quantity prefix multiplier', () => {
+    // Standard EAN-13 variable weight prefix 21
+    expect(parseQuantityPrefixQuery('2+210004400250')).toEqual({
+      hasPrefix: false,
+      quantity: 1,
+      cleanQuery: '210004400250',
+    });
+    // Standard prefix 20
+    expect(parseQuantityPrefixQuery('5*2000010050012')).toEqual({
+      hasPrefix: false,
+      quantity: 1,
+      cleanQuery: '2000010050012',
+    });
+    // Prefix 99
+    expect(parseQuantityPrefixQuery('3x991234500100')).toEqual({
+      hasPrefix: false,
+      quantity: 1,
+      cleanQuery: '991234500100',
+    });
+  });
 });

@@ -90,7 +90,7 @@ const TRAFFIC_RECEIPT_PRESET: PresetData = {
   marginMm: 0,
   header1SizePx: 12.5,
   headerSubSizePx: 10.5,
-  driverInfoSizePx: 10.5,
+  driverInfoSizePx: 12.2,
   lineHeight: 1.4,
   sectionGapPx: 4,
   headerFontFamily: 'Tahoma',
@@ -256,77 +256,77 @@ export function ReceiptTestPage() {
   // ===== Pixel-perfect replica of the physical thermal receipt =====
   const receiptHtml = useMemo(() => {
     return `
-      <div style="width: 100%; box-sizing: border-box; font-family: ${bodyFontFamily}, sans-serif; font-size: ${fontSizePx}px; line-height: ${lineHeight}; color: #000; direction: rtl; text-align: right; overflow: hidden;">
+      <div style="width: 100%; box-sizing: border-box; font-family: ${bodyFontFamily}, 'Arial', sans-serif; font-size: ${fontSizePx}px; line-height: ${lineHeight}; color: #000; direction: rtl; text-align: right; overflow: hidden;">
 
         <!-- ===== HEADER BLOCK ===== -->
         <div style="text-align: center; font-family: ${headerFontFamily}, sans-serif;">
-          ${headerLine1 ? `<div style="font-size: ${header1SizePx}px; font-weight: bold;">${escapeHtml(headerLine1)}</div>` : ''}
-          ${headerLine2 ? `<div style="font-size: ${headerSubSizePx}px; font-weight: ${makeHeaderSubBold ? 'bold' : 'normal'};">${escapeHtml(headerLine2)}</div>` : ''}
-          ${headerLine3 ? `<div style="font-size: ${headerSubSizePx - 0.5}px; font-weight: ${makeHeaderSubBold ? 'bold' : 'normal'};">${escapeHtml(headerLine3)}</div>` : ''}
-          ${headerCode ? `<div style="font-size: ${headerSubSizePx}px; font-weight: ${makeHeaderSubBold ? 'bold' : 'normal'}; margin-top: 2px;">${escapeHtml(headerCode)}</div>` : ''}
+          ${headerLine1 ? `<div style="font-size: ${header1SizePx}px; font-weight: bold; margin-bottom: 1px;">${escapeHtml(headerLine1)}</div>` : ''}
+          ${headerLine2 ? `<div style="font-size: ${headerSubSizePx}px; font-weight: ${makeHeaderSubBold ? 'bold' : 'normal'}; margin-bottom: 1px;">${escapeHtml(headerLine2)}</div>` : ''}
+          ${headerLine3 ? `<div style="font-size: ${headerSubSizePx}px; font-weight: ${makeHeaderSubBold ? 'bold' : 'normal'}; margin-bottom: 1px;">${escapeHtml(headerLine3)}</div>` : ''}
+          ${headerCode ? `<div style="font-size: ${headerSubSizePx}px; font-weight: bold; letter-spacing: 1px; margin-top: 1px;">${escapeHtml(headerCode)}</div>` : ''}
         </div>
 
-        <div style="height: ${sectionGapPx}px;"></div>
+        <!-- ===== LINE 1: between T.I.T and إيصال سحب رخصة (lighter & centered partial width) ===== -->
+        <div style="width: 65%; border-top: 1px solid #777; margin: 4px auto;"></div>
 
         <!-- ===== DOCUMENT TITLE (centered) ===== -->
-        <div style="text-align: center;">
-          ${docTitle ? `<div style="font-size: ${fontSizePx}px;">${escapeHtml(docTitle)}</div>` : ''}
-          ${docSubtitle ? `<div style="font-size: ${fontSizePx}px;">${escapeHtml(docSubtitle)}</div>` : ''}
+        <div style="text-align: center; margin: 2px 0 3px 0;">
+          ${docTitle ? `<div style="font-size: ${fontSizePx}px; font-weight: bold; word-spacing: 3px;">${escapeHtml(docTitle)}</div>` : ''}
+          ${docSubtitle ? `<div style="font-size: ${fontSizePx}px; font-weight: bold; margin-top: 1px;">${escapeHtml(docSubtitle)}</div>` : ''}
         </div>
-
-        <!-- ===== LINE 1: after (تسيير) ===== -->
-        <div style="border-top: 1px solid #000; margin: 6px 0 4px 0;"></div>
 
         <!-- ===== VIOLATION NUMBER ROW (space-between) ===== -->
         ${violationNo ? `
-          <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: ${fontSizePx}px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: ${fontSizePx}px; font-weight: bold; margin-top: 3px;">
             <span>رقم المخالفة</span>
-            <span style="direction: ltr;">${escapeHtml(violationNo)}</span>
+            <span style="direction: ltr; font-family: 'Courier New', monospace, Arial; letter-spacing: 0.5px;">${escapeHtml(violationNo)}</span>
           </div>
         ` : ''}
 
-        <!-- ===== LINE 2: after رقم المخالفة ===== -->
+        <!-- ===== LINE 2: after رقم المخالفة (full width) ===== -->
         <div style="border-top: 1px solid #000; margin: 4px 0;"></div>
 
-        <!-- ===== DRIVER & VEHICLE INFO (right-aligned, simple text) ===== -->
-        <div style="font-size: ${driverInfoSizePx}px;">
-          ${offenderName ? `<div style="margin-bottom: 1px;">إسم المخالف: ${escapeHtml(offenderName)}</div>` : ''}
-          ${plateNo ? `<div style="margin-bottom: 0;">رقم المركبة: ${escapeHtml(plateNo)}</div>` : ''}
-          ${plateNo ? `<div style="text-align: center; font-size: 8px; line-height: 8px; margin: 1px 0 3px 0;">-</div>` : ''}
+        <!-- ===== DRIVER & VEHICLE INFO (takes ~80% line width) ===== -->
+        <div style="font-size: ${driverInfoSizePx}px; line-height: 1.45; word-spacing: 1.5px;">
+          ${offenderName ? `<div style="margin-bottom: 2px;">إسم المخالف: ${escapeHtml(offenderName)}</div>` : ''}
+          ${plateNo ? `<div>رقم المركبة: ${escapeHtml(plateNo)}</div>` : ''}
+          ${plateNo ? `<div style="text-align: center; font-size: 9px; line-height: 9px; margin: 2px 0 1px 0;">-</div>` : ''}
         </div>
 
-        <!-- ===== LICENSE ROW (space-between like violation number) ===== -->
+        <!-- ===== LINE 3: between Vehicle No and Driver License (centered partial width) ===== -->
+        <div style="width: 70%; border-top: 1px solid #777; margin: 3px auto 4px auto;"></div>
+
+        <!-- ===== LICENSE ROW (space-between) ===== -->
         ${licenseNo ? `
           <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: ${driverInfoSizePx}px;">
             <span>رخصة القيادة:</span>
-            <span style="direction: ltr;">${escapeHtml(licenseNo)}</span>
+            <span style="direction: ltr; font-family: 'Courier New', monospace, Arial;">${escapeHtml(licenseNo)}</span>
           </div>
         ` : ''}
 
-        <!-- ===== LICENSE TYPE (right-aligned, overflow clips بورسعيد) ===== -->
-        ${licenseTypeAndDept ? `<div style="font-size: ${driverInfoSizePx}px; white-space: nowrap; overflow: hidden;">${escapeHtml(licenseTypeAndDept)}</div>` : ''}
+        <!-- ===== LICENSE TYPE & DEPT ===== -->
+        ${licenseTypeAndDept ? `<div style="font-size: ${driverInfoSizePx}px; white-space: nowrap; overflow: hidden; margin-top: 1px;">${escapeHtml(licenseTypeAndDept)}</div>` : ''}
 
-        <!-- ===== LINE 3: before المخالفات ===== -->
+        <!-- ===== LINE 4: before المخالفات ===== -->
         <div style="border-top: 1px solid #000; margin: 4px 0;"></div>
 
         <!-- ===== VIOLATIONS SECTION ===== -->
         ${(violations.length > 0 || settlementNote || validityNote) ? `
-          <div style="text-align: center; font-size: ${fontSizePx}px; letter-spacing: 2px; margin-bottom: 2px;">المـخـالـفـات</div>
-          <div style="width: 48%; border-top: 1px solid #000; margin: 3px auto;"></div>
+          <div style="text-align: center; font-size: ${fontSizePx}px; font-weight: bold; letter-spacing: 2px; margin-bottom: 2px;">المـخـالـفـات</div>
+          <div style="width: 45%; border-top: 1px solid #000; margin: 2px auto 4px auto;"></div>
 
-          ${violations.map((v) => `<div style="text-align: right; font-size: ${fontSizePx}px; padding: 2px 0;">${escapeHtml(v)}</div>`).join('')}
+          ${violations.map((v) => `<div style="text-align: right; font-size: ${fontSizePx}px; padding: 1px 0;">${escapeHtml(v)}</div>`).join('')}
 
           <div style="border-top: 1px solid #000; margin: 4px 0;"></div>
 
-          ${settlementNote ? `<div style="text-align: right; font-size: ${fontSizePx}px;">${escapeHtml(settlementNote)}</div>` : ''}
-          <div style="height: 4px;"></div>
-          ${validityNote ? `<div style="text-align: right; font-size: ${fontSizePx}px;">${escapeHtml(validityNote)}</div>` : ''}
+          ${settlementNote ? `<div style="text-align: center; font-size: ${fontSizePx}px; padding: 1px 0;">${escapeHtml(settlementNote)}</div>` : ''}
+          ${validityNote ? `<div style="text-align: center; font-size: ${fontSizePx}px; padding: 1px 0;">${escapeHtml(validityNote)}</div>` : ''}
 
           <div style="border-top: 1px solid #000; margin: 4px 0;"></div>
         ` : ''}
 
         <!-- ===== OFFICER & DATE SECTION (right-aligned) ===== -->
-        <div style="font-size: ${fontSizePx}px;">
+        <div style="font-size: ${fontSizePx}px; line-height: 1.35;">
           ${date ? `<div>التاريخ: <span style="direction: ltr; display: inline-block;">${escapeHtml(date)}</span></div>` : ''}
           ${time ? `<div>الوقت: <span style="direction: ltr; display: inline-block;">${escapeHtml(time)}</span></div>` : ''}
           ${officerName ? `<div>محرر المخالفة: ${escapeHtml(officerName)}</div>` : ''}
@@ -336,11 +336,12 @@ export function ReceiptTestPage() {
           ${showSignature && signatureText ? `<div style="margin-top: 2px;">${escapeHtml(signatureText)}</div>` : ''}
         </div>
 
-        <div style="height: 10px;"></div>
+        <!-- ===== LINE 5: divider line before Barcode / QR (as in physical receipt) ===== -->
+        <div style="border-top: 1px solid #000; margin: 5px 0 4px 0;"></div>
 
-        <!-- ===== QR CODE (centered, small) ===== -->
+        <!-- ===== QR CODE (centered) ===== -->
         ${qrSvg ? `
-          <div style="display: flex; justify-content: center; width: 100%; margin: 4px 0 2px 0;">
+          <div style="display: flex; justify-content: center; width: 100%; margin: 2px 0 0 0;">
             ${qrSvg}
           </div>
         ` : ''}
@@ -351,7 +352,9 @@ export function ReceiptTestPage() {
     headerLine1, headerLine2, headerLine3, headerCode, docTitle, docSubtitle,
     violationNo, offenderName, plateNo, licenseNo, licenseTypeAndDept,
     violations, settlementNote, validityNote, date, time, officerName,
-    officerDept, location, trafficDept, showSignature, signatureText, qrSvg, fontSizePx
+    officerDept, location, trafficDept, showSignature, signatureText, qrSvg,
+    fontSizePx, driverInfoSizePx, lineHeight, sectionGapPx, header1SizePx,
+    headerSubSizePx, makeHeaderSubBold, headerFontFamily, bodyFontFamily
   ]);
 
   function handlePrint() {

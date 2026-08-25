@@ -6,13 +6,27 @@ export interface ParsedQuantityQuery {
 }
 
 /**
+ * Checks if a code looks like an electronic scale variable-measure barcode (e.g. EAN-13 with 20-29 or 99 prefix and 12-13 digits).
+ */
+export function isScaleBarcodeLike(text: string): boolean {
+  const digits = String(text || '').trim().replace(/\D/g, '');
+  if (digits.length >= 12 && digits.length <= 13) {
+    if (/^(2[0-9]|99)/.test(digits)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Parses search or barcode input to extract quantity multipliers.
  * Examples:
  * - "10+6221234567890" => { hasPrefix: true, quantity: 10, cleanQuery: "6221234567890" }
  * - "10*6221234567890" => { hasPrefix: true, quantity: 10, cleanQuery: "6221234567890" }
  * - "10x6221234567890" => { hasPrefix: true, quantity: 10, cleanQuery: "6221234567890" }
  * - "5*اندومي"         => { hasPrefix: true, quantity: 5, cleanQuery: "اندومي" }
- * - "2.5+طماطم"        => { hasPrefix: true, quantity: 2.5, cleanQuery: "طماطم" }
+ * - "2.5*طماطم"        => { hasPrefix: true, quantity: 2.5, cleanQuery: "طماطم" }
+ * - "2+210004400250"   => { hasPrefix: false, quantity: 1, cleanQuery: "210004400250" } (Scale barcode exempt)
  * - "10+" or "10*"     => { hasPrefix: true, quantity: 10, cleanQuery: "" }
  * - "*10" or "+10"     => { hasPrefix: true, quantity: 10, cleanQuery: "", isSuffixQuantityChange: true }
  * - "6221234567890"    => { hasPrefix: false, quantity: 1, cleanQuery: "6221234567890" }
@@ -38,6 +52,12 @@ export function parseQuantityPrefixQuery(rawInput?: string | null): ParsedQuanti
     const qty = Number(prefixMatch[1]);
     const cleanQuery = prefixMatch[2].trim();
     if (qty > 0 && !isNaN(qty)) {
+      // EXCEPTION FOR SCALE / WEIGHTED BARCODES:
+      // If the query after the prefix is a scale barcode (starts with 20-29 or 99 with 12-13 digits),
+      // we disable the multiplier because each scale sticker carries a unique exact weight.
+      if (cleanQuery && isScaleBarcodeLike(cleanQuery)) {
+        return { hasPrefix: false, quantity: 1, cleanQuery };
+      }
       return { hasPrefix: true, quantity: qty, cleanQuery };
     }
   }
