@@ -53,7 +53,7 @@ export function CustomersPage() {
           <div className="dialog-card">
             <div className="mb-4 border-b pb-3">
               <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">إضافة عميل جديد</h3>
-              <p className="text-xs text-muted-foreground mt-1">إدخال عميل جديد بنفس قواعد التحقق الموحدة.</p>
+              <p className="text-xs text-muted-foreground mt-1">تسجيل بيانات العميل وتفاصيل الحساب وحد الائتمان في النظام.</p>
             </div>
             <CustomerForm onSuccess={() => setIsCreateOpen(false)} />
           </div>
@@ -73,7 +73,7 @@ export function CustomersPage() {
                 <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">
                   تعديل: {controller.selectedCustomer?.name}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">تعديل بيانات العميل أو حذفه من النظام.</p>
+                <p className="text-xs text-muted-foreground mt-1">تحديث بيانات العميل أو ضبط الرصيد وحد الائتمان.</p>
               </div>
               {controller.selectedCustomer && (
                 <Button
