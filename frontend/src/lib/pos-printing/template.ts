@@ -407,17 +407,19 @@ export function getInvoiceStyles(compact = false) {
     .receipt-theme-ultra-compact .store-inline-details span { display: inline; }
     .receipt-theme-ultra-compact .store-inline-details span::after { content: " - "; }
     .receipt-theme-ultra-compact .store-inline-details span:last-child::after { content: ""; }
-    .receipt-theme-ultra-compact .meta-line { display: inline; border: none; padding: 0; font-size: 10px; }
+    .receipt-theme-ultra-compact .meta-line { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; border: none; padding: 0; font-size: 10px; break-inside: avoid; }
     .receipt-theme-ultra-compact .meta-line::after { content: " | "; margin: 0 3px; font-weight: normal; font-size: 9px; }
     .receipt-theme-ultra-compact .meta-line:last-child::after { content: ""; margin: 0; }
     .receipt-theme-ultra-compact .meta-line.strong { font-size: 12px; }
     .receipt-theme-ultra-compact .invoice-items-table th, .receipt-theme-ultra-compact .invoice-items-table td { padding: 2px 1px; font-size: 9.5px; border-bottom: 1px dotted #000; }
     .receipt-theme-ultra-compact .invoice-items-table th { background: transparent; color: #000; border-bottom: 1px solid #000; border-top: 1px dashed #000; }
     .receipt-theme-ultra-compact .invoice-totals-card { padding: 2px 0; }
-    .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 12.5px; border-bottom: 1px dashed #000; }
+    .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 12.5px; border-bottom: 1px dashed #000; display: inline-flex; width: auto; }
     .receipt-theme-ultra-compact .payment-chip { padding: 1px 0; font-size: 10px; border-bottom: 1px dotted #000; }
+    .receipt-theme-ultra-compact .invoice-barcode-card { border: 0; border-top: 1px dashed #000; padding: 2px 0; margin-top: 2px; }
+    .receipt-theme-ultra-compact .invoice-barcode-svg-wrap { width: 70%; max-width: 170px; height: 22px; margin: 0 auto; }
     .receipt-theme-ultra-compact .print-footer { margin-top: 2px; padding: 2px 0; border: 0; border-top: 1px dashed #000; font-size: 8.5px; }
-    .receipt-theme-ultra-compact .meta-label, .receipt-theme-ultra-compact .meta-value { white-space: normal; overflow: hidden; }
+    .receipt-theme-ultra-compact .meta-label, .receipt-theme-ultra-compact .meta-value { white-space: nowrap; overflow: visible; }
 
     body.receipt-mode .print-shell { width: 100%; max-width: 100%; padding-top: 0; margin: 0; box-sizing: border-box; }
     body.receipt-mode .print-header { display: none !important; }
