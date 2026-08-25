@@ -126,16 +126,19 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
     const hasOffer = origPrice > Number(item.price || 0) && savedAmount > 0;
     const offerHtml = (hasOffer && showItemOffers)
       ? `<div class="item-offer-line" style="font-size: 0.85em; line-height: 1.25; color: #000; margin-top: 1px;">
-          <strong style="font-weight: 800;">وفرت: ${formatReceiptMoney(savedAmount, settings)}</strong> <span style="font-weight: 600; color: #000; font-size: 0.95em;">(بدلاً من ${formatReceiptMoney(origPrice, settings)})</span>
+          <strong style="font-weight: 800;">عرض: ${formatReceiptMoney(Number(item.price || 0), settings)}</strong> <span style="font-weight: 600; color: #000; font-size: 0.95em;">بدلاً من ${formatReceiptMoney(origPrice, settings)}</span>
          </div>`
       : '';
+    const priceCellContent = (hasOffer && showItemOffers)
+      ? `<del style="text-decoration: line-through; color: #000;">${formatReceiptMoney(origPrice, settings)}</del>`
+      : formatReceiptMoney(Number(item.price || 0), settings);
     return `
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
       <td class="name-cell">${escapeHtml(item.name || '—')}${offerHtml}${modifiersHtml}${serialsHtml}</td>
       ${compact ? '' : `<td>${escapeHtml(item.unitName || 'قطعة')}</td>`}
       <td>${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
-      <td>${formatReceiptMoney(Number(item.price || 0), settings)}</td>
+      <td>${priceCellContent}</td>
       <td>${formatReceiptMoney(Number(item.total || 0), settings)}</td>
     </tr>
     `;
