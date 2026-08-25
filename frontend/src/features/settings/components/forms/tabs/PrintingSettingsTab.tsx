@@ -57,6 +57,43 @@ const premiumCheckboxInputStyle = {
   cursor: 'pointer',
 };
 
+const groupCardStyle: React.CSSProperties = {
+  background: 'var(--panel-subtle, rgba(248, 250, 252, 0.75))',
+  border: '1px solid var(--border-color, #e2e8f0)',
+  borderRadius: '10px',
+  padding: '14px 16px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+};
+
+const groupHeaderStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  borderBottom: '1px dashed var(--border-color, #cbd5e1)',
+  paddingBottom: '8px',
+};
+
+const groupHeaderBadgeStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '22px',
+  height: '22px',
+  borderRadius: '6px',
+  background: 'var(--primary-color, #0284c7)',
+  color: '#ffffff',
+  fontSize: '11px',
+  fontWeight: 700,
+};
+
+const groupHeaderTitleStyle: React.CSSProperties = {
+  fontSize: '13.5px',
+  fontWeight: 700,
+  color: 'var(--text-color, #1e293b)',
+};
+
 interface PrintingTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
   disabled: boolean;
@@ -144,109 +181,160 @@ export function PrintingSettingsTab({
       {/* ===== 2. عناصر وبيانات الفاتورة المطبوعة ===== */}
       <FormSection
         title="عناصر وبيانات الفاتورة المطبوعة"
-        description="حدد البيانات المطلوب إظهارها أو إخفاؤها من الإيصال المطبوع للكاشير."
+        description="حدد البيانات المطلوب إظهارها أو إخفاؤها من الإيصال المطبوع للكاشير مقسمة حسب تسلسلها في الفاتورة."
       >
-        <div className="settings-print-options-grid" style={checkboxGridStyle}>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printCompactReceipt')} disabled={disabled} />
-            خطوط إيصال مضغوطة
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentType')} disabled={disabled} />
-            إظهار نوع المستند
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentNumber')} disabled={disabled} />
-            إظهار رقم المستند
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowOrderType')} disabled={disabled} />
-            إظهار نوع الطلب
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLogo')} disabled={disabled} />
-            إظهار الشعار
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPhone')} disabled={disabled} />
-            إظهار الهاتف
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowAddress')} disabled={disabled} />
-            إظهار العنوان
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTaxNumber')} disabled={disabled} />
-            إظهار الرقم الضريبي
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCustomer')} disabled={disabled} />
-            إظهار العميل
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDeliveryCustomerDetails')} disabled={disabled} />
-            تفاصيل العميل في الدليفري (العنوان/الهاتف)
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
-            إظهار اسم المندوب
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCashier')} disabled={disabled} />
-            إظهار الكاشير
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowBranch')} disabled={disabled} />
-            إظهار الفرع
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLocation')} disabled={disabled} />
-            إظهار المخزن
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDate')} disabled={disabled} />
-            إظهار تاريخ ووقت الفاتورة
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTax')} disabled={disabled} />
-            إظهار الضريبة
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentMethod')} disabled={disabled} />
-            إظهار طريقة الدفع
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemOffers')} disabled={disabled} />
-            إظهار تفاصيل عروض الأصناف (عرض: X بدلاً من Y)
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDiscountBreakdown')} disabled={disabled} />
-            إظهار تفصيل سطور الخصومات في الإجماليات
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowSavingsBanner')} disabled={disabled} />
-            إظهار شريط إجمالي التوفير (وفرت بالفاتورة)
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemCount')} disabled={disabled} />
-            إظهار عدد البنود
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPiecesCount')} disabled={disabled} />
-            إظهار إجمالي القطع
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentBreakdown')} disabled={disabled} />
-            إظهار تفصيل المدفوعات
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowInvoiceBarcode')} disabled={disabled} />
-            إظهار شريط باركود الفاتورة في الأسفل (Code 128)
-          </label>
-          <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowFooter')} disabled={disabled} />
-            إظهار التذييل
-          </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          {/* 1. رأس المتجر والفرع */}
+          <div style={groupCardStyle}>
+            <div style={groupHeaderStyle}>
+              <span style={groupHeaderBadgeStyle}>1</span>
+              <strong style={groupHeaderTitleStyle}>🏢 بيانات المتجر والفرع (الرأس بالأعلى)</strong>
+            </div>
+            <div className="settings-print-options-grid" style={checkboxGridStyle}>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLogo')} disabled={disabled} />
+                إظهار الشعار
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPhone')} disabled={disabled} />
+                إظهار الهاتف
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowAddress')} disabled={disabled} />
+                إظهار العنوان
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTaxNumber')} disabled={disabled} />
+                إظهار الرقم الضريبي
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowBranch')} disabled={disabled} />
+                إظهار الفرع
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowLocation')} disabled={disabled} />
+                إظهار المخزن
+              </label>
+            </div>
+          </div>
+
+          {/* 2. بيانات الفاتورة والعملية */}
+          <div style={groupCardStyle}>
+            <div style={groupHeaderStyle}>
+              <span style={groupHeaderBadgeStyle}>2</span>
+              <strong style={groupHeaderTitleStyle}>🧾 بيانات المستند والعملية</strong>
+            </div>
+            <div className="settings-print-options-grid" style={checkboxGridStyle}>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentType')} disabled={disabled} />
+                إظهار نوع المستند
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDocumentNumber')} disabled={disabled} />
+                إظهار رقم المستند
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDate')} disabled={disabled} />
+                إظهار تاريخ ووقت الفاتورة
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowOrderType')} disabled={disabled} />
+                إظهار نوع الطلب
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCashier')} disabled={disabled} />
+                إظهار الكاشير
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentMethod')} disabled={disabled} />
+                إظهار طريقة الدفع
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowCustomer')} disabled={disabled} />
+                إظهار العميل
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDeliveryCustomerDetails')} disabled={disabled} />
+                تفاصيل العميل في الدليفري (العنوان/الهاتف)
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
+                إظهار اسم المندوب
+              </label>
+            </div>
+          </div>
+
+          {/* 3. الأصناف وعروض التخفيض */}
+          <div style={groupCardStyle}>
+            <div style={groupHeaderStyle}>
+              <span style={groupHeaderBadgeStyle}>3</span>
+              <strong style={groupHeaderTitleStyle}>🏷️ الأصناف وعروض التخفيض</strong>
+            </div>
+            <div className="settings-print-options-grid" style={checkboxGridStyle}>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemOffers')} disabled={disabled} />
+                إظهار تفاصيل عروض الأصناف (عرض: X بدلاً من Y)
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDiscountBreakdown')} disabled={disabled} />
+                إظهار تفصيل سطور الخصومات في الإجماليات
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowSavingsBanner')} disabled={disabled} />
+                إظهار شريط إجمالي التوفير (وفرت بالفاتورة)
+              </label>
+            </div>
+          </div>
+
+          {/* 4. الإجماليات والملخص */}
+          <div style={groupCardStyle}>
+            <div style={groupHeaderStyle}>
+              <span style={groupHeaderBadgeStyle}>4</span>
+              <strong style={groupHeaderTitleStyle}>📊 الإجماليات والملخص</strong>
+            </div>
+            <div className="settings-print-options-grid" style={checkboxGridStyle}>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowTax')} disabled={disabled} />
+                إظهار الضريبة
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemCount')} disabled={disabled} />
+                إظهار عدد البنود
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPiecesCount')} disabled={disabled} />
+                إظهار إجمالي القطع
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentBreakdown')} disabled={disabled} />
+                إظهار تفصيل المدفوعات
+              </label>
+            </div>
+          </div>
+
+          {/* 5. التذييل والنمط العام */}
+          <div style={groupCardStyle}>
+            <div style={groupHeaderStyle}>
+              <span style={groupHeaderBadgeStyle}>5</span>
+              <strong style={groupHeaderTitleStyle}>🖨️ التذييل ونمط الإيصال (الأسفل)</strong>
+            </div>
+            <div className="settings-print-options-grid" style={checkboxGridStyle}>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowInvoiceBarcode')} disabled={disabled} />
+                إظهار شريط باركود الفاتورة في الأسفل (Code 128)
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowFooter')} disabled={disabled} />
+                إظهار التذييل
+              </label>
+              <label className="settings-print-option" style={checkboxStyle}>
+                <input type="checkbox" style={checkboxInputStyle} {...form.register('printCompactReceipt')} disabled={disabled} />
+                خطوط إيصال مضغوطة (توفير ورق حراري)
+              </label>
+            </div>
+          </div>
+
         </div>
       </FormSection>
 
