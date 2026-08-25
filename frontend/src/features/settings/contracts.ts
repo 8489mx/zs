@@ -86,6 +86,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     printShowItemOffers: values.printShowItemOffers !== false,
     printShowDiscountBreakdown: values.printShowDiscountBreakdown !== false,
     printShowSavingsBanner: values.printShowSavingsBanner !== false,
+    printShowInvoiceBarcode: values.printShowInvoiceBarcode !== false,
     printShowFooter: values.printShowFooter !== false,
     printCompactReceipt: values.printCompactReceipt !== false,
     posReceiptTheme: values.posReceiptTheme || 'classic',

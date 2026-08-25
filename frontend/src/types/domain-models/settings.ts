@@ -39,6 +39,7 @@ export interface AppSettings {
   printShowItemOffers?: boolean;
   printShowDiscountBreakdown?: boolean;
   printShowSavingsBanner?: boolean;
+  printShowInvoiceBarcode?: boolean;
   printShowFooter?: boolean;
   printCompactReceipt?: boolean;
   posReceiptTheme?: 'boxed' | 'classic' | 'ultra-compact' | string;

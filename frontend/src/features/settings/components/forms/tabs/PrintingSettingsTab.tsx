@@ -236,6 +236,10 @@ export function PrintingSettingsTab({
             إظهار تفصيل المدفوعات
           </label>
           <label className="settings-print-option" style={checkboxStyle}>
+            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowInvoiceBarcode')} disabled={disabled} />
+            إظهار شريط باركود الفاتورة في الأسفل (Code 128)
+          </label>
+          <label className="settings-print-option" style={checkboxStyle}>
             <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowFooter')} disabled={disabled} />
             إظهار التذييل
           </label>

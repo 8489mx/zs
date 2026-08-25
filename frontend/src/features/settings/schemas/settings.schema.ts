@@ -84,6 +84,7 @@ export const settingsFormSchema = z.object({
   printShowItemOffers: z.boolean().default(true),
   printShowDiscountBreakdown: z.boolean().default(true),
   printShowSavingsBanner: z.boolean().default(true),
+  printShowInvoiceBarcode: z.boolean().default(true),
   printShowFooter: z.boolean().default(true),
   printCompactReceipt: z.boolean().default(true),
   posReceiptTheme: z.string().default('classic'),

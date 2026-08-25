@@ -1,6 +1,7 @@
 import { escapeHtml } from '@/lib/browser';
 import type { AppSettings, Sale } from '@/types/domain';
 import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, type PosPrintPageSize } from '@/lib/pos-printing/shared';
+import { buildCode128Svg } from '@/lib/barcode';
 
 function resolveStoreIdentity(settings?: Partial<AppSettings> | null) {
   const brandName = String(settings?.storeName || 'متجر').trim() || 'متجر';
@@ -172,6 +173,25 @@ function renderPaymentBreakdown(payments?: Sale['payments'], settings?: Partial<
           </div>
         `).join('')}
       </div>
+    </section>
+  `;
+}
+
+function renderInvoiceBarcode(documentNumber?: string | number | null, compact = false, settings?: Partial<AppSettings> | null) {
+  if (!getPrintOption(settings, 'printShowInvoiceBarcode', true)) return '';
+
+  const docNo = String(documentNumber || '').trim();
+  if (!docNo || docNo === '—' || docNo === 'مسودة') return '';
+
+  const barcodeSvg = buildCode128Svg(docNo);
+  if (!barcodeSvg) return '';
+
+  return `
+    <section class="invoice-card invoice-barcode-card${compact ? ' compact' : ''}">
+      <div class="invoice-barcode-svg-wrap">
+        ${barcodeSvg}
+      </div>
+      <div class="invoice-barcode-value">${escapeHtml(docNo)}</div>
     </section>
   `;
 }
@@ -362,11 +382,16 @@ export function getInvoiceStyles(compact = false) {
     .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 800; }
+    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '4px 2px 2px' : '6px 4px 3px'}; margin-top: ${compact ? '2px' : '4px'}; border-top: 1px dashed #000; break-inside: avoid; }
+    .invoice-barcode-svg-wrap { width: ${compact ? '82%' : '75%'}; max-width: ${compact ? '200px' : '250px'}; height: ${compact ? '28px' : '36px'}; margin: 0 auto 2px; display: flex; align-items: center; justify-content: center; }
+    .invoice-barcode-svg-wrap svg { display: block; width: 100%; height: 100%; }
+    .invoice-barcode-value { font-size: ${compact ? '9px' : '10.5px'}; font-weight: 700; letter-spacing: 1px; direction: ltr; color: #000; line-height: 1.1; font-family: 'Courier New', Courier, monospace; }
     .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border-top: 1px dashed #000; text-align: center; line-height: 1.35; }
     
     /* Theme: Boxed */
     .receipt-theme-boxed .invoice-card { border: 1px solid #000; border-radius: ${compact ? '6px' : '8px'}; margin-bottom: 4px; }
-    .receipt-theme-boxed .invoice-totals-card, .receipt-theme-boxed .invoice-payment-card { border-top: 0; }
+    .receipt-theme-boxed .invoice-totals-card, .receipt-theme-boxed .invoice-payment-card, .receipt-theme-boxed .invoice-barcode-card { border-top: 0; }
+    .receipt-theme-boxed .invoice-barcode-card { border: 1px solid #000; border-radius: ${compact ? '6px' : '8px'}; }
     .receipt-theme-boxed .invoice-totals-card .total-line { border: 1px dashed #000; border-radius: 8px; font-size: inherit; }
     .receipt-theme-boxed .invoice-items-table th, .receipt-theme-boxed .invoice-items-table td { border-inline-start: 1px solid #000; }
     .receipt-theme-boxed .invoice-items-table th:last-child, .receipt-theme-boxed .invoice-items-table td:last-child { border-inline-start: 0; }
@@ -481,6 +506,7 @@ export function buildReceiptDocument(options: {
         ${renderItemsTable(options.items, compact, options.settings)}
         ${renderTotals({ subtotal: options.subtotal, discount: options.discount, deliveryFee: options.deliveryFee, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact, isReturn: options.isReturn })}
         ${renderPaymentBreakdown(options.payments, options.settings, compact)}
+        ${renderInvoiceBarcode(options.documentNumber, compact, options.settings)}
       </div>
     `,
     compact,

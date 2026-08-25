@@ -93,6 +93,7 @@ const baseSettingsMutationValues = {
   printShowItemOffers: true,
   printShowDiscountBreakdown: true,
   printShowSavingsBanner: true,
+  printShowInvoiceBarcode: true,
   printShowFooter: true,
   printCompactReceipt: true,
   posReceiptTheme: 'classic',
