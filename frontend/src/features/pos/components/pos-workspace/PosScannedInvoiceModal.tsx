@@ -27,7 +27,7 @@ export function PosScannedInvoiceModal({
 
   const handlePrint = () => {
     try {
-      printPostedSaleReceipt(sale, { settings });
+      printPostedSaleReceipt(sale, { pageSize: 'receipt', settings });
       setPrintSuccess(true);
       setTimeout(() => setPrintSuccess(false), 3000);
     } catch {
@@ -41,110 +41,135 @@ export function PosScannedInvoiceModal({
     <DialogShell
       open={isOpen}
       onClose={onClose}
-      width="min(760px, 95vw)"
+      width="min(820px, calc(100vw - 32px))"
+      showCloseButton={true}
+      ariaLabel="تفاصيل الفاتورة الممسوحة بالباركود"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '80vh', overflowY: 'auto' }}>
+      <div
+        style={{
+          padding: '24px 26px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px',
+          maxHeight: '85vh',
+          overflowY: 'auto',
+          boxSizing: 'border-box',
+        }}
+      >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid #e2e8f0',
+            paddingBottom: '14px',
+            paddingInlineEnd: '40px',
+          }}
+        >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>🧾 فاتورة مبيعات: {sale.docNo || `Z-${sale.id}`}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '1.4rem' }}>🧾</span>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                فاتورة مبيعات: <span style={{ color: 'var(--primary-color, #0284c7)', fontFamily: 'monospace' }}>{sale.docNo || `Z-${sale.id}`}</span>
+              </h3>
               <span
                 style={{
                   fontSize: '12px',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
+                  padding: '3px 10px',
+                  borderRadius: '20px',
                   fontWeight: 700,
                   background: isCancelled ? '#fee2e2' : '#dcfce7',
                   color: isCancelled ? '#b91c1c' : '#15803d',
+                  border: isCancelled ? '1px solid #fecaca' : '1px solid #bbf7d0',
                 }}
               >
                 {isCancelled ? 'ملغاة' : 'مكتملة'}
               </span>
             </div>
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
-              تم مسح باركود الفاتورة بنجاح. يمكنك استعراض التفاصيل، إعادة طباعة الإيصال، أو تحويلها لمرتجع.
+            <p style={{ margin: '6px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+              تم العثور على الفاتورة بنجاح. يمكنك استعراض الأصناف، إعادة طباعة الإيصال، أو تحويلها لمرتجع.
             </p>
           </div>
-          <Button type="button" variant="secondary" onClick={onClose} style={{ fontSize: '14px', padding: '4px 10px', minWidth: 'auto' }}>
-            ✕
-          </Button>
         </div>
 
         {/* Info Grid */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: '10px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: '12px',
           }}
         >
-          <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>العميل</div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginTop: '2px' }}>
+          <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>العميل</div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginTop: '3px' }}>
               {sale.customerName || 'عميل نقدي'}
             </div>
           </div>
-          <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>التاريخ والوقت</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginTop: '2px' }}>
+          <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>التاريخ والوقت</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginTop: '3px' }}>
               {sale.date ? formatDate(sale.date) : '—'}
             </div>
           </div>
-          <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>طريقة الدفع</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginTop: '2px' }}>
+          <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>طريقة الدفع</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginTop: '3px' }}>
               {paymentLabel((sale.paymentType || 'cash') as 'cash' | 'credit', sale.paymentChannel || 'cash')}
             </div>
           </div>
-          <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>الكاشير / الفرع</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginTop: '2px' }}>
+          <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>الكاشير / الفرع</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginTop: '3px' }}>
               {sale.createdBy || sale.branchName || '—'}
             </div>
           </div>
         </div>
 
         {/* Items Table */}
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', background: '#fff' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'right' }}>
             <thead>
-              <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                <th style={{ padding: '8px 12px' }}>الصنف</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center' }}>الكمية</th>
-                <th style={{ padding: '8px 12px' }}>السعر</th>
-                <th style={{ padding: '8px 12px' }}>الإجمالي</th>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                <th style={{ padding: '10px 14px', fontWeight: 700 }}>الصنف</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700 }}>الكمية</th>
+                <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700 }}>السعر</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700 }}>الإجمالي</th>
               </tr>
             </thead>
             <tbody>
-              {(sale.items || []).map((item, idx) => (
-                <tr key={item.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '8px 12px' }}>
-                    <div style={{ fontWeight: 600 }}>{item.name}</div>
-                    {item.offerName ? (
-                      <div style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>{item.offerName}</div>
-                    ) : null}
-                  </td>
-                  <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                    {item.qty} {item.unitName || 'قطعة'}
-                  </td>
-                  <td style={{ padding: '8px 12px' }}>
-                    {item.originalPrice && item.originalPrice > item.price ? (
-                      <div>
-                        <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px', marginLeft: '4px' }}>
-                          {formatCurrency(item.originalPrice)}
-                        </span>
-                        <span>{formatCurrency(item.price)}</span>
-                      </div>
-                    ) : (
-                      formatCurrency(item.price)
-                    )}
-                  </td>
-                  <td style={{ padding: '8px 12px', fontWeight: 700 }}>
-                    {formatCurrency(item.total)}
-                  </td>
-                </tr>
-              ))}
+              {(sale.items || []).map((item, idx) => {
+                const origPrice = Number(item.originalPrice || (Number(item.price || 0) + Number(item.offerDiscount || 0)));
+                const hasOffer = origPrice > Number(item.price || 0);
+
+                return (
+                  <tr key={item.id || idx} style={{ borderBottom: idx < (sale.items?.length || 0) - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ fontWeight: 700, color: '#1e293b' }}>{item.name}</div>
+                      {item.offerName ? (
+                        <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: 600, marginTop: '2px' }}>
+                          🏷️ {item.offerName}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600 }}>
+                      {item.qty} {item.unitName || 'قطعة'}
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{formatCurrency(item.price)}</div>
+                      {hasOffer ? (
+                        <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px', fontWeight: 500 }}>
+                          {formatCurrency(origPrice)}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>
+                      {formatCurrency(item.total)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -157,36 +182,53 @@ export function PosScannedInvoiceModal({
             alignItems: 'center',
             background: '#f8fafc',
             border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '12px 16px',
+            borderRadius: '10px',
+            padding: '14px 18px',
+            flexWrap: 'wrap',
+            gap: '12px',
           }}
         >
-          <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#64748b' }}>
-            <div>عدد البنود: <strong>{(sale.items || []).length}</strong></div>
+          <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#64748b', flexWrap: 'wrap' }}>
+            <div>عدد البنود: <strong style={{ color: '#1e293b' }}>{(sale.items || []).length}</strong></div>
             {Number(sale.discount || 0) > 0 ? (
               <div style={{ color: '#059669' }}>الخصم: <strong>{formatCurrency(sale.discount)}</strong></div>
             ) : null}
             {Number(sale.taxAmount || 0) > 0 ? (
-              <div>الضريبة: <strong>{formatCurrency(sale.taxAmount)}</strong></div>
+              <div>الضريبة: <strong style={{ color: '#1e293b' }}>{formatCurrency(sale.taxAmount)}</strong></div>
             ) : null}
           </div>
-          <div style={{ textAlign: 'left' }}>
-            <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '6px' }}>الإجمالي النهائي:</span>
-            <strong style={{ fontSize: '1.25rem', color: 'var(--primary-color, #0284c7)' }}>
+          <div style={{ textAlign: 'left', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>الإجمالي النهائي:</span>
+            <strong style={{ fontSize: '1.35rem', color: 'var(--primary-color, #0284c7)', fontWeight: 800 }}>
               {formatCurrency(sale.total)}
             </strong>
           </div>
         </div>
 
         {printSuccess ? (
-          <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#dcfce7', color: '#15803d', fontSize: '13px', fontWeight: 600, textAlign: 'center' }}>
+          <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#dcfce7', color: '#15803d', fontSize: '13.5px', fontWeight: 700, textAlign: 'center', border: '1px solid #bbf7d0' }}>
             ✓ تم إرسال أمر طباعة الإيصال بنجاح!
           </div>
         ) : null}
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
-          <Button type="button" variant="secondary" onClick={onClose}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            paddingTop: '8px',
+            borderTop: '1px solid #f1f5f9',
+            flexWrap: 'wrap',
+          }}
+        >
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            style={{ padding: '9px 18px', fontWeight: 600 }}
+          >
             إغلاق (Esc)
           </Button>
 
@@ -195,7 +237,15 @@ export function PosScannedInvoiceModal({
               type="button"
               variant="secondary"
               onClick={() => onOpenReturns(sale)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, borderColor: '#cbd5e1' }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontWeight: 700,
+                padding: '9px 20px',
+                borderColor: '#cbd5e1',
+                background: '#fff',
+              }}
             >
               <span>🔄</span>
               <span>إنشاء مرتجع لهذه الفاتورة</span>
@@ -206,7 +256,14 @@ export function PosScannedInvoiceModal({
             type="button"
             variant="primary"
             onClick={handlePrint}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontWeight: 700,
+              padding: '9px 22px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            }}
           >
             <span>🖨️</span>
             <span>إعادة طباعة الإيصال</span>

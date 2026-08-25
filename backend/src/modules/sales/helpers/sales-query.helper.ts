@@ -96,6 +96,15 @@ export function mapSaleRows(
   }));
 }
 
+function normalizeSearchKey(str: string): string {
+  return String(str || '')
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[\/\-_.\s]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
 export function filterSales(rows: SaleRow[], query: Record<string, unknown>): SaleRow[] {
   const q = String(query.search || query.q || '').toLowerCase();
   const filter = String(query.paymentChannel || query.filter || query.view || 'all');
@@ -126,6 +135,8 @@ export function filterSales(rows: SaleRow[], query: Record<string, unknown>): Sa
     }
   };
 
+  const normQ = normalizeSearchKey(q);
+
   return rows.filter((row) => {
     if (!paymentChannelMatches(row)) return false;
     if (cashierLower !== 'all') {
@@ -135,7 +146,12 @@ export function filterSales(rows: SaleRow[], query: Record<string, unknown>): Sa
       if (createdById !== cashier && createdByName !== cashierLower && createdByUsername !== cashierLower) return false;
     }
     if (!q) return true;
-    return [row.docNo, row.customerName, row.note, row.status].some((x) => String(x || '').toLowerCase().includes(q));
+    return [row.docNo, row.customerName, row.note, row.status, row.id].some((x) => {
+      const val = String(x || '').toLowerCase();
+      if (val.includes(q)) return true;
+      if (normQ && normalizeSearchKey(val).includes(normQ)) return true;
+      return false;
+    });
   });
 }
 

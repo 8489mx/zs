@@ -141,8 +141,15 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
 }
 
 export function printPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions = {}) {
-  const document = buildPostedSaleDocument(sale, options);
-  openReceiptDocument(`${options.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة'} ${sale.docNo || sale.id}`, document.html, document.compact, options);
+  const effectiveOptions: PrintReceiptOptions = { pageSize: 'receipt', ...options };
+  const document = buildPostedSaleDocument(sale, effectiveOptions);
+  openReceiptDocument(
+    `${effectiveOptions.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة'} ${sale.docNo || sale.id}`,
+    document.html,
+    document.compact,
+    effectiveOptions,
+    effectiveOptions.pageSize === 'receipt' ? '' : 'معاينة جاهزة للطباعة'
+  );
 }
 
 export { exportPostedSalePdf } from '@/lib/pos-printing/pdf';

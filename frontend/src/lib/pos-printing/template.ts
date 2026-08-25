@@ -125,12 +125,15 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
     const savedAmount = Number(item.offerDiscount || (Number(item.originalPrice || 0) - Number(item.price || 0)));
     const hasOffer = origPrice > Number(item.price || 0) && savedAmount > 0;
     const offerHtml = (hasOffer && showItemOffers)
-      ? `<div class="item-offer-line" style="font-size: 0.85em; line-height: 1.25; color: #000; margin-top: 1px;">
-          <strong style="font-weight: 800;">عرض: ${formatReceiptMoney(Number(item.price || 0), settings)}</strong> <span style="font-weight: 600; color: #000; font-size: 0.95em;">بدلاً من ${formatReceiptMoney(origPrice, settings)}</span>
+      ? `<div class="item-offer-line" style="font-size: 0.84em; line-height: 1.25; color: #000; margin-top: 1px;">
+          <strong style="font-weight: 700;">عرض: ${formatReceiptMoney(Number(item.price || 0), settings)}</strong> <span style="font-weight: 500; color: #333; font-size: 0.95em;">بدلاً من ${formatReceiptMoney(origPrice, settings)}</span>
          </div>`
       : '';
     const priceCellContent = (hasOffer && showItemOffers)
-      ? `<del style="text-decoration: line-through; color: #000;">${formatReceiptMoney(origPrice, settings)}</del>`
+      ? `<div style="line-height: 1.15;">
+          <div style="font-weight: 600; color: #000;">${formatReceiptMoney(Number(item.price || 0), settings)}</div>
+          <del style="text-decoration: line-through; text-decoration-thickness: 1px; color: #444; font-size: 0.82em; font-weight: 400; opacity: 0.85;">${formatReceiptMoney(origPrice, settings)}</del>
+         </div>`
       : formatReceiptMoney(Number(item.price || 0), settings);
     return `
     <tr>
@@ -303,7 +306,7 @@ function renderTotals(options: {
 
   const savingsBannerHtml = (!options.isReturn && totalAllSavings > 0.0001 && showSavingsBanner)
     ? `
-      <div class="receipt-savings-banner" style="margin-top: 6px; padding: 4px 6px; border: 1.5px dashed #000; border-radius: 4px; text-align: center; font-weight: 800; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000; display: flex; align-items: center; justify-content: center; gap: 6px;">
+      <div class="receipt-savings-banner" style="margin-top: 6px; padding: 4px 6px; border: 1px dashed #000; border-radius: 4px; text-align: center; font-weight: 700; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000; display: flex; align-items: center; justify-content: center; gap: 6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: inline-block;">
           <circle cx="12" cy="12" r="9.5"/>
           <line x1="16" y1="8" x2="8" y2="16"/>
@@ -367,13 +370,13 @@ export function getInvoiceStyles(compact = false) {
       overflow: hidden;
     }
     .invoice-brand-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
-    .invoice-brand-copy h2 { margin: 0; line-height: 1.15; color: #000; font-weight: 900; overflow-wrap: anywhere; }
+    .invoice-brand-copy h2 { margin: 0; line-height: 1.15; color: #000; font-weight: 800; overflow-wrap: anywhere; }
     .store-inline-details { margin-top: ${compact ? '3px' : '5px'}; color: #000; font-size: ${compact ? '8.8px' : '10.2px'}; line-height: 1.35; display: grid; gap: 1px; justify-items: center; text-align: center; }
     .invoice-meta-panel { display: grid; gap: 0; }
     .meta-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: ${compact ? '2px 0' : '3px 0'}; border-bottom: 1px dotted #000; font-size: ${compact ? '10.3px' : '11.8px'}; line-height: 1.3; }
     .meta-line:last-child { border-bottom: 0; }
-    .meta-line.strong { font-weight: 800; font-size: ${compact ? '12.5px' : '14px'}; }
-    .meta-label { color: #000; white-space: nowrap; font-weight: 700; text-align: right; }
+    .meta-line.strong { font-weight: 700; font-size: ${compact ? '12.5px' : '14px'}; }
+    .meta-label { color: #000; white-space: nowrap; font-weight: 600; text-align: right; }
     .meta-value { text-align: left; font-weight: 500; color: #000; overflow-wrap: anywhere; direction: ltr; unicode-bidi: isolate; }
     .invoice-items-card { padding: 0; }
     .invoice-items-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: auto; }
@@ -382,7 +385,7 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-table th:last-child,
     .invoice-items-table td:last-child { border-inline-start: 0; }
     .invoice-items-table tbody tr:last-child td { border-bottom: 0; }
-    .invoice-items-table th { background: #000; color: #fff; font-weight: 800; }
+    .invoice-items-table th { background: #000; color: #fff; font-weight: 700; }
     .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; min-width: 72px; overflow-wrap: anywhere; vertical-align: middle; }
     .invoice-items-table td:not(.name-cell) { text-align: left; font-variant-numeric: tabular-nums; vertical-align: middle; }
     .invoice-items-table.compact th,
@@ -391,15 +394,15 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-table.compact th:first-child,
     .invoice-items-table.compact td:first-child { text-align: right; }
     .invoice-totals-card { padding-top: ${compact ? '4px' : '6px'}; padding-bottom: ${compact ? '4px' : '6px'}; border-top: 1px dashed #000; }
-    .invoice-totals-card .meta-value { text-align: left; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 600; }
+    .invoice-totals-card .meta-value { text-align: left; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 500; }
     .invoice-totals-card .total-line { margin: ${compact ? '2px -2px' : '3px -3px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; font-size: ${compact ? '14px' : '17px'}; background: transparent; }
-    .invoice-totals-card .meta-line.strong .meta-value { font-weight: 900; }
+    .invoice-totals-card .meta-line.strong .meta-value { font-weight: 800; }
     .invoice-payment-card { border-top: 1px dashed #000; }
-    .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 900; text-align: center; padding-bottom: 4px; margin-bottom: 2px; }
+    .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 700; text-align: center; padding-bottom: 4px; margin-bottom: 2px; }
     .payment-grid { display: grid; gap: 0; }
     .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
     .payment-chip:last-child { border-bottom: 0; }
-    .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 800; }
+    .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 600; }
     .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '4px 2px' : '6px 4px'}; margin-top: ${compact ? '2px' : '4px'}; border-top: 1px dashed #000; break-inside: avoid; }
     .invoice-barcode-svg-wrap { width: ${compact ? '80%' : '72%'}; max-width: ${compact ? '190px' : '240px'}; height: ${compact ? '30px' : '38px'}; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
     .invoice-barcode-svg-wrap svg { display: block; width: 100%; height: 100%; }

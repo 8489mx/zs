@@ -18,6 +18,7 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { ProductIconStudioModal } from '@/shared/components/icons/ProductIconStudioModal';
 import { useProductIconSettings } from '@/shared/components/icons/product-icon-theme';
+import { isInvoiceBarcodeQuery, sanitizeSearchInputLive } from '@/features/pos/lib/pos-barcode-normalizer';
 
 interface PosProductsPanelProps {
   search: string;
@@ -269,7 +270,8 @@ function PosProductsPanelComponent({
   const groupedProducts = useMemo(() => buildPosProductGroups(categoryFilteredProducts, priceType), [priceType, categoryFilteredProducts]);
   const recentGroupKeys = useMemo(() => buildRecentGroupKeys(recentProducts, groupedProducts), [groupedProducts, recentProducts]);
   const favoriteKeySet = useMemo(() => new Set(favoriteKeys), [favoriteKeys]);
-  const scannerSearchQuery = search.trim();
+  const deferredSearch = useDeferredValue(search);
+  const scannerSearchQuery = deferredSearch.trim();
   const isScannerMode = posMode === 'scanner';
   const isTouchMode = posMode === 'touch';
   const hasBrowseFilter = productFilter !== 'all' || shelf !== 'all';
@@ -441,7 +443,7 @@ function PosProductsPanelComponent({
                   ref={searchInputRef}
                   autoFocus
                   value={search}
-                  onChange={(event) => onSearchChange(event.target.value)}
+                  onChange={(event) => onSearchChange(sanitizeSearchInputLive(event.target.value))}
                   onKeyDown={handleSearchKeyDown}
                   placeholder="اضرب الباركود هنا أو اكتب الاسم ثم Enter"
                   style={{ borderRadius: '8px', width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
@@ -798,7 +800,7 @@ function PosProductsPanelComponent({
               لم يتم العثور على أي صنف مطابق لـ <strong style={{ color: '#0f172a' }}>"{search}"</strong>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {(/^[A-Za-z0-9]+[/-][A-Za-z0-9]+[/-]?[A-Za-z0-9]*/.test(search.trim()) || /^Z/i.test(search.trim())) ? (
+              {isInvoiceBarcodeQuery(search.trim()) ? (
                 <Button
                   type="button"
                   variant="secondary"

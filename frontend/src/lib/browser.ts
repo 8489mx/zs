@@ -228,7 +228,7 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
       ? '@page { size: A4 landscape; margin: 9mm; }'
       : '@page { size: A4 portrait; margin: 9mm; }'
     : pageSize === 'receipt'
-      ? '@page { margin: 0; }'
+      ? '@page { size: 80mm auto; margin: 0; }'
       : '@page { size: auto; margin: 9mm; }';
 
   const html = `<!doctype html>

@@ -37,17 +37,36 @@ export function computeDraftTotal(draft: PosDraftSnapshot) {
 export function matchProductByCode(products: Product[], rawCode: string) {
   const code = String(rawCode || '').trim().toLowerCase();
   if (!code) return { status: 'empty' as const };
-  const matches = [];
-  for (const product of products) {
-    if (String(product.barcode || '').trim().toLowerCase() === code) {
-      matches.push({ product, unitName: null, multiplier: 1, kind: 'product' as const });
+
+  const matches: Array<{ product: Product; unitId?: string; unitName?: string | null; multiplier: number; kind: 'product' | 'unit' }> = [];
+  const len = products.length;
+
+  for (let i = 0; i < len; i++) {
+    const product = products[i];
+    const pBarcode = product.barcode ? String(product.barcode).trim().toLowerCase() : '';
+    const pSku = product.sku ? String(product.sku).trim().toLowerCase() : '';
+
+    if (pBarcode === code || pSku === code) {
+      matches.push({ product, unitName: null, multiplier: 1, kind: 'product' });
     }
-    for (const unit of (product.units || [])) {
-      if (String(unit.barcode || '').trim().toLowerCase() === code) {
-        matches.push({ product, unitId: unit.id || '', unitName: unit.name || null, multiplier: Number(unit.multiplier || 1) || 1, kind: 'unit' as const });
+
+    const units = product.units;
+    if (units && units.length > 0) {
+      for (let j = 0; j < units.length; j++) {
+        const unit = units[j];
+        if (unit.barcode && String(unit.barcode).trim().toLowerCase() === code) {
+          matches.push({
+            product,
+            unitId: unit.id || '',
+            unitName: unit.name || null,
+            multiplier: Number(unit.multiplier || 1) || 1,
+            kind: 'unit',
+          });
+        }
       }
     }
   }
+
   if (!matches.length) return { status: 'not-found' as const };
   const preferredUnits = matches.filter((entry) => entry.kind === 'unit');
   if (preferredUnits.length > 1) return { status: 'ambiguous' as const, matches: preferredUnits };

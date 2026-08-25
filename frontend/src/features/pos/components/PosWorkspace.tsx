@@ -29,12 +29,14 @@ import { parseWeightedBarcode, matchProductByWeightedCode } from '@/features/pos
 import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
+import {
+  isInvoiceBarcodeQuery,
+  getNormalizedInvoiceSearchTerms,
+  matchesSaleDocNo,
+  remapArabicKeyboardToEnglish,
+} from '@/features/pos/lib/pos-barcode-normalizer';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
 import type { Sale } from '@/types/domain';
-
-function normalizeDocCode(str: string): string {
-  return String(str || '').replace(/[\/\-_]/g, '').trim().toLowerCase();
-}
 
 export function PosWorkspace() {
   const pos = usePosWorkspace();
@@ -187,11 +189,62 @@ export function PosWorkspace() {
     return submitted;
   }, [pos]);
 
+  const resolveScannedInvoice = useCallback(async (rawQuery: string): Promise<boolean> => {
+    try {
+      const searchTerms = getNormalizedInvoiceSearchTerms(rawQuery);
+      if (!searchTerms.length) return false;
+
+      // 1. Fast path: Search the primary normalized term directly
+      const primaryTerm = searchTerms[0];
+      const salesResult = await salesApi.listPage({ search: primaryTerm, pageSize: 5 });
+      const matchingSale = (salesResult.rows || []).find((s) => {
+        if (String(s.id) === primaryTerm) return true;
+        if (matchesSaleDocNo(s.docNo, primaryTerm)) return true;
+        if (matchesSaleDocNo(s.docNo, rawQuery)) return true;
+        return false;
+      }) || (salesResult.rows?.length === 1 ? salesResult.rows[0] : null);
+
+      if (matchingSale) {
+        setScannedSale(matchingSale);
+        setScannedSaleModalOpen(true);
+        pos.setSearch('');
+        pos.setSubmitMessage('');
+        return true;
+      }
+
+      // 2. Parallel fallback for remaining search terms if primary didn't catch
+      if (searchTerms.length > 1) {
+        const remainingTerms = searchTerms.slice(1, 3);
+        const results = await Promise.all(
+          remainingTerms.map((term) => salesApi.listPage({ search: term, pageSize: 5 }))
+        );
+        for (const res of results) {
+          const found = (res.rows || []).find((s) => matchesSaleDocNo(s.docNo, rawQuery)) || (res.rows?.length === 1 ? res.rows[0] : null);
+          if (found) {
+            setScannedSale(found);
+            setScannedSaleModalOpen(true);
+            pos.setSearch('');
+            pos.setSubmitMessage('');
+            return true;
+          }
+        }
+      }
+    } catch {
+      // Ignore
+    }
+    return false;
+  }, [pos]);
+
   const resolveRemoteBarcodeMatch = useCallback((rawQuery: string) => {
     void (async () => {
       try {
         const parsed = parseQuantityPrefixQuery(rawQuery);
         const query = parsed.cleanQuery || rawQuery;
+
+        // 1. Check if invoice first
+        const isInvoice = await resolveScannedInvoice(query);
+        if (isInvoice) return;
+
         const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
         if (weightedBarcode) {
           const weightedLookupProducts = await posApi.lookupProducts({ barcode: weightedBarcode.productCode, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
@@ -216,31 +269,21 @@ export function PosWorkspace() {
           return;
         }
 
-        // 1. First check if this is an invoice receipt barcode
-        const isInvoicePattern = /^[A-Za-z0-9]+[/-][A-Za-z0-9]+[/-]?[A-Za-z0-9]*/.test(query) || /^Z/i.test(query);
-        if (isInvoicePattern) {
-          try {
-            const salesResult = await salesApi.listPage({ search: query, pageSize: 5 });
-            const matchingSale = (salesResult.rows || []).find((s) => {
-              if (String(s.id) === query) return true;
-              if (String(s.docNo || '').trim().toLowerCase() === query.toLowerCase()) return true;
-              if (normalizeDocCode(String(s.docNo || '')) === normalizeDocCode(query)) return true;
-              return false;
-            }) || (salesResult.rows?.length === 1 ? salesResult.rows[0] : null);
+        const remappedQuery = remapArabicKeyboardToEnglish(query);
+        const lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
+        let remoteMatch = matchProductByCode(lookupProducts, query);
 
-            if (matchingSale) {
-              setScannedSale(matchingSale);
-              setScannedSaleModalOpen(true);
-              pos.setSearch('');
-              return;
-            }
-          } catch {
-            // Ignore sales search error and continue to products
+        if (remoteMatch.status !== 'matched' && remappedQuery !== query) {
+          const remappedLookup = await posApi.lookupProducts({ barcode: remappedQuery, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
+          const remappedMatch = matchProductByCode(remappedLookup, remappedQuery);
+          if (remappedMatch.status === 'matched') {
+            const submitted = pos.handleQuickAddCodeSubmit(remappedQuery, remappedLookup);
+            if (submitted) { pos.setSearch(''); return; }
+            focusBarcodeEntry();
+            return;
           }
         }
 
-        const lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
-        const remoteMatch = matchProductByCode(lookupProducts, query);
         if (remoteMatch.status === 'matched') {
           const submitted = pos.handleQuickAddCodeSubmit(rawQuery, lookupProducts);
           if (submitted) { pos.setSearch(''); return; }
@@ -249,25 +292,9 @@ export function PosWorkspace() {
           return;
         }
 
-        // Fallback: Check if it matches an invoice even if it didn't match the regex
-        try {
-          const salesResult = await salesApi.listPage({ search: query, pageSize: 5 });
-          const matchingSale = (salesResult.rows || []).find((s) => {
-            if (String(s.id) === query) return true;
-            if (String(s.docNo || '').trim().toLowerCase() === query.toLowerCase()) return true;
-            if (normalizeDocCode(String(s.docNo || '')) === normalizeDocCode(query)) return true;
-            return false;
-          }) || (salesResult.rows?.length === 1 ? salesResult.rows[0] : null);
-
-          if (matchingSale) {
-            setScannedSale(matchingSale);
-            setScannedSaleModalOpen(true);
-            pos.setSearch('');
-            return;
-          }
-        } catch {
-          // Ignore
-        }
+        // Fallback check invoice again
+        const fallbackInvoice = await resolveScannedInvoice(rawQuery);
+        if (fallbackInvoice) return;
 
         if (remoteMatch.status === 'ambiguous') {
           pos.setSubmitMessage('هذا الباركود غير واضح أو مرتبط بأكثر من نتيجة. راجع الصنف أو الوحدة أولًا.');
@@ -279,7 +306,7 @@ export function PosWorkspace() {
       }
       focusBarcodeEntry();
     })();
-  }, [focusBarcodeEntry, pos]);
+  }, [focusBarcodeEntry, pos, resolveScannedInvoice]);
 
   const submitFirstSearchResult = useCallback((rawQuery?: string) => {
     const raw = String(rawQuery ?? pos.search).trim();
@@ -292,6 +319,17 @@ export function PosWorkspace() {
     const parsed = parseQuantityPrefixQuery(raw);
     const query = parsed.cleanQuery || raw;
     const requestedQuantity = parsed.hasPrefix ? parsed.quantity : 1;
+
+    // 1. Direct Invoice lookup if matching pattern
+    if (isInvoiceBarcodeQuery(query) || isInvoiceBarcodeQuery(raw)) {
+      void (async () => {
+        const isInvoice = await resolveScannedInvoice(query);
+        if (!isInvoice) {
+          resolveRemoteBarcodeMatch(raw);
+        }
+      })();
+      return true;
+    }
 
     if (parsed.isSuffixQuantityChange) {
       const targetLineKey = pos.selectedLineKey || pos.lastAddedLineKey || pos.cart[0]?.lineKey;
@@ -316,6 +354,20 @@ export function PosWorkspace() {
       if (submitted) pos.setSearch('');
       return submitted;
     }
+
+    // Also check if typed in Arabic keyboard
+    const remappedQuery = remapArabicKeyboardToEnglish(query);
+    if (remappedQuery !== query) {
+      const remappedLocalMatch = matchProductByCode(pos.productsQuery.data || [], remappedQuery);
+      if (remappedLocalMatch.status === 'matched') {
+        const submitted = handleQuickAddSubmit(remappedQuery);
+        if (submitted) {
+          pos.setSearch('');
+          return submitted;
+        }
+      }
+    }
+
     if (exactCodeMatch.status === 'ambiguous') {
       pos.setSubmitMessage('هذا الباركود غير واضح أو مرتبط بأكثر من نتيجة. راجع الصنف أو الوحدة أولًا.');
       focusBarcodeEntry();
@@ -344,14 +396,20 @@ export function PosWorkspace() {
 
     const firstProduct = pos.filteredSaleProducts[0];
     if (!firstProduct) {
-      pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
-      focusBarcodeEntry();
-      return false;
+      // Before showing not-found, check invoice
+      void (async () => {
+        const isInvoice = await resolveScannedInvoice(query);
+        if (!isInvoice) {
+          pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
+          focusBarcodeEntry();
+        }
+      })();
+      return true;
     }
     pos.handleAddProduct(firstProduct, undefined, { quantity: requestedQuantity });
     pos.setSearch('');
     return true;
-  }, [focusBarcodeEntry, handleQuickAddSubmit, pos, resolveRemoteBarcodeMatch]);
+  }, [focusBarcodeEntry, handleQuickAddSubmit, pos, resolveRemoteBarcodeMatch, resolveScannedInvoice]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {

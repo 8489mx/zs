@@ -8,10 +8,9 @@ import { StatsGrid } from '@/shared/components/stats-grid';
 import { returnsApi } from '@/features/returns/api/returns.api';
 import { useReturnsPage } from '@/features/returns/hooks/useReturnsPage';
 import { catalogApi } from '@/lib/api/catalog';
-import { ReturnsSelectedInvoiceCard } from '@/features/returns/components/ReturnsSelectedInvoiceCard';
 import { ReturnsSelectedReturnCard } from '@/features/returns/components/ReturnsSelectedReturnCard';
 import { ReturnsWorkspaceHeader } from '@/features/returns/components/ReturnsWorkspaceHeader';
-import { ReturnsCreateCard } from '@/features/returns/components/ReturnsCreateCard';
+import { ReturnsCreateModal } from '@/features/returns/components/ReturnsCreateModal';
 import { ReturnsRegisterCard } from '@/features/returns/components/ReturnsRegisterCard';
 import {
   createEmptyReturnForm,
@@ -300,49 +299,31 @@ export function ReturnsWorkspace() {
           onPageSizeChange={setPageSize}
         />
 
-        {/* Modal for Creating Return */}
-        <DialogShell
-          open={isCreateOpen}
+        {/* Premium Modal for Creating Return */}
+        <ReturnsCreateModal
+          isOpen={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
-          width="min(820px, 95vw)"
-          ariaLabel="تسجيل مرتجع جديد"
-          showCloseButton={true}
-        >
-          <div className="dialog-card space-y-4">
-            <div className="border-b pb-3">
-              <h3 className="document-prototype-section-title">تسجيل مرتجع جديد</h3>
-              <p className="text-muted-foreground">اختر الفاتورة وحدد الأصناف والكميات المسترجعة.</p>
-            </div>
-            <ReturnsCreateCard
-              form={form}
-              invoiceRows={invoiceRows}
-              selectedInvoice={selectedInvoice}
-              invoiceItems={invoiceItems}
-              selectedItems={selectedItems}
-              selectedItemsCount={selectedItemsCount}
-              canUseCreditSettlement={canUseCreditSettlement}
-              settlementNeedsRefundMethod={settlementNeedsRefundMethod}
-              isBusy={createMutation.isPending}
-              isError={createMutation.isError}
-              isSuccess={createMutation.isSuccess}
-              error={createMutation.error}
-              onFormChange={updateForm}
-              onResetForm={resetReturnForm}
-              onToggleItem={toggleItem}
-              onSetItemQty={setItemQty}
-              onOpenConfirm={() => setConfirmReturn(true)}
-              returnedQtyByProduct={returnedQtyByProduct}
-            />
-            {selectedInvoice && (
-              <ReturnsSelectedInvoiceCard
-                selectedInvoice={selectedInvoice}
-                selectedItemsCount={selectedItemsCount}
-                selectedQtyTotal={selectedQtyTotal}
-                expectedReturnValue={expectedReturnValue}
-              />
-            )}
-          </div>
-        </DialogShell>
+          form={form}
+          invoiceRows={invoiceRows}
+          selectedInvoice={selectedInvoice}
+          invoiceItems={invoiceItems}
+          selectedItems={selectedItems}
+          selectedItemsCount={selectedItemsCount}
+          selectedQtyTotal={selectedQtyTotal}
+          expectedReturnValue={expectedReturnValue}
+          canUseCreditSettlement={canUseCreditSettlement}
+          settlementNeedsRefundMethod={settlementNeedsRefundMethod}
+          isBusy={createMutation.isPending}
+          isError={createMutation.isError}
+          isSuccess={createMutation.isSuccess}
+          error={createMutation.error}
+          onFormChange={updateForm}
+          onResetForm={resetReturnForm}
+          onToggleItem={toggleItem}
+          onSetItemQty={setItemQty}
+          onOpenConfirm={() => setConfirmReturn(true)}
+          returnedQtyByProduct={returnedQtyByProduct}
+        />
 
         {/* Modal for Viewing Return Details */}
         <DialogShell
