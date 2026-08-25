@@ -515,7 +515,7 @@ export function buildReceiptDocument(options: {
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
-    ...(!options.isReturn && !options.isPurchase && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : (options.orderType === 'takeout' ? 'تيك أواي / سفري' : (options.orderType || 'مباشر')) }] : []),
+    ...(!options.isReturn && !options.isPurchase && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : (options.orderType === 'takeout' || options.orderType === 'takeaway' ? 'تيك أواي / سفري' : (options.orderType || 'مباشر')) }] : []),
     ...(showDeliveryRep && options.deliveryRepName ? [{ label: 'المندوب', value: options.deliveryRepName }] : []),
     ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
   ];

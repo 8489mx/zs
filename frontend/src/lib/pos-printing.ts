@@ -1,12 +1,10 @@
-import { escapeHtml, printHtmlDocument } from '@/lib/browser';
+import { printHtmlDocument } from '@/lib/browser';
 import type { PosItem } from '@/features/pos/types/pos.types';
 import type { Sale, AppSettings } from '@/types/domain';
 import { buildReceiptDocument, getInvoiceStyles } from '@/lib/pos-printing/template';
 import {
-  defaultInvoiceFooter,
   formatDateTime,
   formatSalePaymentText,
-  getPrintOption,
   paymentLabel,
   type PosPrintPageSize,
 } from '@/lib/pos-printing/shared';
@@ -27,17 +25,9 @@ export function openReceiptDocument(
   options: PrintReceiptOptions,
   subtitle = '',
 ) {
-  const defaultFooter = options.isPurchase
-    ? 'فاتورة توريد مشتريات — تم استلام الأصناف وقيدها في المخزن بنجاح.'
-    : (options.isReturn
-      ? 'تم استلام المرتجع وقيد المبلغ للعميل بنجاح.'
-      : defaultInvoiceFooter(options.settings));
-
   printHtmlDocument(title, documentHtml, {
     subtitle,
-    footerHtml: getPrintOption(options.settings, 'printShowFooter', true)
-      ? escapeHtml(options.footerText ?? defaultFooter)
-      : '',
+    footerHtml: '',
     pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4',
     extraStyles: getInvoiceStyles(compact),
     deviceName: options.settings?.posElectronCashierPrinter || undefined,
