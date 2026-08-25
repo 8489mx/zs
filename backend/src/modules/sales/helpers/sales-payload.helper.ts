@@ -101,11 +101,15 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
         productId: Number(item.productId || 0),
         qty: Number(item.qty || 0),
         price: Number(item.price || 0),
+        originalPrice: item.originalPrice != null && Number(item.originalPrice) > 0 ? Number(item.originalPrice) : undefined,
+        offerDiscount: item.offerDiscount != null && Number(item.offerDiscount) > 0 ? Number(item.offerDiscount) : undefined,
+        offerName: item.offerName ? String(item.offerName).trim() : undefined,
         unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
         unitMultiplier: Number(item.unitMultiplier || 1) || 1,
         priceType: (item.priceType === 'wholesale' ? 'wholesale' : 'retail') as 'retail' | 'wholesale',
         notes: String(item.notes || '').trim(),
         modifiers: item.modifiers || [],
+        serials: Array.isArray(item.serials) ? item.serials : undefined,
       }))
       .filter((item) => item.productId > 0 && item.qty > 0),
   };
