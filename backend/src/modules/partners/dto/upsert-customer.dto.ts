@@ -22,8 +22,8 @@ export class UpsertCustomerDto {
   balance?: number;
 
   @IsOptional()
-  @IsIn(['cash', 'vip'])
-  type?: 'cash' | 'vip';
+  @IsIn(['cash', 'vip', 'credit', 'wholesale'])
+  type?: 'cash' | 'vip' | 'credit' | 'wholesale';
 
   @Type(() => Number)
   @IsNumber()

@@ -53,7 +53,7 @@ export function SuppliersPage() {
           <div className="dialog-card">
             <div className="mb-4 border-b pb-3">
               <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">إضافة مورد جديد</h3>
-              <p className="text-xs text-muted-foreground mt-1">إدخال مورد جديد بنفس قواعد التحقق الموحدة.</p>
+              <p className="text-xs text-muted-foreground mt-1">تسجيل بيانات المورد وتفاصيل الحساب والرصيد الافتتاحي في النظام.</p>
             </div>
             <SupplierForm onSuccess={() => setIsCreateOpen(false)} />
           </div>
@@ -73,7 +73,7 @@ export function SuppliersPage() {
                 <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">
                   تعديل: {controller.selectedSupplier?.name}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">تعديل بيانات المورد أو حذفه من النظام.</p>
+                <p className="text-xs text-muted-foreground mt-1">تحديث بيانات المورد أو ضبط الرصيد الافتتاحي والملاحظات.</p>
               </div>
               {controller.selectedSupplier && (
                 <Button

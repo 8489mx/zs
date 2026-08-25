@@ -44,16 +44,64 @@ export function SupplierForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   }
 
   return (
-    <form className="form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+    <form className="form-grid supplier-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
       <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="بيانات المورد الجديدة لم تُحفظ بعد" hint="يمكنك الحفظ أو تفريغ الحقول قبل بدء مورد جديد." />
-      <Field label="اسم المورد" error={form.formState.errors.name?.message}><input {...form.register('name')} disabled={mutation.isPending} /></Field>
-      <Field label="الهاتف"><input {...form.register('phone')} disabled={mutation.isPending} /></Field>
-      <Field label="العنوان"><input {...form.register('address')} disabled={mutation.isPending} /></Field>
-      <Field label="رصيد افتتاحي"><input type="number" step="0.01" {...form.register('balance')} disabled={mutation.isPending} /></Field>
-      <Field label="ملاحظات"><textarea rows={4} {...form.register('notes')} disabled={mutation.isPending} /></Field>
+      
+      <Field label="اسم المورد *" error={form.formState.errors.name?.message}>
+        <input 
+          {...form.register('name')} 
+          disabled={mutation.isPending} 
+          placeholder="مثال: شركة التوحيد للتوريدات / أحمد حسن"
+          data-autofocus
+        />
+      </Field>
+
+      <Field label="رقم الهاتف" error={form.formState.errors.phone?.message}>
+        <input 
+          type="tel"
+          {...form.register('phone')} 
+          disabled={mutation.isPending} 
+          placeholder="مثال: 010xxxxxxxx"
+        />
+      </Field>
+
+      <Field label="العنوان / المقر">
+        <input 
+          {...form.register('address')} 
+          disabled={mutation.isPending} 
+          placeholder="المدينة، المنطقة، العنوان التفصيلي..."
+        />
+      </Field>
+
+      <Field 
+        label="الرصيد الافتتاحي (ج.م)" 
+        hint="المبلغ المستحق للمورد عند بداية التسجيل (إن وجد)"
+        error={form.formState.errors.balance?.message}
+      >
+        <input 
+          type="number" 
+          step="0.01" 
+          {...form.register('balance')} 
+          disabled={mutation.isPending} 
+          placeholder="0.00"
+        />
+      </Field>
+
+      <Field 
+        label="ملاحظات إضافية" 
+        className="field-full"
+        hint="ملاحظات اختيارية أو شروط سداد خاصة بالمورد"
+      >
+        <textarea 
+          rows={3} 
+          {...form.register('notes')} 
+          disabled={mutation.isPending} 
+          placeholder="أي شروط دفع، أرقام تواصل بديلة، أو تفاصيل خاصة بالمورد..."
+        />
+      </Field>
       
       {importModuleEnabled && (
-        <fieldset className="p-4 border rounded bg-slate-50 dark:bg-slate-800/50 space-y-4">
+        <fieldset className="p-4 border rounded bg-slate-50 dark:bg-slate-800/50 space-y-4 col-span-2">
           <legend className="px-2 font-semibold text-primary">إعدادات الاستيراد</legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="عملة التعامل">

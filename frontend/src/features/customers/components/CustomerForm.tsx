@@ -78,6 +78,8 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
               options={[
                 { value: 'cash', label: 'عميل عادي / تجزئة (افتراضي)' },
                 { value: 'vip', label: 'عميل مميز (VIP) - خصومات خاصة' },
+                { value: 'credit', label: 'عميل آجل (سحب على الحساب)' },
+                { value: 'wholesale', label: 'عميل جملة (أسعار جملة)' },
               ]}
             />
           )}

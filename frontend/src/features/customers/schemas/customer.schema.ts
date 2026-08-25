@@ -5,7 +5,7 @@ export const customerFormSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   balance: z.coerce.number().min(0),
-  type: z.enum(['cash', 'vip']),
+  type: z.enum(['cash', 'vip', 'credit', 'wholesale']),
   creditLimit: z.coerce.number().min(0),
   metadata: z.record(z.string(), z.any()).optional()
 });

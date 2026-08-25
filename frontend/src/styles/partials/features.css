@@ -62,6 +62,52 @@
   }
 }
 
+/* Supplier Form Premium Styling */
+.supplier-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.supplier-form-grid .field {
+  grid-column: span 1 !important;
+}
+
+.supplier-form-grid .field.field-full,
+.supplier-form-grid .actions,
+.supplier-form-grid .draft-state-notice,
+.supplier-form-grid .mutation-feedback,
+.supplier-form-grid fieldset {
+  grid-column: 1 / -1 !important;
+}
+
+.supplier-form-grid .field span {
+  font-weight: 700;
+  font-size: 13px;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.supplier-form-grid .field input,
+.supplier-form-grid .field select,
+.supplier-form-grid .field textarea {
+  font-size: 13.5px;
+  border-radius: 8px;
+}
+
+.supplier-form-grid .field-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .supplier-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .invoice-detail-summary-grid {
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 8px;

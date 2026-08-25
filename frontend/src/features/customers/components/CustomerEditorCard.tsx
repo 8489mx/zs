@@ -30,7 +30,7 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
       phone: customer.phone || '',
       address: customer.address || '',
       balance: Number(customer.balance || 0),
-      type: customer.type === 'vip' ? 'vip' : 'cash',
+      type: (['vip', 'credit', 'wholesale', 'cash'].includes(customer.type) ? customer.type : 'cash') as any,
       creditLimit: Number(customer.creditLimit || 0),
       metadata: customer.metadata || { currency: 'EGP' }
     });
@@ -73,6 +73,8 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
               options={[
                 { value: 'cash', label: 'عميل عادي / تجزئة (افتراضي)' },
                 { value: 'vip', label: 'عميل مميز (VIP) - خصومات خاصة' },
+                { value: 'credit', label: 'عميل آجل (سحب على الحساب)' },
+                { value: 'wholesale', label: 'عميل جملة (أسعار جملة)' },
               ]}
             />
           )}
