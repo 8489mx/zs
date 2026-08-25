@@ -191,7 +191,6 @@ function renderInvoiceBarcode(documentNumber?: string | number | null, compact =
       <div class="invoice-barcode-svg-wrap">
         ${barcodeSvg}
       </div>
-      <div class="invoice-barcode-value">${escapeHtml(docNo)}</div>
     </section>
   `;
 }
@@ -382,10 +381,9 @@ export function getInvoiceStyles(compact = false) {
     .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 800; }
-    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '4px 2px 2px' : '6px 4px 3px'}; margin-top: ${compact ? '2px' : '4px'}; border-top: 1px dashed #000; break-inside: avoid; }
-    .invoice-barcode-svg-wrap { width: ${compact ? '82%' : '75%'}; max-width: ${compact ? '200px' : '250px'}; height: ${compact ? '28px' : '36px'}; margin: 0 auto 2px; display: flex; align-items: center; justify-content: center; }
+    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '4px 2px' : '6px 4px'}; margin-top: ${compact ? '2px' : '4px'}; border-top: 1px dashed #000; break-inside: avoid; }
+    .invoice-barcode-svg-wrap { width: ${compact ? '80%' : '72%'}; max-width: ${compact ? '190px' : '240px'}; height: ${compact ? '30px' : '38px'}; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
     .invoice-barcode-svg-wrap svg { display: block; width: 100%; height: 100%; }
-    .invoice-barcode-value { font-size: ${compact ? '9px' : '10.5px'}; font-weight: 700; letter-spacing: 1px; direction: ltr; color: #000; line-height: 1.1; font-family: 'Courier New', Courier, monospace; }
     .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border-top: 1px dashed #000; text-align: center; line-height: 1.35; }
     
     /* Theme: Boxed */
