@@ -152,7 +152,7 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
             ${compact ? '' : '<th>#</th>'}
             <th>الصنف</th>
             ${compact ? '' : '<th>الوحدة</th>'}
-            <th>الكمية</th>
+            <th>العدد</th>
             <th>السعر</th>
             <th>الإجمالي</th>
           </tr>
@@ -219,6 +219,8 @@ function renderTotals(options: {
   const remaining = Math.max(0, Number(options.total || 0) - paidAmount);
   const showTax = getPrintOption(options.settings, 'printShowTax', true);
   const showItemSummary = getPrintOption(options.settings, 'printShowItemSummary', true);
+  const showItemCount = getPrintOption(options.settings, 'printShowItemCount', showItemSummary);
+  const showPiecesCount = getPrintOption(options.settings, 'printShowPiecesCount', showItemSummary);
   const showPaymentDetails = getPrintOption(options.settings, 'printShowPaymentBreakdown', true);
   const showDiscountBreakdown = getPrintOption(options.settings, 'printShowDiscountBreakdown', true);
   const showSavingsBanner = getPrintOption(options.settings, 'printShowSavingsBanner', true);
@@ -250,8 +252,10 @@ function renderTotals(options: {
       { label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) },
     ] : []),
     { label: 'إجمالي المبلغ المسترد للعميل', value: formatReceiptMoney(Number(options.total || paidAmount || 0), options.settings), strong: true },
-    ...(showItemSummary ? [
+    ...(showItemCount ? [
       { label: 'عدد البنود', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
+    ] : []),
+    ...(showPiecesCount ? [
       { label: 'إجمالي القطع', value: formatReceiptQuantity(totalPieces, options.settings) },
     ] : []),
   ] : [
@@ -279,8 +283,10 @@ function renderTotals(options: {
       ...(tenderedAmount > 0 ? [{ label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) }] : []),
       ...(changeAmount > 0 ? [{ label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) }] : []),
     ] : []),
-    ...(showItemSummary ? [
+    ...(showItemCount ? [
       { label: 'عدد البنود', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
+    ] : []),
+    ...(showPiecesCount ? [
       { label: 'إجمالي القطع', value: formatReceiptQuantity(totalPieces, options.settings) },
     ] : []),
   ];
@@ -362,13 +368,13 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-card { padding: 0; }
     .invoice-items-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: auto; }
     .invoice-items-table th,
-    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '9.6px' : '11.5px'}; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; }
+    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '9.6px' : '11.5px'}; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; vertical-align: middle; }
     .invoice-items-table th:last-child,
     .invoice-items-table td:last-child { border-inline-start: 0; }
     .invoice-items-table tbody tr:last-child td { border-bottom: 0; }
     .invoice-items-table th { background: #000; color: #fff; font-weight: 800; }
-    .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; min-width: 72px; overflow-wrap: anywhere; }
-    .invoice-items-table td:not(.name-cell) { text-align: left; font-variant-numeric: tabular-nums; }
+    .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; min-width: 72px; overflow-wrap: anywhere; vertical-align: middle; }
+    .invoice-items-table td:not(.name-cell) { text-align: left; font-variant-numeric: tabular-nums; vertical-align: middle; }
     .invoice-items-table.compact th,
     .invoice-items-table.compact td { font-size: 9.4px; }
     .invoice-items-table.compact th { font-size: 8.7px; }
@@ -414,8 +420,9 @@ export function getInvoiceStyles(compact = false) {
     .receipt-theme-ultra-compact .meta-line::after { content: " | "; margin: 0 3px; font-weight: normal; font-size: 9px; }
     .receipt-theme-ultra-compact .meta-line:last-child::after { content: ""; margin: 0; }
     .receipt-theme-ultra-compact .meta-line.strong { font-size: 12px; }
-    .receipt-theme-ultra-compact .invoice-items-table th, .receipt-theme-ultra-compact .invoice-items-table td { padding: 2px 1px; font-size: 9.5px; border-bottom: 1px dotted #000; }
+    .receipt-theme-ultra-compact .invoice-items-table th, .receipt-theme-ultra-compact .invoice-items-table td { padding: 2px 1px; font-size: 9.5px; border-bottom: 1px dotted #000; vertical-align: middle; }
     .receipt-theme-ultra-compact .invoice-items-table th { background: transparent; color: #000; border-bottom: 1px solid #000; border-top: 1px dashed #000; }
+    .receipt-theme-ultra-compact .invoice-items-table td { vertical-align: middle; }
     .receipt-theme-ultra-compact .invoice-totals-card { padding: 2px 0; }
     .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 12.5px; border-bottom: 1px dashed #000; display: inline-flex; width: auto; }
     .receipt-theme-ultra-compact .payment-chip { padding: 1px 0; font-size: 10px; border-bottom: 1px dotted #000; }

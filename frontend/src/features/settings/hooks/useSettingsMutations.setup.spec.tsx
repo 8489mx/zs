@@ -88,6 +88,8 @@ const baseSettingsMutationValues = {
   printShowTax: true,
   printShowPaymentMethod: true,
   printShowItemSummary: true,
+  printShowItemCount: true,
+  printShowPiecesCount: true,
   printShowPaymentBreakdown: true,
   printShowDate: true,
   printShowItemOffers: true,

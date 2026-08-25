@@ -81,6 +81,8 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     printShowTax: values.printShowTax !== false,
     printShowPaymentMethod: values.printShowPaymentMethod !== false,
     printShowItemSummary: values.printShowItemSummary !== false,
+    printShowItemCount: values.printShowItemCount !== false,
+    printShowPiecesCount: values.printShowPiecesCount !== false,
     printShowPaymentBreakdown: values.printShowPaymentBreakdown !== false,
     printShowDate: values.printShowDate !== false,
     printShowItemOffers: values.printShowItemOffers !== false,

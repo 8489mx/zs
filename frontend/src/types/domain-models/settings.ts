@@ -34,6 +34,8 @@ export interface AppSettings {
   printShowTax?: boolean;
   printShowPaymentMethod?: boolean;
   printShowItemSummary?: boolean;
+  printShowItemCount?: boolean;
+  printShowPiecesCount?: boolean;
   printShowPaymentBreakdown?: boolean;
   printShowDate?: boolean;
   printShowItemOffers?: boolean;

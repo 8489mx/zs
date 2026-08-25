@@ -217,7 +217,7 @@ export function PrintingSettingsTab({
           </label>
           <label className="settings-print-option" style={checkboxStyle}>
             <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemOffers')} disabled={disabled} />
-            إظهار تفاصيل عروض الأصناف (أصلي / وفرت)
+            إظهار تفاصيل عروض الأصناف (عرض: X بدلاً من Y)
           </label>
           <label className="settings-print-option" style={checkboxStyle}>
             <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDiscountBreakdown')} disabled={disabled} />
@@ -228,8 +228,12 @@ export function PrintingSettingsTab({
             إظهار شريط إجمالي التوفير (وفرت بالفاتورة)
           </label>
           <label className="settings-print-option" style={checkboxStyle}>
-            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemSummary')} disabled={disabled} />
-            إظهار عدد البنود والقطع
+            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemCount')} disabled={disabled} />
+            إظهار عدد البنود
+          </label>
+          <label className="settings-print-option" style={checkboxStyle}>
+            <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPiecesCount')} disabled={disabled} />
+            إظهار إجمالي القطع
           </label>
           <label className="settings-print-option" style={checkboxStyle}>
             <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPaymentBreakdown')} disabled={disabled} />

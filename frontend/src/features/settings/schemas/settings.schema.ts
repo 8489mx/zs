@@ -79,6 +79,8 @@ export const settingsFormSchema = z.object({
   printShowTax: z.boolean().default(true),
   printShowPaymentMethod: z.boolean().default(true),
   printShowItemSummary: z.boolean().default(true),
+  printShowItemCount: z.boolean().default(true),
+  printShowPiecesCount: z.boolean().default(true),
   printShowPaymentBreakdown: z.boolean().default(true),
   printShowDate: z.boolean().default(true),
   printShowItemOffers: z.boolean().default(true),
