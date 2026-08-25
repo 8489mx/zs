@@ -6,27 +6,30 @@ import { FormSection } from '@/shared/components/form-section';
 
 const checkboxGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-  gap: 8,
+  gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))',
+  gap: '6px',
 };
 
 const checkboxStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 8,
-  padding: '10px 12px',
-  borderRadius: 8,
-  border: '1px solid var(--border, #e2e8f0)',
-  background: 'var(--surface, #ffffff)',
+  gap: '6px',
+  padding: '5px 8px',
+  borderRadius: '6px',
+  border: '1px solid var(--border-color, #e2e8f0)',
+  background: 'var(--surface-color, #ffffff)',
   cursor: 'pointer',
-  fontSize: '0.875rem',
+  fontSize: '11.5px',
   fontWeight: 600,
+  color: 'var(--text-color, #334155)',
+  userSelect: 'none',
+  transition: 'background 0.15s ease, border-color 0.15s ease',
 };
 
 const checkboxInputStyle: CSSProperties = {
   margin: 0,
-  width: '18px',
-  height: '18px',
+  width: '15px',
+  height: '15px',
   accentColor: 'var(--primary-color, #0284c7)',
   cursor: 'pointer',
 };
@@ -35,61 +38,61 @@ const premiumCardStyle = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '14px 18px',
+  padding: '10px 14px',
   background: 'var(--surface-color, #ffffff)',
   border: '1px solid var(--border-color, #e2e8f0)',
-  borderRadius: '10px',
+  borderRadius: '8px',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
 };
 
 const premiumCardTextStyle = {
   display: 'flex',
   flexDirection: 'column' as const,
-  gap: '3px',
+  gap: '2px',
 };
 
 const premiumCheckboxInputStyle = {
-  width: '20px',
-  height: '20px',
+  width: '16px',
+  height: '16px',
   accentColor: 'var(--primary-color, #0284c7)',
   cursor: 'pointer',
 };
 
 const groupCardStyle: React.CSSProperties = {
-  background: 'var(--panel-subtle, rgba(248, 250, 252, 0.75))',
+  background: 'var(--panel-subtle, rgba(248, 250, 252, 0.6))',
   border: '1px solid var(--border-color, #e2e8f0)',
-  borderRadius: '10px',
-  padding: '14px 16px',
+  borderRadius: '8px',
+  padding: '8px 12px',
   display: 'flex',
   flexDirection: 'column',
-  gap: '12px',
+  gap: '8px',
 };
 
 const groupHeaderStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '8px',
-  borderBottom: '1px dashed var(--border-color, #cbd5e1)',
-  paddingBottom: '8px',
+  gap: '6px',
+  borderBottom: '1px dashed var(--border-color, #e2e8f0)',
+  paddingBottom: '5px',
 };
 
 const groupHeaderBadgeStyle: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: '22px',
-  height: '22px',
-  borderRadius: '6px',
+  width: '18px',
+  height: '18px',
+  borderRadius: '4px',
   background: 'var(--primary-color, #0284c7)',
   color: '#ffffff',
-  fontSize: '11px',
-  fontWeight: 700,
+  fontSize: '10px',
+  fontWeight: 800,
 };
 
 const groupHeaderTitleStyle: React.CSSProperties = {
-  fontSize: '13.5px',
+  fontSize: '12px',
   fontWeight: 700,
   color: 'var(--text-color, #1e293b)',
 };
@@ -183,7 +186,7 @@ export function PrintingSettingsTab({
         title="عناصر وبيانات الفاتورة المطبوعة"
         description="حدد البيانات المطلوب إظهارها أو إخفاؤها من الإيصال المطبوع للكاشير مقسمة حسب تسلسلها في الفاتورة."
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
           {/* 1. رأس المتجر والفرع */}
           <div style={groupCardStyle}>
