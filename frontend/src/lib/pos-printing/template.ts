@@ -139,10 +139,10 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
       <td class="name-cell">${escapeHtml(item.name || '—')}${offerHtml}${modifiersHtml}${serialsHtml}</td>
-      ${compact ? '' : `<td>${escapeHtml(item.unitName || 'قطعة')}</td>`}
-      <td>${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
-      <td>${priceCellContent}</td>
-      <td>${formatReceiptMoney(Number(item.total || 0), settings)}</td>
+      ${compact ? '' : `<td class="unit-cell">${escapeHtml(item.unitName || 'قطعة')}</td>`}
+      <td class="qty-cell">${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
+      <td class="price-cell">${priceCellContent}</td>
+      <td class="total-cell">${formatReceiptMoney(Number(item.total || 0), settings)}</td>
     </tr>
     `;
   }).join('');
@@ -167,7 +167,7 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
 }
 
 function renderPaymentBreakdown(payments?: Sale['payments'], settings?: Partial<AppSettings> | null, compact = false) {
-  if (!payments?.length || !getPrintOption(settings, 'printShowPaymentBreakdown', true)) return '';
+  if (!payments || payments.length <= 1 || !getPrintOption(settings, 'printShowPaymentBreakdown', true)) return '';
   return `
     <section class="invoice-card invoice-payment-card${compact ? ' compact' : ''}">
       <div class="section-title">تفصيل المدفوعات</div>
@@ -290,12 +290,17 @@ function renderTotals(options: {
     ...(hasDeliveryFee ? [{ label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) }] : []),
     ...(showTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
-    ...(showPaymentDetails ? [
-      { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
-      ...(remaining > 0 ? [{ label: 'المتبقي', value: formatReceiptMoney(remaining, options.settings) }] : []),
-      ...(tenderedAmount > 0 ? [{ label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) }] : []),
-      ...(changeAmount > 0 ? [{ label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) }] : []),
-    ] : []),
+    ...(showPaymentDetails ? (
+      remaining > 0.009 ? [
+        { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
+        { label: 'المتبقي', value: formatReceiptMoney(remaining, options.settings) },
+      ] : (
+        tenderedAmount > 0 && changeAmount > 0.009 ? [
+          { label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) },
+          { label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) },
+        ] : []
+      )
+    ) : []),
     ...(showItemCount ? [
       { label: 'عدد البنود', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
     ] : []),
@@ -388,6 +393,10 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-table th { background: #000; color: #fff; font-weight: 700; }
     .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; min-width: 72px; overflow-wrap: anywhere; vertical-align: middle; }
     .invoice-items-table td:not(.name-cell) { text-align: left; font-variant-numeric: tabular-nums; vertical-align: middle; }
+    .invoice-items-table td.qty-cell,
+    .invoice-items-table td.price-cell,
+    .invoice-items-table td.index-cell,
+    .invoice-items-table td.unit-cell { text-align: center; }
     .invoice-items-table.compact th,
     .invoice-items-table.compact td { font-size: 9.4px; }
     .invoice-items-table.compact th { font-size: 8.7px; }
@@ -497,16 +506,17 @@ export function buildReceiptDocument(options: {
   const showDeliveryRep = getPrintOption(options.settings, 'printDeliveryRepOnReceipt', true) || getPrintOption(options.settings, 'printShowDeliveryRep' as any, true);
 
   const partyLabel = options.isPurchase ? 'المورد' : (options.isReturn ? 'العميل' : 'العميل');
-  const partyValue = options.isPurchase
-    ? (options.supplierName || options.customerName || '—')
-    : (options.customerName || 'عميل نقدي');
+  const rawPartyValue = String(options.isPurchase ? (options.supplierName || options.customerName || '') : (options.customerName || '')).trim();
+  const isDefaultCashCustomer = !options.isPurchase && (!rawPartyValue || rawPartyValue === 'عميل نقدي' || rawPartyValue === 'نقدي' || rawPartyValue === '—');
+  const shouldShowParty = showCustomer && !isDefaultCashCustomer;
+  const partyValue = rawPartyValue || (options.isPurchase ? '—' : 'عميل نقدي');
 
   const metaRows = [
     ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || (options.isPurchase ? 'فاتورة شراء' : (options.isReturn ? 'إيصال مرتجع مبيعات' : 'فاتورة')) }] : []),
     ...(showDocumentNumber ? [{ label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' }] : []),
     ...(options.referenceInvoice ? [{ label: 'مرجع الفاتورة الأصلية', value: options.referenceInvoice }] : []),
     ...(showDate ? [{ label: 'التاريخ', value: options.dateText || formatDateTime(new Date()) }] : []),
-    ...(showCustomer ? [{ label: partyLabel, value: partyValue }] : []),
+    ...(shouldShowParty ? [{ label: partyLabel, value: partyValue }] : []),
     ...(showDeliveryCustomerDetails && (options.orderType === 'delivery' || options.customerPhone) ? [
       ...(options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
       ...(options.customerAddress ? [{ label: 'عنوان العميل', value: options.customerAddress }] : []),

@@ -95,7 +95,7 @@ function renderTransferItemsTable(items: Array<{ productName?: string; qty?: num
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
       <td class="name-cell">${escapeHtml(item.productName || '—')}</td>
-      <td>${formatReceiptNumber(Number(item.qty || 0), settings)}</td>
+      <td class="qty-cell">${formatReceiptNumber(Number(item.qty || 0), settings)}</td>
     </tr>
   `).join('');
 
@@ -266,8 +266,8 @@ export function buildInventoryStatusReport(rows: any[], options: PrintTransferOp
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, options.settings)}</td>`}
       <td class="name-cell">${escapeHtml(row.name || '—')}</td>
-      <td>${formatReceiptNumber(Number(row.stock || 0), options.settings)}</td>
-      <td>${formatReceiptNumber(Number(row.costPrice || 0), options.settings)}</td>
+      <td class="qty-cell">${formatReceiptNumber(Number(row.stock || 0), options.settings)}</td>
+      <td class="price-cell">${formatReceiptNumber(Number(row.costPrice || 0), options.settings)}</td>
       <td>${formatReceiptNumber(Number((row.stock || 0) * (row.costPrice || 0)), options.settings)}</td>
     </tr>
   `).join('');
@@ -342,7 +342,7 @@ export function buildInventoryMovementsReport(movements: any[], options: PrintTr
       <td class="name-cell">${escapeHtml(movement.productName || '—')}</td>
       <td>${escapeHtml(movement.locationName || '—')}</td>
       <td>${escapeHtml(movement.type || '—')}</td>
-      <td>${formatReceiptNumber(Number(movement.qty || 0), options.settings)}</td>
+      <td class="qty-cell">${formatReceiptNumber(Number(movement.qty || 0), options.settings)}</td>
       <td>${escapeHtml(movement.reason || movement.referenceId || '—')}</td>
     </tr>
   `).join('');

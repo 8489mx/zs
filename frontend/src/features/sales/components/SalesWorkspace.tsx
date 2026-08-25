@@ -157,7 +157,7 @@ export function SalesWorkspace() {
         <DialogShell
           open={isDetailOpen && Boolean(selectedSaleId)}
           onClose={() => { setIsDetailOpen(false); }}
-          width="min(720px, 95vw)"
+          width="min(960px, 95vw)"
           ariaLabel="تفاصيل الفاتورة"
           showCloseButton={true}
         >

@@ -44,7 +44,7 @@ export function PurchasesWorkspace() {
         <DialogShell
           open={Boolean(selectedPurchase)}
           onClose={() => controller.setSelectedPurchaseId('')}
-          width="min(720px, 95vw)"
+          width="min(960px, 95vw)"
           ariaLabel="تفاصيل فاتورة الشراء"
           showCloseButton={true}
         >

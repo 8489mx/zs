@@ -8,11 +8,13 @@ export function SharedSaleDetailCard({ sale, isLoading = false, onEdit, onCancel
   if (isLoading) return <Card title="تفاصيل الفاتورة"><div className="muted">جاري تحميل تفاصيل الفاتورة...</div></Card>;
   if (!sale) return <Card title="تفاصيل الفاتورة"><div className="muted">اختر فاتورة من الجدول لعرض التفاصيل.</div></Card>;
 
+  const statusText = sale.status === 'posted' ? 'مرحلة' : sale.status === 'cancelled' ? 'ملغاة' : sale.status === 'draft' ? 'مسودة' : (sale.status || 'draft');
+
   return (
     <Card
       title={`تفاصيل ${sale.docNo || sale.id}`}
       actions={sale.status !== 'cancelled' ? (
-        <div className="actions">
+        <div className="actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap' }}>
           {onPrint ? <Button variant="secondary" onClick={onPrint}>طباعة</Button> : null}
           {onEdit ? <Button variant="secondary" onClick={onEdit}>تعديل الفاتورة</Button> : null}
           {onCancel ? <Button variant="danger" onClick={onCancel}>إلغاء الفاتورة</Button> : null}
@@ -21,23 +23,29 @@ export function SharedSaleDetailCard({ sale, isLoading = false, onEdit, onCancel
     >
       <div className="stats-grid compact-grid invoice-detail-summary-grid">
         <div className="stat-card"><span>العميل</span><strong>{sale.customerName || 'عميل نقدي'}</strong></div>
-        <div className="stat-card"><span>الحالة</span><strong>{sale.status || 'draft'}</strong></div>
-        <div className="stat-card"><span>الإجمالي</span><strong>{formatCurrency(sale.total)}</strong></div>
+        <div className="stat-card"><span>الحالة</span><strong className="status-chip">{statusText}</strong></div>
+        <div className="stat-card"><span>الإجمالي</span><strong style={{ color: 'var(--primary, #0f172a)' }}>{formatCurrency(sale.total)}</strong></div>
         <div className="stat-card"><span>التاريخ</span><strong>{formatDate(sale.date)}</strong></div>
       </div>
-      <div className="table-wrap" style={{ marginTop: 12 }}>
-        <table>
+      <div className="table-wrap invoice-detail-table-wrap" style={{ marginTop: 16 }}>
+        <table style={{ width: '100%', minWidth: '100%', tableLayout: 'auto' }}>
           <thead>
-            <tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>
+            <tr>
+              <th style={{ textAlign: 'right', width: '40%' }}>الصنف</th>
+              <th style={{ textAlign: 'center', width: '15%' }}>الوحدة</th>
+              <th style={{ textAlign: 'center', width: '15%' }}>الكمية</th>
+              <th style={{ textAlign: 'center', width: '15%' }}>السعر</th>
+              <th style={{ textAlign: 'left', width: '15%' }}>الإجمالي</th>
+            </tr>
           </thead>
           <tbody>
             {(sale.items || []).map((item) => (
               <tr key={item.id || `${item.productId}-${item.unitName}`}>
-                <td>{item.name}</td>
-                <td>{item.unitName || '—'}</td>
-                <td>{item.qty}</td>
-                <td>{formatCurrency(item.price)}</td>
-                <td>{formatCurrency(item.total)}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600 }}>{item.name}</td>
+                <td style={{ textAlign: 'center', color: '#64748b' }}>{item.unitName || '—'}</td>
+                <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.qty}</td>
+                <td style={{ textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(item.price)}</td>
+                <td style={{ textAlign: 'left', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(item.total)}</td>
               </tr>
             ))}
           </tbody>
