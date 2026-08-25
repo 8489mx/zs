@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { Branch, Location } from '@/types/domain';
@@ -7,6 +8,7 @@ import { readFileAsDataUrl, RequiredField, comboListStyle, comboRowStyle, comboC
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { useAuthStore } from '@/stores/auth-store';
+import { applyAccentColorToDocument } from '@/lib/theme';
 
 function LockIcon({ size = 12 }: { size?: number }) {
   return (
@@ -216,6 +218,12 @@ export function GeneralSettingsTab({
   const logoData = form.watch('logoData');
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = user?.role === 'super_admin';
+
+  useEffect(() => {
+    if (accentColor) {
+      applyAccentColorToDocument(accentColor);
+    }
+  }, [accentColor]);
 
   if (activeTab !== 'general') return null;
 

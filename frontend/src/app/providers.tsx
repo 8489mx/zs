@@ -6,6 +6,7 @@ import { SystemAlertProvider } from '@/shared/components/system-alert';
 
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { applyAccentColorToDocument } from '@/lib/theme';
 
 function ThemeProvider({ children }: PropsWithChildren) {
   const theme = useAuthStore((state) => state.theme);
@@ -23,17 +24,7 @@ function ThemeProvider({ children }: PropsWithChildren) {
   }, [theme]);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (settings?.accentColor) {
-      root.style.setProperty('--primary', settings.accentColor);
-      root.style.setProperty('--primary-color', settings.accentColor);
-      // Fallback for primary2 if not separately defined
-      root.style.setProperty('--primary2', settings.accentColor);
-    } else {
-      root.style.removeProperty('--primary');
-      root.style.removeProperty('--primary-color');
-      root.style.removeProperty('--primary2');
-    }
+    applyAccentColorToDocument(settings?.accentColor);
   }, [settings?.accentColor]);
 
   return <>{children}</>;

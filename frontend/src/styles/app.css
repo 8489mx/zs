@@ -51,13 +51,15 @@
 @import './partials/system-updates.css';
 
 /* ========================================================
-   GLOBAL AUTHORITY: PRIMARY BRAND COLOR (#170c5c)
+   GLOBAL AUTHORITY: PRIMARY BRAND COLOR (CUSTOMIZABLE)
    ======================================================== */
 :root {
-  --primary: #170c5c !important;
-  --primary2: #10003b !important;
-  --primary-color: #170c5c !important;
-  --color-primary: #170c5c !important;
+  --primary: #170c5c;
+  --primary2: #10003b;
+  --primary-color: #170c5c;
+  --color-primary: #170c5c;
+  --color-primary-dark: #10003b;
+  --color-primary-light: rgba(23, 12, 92, 0.08);
   --z-erp-approved-logo: url('./brand/z-erp-approved-icon.png');
 }
 
@@ -73,8 +75,8 @@ button.btn-primary,
 .purchase-prototype-create-card .btn-primary,
 .purchase-prototype-create-confirm .btn-primary,
 .settings-page-shell .settings-core-form > .btn.btn-primary {
-  background: #170c5c !important;
-  border-color: #170c5c !important;
+  background: var(--primary, #170c5c) !important;
+  border-color: var(--primary, #170c5c) !important;
   color: #ffffff !important;
 }
 
@@ -84,8 +86,8 @@ button.btn-primary:hover:not(:disabled),
 .btn.btn-primary:hover:not(:disabled),
 .filter-chip-row .btn-primary:hover:not(:disabled),
 .filter-chip-row .button-primary:hover:not(:disabled) {
-  background: #10003b !important;
-  border-color: #10003b !important;
+  background: var(--primary2, var(--color-primary-dark, #10003b)) !important;
+  border-color: var(--primary2, var(--color-primary-dark, #10003b)) !important;
   color: #ffffff !important;
 }
 

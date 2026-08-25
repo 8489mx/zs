@@ -432,7 +432,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
               style={{
-                background: activeTab === tab.id ? '#0f172a' : 'transparent',
+                background: activeTab === tab.id ? 'var(--primary, #0f172a)' : 'transparent',
                 color: activeTab === tab.id ? '#ffffff' : '#64748b',
                 border: 'none',
                 padding: '6px 16px',
