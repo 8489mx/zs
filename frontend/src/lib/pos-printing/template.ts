@@ -1,6 +1,6 @@
 import { escapeHtml } from '@/lib/browser';
 import type { AppSettings, Sale } from '@/types/domain';
-import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, type PosPrintPageSize } from '@/lib/pos-printing/shared';
+import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, formatDateTime, type PosPrintPageSize } from '@/lib/pos-printing/shared';
 import { buildCode128Svg } from '@/lib/barcode';
 
 function resolveStoreIdentity(settings?: Partial<AppSettings> | null) {
@@ -195,6 +195,16 @@ function renderInvoiceBarcode(documentNumber?: string | number | null, compact =
         ${barcodeSvg}
       </div>
     </section>
+  `;
+}
+
+function renderFooter(settings?: Partial<AppSettings> | null, compact = false) {
+  if (!getPrintOption(settings, 'printShowFooter', true)) return '';
+  const footerText = String(settings?.invoiceFooter || '').trim() || 'يرجى الاحتفاظ بالفاتورة، الاستبدال والاسترجاع حسب سياسة المتجر.';
+  return `
+    <footer class="print-footer${compact ? ' compact' : ''}">
+      ${escapeHtml(footerText)}
+    </footer>
   `;
 }
 
@@ -481,6 +491,7 @@ export function buildReceiptDocument(options: {
   const showOrderType = getPrintOption(options.settings, 'printShowOrderType', true);
 
   const showDate = getPrintOption(options.settings, 'printShowDate', true);
+  const showDeliveryRep = getPrintOption(options.settings, 'printDeliveryRepOnReceipt', true) || getPrintOption(options.settings, 'printShowDeliveryRep' as any, true);
 
   const partyLabel = options.isPurchase ? 'المورد' : (options.isReturn ? 'العميل' : 'العميل');
   const partyValue = options.isPurchase
@@ -491,10 +502,12 @@ export function buildReceiptDocument(options: {
     ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || (options.isPurchase ? 'فاتورة شراء' : (options.isReturn ? 'إيصال مرتجع مبيعات' : 'فاتورة')) }] : []),
     ...(showDocumentNumber ? [{ label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' }] : []),
     ...(options.referenceInvoice ? [{ label: 'مرجع الفاتورة الأصلية', value: options.referenceInvoice }] : []),
-    ...(showDate ? [{ label: 'التاريخ', value: options.dateText || '—' }] : []),
+    ...(showDate ? [{ label: 'التاريخ', value: options.dateText || formatDateTime(new Date()) }] : []),
     ...(showCustomer ? [{ label: partyLabel, value: partyValue }] : []),
-    ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
-    ...(showDeliveryCustomerDetails && options.orderType === 'delivery' && options.customerAddress ? [{ label: 'عنوان العميل', value: options.customerAddress }] : []),
+    ...(showDeliveryCustomerDetails && (options.orderType === 'delivery' || options.customerPhone) ? [
+      ...(options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
+      ...(options.customerAddress ? [{ label: 'عنوان العميل', value: options.customerAddress }] : []),
+    ] : []),
     ...(showPaymentMethod ? [{ label: options.isReturn ? 'طريقة رد المبلغ' : (options.isPurchase ? 'طريقة السداد' : 'طريقة الدفع'), value: options.paymentText || 'نقدي' }] : []),
     ...(options.isPurchase
       ? (options.cashierName && options.cashierName !== '—' ? [{ label: 'المسؤول', value: options.cashierName }] : [])
@@ -502,8 +515,8 @@ export function buildReceiptDocument(options: {
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
-    ...(options.settings?.restaurantModuleEnabled && !options.isReturn && !options.isPurchase && options.orderType && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : 'تيك أواي' }] : []),
-    ...(options.settings?.printDeliveryRepOnReceipt && options.deliveryRepName ? [{ label: 'المندوب', value: options.deliveryRepName }] : []),
+    ...(!options.isReturn && !options.isPurchase && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : (options.orderType === 'takeout' ? 'تيك أواي / سفري' : (options.orderType || 'مباشر')) }] : []),
+    ...(showDeliveryRep && options.deliveryRepName ? [{ label: 'المندوب', value: options.deliveryRepName }] : []),
     ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
   ];
 
@@ -517,6 +530,7 @@ export function buildReceiptDocument(options: {
         ${renderTotals({ subtotal: options.subtotal, discount: options.discount, deliveryFee: options.deliveryFee, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact, isReturn: options.isReturn })}
         ${renderPaymentBreakdown(options.payments, options.settings, compact)}
         ${renderInvoiceBarcode(options.documentNumber, compact, options.settings)}
+        ${renderFooter(options.settings, compact)}
       </div>
     `,
     compact,

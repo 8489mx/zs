@@ -42,11 +42,11 @@ export function getReceiptTheme(pageSize?: PosPrintPageSize, settings?: Partial<
   return pageSize === 'receipt' ? (settings?.posReceiptTheme || 'classic') : 'classic';
 }
 
-export function formatDateTime(value?: string, settings?: Partial<AppSettings> | null) {
+export function formatDateTime(value?: string | Date | null, settings?: Partial<AppSettings> | null) {
   const locale = getReceiptNumberLocale(settings);
   if (!value) return new Date().toLocaleString(locale);
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
   return parsed.toLocaleString(locale);
 }
 
