@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
 import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
@@ -13,6 +14,8 @@ import { PosOpenShiftModal } from '@/features/pos/components/pos-workspace/PosOp
 import { SerialLookupModal } from '@/features/products/components/SerialLookupModal';
 import { QuickProductModal } from '@/shared/components/QuickProductModal';
 import { PosNewProductModal } from '@/features/pos/components/pos-workspace/PosNewProductModal';
+import { PosScannedInvoiceModal } from '@/features/pos/components/pos-workspace/PosScannedInvoiceModal';
+import { salesApi } from '@/features/sales/api/sales.api';
 import {
   getSelectedCustomerName,
   printCurrentPosDraft,
@@ -27,9 +30,15 @@ import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
+import type { Sale } from '@/types/domain';
+
+function normalizeDocCode(str: string): string {
+  return String(str || '').replace(/[\/\-_]/g, '').trim().toLowerCase();
+}
 
 export function PosWorkspace() {
   const pos = usePosWorkspace();
+  const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannerSubmitRef = useRef<{ code: string; at: number }>({ code: '', at: 0 });
   const [discountApprovalDialogOpen, setDiscountApprovalDialogOpen] = useState(false);
@@ -49,6 +58,8 @@ export function PosWorkspace() {
   const [newProductInitialBarcode, setNewProductInitialBarcode] = useState('');
   const [modifiersModalLineKey, setModifiersModalLineKey] = useState<string>('');
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
+  const [scannedSale, setScannedSale] = useState<Sale | null>(null);
+  const [scannedSaleModalOpen, setScannedSaleModalOpen] = useState(false);
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
 
@@ -205,6 +216,29 @@ export function PosWorkspace() {
           return;
         }
 
+        // 1. First check if this is an invoice receipt barcode
+        const isInvoicePattern = /^[A-Za-z0-9]+[/-][A-Za-z0-9]+[/-]?[A-Za-z0-9]*/.test(query) || /^Z/i.test(query);
+        if (isInvoicePattern) {
+          try {
+            const salesResult = await salesApi.listPage({ search: query, pageSize: 5 });
+            const matchingSale = (salesResult.rows || []).find((s) => {
+              if (String(s.id) === query) return true;
+              if (String(s.docNo || '').trim().toLowerCase() === query.toLowerCase()) return true;
+              if (normalizeDocCode(String(s.docNo || '')) === normalizeDocCode(query)) return true;
+              return false;
+            }) || (salesResult.rows?.length === 1 ? salesResult.rows[0] : null);
+
+            if (matchingSale) {
+              setScannedSale(matchingSale);
+              setScannedSaleModalOpen(true);
+              pos.setSearch('');
+              return;
+            }
+          } catch {
+            // Ignore sales search error and continue to products
+          }
+        }
+
         const lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
         const remoteMatch = matchProductByCode(lookupProducts, query);
         if (remoteMatch.status === 'matched') {
@@ -214,6 +248,27 @@ export function PosWorkspace() {
           focusBarcodeEntry();
           return;
         }
+
+        // Fallback: Check if it matches an invoice even if it didn't match the regex
+        try {
+          const salesResult = await salesApi.listPage({ search: query, pageSize: 5 });
+          const matchingSale = (salesResult.rows || []).find((s) => {
+            if (String(s.id) === query) return true;
+            if (String(s.docNo || '').trim().toLowerCase() === query.toLowerCase()) return true;
+            if (normalizeDocCode(String(s.docNo || '')) === normalizeDocCode(query)) return true;
+            return false;
+          }) || (salesResult.rows?.length === 1 ? salesResult.rows[0] : null);
+
+          if (matchingSale) {
+            setScannedSale(matchingSale);
+            setScannedSaleModalOpen(true);
+            pos.setSearch('');
+            return;
+          }
+        } catch {
+          // Ignore
+        }
+
         if (remoteMatch.status === 'ambiguous') {
           pos.setSubmitMessage('هذا الباركود غير واضح أو مرتبط بأكثر من نتيجة. راجع الصنف أو الوحدة أولًا.');
         } else {
@@ -563,6 +618,22 @@ export function PosWorkspace() {
           }}
         />
       )}
+
+      <PosScannedInvoiceModal
+        sale={scannedSale}
+        isOpen={scannedSaleModalOpen}
+        onClose={() => {
+          setScannedSaleModalOpen(false);
+          setScannedSale(null);
+          focusBarcodeEntry();
+        }}
+        settings={pos.settingsQuery.data}
+        onOpenReturns={(targetSale) => {
+          setScannedSaleModalOpen(false);
+          setScannedSale(null);
+          navigate(`/returns?invoiceId=${targetSale.id}&docNo=${encodeURIComponent(targetSale.docNo || '')}`);
+        }}
+      />
     </div>
   );
 }

@@ -797,24 +797,43 @@ function PosProductsPanelComponent({
             <div style={{ fontSize: '0.92rem', color: '#64748b' }}>
               لم يتم العثور على أي صنف مطابق لـ <strong style={{ color: '#0f172a' }}>"{search}"</strong>
             </div>
-            {onOpenNewProduct ? (
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => {
-                  const query = search.trim();
-                  const isBarcode = /^\d{4,}$/.test(query);
-                  onOpenNewProduct(isBarcode ? { barcode: query } : { name: query });
-                }}
-                style={{
-                  fontWeight: 700,
-                  padding: '8px 18px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                }}
-              >
-                + إضافة صنف جديد باسم / باركود "{search}"
-              </Button>
-            ) : null}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {(/^[A-Za-z0-9]+[/-][A-Za-z0-9]+[/-]?[A-Za-z0-9]*/.test(search.trim()) || /^Z/i.test(search.trim())) ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => onSearchSubmitFirstResult(search.trim())}
+                  style={{
+                    fontWeight: 700,
+                    padding: '8px 18px',
+                    background: '#f0f9ff',
+                    borderColor: '#0284c7',
+                    color: '#0369a1',
+                  }}
+                >
+                  🧾 استعراض / إعادة طباعة الفاتورة "{search}"
+                </Button>
+              ) : null}
+
+              {onOpenNewProduct ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    const query = search.trim();
+                    const isBarcode = /^\d{4,}$/.test(query);
+                    onOpenNewProduct(isBarcode ? { barcode: query } : { name: query });
+                  }}
+                  style={{
+                    fontWeight: 700,
+                    padding: '8px 18px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  }}
+                >
+                  + إضافة صنف جديد باسم / باركود "{search}"
+                </Button>
+              ) : null}
+            </div>
           </div>
         ) : null}
 

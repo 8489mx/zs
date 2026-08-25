@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { invalidateReturnsDomain } from '@/app/query-invalidation';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -28,6 +28,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 export function ReturnsWorkspace() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isPurchaseMode = location.pathname.includes('purchase-returns');
 
   const [search, setSearch] = useState('');
@@ -117,6 +118,18 @@ export function ReturnsWorkspace() {
     });
     setSelectedItems({});
   }, [isPurchaseMode]);
+
+  useEffect(() => {
+    const targetInvoiceId = searchParams.get('invoiceId');
+    if (targetInvoiceId) {
+      setForm((current) => ({
+        ...current,
+        type: isPurchaseMode ? 'purchase' : 'sale',
+        invoiceId: String(targetInvoiceId),
+      }));
+      setIsCreateOpen(true);
+    }
+  }, [searchParams, isPurchaseMode]);
 
   const createMutation = useMutation({
     mutationFn: ({ managerPin, reason }: { managerPin?: string; reason: string }) => returnsApi.create({
