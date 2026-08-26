@@ -19,6 +19,7 @@ import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { ProductIconStudioModal } from '@/shared/components/icons/ProductIconStudioModal';
 import { useProductIconSettings } from '@/shared/components/icons/product-icon-theme';
 import { isInvoiceBarcodeQuery, sanitizeSearchInputLive } from '@/features/pos/lib/pos-barcode-normalizer';
+import { useScannerBuffer } from '@/features/pos/hooks/useScannerBuffer';
 
 interface PosProductsPanelProps {
   search: string;
@@ -232,6 +233,16 @@ function PosProductsPanelComponent({
   posMode,
   onOpenNewProduct,
 }: PosProductsPanelProps) {
+  // Scanner buffer: detects rapid barcode scanner input and batches it into a single
+  // state update instead of triggering re-renders on every character.
+  // Uses refs + direct DOM manipulation — ZERO React renders during scanning.
+  const scannerBuffer = useScannerBuffer({
+    externalValue: search,
+    onFlush: onSearchChange,
+    inputRef: searchInputRef,
+    sanitize: sanitizeSearchInputLive,
+  });
+
   const [shelf, setShelf] = useState<PosGroupShelf>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [favoriteKeys, setFavoriteKeys] = useState<string[]>(readFavoriteKeys);
@@ -405,7 +416,8 @@ function PosProductsPanelComponent({
         setOpenGroupKey(null);
         return;
       }
-      onSearchChange('');
+      // Flush scanner buffer immediately then clear
+      scannerBuffer.flushNow('');
       onProductFilterChange('all');
       setShelf('all');
       setSelectedCategoryId(null);
@@ -414,6 +426,8 @@ function PosProductsPanelComponent({
     }
     if (event.key === 'Enter') {
       event.preventDefault();
+      // Flush scanner buffer immediately so parent state is up-to-date
+      scannerBuffer.flushNow(currentQuery);
       if (currentQuery.trim()) {
         if (hasExactCodeMatch(products, currentQuery) && onSearchSubmitFirstResult(currentQuery)) {
           setOpenGroupKey(null);
@@ -442,8 +456,8 @@ function PosProductsPanelComponent({
                 <input
                   ref={searchInputRef}
                   autoFocus
-                  value={search}
-                  onChange={(event) => onSearchChange(sanitizeSearchInputLive(event.target.value))}
+                  defaultValue={search}
+                  onChange={scannerBuffer.handleChange}
                   onKeyDown={handleSearchKeyDown}
                   placeholder="اضرب الباركود هنا أو اكتب الاسم ثم Enter"
                   style={{ borderRadius: '8px', width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
@@ -466,7 +480,6 @@ function PosProductsPanelComponent({
                     color: priceType === 'retail' ? '#ffffff' : '#475569',
                     boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
                   }}
                   onClick={() => onPriceTypeChange('retail')}
                 >
@@ -485,7 +498,6 @@ function PosProductsPanelComponent({
                     color: priceType === 'wholesale' ? '#ffffff' : '#475569',
                     boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(220,38,38,0.3)' : 'none',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
                   }}
                   onClick={() => onPriceTypeChange('wholesale')}
                 >
@@ -523,7 +535,6 @@ function PosProductsPanelComponent({
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 fontWeight: selectedCategoryId === null ? 'bold' : '600',
-                transition: 'all 0.15s ease',
               }}
             >
               كل الأقسام
@@ -546,7 +557,6 @@ function PosProductsPanelComponent({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   fontWeight: selectedCategoryId === String(cat.id) ? 'bold' : '600',
-                  transition: 'all 0.15s ease',
                 }}
               >
                 {cat.name}
@@ -581,7 +591,6 @@ function PosProductsPanelComponent({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               fontWeight: shelf === 'all' && productFilter === 'all' ? 'bold' : '500',
-              transition: 'all 0.15s ease',
             }}
           >
             الكل
@@ -603,7 +612,6 @@ function PosProductsPanelComponent({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               fontWeight: shelf === 'favorites' ? 'bold' : '500',
-              transition: 'all 0.15s ease',
             }}
           >
             المفضلة
@@ -625,7 +633,6 @@ function PosProductsPanelComponent({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               fontWeight: productFilter === 'offers' ? 'bold' : '500',
-              transition: 'all 0.15s ease',
             }}
           >
             بعروض
@@ -647,7 +654,6 @@ function PosProductsPanelComponent({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               fontWeight: shelf === 'recent' ? 'bold' : '500',
-              transition: 'all 0.15s ease',
             }}
           >
             آخر استخدام
@@ -669,7 +675,6 @@ function PosProductsPanelComponent({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               fontWeight: productFilter === 'raw_materials' ? 'bold' : '500',
-              transition: 'all 0.15s ease',
             }}
           >
             مواد خام
@@ -693,7 +698,6 @@ function PosProductsPanelComponent({
               fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
-              transition: 'all 0.15s ease',
             }}
           >
             {cardDensity === 'compact' ? 'كروت مضغوطة' : 'كروت موسعة'}
@@ -717,7 +721,6 @@ function PosProductsPanelComponent({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
-              transition: 'all 0.15s ease',
             }}
           >
             <span>🎨</span>
@@ -930,7 +933,6 @@ function PosProductsPanelComponent({
                       flexDirection: 'column',
                       justifyContent: 'space-between',
                       minHeight: '94px',
-                      transition: 'all 0.15s ease',
                       position: 'relative',
                     }}
                   >

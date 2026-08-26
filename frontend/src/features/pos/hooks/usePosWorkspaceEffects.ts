@@ -94,7 +94,12 @@ export function usePosWorkspaceEffects({
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType, branchId: '', locationId: '' }));
+    // Debounce persistence to avoid synchronous localStorage writes on every keystroke
+    // (especially during barcode scanner rapid input).
+    const timer = window.setTimeout(() => {
+      persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType, branchId: '', locationId: '' }));
+    }, 300);
+    return () => window.clearTimeout(timer);
   }, [cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType]);
 
   useEffect(() => {
