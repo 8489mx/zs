@@ -79,8 +79,8 @@ describe('ProductOfferDialog', () => {
 
     vi.useRealTimers();
 
-    fireEvent.change(screen.getByLabelText('قيمة العرض'), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'إضافة العرض' }));
+    fireEvent.change(screen.getByLabelText(/نسبة الخصم|قيمة/), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /إضافة العرض/ }));
 
     await waitFor(() => expect(updateMock).toHaveBeenCalled());
     const payload = updateMock.mock.calls[0][1];

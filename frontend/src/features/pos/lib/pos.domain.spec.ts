@@ -111,14 +111,21 @@ describe('POS stock handling', () => {
     }, 'retail', 1)).toBe(10);
   });
 
-  it('applies min_qty offers only after the threshold quantity', () => {
-    const offeredProduct: Product = {
+  it('applies bundle offer correctly for full bundles and remainder items', () => {
+    const bundleProduct: Product = {
       ...product,
-      stock: 5,
-      offers: [{ id: 'qty-offer', offer_type: 'percent', value: 25, min_qty: 3, start_date: localIsoDate(), end_date: null }],
+      retailPrice: 120,
+      stock: 20,
+      offers: [{ id: 'bundle-offer', type: 'bundle', value: 500, minQty: 5, from: localIsoDate(), to: null }],
     };
 
-    expect(getProductPrice(offeredProduct, 'retail', 2)).toBe(10);
-    expect(getProductPrice(offeredProduct, 'retail', 3)).toBe(7.5);
+    // Below bundle threshold: normal retail price
+    expect(getProductPrice(bundleProduct, 'retail', 3)).toBe(120);
+
+    // Exactly 1 bundle (5 pieces): 500 / 5 = 100 per piece
+    expect(getProductPrice(bundleProduct, 'retail', 5)).toBe(100);
+
+    // 1 bundle + 2 items (7 pieces): (500 + 240) / 7 = 105.71
+    expect(getProductPrice(bundleProduct, 'retail', 7)).toBe(105.71);
   });
 });

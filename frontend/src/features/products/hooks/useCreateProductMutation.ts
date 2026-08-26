@@ -91,6 +91,8 @@ function buildProductPayload(values: ProductFormValues) {
     binLocation: normalizeArabicInput(values.binLocation || ''),
     notes: normalizeArabicInput(values.notes || ''),
     icon: values.icon || undefined,
+    expiryDate: values.expiryDate || values.metadata?.expiryDate || undefined,
+    metadata: values.expiryDate ? { ...(values.metadata || {}), expiryDate: values.expiryDate } : values.metadata,
     units,
     customerPrices: [],
     fashionVariants,

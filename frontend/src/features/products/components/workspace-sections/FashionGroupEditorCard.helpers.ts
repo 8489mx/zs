@@ -155,7 +155,7 @@ export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Pr
       },
     ],
     offers: (source?.offers || []).map((offer) => ({
-      type: offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
+      type: offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
       value: Number(offer.value || 0),
       minQty: Math.max(1, Number(offer.minQty || 1)),
       from: offer.from || null,

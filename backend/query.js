@@ -1,1 +1,0 @@
-const {Client} = require('pg'); const c = new Client('postgres://postgres:postgres@127.0.0.1:5433/zs_dev'); c.connect().then(()=>c.query('SELECT employee_id, work_date, check_in_at, check_out_at FROM hr_attendance_records WHERE source = ''import''')).then(r=>{console.table(r.rows); c.end()})

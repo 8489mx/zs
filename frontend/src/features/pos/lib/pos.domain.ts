@@ -64,20 +64,29 @@ function todayLocalIsoDate() {
   return `${year}-${month}-${day}`;
 }
 
-function getOfferAppliedPrice(basePrice: number, offer: ProductOffer) {
-  const type = getOfferType(offer);
-  if (type === 'percent') return roundMoney(Math.max(0, basePrice - ((basePrice * Number(offer.value || 0)) / 100)));
-  if (type === 'fixed') return roundMoney(Math.max(0, basePrice - Number(offer.value || 0)));
-  if (type === 'price') return roundMoney(Math.max(0, Number(offer.value || 0)));
-  return roundMoney(basePrice);
+function getOfferType(offer: ProductOffer): 'percent' | 'fixed' | 'price' | 'bundle' {
+  if (offer.type === 'bundle' || offer.offer_type === 'bundle') return 'bundle';
+  if (offer.type === 'price' || offer.offer_type === 'price') return 'price';
+  if (offer.type === 'fixed' || offer.offer_type === 'fixed') return 'fixed';
+  return 'percent';
 }
 
-function getOfferType(offer: ProductOffer) {
-  return offer.type === 'price' || offer.offer_type === 'price'
-    ? 'price'
-    : offer.type === 'fixed' || offer.offer_type === 'fixed'
-      ? 'fixed'
-      : 'percent';
+function getOfferAppliedPrice(basePrice: number, offer: ProductOffer, qty = 1) {
+  const type = getOfferType(offer);
+  const offerVal = Number(offer.value || 0);
+  if (type === 'percent') return roundMoney(Math.max(0, basePrice - ((basePrice * offerVal) / 100)));
+  if (type === 'fixed') return roundMoney(Math.max(0, basePrice - offerVal));
+  if (type === 'price') return roundMoney(Math.max(0, offerVal));
+  if (type === 'bundle') {
+    const minQty = getOfferMinQty(offer);
+    const normalizedQty = Math.max(1, qty);
+    if (normalizedQty < minQty) return roundMoney(basePrice);
+    const bundles = Math.floor(normalizedQty / minQty);
+    const remainder = normalizedQty % minQty;
+    const total = (bundles * offerVal) + (remainder * basePrice);
+    return roundMoney(total / normalizedQty);
+  }
+  return roundMoney(basePrice);
 }
 
 function getOfferMinQty(offer: ProductOffer) {
@@ -88,11 +97,12 @@ function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) 
   if (priceType === 'wholesale') return null;
   const today = todayLocalIsoDate();
   const basePrice = Number(product.retailPrice || 0);
+  const normalizedQty = Math.max(1, qty);
   const applicableOffers = (product.offers || []).filter((offer) => {
     const from = normalizeDateOnly(offer.from || offer.start_date || '');
     const to = normalizeDateOnly(offer.to || offer.end_date || '');
     const minQty = getOfferMinQty(offer);
-    return (!from || from <= today) && (!to || to >= today) && qty >= minQty;
+    return (!from || from <= today) && (!to || to >= today) && normalizedQty >= minQty;
   });
 
   if (!applicableOffers.length) return null;
@@ -102,8 +112,8 @@ function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) 
     const rightMinQty = getOfferMinQty(right);
     if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
 
-    const leftPrice = getOfferAppliedPrice(basePrice, left);
-    const rightPrice = getOfferAppliedPrice(basePrice, right);
+    const leftPrice = getOfferAppliedPrice(basePrice, left, normalizedQty);
+    const rightPrice = getOfferAppliedPrice(basePrice, right, normalizedQty);
     if (leftPrice !== rightPrice) return leftPrice - rightPrice;
 
     return Number(right.value || 0) - Number(left.value || 0);
@@ -131,7 +141,7 @@ function getProductItemCode(product: Product, unit?: ProductUnit) {
 export function getProductPrice(product: Product, priceType: PosPriceType, qty = 1) {
   const basePrice = Number(priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
   const offer = getApplicableOffer(product, priceType, qty);
-  return offer ? getOfferAppliedPrice(basePrice, offer) : roundMoney(basePrice);
+  return offer ? getOfferAppliedPrice(basePrice, offer, qty) : roundMoney(basePrice);
 }
 
 export function getOfferDisplayName(offer: ProductOffer) {
@@ -143,13 +153,14 @@ export function getOfferDisplayName(offer: ProductOffer) {
   if (type === 'percent') return `تم تفعيل عرض: خصم ${val}%${qtyText}`;
   if (type === 'fixed') return `تم تفعيل عرض: خصم ${val} ثابت${qtyText}`;
   if (type === 'price') return `تم تفعيل عرض: سعر خاص ${val}${qtyText}`;
+  if (type === 'bundle') return `تم تفعيل عرض باقة: ${minQty} قطع بسعر ${val} ج.م`;
   return 'تم تفعيل عرض خاص';
 }
 
 export function repriceCartLine(item: PosItem, product: Product, qty: number) {
   const basePrice = Number(item.priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
   const offer = getApplicableOffer(product, item.priceType, qty);
-  const effectivePrice = offer ? getOfferAppliedPrice(basePrice, offer) : roundMoney(basePrice);
+  const effectivePrice = offer ? getOfferAppliedPrice(basePrice, offer, qty) : roundMoney(basePrice);
   
   let origPrice = basePrice;
   let offerDiscount = 0;

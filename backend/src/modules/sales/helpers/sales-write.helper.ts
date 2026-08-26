@@ -66,9 +66,9 @@ export function buildPreparedSaleItem(
     productName,
     qty: Number(item.qty || 0),
     unitPrice: Number(item.price || 0),
-    originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
-    offerDiscount: item.offerDiscount ? Number(item.offerDiscount) : undefined,
-    offerName: item.offerName,
+    ...(item.originalPrice !== undefined ? { originalPrice: Number(item.originalPrice) } : {}),
+    ...(item.offerDiscount !== undefined ? { offerDiscount: Number(item.offerDiscount) } : {}),
+    ...(item.offerName !== undefined ? { offerName: item.offerName } : {}),
     lineTotal,
     unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
     unitMultiplier: Number(item.unitMultiplier || 1) || 1,
@@ -123,12 +123,21 @@ function isOfferActive(offer: SaleProductOfferRow, todayIso: string): boolean {
   return (!from || from <= todayIso) && (!to || to >= todayIso);
 }
 
-function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferRow): number {
+function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferRow, qty: number = 1): number {
   const offerValue = Number(offer.value || 0);
-  if (!(offerValue > 0) && offer.offer_type !== 'price') return roundCurrency(basePrice);
+  if (!(offerValue > 0) && offer.offer_type !== 'price' && offer.offer_type !== 'bundle') return roundCurrency(basePrice);
   if (offer.offer_type === 'percent') return roundCurrency(Math.max(0, basePrice - ((basePrice * offerValue) / 100)));
   if (offer.offer_type === 'fixed') return roundCurrency(Math.max(0, basePrice - offerValue));
   if (offer.offer_type === 'price') return roundCurrency(Math.max(0, offerValue));
+  if (offer.offer_type === 'bundle') {
+    const minQty = Math.max(1, Number(offer.min_qty || 1));
+    const normalizedQty = Math.max(1, Number(qty || 1));
+    if (normalizedQty < minQty) return roundCurrency(basePrice);
+    const bundles = Math.floor(normalizedQty / minQty);
+    const remainder = normalizedQty % minQty;
+    const total = (bundles * offerValue) + (remainder * basePrice);
+    return roundCurrency(total / normalizedQty);
+  }
   return roundCurrency(basePrice);
 }
 
@@ -142,8 +151,8 @@ function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso: string
     const rightMinQty = Math.max(1, Number(right.min_qty || 1));
     if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
 
-    const leftPrice = calculateOfferAdjustedPrice(basePrice, left);
-    const rightPrice = calculateOfferAdjustedPrice(basePrice, right);
+    const leftPrice = calculateOfferAdjustedPrice(basePrice, left, normalizedQty);
+    const rightPrice = calculateOfferAdjustedPrice(basePrice, right, normalizedQty);
     if (leftPrice !== rightPrice) return leftPrice - rightPrice;
 
     return Number(right.value || 0) - Number(left.value || 0);
@@ -163,13 +172,14 @@ export function calculateAllowedSaleUnitPrice(params: {
   }
   const basePrice = Number(params.retailPrice || 0);
   const todayIso = normalizeDateOnly(params.todayIso) || todayLocalIsoDate();
-  const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, Number(params.qty || 1), basePrice);
+  const qty = Number(params.qty || 1);
+  const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, qty, basePrice);
 
   if (!activeOffer) {
     return roundCurrency(basePrice);
   }
 
-  return calculateOfferAdjustedPrice(basePrice, activeOffer);
+  return calculateOfferAdjustedPrice(basePrice, activeOffer, qty);
 }
 
 export function resolveSalePayments(

@@ -22,6 +22,7 @@ export const productFormSchema = z.object({
   binLocation: z.string().optional(),
   notes: z.string().optional(),
   icon: z.string().optional(),
+  expiryDate: z.string().optional(),
   trackSerials: z.boolean().default(false),
   isCombo: z.boolean().default(false),
   comboComponents: z.array(z.object({
@@ -31,6 +32,7 @@ export const productFormSchema = z.object({
   taxCodeType: z.string().optional(),
   taxCode: z.string().optional(),
   metadata: z.object({
+    expiryDate: z.string().optional(),
     oemNumber: z.string().optional(),
     carBrand: z.string().optional(),
     carModel: z.string().optional(),

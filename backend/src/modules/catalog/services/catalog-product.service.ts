@@ -526,12 +526,22 @@ export class CatalogProductService {
     }
 
     if (view === 'offers') {
-      productQuery = productQuery.where(sql<boolean>`exists (
-        select 1
-        from product_offers po
-        where po.product_id = p.id
-          and po.is_active = true
-          and po.tenant_id = ${this.tenantId(actor)}
+      productQuery = productQuery.where(sql<boolean>`(
+        exists (
+          select 1
+          from product_offers po
+          where po.product_id = p.id
+            and po.is_active = true
+            and po.tenant_id = ${this.tenantId(actor)}
+        )
+        OR b.id is not null
+        OR exists (
+          select 1
+          from manufacturing_boms mb
+          where mb.product_id = p.id
+            and mb.is_active = true
+            and mb.tenant_id = ${this.tenantId(actor)}
+        )
       )`);
     }
 
@@ -613,7 +623,7 @@ export class CatalogProductService {
       if (!offersByProduct.has(key)) offersByProduct.set(key, []);
       offersByProduct.get(key)!.push({
         id: String(offer.id),
-        type: offer.offer_type === 'price' ? 'price' : offer.offer_type === 'fixed' ? 'fixed' : 'percent',
+        type: offer.offer_type === 'bundle' ? 'bundle' : offer.offer_type === 'price' ? 'price' : offer.offer_type === 'fixed' ? 'fixed' : 'percent',
         value: Number(offer.value || 0),
         minQty: Math.max(1, Number(offer.min_qty || 1)),
         from: this.normalizeDateOnly(offer.start_date),
@@ -856,7 +866,7 @@ export class CatalogProductService {
       if (context.view !== 'all') {
         if (context.view === 'low' && !(stock <= minStock)) return false;
         if (context.view === 'out' && !(stock <= 0)) return false;
-        if (context.view === 'offers' && offerCount <= 0) return false;
+        if (context.view === 'offers' && offerCount <= 0 && !(product as any).bom_id) return false;
         if (context.view === 'special' && customerPriceCount <= 0) return false;
       }
 
@@ -1059,7 +1069,7 @@ export class CatalogProductService {
 
     const offers: NormalizedProductOffer[] = (payload.offers || [])
       .map((offer): NormalizedProductOffer => ({
-        type: offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
+        type: offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
         value: Number(offer.value || 0),
         minQty: Math.max(1, Number(offer.minQty || 1)),
         from: offer.from || null,
@@ -1109,8 +1119,11 @@ export class CatalogProductService {
       offers,
       customerPrices,
       fashionVariants,
-      icon: payload.icon ? String(payload.icon).trim() : undefined,
-      metadata: payload.metadata || (payload.icon ? { icon: String(payload.icon).trim() } : undefined),
+      metadata: {
+        ...(payload.metadata || {}),
+        ...(payload.icon ? { icon: String(payload.icon).trim() } : {}),
+        ...(payload.expiryDate ? { expiryDate: String(payload.expiryDate).trim() } : {}),
+      },
       stock: payload.stock != null ? Number(payload.stock) : undefined,
       warehouseId: payload.warehouseId ? Number(payload.warehouseId) : undefined,
     };

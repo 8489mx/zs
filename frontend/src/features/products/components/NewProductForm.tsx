@@ -67,6 +67,7 @@ function getDefaultValues(
     warehouseId: '',
     notes: '',
     icon: '',
+    expiryDate: '',
     trackSerials: false,
     isCombo: false,
     comboComponents: []
@@ -847,7 +848,7 @@ export function NewProductForm({
             <h3 className="product-compact-card-title">التصنيف والتخزين والمخزون</h3>
           </div>
           {usesVariantBuilder ? (
-            <div className="product-form-grid-5">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
               <div className="field">
                 <label>القسم</label>
                 <ComboboxSelect
@@ -886,6 +887,10 @@ export function NewProductForm({
 
               <Field label="الحد الأدنى للتنبيه (نواقص)">
                 <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
+              </Field>
+
+              <Field label="تاريخ الصلاحية">
+                <input className="purchase-prototype-field-input" type="date" {...form.register('expiryDate')} disabled={isFormDisabled} />
               </Field>
 
               <Field label="ملاحظات">
@@ -946,12 +951,15 @@ export function NewProductForm({
               </div>
 
               <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
-                <div className="product-form-grid-3">
+                <div className="product-form-grid-4">
                   <Field label="الرصيد الافتتاحي (أول المدة)">
                     <input className="purchase-prototype-field-input" type="number" {...form.register('stock')} disabled={isFormDisabled} />
                   </Field>
                   <Field label="الحد الأدنى للتنبيه (نواقص)">
                     <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
+                  </Field>
+                  <Field label="تاريخ الصلاحية">
+                    <input className="purchase-prototype-field-input" type="date" {...form.register('expiryDate')} disabled={isFormDisabled} />
                   </Field>
                   <Field label="ملاحظات">
                     <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder="ملاحظات حول الصنف (اختياري)..." />

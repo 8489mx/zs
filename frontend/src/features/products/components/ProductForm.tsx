@@ -71,6 +71,7 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): Produc
     wholesalePrice: 0,
     stock: 0,
     minStock: 5,
+    expiryDate: '',
     categoryId: '',
     supplierId: '',
     warehouseId: '',
@@ -79,6 +80,7 @@ function getDefaultValues(itemKind: 'standard' | 'fashion' = 'standard'): Produc
     taxCodeType: 'GS1',
     taxCode: '',
     metadata: {
+      expiryDate: '',
       oemNumber: '',
       carBrand: '',
       carModel: '',
@@ -387,6 +389,10 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
         <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
         {!usesVariantBuilder ? <Field label="المخزون الافتتاحي"><input type="number" {...form.register('stock')} disabled={mutation.isPending} /></Field> : null}
         <Field label="الحد الأدنى"><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
+
+        <Field label="تاريخ انتهاء الصلاحية">
+          <input type="date" {...form.register('expiryDate')} disabled={mutation.isPending} />
+        </Field>
 
         <div className="field">
           <label>القسم</label>

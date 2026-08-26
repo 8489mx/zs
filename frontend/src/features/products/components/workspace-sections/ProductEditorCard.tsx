@@ -126,6 +126,9 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
           <Field label="سعر الجملة"><input type="number" step="0.01" {...form.register('wholesalePrice')} disabled={mutation.isPending} /></Field>
           <Field label="المخزون الحالي"><input type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
           <Field label="الحد الأدنى"><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
+          <Field label="تاريخ انتهاء الصلاحية">
+            <input type="date" {...form.register('expiryDate')} disabled={mutation.isPending} />
+          </Field>
           <Field label="القسم">
             <select {...form.register('categoryId')} disabled={mutation.isPending}>
               <option value="">بدون قسم</option>

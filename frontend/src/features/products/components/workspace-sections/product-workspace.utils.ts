@@ -29,9 +29,14 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     binLocation: product.binLocation || '',
     notes: product.notes || '',
     icon: product.icon || '',
+    expiryDate: (product as any)?.expiryDate || product?.metadata?.expiryDate || '',
     trackSerials: Boolean(product.trackSerials),
     isCombo: false,
-    comboComponents: []
+    comboComponents: [],
+    metadata: {
+      ...(product?.metadata || {}),
+      expiryDate: (product as any)?.expiryDate || product?.metadata?.expiryDate || ''
+    }
   };
 }
 
@@ -52,6 +57,7 @@ export function buildUpdatePayload(
   const supplierId = values.supplierId ? Number(values.supplierId) : undefined;
   const warehouseId = values.warehouseId ? Number(values.warehouseId) : undefined;
   const itemKind = values.itemKind === 'fashion' ? 'fashion' : 'standard';
+  const expiryDate = values.expiryDate || values.metadata?.expiryDate || undefined;
   const normalizedUnits = itemKind === 'fashion'
     ? [{ name: 'قطعة', multiplier: 1, barcode: values.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }]
     : normalizeProductUnits(units, values.barcode || '').map((unit, index) => ({
@@ -77,6 +83,12 @@ export function buildUpdatePayload(
     minStock: Number(values.minStock || 0),
     trackSerials: Boolean(values.trackSerials),
     icon: values.icon || undefined,
+    expiryDate: expiryDate || undefined,
+    metadata: {
+      ...(existingProduct.metadata || {}),
+      ...(values.metadata || {}),
+      ...(expiryDate ? { expiryDate } : {})
+    },
     ...(categoryId ? { categoryId } : {}),
     ...(supplierId ? { supplierId } : {}),
     ...(warehouseId ? { warehouseId } : {}),
@@ -84,7 +96,7 @@ export function buildUpdatePayload(
     notes: values.notes || '',
     units: normalizedUnits,
     offers: (offers ?? existingProduct.offers ?? []).map((offer) => ({
-      type: offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
+      type: offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
       value: Number(offer.value || 0),
       minQty: Math.max(1, Number(offer.minQty || 1)),
       from: offer.from || null,

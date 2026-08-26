@@ -122,7 +122,18 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
   const filteredSaleProducts = useMemo(() => {
     return panelSourceProducts.filter((product) => {
       if (params.productFilter === 'services' && product.itemType !== 'service') return false;
-      if (params.productFilter === 'offers' && !(product.offers || []).length) return false;
+      if (params.productFilter === 'offers') {
+        const hasOffers = (product.offers || []).length > 0;
+        const isCombo = Boolean(
+          product.hasBom ||
+          product.bomId ||
+          (product as any).has_bom ||
+          (product as any).bom_id ||
+          product.comboComponentsSummary ||
+          (product.comboOriginalPrice && Number(product.comboOriginalPrice) > 0)
+        );
+        if (!hasOffers && !isCombo) return false;
+      }
       if (params.productFilter === 'priced' && !(product.customerPrices || []).length) return false;
       if (params.productFilter === 'low' && !(Number(product.stock || 0) <= Number(product.minStock || 0))) return false;
       if (params.productFilter === 'recent' && !recentProductIdSet.has(product.id)) return false;

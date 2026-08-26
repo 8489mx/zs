@@ -67,9 +67,11 @@ export function ProductOffersCard({ products, product, onUpdated }: { products: 
           <div className="page-stack">
             <div className="form-grid">
               <Field label="نوع العرض">
-                <select value={offerType} onChange={(e) => setOfferType(e.target.value === 'fixed' ? 'fixed' : 'percent')}>
-                  <option value="percent">خصم نسبة</option>
-                  <option value="fixed">خصم مبلغ</option>
+                <select value={offerType} onChange={(e) => setOfferType(e.target.value as any)}>
+                  <option value="percent">خصم نسبة (%)</option>
+                  <option value="fixed">خصم مبلغ ثابت</option>
+                  <option value="price">سعر محدد للقطعة</option>
+                  <option value="bundle">سعر إجمالي للكمية (باقة)</option>
                 </select>
               </Field>
               <Field label="قيمة العرض"><input type="number" step="0.01" value={offerValue} onChange={(e) => setOfferValue(Number(e.target.value || 0))} /></Field>
@@ -83,7 +85,7 @@ export function ProductOffersCard({ products, product, onUpdated }: { products: 
               {activeOffers.length ? activeOffers.map((offer, index) => (
                 <div key={`${offer.id || index}`} className="list-row">
                   <div>
-                    <strong>{offer.type === 'percent' ? 'خصم نسبة' : 'خصم مبلغ'} · {offer.value}{offer.type === 'percent' ? '%' : ''}</strong>
+                    <strong>{offer.type === 'bundle' ? `باقة (${offer.minQty || 1} قطع)` : offer.type === 'price' ? 'سعر محدد' : offer.type === 'percent' ? 'خصم نسبة' : 'خصم مبلغ'} · {offer.value}{offer.type === 'percent' ? '%' : ''}</strong>
                     <div className="muted small">{offer.from || 'بدون بداية'} → {offer.to || 'بدون نهاية'}</div>
                   </div>
                   <Button type="button" variant="danger" onClick={() => void removeOffer(index)} disabled={mutation.isPending}>حذف</Button>
@@ -99,7 +101,7 @@ export function ProductOffersCard({ products, product, onUpdated }: { products: 
             <div key={`${currentProduct.id}-${offer.id || index}`} className="list-row">
               <div>
                 <strong>{currentProduct.name}</strong>
-                <div className="muted small">{offer.type === 'percent' ? 'خصم نسبة' : 'خصم مبلغ'} · {offer.value}{offer.type === 'percent' ? '%' : ''}</div>
+                <div className="muted small">{offer.type === 'bundle' ? `باقة (${offer.minQty || 1} قطع)` : offer.type === 'price' ? 'سعر محدد' : offer.type === 'percent' ? 'خصم نسبة' : 'خصم مبلغ'} · {offer.value}{offer.type === 'percent' ? '%' : ''}</div>
                 <div className="muted small">{offer.from || 'بدون بداية'} → {offer.to || 'بدون نهاية'}</div>
               </div>
             </div>

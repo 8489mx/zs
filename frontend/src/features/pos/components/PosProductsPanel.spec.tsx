@@ -2,8 +2,16 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PosProductsPanel } from './PosProductsPanel';
 import type { Product } from '@/types/domain';
+
+function renderWithClient(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 function createProduct(index: number): Product {
   const suffix = String(index).padStart(3, '0');
@@ -32,7 +40,7 @@ describe('PosProductsPanel', () => {
     const user = userEvent.setup();
     const products = Array.from({ length: 85 }, (_, index) => createProduct(index + 1));
 
-    render(
+    renderWithClient(
       <PosProductsPanel
         search=""
         onSearchChange={vi.fn()}
@@ -65,7 +73,7 @@ describe('PosProductsPanel', () => {
     const onAddProduct = vi.fn();
     const products = Array.from({ length: 3 }, (_, index) => createProduct(index + 1));
 
-    render(
+    renderWithClient(
       <PosProductsPanel
         search="barcode-002"
         onSearchChange={vi.fn()}

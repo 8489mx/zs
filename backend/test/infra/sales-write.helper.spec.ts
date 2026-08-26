@@ -132,6 +132,9 @@ assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 8
 assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 25, min_qty: 3, start_date: '2026-04-14', end_date: '2026-04-14' }], qty: 2, todayIso: '2026-04-14' }), 100);
 assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 25, min_qty: 3, start_date: '2026-04-14', end_date: '2026-04-14' }], qty: 3, todayIso: '2026-04-14' }), 75);
 assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-04-14T23:30:00.000Z', end_date: '2026-04-14T01:30:00.000Z' }], todayIso: '2026-04-14' }), 90);
+assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 5, todayIso: '2026-04-14' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 7, todayIso: '2026-04-14' }), 105.71);
+assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 3, todayIso: '2026-04-14' }), 120);
 
 assert.equal(calculateCollectibleTotal(120, 20), 100);
 assert.deepEqual(resolveSalePayments('credit', [{ paymentChannel: 'cash', amount: 10 }], 100), [{ paymentChannel: 'cash', amount: 10 }]);

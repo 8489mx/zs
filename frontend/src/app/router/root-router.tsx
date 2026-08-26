@@ -13,6 +13,7 @@ import { ActivationPage } from '@/features/activation/pages/ActivationPage';
 import { FirstRunSetupPage } from '@/features/activation/pages/FirstRunSetupPage';
 import { SupplierQuickPaymentDialog } from '@/features/accounts/components/SupplierQuickPaymentDialog';
 import { QuickCashAdvanceModal } from '@/features/hr/components/QuickCashAdvanceModal';
+import { QuickOffersModal } from '@/features/products/components/QuickOffersModal';
 
 function NoWorkspaceAccess() {
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -83,7 +84,7 @@ function ProtectedLayout() {
     if (postLoginRoute !== '/') return <Navigate to={postLoginRoute} replace />;
   }
 
-  return <AppShell><Outlet /><SupplierQuickPaymentDialog /><QuickCashAdvanceModal /></AppShell>;
+  return <AppShell><Outlet /><SupplierQuickPaymentDialog /><QuickCashAdvanceModal /><QuickOffersModal /></AppShell>;
 }
 
 function LoginRoute() {

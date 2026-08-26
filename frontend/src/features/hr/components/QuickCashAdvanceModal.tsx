@@ -19,8 +19,8 @@ export function QuickCashAdvanceModal() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl + Alt + S
-      if (e.ctrlKey && e.altKey && (e.key === 's' || e.key === 'S' || e.code === 'KeyS' || e.key === 'س')) {
+      // Ctrl + Alt + X
+      if (e.ctrlKey && e.altKey && (e.key === 'x' || e.key === 'X' || e.code === 'KeyX' || e.key === 'ء')) {
         e.preventDefault();
         setIsOpen(true);
       }

@@ -40,8 +40,8 @@ class ProductUnitDto {
 }
 
 class ProductOfferDto {
-  @IsIn(['percent', 'fixed', 'price'])
-  type!: 'percent' | 'fixed' | 'price';
+  @IsIn(['percent', 'fixed', 'price', 'bundle'])
+  type!: 'percent' | 'fixed' | 'price' | 'bundle';
 
   @Type(() => Number)
   @IsNumber()
@@ -238,6 +238,10 @@ export class UpsertProductDto {
   icon?: string;
 
   @IsOptional()
+  @IsString()
+  expiryDate?: string;
+
+  @IsOptional()
   metadata?: Record<string, any>;
 }
 
@@ -251,7 +255,7 @@ export type NormalizedProductUnit = {
 };
 
 export type NormalizedProductOffer = {
-  type: 'percent' | 'fixed' | 'price';
+  type: 'percent' | 'fixed' | 'price' | 'bundle';
   value: number;
   minQty: number;
   from: string | null;

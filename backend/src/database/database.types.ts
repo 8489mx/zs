@@ -420,7 +420,7 @@ export interface ProductOfferTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number;
-  offer_type: 'percent' | 'fixed' | 'price';
+  offer_type: 'percent' | 'fixed' | 'price' | 'bundle';
   value: number;
   min_qty: ColumnType<number, number | undefined, number>;
   start_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
