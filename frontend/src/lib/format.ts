@@ -1,5 +1,5 @@
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat('ar-EG', {
+  return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(value || 0);
@@ -18,10 +18,10 @@ export function formatDate(value?: string) {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('ar-EG', {
+  return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     hour12: true
@@ -29,8 +29,7 @@ export function formatDate(value?: string) {
 }
 
 export function toArabicDigits(str: string): string {
-  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-  return String(str || '').replace(/[0-9]/g, (d) => arabicDigits[Number(d)]);
+  return String(str || '');
 }
 
 export function formatDateOnly(value?: string | Date) {
@@ -53,7 +52,7 @@ export function formatDateOnly(value?: string | Date) {
     month = String(date.getMonth() + 1).padStart(2, '0');
     year = String(date.getFullYear());
   }
-  return `${toArabicDigits(year)}/${toArabicDigits(month)}/${toArabicDigits(day)}`;
+  return `${year}/${month}/${day}`;
 }
 
 export function formatDateTimeArabic(date?: Date | string | null) {
@@ -62,12 +61,12 @@ export function formatDateTimeArabic(date?: Date | string | null) {
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
-  const time = new Intl.DateTimeFormat('ar-EG', {
+  const time = new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true
   }).format(d);
-  return `${toArabicDigits(`${day}/${month}/${year}`)} في ${time}`;
+  return `${day}/${month}/${year} - ${time}`;
 }
 
 function toIsoUtc(date: Date) {

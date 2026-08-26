@@ -1262,6 +1262,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                         onChange={(e) => setComboName(e.target.value)}
                         placeholder="مثال: عرض التوفير العائلي / وجبة كومبو ميكس"
                         disabled={saveComboMutation.isPending}
+                        style={{ fontWeight: 600 }}
                       />
                     </Field>
 
@@ -1275,6 +1276,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                           onChange={(e) => setComboPrice(e.target.value)}
                           placeholder="مثال: 99.00"
                           disabled={saveComboMutation.isPending}
+                          style={{ fontWeight: 700, color: '#16a34a', fontSize: '1rem' }}
                         />
                       </Field>
 
@@ -1286,7 +1288,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                             onChange={(e) => setComboBarcode(e.target.value)}
                             placeholder="توليد أو مسح"
                             disabled={saveComboMutation.isPending}
-                            style={{ flex: 1 }}
+                            style={{ flex: 1, fontFamily: 'monospace' }}
                           />
                           <button
                             type="button"
@@ -1308,42 +1310,102 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                       </Field>
                     </div>
 
-                    {/* Financial Summary & Savings Card */}
+                    {/* Financial Summary & Smart Intelligence Box */}
                     <div style={{
-                      background: '#f8fafc',
+                      background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
                       border: '1px solid #e2e8f0',
                       borderRadius: 10,
                       padding: '12px 14px',
                       marginTop: 4
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#475569', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#475569', marginBottom: 6 }}>
                         <span>إجمالي أسعار المكونات منفردة:</span>
-                        <strong style={{ color: '#0f172a' }}>{formatCurrency(comboTotalItemsPrice)}</strong>
+                        <strong style={{
+                          color: '#0f172a',
+                          fontSize: '0.88rem',
+                          textDecoration: numericComboPrice > 0 && numericComboPrice < comboTotalItemsPrice ? 'line-through' : 'none'
+                        }}>
+                          {formatCurrency(comboTotalItemsPrice)} ج.م
+                        </strong>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#475569', marginBottom: 6 }}>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#64748b', marginBottom: 6 }}>
                         <span>تكلفة المكونات:</span>
-                        <span>{formatCurrency(comboTotalCost)}</span>
+                        <span style={{ fontWeight: 600 }}>{formatCurrency(comboTotalCost)} ج.م</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', color: '#0f172a', fontWeight: 700, paddingTop: 6, borderTop: '1px dashed #cbd5e1' }}>
+
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '0.88rem',
+                        color: '#0f172a',
+                        fontWeight: 700,
+                        paddingTop: 8,
+                        marginTop: 4,
+                        borderTop: '1px dashed #cbd5e1'
+                      }}>
                         <span>سعر العرض الترويجي:</span>
-                        <span style={{ color: '#2563eb' }}>{formatCurrency(numericComboPrice)}</span>
+                        <span style={{ color: '#16a34a', fontSize: '1.15rem', fontWeight: 800 }}>
+                          {formatCurrency(numericComboPrice)} ج.م
+                        </span>
                       </div>
+
                       {comboSavings > 0 && (
                         <div style={{
                           marginTop: 8,
-                          background: '#ecfdf5',
+                          background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
                           border: '1px solid #a7f3d0',
-                          borderRadius: 6,
-                          padding: '6px 10px',
+                          borderRadius: 8,
+                          padding: '7px 10px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          color: '#047857',
-                          fontSize: '0.78rem',
+                          color: '#065f46',
+                          fontSize: '0.8rem',
                           fontWeight: 700
                         }}>
-                          <span>توفير للزبون: {formatCurrency(comboSavings)}</span>
-                          <span>(خصم {comboSavingsPercent}%)</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            🔥 <span>توفير للزبون:</span> <strong>{formatCurrency(comboSavings)} ج.م</strong>
+                          </span>
+                          <span style={{ background: '#059669', color: '#ffffff', padding: '1px 8px', borderRadius: 12, fontSize: '0.74rem' }}>
+                            خصم {comboSavingsPercent}%
+                          </span>
+                        </div>
+                      )}
+
+                      {numericComboPrice > 0 && numericComboPrice >= comboTotalCost && (
+                        <div style={{
+                          marginTop: 6,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '0.74rem',
+                          color: '#475569',
+                          paddingTop: 4
+                        }}>
+                          <span>هامش ربح التاجر:</span>
+                          <strong style={{ color: '#047857' }}>
+                            {formatCurrency(numericComboPrice - comboTotalCost)} ج.م ({comboTotalCost > 0 ? (((numericComboPrice - comboTotalCost) / numericComboPrice) * 100).toFixed(0) : 100}%)
+                          </strong>
+                        </div>
+                      )}
+
+                      {numericComboPrice > 0 && numericComboPrice < comboTotalCost && (
+                        <div style={{
+                          marginTop: 8,
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          borderRadius: 6,
+                          padding: '6px 10px',
+                          color: '#b91c1c',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}>
+                          ⚠️ <span>تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها {formatCurrency(comboTotalCost - numericComboPrice)} ج.م</span>
                         </div>
                       )}
                     </div>
@@ -1390,8 +1452,8 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                   padding: '10px 12px',
                   display: 'flex',
                   flexDirection: 'column',
-                  height: '235px',
-                  minHeight: '235px'
+                  height: '220px',
+                  minHeight: '220px'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <strong style={{ fontSize: '0.84rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1463,7 +1525,8 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                       </div>
                     ) : availableCatalogProducts.length > 0 ? (
                       availableCatalogProducts.map((prod) => {
-                        const isAdded = comboComponents.some((c) => String(c.product.id) === String(prod.id));
+                        const addedItem = comboComponents.find((c) => String(c.product.id) === String(prod.id));
+                        const isAdded = Boolean(addedItem);
                         const prodPrice = Number((prod as any).retailPrice || (prod as any).retail_price || 0);
                         return (
                           <div
@@ -1479,9 +1542,9 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                             }}
                             style={{
                               background: isAdded ? '#f0fdf4' : '#ffffff',
-                              border: isAdded ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                              border: isAdded ? '1px solid #86efac' : '1px solid #e2e8f0',
                               borderRadius: 6,
-                              padding: '5px 8px',
+                              padding: '6px 10px',
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
@@ -1496,7 +1559,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                             }}
                           >
                             <div style={{ minWidth: 0, flex: 1, paddingLeft: 6 }}>
-                              <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {prod.name}
                               </div>
                               <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
@@ -1505,20 +1568,32 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontWeight: 700, fontSize: '0.8rem', color: isAdded ? '#15803d' : '#2563eb' }}>
-                                {formatCurrency(prodPrice)}
+                              {isAdded && (
+                                <span style={{
+                                  background: '#dcfce7',
+                                  color: '#15803d',
+                                  padding: '1px 6px',
+                                  borderRadius: 10,
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700
+                                }}>
+                                  مضاف ({addedItem?.quantity})
+                                </span>
+                              )}
+                              <span style={{ fontWeight: 700, fontSize: '0.82rem', color: isAdded ? '#15803d' : '#2563eb' }}>
+                                {formatCurrency(prodPrice)} ج.م
                               </span>
                               <span style={{
                                 background: isAdded ? '#16a34a' : '#2563eb',
                                 color: '#ffffff',
                                 borderRadius: 4,
-                                width: 20,
-                                height: 20,
+                                width: 22,
+                                height: 22,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.8rem',
-                                fontWeight: 700
+                                fontSize: '0.85rem',
+                                fontWeight: 800
                               }}>
                                 +
                               </span>
@@ -1558,7 +1633,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                   </div>
 
                   {/* Components List */}
-                  <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {comboComponents.length > 0 ? (
                       comboComponents.map((item, idx) => {
                         const itemRetail = Number((item.product as any).retailPrice || (item.product as any).retail_price || 0);
@@ -1569,24 +1644,29 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                               background: '#ffffff',
                               border: '1px solid #cbd5e1',
                               borderRadius: 6,
-                              padding: '6px 8px',
+                              padding: '6px 10px',
                               display: 'flex',
                               justifyContent: 'space-between',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                             }}
                           >
                             <div style={{ minWidth: 0, flex: 1, paddingLeft: 6 }}>
-                              <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {item.product.name}
                               </div>
-                              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                                {formatCurrency(itemRetail)} × {item.quantity} = {formatCurrency(itemRetail * item.quantity)}
+                              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 1 }}>
+                                <span>{formatCurrency(itemRetail)} ج.م</span>
+                                <span style={{ margin: '0 4px', color: '#cbd5e1' }}>×</span>
+                                <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.quantity}</span>
+                                <span style={{ margin: '0 4px', color: '#cbd5e1' }}>=</span>
+                                <span style={{ fontWeight: 700, color: '#16a34a' }}>{formatCurrency(itemRetail * item.quantity)} ج.م</span>
                               </div>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               {/* Quantity Stepper */}
-                              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: 4, overflow: 'hidden' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: 5, overflow: 'hidden', background: '#f8fafc' }}>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1596,11 +1676,11 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                                       setComboComponents((prev) => prev.map((c, i) => i === idx ? { ...c, quantity: c.quantity - 1 } : c));
                                     }
                                   }}
-                                  style={{ width: 22, height: 22, border: 'none', background: '#f1f5f9', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}
+                                  style={{ width: 24, height: 24, border: 'none', background: '#f1f5f9', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}
                                 >
                                   -
                                 </button>
-                                <span style={{ padding: '0 6px', fontSize: '0.78rem', fontWeight: 700, minWidth: 18, textAlign: 'center' }}>
+                                <span style={{ padding: '0 8px', fontSize: '0.82rem', fontWeight: 800, minWidth: 20, textAlign: 'center', color: '#0f172a' }}>
                                   {item.quantity}
                                 </span>
                                 <button
@@ -1608,7 +1688,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                                   onClick={() => {
                                     setComboComponents((prev) => prev.map((c, i) => i === idx ? { ...c, quantity: c.quantity + 1 } : c));
                                   }}
-                                  style={{ width: 22, height: 22, border: 'none', background: '#f1f5f9', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}
+                                  style={{ width: 24, height: 24, border: 'none', background: '#f1f5f9', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}
                                 >
                                   +
                                 </button>
@@ -1619,12 +1699,12 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                                 type="button"
                                 onClick={() => setComboComponents((prev) => prev.filter((_, i) => i !== idx))}
                                 style={{
-                                  border: 'none',
+                                  border: '1px solid #fecaca',
                                   background: '#fee2e2',
                                   color: '#dc2626',
-                                  borderRadius: 4,
-                                  width: 22,
-                                  height: 22,
+                                  borderRadius: 5,
+                                  width: 24,
+                                  height: 24,
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
