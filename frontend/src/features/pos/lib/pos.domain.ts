@@ -150,15 +150,28 @@ export function repriceCartLine(item: PosItem, product: Product, qty: number) {
   const basePrice = Number(item.priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
   const offer = getApplicableOffer(product, item.priceType, qty);
   const effectivePrice = offer ? getOfferAppliedPrice(basePrice, offer) : roundMoney(basePrice);
-  const offerDiscount = offer ? roundMoney(Math.max(0, basePrice - effectivePrice)) : 0;
+  
+  let origPrice = basePrice;
+  let offerDiscount = 0;
+  let offerName = offer ? getOfferDisplayName(offer) : undefined;
+
+  if (offer) {
+    offerDiscount = roundMoney(Math.max(0, basePrice - effectivePrice));
+  } else if (item.priceType !== 'wholesale' && product.comboOriginalPrice && Number(product.comboOriginalPrice) > effectivePrice) {
+    origPrice = Number(product.comboOriginalPrice);
+    offerDiscount = roundMoney(Math.max(0, origPrice - effectivePrice));
+    offerName = product.comboComponentsSummary 
+      ? `عرض مجمع (${product.comboComponentsSummary})`
+      : 'عرض مجمع';
+  }
   
   return {
     ...item,
     qty,
     price: effectivePrice,
-    originalPrice: basePrice,
+    originalPrice: origPrice,
     offerDiscount,
-    offerName: offer ? getOfferDisplayName(offer) : undefined,
+    offerName,
   };
 }
 

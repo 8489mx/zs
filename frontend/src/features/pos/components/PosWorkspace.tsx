@@ -595,11 +595,15 @@ export function PosWorkspace() {
       />
 
       <PosSaleSuccessDialog
-        open={saleSuccessDialogOpen && Boolean(pos.canShowLastSaleActions && pos.lastSale)}
+        open={saleSuccessDialogOpen && Boolean(pos.lastSale)}
         sale={pos.lastSale}
         customer={lastSaleCustomer}
         settings={pos.settingsQuery.data || null}
-        onClose={() => setSaleSuccessDialogOpen(false)}
+        onClose={() => {
+          pos.completePostSaleCycle();
+          setSaleSuccessDialogOpen(false);
+          focusBarcodeEntry();
+        }}
         onNewSale={() => {
           pos.completePostSaleCycle();
           setSaleSuccessDialogOpen(false);

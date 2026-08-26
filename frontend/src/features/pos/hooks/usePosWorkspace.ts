@@ -310,7 +310,8 @@ export function usePosWorkspace() {
     setProductFilter: state.setProductFilter,
     submitMessage: state.submitMessage,
     canShowLastSaleActions: Boolean(
-      state.postSaleSaleKey
+      state.cart.length === 0
+      && state.postSaleSaleKey
       && state.lastSale
       && getSaleKey(state.lastSale) === state.postSaleSaleKey
       && state.submitMessage

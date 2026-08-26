@@ -343,10 +343,13 @@ export class CatalogProductService {
       }
     }
 
-    const [unitsByProduct, scopedStockResult, offersByProduct] = await Promise.all([
+    const bomIds = uniqueRows.map((r) => r.bom_id ? Number(r.bom_id) : null).filter((id): id is number => typeof id === 'number' && id > 0);
+
+    const [unitsByProduct, scopedStockResult, offersByProduct, bomCombosById] = await Promise.all([
       this.fetchPosProductUnits(productIds, actor),
       this.resolveScopedStockByProduct(productIds, eligibleLocationIds, uniqueRows, actor),
       this.fetchProductOffers(productIds, offerCapabilities.hasMinQty, actor),
+      this.fetchPosBomCombos(bomIds, actor),
     ]);
 
     return {
@@ -355,6 +358,7 @@ export class CatalogProductService {
         scopedStockByProduct: scopedStockResult.stock,
         unitsByProduct,
         offersByProduct,
+        bomCombosById,
       })),
       meta: {
         q,
@@ -619,6 +623,44 @@ export class CatalogProductService {
     return offersByProduct;
   }
 
+  private async fetchPosBomCombos(bomIds: number[], actor: AuthContext): Promise<Map<number, { comboOriginalPrice: number; componentsSummary: string }>> {
+    const result = new Map<number, { comboOriginalPrice: number; componentsSummary: string }>();
+    if (!bomIds.length) return result;
+
+    const bomLines = await this.db
+      .selectFrom('manufacturing_bom_lines as bl')
+      .innerJoin('products as p', 'p.id', 'bl.component_product_id')
+      .select([
+        'bl.bom_id',
+        'bl.component_product_id',
+        'bl.quantity',
+        'p.name as component_name',
+        'p.retail_price as component_retail_price',
+      ])
+      .where('bl.bom_id', 'in', bomIds)
+      .where(this.tenantPredicate(actor, 'p'))
+      .execute();
+
+    for (const line of bomLines) {
+      const bomId = Number(line.bom_id);
+      if (!result.has(bomId)) {
+        result.set(bomId, { comboOriginalPrice: 0, componentsSummary: '' });
+      }
+      const entry = result.get(bomId)!;
+      const lineQty = Number(line.quantity || 1);
+      const linePrice = Number(line.component_retail_price || 0);
+      entry.comboOriginalPrice += (linePrice * lineQty);
+      const compLabel = `${line.component_name || ''}${lineQty > 1 ? ` (${lineQty})` : ''}`;
+      entry.componentsSummary = entry.componentsSummary ? `${entry.componentsSummary} + ${compLabel}` : compLabel;
+    }
+
+    for (const [, entry] of result) {
+      entry.comboOriginalPrice = Number(entry.comboOriginalPrice.toFixed(2));
+    }
+
+    return result;
+  }
+
   private mapPosProduct(
     product: PosProductLookupRow,
     context: {
@@ -626,6 +668,7 @@ export class CatalogProductService {
       scopedStockByProduct: Map<string, number>;
       unitsByProduct: Map<string, Record<string, unknown>[]>;
       offersByProduct: Map<string, Record<string, unknown>[]>;
+      bomCombosById?: Map<number, { comboOriginalPrice: number; componentsSummary: string }>;
     },
   ): Record<string, unknown> {
     const units = context.unitsByProduct.get(String(product.id)) || [
@@ -639,6 +682,8 @@ export class CatalogProductService {
         isPurchaseUnit: true,
       },
     ];
+
+    const bomCombo = product.bom_id ? context.bomCombosById?.get(Number(product.bom_id)) : null;
 
     return {
       id: String(product.id),
@@ -667,6 +712,8 @@ export class CatalogProductService {
         : null,
       bomId: product.bom_id ? Number(product.bom_id) : undefined,
       hasBom: !!product.bom_id,
+      comboOriginalPrice: bomCombo?.comboOriginalPrice || undefined,
+      comboComponentsSummary: bomCombo?.componentsSummary || undefined,
       trackSerials: Boolean(product.track_serials),
       matchedSerialNumber: product.matched_serial_number || null,
       icon: (product as any).metadata?.icon || (typeof (product as any).metadata === 'string' ? (() => { try { return JSON.parse((product as any).metadata)?.icon; } catch { return null; } })() : null) || null,

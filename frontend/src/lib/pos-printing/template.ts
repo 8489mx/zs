@@ -124,21 +124,24 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
     const origPrice = Number(item.originalPrice || (Number(item.price || 0) + Number(item.offerDiscount || 0)));
     const savedAmount = Number(item.offerDiscount || (Number(item.originalPrice || 0) - Number(item.price || 0)));
     const hasOffer = origPrice > Number(item.price || 0) && savedAmount > 0;
-    const offerHtml = (hasOffer && showItemOffers)
-      ? `<div class="item-offer-line" style="font-size: 0.84em; line-height: 1.25; color: #000; margin-top: 1px;">
-          <strong style="font-weight: 700;">عرض: ${formatReceiptMoney(Number(item.price || 0), settings)}</strong> <span style="font-weight: 500; color: #333; font-size: 0.95em;">بدلاً من ${formatReceiptMoney(origPrice, settings)}</span>
-         </div>`
+    const isComboOffer = Boolean(item.offerName && item.offerName.startsWith('عرض مجمع'));
+    const comboComponentsText = isComboOffer && item.offerName?.includes('(') ? item.offerName.replace(/^عرض مجمع\s*/, '').trim() : '';
+    const inlineOfferBadge = (hasOffer && showItemOffers && !isComboOffer)
+      ? `<div class="item-offer-line" style="font-size: 0.82em; line-height: 1.2; color: #000; margin-top: 1px;"><strong style="font-weight: 700;">عرض: ${formatReceiptMoney(Number(item.price || 0), settings)}</strong> <span style="font-weight: 500; color: #333; font-size: 0.95em;">بدلاً من ${formatReceiptMoney(origPrice, settings)}</span></div>`
+      : '';
+    const componentsHtml = (hasOffer && showItemOffers && comboComponentsText)
+      ? `<div class="item-offer-line" style="font-size: 0.74em; color: #444; margin-top: 1px; font-weight: 500; line-height: 1.15; letter-spacing: -0.25px;">${escapeHtml(comboComponentsText)}</div>`
       : '';
     const priceCellContent = (hasOffer && showItemOffers)
       ? `<div style="line-height: 1.15;">
+          <del style="display: block; text-decoration: line-through; text-decoration-thickness: 1px; color: #444; font-size: 0.82em; font-weight: 400; opacity: 0.85;">${formatReceiptMoney(origPrice, settings)}</del>
           <div style="font-weight: 600; color: #000;">${formatReceiptMoney(Number(item.price || 0), settings)}</div>
-          <del style="text-decoration: line-through; text-decoration-thickness: 1px; color: #444; font-size: 0.82em; font-weight: 400; opacity: 0.85;">${formatReceiptMoney(origPrice, settings)}</del>
          </div>`
       : formatReceiptMoney(Number(item.price || 0), settings);
     return `
     <tr>
       ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, settings)}</td>`}
-      <td class="name-cell">${escapeHtml(item.name || '—')}${offerHtml}${modifiersHtml}${serialsHtml}</td>
+      <td class="name-cell">${escapeHtml(item.name || '—')}${inlineOfferBadge}${componentsHtml}${modifiersHtml}${serialsHtml}</td>
       ${compact ? '' : `<td class="unit-cell">${escapeHtml(item.unitName || 'قطعة')}</td>`}
       <td class="qty-cell">${formatReceiptQuantity(Number(item.qty || 0), settings)}</td>
       <td class="price-cell">${priceCellContent}</td>

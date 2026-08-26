@@ -101,6 +101,7 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       if (caughtError) throw caughtError;
       params.setSelectedLineKey(lineKey);
       params.setLastAddedLineKey(lineKey);
+      params.setPostSaleSaleKey('');
       registerRecentProduct(String(product.id));
       params.setSearch('');
       params.setQuickAddCode('');

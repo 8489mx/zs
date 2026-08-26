@@ -48,6 +48,8 @@ export interface Product {
   statusLabel?: string;
   bomId?: number;
   hasBom?: boolean;
+  comboOriginalPrice?: number;
+  comboComponentsSummary?: string;
   binLocation?: string;
   trackSerials?: boolean;
   matchedSerialNumber?: string | null;

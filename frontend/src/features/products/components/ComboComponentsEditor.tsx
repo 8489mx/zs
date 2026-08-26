@@ -67,6 +67,14 @@ export function ComboComponentsEditor({ value, onChange, products, disabled }: C
     return products.map(p => ({ id: String(p.id), label: p.name }));
   }, [products]);
 
+  const totalComponentsPrice = useMemo(() => {
+    return value.reduce((sum, line) => {
+      const p = products.find(prod => String(prod.id) === String(line.productId));
+      const price = Number(p?.retailPrice || 0);
+      return sum + (price * Number(line.quantity || 1));
+    }, 0);
+  }, [value, products]);
+
   return (
     <div className="combo-components-editor" style={{ marginTop: 16 }}>
       {value.length > 0 && (
@@ -111,9 +119,16 @@ export function ComboComponentsEditor({ value, onChange, products, disabled }: C
           </tbody>
         </table>
       )}
-      <Button type="button" variant="secondary" onClick={addLine} disabled={disabled}>
-        + إضافة مكون جديد
-      </Button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <Button type="button" variant="secondary" onClick={addLine} disabled={disabled}>
+          + إضافة مكون جديد
+        </Button>
+        {totalComponentsPrice > 0 && (
+          <div style={{ fontSize: 13, background: 'rgba(59, 130, 246, 0.08)', padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(59, 130, 246, 0.2)', color: '#1e40af' }}>
+            إجمالي أسعار المكونات الفردية قبل العرض: <strong>{totalComponentsPrice.toFixed(2)} ج.م</strong>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

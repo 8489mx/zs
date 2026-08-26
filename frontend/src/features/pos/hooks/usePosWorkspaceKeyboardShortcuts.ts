@@ -107,11 +107,10 @@ export function usePosWorkspaceKeyboardShortcuts({
       }
       if (event.key === 'F2') {
         event.preventDefault();
-        if (pos.canShowLastSaleActions) {
-          pos.printReceiptNow();
-        } else if (pos.canOpenCheckout) {
+        if (pos.canOpenCheckout) {
           onRequestCheckout();
         }
+        return;
       } else if (event.key === 'F4') {
         event.preventDefault();
         if (event.shiftKey) {
