@@ -74,7 +74,6 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
             title="إضافة خصم على الفاتورة"
             onClick={() => props.setActiveQuickAction((curr: any) => (curr === 'discount' ? null : 'discount'))}
           >
-            <span aria-hidden="true">🏷</span>
             <span>{t('discount_label')}</span>
           </button>
         </div>

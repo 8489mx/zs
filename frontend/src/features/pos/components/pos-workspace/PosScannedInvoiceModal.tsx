@@ -35,6 +35,11 @@ export function PosScannedInvoiceModal({
     }
   };
 
+  const handleGoToReturns = () => {
+    onClose();
+    onOpenReturns?.(sale);
+  };
+
   const isCancelled = sale.status === 'cancelled';
 
   return (
@@ -69,7 +74,6 @@ export function PosScannedInvoiceModal({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '1.4rem' }}>🧾</span>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
                 فاتورة مبيعات: <span style={{ color: 'var(--primary-color, #0284c7)', fontFamily: 'monospace' }}>{sale.docNo || `Z-${sale.id}`}</span>
               </h3>
@@ -149,7 +153,7 @@ export function PosScannedInvoiceModal({
                       <div style={{ fontWeight: 700, color: '#1e293b' }}>{item.name}</div>
                       {item.offerName ? (
                         <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: 600, marginTop: '2px' }}>
-                          🏷️ {item.offerName}
+                          {item.offerName}
                         </div>
                       ) : null}
                     </td>
@@ -232,11 +236,11 @@ export function PosScannedInvoiceModal({
             إغلاق (Esc)
           </Button>
 
-          {onOpenReturns && !isCancelled ? (
+          {sale.status !== 'cancelled' ? (
             <Button
               type="button"
               variant="secondary"
-              onClick={() => onOpenReturns(sale)}
+              onClick={handleGoToReturns}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -247,7 +251,6 @@ export function PosScannedInvoiceModal({
                 background: '#fff',
               }}
             >
-              <span>🔄</span>
               <span>إنشاء مرتجع لهذه الفاتورة</span>
             </Button>
           ) : null}
@@ -265,7 +268,6 @@ export function PosScannedInvoiceModal({
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             }}
           >
-            <span>🖨️</span>
             <span>إعادة طباعة الإيصال</span>
           </Button>
         </div>

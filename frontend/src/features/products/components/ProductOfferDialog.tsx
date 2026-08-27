@@ -1366,7 +1366,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                           fontWeight: 700
                         }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            🔥 <span>توفير للزبون:</span> <strong>{formatCurrency(comboSavings)} ج.م</strong>
+                            <span>توفير للزبون:</span> <strong>{formatCurrency(comboSavings)} ج.م</strong>
                           </span>
                           <span style={{ background: '#059669', color: '#ffffff', padding: '1px 8px', borderRadius: 12, fontSize: '0.74rem' }}>
                             خصم {comboSavingsPercent}%
@@ -1405,7 +1405,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
                           alignItems: 'center',
                           gap: 6
                         }}>
-                          ⚠️ <span>تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها {formatCurrency(comboTotalCost - numericComboPrice)} ج.م</span>
+                          <span>تنبيه: سعر العرض أقل من تكلفة المكونات بخسارة قدرها {formatCurrency(comboTotalCost - numericComboPrice)} ج.م</span>
                         </div>
                       )}
                     </div>

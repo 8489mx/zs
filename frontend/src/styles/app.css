@@ -171,3 +171,60 @@ button.btn-primary:hover:not(:disabled),
   white-space: nowrap !important;
 }
 
+/* ========================================================
+   GLOBAL UNIVERSAL CHECKBOX & RADIO COMPONENT STYLING
+   ======================================================== */
+input[type="checkbox"],
+input[type="radio"],
+.document-prototype-shell input[type="checkbox"],
+.document-prototype-shell input[type="radio"],
+table input[type="checkbox"],
+table input[type="radio"],
+.field input[type="checkbox"],
+.field input[type="radio"] {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 1px solid #94a3b8 !important;
+  border-radius: 4px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: pointer !important;
+  accent-color: #2563eb !important;
+  vertical-align: middle !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+}
+
+input[type="radio"],
+.document-prototype-shell input[type="radio"],
+table input[type="radio"],
+.field input[type="radio"] {
+  border-radius: 50% !important;
+}
+
+input[type="checkbox"]:focus,
+input[type="checkbox"]:focus-visible,
+input[type="checkbox"]:focus-within,
+input[type="checkbox"]:active,
+input[type="radio"]:focus,
+input[type="radio"]:focus-visible,
+input[type="radio"]:focus-within,
+input[type="radio"]:active,
+.document-prototype-shell input[type="checkbox"]:focus,
+.document-prototype-shell input[type="checkbox"]:focus-visible,
+.document-prototype-shell input[type="radio"]:focus,
+.document-prototype-shell input[type="radio"]:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: #2563eb !important;
+}
+

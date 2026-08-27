@@ -562,7 +562,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
               onClick={() => pos.setDeliveryFeeMode('freelance_courier')}
               style={{ flex: 1, fontSize: '13px', padding: '8px' }}
             >
-              🛵 مندوب حر / طياري (مستحق للمندوب)
+              مندوب حر / طياري (مستحق للمندوب)
             </Button>
             <Button
               type="button"
@@ -570,7 +570,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
               onClick={() => pos.setDeliveryFeeMode('store_fleet')}
               style={{ flex: 1, fontSize: '13px', padding: '8px' }}
             >
-              🚚 أسطول المتجر (إيراد للمحل)
+              أسطول المتجر (إيراد للمحل)
             </Button>
           </div>
         </div>

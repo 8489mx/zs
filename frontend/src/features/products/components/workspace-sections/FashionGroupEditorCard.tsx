@@ -829,7 +829,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               disabled={mutation.isPending || (!colorsValue.trim() && !sizesValue.trim())}
               style={{ fontSize: '0.8rem', padding: '5px 16px', fontWeight: 700 }}
             >
-              ⚡ توليد وتحديث شبكة الفروع بناءً على القيم أعلاه
+              توليد وتحديث شبكة الفروع بناءً على القيم أعلاه
             </Button>
           </div>
         </div>

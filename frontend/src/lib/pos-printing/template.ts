@@ -395,6 +395,8 @@ export function getInvoiceStyles(compact = false) {
       width: ${compact ? '68px' : '96px'};
       height: ${compact ? '44px' : '56px'};
       min-height: ${compact ? '44px' : '56px'};
+      max-width: ${compact ? '68px' : '96px'};
+      max-height: ${compact ? '44px' : '56px'};
       flex-shrink: 0;
     }
     .invoice-logo,
@@ -403,15 +405,21 @@ export function getInvoiceStyles(compact = false) {
       inset: 0;
       width: 100%;
       height: 100%;
+      max-width: 100%;
+      max-height: 100%;
       border-radius: 0;
       object-fit: contain;
-      object-position: right center;
+      object-position: center;
       background: transparent;
       display: grid;
       place-items: center;
       font-weight: 800;
       color: #000;
       overflow: hidden;
+    }
+    img.invoice-logo {
+      max-width: ${compact ? '68px' : '96px'} !important;
+      max-height: ${compact ? '44px' : '56px'} !important;
     }
     .invoice-brand-copy {
       min-width: 0;

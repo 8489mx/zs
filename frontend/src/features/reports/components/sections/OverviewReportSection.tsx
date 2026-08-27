@@ -7,6 +7,7 @@ import type { ReportsSectionContentProps } from '@/features/reports/components/r
 import { CircularProgress } from '@/shared/components/charts/CircularProgress';
 import { SalesTrendChart } from '@/shared/components/charts/SalesTrendChart';
 import { ShiftAnalysisChart } from '@/shared/components/charts/ShiftAnalysisChart';
+import { ShoppingCartIcon, PackageIcon, CreditCardIcon, SparklesIcon } from '@/shared/components/icons/AppIcons';
 
 export function OverviewReportSection({
   report,
@@ -82,6 +83,106 @@ export function OverviewReportSection({
       { name: 'يونيو', sales: Math.round(baseSales), purchases: Math.round(basePurchases) }
     ];
   }, [chartPeriod, netSales, report?.purchases.netPurchases]);
+
+  interface MetricClusterItem {
+    label: string;
+    value: string;
+    isHighlight?: boolean;
+    isHeroProfit?: boolean;
+    tone?: string;
+    progressBar?: number;
+  }
+
+  interface MetricCluster {
+    id: string;
+    title: string;
+    subtitle: string;
+    icon: React.ReactNode;
+    theme: string;
+    badge: string;
+    items: MetricClusterItem[];
+  }
+
+  const metricClusters: MetricCluster[] = useMemo(() => {
+    const findVal = (name: string) => {
+      const row = executiveRows.find(([n]) => n === name);
+      return row ? Number(row[1] || 0) : 0;
+    };
+
+    const netCash = findVal('صافي حركة النقدية');
+    const marginPct = findVal('هامش الربح %');
+    const netProfit = findVal('صافي الربح');
+
+    return [
+      {
+        id: 'sales',
+        title: 'المبيعات والإيرادات',
+        subtitle: 'حركة المبيعات وإيرادات الخدمات',
+        icon: <ShoppingCartIcon size={16} strokeWidth={2.4} />,
+        theme: 'theme-blue',
+        badge: 'النشاط التجاري',
+        items: [
+          { label: 'إجمالي البيع', value: formatCurrency(findVal('إجمالي البيع')) },
+          { label: 'صافي البيع', value: formatCurrency(findVal('صافي البيع')), isHighlight: true },
+          { label: 'إيراد الخدمات', value: formatCurrency(findVal('إيراد الخدمات')) },
+        ]
+      },
+      {
+        id: 'purchases',
+        title: 'المشتريات والمصروفات',
+        subtitle: 'التكلفة والمردودات والتشغيل',
+        icon: <PackageIcon size={16} strokeWidth={2.4} />,
+        theme: 'theme-amber',
+        badge: 'إدارة التكاليف',
+        items: [
+          { label: 'إجمالي الشراء', value: formatCurrency(findVal('إجمالي الشراء')) },
+          { label: 'صافي الشراء', value: formatCurrency(findVal('صافي الشراء')) },
+          { label: 'إجمالي المصروفات', value: formatCurrency(findVal('إجمالي المصروفات')) },
+          { label: 'مردودات وخصومات', value: formatCurrency(findVal('مردودات وخصومات')) },
+        ]
+      },
+      {
+        id: 'treasury',
+        title: 'التدفق النقدي والسيولة',
+        subtitle: 'حركة النقدية بالخزائن والبنوك',
+        icon: <CreditCardIcon size={16} strokeWidth={2.4} />,
+        theme: 'theme-purple',
+        badge: 'الخزينة والبنوك',
+        items: [
+          { label: 'داخل النقدية والبنك', value: formatCurrency(findVal('داخل النقدية والبنك')), tone: 'tone-success' },
+          { label: 'خارج النقدية والبنك', value: formatCurrency(findVal('خارج النقدية والبنك')), tone: 'tone-danger' },
+          { 
+            label: 'صافي حركة النقدية', 
+            value: formatCurrency(netCash), 
+            isHighlight: true,
+            tone: netCash >= 0 ? 'tone-success' : 'tone-danger' 
+          },
+        ]
+      },
+      {
+        id: 'profitability',
+        title: 'الأداء والربحية الختامية',
+        subtitle: 'المحصلة وهوامش الربح الصافية',
+        icon: <SparklesIcon size={16} strokeWidth={2.4} />,
+        theme: 'theme-emerald',
+        badge: 'النتيجة الصافية',
+        items: [
+          { label: 'مجمل الربح', value: formatCurrency(findVal('مجمل الربح')) },
+          { 
+            label: 'هامش الربح %', 
+            value: formatPercent(marginPct),
+            progressBar: Math.min(100, Math.max(0, marginPct))
+          },
+          { 
+            label: 'صافي الربح', 
+            value: formatCurrency(netProfit),
+            isHeroProfit: true,
+            tone: netProfit >= 0 ? 'tone-success' : 'tone-danger'
+          },
+        ]
+      }
+    ];
+  }, [executiveRows, formatPercent]);
 
   return (
     <div className="page-stack" style={{ gap: '12px' }}>
@@ -269,14 +370,46 @@ export function OverviewReportSection({
       {/* 5. Full Comprehensive Executive Audit Metric Grid */}
       <FormSection
         title="جدول المؤشرات التنفيذية الشامل"
-        description="تفاصيل رقمية كاملة لجميع بنود الحسابات والأداء المالي خلال الفترة."
-        actions={<span className="nav-pill">بيانات التدقيق</span>}
+        description="تفاصيل رقمية كاملة لجميع بنود الحسابات والأداء المالي مصنفة حسب القطاعات التشغيلية."
+        actions={<span className="nav-pill">بيانات التدقيق المالي</span>}
+        className="reports-motion-card"
       >
-        <div className="reports-executive-metric-grid" style={{ marginTop: '12px' }}>
-          {executiveRows.map(([metric, value]) => (
-            <div className="reports-executive-metric-item" key={metric}>
-              <span>{metric}</span>
-              <strong>{metric === 'هامش الربح %' ? formatPercent(Number(value || 0)) : formatCurrency(Number(value || 0))}</strong>
+        <div className="reports-executive-clusters-grid">
+          {metricClusters.map((cluster) => (
+            <div key={cluster.id} className={`reports-cluster-card ${cluster.theme}`}>
+              <div className="reports-cluster-header">
+                <div className="reports-cluster-title-wrap">
+                  <div className="reports-cluster-icon">{cluster.icon}</div>
+                  <div>
+                    <h4 className="reports-cluster-title">{cluster.title}</h4>
+                    <div className="reports-cluster-subtitle">{cluster.subtitle}</div>
+                  </div>
+                </div>
+                <span className="reports-cluster-badge">{cluster.badge}</span>
+              </div>
+
+              <div className="reports-cluster-items">
+                {cluster.items.map((item) => (
+                  <div 
+                    key={item.label} 
+                    className={`reports-cluster-item ${item.isHighlight ? 'highlight' : ''} ${item.isHeroProfit ? 'hero-profit' : ''}`}
+                  >
+                    <div style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span className="reports-cluster-item-label">{item.label}</span>
+                        <strong className={`reports-cluster-item-value ${item.tone || ''}`}>
+                          {item.value}
+                        </strong>
+                      </div>
+                      {item.progressBar !== undefined ? (
+                        <div className="reports-cluster-progress-bar">
+                          <div className="reports-cluster-progress-fill" style={{ width: `${item.progressBar}%` }} />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>

@@ -723,7 +723,6 @@ function PosProductsPanelComponent({
               gap: '4px',
             }}
           >
-            <span>🎨</span>
             <span>الأيقونات</span>
           </button>
         </div>
@@ -816,7 +815,7 @@ function PosProductsPanelComponent({
                     color: '#0369a1',
                   }}
                 >
-                  🧾 استعراض / إعادة طباعة الفاتورة "{search}"
+                  استعراض / إعادة طباعة الفاتورة "{search}"
                 </Button>
               ) : null}
 

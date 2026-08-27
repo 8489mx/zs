@@ -201,7 +201,6 @@ th {
   max-width: 100%;
   padding: 14px var(--content-gutter) 18px;
   box-sizing: border-box;
-  transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .app-layout.sidebar-collapsed .content-wrap {
   width: 100%;

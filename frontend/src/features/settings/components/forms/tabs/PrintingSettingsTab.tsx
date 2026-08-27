@@ -194,7 +194,7 @@ export function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>1</span>
-                <strong style={groupHeaderTitleStyle}>🏢 بيانات المتجر والفرع (الرأس بالأعلى)</strong>
+                <strong style={groupHeaderTitleStyle}>بيانات المتجر والفرع (الرأس بالأعلى)</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={checkboxStyle}>
@@ -228,7 +228,7 @@ export function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>2</span>
-                <strong style={groupHeaderTitleStyle}>🧾 بيانات المستند والعملية</strong>
+                <strong style={groupHeaderTitleStyle}>بيانات المستند والعملية</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={checkboxStyle}>
@@ -277,7 +277,7 @@ export function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>3</span>
-                <strong style={groupHeaderTitleStyle}>🏷️ الأصناف وعروض التخفيض</strong>
+                <strong style={groupHeaderTitleStyle}>الأصناف وعروض التخفيض</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={checkboxStyle}>
@@ -299,7 +299,7 @@ export function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>4</span>
-                <strong style={groupHeaderTitleStyle}>📊 الإجماليات والملخص</strong>
+                <strong style={groupHeaderTitleStyle}>الإجماليات والملخص</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={checkboxStyle}>
@@ -325,7 +325,7 @@ export function PrintingSettingsTab({
             <div style={groupCardStyle}>
               <div style={groupHeaderStyle}>
                 <span style={groupHeaderBadgeStyle}>5</span>
-                <strong style={groupHeaderTitleStyle}>🖨️ التذييل ونمط الإيصال (الأسفل)</strong>
+                <strong style={groupHeaderTitleStyle}>التذييل ونمط الإيصال (الأسفل)</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
                 <label className="settings-print-option" style={checkboxStyle}>

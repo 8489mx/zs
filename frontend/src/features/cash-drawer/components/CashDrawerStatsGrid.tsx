@@ -1,4 +1,5 @@
-﻿import { formatCurrency } from '@/lib/format';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { formatCurrency } from '@/lib/format';
 
 interface CashDrawerStatsGridProps {
   totalItems: number;
@@ -11,12 +12,12 @@ interface CashDrawerStatsGridProps {
 export function CashDrawerStatsGrid(props: CashDrawerStatsGridProps) {
   const canViewSensitiveTotals = props.canViewSensitiveTotals !== false;
 
-  return (
-    <div className="stats-grid compact-grid">
-      <div className="stat-card"><span>إجمالي الورديات</span><strong>{props.totalItems}</strong></div>
-      <div className="stat-card"><span>ورديات مفتوحة</span><strong>{props.openShiftCount}</strong></div>
-      <div className="stat-card"><span>الوردية النشطة</span><strong>{props.openShiftLabel || 'لا يوجد'}</strong></div>
-      <div className="stat-card"><span>إجمالي الفروقات</span><strong>{canViewSensitiveTotals ? formatCurrency(props.totalVariance) : '—'}</strong></div>
-    </div>
-  );
+  const items = [
+    { key: 'totalShifts', label: 'إجمالي الورديات', value: props.totalItems },
+    { key: 'openShifts', label: 'ورديات مفتوحة', value: props.openShiftCount },
+    { key: 'activeShift', label: 'الوردية النشطة', value: props.openShiftLabel || 'لا يوجد' },
+    { key: 'totalVariance', label: 'إجمالي الفروقات', value: canViewSensitiveTotals ? formatCurrency(props.totalVariance) : '—' },
+  ] as const;
+
+  return <StatsGrid items={items} />;
 }

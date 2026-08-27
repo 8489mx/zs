@@ -66,7 +66,19 @@ export function useProductsWorkspaceController() {
 
   const categoryNames = useMemo(() => Object.fromEntries((categoriesQuery.data || []).map((category) => [category.id, category.name])), [categoriesQuery.data]);
   const supplierNames = useMemo(() => Object.fromEntries((suppliersQuery.data || []).map((supplier) => [supplier.id, supplier.name])), [suppliersQuery.data]);
-  const visibleProducts = useMemo(() => productsQuery.data?.products || [], [productsQuery.data?.products]);
+  const visibleProducts = useMemo(() => {
+    const list = [...(productsQuery.data?.products || [])];
+    if (viewFilter === 'out') {
+      return list.sort((a, b) => {
+        const catA = categoryNames[a.categoryId] || '';
+        const catB = categoryNames[b.categoryId] || '';
+        const catComp = catA.localeCompare(catB, 'ar');
+        if (catComp !== 0) return catComp;
+        return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+      });
+    }
+    return list.sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
+  }, [productsQuery.data?.products, viewFilter, categoryNames]);
   const summary = productsQuery.data?.summary;
   const selectedIdsSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const metrics = useMemo(() => ({
@@ -152,36 +164,61 @@ export function useProductsWorkspaceController() {
 
   const printProductsList = useCallback(() => {
     const html = `
-      <html dir="rtl" lang="ar">
-        <head>
-          <meta charset="utf-8" />
-          <title>قائمة الأصناف</title>
-          <style>
-            body{font-family:Tahoma,Arial,sans-serif;padding:24px;color:#0f172a} h1{margin:0 0 8px} p{color:#475569} table{width:100%;border-collapse:collapse;margin-top:16px} th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;vertical-align:top} th{background:#eff6ff} .muted{color:#64748b;font-size:12px}
-          </style>
-        </head>
-        <body>
-          <h1>قائمة الأصناف الحالية</h1>
-          <p>عدد الأصناف: ${visibleProducts.length}</p>
-          <table>
-            <thead><tr><th>الصنف</th><th>القسم</th><th>المورد</th><th>الباركود</th><th>الوحدات</th><th>الأسعار</th><th>المخزون</th><th>ملاحظات</th></tr></thead>
-            <tbody>
-              ${visibleProducts.map((product) => `
-                <tr>
-                  <td><strong>${escapeHtml(product.name)}</strong><div class="muted">عروض: ${(product.offers || []).length} | أسعار خاصة: ${(product.customerPrices || []).length}</div></td>
-                  <td>${escapeHtml(categoryNames[product.categoryId] || '-')}</td>
-                  <td>${escapeHtml(supplierNames[product.supplierId] || '-')}</td>
-                  <td>${escapeHtml(product.barcode || '-')}</td>
-                  <td>${(product.units || []).map((unit) => `${escapeHtml(unit.name)} × ${Number(unit.multiplier || 1)}${unit.barcode ? ` <span class="muted">(${escapeHtml(unit.barcode)})</span>` : ''}`).join('<br/>')}</td>
-                  <td>شراء: ${formatCurrency(product.costPrice)}<br/>قطاعي: ${formatCurrency(product.retailPrice)}<br/>جملة: ${formatCurrency(product.wholesalePrice)}</td>
-                  <td>${Number(product.stock || 0)} / حد أدنى ${Number(product.minStock || 0)}</td>
-                  <td>${escapeHtml(product.notes || '-')}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </body>
-      </html>`;
-    printHtmlDocument('قائمة الأصناف', html);
+      <table style="width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 2px;">
+        <thead>
+          <tr style="background: #f1f5f9; color: #0f172a;">
+            <th style="width: 24px; text-align: center; padding: 5px 2px;">#</th>
+            <th style="min-width: 130px; text-align: right; padding: 5px 6px;">الصنف</th>
+            <th style="width: 48px; text-align: center; padding: 5px 3px;">المخزون</th>
+            <th style="width: 65px; text-align: center; padding: 5px 4px;">القسم</th>
+            <th style="width: 65px; text-align: center; padding: 5px 4px;">المورد</th>
+            <th style="width: 60px; text-align: center; padding: 5px 4px;">شراء</th>
+            <th style="width: 60px; text-align: center; padding: 5px 4px;">جملة</th>
+            <th style="width: 64px; text-align: center; padding: 5px 4px;">قطاعي</th>
+            <th style="width: 48px; text-align: center; padding: 5px 3px;">الوحدة</th>
+            <th style="width: 82px; text-align: center; padding: 5px 3px;">الباركود</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${visibleProducts.map((product, idx) => {
+            const isLowStock = Number(product.stock || 0) <= Number(product.minStock || 0);
+            return `
+            <tr style="background: ${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};">
+              <td style="text-align: center; color: #64748b; font-weight: 700; padding: 4px 2px;">${idx + 1}</td>
+              <td style="text-align: right; padding: 4px 6px; word-break: break-word; line-height: 1.25;">
+                <span style="font-weight: 800; color: #0f172a; font-size: 11px;">${escapeHtml(product.name)}</span>
+                ${(product.offers || []).length || (product.customerPrices || []).length
+                  ? `<div style="color: #059669; font-size: 9.5px; margin-top: 1px;">عروض: ${(product.offers || []).length} | أسعار خاصة: ${(product.customerPrices || []).length}</div>`
+                  : ''}
+              </td>
+              <td style="text-align: center; font-weight: 800; white-space: nowrap; padding: 4px 3px; color: ${isLowStock ? '#dc2626' : '#0f172a'}; background: ${isLowStock ? '#fef2f2' : 'transparent'};">
+                ${Number(product.stock || 0)}
+              </td>
+              <td style="text-align: center; padding: 4px 4px; color: #334155; font-size: 10px;">${escapeHtml(categoryNames[product.categoryId] || '-')}</td>
+              <td style="text-align: center; padding: 4px 4px; color: #334155; font-size: 10px;">${escapeHtml(supplierNames[product.supplierId] || '-')}</td>
+              <td style="text-align: center; font-family: Arial, sans-serif; font-weight: 700; white-space: nowrap; padding: 4px 4px; font-size: 10.5px;">
+                ${formatCurrency(product.costPrice)}
+              </td>
+              <td style="text-align: center; font-family: Arial, sans-serif; font-weight: 700; white-space: nowrap; padding: 4px 4px; font-size: 10.5px;">
+                ${formatCurrency(product.wholesalePrice)}
+              </td>
+              <td style="text-align: center; font-family: Arial, sans-serif; font-weight: 800; color: #047857; white-space: nowrap; padding: 4px 4px; font-size: 10.5px;">
+                ${formatCurrency(product.retailPrice)}
+              </td>
+              <td style="text-align: center; padding: 4px 3px; font-size: 10px; color: #475569; white-space: nowrap;">
+                ${(product.units || []).map((u) => `${escapeHtml(u.name)}${Number(u.multiplier || 1) > 1 ? ` × ${u.multiplier}` : ''}`).join(', ') || 'قطعة'}
+              </td>
+              <td style="text-align: center; font-family: monospace; font-size: 10px; white-space: nowrap; padding: 4px 3px;">${escapeHtml(product.barcode || '-')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    printHtmlDocument('قائمة الأصناف', html, {
+      subtitle: `إجمالي الأصناف: ${visibleProducts.length} صنف`,
+      pageSize: 'A4',
+      orientation: 'portrait',
+    });
   }, [categoryNames, supplierNames, visibleProducts]);
 
   const openOfferDialog = useCallback((product: Product) => {

@@ -314,11 +314,6 @@
   white-space: nowrap;
 }
 
-.cash-drawer-page .content-wrap,
-.content-wrap:has(.cash-drawer-page) {
-  padding-top: 12px !important;
-  padding-bottom: 12px !important;
-}
 
 @media (max-width: 1280px) {
   .cash-drawer-page .stats-grid.compact-grid,

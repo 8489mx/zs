@@ -73,8 +73,7 @@ export function LanguageSwitcher() {
               fontWeight: language === 'ar' ? 600 : 400,
             }}
           >
-            <span>🇪🇬</span>
-            <span>العربية</span>
+            <span>العربية (AR)</span>
           </button>
           <button
             type="button"
@@ -94,8 +93,7 @@ export function LanguageSwitcher() {
               fontWeight: language === 'en' ? 600 : 400,
             }}
           >
-            <span>🇬🇧</span>
-            <span>English</span>
+            <span>English (EN)</span>
           </button>
         </div>
       )}

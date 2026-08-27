@@ -93,7 +93,6 @@ export function ReturnsCreateModal(props: Props) {
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '1.4rem' }}>🔄</span>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
                 تسجيل مرتجع جديد
                 {selectedInvoice ? (
@@ -210,7 +209,7 @@ export function ReturnsCreateModal(props: Props) {
               }}
             >
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-                📦 الأصناف المتاحة للإرجاع في هذه الفاتورة:
+                الأصناف المتاحة للإرجاع في هذه الفاتورة:
               </div>
               <ReturnsInvoiceItemsTable
                 invoiceItems={invoiceItems}
@@ -258,7 +257,7 @@ export function ReturnsCreateModal(props: Props) {
             }}
           >
             <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-              📊 ملخص الحساب والتسوية
+              ملخص الحساب والتسوية
             </div>
 
             {selectedInvoice ? (
@@ -335,7 +334,6 @@ export function ReturnsCreateModal(props: Props) {
                   gap: '6px',
                 }}
               >
-                <span>💾</span>
                 <span>{form.type === 'sale' ? 'تسجيل وتأكيد مرتجع البيع' : 'تسجيل وتأكيد مرتجع الشراء'}</span>
               </Button>
 
