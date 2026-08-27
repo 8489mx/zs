@@ -34,24 +34,24 @@ export function printStockCountSheet(rows: StockCountSheetRow[], options: { titl
     <table>
       <thead>
         <tr>
-          <th>كود الصنف</th>
-          <th>الباركود</th>
-          <th>الصنف</th>
-          <th>القسم</th>
-          ${includeExpected ? '<th>كمية النظام</th>' : ''}
-          <th>الكمية الفعلية</th>
-          <th>ملاحظات</th>
+          <th style="width: 70px; text-align: center;">كود الصنف</th>
+          <th style="width: 130px; text-align: center;">الباركود</th>
+          <th style="text-align: right; padding-right: 12px;">الصنف</th>
+          <th style="width: 110px; text-align: center;">القسم</th>
+          ${includeExpected ? '<th style="width: 85px; text-align: center;">كمية النظام</th>' : ''}
+          <th style="width: 90px; text-align: center;">الكمية الفعلية</th>
+          <th style="width: 110px; text-align: center;">ملاحظات</th>
         </tr>
       </thead>
       <tbody>${rows.map((row) => `
         <tr>
-          <td>${escapeHtml(row.code || '—')}</td>
-          <td>${escapeHtml(row.barcode || '—')}</td>
-          <td>${escapeHtml(row.name || '—')}</td>
-          <td>${escapeHtml(row.category || '—')}</td>
-          ${includeExpected ? `<td>${escapeHtml(String(row.expectedQty ?? ''))}</td>` : ''}
-          <td>${escapeHtml(String(row.countedQty ?? ''))}</td>
-          <td>${escapeHtml(row.note || '')}</td>
+          <td style="text-align: center;">${escapeHtml(row.code || '—')}</td>
+          <td style="text-align: center;">${escapeHtml(row.barcode || '—')}</td>
+          <td style="text-align: right; padding-right: 12px; font-weight: 600;">${escapeHtml(row.name || '—')}</td>
+          <td style="text-align: center;">${escapeHtml(row.category || '—')}</td>
+          ${includeExpected ? `<td style="text-align: center; font-weight: bold;">${escapeHtml(String(row.expectedQty ?? ''))}</td>` : ''}
+          <td style="text-align: center;">${escapeHtml(String(row.countedQty ?? ''))}</td>
+          <td style="text-align: center;">${escapeHtml(row.note || '')}</td>
         </tr>`).join('')}</tbody>
     </table>
     <div class="totals">
@@ -81,8 +81,23 @@ export function printStockCountDocument(session: StockCountSession) {
   printHtmlDocument(`جلسة جرد ${session.docNo || session.id}`, `
     <div class="meta">المخزن: ${escapeHtml(session.locationName || '—')} · الحالة: ${escapeHtml(session.status || '—')} · التاريخ: ${escapeHtml(formatDate(session.createdAt || ''))}</div>
     <table>
-      <thead><tr><th>الصنف</th><th>المتوقع</th><th>المعدود</th><th>الفرق</th><th>السبب</th></tr></thead>
-      <tbody>${items.map((item) => `<tr><td>${escapeHtml(item.productName || '—')}</td><td>${escapeHtml(String(item.expectedQty || 0))}</td><td>${escapeHtml(String(item.countedQty || 0))}</td><td>${escapeHtml(String(item.varianceQty || 0))}</td><td>${escapeHtml(item.reason || '—')}</td></tr>`).join('')}</tbody>
+      <thead>
+        <tr>
+          <th style="text-align: right; padding-right: 12px;">الصنف</th>
+          <th style="width: 80px; text-align: center;">المتوقع</th>
+          <th style="width: 80px; text-align: center;">المعدود</th>
+          <th style="width: 80px; text-align: center;">الفرق</th>
+          <th style="text-align: center;">السبب</th>
+        </tr>
+      </thead>
+      <tbody>${items.map((item) => `
+        <tr>
+          <td style="text-align: right; padding-right: 12px; font-weight: 600;">${escapeHtml(item.productName || '—')}</td>
+          <td style="text-align: center;">${escapeHtml(String(item.expectedQty || 0))}</td>
+          <td style="text-align: center; font-weight: bold;">${escapeHtml(String(item.countedQty || 0))}</td>
+          <td style="text-align: center;">${escapeHtml(String(item.varianceQty || 0))}</td>
+          <td style="text-align: center;">${escapeHtml(item.reason || '—')}</td>
+        </tr>`).join('')}</tbody>
     </table>
     <div class="totals">
       <div>عدد البنود: ${items.length}</div>

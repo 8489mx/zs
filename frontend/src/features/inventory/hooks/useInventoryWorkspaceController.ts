@@ -166,10 +166,11 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     } catch {}
   }
 
-  async function confirmPostSessionAction() {
+  async function confirmPostSessionAction(context?: { managerPin?: string }) {
     if (!state.postSessionConfirm) return;
+    const pin = context?.managerPin || state.postingPin;
     try {
-      await mutations.postCountMutation.mutateAsync({ sessionIds: state.postSessionConfirm.sessionIds, managerPin: state.postingPin });
+      await mutations.postCountMutation.mutateAsync({ sessionIds: state.postSessionConfirm.sessionIds, managerPin: pin });
       state.setPostSessionConfirm(null);
     } catch {}
   }

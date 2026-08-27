@@ -65,7 +65,7 @@ function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = fal
   return `
     <section class="invoice-card invoice-store-card${compact ? ' compact' : ''}">
       <div class="invoice-brand-row">
-        ${logoData ? `<img class="invoice-logo" src="${escapeHtml(logoData)}" alt="شعار المتجر" />` : `<div class="invoice-logo-fallback">${escapeHtml(brandName.slice(0, 1).toUpperCase())}</div>`}
+        ${logoData ? `<div class="invoice-logo-wrapper"><img class="invoice-logo" src="${escapeHtml(logoData)}" alt="شعار المتجر" /></div>` : `<div class="invoice-logo-wrapper"><div class="invoice-logo-fallback">${escapeHtml(brandName.slice(0, 1).toUpperCase())}</div></div>`}
         <div class="invoice-brand-copy">
           <h2 title="${escapeHtml(brandName)}" style="font-size:${getAdaptiveBrandFontSize(brandName, compact)}">${escapeHtml(brandName)}</h2>
           ${details ? `<div class="store-inline-details">${details}</div>` : ''}
@@ -133,9 +133,13 @@ function renderTransferTotals(options: { items: Array<{ qty?: number }>; setting
   `;
 }
 
+export type InventoryPrintSortMode = 'least_stock' | 'category' | 'highest_value';
+
 export interface PrintTransferOptions {
   pageSize?: PosPrintPageSize;
   settings?: Partial<AppSettings> | null;
+  sortBy?: InventoryPrintSortMode;
+  categoryNames?: Record<string, string>;
 }
 
 export function buildTransferDocument(transfer: StockTransfer, options: PrintTransferOptions) {
@@ -253,52 +257,83 @@ export function printMultipleTransfers(transfers: StockTransfer[], options: Prin
 
 export function buildInventoryStatusReport(rows: any[], options: PrintTransferOptions) {
   const compact = options.pageSize === 'receipt';
-  const headerHtml = renderStoreHeader(options.settings, compact);
-  
-  const totalStockValue = rows.reduce((acc, row) => acc + ((row.stock || 0) * (row.costPrice || 0)), 0);
-  
-  const metaHtml = renderMetaPanel([
-    { label: 'وثيقة', value: 'تقرير جرد وقيمة المخزون' },
-    { label: 'التاريخ', value: formatDateTime(new Date().toISOString()) },
-  ], compact, options.settings);
+  const headerHtml = compact ? renderStoreHeader(options.settings, compact) : '';
+  const sortBy = options.sortBy || 'least_stock';
+  const categoryNames = options.categoryNames || {};
 
-  const body = (rows || []).map((row, index) => `
+  const sortedRows = [...(rows || [])].sort((a, b) => {
+    if (sortBy === 'least_stock') {
+      return Number(a.stock || 0) - Number(b.stock || 0);
+    }
+    if (sortBy === 'category') {
+      const catA = a.category || a.categoryName || categoryNames[a.categoryId] || '—';
+      const catB = b.category || b.categoryName || categoryNames[b.categoryId] || '—';
+      const comp = String(catA).localeCompare(String(catB), 'ar');
+      if (comp !== 0) return comp;
+      return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+    }
+    if (sortBy === 'highest_value') {
+      const valA = Number(a.stock || 0) * Number(a.costPrice || 0);
+      const valB = Number(b.stock || 0) * Number(b.costPrice || 0);
+      return valB - valA;
+    }
+    return Number(a.stock || 0) - Number(b.stock || 0);
+  });
+  
+  const totalStockValue = sortedRows.reduce((acc, row) => acc + ((row.stock || 0) * (row.costPrice || 0)), 0);
+  
+  const sortLabel = sortBy === 'category' 
+    ? 'مرتب حسب الأقسام (للجرد)' 
+    : sortBy === 'highest_value' 
+      ? 'مرتب حسب القيمة الإجمالية (الأعلى قيمة)' 
+      : 'مرتب من الأقل مخزوناً للأعلى';
+
+  const metaHtml = compact ? renderMetaPanel([
+    { label: 'وثيقة', value: 'تقرير جرد وقيمة المخزون' },
+    { label: 'الترتيب', value: sortLabel },
+    { label: 'التاريخ', value: formatDateTime(new Date().toISOString()) },
+  ], compact, options.settings) : '';
+
+  const body = sortedRows.map((row, index) => {
+    const isLowStock = Number(row.stock || 0) <= Number(row.minStock || 0);
+    return `
     <tr>
-      ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, options.settings)}</td>`}
-      <td class="name-cell">${escapeHtml(row.name || '—')}</td>
-      <td class="qty-cell">${formatReceiptNumber(Number(row.stock || 0), options.settings)}</td>
-      <td class="price-cell">${formatReceiptNumber(Number(row.costPrice || 0), options.settings)}</td>
-      <td>${formatReceiptNumber(Number((row.stock || 0) * (row.costPrice || 0)), options.settings)}</td>
+      <td class="index-cell" style="text-align: center; color: #64748b; font-weight: 700;">${formatReceiptNumber(index + 1, options.settings)}</td>
+      <td class="name-cell" style="text-align: right; font-weight: 700; color: #0f172a;">${escapeHtml(row.name || '—')}</td>
+      <td class="qty-cell" style="text-align: center; font-weight: 800; color: ${isLowStock ? '#dc2626' : '#0f172a'}; background: ${isLowStock ? '#fef2f2' : 'transparent'};">${formatReceiptNumber(Number(row.stock || 0), options.settings)}</td>
+      <td class="price-cell" style="text-align: center; font-family: Arial, sans-serif;">${formatReceiptNumber(Number(row.costPrice || 0), options.settings)}</td>
+      <td style="text-align: center; font-family: Arial, sans-serif; font-weight: 700;">${formatReceiptNumber(Number((row.stock || 0) * (row.costPrice || 0)), options.settings)}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   const itemsHtml = `
     <section class="invoice-card invoice-items-card${compact ? ' compact' : ''}">
-      <table class="invoice-items-table${compact ? ' compact' : ''}">
+      <table class="invoice-items-table${compact ? ' compact' : ''}" style="width: 100%; border-collapse: collapse; font-size: 11px;">
         <thead>
-          <tr>
-            ${compact ? '' : '<th>#</th>'}
-            <th>الصنف</th>
-            <th>الكمية</th>
-            <th>التكلفة</th>
-            <th>الإجمالي</th>
+          <tr style="background: #f1f5f9; color: #0f172a;">
+            <th style="width: 32px; text-align: center;">#</th>
+            <th style="text-align: right;">الصنف</th>
+            <th style="width: 70px; text-align: center;">الكمية</th>
+            <th style="width: 85px; text-align: center;">التكلفة</th>
+            <th style="width: 95px; text-align: center;">الإجمالي</th>
           </tr>
         </thead>
-        <tbody>${body || `<tr><td colspan="${compact ? 4 : 5}">لا توجد أصناف</td></tr>`}</tbody>
+        <tbody>${body || `<tr><td colspan="5" style="text-align: center;">لا توجد أصناف</td></tr>`}</tbody>
       </table>
     </section>
   `;
 
   const totalsHtml = `
-    <section class="invoice-card invoice-totals-card${compact ? ' compact' : ''}">
-      <div class="totals-grid">
+    <section class="invoice-card invoice-totals-card${compact ? ' compact' : ''}" style="margin-top: 8px;">
+      <div class="totals-grid" style="display: flex; justify-content: space-between; padding: 8px 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700;">
         <div class="totals-row subtotal">
-          <span>عدد الأصناف</span>
+          <span>عدد الأصناف: </span>
           <strong>${formatReceiptNumber(rows.length, options.settings)}</strong>
         </div>
         <div class="totals-row grand-total">
-          <span>إجمالي قيمة المخزون</span>
-          <strong>${formatReceiptNumber(totalStockValue, options.settings, 2)}</strong>
+          <span>إجمالي قيمة المخزون: </span>
+          <strong>${formatReceiptNumber(totalStockValue, options.settings, 2)} ج.م</strong>
         </div>
       </div>
     </section>
@@ -318,50 +353,58 @@ export function buildInventoryStatusReport(rows: any[], options: PrintTransferOp
 
 export function printInventoryStatusReport(rows: any[], options: PrintTransferOptions = {}) {
   const document = buildInventoryStatusReport(rows, options);
+  const sortBy = options.sortBy || 'least_stock';
+  const sortLabel = sortBy === 'category' 
+    ? 'مرتب حسب الأقسام (للجرد)' 
+    : sortBy === 'highest_value' 
+      ? 'مرتب بالأعلى قيمة مالية' 
+      : 'مرتب من الأقل مخزوناً للأعلى';
+
   printHtmlDocument('تقرير جرد وقيمة المخزون', document.html, {
-    subtitle: 'تقرير الجرد',
+    subtitle: `إجمالي الأصناف: ${rows.length} صنف · ${sortLabel}`,
     footerHtml: getPrintOption(options.settings, 'printShowFooter', true) ? escapeHtml(defaultInvoiceFooter(options.settings)) : '',
     pageSize: options.pageSize === 'receipt' ? 'receipt' : 'A4',
+    orientation: 'portrait',
     extraStyles: getInvoiceStyles(document.compact),
   });
 }
 
 export function buildInventoryMovementsReport(movements: any[], options: PrintTransferOptions) {
   const compact = options.pageSize === 'receipt';
-  const headerHtml = renderStoreHeader(options.settings, compact);
+  const headerHtml = compact ? renderStoreHeader(options.settings, compact) : '';
   
-  const metaHtml = renderMetaPanel([
+  const metaHtml = compact ? renderMetaPanel([
     { label: 'وثيقة', value: 'تقرير حركات وعمليات المخزن' },
     { label: 'التاريخ', value: formatDateTime(new Date().toISOString()) },
-  ], compact, options.settings);
+  ], compact, options.settings) : '';
 
   const body = (movements || []).map((movement, index) => `
     <tr>
-      ${compact ? '' : `<td class="index-cell">${formatReceiptNumber(index + 1, options.settings)}</td>`}
-      <td>${formatDateTime(movement.date || '')}</td>
+      <td class="index-cell" style="text-align: center;">${formatReceiptNumber(index + 1, options.settings)}</td>
+      <td style="text-align: center;">${formatDateTime(movement.date || '')}</td>
       <td class="name-cell">${escapeHtml(movement.productName || '—')}</td>
-      <td>${escapeHtml(movement.locationName || '—')}</td>
-      <td>${escapeHtml(movement.type || '—')}</td>
-      <td class="qty-cell">${formatReceiptNumber(Number(movement.qty || 0), options.settings)}</td>
-      <td>${escapeHtml(movement.reason || movement.referenceId || '—')}</td>
+      <td style="text-align: center;">${escapeHtml(movement.locationName || '—')}</td>
+      <td style="text-align: center;">${escapeHtml(movement.type || '—')}</td>
+      <td class="qty-cell" style="text-align: center;">${formatReceiptNumber(Number(movement.qty || 0), options.settings)}</td>
+      <td style="text-align: center;">${escapeHtml(movement.reason || movement.referenceId || '—')}</td>
     </tr>
   `).join('');
 
   const itemsHtml = `
     <section class="invoice-card invoice-items-card${compact ? ' compact' : ''}">
-      <table class="invoice-items-table${compact ? ' compact' : ''}">
+      <table class="invoice-items-table${compact ? ' compact' : ''}" style="width: 100%; border-collapse: collapse; font-size: 10.5px;">
         <thead>
-          <tr>
-            ${compact ? '' : '<th>#</th>'}
-            <th>التاريخ</th>
-            <th>الصنف</th>
-            <th>المخزن</th>
-            <th>النوع</th>
-            <th>الكمية</th>
-            <th>السبب / المستلم</th>
+          <tr style="background: #f1f5f9; color: #0f172a;">
+            <th style="width: 28px; text-align: center;">#</th>
+            <th style="width: 110px; text-align: center;">التاريخ</th>
+            <th style="text-align: right;">الصنف</th>
+            <th style="width: 85px; text-align: center;">المخزن</th>
+            <th style="width: 70px; text-align: center;">النوع</th>
+            <th style="width: 60px; text-align: center;">الكمية</th>
+            <th style="width: 110px; text-align: center;">السبب / المستلم</th>
           </tr>
         </thead>
-        <tbody>${body || `<tr><td colspan="${compact ? 6 : 7}">لا توجد حركات</td></tr>`}</tbody>
+        <tbody>${body || `<tr><td colspan="7" style="text-align: center;">لا توجد حركات</td></tr>`}</tbody>
       </table>
     </section>
   `;

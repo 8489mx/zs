@@ -68,10 +68,10 @@ export function buildInventorySectionSpotlightCards(params: {
   }
   if (currentSection === 'counts') {
     return [
+      { key: 'total', label: 'إجمالي الجلسات', value: `${stockCountSummary.totalItems || 0}` },
       { key: 'draft', label: 'جلسات مسودة', value: `${stockCountSummary.draft || 0}` },
-      { key: 'posted', label: 'جلسات منشورة', value: `${stockCountSummary.posted || 0}` },
+      { key: 'posted', label: 'جلسات معتمدة', value: `${stockCountSummary.posted || 0}` },
       { key: 'variance', label: 'إجمالي الفروقات', value: `${stockCountSummary.totalVariance || 0}` },
-      { key: 'action', label: 'الأولوية الآن', value: stockCountSummary.draft ? 'راجع جلسات المسودة قبل النشر' : 'الجلسات الحالية منشورة أو لا توجد نتائج' },
     ];
   }
   if (currentSection === 'damaged') {

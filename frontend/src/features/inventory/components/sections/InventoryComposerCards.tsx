@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -6,7 +6,17 @@ import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { InventoryProductPicker } from '@/features/inventory/components/InventoryProductPicker';
-import { StockCountSheetTools } from '@/features/inventory/components/sections/StockCountSheetTools';
+import { exportStockCountSheetExcel, printStockCountSheet, type StockCountSheetRow } from '@/features/inventory/lib/inventory-documents';
+import { useCategoriesQuery, useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
+import {
+  BarcodeIcon,
+  PrinterIcon,
+  FileSpreadsheetIcon,
+  DownloadIcon,
+  CheckCircleIcon,
+  SearchIcon,
+  PlusIcon,
+} from '@/shared/components/icons/AppIcons';
 import type { Branch, Location, Product, StockCountItem, StockTransferItem } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
@@ -118,7 +128,7 @@ interface StockCountComposerCardProps {
   onSubmit: (options?: { noteOverride?: string }) => void;
 }
 
-type StockCountType = 'quick' | 'selected_items' | 'category' | 'full';
+type StockCountType = 'quick' | 'selected_items' | 'category' | 'supplier' | 'full';
 
 export function StockCountComposerCard({
   products,
@@ -135,11 +145,23 @@ export function StockCountComposerCard({
   onFormChange,
   onItemsChange,
   onAddItem,
-  onRemoveItem,
+  onRemoveItem: _onRemoveItem,
   onSubmit
 }: StockCountComposerCardProps) {
   const warehouseList = warehouses || locations || [];
   const selectedLocation = warehouseList.find((location) => String(location.id) === String(form.locationId));
+  const categoriesQuery = useCategoriesQuery();
+  const categories = Array.isArray(categoriesQuery.data) ? categoriesQuery.data : [];
+  const suppliersQuery = useSuppliersQuery();
+  const suppliers = Array.isArray(suppliersQuery.data) ? suppliersQuery.data : [];
+
+  const getCategoryName = (id?: string) => {
+    if (!id) return '';
+    const trimmed = String(id).trim();
+    const found = categories.find((c) => String(c.id) === trimmed || String(c.name).trim() === trimmed);
+    return found?.name || (trimmed ? `قسم ${trimmed}` : '');
+  };
+
   const categoryOptions = useMemo(() => {
     const unique = new Map<string, { id: string; label: string; count: number }>();
     products.forEach((product) => {
@@ -148,35 +170,71 @@ export function StockCountComposerCard({
       const current = unique.get(id);
       unique.set(id, {
         id,
-        label: current?.label || `قسم ${id}`,
+        label: getCategoryName(id),
         count: (current?.count || 0) + 1,
       });
     });
     return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label, 'ar'));
-  }, [products]);
+  }, [products, categories]);
+
+  const supplierOptions = useMemo(() => {
+    const unique = new Map<string, { id: string; label: string; count: number }>();
+    products.forEach((product) => {
+      const id = String(product.supplierId || '').trim();
+      if (!id) return;
+      const supplierObj = suppliers.find((s) => String(s.id) === id);
+      const label = supplierObj?.name || `مورد ${id}`;
+      const current = unique.get(id);
+      unique.set(id, {
+        id,
+        label,
+        count: (current?.count || 0) + 1,
+      });
+    });
+    return Array.from(unique.values()).sort((a, b) => a.label.localeCompare(b.label, 'ar'));
+  }, [products, suppliers]);
+
   const countTypeOptions: Array<{ key: StockCountType; label: string; description: string }> = useMemo(() => ([
     { key: 'quick', label: 'جرد سريع', description: 'عد صنف أو مجموعة بسيطة بسرعة بدون تجهيز قائمة كاملة.' },
     { key: 'selected_items', label: 'أصناف محددة', description: 'اختر الأصناف التي تريد عدها يدويًا قبل إنشاء الجلسة.' },
-    { key: 'category', label: 'جرد قسم / تصنيف', description: 'اختر القسم مباشرة ثم اطبع شيت عد أو افتح الإدخال الإلكتروني لأصناف هذا القسم.' },
-    { key: 'full', label: 'جرد كامل', description: 'جهّز شيت عد لكل الأصناف ثم أدخل الفروقات بعد العد الفعلي.' },
+    { key: 'category', label: 'جرد قسم / تصنيف', description: 'اختر القسم لفتح شيت عد أصناف هذا القسم فقط.' },
+    { key: 'supplier', label: 'جرد مورد / شركة', description: 'اختر المورد لفتح شيت عد أصناف هذا المورد قبل طلبية الشراء.' },
+    { key: 'full', label: 'جرد شامل للمخزن', description: 'جهّز شيت عد لكل الأصناف ثم أدخل الفروقات بعد العد الفعلي.' },
   ]), []);
+
   const [countType, setCountType] = useState<StockCountType>('quick');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [selectedSupplierId, setSelectedSupplierId] = useState('');
   const [isCountStarted, setIsCountStarted] = useState(false);
   const [startCountMessage, setStartCountMessage] = useState('');
   const [showExpectedInElectronicCount, setShowExpectedInElectronicCount] = useState(false);
+  const [barcodeScanInput, setBarcodeScanInput] = useState('');
+  const [lastScannedItem, setLastScannedItem] = useState<{ name: string; qty: number } | null>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+
   const selectedProduct = products.find((product) => String(product.id) === String(form.productId));
-  const expectedQtyValue = Number(selectedProduct?.stock || 0);
-  const countedQtyValue = Number(form.countedQty || 0);
-  const variancePreview = Number((countedQtyValue - expectedQtyValue).toFixed(3));
-  const totalExpected = items.reduce((sum, item) => sum + Number(item.expectedQty || 0), 0);
   const totalCounted = items.reduce((sum, item) => sum + Number(item.countedQty || 0), 0);
   const totalVariance = Number(items.reduce((sum, item) => sum + Number(item.varianceQty || 0), 0).toFixed(3));
-  const countedItems = items.filter((item) => Number(item.countedQty || 0) > 0 || Number(item.varianceQty || 0) !== 0 || String(item.reason || '').trim()).length;
   const varianceItems = items.filter((item) => Number(item.varianceQty || 0) !== 0).length;
   const selectedCountType = countTypeOptions.find((entry) => entry.key === countType) || countTypeOptions[0];
   const canShowExpectedCount = canReviewStock && showExpectedInElectronicCount;
-  const progressPercent = items.length ? Math.min(100, Math.round((countedItems / items.length) * 100)) : 0;
+
+  const financialSummary = useMemo(() => {
+    let deficitCost = 0;
+    let surplusCost = 0;
+    items.forEach((item) => {
+      const prod = products.find((p) => String(p.id) === String(item.productId));
+      const cost = Number(prod?.costPrice || 0);
+      const variance = Number(item.varianceQty || 0);
+      if (variance < 0) deficitCost += Math.abs(variance) * cost;
+      if (variance > 0) surplusCost += variance * cost;
+    });
+    return {
+      deficitCost,
+      surplusCost,
+      netCost: surplusCost - deficitCost,
+    };
+  }, [items, products]);
 
   useEffect(() => {
     if (!form.locationId) {
@@ -187,6 +245,7 @@ export function StockCountComposerCard({
 
   useEffect(() => {
     if (countType !== 'category') setSelectedCategoryId('');
+    if (countType !== 'supplier') setSelectedSupplierId('');
     onItemsChange(() => []);
     setIsCountStarted(false);
     setStartCountMessage('');
@@ -197,10 +256,96 @@ export function StockCountComposerCard({
       setIsCountStarted(false);
       setCountType('quick');
       setSelectedCategoryId('');
+      setSelectedSupplierId('');
       setShowExpectedInElectronicCount(false);
       setStartCountMessage('');
+      setLastScannedItem(null);
     }
   }, [isSuccess]);
+
+  const scopeProducts = useMemo(() => {
+    if (countType === 'full') return products;
+    if (countType === 'category') {
+      const categoryId = selectedCategoryId || selectedProduct?.categoryId || '';
+      if (!categoryId) return [];
+      return products.filter((product) => String(product.categoryId || '') === String(categoryId));
+    }
+    if (countType === 'supplier') {
+      const supplierId = selectedSupplierId || selectedProduct?.supplierId || '';
+      if (!supplierId) return [];
+      return products.filter((product) => String(product.supplierId || '') === String(supplierId));
+    }
+    if (selectedProduct) return [selectedProduct];
+    return [];
+  }, [countType, products, selectedCategoryId, selectedSupplierId, selectedProduct]);
+
+  const sheetRows: StockCountSheetRow[] = useMemo(() => {
+    if (countType === 'full' || countType === 'category' || countType === 'supplier') {
+      return scopeProducts.map((product) => ({
+        code: product.styleCode || product.id,
+        barcode: product.barcode || product.units?.find((unit) => unit.barcode)?.barcode || '',
+        name: product.name,
+        category: getCategoryName(product.categoryId),
+        expectedQty: product.stock ?? 0,
+        countedQty: '',
+        note: '',
+      }));
+    }
+    if (items.length) {
+      return items.map((item) => {
+        const product = products.find((entry) => String(entry.id) === String(item.productId));
+        return {
+          code: product?.styleCode || String(item.productId),
+          barcode: product?.barcode || product?.units?.find((unit) => unit.barcode)?.barcode || '',
+          name: item.productName,
+          category: getCategoryName(product?.categoryId),
+          expectedQty: item.expectedQty,
+          countedQty: item.countedQty,
+          note: item.note || item.reason || '',
+        };
+      });
+    }
+    return scopeProducts.map((product) => ({
+      code: product.styleCode || product.id,
+      barcode: product.barcode || product.units?.find((unit) => unit.barcode)?.barcode || '',
+      name: product.name,
+      category: getCategoryName(product.categoryId),
+      expectedQty: product.stock ?? 0,
+      countedQty: '',
+      note: '',
+    }));
+  }, [countType, items, products, scopeProducts, categories]);
+
+  function handlePopulateScopeItems() {
+    if (!scopeProducts.length) return;
+    onItemsChange(() => scopeProducts.map((p) => {
+      const expectedQty = Number(p.stock || 0);
+      return {
+        id: `${p.id}-${Date.now()}`,
+        productId: p.id,
+        productName: p.name,
+        expectedQty,
+        countedQty: 0,
+        varianceQty: Number((0 - expectedQty).toFixed(3)),
+        reason: '',
+        note: '',
+      };
+    }));
+  }
+
+  function handlePrintSheet() {
+    printStockCountSheet(sheetRows, {
+      title: `شيت عد - ${selectedCountType.label}`,
+      locationName: selectedLocation?.name,
+      includeExpectedQty: showExpectedInElectronicCount,
+    });
+  }
+
+  function handleExportExcel() {
+    exportStockCountSheetExcel(sheetRows, {
+      includeExpectedQty: showExpectedInElectronicCount,
+    });
+  }
 
   function handleStartCount() {
     if (!form.locationId) {
@@ -211,6 +356,10 @@ export function StockCountComposerCard({
       setStartCountMessage('اختر القسم المطلوب قبل بدء جرد القسم.');
       return;
     }
+    if (countType === 'supplier' && !selectedSupplierId) {
+      setStartCountMessage('اختر المورد المطلوب قبل بدء جرد المورد.');
+      return;
+    }
     setStartCountMessage('');
     setIsCountStarted(true);
   }
@@ -218,11 +367,14 @@ export function StockCountComposerCard({
   function handleBackToSetup() {
     setIsCountStarted(false);
     setStartCountMessage('');
+    setLastScannedItem(null);
   }
 
   function buildSessionNoteWithType(baseNote: string) {
     const categoryLabel = categoryOptions.find((category) => category.id === selectedCategoryId)?.label;
-    const line = `نوع الجرد: ${selectedCountType.label}${categoryLabel ? ` - ${categoryLabel}` : ''}`;
+    const supplierLabel = supplierOptions.find((supplier) => supplier.id === selectedSupplierId)?.label;
+    const scopeLabel = categoryLabel ? ` - قسم: ${categoryLabel}` : supplierLabel ? ` - مورد: ${supplierLabel}` : '';
+    const line = `نوع الجرد: ${selectedCountType.label}${scopeLabel}`;
     const visibilityLine = `عرض كمية النظام أثناء العد الإلكتروني: ${showExpectedInElectronicCount ? 'نعم' : 'لا'}`;
     const trimmedBase = String(baseNote || '').trim();
     const metadata = `${line}\n${visibilityLine}`;
@@ -231,9 +383,34 @@ export function StockCountComposerCard({
     return `${trimmedBase}\n${metadata}`;
   }
 
-  function updateCountItem(index: number, patch: Partial<StockCountItem>) {
-    onItemsChange((current) => current.map((item, currentIndex) => {
-      if (currentIndex !== index) return item;
+  const [tableSearchQuery, setTableSearchQuery] = useState('');
+  const [tableFilterTab, setTableFilterTab] = useState<'all' | 'variance' | 'matched'>('all');
+
+  const filteredItems = useMemo(() => {
+    let result = items;
+    const query = tableSearchQuery.trim().toLowerCase();
+    if (query) {
+      result = result.filter((item) => {
+        const prod = products.find((p) => String(p.id) === String(item.productId));
+        const name = String(item.productName || '').toLowerCase();
+        const barcode = String(prod?.barcode || '').toLowerCase();
+        const styleCode = String(prod?.styleCode || '').toLowerCase();
+        return name.includes(query) || barcode.includes(query) || styleCode.includes(query);
+      });
+    }
+
+    if (tableFilterTab === 'variance') {
+      result = result.filter((item) => Number(item.varianceQty || 0) !== 0);
+    } else if (tableFilterTab === 'matched') {
+      result = result.filter((item) => Number(item.varianceQty || 0) === 0);
+    }
+
+    return result;
+  }, [items, products, tableSearchQuery, tableFilterTab]);
+
+  function updateCountItemById(id: string, patch: Partial<StockCountItem>) {
+    onItemsChange((current) => current.map((item) => {
+      if (item.id !== id) return item;
       const countedQty = patch.countedQty == null ? Number(item.countedQty || 0) : Number(patch.countedQty || 0);
       const expectedQty = Number(item.expectedQty || 0);
       return {
@@ -243,6 +420,54 @@ export function StockCountComposerCard({
         varianceQty: Number((countedQty - expectedQty).toFixed(3)),
       };
     }));
+  }
+
+  function removeCountItemById(id: string) {
+    onItemsChange((current) => current.filter((item) => item.id !== id));
+  }
+
+  function handleBarcodeScan(code: string) {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    const matchedProduct = products.find((p) =>
+      String(p.barcode || '').trim() === trimmed ||
+      String(p.styleCode || '').trim() === trimmed ||
+      String(p.id) === trimmed ||
+      p.units?.some((u) => String(u.barcode || '').trim() === trimmed)
+    );
+    if (!matchedProduct) {
+      setStartCountMessage(`لم يتم العثور على صنف بالباركود: ${trimmed}`);
+      return;
+    }
+    setStartCountMessage('');
+    const existingItem = items.find((item) => String(item.productId) === String(matchedProduct.id));
+    if (existingItem) {
+      const nextQty = Number(existingItem.countedQty || 0) + 1;
+      updateCountItemById(existingItem.id, { countedQty: nextQty });
+      setLastScannedItem({ name: existingItem.productName, qty: nextQty });
+    } else {
+      const expectedQty = Number(matchedProduct.stock || 0);
+      const newItem: StockCountItem = {
+        id: `${matchedProduct.id}-${Date.now()}`,
+        productId: matchedProduct.id,
+        productName: matchedProduct.name,
+        expectedQty,
+        countedQty: 1,
+        varianceQty: Number((1 - expectedQty).toFixed(3)),
+        reason: '',
+        note: '',
+      };
+      onItemsChange((current) => [newItem, ...current]);
+      setLastScannedItem({ name: matchedProduct.name, qty: 1 });
+    }
+    setBarcodeScanInput('');
+  }
+
+  function handleBarcodeKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleBarcodeScan(barcodeScanInput);
+    }
   }
 
   return (
@@ -257,8 +482,8 @@ export function StockCountComposerCard({
             <div className="stock-count-step-heading">
               <span>1</span>
               <div>
-                <strong>اختر طريقة الجرد</strong>
-                <small>اختار طريقة واحدة فقط عشان الصفحة تعرض المطلوب بدون زحمة.</small>
+                <strong>طريقة الجرد</strong>
+                <small>اختر نمط الجرد المناسب للعملية الحالية</small>
               </div>
             </div>
             <div className="stock-count-method-grid">
@@ -280,18 +505,20 @@ export function StockCountComposerCard({
             <div className="stock-count-step-heading">
               <span>2</span>
               <div>
-                <strong>حدد نطاق الجرد</strong>
-                <small>المخزن إجباري، والقسم يظهر فقط مع جرد قسم / تصنيف.</small>
+                <strong>نطاق الجرد والإعدادات</strong>
+                <small>حدد المخزن والملاحظة وخيارات العد</small>
               </div>
             </div>
-            <div className="form-grid stock-count-compact-form">
-              {!SINGLE_STORE_MODE ? <Field label="الفرع">
-                <select value={form.branchId} onChange={(e) => onFormChange({ branchId: e.target.value })}>
-                  <option value="">بدون فرع</option>
-                  {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-                </select>
-              </Field> : null}
-              <Field label="المخزن">
+            <div className="stock-count-inline-form">
+              {!SINGLE_STORE_MODE ? (
+                <Field label="الفرع">
+                  <select value={form.branchId} onChange={(e) => onFormChange({ branchId: e.target.value })}>
+                    <option value="">بدون فرع</option>
+                    {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                  </select>
+                </Field>
+              ) : null}
+              <Field label="المخزن (إجباري)">
                 <select value={form.locationId} onChange={(e) => onFormChange({ locationId: e.target.value })}>
                   <option value="">اختر المخزن</option>
                   {warehouseList.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
@@ -305,140 +532,257 @@ export function StockCountComposerCard({
                   </select>
                 </Field>
               ) : null}
+              {countType === 'supplier' ? (
+                <Field label="المورد / الشركة">
+                  <select value={selectedSupplierId} onChange={(e) => { setSelectedSupplierId(e.target.value); onItemsChange(() => []); }}>
+                    <option value="">اختر المورد</option>
+                    {supplierOptions.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.label} ({supplier.count} صنف)</option>)}
+                  </select>
+                </Field>
+              ) : null}
               <Field label="ملاحظة الجلسة">
-                <textarea rows={2} value={form.note} onChange={(e) => onFormChange({ note: e.target.value })} placeholder="مثال: جرد أسبوعي / جرد قبل طلبية المورد" />
+                <input
+                  type="text"
+                  value={form.note}
+                  onChange={(e) => onFormChange({ note: e.target.value })}
+                  placeholder="مثال: جرد أسبوعي / جرد قبل طلبية المورد"
+                />
               </Field>
             </div>
-          </div>
 
-          <div className="stock-count-step-card">
-            <div className="stock-count-step-heading">
-              <span>3</span>
-              <div>
-                <strong>طريقة العد</strong>
-                <small>اختار إظهار كمية النظام في العد الإلكتروني حسب صلاحية المستخدم وطريقة العمل.</small>
+            <div className="stock-count-bottom-bar">
+              <label className="stock-count-expected-toggle">
+                <input type="checkbox" checked={showExpectedInElectronicCount} onChange={(event) => setShowExpectedInElectronicCount(event.target.checked)} disabled={!canReviewStock} />
+                <span>إظهار كمية النظام أثناء الإدخال الإلكتروني</span>
+              </label>
+              <div className="stock-count-start-actions">
+                <Button type="button" variant="primary" onClick={handleStartCount}>ابدأ جلسة الجرد</Button>
               </div>
             </div>
-            <div className="stock-count-mode-grid">
-              <div className="stock-count-mode-card">
-                <strong>جرد ورقي</strong>
-                <span>اطبع شيت العد وروح عدّ فعليا داخل النشاط.</span>
-              </div>
-              <div className="stock-count-mode-card">
-                <strong>جرد إلكتروني</strong>
-                <span>افتح الأصناف داخل الجلسة وأدخل الكميات على النظام.</span>
-              </div>
-              <div className="stock-count-mode-card">
-                <strong>CSV</strong>
-                <span>صدّر الملف، املأ الكميات، ثم ارجع أدخلها أو ارفعها لاحقًا.</span>
-              </div>
-            </div>
-            <label className="stock-count-expected-toggle">
-              <input type="checkbox" checked={showExpectedInElectronicCount} onChange={(event) => setShowExpectedInElectronicCount(event.target.checked)} disabled={!canReviewStock} />
-              <span>إظهار كمية النظام أثناء الإدخال الإلكتروني</span>
-            </label>
-            {!canReviewStock ? <div className="surface-note">وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.</div> : null}
+            {!canReviewStock ? <div className="surface-note" style={{ marginTop: 8 }}>وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.</div> : null}
           </div>
 
           {startCountMessage ? <div className="warning-box">{startCountMessage}</div> : null}
-          <div className="stock-count-start-actions">
-            <Button type="button" onClick={handleStartCount}>ابدأ جلسة الجرد</Button>
-          </div>
         </div>
       ) : (
         <div className="stock-count-review-stack">
+          {/* Header Bar with inline stats & save actions */}
           <div className="stock-count-session-bar">
-            <div>
-              <span>جلسة جرد</span>
-              <strong>{selectedCountType.label}</strong>
-              <small>{selectedLocation?.name ? `المخزن: ${selectedLocation.name}` : 'اختر المخزن من الإعدادات'}{selectedCategoryId ? ` · القسم: ${categoryOptions.find((category) => category.id === selectedCategoryId)?.label || selectedCategoryId}` : ''}</small>
-            </div>
-            <div className="actions compact-actions">
-              <Button type="button" variant="secondary" onClick={handleBackToSetup} disabled={isPending}>تعديل الإعدادات</Button>
-              <SubmitButton type="button" onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })} disabled={isPending || !items.length || !form.locationId} idleText="إنشاء جلسة الجرد" pendingText="جارٍ الإنشاء..." />
-            </div>
-          </div>
+            <div className="stock-count-session-meta">
+              <div className="session-title-group">
+                <span className="stock-count-badge">{selectedCountType.label}</span>
+                <strong>{selectedLocation?.name ? `المخزن: ${selectedLocation.name}` : 'المخزن'}</strong>
+                {selectedCategoryId ? <span className="meta-tag">القسم: {categoryOptions.find((c) => c.id === selectedCategoryId)?.label || selectedCategoryId}</span> : null}
+                {selectedSupplierId ? <span className="meta-tag">المورد: {supplierOptions.find((s) => s.id === selectedSupplierId)?.label || selectedSupplierId}</span> : null}
+              </div>
 
-          <div className="stock-count-progress-card">
-            <div className="stock-count-progress-copy">
-              <span>تقدم العد</span>
-              <strong>{countedItems} من {items.length}</strong>
-              <small>{varianceItems ? `${varianceItems} أصناف بها فروقات` : 'لا توجد فروقات مسجلة حتى الآن'}</small>
-            </div>
-            <div className="stock-count-progress-track" aria-label="تقدم العد">
-              <span style={{ width: `${progressPercent}%` }} />
-            </div>
-          </div>
-
-          <div className="stats-grid compact-grid workspace-stats-grid">
-            <div className="stat-card"><span>العناصر المضافة</span><strong>{items.length}</strong></div>
-            {canShowExpectedCount ? <div className="stat-card"><span>الفرق الحالي</span><strong>{selectedProduct ? variancePreview : totalVariance}</strong></div> : null}
-            {canShowExpectedCount ? <div className="stat-card"><span>المخزون المتوقع</span><strong>{selectedProduct ? expectedQtyValue : totalExpected}</strong></div> : null}
-            <div className="stat-card"><span>المعدود</span><strong>{selectedProduct ? countedQtyValue : totalCounted}</strong></div>
-          </div>
-
-          <StockCountSheetTools products={products} items={items} countType={countType} selectedProduct={selectedProduct} selectedCategoryId={selectedCategoryId} locationName={selectedLocation?.name} isCountStarted={isCountStarted} onItemsChange={onItemsChange} />
-
-          <div className="stock-count-entry-panel">
-            <div className="stock-count-entry-heading">
-              <strong>إدخال صنف يدوي</strong>
-              <span>استخدمه للجرد السريع أو لإضافة صنف ناقص من الشيت.</span>
-            </div>
-            <div className="form-grid stock-count-compact-form">
-              <Field label="الصنف">
-                <InventoryProductPicker products={products} value={form.productId} onChange={(productId) => onFormChange({ productId })} showStock showPrice={false} helperText="اختر صنفًا لإدخال كمية العد أو لإضافته للجلسة." />
-              </Field>
-              <Field label="الكمية المعدودة">
-                <input type="number" min="0" step="0.001" value={form.countedQty} onChange={(e) => onFormChange({ countedQty: e.target.value })} />
-              </Field>
-              <Field label="سبب الفرق">
-                <input value={form.reason} onChange={(e) => onFormChange({ reason: e.target.value })} placeholder="مثال: جرد دوري / كسر / فقد" />
-              </Field>
-              <Field label="ملاحظة العنصر">
-                <textarea rows={2} value={form.itemNote} onChange={(e) => onFormChange({ itemNote: e.target.value })} />
-              </Field>
-              <div className="field">
-                <span>الإجراء</span>
-                <Button type="button" variant="secondary" onClick={onAddItem}>إضافة عنصر</Button>
+              <div className="stock-count-stat-pills">
+                <span className="stat-pill">الأصناف: <strong>{items.length}</strong></span>
+                <span className="stat-pill">المعدود: <strong>{totalCounted}</strong></span>
+                <span className="stat-pill">الفروقات: <strong>{totalVariance}</strong></span>
+                {canShowExpectedCount && financialSummary.deficitCost > 0 ? (
+                  <span className="stat-pill stat-pill--deficit">قيمة العجز: <strong>{financialSummary.deficitCost.toLocaleString('ar-EG')} ج.م</strong></span>
+                ) : null}
               </div>
             </div>
+
+            <div className="actions compact-actions">
+              <Button type="button" variant="secondary" onClick={handleBackToSetup} disabled={isPending}>تعديل الإعدادات</Button>
+              <SubmitButton type="button" onClick={() => onSubmit({ noteOverride: buildSessionNoteWithType(form.note) })} disabled={isPending || !items.length || !form.locationId} idleText="إنشاء وحفظ الجلسة" pendingText="جارٍ الإنشاء..." />
+            </div>
           </div>
 
+          {/* Unified Scanner & Action Toolbar */}
+          <div className="stock-count-active-toolbar">
+            <div className="stock-count-scanner-group">
+              <span className="scanner-tag">
+                <BarcodeIcon size={16} />
+                <span>مسح سريع</span>
+              </span>
+              <input
+                ref={barcodeInputRef}
+                type="text"
+                className="stock-count-scanner-field"
+                placeholder="امسح الباركود للعد السريع (+1 تلقائياً)..."
+                value={barcodeScanInput}
+                onChange={(e) => setBarcodeScanInput(e.target.value)}
+                onKeyDown={handleBarcodeKeyDown}
+              />
+              <Button type="button" variant="secondary" onClick={() => handleBarcodeScan(barcodeScanInput)}>عد</Button>
+            </div>
+
+            <div className="stock-count-tools-group">
+              {canReviewStock ? (
+                <label className="stock-count-sheet-expected-toggle" title="إظهار كميات النظام في شيت الطباعة والإكسيل">
+                  <input
+                    type="checkbox"
+                    checked={showExpectedInElectronicCount}
+                    onChange={(e) => setShowExpectedInElectronicCount(e.target.checked)}
+                  />
+                  <span>رصيد النظام</span>
+                </label>
+              ) : null}
+              {(countType === 'category' || countType === 'supplier' || countType === 'full') && !items.length ? (
+                <Button type="button" variant="primary" onClick={handlePopulateScopeItems}>
+                  <DownloadIcon size={15} />
+                  <span>إدخال إلكتروني ({scopeProducts.length} صنف)</span>
+                </Button>
+              ) : null}
+              <Button type="button" variant="secondary" onClick={handlePrintSheet} disabled={!sheetRows.length}>
+                <PrinterIcon size={15} />
+                <span>طباعة الشيت</span>
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleExportExcel} disabled={!sheetRows.length}>
+                <FileSpreadsheetIcon size={15} />
+                <span>Excel</span>
+              </Button>
+            </div>
+          </div>
+
+          {lastScannedItem ? (
+            <div className="stock-count-scan-alert">
+              <CheckCircleIcon size={16} color="#059669" />
+              <span>تم مسح وعد: <strong>{lastScannedItem.name}</strong> (الكمية المعدودة: {lastScannedItem.qty})</span>
+            </div>
+          ) : null}
+
+          {/* Quick Manual Add Row */}
+          <div className="stock-count-quick-entry-row">
+            <span className="entry-row-title">إضافة صنف:</span>
+            <div className="entry-row-picker">
+              <InventoryProductPicker products={products} value={form.productId} onChange={(productId) => onFormChange({ productId })} showStock showPrice={false} hideHint={true} />
+            </div>
+            <input
+              type="number"
+              min="0"
+              step="0.001"
+              className="entry-row-qty"
+              value={form.countedQty}
+              onChange={(e) => onFormChange({ countedQty: e.target.value })}
+              placeholder="الكمية"
+            />
+            <input
+              type="text"
+              className="entry-row-reason"
+              value={form.reason}
+              onChange={(e) => onFormChange({ reason: e.target.value })}
+              placeholder="سبب الفرق (مثال: عجز / كسر)"
+            />
+            <Button type="button" variant="secondary" onClick={onAddItem}>
+              <PlusIcon size={15} />
+              <span>إضافة صنف</span>
+            </Button>
+          </div>
+
+          {startCountMessage ? <div className="warning-box">{startCountMessage}</div> : null}
           <MutationFeedback isError={isError} isSuccess={isSuccess} error={error} errorFallback="تعذر إنشاء جلسة الجرد" successText="تم إنشاء جلسة الجرد بنجاح." />
 
+          {/* Table Search & Filter Bar */}
+          {items.length > 3 ? (
+            <div className="stock-count-table-filter-bar">
+              <div className="stock-count-table-search-box">
+                <span className="search-icon"><SearchIcon size={14} color="#94a3b8" /></span>
+                <input
+                  type="text"
+                  className="table-search-input"
+                  placeholder="ابحث في جدول الجلسة باسم الصنف أو الباركود..."
+                  value={tableSearchQuery}
+                  onChange={(e) => setTableSearchQuery(e.target.value)}
+                />
+                {tableSearchQuery ? (
+                  <button type="button" className="clear-search-btn" onClick={() => setTableSearchQuery('')}>×</button>
+                ) : null}
+              </div>
+
+              <div className="stock-count-filter-pills">
+                <button
+                  type="button"
+                  className={`filter-pill-btn ${tableFilterTab === 'all' ? 'filter-pill-btn--active' : ''}`}
+                  onClick={() => setTableFilterTab('all')}
+                >
+                  الكل ({items.length})
+                </button>
+                <button
+                  type="button"
+                  className={`filter-pill-btn ${tableFilterTab === 'variance' ? 'filter-pill-btn--active' : ''}`}
+                  onClick={() => setTableFilterTab('variance')}
+                >
+                  فروقات ({varianceItems})
+                </button>
+                <button
+                  type="button"
+                  className={`filter-pill-btn ${tableFilterTab === 'matched' ? 'filter-pill-btn--active' : ''}`}
+                  onClick={() => setTableFilterTab('matched')}
+                >
+                  مطابق ({items.length - varianceItems})
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {/* High Density Items Table */}
           <div className="table-wrap stock-count-items-table-wrap">
-            {items.length ? (
+            {filteredItems.length ? (
               <table className="stock-count-items-table">
                 <thead>
                   <tr>
+                    <th style={{ width: '40px', textAlign: 'center' }}>#</th>
                     <th>الصنف</th>
-                    {canShowExpectedCount ? <th>كمية النظام</th> : null}
-                    <th>الكمية المعدودة</th>
-                    {canShowExpectedCount ? <th>الفرق</th> : null}
+                    {canShowExpectedCount ? <th style={{ textAlign: 'center' }}>كمية النظام</th> : null}
+                    <th style={{ width: '130px', textAlign: 'center' }}>الكمية المعدودة</th>
+                    {canShowExpectedCount ? <th style={{ textAlign: 'center' }}>الفرق</th> : null}
                     <th>سبب الفرق</th>
-                    <th>إجراء</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>إجراء</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item, index) => (
+                  {filteredItems.map((item, index) => (
                     <tr key={item.id}>
+                      <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>{index + 1}</td>
                       <td><strong>{item.productName}</strong></td>
-                      {canShowExpectedCount ? <td className="muted">{item.expectedQty || 0}</td> : null}
-                      <td>
-                        <input type="number" min="0" step="0.001" value={String(item.countedQty ?? 0)} onChange={(event) => updateCountItem(index, { countedQty: Number(event.target.value || 0) })} />
+                      {canShowExpectedCount ? <td style={{ textAlign: 'center' }} className="muted">{item.expectedQty || 0}</td> : null}
+                      <td style={{ textAlign: 'center' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.001"
+                          style={{ textAlign: 'center', fontWeight: 'bold' }}
+                          value={String(item.countedQty ?? 0)}
+                          onChange={(event) => updateCountItemById(item.id, { countedQty: Number(event.target.value || 0) })}
+                        />
                       </td>
-                      {canShowExpectedCount ? <td><span className={Number(item.varianceQty || 0) === 0 ? 'stock-count-variance stock-count-variance--zero' : 'stock-count-variance'}>{item.varianceQty || 0}</span></td> : null}
+                      {canShowExpectedCount ? (
+                        <td style={{ textAlign: 'center' }}>
+                          {Number(item.varianceQty || 0) === 0 ? (
+                            <span className="stock-count-variance stock-count-variance--zero">مطابق (0)</span>
+                          ) : Number(item.varianceQty || 0) < 0 ? (
+                            <span className="stock-count-variance stock-count-variance--deficit">عجز {item.varianceQty}</span>
+                          ) : (
+                            <span className="stock-count-variance stock-count-variance--surplus">زيادة +{item.varianceQty}</span>
+                          )}
+                        </td>
+                      ) : null}
                       <td>
-                        <input value={item.reason || ''} onChange={(event) => updateCountItem(index, { reason: event.target.value })} placeholder="سبب الفرق" />
+                        <input value={item.reason || ''} onChange={(event) => updateCountItemById(item.id, { reason: event.target.value })} placeholder="سبب الفرق" />
                       </td>
-                      <td>
-                        <Button type="button" variant="secondary" onClick={() => onRemoveItem(index)}>إزالة</Button>
+                      <td style={{ textAlign: 'center' }}>
+                        <Button type="button" variant="secondary" onClick={() => removeCountItemById(item.id)}>إزالة</Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            ) : <EmptyState title="لا توجد عناصر في جلسة الجرد" hint="استخدم أزرار العد الورقي/الإلكتروني أو أضف صنفًا يدويًا بعد بدء الجلسة." />}
+            ) : items.length ? (
+              <EmptyState
+                title="لا توجد نتائج مطابقة للبحث"
+                hint="جرب البحث بكلمة أخرى أو اضغط على تصنيف (الكل)."
+              />
+            ) : (
+              <EmptyState
+                title="لا توجد عناصر في جلسة الجرد حتى الآن"
+                hint={countType === 'category' || countType === 'supplier' || countType === 'full' ? 'اضغط على زر (إدخال إلكتروني) بالأعلى لتنزيل الأصناف، أو استخدم مسح الباركود.' : 'استخدم ماسح الباركود أو الإضافة اليدوية بالأعلى لبدء تسجيل الأصناف.'}
+              />
+            )}
           </div>
         </div>
       )}

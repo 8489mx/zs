@@ -11,6 +11,7 @@ type InventoryProductPickerProps = {
   showStock?: boolean;
   showPrice?: boolean;
   helperText?: string;
+  hideHint?: boolean;
 };
 
 function getProductText(product: Product, key: 'barcode' | 'sku' | 'code') {
@@ -49,6 +50,7 @@ export function InventoryProductPicker({
   showStock = false,
   showPrice = false,
   helperText,
+  hideHint = false,
 }: InventoryProductPickerProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -194,11 +196,11 @@ export function InventoryProductPicker({
             امسح الاختيار
           </button>
         </div>
-      ) : (
+      ) : !hideHint ? (
         <div className="inventory-product-picker__hint">
           {helperText || 'اكتب اسم الصنف أو امسح الباركود لاختيار الصنف.'}
         </div>
-      )}
+      ) : null}
 
       {shouldShowDropdown ? (
         <div className="inventory-product-picker__dropdown" role="listbox" aria-label="اختيار الصنف">

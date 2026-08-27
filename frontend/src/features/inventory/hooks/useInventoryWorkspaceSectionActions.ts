@@ -77,7 +77,9 @@ export function createInventoryWorkspaceSectionActions({
   };
 
   const exportTransfersExcel = async () => exportTransfersExcelDocument(await inventoryApi.listAllTransfers({ filter: transferFilter }));
-  const printInventoryListHandler = () => printInventoryStatusReport(rows, { settings, pageSize: 'a4' });
+  const printInventoryListHandler = (sortBy: 'least_stock' | 'category' | 'highest_value' = 'least_stock') => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy });
+  const printInventoryByCategoryHandler = () => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy: 'category' });
+  const printInventoryByHighestValueHandler = () => printInventoryStatusReport(rows, { settings, pageSize: 'a4', sortBy: 'highest_value' });
   const printDamagedRecordsHandler = async () => printDamagedRecords(await inventoryApi.listAllDamagedStock());
   const exportDamagedExcelHandler = async () => exportDamagedExcelDocument(await inventoryApi.listAllDamagedStock());
   const exportMovementsExcelHandler = async () => {
@@ -143,7 +145,7 @@ export function createInventoryWorkspaceSectionActions({
         ? printDamagedRecordsHandler
         : currentSection === 'movements'
           ? printMovementsHandler
-          : printInventoryListHandler;
+          : () => printInventoryListHandler('least_stock');
 
   return {
     copyInventorySummary,
@@ -156,5 +158,8 @@ export function createInventoryWorkspaceSectionActions({
     copySessionDetails,
     sectionExportHandler,
     sectionPrintHandler,
+    printInventoryListHandler,
+    printInventoryByCategoryHandler,
+    printInventoryByHighestValueHandler,
   };
 }

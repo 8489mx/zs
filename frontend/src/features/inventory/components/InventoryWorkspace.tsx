@@ -15,6 +15,7 @@ import type { Product } from '@/types/domain';
 export function InventoryWorkspace({ currentSection }: { currentSection: InventorySectionKey }) {
   const inventory = useInventoryWorkspaceController(currentSection);
   const [selectedInventoryProduct, setSelectedInventoryProduct] = useState<{ product: Product; token: number } | null>(null);
+  const [countSubView, setCountSubView] = useState<'create' | 'history'>('create');
   const [searchParams, setSearchParams] = useSearchParams();
   const productId = searchParams.get('productId');
   const actionPanelRef = useRef<HTMLDivElement>(null);
@@ -46,6 +47,8 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
         onCopySummary={() => void Promise.resolve(inventory.copyInventorySummary())}
         onExportExcel={() => void Promise.resolve(inventory.sectionExportHandler())}
         onPrintList={() => void Promise.resolve(inventory.sectionPrintHandler())}
+        onPrintByCategory={() => void Promise.resolve(inventory.printInventoryByCategoryHandler())}
+        onPrintByHighestValue={() => void Promise.resolve(inventory.printInventoryByHighestValueHandler())}
       />
 
       <InventorySectionTabs currentSection={currentSection} />
@@ -170,61 +173,83 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
       ) : null}
 
       {currentSection === 'counts' ? (
-        <>
-          <StockCountMonitorCard
-            canReviewStock={inventory.canAdjustInventory}
-            isLoading={inventory.stockCountQuery.isLoading || inventory.damagedQuery.isLoading}
-            isError={inventory.stockCountQuery.isError || inventory.damagedQuery.isError}
-            error={inventory.stockCountQuery.error || inventory.damagedQuery.error}
-            stockCountSessions={inventory.stockCountSessions}
-            damagedRecords={inventory.damagedRecords}
-            sessionTotalItems={inventory.stockCountSummary.totalItems}
-            page={inventory.stockCountQuery.data?.pagination.page || inventory.sessionsPage}
-            pageSize={inventory.stockCountQuery.data?.pagination.pageSize || inventory.sessionsPageSize}
-            totalItems={inventory.stockCountQuery.data?.pagination.totalItems || inventory.stockCountSummary.totalItems}
-            onPageChange={inventory.setSessionsPage}
-            onPageSizeChange={(value) => { inventory.setSessionsPageSize(value); inventory.setSessionsPage(1); }}
-            selectedSession={inventory.selectedSession}
-            selectedSessionTotals={inventory.selectedSessionTotals}
-            sessionFilter={inventory.sessionFilter}
-            postingPin={inventory.postingPin}
-            postPending={inventory.postCountMutation.isPending}
-            postError={inventory.postCountMutation.error}
-            postSuccess={inventory.postCountMutation.isSuccess}
-            transferSuccess={inventory.transferActionMutation.isSuccess}
-            transferError={inventory.transferActionMutation.error}
-            onSessionFilterChange={inventory.setSessionFilter}
-            onPostingPinChange={inventory.setPostingPin}
-            onSelectSession={inventory.setSelectedSessionId}
-            onPostSession={inventory.canAdjustInventory ? (sessionId) => inventory.setPostSessionConfirm({ sessionIds: [sessionId] }) : undefined}
-            onCopySessionDetails={() => void inventory.copySessionDetails()}
-            onPrintCountSessions={inventory.printCountSessionsHandler}
-            onPrintDamagedRecords={inventory.printDamagedRecordsHandler}
-            onExportDamagedCsv={inventory.exportDamagedExcelHandler}
-            onPrintSession={inventory.printStockCountDocument}
-            selectedSessionIds={inventory.selectedSessionIds}
-            onSelectedSessionIdsChange={inventory.setSelectedSessionIds}
-            onPostSelectedSessions={inventory.postSelectedSessions}
-          />
+        <div className="stock-count-view-container">
+          <div className="stock-count-subnav">
+            <button
+              type="button"
+              className={`stock-count-subnav-btn ${countSubView === 'create' ? 'stock-count-subnav-btn--active' : ''}`}
+              onClick={() => setCountSubView('create')}
+            >
+              <span className="stock-count-subnav-title">بدء جلسة جرد جديدة</span>
+              <span className="stock-count-subnav-desc">معالج العد الذكي وخطوات الجرد</span>
+            </button>
+            <button
+              type="button"
+              className={`stock-count-subnav-btn ${countSubView === 'history' ? 'stock-count-subnav-btn--active' : ''}`}
+              onClick={() => setCountSubView('history')}
+            >
+              <span className="stock-count-subnav-title">سجل ومراجعة الجلسات</span>
+              <span className="stock-count-subnav-desc">{inventory.stockCountSummary.totalItems} جلسة مسجلة</span>
+            </button>
+          </div>
 
-          <StockCountComposerCard
-            products={inventory.products}
-            branches={inventory.branches}
-            locations={inventory.locations}
-            form={inventory.countForm}
-            items={inventory.countItems}
-            canReviewStock={inventory.canAdjustInventory}
-            isPending={inventory.createCountMutation.isPending}
-            isError={inventory.createCountMutation.isError}
-            isSuccess={inventory.createCountMutation.isSuccess}
-            error={inventory.createCountMutation.error}
-            onFormChange={(patch) => inventory.setCountForm((current) => ({ ...current, ...patch }))}
-            onItemsChange={inventory.setCountItems}
-            onAddItem={inventory.addCountItem}
-            onRemoveItem={(index) => inventory.setCountItems((current) => current.filter((_, currentIndex: number) => currentIndex !== index))}
-            onSubmit={(options) => inventory.createCountMutation.mutate(options ?? {})}
-          />
-        </>
+          {countSubView === 'create' ? (
+            <StockCountComposerCard
+              products={inventory.products}
+              branches={inventory.branches}
+              locations={inventory.locations}
+              form={inventory.countForm}
+              items={inventory.countItems}
+              canReviewStock={inventory.canAdjustInventory}
+              isPending={inventory.createCountMutation.isPending}
+              isError={inventory.createCountMutation.isError}
+              isSuccess={inventory.createCountMutation.isSuccess}
+              error={inventory.createCountMutation.error}
+              onFormChange={(patch) => inventory.setCountForm((current) => ({ ...current, ...patch }))}
+              onItemsChange={inventory.setCountItems}
+              onAddItem={inventory.addCountItem}
+              onRemoveItem={(index) => inventory.setCountItems((current) => current.filter((_, currentIndex: number) => currentIndex !== index))}
+              onSubmit={(options) => inventory.createCountMutation.mutate(options ?? {})}
+            />
+          ) : (
+            <StockCountMonitorCard
+              canReviewStock={inventory.canAdjustInventory}
+              isLoading={inventory.stockCountQuery.isLoading || inventory.damagedQuery.isLoading}
+              isError={inventory.stockCountQuery.isError || inventory.damagedQuery.isError}
+              error={inventory.stockCountQuery.error || inventory.damagedQuery.error}
+              stockCountSessions={inventory.stockCountSessions}
+              damagedRecords={inventory.damagedRecords}
+              sessionTotalItems={inventory.stockCountSummary.totalItems}
+              page={inventory.stockCountQuery.data?.pagination.page || inventory.sessionsPage}
+              pageSize={inventory.stockCountQuery.data?.pagination.pageSize || inventory.sessionsPageSize}
+              totalItems={inventory.stockCountQuery.data?.pagination.totalItems || inventory.stockCountSummary.totalItems}
+              onPageChange={inventory.setSessionsPage}
+              onPageSizeChange={(value) => { inventory.setSessionsPageSize(value); inventory.setSessionsPage(1); }}
+              selectedSession={inventory.selectedSession}
+              selectedSessionTotals={inventory.selectedSessionTotals}
+              sessionFilter={inventory.sessionFilter}
+              postingPin={inventory.postingPin}
+              postPending={inventory.postCountMutation.isPending}
+              postError={inventory.postCountMutation.error}
+              postSuccess={inventory.postCountMutation.isSuccess}
+              transferSuccess={inventory.transferActionMutation.isSuccess}
+              transferError={inventory.transferActionMutation.error}
+              onSessionFilterChange={inventory.setSessionFilter}
+              onPostingPinChange={inventory.setPostingPin}
+              onSelectSession={inventory.setSelectedSessionId}
+              onPostSession={inventory.canAdjustInventory ? (sessionId) => inventory.setPostSessionConfirm({ sessionIds: [sessionId] }) : undefined}
+              onCopySessionDetails={() => void inventory.copySessionDetails()}
+              onPrintCountSessions={inventory.printCountSessionsHandler}
+              onPrintDamagedRecords={inventory.printDamagedRecordsHandler}
+              onExportDamagedCsv={inventory.exportDamagedExcelHandler}
+              onPrintSession={inventory.printStockCountDocument}
+              selectedSessionIds={inventory.selectedSessionIds}
+              onSelectedSessionIdsChange={inventory.setSelectedSessionIds}
+              onPostSelectedSessions={inventory.postSelectedSessions}
+              onStartNewCount={() => setCountSubView('create')}
+            />
+          )}
+        </div>
       ) : null}
 
       {currentSection === 'damaged' ? (
@@ -253,7 +278,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
         sessions={inventory.postSessionConfirm ? inventory.stockCountSessions.filter((session) => inventory.postSessionConfirm?.sessionIds.includes(String(session.id))) : []}
         isBusy={inventory.postCountMutation.isPending}
         onCancel={() => inventory.setPostSessionConfirm(null)}
-        onConfirm={() => void inventory.confirmPostSessionAction()}
+        onConfirm={(context) => void inventory.confirmPostSessionAction(context)}
       />
       </main>
     </div>

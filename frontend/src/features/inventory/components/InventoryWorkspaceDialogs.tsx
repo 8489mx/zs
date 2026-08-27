@@ -44,18 +44,21 @@ export function InventoryPostSessionDialog({
   sessions: StockCountSession[];
   isBusy: boolean;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: (context: { managerPin: string }) => void;
 }) {
   return (
     <ActionConfirmDialog
       open={Boolean(sessions.length)}
-      title="تأكيد اعتماد جلسة الجرد"
-      description={sessions.length ? (sessions.length === 1 ? <>سيتم اعتماد الجلسة <strong>{sessions[0].docNo || sessions[0].id}</strong> وتسجيل فروقاتها على المخزون. تأكد من مراجعة البنود وإدخال كود المدير الصحيح.</> : <>سيتم اعتماد <strong>{sessions.length}</strong> جلسات جرد محددة وتسجيل فروقاتها على المخزون. تأكد من مراجعة الجلسات وإدخال كود المدير الصحيح قبل التنفيذ.</>) : ''}
+      title="تأكيد اعتماد وترحيل جلسة الجرد"
+      description={sessions.length ? (sessions.length === 1 ? <>سيتم اعتماد الجلسة <strong>{sessions[0].docNo || sessions[0].id}</strong> وتسجيل فروقاتها على المخزون بشكل نهائي.</> : <>سيتم اعتماد <strong>{sessions.length}</strong> جلسات جرد محددة وتسجيل فروقاتها على المخزون بشكل نهائي.</>) : ''}
       confirmLabel="اعتماد الجلسة"
       confirmVariant="primary"
+      managerPinRequired={true}
+      managerPinLabel="كود اعتماد المشرف"
+      managerPinHint="أدخل الرقم السري للمشرف لاعتماد الجلسة وتسوية الأرصدة."
       isBusy={isBusy}
       onCancel={onCancel}
-      onConfirm={onConfirm}
+      onConfirm={({ managerPin }) => onConfirm({ managerPin })}
     />
   );
 }

@@ -2,7 +2,6 @@ import { useMemo, useRef } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Field } from '@/shared/ui/field';
 import { DataTable } from '@/shared/ui/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
@@ -46,6 +45,7 @@ interface StockCountMonitorCardProps {
   selectedSessionIds?: string[];
   onSelectedSessionIdsChange?: (ids: string[]) => void;
   onPostSelectedSessions?: () => void;
+  onStartNewCount?: () => void;
 }
 
 export function StockCountMonitorCard({
@@ -54,7 +54,7 @@ export function StockCountMonitorCard({
   isError,
   error,
   stockCountSessions,
-  damagedRecords,
+  damagedRecords: _damagedRecords,
   sessionTotalItems,
   page,
   pageSize,
@@ -64,24 +64,25 @@ export function StockCountMonitorCard({
   selectedSession,
   selectedSessionTotals,
   sessionFilter,
-  postingPin,
+  postingPin: _postingPin,
   postPending,
   postError,
   postSuccess,
   transferSuccess,
   transferError,
   onSessionFilterChange,
-  onPostingPinChange,
+  onPostingPinChange: _onPostingPinChange,
   onSelectSession,
   onPostSession,
   onCopySessionDetails,
   onPrintCountSessions,
-  onPrintDamagedRecords,
-  onExportDamagedCsv,
+  onPrintDamagedRecords: _onPrintDamagedRecords,
+  onExportDamagedCsv: _onExportDamagedCsv,
   onPrintSession,
   selectedSessionIds = [],
   onSelectedSessionIdsChange,
   onPostSelectedSessions,
+  onStartNewCount,
 }: StockCountMonitorCardProps) {
   const detailPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -107,54 +108,33 @@ export function StockCountMonitorCard({
 
   return (
     <FormSection
-      title="جلسات الجرد"
-      description="مراجعة جلسات الجرد قبل الاعتماد مع عرض واضح للحالة والبنود والفروقات."
+      title="سجل جلسات الجرد"
+      description="مراجعة جلسات الجرد السابقة والمسودات وتفاصيل الفروقات والاعتماد."
       actions={(
         <div className="actions compact-actions">
+          {onStartNewCount ? <Button variant="primary" onClick={onStartNewCount}>بدء جلسة جديدة</Button> : null}
           <Button variant="secondary" onClick={onPrintCountSessions} disabled={!stockCountSessions.length}>طباعة الجلسات</Button>
-          <Button variant="secondary" onClick={onPrintDamagedRecords} disabled={!damagedRecords.length}>طباعة التالف</Button>
-          <Button variant="secondary" onClick={onExportDamagedCsv} disabled={!damagedRecords.length}>تصدير التالف</Button>
           <span className="nav-pill">{sessionTotalItems} جلسة</span>
         </div>
       )}
     >
-      {canReviewStock ? (
-        <Field label="كود اعتماد الجلسة">
-          <input
-            type="text"
-            className="secure-password-field"
-            value={postingPin}
-            onChange={(e) => onPostingPinChange(e.target.value)}
-            placeholder="يستخدم عند اعتماد أي جلسة"
-            autoComplete="off"
-            data-lpignore="true"
-            data-1p-ignore="true"
-            data-form-type="other"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-          />
-        </Field>
-      ) : (
-        <div className="surface-note" style={{ marginBottom: 12 }}>
-          وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.
-        </div>
-      )}
-
-      <QueryFeedback
-        isLoading={isLoading}
-        isError={isError}
-        error={error}
-        isEmpty={!stockCountSessions.length && !damagedRecords.length}
-        loadingText="جاري تحميل جلسات الجرد..."
-        emptyTitle="لا توجد جلسات جرد حتى الآن"
-        emptyHint="ابدأ بإضافة بنود الجرد ثم إنشاء جلسة جديدة."
-      >
+      <div className="stock-count-filter-toolbar">
         <div className="filter-chip-row">
           <Button type="button" variant={sessionFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onSessionFilterChange('all')}>الكل</Button>
           <Button type="button" variant={sessionFilter === 'draft' ? 'primary' : 'secondary'} onClick={() => onSessionFilterChange('draft')}>مسودة</Button>
           <Button type="button" variant={sessionFilter === 'posted' ? 'primary' : 'secondary'} onClick={() => onSessionFilterChange('posted')}>معتمد</Button>
         </div>
+      </div>
+
+      <QueryFeedback
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        isEmpty={!stockCountSessions.length}
+        loadingText="جاري تحميل جلسات الجرد..."
+        emptyTitle="لا توجد جلسات جرد مسجلة حتى الآن"
+        emptyHint="اضغط على زر (بدء جلسة جرد جديدة) لاختيار المخزن والأصناف وبدء العد."
+      >
 
         <div className="inventory-master-detail inventory-master-detail-wide">
           <div className="section-stack detail-table-panel">

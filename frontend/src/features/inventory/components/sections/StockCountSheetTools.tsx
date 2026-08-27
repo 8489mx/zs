@@ -6,9 +6,10 @@ import {
   printStockCountSheet,
   type StockCountSheetRow,
 } from '@/features/inventory/lib/inventory-documents';
+import { useCategoriesQuery } from '@/shared/hooks/use-catalog-queries';
 import type { Product, StockCountItem } from '@/types/domain';
 
-type CountScope = 'quick' | 'selected_items' | 'category' | 'full';
+type CountScope = 'quick' | 'selected_items' | 'category' | 'supplier' | 'full';
 
 interface StockCountSheetToolsProps {
   products: Product[];
@@ -16,21 +17,10 @@ interface StockCountSheetToolsProps {
   countType: CountScope;
   selectedProduct?: Product;
   selectedCategoryId?: string;
+  selectedSupplierId?: string;
   locationName?: string;
   isCountStarted: boolean;
   onItemsChange: (updater: (current: StockCountItem[]) => StockCountItem[]) => void;
-}
-
-function productToRow(product: Product): StockCountSheetRow {
-  return {
-    code: product.styleCode || product.id,
-    barcode: product.barcode || product.units?.find((unit) => unit.barcode)?.barcode || '',
-    name: product.name,
-    category: product.categoryId || '',
-    expectedQty: product.stock ?? 0,
-    countedQty: '',
-    note: '',
-  };
 }
 
 function productToCountItem(product: Product): StockCountItem {
@@ -53,11 +43,31 @@ export function StockCountSheetTools({
   countType,
   selectedProduct,
   selectedCategoryId,
+  selectedSupplierId,
   locationName,
   isCountStarted,
   onItemsChange,
 }: StockCountSheetToolsProps) {
   const [includeExpectedQty, setIncludeExpectedQty] = useState(false);
+  const categoriesQuery = useCategoriesQuery();
+  const categories = Array.isArray(categoriesQuery.data) ? categoriesQuery.data : [];
+
+  const getCategoryName = (id?: string) => {
+    if (!id) return '';
+    const trimmed = String(id).trim();
+    const found = categories.find((c) => String(c.id) === trimmed || String(c.name).trim() === trimmed);
+    return found?.name || (trimmed ? `قسم ${trimmed}` : '');
+  };
+
+  const productToRow = (product: Product): StockCountSheetRow => ({
+    code: product.styleCode || product.id,
+    barcode: product.barcode || product.units?.find((unit) => unit.barcode)?.barcode || '',
+    name: product.name,
+    category: getCategoryName(product.categoryId),
+    expectedQty: product.stock ?? 0,
+    countedQty: '',
+    note: '',
+  });
 
   const scopeProducts = useMemo(() => {
     if (countType === 'full') return products;
@@ -66,12 +76,17 @@ export function StockCountSheetTools({
       if (!categoryId) return [];
       return products.filter((product) => String(product.categoryId || '') === String(categoryId));
     }
+    if (countType === 'supplier') {
+      const supplierId = selectedSupplierId || selectedProduct?.supplierId || '';
+      if (!supplierId) return [];
+      return products.filter((product) => String(product.supplierId || '') === String(supplierId));
+    }
     if (selectedProduct) return [selectedProduct];
     return [];
-  }, [countType, products, selectedCategoryId, selectedProduct]);
+  }, [countType, products, selectedCategoryId, selectedSupplierId, selectedProduct]);
 
   const sheetRows = useMemo(() => {
-    if (countType === 'full' || countType === 'category') return scopeProducts.map(productToRow);
+    if (countType === 'full' || countType === 'category' || countType === 'supplier') return scopeProducts.map(productToRow);
     if (items.length) {
       return items.map((item) => {
         const product = products.find((entry) => String(entry.id) === String(item.productId));
@@ -79,7 +94,7 @@ export function StockCountSheetTools({
           code: product?.styleCode || String(item.productId),
           barcode: product?.barcode || product?.units?.find((unit) => unit.barcode)?.barcode || '',
           name: item.productName,
-          category: product?.categoryId || '',
+          category: getCategoryName(product?.categoryId),
           expectedQty: item.expectedQty,
           countedQty: item.countedQty,
           note: item.note || item.reason || '',
@@ -87,18 +102,20 @@ export function StockCountSheetTools({
       });
     }
     return scopeProducts.map(productToRow);
-  }, [countType, items, products, scopeProducts]);
+  }, [countType, items, products, scopeProducts, categories]);
 
   const disabled = !isCountStarted || !sheetRows.length;
   const helperText = countType === 'category' && !selectedCategoryId && !selectedProduct
     ? 'اختر القسم المطلوب حتى نجهز شيت أصناف هذا القسم.'
-    : disabled
-      ? 'ابدأ الجرد واختر النطاق أو الصنف أولًا.'
-      : `جاهز ${sheetRows.length} صنف للطباعة أو التصدير أو الإدخال الإلكتروني.`;
+    : countType === 'supplier' && !selectedSupplierId && !selectedProduct
+      ? 'اختر المورد المطلوب حتى نجهز شيت أصناف هذا المورد.'
+      : disabled
+        ? 'ابدأ الجرد واختر النطاق أو الصنف أولًا.'
+        : `جاهز ${sheetRows.length} صنف للطباعة أو التصدير أو الإدخال الإلكتروني.`;
 
   function prepareElectronicCount() {
     if (disabled) return;
-    const rows = (countType === 'full' || countType === 'category') ? scopeProducts : scopeProducts.filter(Boolean);
+    const rows = (countType === 'full' || countType === 'category' || countType === 'supplier') ? scopeProducts : scopeProducts.filter(Boolean);
     if (!rows.length) return;
     onItemsChange(() => rows.map(productToCountItem));
   }

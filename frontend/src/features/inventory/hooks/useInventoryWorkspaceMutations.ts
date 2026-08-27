@@ -100,7 +100,7 @@ export function useInventoryWorkspaceMutations({
     onSuccess: async () => {
       await refreshInventoryQueries();
       setCountItems([]);
-      setCountForm({ branchId: '', locationId: '', note: '', managerPin: '', productId: '', countedQty: '0', reason: 'inventory_count', itemNote: '' });
+      setCountForm({ branchId: '', locationId: '', note: '', managerPin: '', productId: '', countedQty: '0', reason: '', itemNote: '' });
     },
   });
 

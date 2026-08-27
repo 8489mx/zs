@@ -10,7 +10,9 @@ export function InventoryWorkspaceHeader({
   onReset,
   onCopySummary,
   onExportExcel,
-  onPrintList
+  onPrintList,
+  onPrintByCategory,
+  onPrintByHighestValue,
 }: {
   canPrint: boolean;
   hasRows: boolean;
@@ -20,6 +22,8 @@ export function InventoryWorkspaceHeader({
   onCopySummary: () => void;
   onExportExcel: () => void;
   onPrintList: () => void;
+  onPrintByCategory?: () => void;
+  onPrintByHighestValue?: () => void;
 }) {
   const primaryAction = currentSection === 'transfers'
     ? { to: '/inventory/transfers', label: 'إنشاء تحويل جديد' }
@@ -42,7 +46,13 @@ export function InventoryWorkspaceHeader({
           <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
           <Button variant="secondary" onClick={onCopySummary}>نسخ الملخص</Button>
           <Button variant="secondary" onClick={onExportExcel} disabled={!hasRows}>تصدير Excel</Button>
-          <Button variant="secondary" onClick={onPrintList} disabled={!hasRows || !canPrint}>طباعة القائمة</Button>
+          <Button variant="secondary" onClick={onPrintList} disabled={!hasRows || !canPrint} title="طباعة تقرير المخزون مرتباً من الأقل مخزوناً للأعلى">طباعة القائمة</Button>
+          {currentSection === 'overview' && onPrintByCategory && onPrintByHighestValue && (
+            <>
+              <Button variant="secondary" onClick={onPrintByCategory} disabled={!hasRows || !canPrint} title="طباعة الأصناف مرتبة حسب الأقسام لتسهيل الجرد على الرفوف">جرد بالأقسام</Button>
+              <Button variant="secondary" onClick={onPrintByHighestValue} disabled={!hasRows || !canPrint} title="طباعة الأصناف مرتبة من الأعلى قيمة إجمالية للأقل">الأعلى قيمة</Button>
+            </>
+          )}
         </div>
       )}
     />
