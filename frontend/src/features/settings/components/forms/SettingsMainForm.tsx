@@ -442,9 +442,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                 padding: '6px 16px',
                 borderRadius: '7px',
                 fontSize: '0.84rem',
-                fontWeight: activeTab === tab.id ? 800 : 600,
+                fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                transition: 'background-color 0.15s ease, color 0.15s ease',
                 whiteSpace: 'nowrap',
                 boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               }}
@@ -456,62 +456,64 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
         
 
-      <GeneralSettingsTab
-        form={form}
-        branches={branches}
-        locations={locations}
-        canManageSettings={canManageSettings}
-        disabled={disabled}
-        activeTab={activeTab}
-        branchQuery={branchQuery}
-        setBranchQuery={setBranchQuery}
-        filteredBranches={filteredBranches}
-        selectedBranch={selectedBranch || undefined}
-        stockMode={stockMode}
-        setStockMode={setStockMode}
-        defaultStockLocationId={defaultStockLocationId}
-        setDefaultStockLocationId={setDefaultStockLocationId}
-        allowExternalSalesStock={allowExternalSalesStock}
-        setAllowExternalSalesStock={setAllowExternalSalesStock}
-        branchStockSaving={branchStockSaving}
-        setBranchStockSaving={setBranchStockSaving}
-        branchStockSaved={branchStockSaved}
-        setBranchStockSaved={setBranchStockSaved}
-        branchStockError={branchStockError}
-        setBranchStockError={setBranchStockError}
-        branchStockDirty={branchStockDirty}
-        setBranchStockDirty={setBranchStockDirty}
-        branchMenuOpen={branchMenuOpen}
-        setBranchMenuOpen={setBranchMenuOpen}
-        branchMenuHasContent={branchMenuHasContent}
-        branchCreateOptionVisible={branchCreateOptionVisible}
-        commitSelectedBranch={commitSelectedBranch}
-        setBranchPrefillName={setBranchPrefillName}
-        setShowBranchQuickAdd={setShowBranchQuickAdd}
-        visibleLocations={visibleLocations}
-        onUpdateBranch={onUpdateBranch}
-      />
+      <div className="settings-tab-content-wrapper" style={{ minHeight: '480px' }}>
+        <GeneralSettingsTab
+          form={form}
+          branches={branches}
+          locations={locations}
+          canManageSettings={canManageSettings}
+          disabled={disabled}
+          activeTab={activeTab}
+          branchQuery={branchQuery}
+          setBranchQuery={setBranchQuery}
+          filteredBranches={filteredBranches}
+          selectedBranch={selectedBranch || undefined}
+          stockMode={stockMode}
+          setStockMode={setStockMode}
+          defaultStockLocationId={defaultStockLocationId}
+          setDefaultStockLocationId={setDefaultStockLocationId}
+          allowExternalSalesStock={allowExternalSalesStock}
+          setAllowExternalSalesStock={setAllowExternalSalesStock}
+          branchStockSaving={branchStockSaving}
+          setBranchStockSaving={setBranchStockSaving}
+          branchStockSaved={branchStockSaved}
+          setBranchStockSaved={setBranchStockSaved}
+          branchStockError={branchStockError}
+          setBranchStockError={setBranchStockError}
+          branchStockDirty={branchStockDirty}
+          setBranchStockDirty={setBranchStockDirty}
+          branchMenuOpen={branchMenuOpen}
+          setBranchMenuOpen={setBranchMenuOpen}
+          branchMenuHasContent={branchMenuHasContent}
+          branchCreateOptionVisible={branchCreateOptionVisible}
+          commitSelectedBranch={commitSelectedBranch}
+          setBranchPrefillName={setBranchPrefillName}
+          setShowBranchQuickAdd={setShowBranchQuickAdd}
+          visibleLocations={visibleLocations}
+          onUpdateBranch={onUpdateBranch}
+        />
 
-      <SalesInventorySettingsTab
-        form={form}
-        disabled={disabled}
-        activeTab={activeTab}
-      />
+        <SalesInventorySettingsTab
+          form={form}
+          disabled={disabled}
+          activeTab={activeTab}
+        />
 
-      <ModulesSettingsTab form={form} disabled={disabled} activeTab={activeTab} />
+        <ModulesSettingsTab form={form} disabled={disabled} activeTab={activeTab} />
 
-      <SecuritySettingsTab form={form} disabled={disabled} activeTab={activeTab} settings={settings} />
+        <SecuritySettingsTab form={form} disabled={disabled} activeTab={activeTab} settings={settings} />
 
-      <PrintingSettingsTab
-        form={form}
-        disabled={disabled}
-        activeTab={activeTab}
-        settings={settings}
-        systemPrinters={systemPrinters}
-        savedCashierPrinter={form.watch('posElectronCashierPrinter')}
-        savedKitchenPrinter={form.watch('posElectronKitchenPrinter')}
-        posKitchenPrinterEnabled={form.watch('posKitchenPrinterEnabled')}
-      />
+        <PrintingSettingsTab
+          form={form}
+          disabled={disabled}
+          activeTab={activeTab}
+          settings={settings}
+          systemPrinters={systemPrinters}
+          savedCashierPrinter={form.watch('posElectronCashierPrinter')}
+          savedKitchenPrinter={form.watch('posElectronKitchenPrinter')}
+          posKitchenPrinterEnabled={form.watch('posKitchenPrinterEnabled')}
+        />
+      </div>
 
       <div className="actions compact-actions sticky-form-actions settings-save-actions">
         <button type="button" className="btn btn-secondary" onClick={() => form.setValue('logoData', '', { shouldDirty: true })} disabled={mutation.isPending || !form.watch('logoData')}>حذف الشعار</button>

@@ -910,7 +910,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
 .sidebar-footer {
   margin-top: auto;
-  padding: 16px 20px;
+  padding: 8px 14px 6px;
   border-top: 1px solid #f1f5f9;
   flex: 0 0 auto;
 }
@@ -923,7 +923,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   color: #64748b;
   border-radius: 8px;
   font-weight: 600;
-  padding: 10px 12px;
+  padding: 8px 12px;
   cursor: pointer;
 }
 .sidebar-logout-btn:hover {
