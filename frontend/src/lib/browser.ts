@@ -36,9 +36,12 @@ export async function downloadExcelFile(filename: string, headers: string[], row
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
   
-  // Set sheet direction to RTL
-  if (!worksheet['!views']) worksheet['!views'] = [];
-  worksheet['!views'].push({ rightToLeft: true });
+  // Set sheet direction to RTL (Right-to-Left) for Arabic
+  worksheet['!views'] = [{ rightToLeft: true, RTL: true } as any];
+  workbook.Workbook = {
+    Views: [{ RTL: true } as any],
+    Sheets: [{ name: 'Data', RTL: true } as any],
+  } as any;
 
   const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
   const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -147,10 +150,13 @@ export function resolvePrintSettings() {
 
 function stripLeadingDuplicateHeading(bodyHtml: string, title: string) {
   const normalizedTitle = String(title || '').trim();
-  if (!normalizedTitle) return bodyHtml;
-  const escapedTitle = normalizedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp(`^\\s*<h[12][^>]*>\\s*${escapedTitle}\\s*<\\/h[12]>`, 'i');
-  return bodyHtml.replace(pattern, '').trim();
+  let cleaned = bodyHtml.trim();
+  if (normalizedTitle) {
+    const escapedTitle = normalizedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`^\\s*<h[12][^>]*>[\\s\\S]*?${escapedTitle}[\\s\\S]*?<\\/h[12]>`, 'i');
+    cleaned = cleaned.replace(pattern, '').trim();
+  }
+  return cleaned;
 }
 
 function sanitizePrintText(value: string) {
@@ -169,13 +175,13 @@ function buildBrandPanelHtml(branding: ReturnType<typeof resolvePrintSettings>) 
   const details = [branding.phone, branding.address].filter(Boolean);
   return `
     <section class="brand-panel" aria-label="بيانات النشاط">
+      ${branding.logoData
+        ? `<img class="brand-logo-image" src="${branding.logoData}" alt="${escapeHtml(identity)}" />`
+        : `<div class="brand-logo-fallback">${escapeHtml(identityLetter)}</div>`}
       <div class="brand-copy">
         <div class="brand-name">${escapeHtml(identity)}</div>
         ${details.length ? `<div class="brand-meta">${details.map((item) => `<span>${escapeHtml(item)}</span>`).join('<span class="brand-meta-sep">•</span>')}</div>` : ''}
       </div>
-      ${branding.logoData
-        ? `<img class="brand-logo-image" src="${branding.logoData}" alt="${escapeHtml(identity)}" />`
-        : `<div class="brand-logo-fallback">${escapeHtml(identityLetter)}</div>`}
     </section>
   `;
 }
@@ -225,11 +231,11 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
 
   const pageRule = pageSize === 'A4'
     ? orientation === 'landscape'
-      ? '@page { size: A4 landscape; margin: 9mm; }'
-      : '@page { size: A4 portrait; margin: 9mm; }'
+      ? '@page { size: A4 landscape; margin: 8mm; }'
+      : '@page { size: A4 portrait; margin: 8mm; }'
     : pageSize === 'receipt'
       ? '@page { size: 80mm auto; margin: 0; }'
-      : '@page { size: auto; margin: 9mm; }';
+      : '@page { size: auto; margin: 8mm; }';
 
   const html = `<!doctype html>
   <html lang="ar" dir="${documentDirection}">
@@ -239,34 +245,34 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
       <title>${escapeHtml(title)}</title>
       <style>
         :root {
-          --print-text: #000;
-          --print-muted: #222;
-          --print-border: #8a8a8a;
-          --print-surface: #fff;
-          --print-strong: #000;
-          --print-accent: #1d4ed8;
+          --print-text: #0f172a;
+          --print-muted: #475569;
+          --print-border: #94a3b8;
+          --print-surface: #f1f5f9;
+          --print-strong: #020617;
+          --print-accent: #0284c7;
         }
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; background: #fff; color: var(--print-text); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        body { font-family: Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.45; }
-        .print-shell { padding: 12px; max-width: 100%; }
-        .print-header { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 7fr); gap: 10px; align-items: stretch; margin-bottom: 12px; }
-        .print-header.centered-layout { display: block; text-align: center; margin-bottom: 12px; }
+        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 11.5px; line-height: 1.4; }
+        .print-shell { padding: 10px; max-width: 100%; }
+        .print-header { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 10px; align-items: stretch; margin-bottom: 10px; }
+        .print-header.centered-layout { display: block; text-align: center; margin-bottom: 10px; }
         .print-header.centered-layout .doc-panel { min-width: auto; padding: 10px 16px; gap: 4px; }
         .print-header.centered-layout .doc-header-details { margin-top: 2px; padding: 4px 10px; }
         .print-header.centered-layout .doc-meta-chip { margin-top: 2px; }
-        .brand-name-centered { font-size: 20px; font-weight: 800; color: var(--print-strong); margin-bottom: 2px; }
+        .brand-name-centered { font-size: 18px; font-weight: 800; color: var(--print-strong); margin-bottom: 2px; }
         .brand-panel, .doc-panel, .meta-box, .summary-box, .totals, .print-footer {
           border: 1px solid var(--print-border);
           border-radius: 8px;
-          background: rgba(248, 250, 252, 0.58);
+          background: rgba(248, 250, 252, 0.85);
         }
         .brand-panel {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-start;
           gap: 12px;
-          padding: 10px 12px;
+          padding: 8px 12px;
         }
         .brand-copy { min-width: 0; }
         .brand-name {
@@ -289,40 +295,39 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         }
         .brand-meta-sep { opacity: 0.55; }
         .brand-logo-image, .brand-logo-fallback {
-          width: 42px;
-          height: 42px;
+          width: 44px;
+          height: 44px;
           border-radius: 8px;
           flex-shrink: 0;
           object-fit: cover;
-          border: 1px solid rgba(148, 163, 184, 0.35);
-          background: linear-gradient(135deg, #e0ecff, #c7d2fe);
+          border: 1px solid rgba(148, 163, 184, 0.5);
+          background: #f1f5f9;
         }
         .brand-logo-fallback {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: #1d4ed8;
+          color: #0284c7;
           font-size: 18px;
           font-weight: 800;
         }
         .doc-panel {
-          min-width: 180px;
-          padding: 10px 12px;
+          padding: 8px 12px;
           display: flex;
           flex-direction: column;
           justify-content: center;
           gap: 2px;
         }
-        .doc-title { margin: 0; font-size: 17px; line-height: 1.2; font-weight: 800; color: var(--print-strong); }
+        .doc-title { margin: 0; font-size: 16px; line-height: 1.2; font-weight: 800; color: var(--print-strong); }
         .doc-subtitle { color: var(--print-muted); font-size: 11px; }
-        .doc-header-details { margin-top: 8px; font-size: 12px; color: var(--print-strong); background: rgba(255,255,255,0.7); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--print-border); display: inline-block; }
-        .doc-meta-chip { margin-top: 8px; color: var(--print-muted); font-size: 11px; }
+        .doc-header-details { margin-top: 6px; font-size: 11.5px; color: var(--print-strong); background: #ffffff; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--print-border); display: inline-block; }
+        .doc-meta-chip { margin-top: 4px; color: var(--print-muted); font-size: 10.5px; }
         .print-content { display: flex; flex-direction: column; gap: 8px; }
         .meta { margin: 0; color: var(--print-muted); font-size: 11px; }
         .section { margin: 0; break-inside: avoid; }
-        h1, h2, h3 { margin: 0 0 8px; color: var(--print-strong); }
-        h2 { font-size: 14px; }
-        h3 { font-size: 13px; }
+        h1, h2, h3 { margin: 0 0 6px; color: var(--print-strong); }
+        h2 { font-size: 13.5px; }
+        h3 { font-size: 12.5px; }
         p { margin: 0 0 6px; }
         .meta-grid, .summary-grid {
           display: grid;
@@ -346,19 +351,18 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
         }
         th, td {
           border: 1px solid var(--print-border);
-          padding: 4px 6px;
+          padding: 5px 7px;
           text-align: right;
-          vertical-align: top;
-          word-break: break-word;
-          overflow-wrap: anywhere;
-          line-height: 1.3;
+          vertical-align: middle;
+          word-break: normal;
+          line-height: 1.35;
         }
         th {
           background: var(--print-surface);
-          color: #111;
+          color: #0f172a;
           font-weight: 700;
         }
-        tbody tr:nth-child(even) { background: rgba(248, 250, 252, 0.45); }
+        tbody tr:nth-child(even) { background: rgba(248, 250, 252, 0.65); }
         .totals {
           margin-top: 2px;
           padding: 7px 9px;
