@@ -424,14 +424,15 @@ export function getInvoiceStyles(compact = false) {
     }
     .invoice-brand-copy h2 {
       margin: 0;
-      line-height: 1.15;
+      line-height: 1.12;
       color: #000;
       font-weight: 900;
-      letter-spacing: -0.2px;
+      letter-spacing: -0.3px;
       overflow-wrap: normal;
       word-break: keep-all;
       text-align: center;
       width: 100%;
+      font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
     }
     .store-inline-details {
       margin-top: ${compact ? '2px' : '3px'};
@@ -446,9 +447,9 @@ export function getInvoiceStyles(compact = false) {
       text-align: center;
     }
     .invoice-meta-panel { display: grid; gap: 0; margin-bottom: 0; padding-bottom: 2px; }
-    .meta-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: ${compact ? '2px 0' : '3px 0'}; border-bottom: 1px dotted #000; font-size: ${compact ? '10.3px' : '11.8px'}; line-height: 1.3; }
+    .meta-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: ${compact ? '2px 0' : '3px 0'}; border-bottom: 1px dotted #000; font-size: ${compact ? '10.3px' : '11.8px'}; line-height: 1.3; font-family: Arial, sans-serif; }
     .meta-line:last-child { border-bottom: 0; }
-    .meta-line.strong { font-weight: 700; font-size: ${compact ? '12.5px' : '14px'}; }
+    .meta-line.strong { font-weight: 800; font-size: ${compact ? '12.5px' : '14px'}; }
     .meta-document-badge {
       border: 1px solid #000;
       border-radius: 4px;
@@ -456,34 +457,35 @@ export function getInvoiceStyles(compact = false) {
       margin: ${compact ? '2px 0 3px' : '2px 0 4px'};
       background: transparent;
       font-size: ${compact ? '11px' : '12.5px'};
+      font-family: Arial, sans-serif;
     }
     .meta-document-badge .meta-label { font-weight: 700; }
-    .meta-document-badge .meta-value { font-weight: 800; font-size: 1.06em; }
+    .meta-document-badge .meta-value { font-weight: 800; font-size: 1.06em; font-family: Arial, sans-serif; }
     .meta-label { color: #000; white-space: nowrap; font-weight: 600; text-align: right; }
-    .meta-value { text-align: left; font-weight: 500; color: #000; overflow-wrap: anywhere; direction: ltr; unicode-bidi: isolate; }
+    .meta-value { text-align: left; font-weight: 600; color: #000; overflow-wrap: anywhere; direction: ltr; unicode-bidi: isolate; font-family: Arial, sans-serif; }
     .invoice-items-card { padding: 0; margin-top: ${compact ? '2px' : '3px'}; }
     .invoice-items-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: auto; }
     .invoice-items-table th,
-    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '9.6px' : '11.5px'}; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; vertical-align: middle; }
+    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '10px' : '12px'}; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; vertical-align: middle; }
     .invoice-items-table th:last-child,
     .invoice-items-table td:last-child { border-inline-start: 0; }
     .invoice-items-table tbody tr:last-child td { border-bottom: 0; }
-    .invoice-items-table th { background: #000; color: #fff; font-weight: 700; }
-    .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; min-width: 72px; overflow-wrap: anywhere; vertical-align: middle; }
-    .invoice-items-table td:not(.name-cell) { text-align: left; font-variant-numeric: tabular-nums; vertical-align: middle; }
+    .invoice-items-table th { background: #000; color: #fff; font-weight: 800; font-family: Arial, sans-serif; }
+    .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; min-width: 72px; overflow-wrap: anywhere; vertical-align: middle; font-weight: 700; font-family: Arial, sans-serif; }
+    .invoice-items-table td:not(.name-cell) { text-align: left; font-family: Arial, sans-serif; font-weight: 800; font-size: ${compact ? '10.5px' : '12.5px'}; font-variant-numeric: tabular-nums; vertical-align: middle; }
     .invoice-items-table td.qty-cell,
     .invoice-items-table td.price-cell,
     .invoice-items-table td.index-cell,
-    .invoice-items-table td.unit-cell { text-align: center; }
+    .invoice-items-table td.unit-cell { text-align: center; font-family: Arial, sans-serif; font-weight: 800; }
     .invoice-items-table.compact th,
-    .invoice-items-table.compact td { font-size: 9.4px; }
-    .invoice-items-table.compact th { font-size: 8.7px; }
+    .invoice-items-table.compact td { font-size: 9.8px; }
+    .invoice-items-table.compact th { font-size: 9px; }
     .invoice-items-table.compact th:first-child,
     .invoice-items-table.compact td:first-child { text-align: right; }
     .invoice-totals-card { padding-top: ${compact ? '3px' : '4px'}; padding-bottom: 0; border-top: 1px dashed #000; }
-    .invoice-totals-card .meta-value { text-align: left; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 500; }
-    .invoice-totals-card .total-line { margin: ${compact ? '3px -2px' : '4px -3px'}; padding: ${compact ? '5px 6px' : '6px 8px'}; font-size: ${compact ? '13px' : '15px'}; background: transparent; border: 1px solid #000; border-radius: 4px; }
-    .invoice-totals-card .meta-line.strong .meta-value { font-weight: 800; }
+    .invoice-totals-card .meta-value { text-align: left; font-family: Arial, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 700; font-size: ${compact ? '11px' : '12.5px'}; }
+    .invoice-totals-card .total-line { margin: ${compact ? '3px -2px' : '4px -3px'}; padding: ${compact ? '5px 6px' : '6px 8px'}; font-size: ${compact ? '13px' : '15px'}; background: transparent; border: 1px solid #000; border-radius: 4px; font-family: Arial, sans-serif; }
+    .invoice-totals-card .meta-line.strong .meta-value { font-weight: 900; font-size: 1.1em; font-family: Arial, sans-serif; }
     .invoice-payment-card { border-top: 1px dashed #000; }
     .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 700; text-align: center; padding-bottom: 4px; margin-bottom: 2px; }
     .payment-grid { display: grid; gap: 0; }
