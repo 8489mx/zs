@@ -12,17 +12,17 @@ function resolveStoreIdentity(settings?: Partial<AppSettings> | null) {
 function getAdaptiveBrandFontSize(brandName: string, compact = false) {
   const length = Array.from(String(brandName || '').trim()).length;
   if (compact) {
-    if (length > 34) return '10.5px';
-    if (length > 28) return '11.5px';
-    if (length > 22) return '12.5px';
-    if (length > 18) return '14px';
-    return '16px';
+    if (length > 30) return '13px';
+    if (length > 22) return '15.5px';
+    if (length > 15) return '18.5px';
+    if (length > 10) return '21.5px';
+    return '24px';
   }
-  if (length > 34) return '14px';
-  if (length > 28) return '15px';
-  if (length > 22) return '17px';
-  if (length > 18) return '19px';
-  return '21px';
+  if (length > 30) return '16px';
+  if (length > 22) return '20px';
+  if (length > 15) return '24px';
+  if (length > 10) return '28px';
+  return '32px';
 }
 
 function getNumberLocale(settings?: Partial<AppSettings> | null) {
@@ -84,15 +84,15 @@ function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = fal
   `;
 }
 
-function renderMetaPanel(rows: Array<{ label: string; value?: string | number | null }>, compact = false, settings?: Partial<AppSettings> | null) {
+function renderMetaPanel(rows: Array<{ label: string; value?: string | number | null; isBadge?: boolean; isHtml?: boolean; noColon?: boolean }>, compact = false, settings?: Partial<AppSettings> | null) {
   const visibleRows = rows.filter((row) => String(row.value ?? '').trim());
   if (!visibleRows.length) return '';
   return `
     <section class="invoice-card invoice-meta-panel${compact ? ' compact' : ''}">
       ${visibleRows.map((row) => `
-        <div class="meta-line">
-          <span class="meta-label">${escapeHtml(row.label)}:</span>
-          <span class="meta-value">${escapeHtml(formatReceiptText(row.value ?? '—', settings))}</span>
+        <div class="meta-line${row.isBadge ? ' meta-document-badge' : ''}">
+          <span class="meta-label">${escapeHtml(row.label)}${row.noColon ? '' : ':'}</span>
+          <span class="meta-value">${row.isHtml ? row.value : escapeHtml(formatReceiptText(row.value ?? '—', settings))}</span>
         </div>
       `).join('')}
     </section>
@@ -285,7 +285,7 @@ function renderTotals(options: {
       strong: true,
     }]),
     ...(showItemCount && showPiecesCount ? [
-      { label: 'الأصناف والقطع', value: `${formatReceiptNumber(Number(options.items?.length || 0), options.settings)} صنف • ${formatReceiptQuantity(totalPieces, options.settings)} قطعة` },
+      { label: 'الأصناف والقطع', value: `${formatReceiptNumber(Number(options.items?.length || 0), options.settings)} صنف  -  ${formatReceiptQuantity(totalPieces, options.settings)} قطعة` },
     ] : showItemCount ? [
       { label: 'عدد الأصناف', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
     ] : showPiecesCount ? [
@@ -332,7 +332,7 @@ function renderTotals(options: {
       )
     ) : []),
     ...(showItemCount && showPiecesCount ? [
-      { label: 'الأصناف والقطع', value: `${formatReceiptNumber(Number(options.items?.length || 0), options.settings)} صنف • ${formatReceiptQuantity(totalPieces, options.settings)} قطعة` },
+      { label: 'الأصناف والقطع', value: `${formatReceiptNumber(Number(options.items?.length || 0), options.settings)} صنف  -  ${formatReceiptQuantity(totalPieces, options.settings)} قطعة` },
     ] : showItemCount ? [
       { label: 'عدد الأصناف', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
     ] : showPiecesCount ? [
@@ -369,24 +369,32 @@ function renderTotals(options: {
 
 export function getInvoiceStyles(compact = false) {
   return `
-    .print-shell { padding: ${compact ? '1mm 1.2mm 2.5mm' : '2mm 1.8mm 3mm'}; }
+    .print-shell { padding: ${compact ? '1mm 1.2mm 2.5mm' : '2mm 1.8mm 3mm'}; font-family: 'Cairo', 'Segoe UI', Tahoma, -apple-system, sans-serif; }
     .print-header { display: none !important; }
     .print-title { font-size: ${compact ? '14px' : '19px'}; }
     .print-subtitle { margin-top: 1px; font-size: ${compact ? '9px' : '11px'}; min-height: 0; }
     .print-meta-chip { padding: ${compact ? '4px 8px' : '6px 10px'}; font-size: ${compact ? '9.5px' : '11px'}; }
-    .print-content { gap: ${compact ? '4px' : '7px'}; }
+    .print-content { gap: ${compact ? '0px' : '2px'}; }
     .invoice-card {
       background: #fff;
-      padding: ${compact ? '5px 5px' : '7px 7px'};
+      padding: ${compact ? '2px 2px' : '3px 3px'};
       break-inside: avoid;
       overflow: hidden;
     }
-    .invoice-card.compact { padding: 5px; }
-    .invoice-brand-row { display: flex; align-items: stretch; justify-content: space-between; gap: ${compact ? '7px' : '10px'}; min-height: ${compact ? '48px' : '60px'}; }
+    .invoice-card.compact { padding: 2px 2px; }
+    .invoice-brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: ${compact ? '8px' : '12px'};
+      min-height: ${compact ? '44px' : '56px'};
+      width: 100%;
+    }
     .invoice-logo-wrapper {
       position: relative;
-      width: ${compact ? '75px' : '110px'};
-      min-height: ${compact ? '48px' : '60px'};
+      width: ${compact ? '68px' : '96px'};
+      height: ${compact ? '44px' : '56px'};
+      min-height: ${compact ? '44px' : '56px'};
       flex-shrink: 0;
     }
     .invoice-logo,
@@ -405,16 +413,55 @@ export function getInvoiceStyles(compact = false) {
       color: #000;
       overflow: hidden;
     }
-    .invoice-brand-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
-    .invoice-brand-copy h2 { margin: 0; line-height: 1.15; color: #000; font-weight: 800; overflow-wrap: anywhere; }
-    .store-inline-details { margin-top: ${compact ? '3px' : '5px'}; color: #000; font-size: ${compact ? '8.8px' : '10.2px'}; line-height: 1.35; display: grid; gap: 1px; justify-items: center; text-align: center; }
-    .invoice-meta-panel { display: grid; gap: 0; }
+    .invoice-brand-copy {
+      min-width: 0;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
+    }
+    .invoice-brand-copy h2 {
+      margin: 0;
+      line-height: 1.15;
+      color: #000;
+      font-weight: 900;
+      letter-spacing: -0.2px;
+      overflow-wrap: normal;
+      word-break: keep-all;
+      text-align: center;
+      width: 100%;
+    }
+    .store-inline-details {
+      margin-top: ${compact ? '2px' : '3px'};
+      color: #000;
+      font-size: ${compact ? '8.8px' : '10.2px'};
+      line-height: 1.3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      text-align: center;
+    }
+    .invoice-meta-panel { display: grid; gap: 0; margin-bottom: 0; padding-bottom: 2px; }
     .meta-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: ${compact ? '2px 0' : '3px 0'}; border-bottom: 1px dotted #000; font-size: ${compact ? '10.3px' : '11.8px'}; line-height: 1.3; }
     .meta-line:last-child { border-bottom: 0; }
     .meta-line.strong { font-weight: 700; font-size: ${compact ? '12.5px' : '14px'}; }
+    .meta-document-badge {
+      border: 1px solid #000;
+      border-radius: 4px;
+      padding: ${compact ? '2px 5px' : '3px 6px'};
+      margin: ${compact ? '2px 0 3px' : '2px 0 4px'};
+      background: transparent;
+      font-size: ${compact ? '11px' : '12.5px'};
+    }
+    .meta-document-badge .meta-label { font-weight: 700; }
+    .meta-document-badge .meta-value { font-weight: 800; font-size: 1.06em; }
     .meta-label { color: #000; white-space: nowrap; font-weight: 600; text-align: right; }
     .meta-value { text-align: left; font-weight: 500; color: #000; overflow-wrap: anywhere; direction: ltr; unicode-bidi: isolate; }
-    .invoice-items-card { padding: 0; }
+    .invoice-items-card { padding: 0; margin-top: ${compact ? '2px' : '3px'}; }
     .invoice-items-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: auto; }
     .invoice-items-table th,
     .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '9.6px' : '11.5px'}; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; vertical-align: middle; }
@@ -433,7 +480,7 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-table.compact th { font-size: 8.7px; }
     .invoice-items-table.compact th:first-child,
     .invoice-items-table.compact td:first-child { text-align: right; }
-    .invoice-totals-card { padding-top: ${compact ? '4px' : '6px'}; padding-bottom: ${compact ? '4px' : '6px'}; border-top: 1px dashed #000; }
+    .invoice-totals-card { padding-top: ${compact ? '3px' : '4px'}; padding-bottom: 0; border-top: 1px dashed #000; }
     .invoice-totals-card .meta-value { text-align: left; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 500; }
     .invoice-totals-card .total-line { margin: ${compact ? '3px -2px' : '4px -3px'}; padding: ${compact ? '5px 6px' : '6px 8px'}; font-size: ${compact ? '13px' : '15px'}; background: transparent; border: 1px solid #000; border-radius: 4px; }
     .invoice-totals-card .meta-line.strong .meta-value { font-weight: 800; }
@@ -443,7 +490,7 @@ export function getInvoiceStyles(compact = false) {
     .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 600; }
-    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '5px 2px' : '6px 4px'}; margin-top: ${compact ? '3px' : '4px'}; border-top: 1px dashed #000; break-inside: avoid; }
+    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; margin-top: ${compact ? '1px' : '2px'}; border-top: 0; break-inside: avoid; }
     .invoice-barcode-svg-wrap { width: ${compact ? '88%' : '82%'}; max-width: ${compact ? '240px' : '280px'}; height: ${compact ? '28px' : '34px'}; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
     .invoice-barcode-svg-wrap svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
     .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border-top: 1px dashed #000; text-align: center; line-height: 1.35; }
@@ -541,19 +588,34 @@ export function buildReceiptDocument(options: {
   const shouldShowParty = showCustomer && !isDefaultCashCustomer;
   const partyValue = rawPartyValue || (options.isPurchase ? '—' : 'عميل نقدي');
 
+  const cashierDisplayName = options.isPurchase
+    ? (options.cashierName && options.cashierName !== '—' ? options.cashierName : '')
+    : (showCashier && options.cashierName && options.cashierName !== '—' ? options.cashierName : '');
+
+  const dateValue = showDate ? (options.dateText || formatDateTime(new Date())) : '';
+
   const metaRows = [
     ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || (options.isPurchase ? 'فاتورة شراء' : (options.isReturn ? 'إيصال مرتجع مبيعات' : 'فاتورة')) }] : []),
-    ...(showDocumentNumber ? [{ label: 'رقم المستند', value: options.documentNumber ? String(options.documentNumber) : '—' }] : []),
+    ...(showDocumentNumber ? [{
+      label: 'رقم المستند',
+      value: options.documentNumber ? String(options.documentNumber) : '—',
+      isBadge: true,
+    }] : []),
     ...(options.referenceInvoice ? [{ label: 'مرجع الفاتورة الأصلية', value: options.referenceInvoice }] : []),
-    ...(showDate ? [{ label: 'التاريخ', value: options.dateText || formatDateTime(new Date()) }] : []),
+    ...(dateValue && cashierDisplayName ? [{
+      label: `التاريخ: ${formatReceiptText(dateValue, options.settings)}`,
+      value: `<span dir="rtl" style="font-weight:600; color:#000; direction:rtl; unicode-bidi:isolate; text-align:left; display:inline-flex; align-items:baseline; gap:3px;"><span>${options.isPurchase ? 'المسؤول' : 'الكاشير'}:</span><bdi>${escapeHtml(formatReceiptText(cashierDisplayName, options.settings))}</bdi></span>`,
+      isHtml: true,
+      noColon: true,
+    }] : [
+      ...(dateValue ? [{ label: 'التاريخ', value: dateValue }] : []),
+      ...(cashierDisplayName ? [{ label: options.isPurchase ? 'المسؤول' : 'الكاشير', value: cashierDisplayName }] : []),
+    ]),
     ...(shouldShowParty ? [{ label: partyLabel, value: partyValue }] : []),
     ...(showDeliveryCustomerDetails && (options.orderType === 'delivery' || options.customerPhone) ? [
       ...(options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
       ...(options.customerAddress ? [{ label: 'عنوان العميل', value: options.customerAddress }] : []),
     ] : []),
-    ...(options.isPurchase
-      ? (options.cashierName && options.cashierName !== '—' ? [{ label: 'المسؤول', value: options.cashierName }] : [])
-      : (showCashier ? [{ label: 'الكاشير', value: options.cashierName || '—' }] : [])),
     ...(showBranch ? [{ label: 'الفرع', value: options.branchName || 'المتجر الرئيسي' }] : []),
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
