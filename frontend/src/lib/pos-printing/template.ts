@@ -415,9 +415,9 @@ export function getInvoiceStyles(compact = false) {
     .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 600; }
-    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '4px 2px' : '6px 4px'}; margin-top: ${compact ? '2px' : '4px'}; border-top: 1px dashed #000; break-inside: avoid; }
-    .invoice-barcode-svg-wrap { width: ${compact ? '80%' : '72%'}; max-width: ${compact ? '190px' : '240px'}; height: ${compact ? '30px' : '38px'}; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
-    .invoice-barcode-svg-wrap svg { display: block; width: 100%; height: 100%; }
+    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '8px 2px' : '10px 4px'}; margin-top: ${compact ? '4px' : '6px'}; border-top: 1px dashed #000; break-inside: avoid; }
+    .invoice-barcode-svg-wrap { width: ${compact ? '90%' : '84%'}; max-width: ${compact ? '260px' : '300px'}; height: ${compact ? '46px' : '54px'}; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
+    .invoice-barcode-svg-wrap svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
     .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border-top: 1px dashed #000; text-align: center; line-height: 1.35; }
     
     /* Theme: Boxed */
@@ -451,8 +451,8 @@ export function getInvoiceStyles(compact = false) {
     .receipt-theme-ultra-compact .invoice-totals-card { padding: 2px 0; }
     .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 12.5px; border-bottom: 1px dashed #000; display: inline-flex; width: auto; }
     .receipt-theme-ultra-compact .payment-chip { padding: 1px 0; font-size: 10px; border-bottom: 1px dotted #000; }
-    .receipt-theme-ultra-compact .invoice-barcode-card { border: 0; border-top: 1px dashed #000; padding: 2px 0; margin-top: 2px; }
-    .receipt-theme-ultra-compact .invoice-barcode-svg-wrap { width: 70%; max-width: 170px; height: 22px; margin: 0 auto; }
+    .receipt-theme-ultra-compact .invoice-barcode-card { border: 0; border-top: 1px dashed #000; padding: 4px 0; margin-top: 3px; }
+    .receipt-theme-ultra-compact .invoice-barcode-svg-wrap { width: 85%; max-width: 220px; height: 36px; margin: 0 auto; }
     .receipt-theme-ultra-compact .print-footer { margin-top: 2px; padding: 2px 0; border: 0; border-top: 1px dashed #000; font-size: 8.5px; }
     .receipt-theme-ultra-compact .meta-label, .receipt-theme-ultra-compact .meta-value { white-space: nowrap; overflow: visible; }
 
