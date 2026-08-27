@@ -306,10 +306,12 @@ export class DeliveryRepsService {
         const settledCashAmount = deliveryFeeMode === 'store_fleet' ? Number(sale.total) : Math.max(0, Number(sale.total) - deliveryFee);
 
         if (settledCashAmount > 0) {
+          const repRow = sale.delivery_rep_id ? await trx.selectFrom('delivery_representatives').select(['name']).where('id', '=', Number(sale.delivery_rep_id)).where(this.tenantPredicate(actor)).executeTakeFirst() : null;
+          const repLabel = repRow?.name ? `${repRow.name} (#${sale.delivery_rep_id})` : `مندوب #${sale.delivery_rep_id}`;
           await trx.insertInto('treasury_transactions').values({
             txn_type: 'cash_in',
             amount: settledCashAmount,
-            note: `تسوية أوردر دليفري رقم #${saleId} من مندوب #${sale.delivery_rep_id}${deliveryFee > 0 && deliveryFeeMode === 'freelance_courier' ? ` (مخصوماً منها ${deliveryFee} ج رسوم المندوب)` : ''}`,
+            note: `تسوية أوردر دليفري رقم #${saleId} من ${repLabel}${deliveryFee > 0 && deliveryFeeMode === 'freelance_courier' ? ` (مخصوماً منها ${deliveryFee} ج رسوم المندوب)` : ''}`,
             reference_type: 'cashier_shift',
             reference_id: shiftId,
             branch_id: branchId,
@@ -402,10 +404,13 @@ export class DeliveryRepsService {
       const openShift = await this.findOwnOpenShift(trx, actor);
       if (!openShift) throw new AppError('لا بد من فتح وردية أولاً لاستلام الفلوس من المندوب', 'NO_OPEN_SHIFT', 400);
       
+      const repRow = await trx.selectFrom('delivery_representatives').select(['name']).where('id', '=', repId).where(this.tenantPredicate(actor)).executeTakeFirst();
+      const repLabel = repRow?.name ? `${repRow.name} (#${repId})` : `مندوب #${repId}`;
+
       await trx.insertInto('treasury_transactions').values({
         txn_type: 'cash_in',
         amount: actualTotal,
-        note: `تسوية أوردرات دليفري (${saleIds.length} أوردر) من مندوب #${repId}`,
+        note: `تسوية أوردرات دليفري (${saleIds.length} أوردر) من ${repLabel}`,
         reference_type: 'cashier_shift',
         reference_id: openShift.id,
         branch_id: openShift.branchId,

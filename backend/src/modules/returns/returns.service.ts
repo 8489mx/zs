@@ -17,6 +17,7 @@ import { CreateReturnDto } from './dto/create-return.dto';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { IdempotencyService } from '../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../core/idempotency/idempotency.context';
+import { verifyPassword } from '../../core/auth/utils/password-hasher';
 
 type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null };
@@ -189,9 +190,71 @@ export class ReturnsService {
     return { returns: paged.rows, pagination: paged.pagination, summary: summarizeReturnRows(mapped, today), scope: this.scope(auth) };
   }
 
+  private async getManagerPin(trx: Kysely<Database>, auth: AuthContext): Promise<string> {
+    const { tenantId } = requireTenantScope(auth);
+    const result = await sql<{ key?: string; value?: string }>`
+      select key, value from settings
+      where key in ('managerPin', 'managerApprovalPin', 'manager_pin')
+        and tenant_id = ${tenantId}
+    `.execute(trx);
+
+    const value = result.rows?.find((row) => String(row.key || '').length > 0)?.value;
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const parsed = JSON.parse(value);
+        if (typeof parsed === 'string' && parsed.trim()) return parsed.trim();
+      } catch {
+        return value.trim();
+      }
+    }
+    return '';
+  }
+
+  private async verifyManagerAuthorization(trx: Kysely<Database>, secret: string, auth: AuthContext): Promise<string> {
+    const { tenantId } = requireTenantScope(auth);
+    const normalizedSecret = String(secret || '').trim();
+    if (!normalizedSecret) {
+      throw new AppError('أدخل رمز المشرف أو كلمة المرور لاعتماد المرتجع', 'MANAGER_AUTH_REQUIRED', 403);
+    }
+
+    const managerPin = await this.getManagerPin(trx, auth);
+    if (managerPin && normalizedSecret === managerPin) {
+      return 'رمز المشرف';
+    }
+
+    const managerUsers = await trx
+      .selectFrom('users')
+      .select(['id', 'username', 'role', 'password_hash', 'password_salt'])
+      .where('is_active', '=', true)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where((eb) => eb.or([eb('role', '=', 'admin'), eb('role', '=', 'super_admin')]))
+      .execute();
+
+    for (const managerUser of managerUsers) {
+      const passwordCheck = await verifyPassword(
+        normalizedSecret,
+        String(managerUser.password_hash || ''),
+        String(managerUser.password_salt || ''),
+      );
+      if (passwordCheck.valid) {
+        return String(managerUser.username || 'المدير');
+      }
+    }
+
+    throw new AppError('رمز المشرف أو كلمة المرور غير صحيحة', 'MANAGER_AUTH_INVALID', 403);
+  }
+
   async createReturn(payload: CreateReturnDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(auth);
     const idemCtx = idempotencyStorage.getStore();
+
+    // Verify manager permission if cashier doesn't have direct return privileges
+    const isPrivileged = auth.role === 'super_admin' || auth.role === 'admin' || (auth.permissions && auth.permissions.includes('canDirectReturn'));
+    let approvedByName: string | undefined;
+
+    if (!isPrivileged) {
+      approvedByName = await this.verifyManagerAuthorization(this.db, payload.managerPin || '', auth);
+    }
 
     const returnIds = await this.tx.runInTransaction(this.db, async (trx) => {
       const normalizedItems = normalizeReturnItems(payload);
@@ -200,7 +263,10 @@ export class ReturnsService {
     });
 
     const label = payload.type === 'purchase' ? 'purchase return' : 'sale return';
-    await this.audit.log('إنشاء مرتجع', 'Created ' + label + ' by ' + auth.username, auth);
+    const auditText = approvedByName
+      ? `Created ${label} by ${auth.username} (Approved by: ${approvedByName})`
+      : `Created ${label} by ${auth.username}`;
+    await this.audit.log('إنشاء مرتجع', auditText, auth);
 
     const result = { ok: true, createdIds: returnIds, ...(await this.listReturns({}, auth)) };
 

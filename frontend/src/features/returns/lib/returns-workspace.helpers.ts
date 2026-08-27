@@ -114,3 +114,61 @@ export async function exportReturnsCsv(params: { search: string; filter: 'all' |
     getReturnDateValue(row)
   ]));
 }
+
+export function printAnomalyReport(summary: import('./returns-anomaly-detector').AnomalyReportSummary) {
+  const suspectRows = summary.analyzedRecords.filter((r) => r.riskLevel !== 'low');
+  const body = suspectRows.map((row) => `
+    <tr>
+      <td style="text-align: center;">${escapeHtml(row.returnDocNo)}</td>
+      <td style="text-align: center;">${escapeHtml(row.invoiceDocNo)}</td>
+      <td style="text-align: right; font-weight: 600;">${escapeHtml(row.record.productName || '—')}</td>
+      <td style="text-align: center; font-weight: bold;">${formatCurrency(Number(row.record.total || 0))}</td>
+      <td style="text-align: center;">${escapeHtml(row.cashierName)}</td>
+      <td style="text-align: center;">${row.timeGapMinutes !== null ? `${row.timeGapMinutes} دقيقة` : '—'}</td>
+      <td style="text-align: center; color: ${row.riskLevel === 'high' ? '#dc2626' : '#d97706'}; font-weight: bold;">
+        ${row.flags.map((f) => escapeHtml(f.label)).join(' · ')}
+      </td>
+    </tr>
+  `).join('');
+
+  printHtmlDocument('تقرير تدقيق شبهات المرتجعات', `
+    <h1>تقرير تدقيق شبهات المرتجعات والكاشير</h1>
+    <div class="meta">
+      تاريخ الفحص: ${escapeHtml(formatDate(new Date().toISOString()))} · 
+      المرتجعات المشبوهة: ${summary.totalSuspectReturnsCount} · 
+      المرتجعات الفورية: ${summary.totalRapidReturnsCount} · 
+      الكاشيرات تحت الملاحظة: ${summary.highRiskCashiersCount}
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 80px; text-align: center;">إذن المرتجع</th>
+          <th style="width: 80px; text-align: center;">الفاتورة الأصلية</th>
+          <th style="text-align: right;">الصنف</th>
+          <th style="width: 85px; text-align: center;">المبلغ</th>
+          <th style="width: 90px; text-align: center;">الكاشير</th>
+          <th style="width: 75px; text-align: center;">فارق الوقت</th>
+          <th>مؤشرات الشبهة</th>
+        </tr>
+      </thead>
+      <tbody>${body || '<tr><td colspan="7" style="text-align: center;">لا توجد حركات مشبوهة مرصودة</td></tr>'}</tbody>
+    </table>
+  `);
+}
+
+export function exportAnomalyReportExcel(summary: import('./returns-anomaly-detector').AnomalyReportSummary) {
+  const suspectRows = summary.analyzedRecords.filter((r) => r.riskLevel !== 'low');
+  const headers = ['إذن المرتجع', 'الفاتورة الأصلية', 'الصنف', 'المبلغ', 'الكاشير', 'فارق الوقت (دقيقة)', 'مستوى الخطورة', 'الأسباب المشبوهة', 'تاريخ المرتجع'];
+  downloadExcelFile('returns-anomaly-audit.xlsx', headers, suspectRows.map((row) => [
+    row.returnDocNo,
+    row.invoiceDocNo,
+    row.record.productName || '',
+    row.record.total,
+    row.cashierName,
+    row.timeGapMinutes ?? '',
+    row.riskLevel === 'high' ? 'مرتفع' : 'متوسط',
+    row.flags.map((f) => f.label).join(' | '),
+    formatDate(row.returnDate),
+  ]));
+}
+

@@ -40,6 +40,15 @@ export interface AuditLog {
   createdBy?: string;
 }
 
+export interface ShiftMovementItem {
+  id: string;
+  kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment';
+  kindLabel: string;
+  amount: number;
+  note: string;
+  createdAt: string;
+}
+
 export interface CashierShift {
   id: string;
   docNo: string;
@@ -90,6 +99,7 @@ export interface CashierShift {
   cardDetails?: Array<{ amount: number; reference?: string }>;
   walletDetails?: Array<{ amount: number; reference?: string }>;
   instapayDetails?: Array<{ amount: number; reference?: string }>;
+  movementItems?: ShiftMovementItem[];
   managerReviewNote?: string;
   managerReviewedById?: number | null;
   managerReviewedByName?: string;

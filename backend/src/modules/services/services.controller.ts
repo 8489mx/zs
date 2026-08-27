@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { IdempotencyInterceptor } from '../../core/idempotency/idempotency.interceptor';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
@@ -14,13 +14,13 @@ export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   @Get('services')
-  @RequirePermissions('services')
+  @RequireAnyPermission('services', 'sales')
   listServices(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.servicesService.listServices(query, req.authContext!);
   }
 
   @Post('services')
-  @RequirePermissions('services')
+  @RequireAnyPermission('services', 'sales')
   createService(@Body() payload: UpsertServiceDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.servicesService.createService(payload, req.authContext!);
   }

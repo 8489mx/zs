@@ -1214,30 +1214,50 @@ export class CatalogProductService {
   }
 
   private async ensureCategoryAndSupplierInTenant(payload: NormalizedUpsertProduct, actor: AuthContext): Promise<void> {
+    const tenantId = this.tenantId(actor);
     if (payload.itemType === 'service' && !payload.categoryId) {
-      const existingCategory = await this.db
+      let existingCategory = await this.db
         .selectFrom('product_categories')
-        .select('id')
-        .where(sql`LOWER(name)`, '=', 'خدمات')
-        .where('is_active', '=', true)
-        .where(this.tenantPredicate(actor))
+        .select(['id', 'is_active'])
+        .where(sql`LOWER(TRIM(name))`, '=', 'خدمات')
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
 
       if (existingCategory) {
+        if (!existingCategory.is_active) {
+          await this.db
+            .updateTable('product_categories')
+            .set({ is_active: true })
+            .where('id', '=', existingCategory.id)
+            .execute();
+        }
         payload.categoryId = Number(existingCategory.id);
       } else {
-        const createdCategory = await this.db
-          .insertInto('product_categories')
-          .values({
-            name: 'خدمات',
-            is_active: true,
-            ...this.tenantFields(actor),
-          })
-          .returning('id')
-          .executeTakeFirst();
+        try {
+          const createdCategory = await this.db
+            .insertInto('product_categories')
+            .values({
+              name: 'خدمات',
+              is_active: true,
+              tenant_id: tenantId,
+              account_id: this.accountId(actor),
+            })
+            .returning('id')
+            .executeTakeFirst();
 
-        if (createdCategory) {
-          payload.categoryId = Number(createdCategory.id);
+          if (createdCategory) {
+            payload.categoryId = Number(createdCategory.id);
+          }
+        } catch {
+          const fallback = await this.db
+            .selectFrom('product_categories')
+            .select('id')
+            .where(sql`LOWER(TRIM(name))`, '=', 'خدمات')
+            .where('tenant_id', '=', tenantId)
+            .executeTakeFirst();
+          if (fallback) {
+            payload.categoryId = Number(fallback.id);
+          }
         }
       }
     } else if (payload.categoryId) {
@@ -1246,7 +1266,7 @@ export class CatalogProductService {
         .select('id')
         .where('id', '=', payload.categoryId)
         .where('is_active', '=', true)
-        .where(this.tenantPredicate(actor))
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
       if (!category) throw new AppError('Category not found', 'CATEGORY_NOT_FOUND', 404);
     }

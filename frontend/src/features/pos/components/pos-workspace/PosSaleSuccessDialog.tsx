@@ -53,6 +53,11 @@ export function PosSaleSuccessDialog({
   const viewInvoiceLinkRef = useRef<HTMLAnchorElement | null>(null);
   const customerPhone = String(customer?.phone || '').trim();
   const showManualPhone = !customerPhone;
+  const isDeliveryOrder = sale?.orderType === 'delivery';
+  const hasDeliveryRep = Boolean(sale?.deliveryRepId || (sale as any)?.delivery_rep_id);
+  const repName = (sale as any)?.deliveryRepName || (sale as any)?.delivery_rep_name;
+  const isDeliveryCod = isDeliveryOrder && hasDeliveryRep && (sale?.paymentType === 'cash' || sale?.paymentChannel === 'cash' || !sale?.paymentChannel);
+
   const changeAmount = Number(sale?.changeAmount || 0);
   const tenderedAmount = Number(sale?.tenderedAmount || 0);
   const paidAmount = Number(sale?.paidAmount || 0);
@@ -61,6 +66,12 @@ export function PosSaleSuccessDialog({
   const isCreditOrPartial = sale?.paymentType === 'credit' || remainingDebt > 0.009;
   const changeOrRemain = isCreditOrPartial ? remainingDebt : changeAmount;
   const changeOrRemainLabel = isCreditOrPartial ? 'المتبقي على العميل' : 'الباقي';
+
+  const paymentMethodLabel = isDeliveryCod
+    ? `دليفري — تحصيل مع المندوب${repName ? ` (${repName})` : ''}`
+    : isDeliveryOrder
+      ? `دليفري — ${formatSalePaymentText(sale?.paymentType, sale?.paymentChannel, sale?.paidAmount, sale?.total)}`
+      : formatSalePaymentText(sale?.paymentType, sale?.paymentChannel, sale?.paidAmount, sale?.total);
 
   function safePrint(printAction: () => void) {
     setPrintError('');
@@ -165,7 +176,7 @@ export function PosSaleSuccessDialog({
         aria-label="تم البيع بنجاح"
         style={{
           position: 'relative',
-          width: 'min(660px, calc(100vw - 32px))',
+          width: 'min(760px, calc(100vw - 32px))',
           maxHeight: 'calc(100vh - 32px)',
           overflowY: 'auto',
           borderRadius: 8,
@@ -187,10 +198,19 @@ export function PosSaleSuccessDialog({
         <div className="pos-sale-success-metrics">
           <span><b>رقم الفاتورة</b>{sale.docNo || sale.id}</span>
           <span><b>الإجمالي</b>{formatCurrency(Number(sale.total || 0))}</span>
-          <span><b>طريقة الدفع</b>{formatSalePaymentText(sale.paymentType, sale.paymentChannel, sale.paidAmount, sale.total)}</span>
-          {tenderedAmount > 0 && <span><b>المستلم نقديًا</b>{formatCurrency(tenderedAmount)}</span>}
-          <span><b>{changeOrRemainLabel}</b>{formatCurrency(changeOrRemain)}</span>
-          <span><b>العميل</b>{sale.customerName || customer?.name || 'عميل نقدي'}</span>
+          <span><b>طريقة الدفع</b>{paymentMethodLabel}</span>
+          {isDeliveryCod ? (
+            <>
+              <span><b>المطلوب تحصيله</b>{formatCurrency(total)} (مع المندوب)</span>
+              <span><b>حالة التحصيل</b>عهدة مع المندوب</span>
+            </>
+          ) : (
+            <>
+              {tenderedAmount > 0 && <span><b>المستلم نقديًا</b>{formatCurrency(tenderedAmount)}</span>}
+              <span><b>{changeOrRemainLabel}</b>{formatCurrency(changeOrRemain)}</span>
+            </>
+          )}
+          <span><b>العميل</b>{sale.customerName || customer?.name || (isDeliveryOrder ? 'عميل دليفري' : 'عميل نقدي')}</span>
         </div>
 
         {printError ? <div className="pos-sale-success-error">{printError}</div> : null}

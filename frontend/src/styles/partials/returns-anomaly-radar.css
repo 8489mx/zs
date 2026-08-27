@@ -1,0 +1,253 @@
+/* ========================================================
+   RETURNS ANOMALY RADAR - SYSTEM-NATIVE STYLES
+   ======================================================== */
+
+.returns-radar-panel {
+  margin-top: 4px;
+}
+
+/* Table Specific Badges & Column Styles */
+.doc-code-pill {
+  font-size: 12px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #bfdbfe;
+}
+
+.doc-ref-pill {
+  font-size: 12px;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.cashier-name-tag {
+  font-size: 12px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.timegap-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde047;
+}
+
+.timegap-tag--danger {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.event-flags-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.event-flag-mini {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.event-flag-mini--danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.event-flag-mini--warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde047;
+}
+
+.radar-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+
+.rate-badge {
+  display: inline-flex;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 11.5px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.rate-badge--danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.rate-badge--warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.risk-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.risk-pill--high {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.risk-pill--medium {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde047;
+}
+
+.risk-pill--low {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.row-highlight--danger {
+  background: rgba(254, 242, 242, 0.6) !important;
+}
+
+.row-highlight--warning {
+  background: rgba(254, 252, 232, 0.6) !important;
+}
+
+/* ========================================================
+   RETURN DETAILS MODAL - 2-COLUMN BALANCED COMPACT GRID
+   ======================================================== */
+
+.returns-detail-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.returns-detail-two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.detail-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-height: 38px;
+}
+
+.detail-item .item-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.detail-item .item-value {
+  font-size: 13px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.detail-item .doc-tag {
+  color: #1d4ed8;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+}
+
+.detail-item .ref-tag {
+  color: #475569;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.detail-item .qty-tag {
+  color: #0f172a;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.detail-item .cashier-tag {
+  color: #1e40af;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid #bfdbfe;
+}
+
+.total-highlight-item {
+  background: #eff6ff !important;
+  border-color: #93c5fd !important;
+}
+
+.total-hero {
+  color: #1e40af !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+.detail-note-panel {
+  padding: 8px 12px;
+  background: #fffdf5;
+  border: 1px solid #fef08a;
+  border-radius: 6px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail-note-panel .note-title {
+  font-weight: 700;
+  color: #92400e;
+}
+
+.detail-note-panel .note-text {
+  color: #78350f;
+}

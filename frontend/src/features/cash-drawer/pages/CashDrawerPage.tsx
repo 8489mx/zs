@@ -26,6 +26,11 @@ export function CashDrawerPage() {
     controller.openMutation.reset();
     controller.movementMutation.reset();
     controller.closeMutation.reset();
+    const targetShiftId = controller.myOpenShift?.id || (controller.isManagerReviewer ? controller.openOptions[0]?.id : '');
+    if (targetShiftId) {
+      if (form === 'close') controller.closeForm.setValue('shiftId', String(targetShiftId));
+      if (form === 'movement') controller.movementForm.setValue('shiftId', String(targetShiftId));
+    }
     setActiveForm(form);
   };
 
@@ -140,6 +145,8 @@ export function CashDrawerPage() {
         branches={controller.branches}
         locations={controller.locations}
         openOptions={controller.openOptions}
+        myOpenShift={controller.myOpenShift}
+        isManager={controller.isManagerReviewer}
         openForm={controller.openForm}
         movementForm={controller.movementForm}
         closeForm={controller.closeForm}

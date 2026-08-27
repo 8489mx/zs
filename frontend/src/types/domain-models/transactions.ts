@@ -38,6 +38,15 @@ export interface Sale {
   pricesIncludeTax: boolean;
   total: number;
   paidAmount: number;
+  tenderedAmount?: number;
+  changeAmount?: number;
+  deliveryFee?: number;
+  orderType?: string;
+  tableNumber?: string;
+  deliveryRepId?: number | string | null;
+  deliveryRepName?: string | null;
+  collectionStatus?: string | null;
+  deliveryStatus?: string | null;
   payments?: SalePayment[];
   status: string;
   note: string;
@@ -146,6 +155,15 @@ export interface AuditLog {
   createdBy?: string;
 }
 
+export interface ShiftMovementItem {
+  id: string;
+  kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment';
+  kindLabel: string;
+  amount: number;
+  note: string;
+  createdAt: string;
+}
+
 export interface CashierShift {
   id: string;
   docNo: string;
@@ -187,6 +205,7 @@ export interface CashierShift {
   saleReturnCashRefundTotal?: number;
   saleReturnCardRefundTotal?: number;
   saleReturnTotal?: number;
+  movementItems?: ShiftMovementItem[];
 }
 
 export interface ExpenseRecord {

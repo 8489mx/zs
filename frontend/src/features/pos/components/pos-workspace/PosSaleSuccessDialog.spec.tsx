@@ -72,4 +72,23 @@ describe('PosSaleSuccessDialog', () => {
     expect(openMock).toHaveBeenCalledWith(expect.stringContaining('https://wa.me/01234567890'), '_blank', 'noopener,noreferrer');
     openMock.mockRestore();
   });
+
+  it('correctly formats delivery COD sales with courier collection info', () => {
+    const deliverySale = {
+      ...sale,
+      orderType: 'delivery',
+      deliveryRepId: 3,
+      deliveryRepName: 'سيد',
+      total: 1033,
+      paidAmount: 0,
+      tenderedAmount: 0,
+    } as unknown as Sale;
+
+    renderDialog({ sale: deliverySale });
+
+    expect(screen.getByText(/دليفري — تحصيل مع المندوب \(سيد\)/)).toBeInTheDocument();
+    expect(screen.getByText(/المطلوب تحصيله/)).toBeInTheDocument();
+    expect(screen.getByText(/عهدة مع المندوب/)).toBeInTheDocument();
+    expect(screen.queryByText(/المستلم نقديًا/)).not.toBeInTheDocument();
+  });
 });

@@ -303,7 +303,30 @@
   font-weight: 900;
 }
 
-.pos-sale-success-actions,
+.pos-sale-success-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.pos-sale-success-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .pos-sale-success-whatsapp {
   display: flex;
   flex-wrap: wrap;
@@ -311,7 +334,6 @@
   align-items: center;
 }
 
-.pos-sale-success-actions .btn,
 .pos-sale-success-whatsapp .btn {
   min-height: 36px;
   text-decoration: none;

@@ -5,6 +5,7 @@ import { invalidateReturnsDomain } from '@/app/query-invalidation';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { StatsGrid } from '@/shared/components/stats-grid';
+import { Button } from '@/shared/ui/button';
 import { returnsApi } from '@/features/returns/api/returns.api';
 import { useReturnsPage } from '@/features/returns/hooks/useReturnsPage';
 import { catalogApi } from '@/lib/api/catalog';
@@ -12,6 +13,8 @@ import { ReturnsSelectedReturnCard } from '@/features/returns/components/Returns
 import { ReturnsWorkspaceHeader } from '@/features/returns/components/ReturnsWorkspaceHeader';
 import { ReturnsCreateModal } from '@/features/returns/components/ReturnsCreateModal';
 import { ReturnsRegisterCard } from '@/features/returns/components/ReturnsRegisterCard';
+import { ReturnsAnomalyRadarCard } from '@/features/returns/components/ReturnsAnomalyRadarCard';
+import { detectReturnsAnomalies } from '@/features/returns/lib/returns-anomaly-detector';
 import {
   createEmptyReturnForm,
   exportReturnsCsv,
@@ -24,6 +27,7 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function ReturnsWorkspace() {
   const location = useLocation();
@@ -31,6 +35,7 @@ export function ReturnsWorkspace() {
   const isPurchaseMode = location.pathname.includes('purchase-returns');
 
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'register' | 'radar'>('register');
   const [viewFilter, setViewFilter] = useState<'all' | 'sales' | 'purchase' | 'today'>(isPurchaseMode ? 'purchase' : 'all');
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [selectedReturnId, setSelectedReturnId] = useState('');
@@ -53,6 +58,8 @@ export function ReturnsWorkspace() {
   const purchasesQuery = useQuery({ queryKey: ['purchases'], queryFn: catalogApi.listPurchases });
   const settingsQuery = useSettingsQuery();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const canDirectReturn = user?.role === 'super_admin' || user?.role === 'admin' || Boolean(user?.permissions?.includes('canDirectReturn'));
 
   const invoiceRows = useMemo(() => (
     form.type === 'sale'
@@ -262,6 +269,10 @@ export function ReturnsWorkspace() {
     { key: 'amount', label: 'إجمالي القيمة', value: formatCurrency(total) },
   ] as const;
 
+  const anomalySummary = useMemo(() => {
+    return detectReturnsAnomalies(rows, salesQuery.data || []);
+  }, [rows, salesQuery.data]);
+
   return (
     <div className="page-stack page-shell returns-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
@@ -277,27 +288,54 @@ export function ReturnsWorkspace() {
           onOpenCreate={() => setIsCreateOpen(true)}
         />
 
-        <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />
+        {/* Workspace Mode Switcher */}
+        <div className="filter-chip-row" style={{ marginBottom: '14px' }}>
+          <Button
+            variant={activeTab === 'register' ? 'primary' : 'secondary'}
+            onClick={() => setActiveTab('register')}
+          >
+            سجل المرتجعات ({summary?.totalItems || rows.length})
+          </Button>
+          <Button
+            variant={activeTab === 'radar' ? 'primary' : 'secondary'}
+            onClick={() => setActiveTab('radar')}
+          >
+            رقابة وتدقيق الشبهات
+            {anomalySummary.totalSuspectReturnsCount > 0 ? ` (${anomalySummary.totalSuspectReturnsCount})` : ''}
+          </Button>
+        </div>
 
-        <ReturnsRegisterCard
-          search={search}
-          viewFilter={viewFilter}
-          page={page}
-          pageSize={pageSize}
-          rows={rows}
-          totalItems={summary?.totalItems || rows.length}
-          selectedReturnId={selectedReturnId}
-          isLoading={query.isLoading}
-          onSearchChange={handleRegisterSearchChange}
-          onReset={resetReturnsView}
-          onFilterChange={handleFilterChange}
-          employeeFilter={employeeFilter}
-          onEmployeeFilterChange={(value) => { setEmployeeFilter(value); setPage(1); }}
-          onSelectReturn={(id) => setSelectedReturnId(id)}
-          onPrintReturn={(row) => printReturnRecord(row, settingsQuery.data)}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-        />
+        {activeTab === 'register' ? (
+          <>
+            <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />
+
+            <ReturnsRegisterCard
+              search={search}
+              viewFilter={viewFilter}
+              page={page}
+              pageSize={pageSize}
+              rows={rows}
+              totalItems={summary?.totalItems || rows.length}
+              selectedReturnId={selectedReturnId}
+              isLoading={query.isLoading}
+              onSearchChange={handleRegisterSearchChange}
+              onReset={resetReturnsView}
+              onFilterChange={handleFilterChange}
+              employeeFilter={employeeFilter}
+              onEmployeeFilterChange={(value) => { setEmployeeFilter(value); setPage(1); }}
+              onSelectReturn={(id) => setSelectedReturnId(id)}
+              onPrintReturn={(row) => printReturnRecord(row, settingsQuery.data)}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
+        ) : (
+          <ReturnsAnomalyRadarCard
+            returns={rows}
+            sales={salesQuery.data || []}
+            onSelectReturn={(id) => setSelectedReturnId(id)}
+          />
+        )}
 
         {/* Premium Modal for Creating Return */}
         <ReturnsCreateModal
@@ -354,9 +392,12 @@ export function ReturnsWorkspace() {
         reasonPlaceholder="اكتب سبب المرتجع"
         reasonHint="هذا السبب سيظهر في السجل ويُستخدم للمراجعة لاحقًا."
         minReasonLength={1}
+        managerPinRequired={!canDirectReturn}
+        managerPinLabel="رمز اعتماد المشرف / كلمة المرور"
+        managerPinHint={!canDirectReturn ? 'يتطلب حساب هذا الكاشير اعتماد المشرف أو إدخال رمز المدير لإتمام المرتجع.' : undefined}
         isBusy={createMutation.isPending}
         onCancel={() => setConfirmReturn(false)}
-        onConfirm={({ reason }) => void createMutation.mutate({ reason })}
+        onConfirm={({ reason, managerPin }) => void createMutation.mutate({ reason, managerPin })}
       />
     </div>
   );

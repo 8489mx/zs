@@ -38,8 +38,15 @@ export interface Sale {
   pricesIncludeTax: boolean;
   total: number;
   paidAmount: number;
-  tenderedAmount: number;
-  changeAmount: number;
+  tenderedAmount?: number;
+  changeAmount?: number;
+  deliveryFee?: number;
+  orderType?: string;
+  tableNumber?: string;
+  deliveryRepId?: number | string | null;
+  deliveryRepName?: string | null;
+  collectionStatus?: string | null;
+  deliveryStatus?: string | null;
   payments?: SalePayment[];
   status: string;
   note: string;

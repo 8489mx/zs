@@ -11,24 +11,6 @@ function CheckIcon() {
   );
 }
 
-function MailIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-      <polyline points="22,6 12,13 2,6" />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
 function EyeIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -157,14 +139,14 @@ export function LoginPage() {
               
               <div className="login-field-group">
                 <div className="login-field-label">
-                  <label>البريد الالكتروني او اسم المستخدم</label>
+                  <label htmlFor="login-username">اسم المستخدم او البريد الالكتروني</label>
                 </div>
                 <div className="login-input-pro-wrap">
-                  <span className="login-input-pro-icon"><MailIcon /></span>
                   <input 
+                    id="login-username"
                     {...form.register('username')} 
                     autoComplete="off" 
-                    placeholder="your@email.com" 
+                    placeholder="أدخل اسم المستخدم أو البريد الإلكتروني" 
                     className="login-input-pro"
                   />
                 </div>
@@ -175,15 +157,15 @@ export function LoginPage() {
 
               <div className="login-field-group">
                 <div className="login-field-label flex-between">
-                  <label>كلمة المرور</label>
+                  <label htmlFor="login-password">كلمة المرور</label>
                   <a href="#" className="forgot-password-link" tabIndex={-1} onClick={(e) => e.preventDefault()}>نسيت كلمة المرور؟</a>
                 </div>
                 <div className="login-input-pro-wrap">
-                  <span className="login-input-pro-icon"><LockIcon /></span>
                   <input 
+                    id="login-password"
                     {...form.register('password')} 
-                    type="text" 
-                    className={`login-input-pro ${!showPassword ? 'secure-password-field' : ''}`}
+                    type={showPassword ? 'text' : 'password'}
+                    className={`login-input-pro has-toggle ${!showPassword ? 'secure-password-field' : ''}`}
                     autoComplete="off" 
                     data-lpignore="true"
                     data-1p-ignore="true"
@@ -193,7 +175,7 @@ export function LoginPage() {
                     spellCheck={false}
                     placeholder="أدخل كلمة المرور الخاصة بك" 
                   />
-                  <button type="button" className="login-pwd-toggle-btn" onClick={() => setShowPassword(!showPassword)}>
+                  <button type="button" className="login-pwd-toggle-btn" aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
                 </div>

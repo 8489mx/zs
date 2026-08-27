@@ -54,6 +54,7 @@ type ShiftRow = {
   location_name?: string | null;
   opened_by_name?: string | null;
   closed_by_name?: string | null;
+  movement_items?: Array<{ id: string; kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment'; kindLabel: string; amount: number; note: string; createdAt: string }>;
 };
 
 type SettingsRow = { key?: string; value?: string | null };
@@ -280,6 +281,128 @@ export class CashDrawerService {
     return this.toMoney(Number(shift.opening_cash || 0) + movements.netMovementTotal + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
   }
 
+  private async fetchShiftMovementItems(shiftId: number, shift: ShiftRow, auth: AuthContext): Promise<Array<{
+    id: string;
+    kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment';
+    kindLabel: string;
+    amount: number;
+    note: string;
+    createdAt: string;
+  }>> {
+    const scope = this.scope(auth);
+    const openerId = Number(shift.opened_by || 0);
+    const items: Array<{
+      id: string;
+      kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment';
+      kindLabel: string;
+      amount: number;
+      note: string;
+      createdAt: string;
+    }> = [];
+
+    // 1. Delivery reps map for note enrichment
+    const repRows = await sql<{ id: number; name: string }>`
+      select id, name from delivery_representatives where tenant_id = ${scope.tenantId}
+    `.execute(this.db);
+    const repMap = new Map<number, string>();
+    for (const r of repRows.rows || []) {
+      repMap.set(Number(r.id), String(r.name).trim());
+    }
+
+    // 2. Treasury transactions (Drawer cash in / cash out / delivery)
+    const ttRows = await sql<{ id: number; amount: number | string; note?: string | null; txn_type?: string | null; created_at?: string | Date | null }>`
+      select tt.id, tt.amount, tt.note, tt.txn_type, tt.created_at
+      from treasury_transactions tt
+      where tt.tenant_id = ${scope.tenantId}
+        and tt.reference_type = 'cashier_shift'
+        and tt.reference_id = ${shiftId}
+        and tt.return_document_id is null
+        and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
+      order by tt.id asc
+    `.execute(this.db);
+
+    for (const tt of ttRows.rows || []) {
+      const amt = Number(tt.amount || 0);
+      const rawNote = String(tt.note || '').trim();
+      const isDelivery = rawNote.includes('دليفري') || rawNote.includes('مندوب');
+      const kind = amt > 0 ? (isDelivery ? 'delivery' : 'cash_in') : 'cash_out';
+      const kindLabel = amt > 0 ? (isDelivery ? 'توريد مندوب (دليفري)' : 'إيداع نقدي بالدرج') : 'مسحوبات نقدية من الدرج';
+
+      let enrichedNote = rawNote || '—';
+      const repMatch = rawNote.match(/مندوب\s*#?(\d+)/);
+      if (repMatch && repMatch[1]) {
+        const rId = Number(repMatch[1]);
+        const rName = repMap.get(rId);
+        if (rName) {
+          enrichedNote = enrichedNote.replace(repMatch[0], `المندوب ${rName} (#${rId})`);
+        }
+      }
+
+      items.push({
+        id: `tt-${tt.id}`,
+        kind,
+        kindLabel,
+        amount: Math.abs(amt),
+        note: enrichedNote,
+        createdAt: tt.created_at ? new Date(tt.created_at).toISOString() : '',
+      });
+    }
+
+    // 2. Expenses during shift
+    if (openerId > 0 && shift.created_at) {
+      const expRows = await sql<{ id: number; amount: number | string; title?: string | null; note?: string | null; expense_date?: string | Date | null; created_at?: string | Date | null }>`
+        select e.id, e.amount, e.title, e.note, e.expense_date, e.created_at
+        from expenses e
+        where e.tenant_id = ${scope.tenantId} and e.created_by = ${openerId}
+          and (e.expense_date >= ${shift.created_at} or e.created_at >= ${shift.created_at})
+          and (${shift.closed_at || null}::timestamptz is null or (e.expense_date <= ${shift.closed_at || null} and e.created_at <= ${shift.closed_at || null}))
+          and (${shift.branch_id || null}::int is null or e.branch_id is null or e.branch_id = ${Number(shift.branch_id || 0) || null})
+          and (${shift.location_id || null}::int is null or e.location_id is null or e.location_id = ${Number(shift.location_id || 0) || null})
+        order by e.id asc
+      `.execute(this.db);
+
+      for (const exp of expRows.rows || []) {
+        const amt = Number(exp.amount || 0);
+        const desc = [exp.title, exp.note].filter(Boolean).join(' - ');
+        items.push({
+          id: `exp-${exp.id}`,
+          kind: 'expense',
+          kindLabel: 'مصروف تشغيلي',
+          amount: Math.abs(amt),
+          note: desc.trim() || 'مصروفات',
+          createdAt: exp.expense_date || exp.created_at ? new Date(exp.expense_date || exp.created_at!).toISOString() : '',
+        });
+      }
+
+      // 3. Supplier payments
+      const supRows = await sql<{ id: number; amount: number | string; supplier_name?: string | null; note?: string | null; payment_date?: string | Date | null }>`
+        select sp.id, sp.amount, coalesce(sup.name, 'مورد') as supplier_name, sp.note, sp.payment_date
+        from supplier_payments sp
+        left join suppliers sup on sup.id = sp.supplier_id
+        where sp.tenant_id = ${scope.tenantId} and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
+          and (${shift.closed_at || null}::timestamptz is null or sp.payment_date <= ${shift.closed_at || null})
+          and (${shift.branch_id || null}::int is null or sp.branch_id is null or sp.branch_id = ${Number(shift.branch_id || 0) || null})
+          and (${shift.location_id || null}::int is null or sp.location_id is null or sp.location_id = ${Number(shift.location_id || 0) || null})
+        order by sp.id asc
+      `.execute(this.db);
+
+      for (const sup of supRows.rows || []) {
+        const amt = Number(sup.amount || 0);
+        const note = [sup.supplier_name, sup.note].filter(Boolean).join(' - ');
+        items.push({
+          id: `sp-${sup.id}`,
+          kind: 'supplier_payment',
+          kindLabel: 'سداد مورد',
+          amount: Math.abs(amt),
+          note: note.trim() || 'سداد مورد',
+          createdAt: sup.payment_date ? new Date(sup.payment_date).toISOString() : '',
+        });
+      }
+    }
+
+    return items;
+  }
+
   private async hydrateShiftRow(row: ShiftRow, auth: AuthContext): Promise<ShiftRow> {
     const shiftId = Number(row.id || 0);
     if (!(shiftId > 0)) return row;
@@ -289,6 +412,7 @@ export class CashDrawerService {
     const saleReturnTotals = await this.computeShiftSaleReturnTotals(row, auth);
     const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(row, auth);
     const expensesTotal = await this.computeShiftExpensesTotal(row, auth);
+    const movementItems = await this.fetchShiftMovementItems(shiftId, row, auth);
     const expectedCash = String(row.status || 'open') === 'open' ? await this.computeShiftExpectedCashFromShift(row, auth, salesBreakdown, serviceBreakdown) : Number(row.expected_cash || 0);
     return {
       ...row,
@@ -316,7 +440,8 @@ export class CashDrawerService {
       service_total: serviceBreakdown.serviceTotal,
       sale_return_cash_refund_total: saleReturnTotals.saleReturnCashRefundTotal,
       sale_return_card_refund_total: saleReturnTotals.saleReturnCardRefundTotal,
-      sale_return_total: saleReturnTotals.saleReturnTotal
+      sale_return_total: saleReturnTotals.saleReturnTotal,
+      movement_items: movementItems,
     };
   }
 

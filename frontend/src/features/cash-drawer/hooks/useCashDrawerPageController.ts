@@ -158,11 +158,18 @@ export function useCashDrawerPageController() {
 
   const myOpenShift = useMemo(() => {
     if (!currentUser) return null;
-    return openOptions.find(
-      (shift) =>
-        (shift.openedById && String(shift.openedById) === String(currentUser.id)) ||
-        (shift.openedByName && currentUser.username && shift.openedByName.trim().toLowerCase() === currentUser.username.trim().toLowerCase())
-    ) || null;
+    const currentId = String(currentUser.id || (currentUser as any).userId || '').trim();
+    const currentUsername = String(currentUser.username || '').trim().toLowerCase();
+    const currentDisplayName = String(currentUser.displayName || '').trim().toLowerCase();
+
+    return openOptions.find((shift) => {
+      const shiftOpenerId = String(shift.openedById || '').trim();
+      if (currentId && shiftOpenerId && shiftOpenerId === currentId) return true;
+      const shiftOpenerName = String(shift.openedByName || '').trim().toLowerCase();
+      if (currentUsername && shiftOpenerName === currentUsername) return true;
+      if (currentDisplayName && shiftOpenerName === currentDisplayName) return true;
+      return false;
+    }) || null;
   }, [openOptions, currentUser]);
 
   const hasMyOpenShift = Boolean(myOpenShift);
@@ -182,14 +189,12 @@ export function useCashDrawerPageController() {
     : (!hasMyOpenShift ? 'يجب فتح وردية أولاً لتسجيل حركة درج النقدية.' : '');
 
   useEffect(() => {
-    const targetShiftId = myOpenShift?.id || openOptions[0]?.id;
+    const targetShiftId = myOpenShift?.id || (isSuperAdminOrManager ? openOptions[0]?.id : '');
     if (targetShiftId) {
-      const currentMovementShiftId = movementForm.getValues('shiftId');
-      if (!currentMovementShiftId) movementForm.setValue('shiftId', String(targetShiftId));
-      const currentCloseShiftId = closeForm.getValues('shiftId');
-      if (!currentCloseShiftId) closeForm.setValue('shiftId', String(targetShiftId));
+      movementForm.setValue('shiftId', String(targetShiftId));
+      closeForm.setValue('shiftId', String(targetShiftId));
     }
-  }, [closeForm, movementForm, openOptions, myOpenShift]);
+  }, [closeForm, movementForm, openOptions, myOpenShift, isSuperAdminOrManager]);
 
   const selectedCloseShift = openOptions.find((shift) => String(shift.id) === String(closeForm.watch('shiftId'))) || null;
   const closeExpectedCash = Number(selectedCloseShift?.expectedCash || 0);

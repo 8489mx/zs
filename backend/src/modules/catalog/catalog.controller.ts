@@ -1,5 +1,5 @@
 import { Body, Controller, Delete as HttpRemove, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -13,7 +13,7 @@ export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 
   @Get('categories')
-  @RequirePermissions('products')
+  @RequireAnyPermission('products', 'sales')
   listCategories(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.listCategories(req.authContext!);
   }
@@ -81,7 +81,7 @@ export class CatalogController {
   }
 
   @Post('products')
-  @RequirePermissions('products')
+  @RequireAnyPermission('products', 'sales')
   createProduct(@Body() payload: UpsertProductDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.createProduct(payload, req.authContext!);
   }

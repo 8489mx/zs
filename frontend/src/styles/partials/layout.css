@@ -256,52 +256,57 @@
   position: relative;
   display: flex;
   align-items: center;
-}
-.login-input-pro-icon {
-  position: absolute;
-  right: 12px;
-  color: #94a3b8;
-  display: flex;
-  pointer-events: none;
+  width: 100%;
 }
 .login-input-pro {
   width: 100%;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 12px 12px 12px 40px; /* LTR padding, will adjust for RTL */
+  padding: 12px 16px;
   font-size: 14px;
   font-weight: 500;
   color: #1e293b;
   outline: none;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   box-sizing: border-box;
 }
 html[dir="rtl"] .login-input-pro, [dir="rtl"] .login-input-pro {
-  padding: 12px 40px 12px 12px;
+  padding: 12px 16px;
+}
+.login-input-pro.has-toggle {
+  padding-inline-end: 44px;
+}
+html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-toggle {
+  padding-inline-end: 44px;
 }
 .login-input-pro::placeholder {
   color: #94a3b8;
+  font-weight: 400;
 }
 .login-input-pro:focus {
   border-color: #170c5c;
-  box-shadow: 0 0 0 2px rgba(23, 12, 92, 0.2);
+  box-shadow: 0 0 0 3px rgba(23, 12, 92, 0.12);
   background: #ffffff;
 }
 
 .login-pwd-toggle-btn {
   position: absolute;
-  left: 12px;
+  inset-inline-end: 12px;
   background: none;
   border: none;
   color: #94a3b8;
   cursor: pointer;
-  padding: 0;
+  padding: 6px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 .login-pwd-toggle-btn:hover {
-  color: #475569;
+  color: #1e293b;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .login-field-error-text {

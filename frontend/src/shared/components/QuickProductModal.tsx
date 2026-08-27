@@ -148,23 +148,54 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
         units = [{ name: 'قطعة', multiplier: 1, isBaseUnit: true, isSaleUnit: itemType === 'product', isPurchaseUnit: true }];
       }
 
-      const { unitType, ...restData } = data;
-
       const payload = {
-        ...restData,
-        costPrice: itemType === 'service' ? 0 : data.costPrice,
-        stock: itemType === 'service' ? 0 : data.stock,
-        minStock: itemType === 'service' ? 0 : data.minStock,
-        categoryId: itemType === 'service' ? undefined : (data.categoryId ? Number(data.categoryId) : undefined),
-        warehouseId: itemType === 'service' ? undefined : (data.warehouseId ? String(data.warehouseId) : undefined),
-        wholesalePrice: itemType === 'service' ? data.retailPrice : data.wholesalePrice,
+        name: data.name.trim(),
         itemType,
+        costPrice: itemType === 'service' ? 0 : Number(data.costPrice || 0),
+        retailPrice: Number(data.retailPrice || 0),
+        wholesalePrice: itemType === 'service' ? Number(data.retailPrice || 0) : Number(data.wholesalePrice || 0),
+        minStock: itemType === 'service' ? 0 : Number(data.minStock || 0),
+        stock: itemType === 'service' ? 0 : Number(data.stock || 0),
+        ...(itemType !== 'service' && data.categoryId ? { categoryId: Number(data.categoryId) } : {}),
+        ...(itemType !== 'service' && data.warehouseId ? { warehouseId: Number(data.warehouseId) } : {}),
         units
       };
-      return sharedProductsApi.create(payload) as Promise<{ id: number; products?: Product[] }>;
+
+      try {
+        return (await sharedProductsApi.create(payload)) as { id: number; products?: Product[]; existingProduct?: Product };
+      } catch (err: any) {
+        const errorMsg = String(err?.response?.data?.message || err?.message || '');
+        if (errorMsg.includes('مستخدم بالفعل') || errorMsg.includes('PRODUCT_EXISTS') || err?.response?.status === 409 || err?.response?.status === 400) {
+          try {
+            const searchRes = await sharedProductsApi.listPage({ q: data.name.trim(), pageSize: 10 });
+            const matchedFromDb = searchRes?.products?.find(
+              (p) => String(p.name || '').trim().toLowerCase() === data.name.trim().toLowerCase()
+            );
+            if (matchedFromDb) {
+              return {
+                id: Number(matchedFromDb.id),
+                existingProduct: {
+                  ...matchedFromDb,
+                  retailPrice: Number(data.retailPrice || matchedFromDb.retailPrice || 0),
+                  wholesalePrice: itemType === 'service' ? Number(data.retailPrice || 0) : (Number(data.wholesalePrice) || 0),
+                }
+              };
+            }
+          } catch {
+            // Ignore fallback error and rethrow original
+          }
+        }
+        throw err;
+      }
     },
-    onSuccess: (res, variables) => {
+    onSuccess: (res: any, variables) => {
       invalidateCatalogDomain(queryClient);
+      if (res?.existingProduct) {
+        onSuccess(res.existingProduct);
+        reset();
+        onClose();
+        return;
+      }
       const newProduct = {
         id: String(res.id),
         name: variables.name,
@@ -183,24 +214,32 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
       reset();
       onClose();
     },
-    onError: () => {
-      systemAlert('حدث خطأ أثناء حفظ الصنف. تأكد من صحة البيانات.');
+    onError: (err: any) => {
+      systemAlert(err?.response?.data?.message || err?.message || 'حدث خطأ أثناء حفظ الصنف. تأكد من صحة البيانات.');
     }
   });
 
   const handleFormSubmit = (data: QuickProductInput) => {
-    // If it's a service and matches an existing service with identical price, reuse it directly
-    if (itemType === 'service') {
-      const match = existingServices.find(
-        (s) => s.name.toLowerCase() === data.name.trim().toLowerCase() && Number(s.price) === Number(data.retailPrice)
-      );
-      if (match && match.fullProduct) {
-        onSuccess(match.fullProduct);
-        reset();
-        onClose();
-        return;
-      }
+    const inputName = data.name.trim().toLowerCase();
+    
+    // Check if item exists in allProducts (case-insensitive)
+    const existingMatch = allProducts.find(
+      (p) => String(p.name || '').trim().toLowerCase() === inputName
+    );
+
+    if (existingMatch) {
+      const price = Number(data.retailPrice || existingMatch.retailPrice || (existingMatch as any).retail_price || 0);
+      const reusedProduct: Product = {
+        ...existingMatch,
+        retailPrice: price,
+        wholesalePrice: itemType === 'service' ? price : (Number(data.wholesalePrice) || price),
+      };
+      onSuccess(reusedProduct);
+      reset();
+      onClose();
+      return;
     }
+
     mutation.mutate(data);
   };
 

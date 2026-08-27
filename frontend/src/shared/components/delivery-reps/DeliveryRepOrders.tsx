@@ -6,12 +6,18 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 
+function getLocalDateStr(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function DeliveryRepOrders({ repId }: { repId: number | null }) {
   const queryClient = useQueryClient();
-  const today = new Date().toISOString().split('T')[0];
-  const [filterDateFrom, setFilterDateFrom] = useState(today);
-  const [filterDateTo, setFilterDateTo] = useState(today);
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterStatus, setFilterStatus] = useState('unsettled');
   const [expectedAmountInput, setExpectedAmountInput] = useState('');
   const [feedbackPopup, setFeedbackPopup] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [orderToSettle, setOrderToSettle] = useState<any | null>(null);
@@ -159,9 +165,33 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           <Button 
             variant="secondary" 
             onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus('unsettled'); }}
-            style={{ background: '#eff6ff', color: '#1d4ed8', borderColor: '#bfdbfe', fontSize: '11px', minHeight: '32px', padding: '0 10px', whiteSpace: 'nowrap' }}
+            style={{ 
+              background: (!filterDateFrom && !filterDateTo && filterStatus === 'unsettled') ? '#1d4ed8' : '#eff6ff', 
+              color: (!filterDateFrom && !filterDateTo && filterStatus === 'unsettled') ? '#ffffff' : '#1d4ed8', 
+              borderColor: '#bfdbfe', 
+              fontSize: '11px', 
+              minHeight: '32px', 
+              padding: '0 10px', 
+              whiteSpace: 'nowrap',
+              fontWeight: 700
+            }}
           >
             الطلبات المعلقة
+          </Button>
+          <Button 
+            variant="secondary" 
+            onClick={() => { const t = getLocalDateStr(); setFilterDateFrom(t); setFilterDateTo(t); setFilterStatus(''); }}
+            style={{ 
+              background: (filterDateFrom === getLocalDateStr() && filterDateTo === getLocalDateStr() && !filterStatus) ? '#0f172a' : '#f1f5f9', 
+              color: (filterDateFrom === getLocalDateStr() && filterDateTo === getLocalDateStr() && !filterStatus) ? '#ffffff' : '#334155', 
+              borderColor: '#cbd5e1', 
+              fontSize: '11px', 
+              minHeight: '32px', 
+              padding: '0 10px', 
+              whiteSpace: 'nowrap' 
+            }}
+          >
+            طلبات اليوم
           </Button>
           {(filterDateFrom || filterDateTo || filterStatus) && (
             <Button 
@@ -169,7 +199,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
               onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus(''); }} 
               style={{ fontSize: '11px', minHeight: '32px', padding: '0 10px', whiteSpace: 'nowrap' }}
             >
-              مسح الفلاتر
+              عرض الكل (مسح الفلاتر)
             </Button>
           )}
         </div>

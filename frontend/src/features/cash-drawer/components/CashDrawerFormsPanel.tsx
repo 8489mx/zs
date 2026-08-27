@@ -25,6 +25,8 @@ interface CashDrawerFormsPanelProps {
   branches: Branch[];
   locations: Location[];
   openOptions: CashierShift[];
+  myOpenShift?: CashierShift | null;
+  isManager?: boolean;
   openForm: UseFormReturn<OpenShiftValues>;
   movementForm: UseFormReturn<MovementValues>;
   closeForm: UseFormReturn<CloseShiftValues>;
@@ -211,23 +213,43 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
           <h2 style={{ marginTop: 0, marginBottom: '24px' }}>تسجيل حركة درج النقدية</h2>
         <form className="form-grid" onSubmit={props.onMovementSubmit}>
-          <Field label="وردية نقطة البيع المفتوحة">
-            <Controller
-              name="shiftId"
-              control={props.movementForm.control}
-              render={({ field }) => (
-                <CustomSelect
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={props.movementMutation.isPending}
-                  options={[
-                    { value: '', label: 'اختر وردية نقطة البيع' },
-                    ...props.openOptions.map((shift) => ({ value: shift.id, label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}` })),
-                  ]}
-                />
-              )}
-            />
-          </Field>
+          {props.isManager && !props.myOpenShift && props.openOptions.length > 1 ? (
+            <Field label="وردية نقطة البيع المفتوحة">
+              <Controller
+                name="shiftId"
+                control={props.movementForm.control}
+                render={({ field }) => (
+                  <CustomSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={props.movementMutation.isPending}
+                    options={[
+                      { value: '', label: 'اختر وردية نقطة البيع' },
+                      ...props.openOptions.map((shift) => ({ value: shift.id, label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}` })),
+                    ]}
+                  />
+                )}
+              />
+            </Field>
+          ) : (
+            <Field label="وردية نقطة البيع">
+              <div style={{
+                padding: '10px 14px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || 'الوردية الحالية'}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.movementForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
+                <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>وردية نشطة</span>
+              </div>
+            </Field>
+          )}
           <Field label="النوع">
             <Controller
               name="type"
@@ -263,23 +285,43 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
           <h2 style={{ marginTop: 0, marginBottom: '24px' }}>إغلاق وردية نقطة البيع</h2>
         <form className="form-grid" onSubmit={props.onCloseSubmit}>
-          <Field label="وردية نقطة البيع المفتوحة">
-            <Controller
-              name="shiftId"
-              control={props.closeForm.control}
-              render={({ field }) => (
-                <CustomSelect
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={props.closeMutation.isPending}
-                  options={[
-                    { value: '', label: 'اختر وردية نقطة البيع' },
-                    ...props.openOptions.map((shift) => ({ value: shift.id, label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}` })),
-                  ]}
-                />
-              )}
-            />
-          </Field>
+          {props.isManager && !props.myOpenShift && props.openOptions.length > 1 ? (
+            <Field label="وردية نقطة البيع المفتوحة">
+              <Controller
+                name="shiftId"
+                control={props.closeForm.control}
+                render={({ field }) => (
+                  <CustomSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={props.closeMutation.isPending}
+                    options={[
+                      { value: '', label: 'اختر وردية نقطة البيع' },
+                      ...props.openOptions.map((shift) => ({ value: shift.id, label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}` })),
+                    ]}
+                  />
+                )}
+              />
+            </Field>
+          ) : (
+            <Field label="وردية نقطة البيع">
+              <div style={{
+                padding: '10px 14px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || 'الوردية الحالية'}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
+                <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>وردية نشطة</span>
+              </div>
+            </Field>
+          )}
 
 
           {isBlindCloseMode ? (
