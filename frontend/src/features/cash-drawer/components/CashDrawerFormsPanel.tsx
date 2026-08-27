@@ -213,7 +213,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
           <h2 style={{ marginTop: 0, marginBottom: '24px' }}>تسجيل حركة درج النقدية</h2>
         <form className="form-grid" onSubmit={props.onMovementSubmit}>
-          {props.isManager && !props.myOpenShift && props.openOptions.length > 1 ? (
+          {props.isManager && props.openOptions.length > 1 ? (
             <Field label="وردية نقطة البيع المفتوحة">
               <Controller
                 name="shiftId"
@@ -225,7 +225,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                     disabled={props.movementMutation.isPending}
                     options={[
                       { value: '', label: 'اختر وردية نقطة البيع' },
-                      ...props.openOptions.map((shift) => ({ value: shift.id, label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}` })),
+                      ...props.openOptions.map((shift) => ({
+                        value: shift.id,
+                        label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}${String(shift.id) === String(props.myOpenShift?.id) ? ' (ورديتي الحالية)' : ''}`,
+                      })),
                     ]}
                   />
                 )}
@@ -285,7 +288,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
           <h2 style={{ marginTop: 0, marginBottom: '24px' }}>إغلاق وردية نقطة البيع</h2>
         <form className="form-grid" onSubmit={props.onCloseSubmit}>
-          {props.isManager && !props.myOpenShift && props.openOptions.length > 1 ? (
+          {props.isManager && props.openOptions.length > 1 ? (
             <Field label="وردية نقطة البيع المفتوحة">
               <Controller
                 name="shiftId"
@@ -297,7 +300,10 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                     disabled={props.closeMutation.isPending}
                     options={[
                       { value: '', label: 'اختر وردية نقطة البيع' },
-                      ...props.openOptions.map((shift) => ({ value: shift.id, label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}` })),
+                      ...props.openOptions.map((shift) => ({
+                        value: shift.id,
+                        label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}${String(shift.id) === String(props.myOpenShift?.id) ? ' (ورديتي الحالية)' : ''}`,
+                      })),
                     ]}
                   />
                 )}
