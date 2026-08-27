@@ -8,6 +8,9 @@ const CODE128_PATTERNS = [
 ] as const;
 
 const CODE128_START_B = 104;
+const CODE128_START_C = 105;
+const CODE128_CODE_B = 100;
+const CODE128_CODE_C = 99;
 const CODE128_STOP = 106;
 const BARCODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -25,21 +28,78 @@ export function isCode128BValueSupported(value: unknown) {
   return true;
 }
 
+export function encodeCode128Auto(str: string): number[] {
+  if (!str) return [];
+
+  // 1. Purely numeric string
+  if (/^\d+$/.test(str)) {
+    if (str.length % 2 === 0) {
+      // Even digits: 100% Subset C (2 digits per symbol)
+      const codes = [CODE128_START_C];
+      for (let i = 0; i < str.length; i += 2) {
+        codes.push(parseInt(str.slice(i, i + 2), 10));
+      }
+      return codes;
+    } else {
+      // Odd digits: start B with first digit, then Subset C for remaining pairs
+      const codes = [CODE128_START_B, str.charCodeAt(0) - 32, CODE128_CODE_C];
+      for (let i = 1; i < str.length; i += 2) {
+        codes.push(parseInt(str.slice(i, i + 2), 10));
+      }
+      return codes;
+    }
+  }
+
+  // 2. Alphanumeric string with smart Subset C switching for runs of 4+ digits
+  const codes: number[] = [CODE128_START_B];
+  let inSetC = false;
+  let i = 0;
+
+  while (i < str.length) {
+    if (!inSetC) {
+      const match = str.slice(i).match(/^(\d{4,})/);
+      if (match) {
+        const digitRun = match[1];
+        const count = digitRun.length % 2 === 0 ? digitRun.length : digitRun.length - 1;
+        codes.push(CODE128_CODE_C);
+        inSetC = true;
+        for (let k = 0; k < count; k += 2) {
+          codes.push(parseInt(str.slice(i + k, i + k + 2), 10));
+        }
+        i += count;
+        continue;
+      }
+      codes.push(str.charCodeAt(i) - 32);
+      i += 1;
+    } else {
+      if (i + 1 < str.length && /^\d{2}/.test(str.slice(i, i + 2))) {
+        codes.push(parseInt(str.slice(i, i + 2), 10));
+        i += 2;
+      } else {
+        codes.push(CODE128_CODE_B);
+        inSetC = false;
+      }
+    }
+  }
+
+  return codes;
+}
+
 export function buildCode128Svg(value: unknown) {
   const normalized = normalizeCode128Value(value);
   if (!isCode128BValueSupported(normalized)) return '';
-  const codes = [CODE128_START_B];
-  for (let index = 0; index < normalized.length; index += 1) {
-    codes.push(normalized.charCodeAt(index) - 32);
-  }
-  let checksum = CODE128_START_B;
+
+  const codes = encodeCode128Auto(normalized);
+  if (!codes.length) return '';
+
+  let checksum = codes[0];
   for (let index = 1; index < codes.length; index += 1) {
     checksum += codes[index] * index;
   }
   codes.push(checksum % 103, CODE128_STOP);
 
   const moduleWidth = 2;
-  const quietZone = 20;
+  const quietZone = 16;
   const height = 72;
   let x = quietZone;
   const rects: string[] = [];

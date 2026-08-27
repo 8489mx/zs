@@ -539,7 +539,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 2px 14px 10px;
+  padding: 0 14px 4px;
   width: 100%;
   box-sizing: border-box;
   position: relative;
@@ -550,12 +550,12 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
-  width: 36px;
+  height: 28px;
+  width: 28px;
   border-radius: 50%;
   background: #ffffff;
-  border: 1.5px solid #e2e8f0;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   cursor: pointer;
   overflow: hidden;
   position: relative;
@@ -569,19 +569,20 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 .sidebar-search-pill:hover:not(.is-expanded) {
   background: #f8fafc;
   border-color: #38bdf8;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.16);
-  transform: scale(1.06);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.14);
+  transform: scale(1.05);
 }
 
 .sidebar-search-pill.is-expanded {
   width: 100%;
-  border-radius: 20px;
+  height: 32px;
+  border-radius: 16px;
   background: #ffffff;
   border-color: #0284c7;
-  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.18);
+  box-shadow: 0 3px 12px rgba(2, 132, 199, 0.14);
   justify-content: flex-start;
-  padding: 0 10px;
-  gap: 8px;
+  padding: 0 8px;
+  gap: 6px;
   cursor: default;
 }
 
@@ -591,13 +592,18 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   justify-content: center;
   color: #64748b;
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border: none;
   background: transparent;
   padding: 0;
   cursor: pointer;
   transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar-search-icon-btn svg {
+  width: 13px;
+  height: 13px;
 }
 
 .sidebar-search-pill.is-expanded .sidebar-search-icon-btn {
@@ -696,7 +702,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   flex-direction: column;
   gap: 1px;
   width: 100%;
-  margin: 6px 0 0 0;
+  margin: 3px 0 0 0;
   padding: 0;
   box-sizing: border-box;
   background: transparent;

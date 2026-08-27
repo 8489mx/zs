@@ -308,7 +308,7 @@ export function PrintingSettingsTab({
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemCount')} disabled={disabled} />
-                  إظهار عدد البنود
+                  إظهار عدد الأصناف
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowPiecesCount')} disabled={disabled} />

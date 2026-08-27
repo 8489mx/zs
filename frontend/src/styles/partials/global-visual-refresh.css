@@ -167,30 +167,31 @@ th {
 }
 
 .sidebar-nav {
-  gap: 6px;
+  gap: 3px;
 }
 
-.sidebar-link {
-  min-height: 56px;
-  padding: 10px 12px;
+.sidebar-link:not(.sidebar-link-sub) {
+  min-height: 40px;
+  padding: 5px 10px;
   border-radius: 8px;
+  margin: 1px 0;
 }
 
 .sidebar-label {
-  font-size: 14px;
-  line-height: 1.24;
+  font-size: 13.5px;
+  line-height: 1.2;
 }
 
 .sidebar-icon {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   border-radius: 8px;
 }
 
 .sidebar-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
 }
 
 .content-wrap {

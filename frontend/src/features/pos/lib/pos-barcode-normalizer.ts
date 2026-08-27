@@ -51,6 +51,7 @@ export function isInvoiceBarcodeQuery(raw: string): boolean {
   // Matches invoice patterns like Z-260825-0011, Z/260825/0011, INV-1234, 260825-0011, Z2608250011
   if (/^Z[-/_.]?\d+/i.test(remapped) || /^INV[-/_.]?\d+/i.test(remapped)) return true;
   if (/^\d{6,}[-/_.]\d+/.test(remapped)) return true;
+  if (/^\d{8,}$/.test(remapped)) return true;
   if (/^[A-Za-z]+[-/_]\d+/.test(remapped)) return true;
   if (/^Z/i.test(remapped) && remapped.length >= 6) return true;
   if (/^ZL\d+/i.test(remapped) && remapped.length >= 6) return true;

@@ -192,7 +192,11 @@ function renderInvoiceBarcode(documentNumber?: string | number | null, compact =
   const docNo = String(documentNumber || '').trim();
   if (!docNo || docNo === '—' || docNo === 'مسودة') return '';
 
-  const barcodeSvg = buildCode128Svg(docNo);
+  // Extract the numeric sequence (e.g. Z-260827-0002 -> 2608270002) for Code 128C double-width bars and wide spacing
+  const numbersMatch = docNo.match(/(\d{6})[^\d]*(\d{3,})/);
+  const barcodePayload = numbersMatch ? `${numbersMatch[1]}${numbersMatch[2]}` : docNo;
+
+  const barcodeSvg = buildCode128Svg(barcodePayload);
   if (!barcodeSvg) return '';
 
   return `
@@ -227,6 +231,7 @@ function renderTotals(options: {
   settings?: Partial<AppSettings> | null;
   compact?: boolean;
   isReturn?: boolean;
+  paymentText?: string;
 }) {
   const totalPieces = (options.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
   const paidAmount = Number(options.paidAmount || 0);
@@ -234,6 +239,7 @@ function renderTotals(options: {
   const changeAmount = Number(options.changeAmount || 0);
   const remaining = Math.max(0, Number(options.total || 0) - paidAmount);
   const showTax = getPrintOption(options.settings, 'printShowTax', true);
+  const showPaymentMethod = getPrintOption(options.settings, 'printShowPaymentMethod', true);
   const showItemSummary = getPrintOption(options.settings, 'printShowItemSummary', true);
   const showItemCount = getPrintOption(options.settings, 'printShowItemCount', showItemSummary);
   const showPiecesCount = getPrintOption(options.settings, 'printShowPiecesCount', showItemSummary);
@@ -267,11 +273,22 @@ function renderTotals(options: {
       { label: 'الإجمالي قبل الضريبة', value: formatReceiptMoney(Number(options.subtotal || 0), options.settings) },
       { label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) },
     ] : []),
-    { label: 'إجمالي المبلغ المسترد للعميل', value: formatReceiptMoney(Number(options.total || paidAmount || 0), options.settings), strong: true },
-    ...(showItemCount ? [
-      { label: 'عدد البنود', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
-    ] : []),
-    ...(showPiecesCount ? [
+    ...(showPaymentMethod && options.paymentText ? [{
+      label: `طريقة الرد: ${options.paymentText}`,
+      value: `<span style="font-size:0.88em; font-weight:700; margin-inline-end:3px;">المسترد:</span><strong style="font-weight:800; font-size:1.05em;">${formatReceiptMoney(Number(options.total || paidAmount || 0), options.settings)}</strong>`,
+      strong: true,
+      isHtml: true,
+      noColon: true,
+    }] : [{
+      label: 'إجمالي المبلغ المسترد للعميل',
+      value: formatReceiptMoney(Number(options.total || paidAmount || 0), options.settings),
+      strong: true,
+    }]),
+    ...(showItemCount && showPiecesCount ? [
+      { label: 'الأصناف والقطع', value: `${formatReceiptNumber(Number(options.items?.length || 0), options.settings)} صنف • ${formatReceiptQuantity(totalPieces, options.settings)} قطعة` },
+    ] : showItemCount ? [
+      { label: 'عدد الأصناف', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
+    ] : showPiecesCount ? [
       { label: 'إجمالي القطع', value: formatReceiptQuantity(totalPieces, options.settings) },
     ] : []),
   ] : [
@@ -292,7 +309,17 @@ function renderTotals(options: {
     ] : []),
     ...(hasDeliveryFee ? [{ label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) }] : []),
     ...(showTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
-    { label: 'الإجمالي النهائي', value: formatReceiptMoney(Number(options.total || 0), options.settings), strong: true },
+    ...(showPaymentMethod && options.paymentText ? [{
+      label: `طريقة الدفع: ${options.paymentText}`,
+      value: `<span style="font-size:0.88em; font-weight:700; margin-inline-end:3px;">الإجمالي:</span><strong style="font-weight:800; font-size:1.05em;">${formatReceiptMoney(Number(options.total || 0), options.settings)}</strong>`,
+      strong: true,
+      isHtml: true,
+      noColon: true,
+    }] : [{
+      label: 'الإجمالي النهائي',
+      value: formatReceiptMoney(Number(options.total || 0), options.settings),
+      strong: true,
+    }]),
     ...(showPaymentDetails ? (
       remaining > 0.009 ? [
         { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
@@ -304,10 +331,11 @@ function renderTotals(options: {
         ] : []
       )
     ) : []),
-    ...(showItemCount ? [
-      { label: 'عدد البنود', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
-    ] : []),
-    ...(showPiecesCount ? [
+    ...(showItemCount && showPiecesCount ? [
+      { label: 'الأصناف والقطع', value: `${formatReceiptNumber(Number(options.items?.length || 0), options.settings)} صنف • ${formatReceiptQuantity(totalPieces, options.settings)} قطعة` },
+    ] : showItemCount ? [
+      { label: 'عدد الأصناف', value: formatReceiptNumber(Number(options.items?.length || 0), options.settings) },
+    ] : showPiecesCount ? [
       { label: 'إجمالي القطع', value: formatReceiptQuantity(totalPieces, options.settings) },
     ] : []),
   ];
@@ -330,7 +358,7 @@ function renderTotals(options: {
     <section class="invoice-card invoice-totals-card${options.compact ? ' compact' : ''}">
       ${rows.map((row) => `
         <div class="meta-line${row.strong ? ' strong total-line' : ''}">
-          <span class="meta-label">${escapeHtml(row.label)}:</span>
+          <span class="meta-label">${escapeHtml(row.label)}${(row as any).noColon ? '' : ':'}</span>
           <span class="meta-value">${(row as any).isHtml ? row.value : escapeHtml(row.value)}</span>
         </div>
       `).join('')}
@@ -407,7 +435,7 @@ export function getInvoiceStyles(compact = false) {
     .invoice-items-table.compact td:first-child { text-align: right; }
     .invoice-totals-card { padding-top: ${compact ? '4px' : '6px'}; padding-bottom: ${compact ? '4px' : '6px'}; border-top: 1px dashed #000; }
     .invoice-totals-card .meta-value { text-align: left; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 500; }
-    .invoice-totals-card .total-line { margin: ${compact ? '2px -2px' : '3px -3px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; font-size: ${compact ? '14px' : '17px'}; background: transparent; }
+    .invoice-totals-card .total-line { margin: ${compact ? '3px -2px' : '4px -3px'}; padding: ${compact ? '5px 6px' : '6px 8px'}; font-size: ${compact ? '13px' : '15px'}; background: transparent; border: 1px solid #000; border-radius: 4px; }
     .invoice-totals-card .meta-line.strong .meta-value { font-weight: 800; }
     .invoice-payment-card { border-top: 1px dashed #000; }
     .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 700; text-align: center; padding-bottom: 4px; margin-bottom: 2px; }
@@ -415,8 +443,8 @@ export function getInvoiceStyles(compact = false) {
     .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
     .payment-chip:last-child { border-bottom: 0; }
     .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 600; }
-    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '8px 2px' : '10px 4px'}; margin-top: ${compact ? '4px' : '6px'}; border-top: 1px dashed #000; break-inside: avoid; }
-    .invoice-barcode-svg-wrap { width: ${compact ? '90%' : '84%'}; max-width: ${compact ? '260px' : '300px'}; height: ${compact ? '46px' : '54px'}; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
+    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: ${compact ? '5px 2px' : '6px 4px'}; margin-top: ${compact ? '3px' : '4px'}; border-top: 1px dashed #000; break-inside: avoid; }
+    .invoice-barcode-svg-wrap { width: ${compact ? '88%' : '82%'}; max-width: ${compact ? '240px' : '280px'}; height: ${compact ? '28px' : '34px'}; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
     .invoice-barcode-svg-wrap svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
     .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border-top: 1px dashed #000; text-align: center; line-height: 1.35; }
     
@@ -451,8 +479,8 @@ export function getInvoiceStyles(compact = false) {
     .receipt-theme-ultra-compact .invoice-totals-card { padding: 2px 0; }
     .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 12.5px; border-bottom: 1px dashed #000; display: inline-flex; width: auto; }
     .receipt-theme-ultra-compact .payment-chip { padding: 1px 0; font-size: 10px; border-bottom: 1px dotted #000; }
-    .receipt-theme-ultra-compact .invoice-barcode-card { border: 0; border-top: 1px dashed #000; padding: 4px 0; margin-top: 3px; }
-    .receipt-theme-ultra-compact .invoice-barcode-svg-wrap { width: 85%; max-width: 220px; height: 36px; margin: 0 auto; }
+    .receipt-theme-ultra-compact .invoice-barcode-card { border: 0; border-top: 1px dashed #000; padding: 3px 0; margin-top: 2px; }
+    .receipt-theme-ultra-compact .invoice-barcode-svg-wrap { width: 80%; max-width: 200px; height: 24px; margin: 0 auto; }
     .receipt-theme-ultra-compact .print-footer { margin-top: 2px; padding: 2px 0; border: 0; border-top: 1px dashed #000; font-size: 8.5px; }
     .receipt-theme-ultra-compact .meta-label, .receipt-theme-ultra-compact .meta-value { white-space: nowrap; overflow: visible; }
 
@@ -500,7 +528,6 @@ export function buildReceiptDocument(options: {
   const showCashier = getPrintOption(options.settings, 'printShowCashier', true);
   const showBranch = getPrintOption(options.settings, 'printShowBranch', true);
   const showLocation = getPrintOption(options.settings, 'printShowLocation', true);
-  const showPaymentMethod = getPrintOption(options.settings, 'printShowPaymentMethod', true);
   const showDocumentType = getPrintOption(options.settings, 'printShowDocumentType', true);
   const showDocumentNumber = getPrintOption(options.settings, 'printShowDocumentNumber', true);
   const showOrderType = getPrintOption(options.settings, 'printShowOrderType', true);
@@ -524,7 +551,6 @@ export function buildReceiptDocument(options: {
       ...(options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),
       ...(options.customerAddress ? [{ label: 'عنوان العميل', value: options.customerAddress }] : []),
     ] : []),
-    ...(showPaymentMethod ? [{ label: options.isReturn ? 'طريقة رد المبلغ' : (options.isPurchase ? 'طريقة السداد' : 'طريقة الدفع'), value: options.paymentText || 'نقدي' }] : []),
     ...(options.isPurchase
       ? (options.cashierName && options.cashierName !== '—' ? [{ label: 'المسؤول', value: options.cashierName }] : [])
       : (showCashier ? [{ label: 'الكاشير', value: options.cashierName || '—' }] : [])),
@@ -543,7 +569,7 @@ export function buildReceiptDocument(options: {
         ${renderStoreHeader(options.settings, compact)}
         ${renderMetaPanel(metaRows, compact, options.settings)}
         ${renderItemsTable(options.items, compact, options.settings)}
-        ${renderTotals({ subtotal: options.subtotal, discount: options.discount, deliveryFee: options.deliveryFee, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact, isReturn: options.isReturn })}
+        ${renderTotals({ subtotal: options.subtotal, discount: options.discount, deliveryFee: options.deliveryFee, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact, isReturn: options.isReturn, paymentText: options.paymentText || 'نقدي' })}
         ${renderPaymentBreakdown(options.payments, options.settings, compact)}
         ${renderInvoiceBarcode(options.documentNumber, compact, options.settings)}
         ${renderFooter(options.settings, compact)}
