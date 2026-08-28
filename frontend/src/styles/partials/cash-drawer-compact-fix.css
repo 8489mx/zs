@@ -312,6 +312,12 @@
 .cash-drawer-review-table td,
 .cash-drawer-review-table th {
   white-space: nowrap;
+  padding: 7px 10px;
+}
+
+.cash-drawer-review-table th:not(:first-child),
+.cash-drawer-review-table td:not(:first-child) {
+  text-align: center;
 }
 
 

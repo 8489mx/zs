@@ -148,11 +148,12 @@ export function UserManagementEditorCard({
           <label style={labelStyle}>كلمة المرور الجديدة / الأولى</label>
           <input
             type="text"
+            className="secure-password-field"
             style={inputStyle}
             value={draft.password || ''}
             onChange={(e) => onDraftChange((current) => ({ ...current, password: e.target.value }))}
             placeholder={draft.id ? 'اتركها فارغة إن لم ترد التغيير' : 'مطلوبة للمستخدم الجديد'}
-            autoComplete="off"
+            autoComplete="new-password"
             data-lpignore="true"
             data-1p-ignore="true"
             data-form-type="other"

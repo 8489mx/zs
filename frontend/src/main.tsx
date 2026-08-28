@@ -58,11 +58,12 @@ if (typeof document !== 'undefined') {
     if (el instanceof HTMLFormElement) {
       if (!el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'off');
     } else if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-      if (el.type !== 'password' && !el.dataset.allowAutofill) {
+      if (!el.dataset.allowAutofill) {
         if (!el.getAttribute('autocomplete') || el.getAttribute('autocomplete') === 'on') {
           el.setAttribute('autocomplete', 'off');
         }
         el.setAttribute('data-lpignore', 'true');
+        el.setAttribute('data-1p-ignore', 'true');
         el.setAttribute('data-form-type', 'other');
       }
     }
@@ -71,7 +72,7 @@ if (typeof document !== 'undefined') {
   document.addEventListener('focusin', (e) => suppressAutofill(e.target as Element), true);
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('form').forEach(suppressAutofill);
-    document.querySelectorAll('input:not([type="password"])').forEach(suppressAutofill);
+    document.querySelectorAll('input, textarea').forEach(suppressAutofill);
   });
 }
 

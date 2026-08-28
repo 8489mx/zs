@@ -290,7 +290,7 @@ export class CashDrawerService {
              coalesce(sum(case when payment_channel = 'card' then amount else 0 end), 0) as card_sales_total,
              coalesce(sum(case when payment_channel = 'wallet' then amount else 0 end), 0) as wallet_sales_total,
              coalesce(sum(case when payment_channel = 'instapay' then amount else 0 end), 0) as instapay_sales_total,
-             coalesce((select sum(total) from shift_sales where payment_type = 'credit' or payment_channel = 'credit'), 0) as credit_sales_total,
+             coalesce((select sum(total) from shift_sales where (payment_type = 'credit' or payment_channel = 'credit') and coalesce(collection_status, '') != 'cod' and coalesce(payment_channel, '') != 'cod'), 0) as credit_sales_total,
              coalesce((select sum(total) from shift_sales where coalesce(collection_status, '') = 'cod' or payment_channel = 'cod'), 0) as delivery_sales_total,
              coalesce((select sum(total) from shift_sales), 0) as shift_sales_total,
              coalesce((select sum(delivery_fee) from shift_sales), 0) as delivery_fee_total,

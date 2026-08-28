@@ -177,12 +177,12 @@ export function TaxIntegrationSection() {
                 </button>
               </div>
               <input
-                type={showSecret ? 'text' : 'password'}
-                className="secure-password-field"
+                type="text"
+                className={showSecret ? '' : 'secure-password-field'}
                 placeholder="أدخل الـ Secret المستخرج من البوابة"
                 {...form.register('client_secret')}
                 style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
-                autoComplete="off"
+                autoComplete="new-password"
                 data-lpignore="true"
                 data-1p-ignore="true"
                 data-form-type="other"

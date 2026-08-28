@@ -261,7 +261,33 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
 
                       {canViewSensitiveTotals && (
                         <td style={{ padding: '14px 16px' }}>
-                          {renderVarianceBadge(row.variance)}
+                          {(() => {
+                            const openingCash = Number(row.openingCash || 0);
+                            const cashSales = Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0);
+                            const manualIn = Number(row.cashDrawerManualCashInTotal || (Number(row.cashDrawerDeliveryCashInTotal || 0) === 0 ? row.cashDrawerCashInTotal : 0) || 0);
+                            const totalOut = Number(row.cashDrawerCashOutTotal || 0) + Number(row.expensesTotal || 0) + Number(row.supplierPaymentsTotal || 0) + Number(row.saleReturnCashRefundTotal || 0);
+                            const dynamicExpectedCash = openingCash + cashSales + manualIn - totalOut;
+                            const drawerVariance = row.countedCash != null ? Number(row.countedCash) - dynamicExpectedCash : Number(row.variance || 0);
+
+                            const expectedCard = Number(row.cardSalesTotal || 0) + Number(row.serviceCardTotal || 0) - Number(row.saleReturnCardRefundTotal || 0);
+                            const cardDiff = Number(row.declaredCardTotal || 0) - expectedCard;
+                            const walletDiff = Number(row.declaredWalletTotal || 0) - Number(row.walletSalesTotal || 0);
+                            const instapayDiff = Number(row.declaredInstapayTotal || 0) - Number(row.instapaySalesTotal || 0);
+                            const electronicDiff = cardDiff + walletDiff + instapayDiff;
+                            const hasElectronicDeclarations = row.declaredCardTotal != null || row.declaredWalletTotal != null || row.declaredInstapayTotal != null;
+                            const totalShiftVariance = hasElectronicDeclarations ? drawerVariance + electronicDiff : drawerVariance;
+
+                            return (
+                              <div>
+                                <div>{renderVarianceBadge(totalShiftVariance)}</div>
+                                {hasElectronicDeclarations && Math.abs(electronicDiff) > 0.009 && (
+                                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                                    درج: {formatCurrency(drawerVariance)} | إلكتروني: {formatCurrency(electronicDiff)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                       )}
 
@@ -527,9 +553,9 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                 {renderMovementAccordionRow('cash_out', 'مسحوبات نقدية من الدرج', Number(row.cashDrawerCashOutTotal || 0), cashOutItems, false)}
                                 {renderMovementAccordionRow('expense', 'مصروفات تشغيلية ونثرية', Number(row.expensesTotal || 0), expenseItems, false)}
                                 {renderMovementAccordionRow('supplier_payment', 'سداد دفعات موردين', Number(row.supplierPaymentsTotal || 0), supplierItems, false)}
-                                {renderMovementAccordionRow('return_cash', 'مرتجعات مبيعات نقدية (كاش)', Number(row.saleReturnCashRefundTotal || 0), returnItems.filter(i => i.note.includes('كاش')), false)}
+                                {renderMovementAccordionRow('return_cash', 'مرتجع مبيعات نقدي', Number(row.saleReturnCashRefundTotal || 0), returnItems.filter(i => i.note.includes('كاش')), false)}
                                 {Number(row.saleReturnCardRefundTotal || 0) > 0 && (
-                                  renderMovementAccordionRow('return_card', 'مرتجعات بطاقات (فيزا)', Number(row.saleReturnCardRefundTotal || 0), returnItems.filter(i => i.note.includes('فيزا')), false)
+                                  renderMovementAccordionRow('return_card', 'مرتجع مبيعات بطاقات', Number(row.saleReturnCardRefundTotal || 0), returnItems.filter(i => i.note.includes('فيزا')), false)
                                 )}
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '4px' }}>
@@ -589,10 +615,40 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                       <span style={{ color: '#64748b' }}>النقدية الفعلية (المعدودة):</span>
                                       <strong style={{ color: '#0f172a' }}>{formatCurrency(row.countedCash || 0)}</strong>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                      <span style={{ color: '#64748b' }}>الفارق النهائي (عجز / زيادة):</span>
-                                      <strong>{renderVarianceBadge(dynamicVariance)}</strong>
-                                    </div>
+                                    {(() => {
+                                      const expectedCard = Number(row.cardSalesTotal || 0) + Number(row.serviceCardTotal || 0) - Number(row.saleReturnCardRefundTotal || 0);
+                                      const cardDiff = Number(row.declaredCardTotal || 0) - expectedCard;
+                                      const walletDiff = Number(row.declaredWalletTotal || 0) - Number(row.walletSalesTotal || 0);
+                                      const instapayDiff = Number(row.declaredInstapayTotal || 0) - Number(row.instapaySalesTotal || 0);
+                                      const electronicDiff = cardDiff + walletDiff + instapayDiff;
+                                      const hasElectronicDeclarations = row.declaredCardTotal != null || row.declaredWalletTotal != null || row.declaredInstapayTotal != null;
+
+                                      if (hasElectronicDeclarations && Math.abs(electronicDiff) > 0.009) {
+                                        return (
+                                          <>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                              <span style={{ color: '#64748b' }}>فارق نقدية الدرج:</span>
+                                              <strong>{renderVarianceBadge(dynamicVariance)}</strong>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                              <span style={{ color: '#64748b' }}>فارق الإلكتروني (فيزا/محافظ):</span>
+                                              <strong>{renderVarianceBadge(electronicDiff)}</strong>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1.5px solid #cbd5e1', paddingTop: '4px', marginTop: '2px' }}>
+                                              <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي فارق الوردية النهائي:</span>
+                                              <strong>{renderVarianceBadge(dynamicVariance + electronicDiff)}</strong>
+                                            </div>
+                                          </>
+                                        );
+                                      }
+
+                                      return (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                          <span style={{ color: '#64748b' }}>الفارق النهائي (عجز / زيادة):</span>
+                                          <strong>{renderVarianceBadge(dynamicVariance)}</strong>
+                                        </div>
+                                      );
+                                    })()}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
                                       <span style={{ color: '#64748b' }}>تاريخ الإغلاق:</span>
                                       <strong style={{ color: '#334155' }}>{row.closedAt ? formatDate(row.closedAt) : 'مفتوحة حاليًا'}</strong>

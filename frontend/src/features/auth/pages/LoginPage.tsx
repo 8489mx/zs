@@ -145,7 +145,14 @@ export function LoginPage() {
                   <input 
                     id="login-username"
                     {...form.register('username')} 
+                    type="text"
                     autoComplete="off" 
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
+                    autoCorrect="off" 
+                    autoCapitalize="off" 
+                    spellCheck={false}
                     placeholder="أدخل اسم المستخدم أو البريد الإلكتروني" 
                     className="login-input-pro"
                   />
@@ -164,9 +171,9 @@ export function LoginPage() {
                   <input 
                     id="login-password"
                     {...form.register('password')} 
-                    type={showPassword ? 'text' : 'password'}
+                    type="text"
                     className={`login-input-pro has-toggle ${!showPassword ? 'secure-password-field' : ''}`}
-                    autoComplete="off" 
+                    autoComplete="new-password" 
                     data-lpignore="true"
                     data-1p-ignore="true"
                     data-form-type="other"
@@ -182,13 +189,6 @@ export function LoginPage() {
                 {form.formState.errors.password?.message && (
                   <span className="login-field-error-text">{form.formState.errors.password?.message}</span>
                 )}
-              </div>
-
-              <div className="login-remember-me">
-                <label className="checkbox-label">
-                  <input type="checkbox" className="custom-checkbox" defaultChecked />
-                  <span>تذكرني في المرة القادمة</span>
-                </label>
               </div>
 
               <button type="button" className="login-submit-pro-btn" disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>
