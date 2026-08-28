@@ -102,19 +102,19 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
   const movementGroups = useMemo(() => {
     const rawItems = shift?.movementItems || [];
     const groupsMap: Record<string, MovementGroup> = {
-      delivery: { kind: 'delivery', label: 'توريد وتحصيل المناديب (دليفري)', total: Number(shift?.cashDrawerDeliveryCashInTotal || 0), isCredit: true, items: [] },
-      cash_in: { kind: 'cash_in', label: 'إيداعات نقدية أخرى بالدرج', total: Number(shift?.cashDrawerManualCashInTotal || (Number(shift?.cashDrawerDeliveryCashInTotal || 0) === 0 ? shift?.cashDrawerCashInTotal : 0) || 0), isCredit: true, items: [] },
+      cash_in: { kind: 'cash_in', label: 'إيداع نقدي بالدرج (يدوياً)', total: Number(shift?.cashDrawerManualCashInTotal || shift?.cashDrawerCashInTotal || 0), isCredit: true, items: [] },
       cash_out: { kind: 'cash_out', label: 'مسحوبات نقدية من الدرج', total: Number(shift?.cashDrawerCashOutTotal || 0), isCredit: false, items: [] },
-      expense: { kind: 'expense', label: 'مصروفات تشغيلية مسجلة', total: Number(shift?.expensesTotal || 0), isCredit: false, items: [] },
-      supplier_payment: { kind: 'supplier_payment', label: 'سداد دفعات موردين من الدرج', total: Number(shift?.supplierPaymentsTotal || 0), isCredit: false, items: [] },
-      sale_return: { kind: 'sale_return', label: 'مرتجعات مبيعات نقدية للعملاء', total: Number(shift?.saleReturnCashRefundTotal || 0), isCredit: false, items: [] },
+      expense: { kind: 'expense', label: 'مصروفات تشغيلية ونثرية', total: Number(shift?.expensesTotal || 0), isCredit: false, items: [] },
+      supplier_payment: { kind: 'supplier_payment', label: 'سداد دفعات موردين', total: Number(shift?.supplierPaymentsTotal || 0), isCredit: false, items: [] },
+      sale_return: { kind: 'sale_return', label: 'مرتجع مبيعات نقدي (كاش)', total: Number(shift?.saleReturnCashRefundTotal || 0), isCredit: false, items: [] },
     };
 
     for (const item of rawItems) {
+      if (item.kind === 'delivery') continue;
       if (groupsMap[item.kind]) {
         groupsMap[item.kind].items.push(item);
-      } else if (item.kind === 'delivery') {
-        groupsMap.delivery.items.push(item);
+      } else if (item.kind === 'return') {
+        groupsMap.sale_return.items.push(item);
       } else {
         groupsMap.cash_in.items.push(item);
       }
@@ -128,6 +128,18 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
     Number(shift.expensesTotal || 0) +
     Number(shift.supplierPaymentsTotal || 0) +
     Number(shift.saleReturnCashRefundTotal || 0)
+  ) : 0;
+
+  const dynamicExpectedCash = shift ? (
+    Number(shift.openingCash || 0) +
+    Number(shift.cashSalesTotal || 0) +
+    Number(shift.serviceCashTotal || 0) +
+    Number(shift.cashDrawerManualCashInTotal || (Number(shift.cashDrawerDeliveryCashInTotal || 0) === 0 ? shift.cashDrawerCashInTotal : 0) || 0) -
+    totalDeductions
+  ) : 0;
+
+  const dynamicVariance = shift ? (
+    (shift.declaredCash ?? shift.countedCash) != null ? Number(shift.declaredCash ?? shift.countedCash) - dynamicExpectedCash : Number(shift.variance || 0)
   ) : 0;
 
   const cleanCloseNote = shift?.closeNote && !shift.closeNote.startsWith('BLIND_CLOSE:')
@@ -235,17 +247,17 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 gap: '8px 12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0369a1', fontWeight: 700 }}>
-                  <ScaleIcon size={16} /> جرد النقدية بالدرج:
+                  <ScaleIcon size={16} /> جرد ومطابقة الدرج:
                 </div>
                 <div>العهدة: <strong>{formatCurrency(shift.openingCash)}</strong></div>
                 <div>(+) مبيعات كاش: <strong style={{ color: '#16a34a' }}>+{formatCurrency(Number(shift.cashSalesTotal || 0) + Number(shift.serviceCashTotal || 0))}</strong></div>
-                <div>(+) توريدات وإيداعات: <strong style={{ color: '#16a34a' }}>+{formatCurrency(shift.cashDrawerCashInTotal || 0)}</strong></div>
-                <div>(-) منصرفات ومسحوبات: <strong style={{ color: '#dc2626' }}>-{formatCurrency(totalDeductions)}</strong></div>
+                <div>(+) إيداعات نقدية: <strong style={{ color: '#16a34a' }}>+{formatCurrency(Number(shift.cashDrawerManualCashInTotal || (Number(shift.cashDrawerDeliveryCashInTotal || 0) === 0 ? shift.cashDrawerCashInTotal : 0) || 0))}</strong></div>
+                <div>(-) إجمالي المنصرف: <strong style={{ color: '#dc2626' }}>-{formatCurrency(totalDeductions)}</strong></div>
                 <div style={{ borderInlineStart: '1px solid #7dd3fc', paddingInlineStart: '10px' }}>
-                  صافي المتوقع: <strong style={{ color: '#0284c7', fontSize: '0.92rem' }}>{formatCurrency(shift.expectedCash)}</strong>
+                  صافي المتوقع: <strong style={{ color: '#0284c7', fontSize: '0.92rem' }}>{formatCurrency(dynamicExpectedCash)}</strong>
                 </div>
                 <div>المعدود: <strong style={{ fontSize: '0.92rem' }}>{formatCurrency(shift.declaredCash ?? shift.countedCash ?? 0)}</strong></div>
-                <div>الفرق: <strong style={{ color: Number(shift.variance || 0) < 0 ? '#dc2626' : Number(shift.variance || 0) > 0 ? '#16a34a' : '#0284c7' }}>{formatCurrency(shift.variance || 0)}</strong></div>
+                <div>الفرق: <strong style={{ color: dynamicVariance < 0 ? '#dc2626' : dynamicVariance > 0 ? '#16a34a' : '#0284c7' }}>{formatCurrency(dynamicVariance)}</strong></div>
               </div>
 
               {/* 5. Grouped & Expandable Drawer Movements (حركات ومنصرفات الدرج المجمعة والقابلة للطي) */}

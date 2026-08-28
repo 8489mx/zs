@@ -350,7 +350,6 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
 
                     {isExpanded && canViewSensitiveTotals && (() => {
                       const movementItems = row.movementItems || [];
-                      const deliveryItems = movementItems.filter((i) => i.kind === 'delivery');
                       const manualCashInItems = movementItems.filter((i) => i.kind === 'cash_in');
                       const cashOutItems = movementItems.filter((i) => i.kind === 'cash_out');
                       const expenseItems = movementItems.filter((i) => i.kind === 'expense');
@@ -376,24 +375,24 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                padding: '5px 8px',
+                                padding: hasItems ? '4px 6px' : '0',
+                                margin: hasItems ? '0 -6px' : '0',
                                 borderRadius: '6px',
                                 cursor: hasItems ? 'pointer' : 'default',
                                 background: isSubExpanded ? '#e2e8f0' : 'transparent',
-                                transition: 'all 0.15s ease',
+                                transition: 'background 0.15s ease',
                                 userSelect: 'none',
+                                gap: '8px',
                               }}
+                              title={hasItems ? 'اضغط لعرض تفاصيل الحركات' : undefined}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ color: '#475569', fontWeight: 600 }}>{label}:</span>
-                                {hasItems && (
-                                  <span style={{ fontSize: '0.72rem', background: '#e2e8f0', color: '#334155', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>
-                                    {items.length} {items.length === 1 ? 'حركة' : 'حركات'}
-                                  </span>
-                                )}
+                              <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                                <span style={{ color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {label}:
+                                </span>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <strong style={{ color: isCredit ? '#16a34a' : '#dc2626' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                <strong style={{ color: isCredit ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
                                   {isCredit ? '+' : '-'}{formatCurrency(total)}
                                 </strong>
                                 {hasItems && (
@@ -408,24 +407,38 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                               <div style={{
                                 background: '#ffffff',
                                 border: '1px solid #cbd5e1',
-                                borderRadius: '6px',
+                                borderRadius: '8px',
                                 padding: '6px 10px',
-                                marginInlineStart: '4px',
-                                fontSize: '0.80rem',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                                margin: '2px 0 4px',
+                                fontSize: '0.78rem',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '5px',
                               }}>
-                                {items.map((item) => (
-                                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px', gap: '8px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                      <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.note}</span>
-                                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{item.createdAt ? formatDate(item.createdAt) : '—'}</span>
+                                {items.map((item, idx) => (
+                                  <div
+                                    key={item.id}
+                                    style={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '3px',
+                                      borderBottom: idx < items.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                      paddingBottom: idx < items.length - 1 ? '5px' : '2px',
+                                      paddingTop: idx > 0 ? '3px' : '0',
+                                    }}
+                                  >
+                                    <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.80rem', wordBreak: 'break-word', lineHeight: 1.35 }}>
+                                      {item.note}
                                     </div>
-                                    <strong style={{ color: isCredit ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
-                                      {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
-                                    </strong>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
+                                      <span style={{ color: '#64748b' }}>
+                                        {item.createdAt ? formatDate(item.createdAt) : '—'}
+                                      </span>
+                                      <strong style={{ color: isCredit ? '#16a34a' : '#dc2626', fontSize: '0.84rem' }}>
+                                        {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
+                                      </strong>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -442,15 +455,15 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                             borderRadius: '14px',
                             border: '1px solid #e2e8f0',
                             padding: '20px',
-                            boxShadow: '0 4px 12px -2px rgba(0, 0, 0, 0.05)',
+                            boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.05)',
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
                             gap: '16px',
                           }}>
                             {/* Card 1: Sales breakdown */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
                               <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <CreditCardIcon size={16} /> مبيعات وطرق الدفع
+                                <CreditCardIcon size={16} /> المبيعات وطرق الدفع
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -466,11 +479,11 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                   <strong style={{ color: '#0f172a' }}>{formatCurrency(row.walletSalesTotal || 0)}</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>إنستاباي:</span>
+                                  <span style={{ color: '#64748b' }}>تحويلات إنستاباي:</span>
                                   <strong style={{ color: '#0f172a' }}>{formatCurrency(row.instapaySalesTotal || 0)}</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>مبيعات آجلة (ذمم):</span>
+                                  <span style={{ color: '#64748b' }}>مبيعات آجلة (ذمم عملاء):</span>
                                   <strong style={{ color: '#0f172a' }}>{formatCurrency(row.creditSalesTotal || 0)}</strong>
                                 </div>
                                 {Number(row.deliverySalesTotal || 0) > 0 && (
@@ -479,12 +492,14 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                     <strong style={{ color: '#0f172a' }}>{formatCurrency(row.deliverySalesTotal || 0)}</strong>
                                   </div>
                                 )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>خدمات سريعة:</span>
-                                  <strong style={{ color: '#0f172a' }}>{formatCurrency(row.serviceTotal || (Number(row.serviceCashTotal || 0) + Number(row.serviceCardTotal || 0)))}</strong>
-                                </div>
+                                {Number(row.serviceTotal || (Number(row.serviceCashTotal || 0) + Number(row.serviceCardTotal || 0))) > 0 && (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>خدمات وصيانة سريعة:</span>
+                                    <strong style={{ color: '#0f172a' }}>{formatCurrency(row.serviceTotal || (Number(row.serviceCashTotal || 0) + Number(row.serviceCardTotal || 0)))}</strong>
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
-                                  <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي المبيعات (الفواتير):</span>
+                                  <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي مبيعات الفواتير:</span>
                                   <strong style={{ fontWeight: 800, color: '#0284c7' }}>{formatCurrency(row.shiftSalesTotal || 0)}</strong>
                                 </div>
                                 {Number(row.freelanceDeliveryFeeTotal || 0) > 0 && (
@@ -502,24 +517,17 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                               </div>
                             </div>
 
-                            {/* Card 2: Movements & Returns with Interactive Accordions */}
+                            {/* Card 2: Movements & Returns */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <RefreshCwIcon size={16} /> الحركات والمسحوبات والمصروفات
-                                </span>
-                                <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 400 }}>اضغط للتفاصيل</span>
+                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <RefreshCwIcon size={16} /> حركات ومنصرفات الدرج
                               </h4>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem' }}>
-                                {renderMovementAccordionRow('delivery', 'توريد وتحصيل مناديب (دليفري)', Number(row.cashDrawerDeliveryCashInTotal || 0), deliveryItems, true)}
-                                {renderMovementAccordionRow('cash_in', 'إيداعات نقدية بالدرج (يدوياً)', Number(row.cashDrawerManualCashInTotal || 0), manualCashInItems, true)}
-                                {!(Number(row.cashDrawerDeliveryCashInTotal || 0) > 0) && !(Number(row.cashDrawerManualCashInTotal || 0) > 0) && Number(row.cashDrawerCashInTotal || 0) > 0 && (
-                                  renderMovementAccordionRow('cash_in_all', 'إيداعات نقدية في الدرج', Number(row.cashDrawerCashInTotal || 0), manualCashInItems, true)
-                                )}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+                                {renderMovementAccordionRow('cash_in', 'إيداعات نقدية بالدرج (يدوياً)', Number(row.cashDrawerManualCashInTotal || row.cashDrawerCashInTotal || 0), manualCashInItems, true)}
                                 {renderMovementAccordionRow('cash_out', 'مسحوبات نقدية من الدرج', Number(row.cashDrawerCashOutTotal || 0), cashOutItems, false)}
-                                {renderMovementAccordionRow('expense', 'مصروفات تشغيلية مسجلة', Number(row.expensesTotal || 0), expenseItems, false)}
-                                {renderMovementAccordionRow('supplier_payment', 'دفعات وسداد موردين من الدرج', Number(row.supplierPaymentsTotal || 0), supplierItems, false)}
-                                {renderMovementAccordionRow('return_cash', 'مرتجعات مبيعات نقدية للعملاء', Number(row.saleReturnCashRefundTotal || 0), returnItems.filter(i => i.note.includes('كاش')), false)}
+                                {renderMovementAccordionRow('expense', 'مصروفات تشغيلية ونثرية', Number(row.expensesTotal || 0), expenseItems, false)}
+                                {renderMovementAccordionRow('supplier_payment', 'سداد دفعات موردين', Number(row.supplierPaymentsTotal || 0), supplierItems, false)}
+                                {renderMovementAccordionRow('return_cash', 'مرتجعات مبيعات نقدية (كاش)', Number(row.saleReturnCashRefundTotal || 0), returnItems.filter(i => i.note.includes('كاش')), false)}
                                 {Number(row.saleReturnCardRefundTotal || 0) > 0 && (
                                   renderMovementAccordionRow('return_card', 'مرتجعات بطاقات (فيزا)', Number(row.saleReturnCardRefundTotal || 0), returnItems.filter(i => i.note.includes('فيزا')), false)
                                 )}
@@ -539,60 +547,66 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                             </div>
 
                             {/* Card 3: Reconciliation & Cash */}
-                            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <ScaleIcon size={16} /> جرد النقدية وإجمالي الدرج
-                              </h4>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>رصيد الفتح (العهدة):</span>
-                                  <strong style={{ color: '#0f172a' }}>{formatCurrency(row.openingCash)}</strong>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>(+) مبيعات وخدمات كاش:</span>
-                                  <strong style={{ color: '#16a34a' }}>+{formatCurrency(Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0))}</strong>
-                                </div>
-                                {Number(row.cashDrawerCashInTotal || 0) > 0 && (
-                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#64748b' }}>(+) توريدات وإيداعات بالدرج:</span>
-                                    <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerCashInTotal || 0)}</strong>
-                                  </div>
-                                )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>(-) خصومات ومنصرفات الدرج:</span>
-                                  <strong style={{ color: '#dc2626' }}>
-                                    -{formatCurrency(
-                                      Number(row.cashDrawerCashOutTotal || 0) +
-                                      Number(row.expensesTotal || 0) +
-                                      Number(row.supplierPaymentsTotal || 0) +
-                                      Number(row.saleReturnCashRefundTotal || 0)
+                            {(() => {
+                              const openingCash = Number(row.openingCash || 0);
+                              const cashSales = Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0);
+                              const manualIn = Number(row.cashDrawerManualCashInTotal || (Number(row.cashDrawerDeliveryCashInTotal || 0) === 0 ? row.cashDrawerCashInTotal : 0) || 0);
+                              const totalOut = Number(row.cashDrawerCashOutTotal || 0) + Number(row.expensesTotal || 0) + Number(row.supplierPaymentsTotal || 0) + Number(row.saleReturnCashRefundTotal || 0);
+                              const dynamicExpectedCash = openingCash + cashSales + manualIn - totalOut;
+                              const dynamicVariance = row.countedCash != null ? Number(row.countedCash) - dynamicExpectedCash : (row.variance != null ? Number(row.variance) : 0);
+
+                              return (
+                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                  <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <ScaleIcon size={16} /> جرد ومطابقة نقدية الدرج
+                                  </h4>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                      <span style={{ color: '#64748b' }}>رصيد الافتتاح (العهدة):</span>
+                                      <strong style={{ color: '#0f172a' }}>{formatCurrency(openingCash)}</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                      <span style={{ color: '#64748b' }}>(+) مبيعات نقدية (كاش):</span>
+                                      <strong style={{ color: '#16a34a' }}>+{formatCurrency(cashSales)}</strong>
+                                    </div>
+                                    {manualIn > 0 && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#64748b' }}>(+) إيداعات نقدية بالدرج:</span>
+                                        <strong style={{ color: '#16a34a' }}>+{formatCurrency(manualIn)}</strong>
+                                      </div>
                                     )}
-                                  </strong>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
-                                  <span style={{ fontWeight: 800, color: '#0f172a' }}>صافي النقدية بالدرج:</span>
-                                  <strong style={{ fontWeight: 800, color: '#0284c7' }}>{formatCurrency(row.expectedCash)}</strong>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>النقدية الفعلية المعدودة:</span>
-                                  <strong style={{ color: '#0f172a' }}>{formatCurrency(row.countedCash || 0)}</strong>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>الفرق النهائي:</span>
-                                  <strong>{renderVarianceBadge(row.variance)}</strong>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
-                                  <span style={{ color: '#64748b' }}>تاريخ الإغلاق:</span>
-                                  <strong style={{ color: '#334155' }}>{row.closedAt ? formatDate(row.closedAt) : 'مفتوحة حاليًا'}</strong>
-                                </div>
-                                {row.closedByName ? (
-                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#64748b' }}>أُغلقت بواسطة:</span>
-                                    <strong style={{ color: '#334155' }}>{row.closedByName}</strong>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                      <span style={{ color: '#64748b' }}>(-) إجمالي المنصرف من الدرج:</span>
+                                      <strong style={{ color: '#dc2626' }}>
+                                        -{formatCurrency(totalOut)}
+                                      </strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
+                                      <span style={{ fontWeight: 800, color: '#0f172a' }}>صافي النقدية المتوقعة:</span>
+                                      <strong style={{ fontWeight: 800, color: '#0284c7' }}>{formatCurrency(dynamicExpectedCash)}</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                      <span style={{ color: '#64748b' }}>النقدية الفعلية (المعدودة):</span>
+                                      <strong style={{ color: '#0f172a' }}>{formatCurrency(row.countedCash || 0)}</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                      <span style={{ color: '#64748b' }}>الفارق النهائي (عجز / زيادة):</span>
+                                      <strong>{renderVarianceBadge(dynamicVariance)}</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
+                                      <span style={{ color: '#64748b' }}>تاريخ الإغلاق:</span>
+                                      <strong style={{ color: '#334155' }}>{row.closedAt ? formatDate(row.closedAt) : 'مفتوحة حاليًا'}</strong>
+                                    </div>
+                                    {row.closedByName ? (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#64748b' }}>أُغلقت بواسطة:</span>
+                                        <strong style={{ color: '#334155' }}>{row.closedByName}</strong>
+                                      </div>
+                                    ) : null}
                                   </div>
-                                ) : null}
-                              </div>
-                            </div>
+                                </div>
+                              );
+                            })()}
 
                             {/* Card 4: Notes & Manager Approval */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>

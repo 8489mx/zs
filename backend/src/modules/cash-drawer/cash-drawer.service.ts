@@ -348,7 +348,9 @@ export class CashDrawerService {
     const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift, auth);
     const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(shift, auth);
     const expensesTotal = await this.computeShiftExpensesTotal(shift, auth);
-    return this.toMoney(Number(shift.opening_cash || 0) + movements.netMovementTotal + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
+    const manualCashIn = movements.manualCashInTotal > 0 ? movements.manualCashInTotal : (movements.deliveryCashInTotal === 0 ? movements.cashInTotal : 0);
+    const manualNetMovement = manualCashIn - movements.cashOutTotal;
+    return this.toMoney(Number(shift.opening_cash || 0) + manualNetMovement + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
   }
 
   private async fetchShiftMovementItems(shiftId: number, shift: ShiftRow, auth: AuthContext): Promise<Array<{
@@ -395,25 +397,18 @@ export class CashDrawerService {
       const amt = Number(tt.amount || 0);
       const rawNote = String(tt.note || '').trim();
       const isDelivery = rawNote.includes('دليفري') || rawNote.includes('مندوب');
-      const kind = amt > 0 ? (isDelivery ? 'delivery' : 'cash_in') : 'cash_out';
-      const kindLabel = amt > 0 ? (isDelivery ? 'توريد مندوب (دليفري)' : 'إيداع نقدي بالدرج') : 'مسحوبات نقدية من الدرج';
-
-      let enrichedNote = rawNote || '—';
-      const repMatch = rawNote.match(/مندوب\s*#?(\d+)/);
-      if (repMatch && repMatch[1]) {
-        const rId = Number(repMatch[1]);
-        const rName = repMap.get(rId);
-        if (rName) {
-          enrichedNote = enrichedNote.replace(repMatch[0], `المندوب ${rName} (#${rId})`);
-        }
+      if (isDelivery) {
+        continue;
       }
+      const kind = amt > 0 ? 'cash_in' : 'cash_out';
+      const kindLabel = amt > 0 ? 'إيداع نقدي بالدرج (يدوياً)' : 'مسحوبات نقدية من الدرج';
 
       items.push({
         id: `tt-${tt.id}`,
         kind,
         kindLabel,
         amount: Math.abs(amt),
-        note: enrichedNote,
+        note: rawNote || (amt > 0 ? 'إيداع نقدي بالدرج' : 'مسحوبات نقدية من الدرج'),
         createdAt: tt.created_at ? new Date(tt.created_at).toISOString() : '',
       });
     }
@@ -433,20 +428,20 @@ export class CashDrawerService {
 
       for (const exp of expRows.rows || []) {
         const amt = Number(exp.amount || 0);
-        const desc = [exp.title, exp.note].filter(Boolean).join(' - ');
+        const note = [exp.title, exp.note].filter(Boolean).join(' - ');
         items.push({
           id: `exp-${exp.id}`,
           kind: 'expense',
-          kindLabel: 'مصروف تشغيلي',
+          kindLabel: 'مصروفات تشغيلية',
           amount: Math.abs(amt),
-          note: desc.trim() || 'مصروفات',
-          createdAt: exp.expense_date || exp.created_at ? new Date(exp.expense_date || exp.created_at!).toISOString() : '',
+          note: note.trim() || 'مصروفات تشغيلية',
+          createdAt: exp.expense_date ? new Date(exp.expense_date).toISOString() : (exp.created_at ? new Date(exp.created_at).toISOString() : ''),
         });
       }
 
       // 4. Supplier payments
-      const supRows = await sql<{ id: number; amount: number | string; supplier_name?: string | null; note?: string | null; payment_date?: string | Date | null }>`
-        select sp.id, sp.amount, coalesce(sup.name, 'مورد') as supplier_name, sp.note, sp.payment_date
+      const supRows = await sql<{ id: number; amount: number | string; note?: string | null; supplier_name?: string | null; payment_date?: string | Date | null }>`
+        select sp.id, sp.amount, sp.note, sp.payment_date, sup.name as supplier_name
         from supplier_payments sp
         left join suppliers sup on sup.id = sp.supplier_id
         where sp.tenant_id = ${scope.tenantId} and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
@@ -470,8 +465,8 @@ export class CashDrawerService {
       }
 
       // 5. Returns (Sale Returns)
-      const retRows = await sql<{ id: number; doc_no?: string | null; total?: number | string | null; refund_method?: string | null; reason?: string | null; created_at?: string | Date | null }>`
-        select rd.id, rd.doc_no, rd.total, rd.refund_method, rd.reason, rd.created_at
+      const retRows = await sql<{ id: number; doc_no?: string | null; total?: number | string | null; refund_method?: string | null; note?: string | null; created_at?: string | Date | null }>`
+        select rd.id, rd.doc_no, rd.total, rd.refund_method, rd.note, rd.created_at
         from return_documents rd
         where rd.tenant_id = ${scope.tenantId} and rd.return_type = 'sale' and rd.created_by = ${openerId} and rd.created_at >= ${shift.created_at}
           and (${shift.closed_at || null}::timestamptz is null or rd.created_at <= ${shift.closed_at || null})
@@ -483,7 +478,7 @@ export class CashDrawerService {
       for (const ret of retRows.rows || []) {
         const amt = Number(ret.total || 0);
         const methodLabel = ret.refund_method === 'card' ? 'فيزا' : 'كاش';
-        const note = [`مرتجع (${methodLabel})`, ret.doc_no ? `#${ret.doc_no}` : '', ret.reason].filter(Boolean).join(' - ');
+        const note = [`مرتجع (${methodLabel})`, ret.doc_no ? `#${ret.doc_no}` : '', ret.note].filter(Boolean).join(' - ');
         items.push({
           id: `ret-${ret.id}`,
           kind: 'return',
