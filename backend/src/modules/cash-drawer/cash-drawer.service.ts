@@ -21,6 +21,10 @@ type ShiftRow = {
   wallet_sales_total?: number | string | null;
   instapay_sales_total?: number | string | null;
   credit_sales_total?: number | string | null;
+  delivery_fee_total?: number | string | null;
+  freelance_delivery_fee_total?: number | string | null;
+  store_delivery_fee_total?: number | string | null;
+  net_store_sales_total?: number | string | null;
   shift_sales_total?: number | string | null;
   sale_count?: number | string | null;
   mixed_sale_count?: number | string | null;
@@ -61,7 +65,23 @@ type SettingsRow = { key?: string; value?: string | null };
 type UserPasswordRow = { id?: number | string; is_active?: boolean | number | string | null; password_hash?: string | null; password_salt?: string | null };
 type CashDrawerMovementRow = { cash_drawer_movement_total?: number | string | null };
 type ShiftServiceBreakdown = { serviceCashTotal: number; serviceCardTotal: number; serviceTotal: number };
-type ShiftSalesBreakdown = { cashSalesTotal: number; cardSalesTotal: number; walletSalesTotal: number; instapaySalesTotal: number; creditSalesTotal: number; shiftSalesTotal: number; saleCount: number; mixedSalesCount: number; cardOperationCount: number; walletOperationCount: number; instapayOperationCount: number };
+type ShiftSalesBreakdown = {
+  cashSalesTotal: number;
+  cardSalesTotal: number;
+  walletSalesTotal: number;
+  instapaySalesTotal: number;
+  creditSalesTotal: number;
+  shiftSalesTotal: number;
+  deliveryFeeTotal: number;
+  freelanceDeliveryFeeTotal: number;
+  storeDeliveryFeeTotal: number;
+  netStoreSalesTotal: number;
+  saleCount: number;
+  mixedSalesCount: number;
+  cardOperationCount: number;
+  walletOperationCount: number;
+  instapayOperationCount: number;
+};
 type ShiftSaleReturnTotals = { saleReturnCashRefundTotal: number; saleReturnCardRefundTotal: number; saleReturnTotal: number };
 type CloseOperationDetailInput = { amount?: number; reference?: string };
 type BlindCloseMetadata = { blindClose: true; declared: { cash: number; cardTotal: number; cardCount: number; walletTotal: number; walletCount: number; instapayTotal: number; instapayCount: number }; detailTotals: { card: number; wallet: number; instapay: number }; details: { card: Array<{ amount: number; reference?: string }>; wallet: Array<{ amount: number; reference?: string }>; instapay: Array<{ amount: number; reference?: string }> }; managerReview?: { note: string; reviewedById: number; reviewedByName: string; reviewedAt: string }; note: string };
@@ -230,11 +250,30 @@ export class CashDrawerService {
 
   private async computeShiftSalesBreakdown(shift: ShiftRow, auth: AuthContext): Promise<ShiftSalesBreakdown> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
-    const empty = { cashSalesTotal: 0, cardSalesTotal: 0, walletSalesTotal: 0, instapaySalesTotal: 0, creditSalesTotal: 0, shiftSalesTotal: 0, saleCount: 0, mixedSalesCount: 0, cardOperationCount: 0, walletOperationCount: 0, instapayOperationCount: 0 };
+    const empty: ShiftSalesBreakdown = {
+      cashSalesTotal: 0,
+      cardSalesTotal: 0,
+      walletSalesTotal: 0,
+      instapaySalesTotal: 0,
+      creditSalesTotal: 0,
+      shiftSalesTotal: 0,
+      deliveryFeeTotal: 0,
+      freelanceDeliveryFeeTotal: 0,
+      storeDeliveryFeeTotal: 0,
+      netStoreSalesTotal: 0,
+      saleCount: 0,
+      mixedSalesCount: 0,
+      cardOperationCount: 0,
+      walletOperationCount: 0,
+      instapayOperationCount: 0,
+    };
     if (!(openerId > 0) || !shift.created_at) return empty;
     const result = await sql<any>`
       with shift_sales as (
-        select s.id, s.total, s.payment_type, s.payment_channel, s.collection_status from sales s
+        select s.id, s.total, s.payment_type, s.payment_channel, s.collection_status,
+               coalesce(s.delivery_fee, 0) as delivery_fee,
+               coalesce(s.delivery_fee_mode, 'freelance_courier') as delivery_fee_mode
+        from sales s
         where s.tenant_id = ${scope.tenantId} and s.status = 'posted' and s.created_by = ${openerId} and s.created_at >= ${shift.created_at}
           and (${shift.closed_at || null}::timestamptz is null or s.created_at <= ${shift.closed_at || null})
           and (${shift.branch_id || null}::int is null or s.branch_id is null or s.branch_id = ${Number(shift.branch_id || 0) || null})
@@ -250,6 +289,9 @@ export class CashDrawerService {
              coalesce(sum(case when payment_channel = 'instapay' then amount else 0 end), 0) as instapay_sales_total,
              coalesce((select sum(total) from shift_sales where payment_type = 'credit' or payment_channel = 'credit'), 0) as credit_sales_total,
              coalesce((select sum(total) from shift_sales), 0) as shift_sales_total,
+             coalesce((select sum(delivery_fee) from shift_sales), 0) as delivery_fee_total,
+             coalesce((select sum(case when delivery_fee_mode = 'freelance_courier' then delivery_fee else 0 end) from shift_sales), 0) as freelance_delivery_fee_total,
+             coalesce((select sum(case when delivery_fee_mode = 'store_fleet' then delivery_fee else 0 end) from shift_sales), 0) as store_delivery_fee_total,
              coalesce((select count(*) from shift_sales), 0)::int as sale_count,
              coalesce((select count(*) from shift_sales where payment_channel = 'mixed'), 0)::int as mixed_sale_count,
              coalesce(sum(case when payment_channel = 'card' then 1 else 0 end), 0)::int as card_operation_count,
@@ -258,7 +300,29 @@ export class CashDrawerService {
       from payment_rows
     `.execute(this.db);
     const row = result.rows?.[0] || {};
-    return { cashSalesTotal: this.toMoney(row.cash_sales_total || 0), cardSalesTotal: this.toMoney(row.card_sales_total || 0), walletSalesTotal: this.toMoney(row.wallet_sales_total || 0), instapaySalesTotal: this.toMoney(row.instapay_sales_total || 0), creditSalesTotal: this.toMoney(row.credit_sales_total || 0), shiftSalesTotal: this.toMoney(row.shift_sales_total || 0), saleCount: Number(row.sale_count || 0), mixedSalesCount: Number(row.mixed_sale_count || 0), cardOperationCount: Number(row.card_operation_count || 0), walletOperationCount: Number(row.wallet_operation_count || 0), instapayOperationCount: Number(row.instapay_operation_count || 0) };
+    const shiftSalesTotal = this.toMoney(row.shift_sales_total || 0);
+    const deliveryFeeTotal = this.toMoney(row.delivery_fee_total || 0);
+    const freelanceDeliveryFeeTotal = this.toMoney(row.freelance_delivery_fee_total || 0);
+    const storeDeliveryFeeTotal = this.toMoney(row.store_delivery_fee_total || 0);
+    const netStoreSalesTotal = this.toMoney(Math.max(0, shiftSalesTotal - freelanceDeliveryFeeTotal));
+
+    return {
+      cashSalesTotal: this.toMoney(row.cash_sales_total || 0),
+      cardSalesTotal: this.toMoney(row.card_sales_total || 0),
+      walletSalesTotal: this.toMoney(row.wallet_sales_total || 0),
+      instapaySalesTotal: this.toMoney(row.instapay_sales_total || 0),
+      creditSalesTotal: this.toMoney(row.credit_sales_total || 0),
+      shiftSalesTotal,
+      deliveryFeeTotal,
+      freelanceDeliveryFeeTotal,
+      storeDeliveryFeeTotal,
+      netStoreSalesTotal,
+      saleCount: Number(row.sale_count || 0),
+      mixedSalesCount: Number(row.mixed_sale_count || 0),
+      cardOperationCount: Number(row.card_operation_count || 0),
+      walletOperationCount: Number(row.wallet_operation_count || 0),
+      instapayOperationCount: Number(row.instapay_operation_count || 0),
+    };
   }
 
   private async computeShiftSaleReturnTotals(shift: ShiftRow, auth: AuthContext): Promise<ShiftSaleReturnTotals> {
@@ -422,6 +486,10 @@ export class CashDrawerService {
       wallet_sales_total: salesBreakdown.walletSalesTotal,
       instapay_sales_total: salesBreakdown.instapaySalesTotal,
       credit_sales_total: salesBreakdown.creditSalesTotal,
+      delivery_fee_total: salesBreakdown.deliveryFeeTotal,
+      freelance_delivery_fee_total: salesBreakdown.freelanceDeliveryFeeTotal,
+      store_delivery_fee_total: salesBreakdown.storeDeliveryFeeTotal,
+      net_store_sales_total: salesBreakdown.netStoreSalesTotal,
       shift_sales_total: salesBreakdown.shiftSalesTotal,
       sale_count: salesBreakdown.saleCount,
       mixed_sale_count: salesBreakdown.mixedSalesCount,

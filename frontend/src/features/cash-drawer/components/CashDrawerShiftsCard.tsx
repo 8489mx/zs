@@ -234,7 +234,12 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
 
                       {canViewSensitiveTotals && (
                         <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a' }}>
-                          {formatCurrency(row.shiftSalesTotal || 0)}
+                          <div>{formatCurrency(row.shiftSalesTotal || 0)}</div>
+                          {Number(row.freelanceDeliveryFeeTotal || 0) > 0 && (
+                            <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#16a34a', marginTop: '2px' }}>
+                              صافي المتجر: {formatCurrency((row.shiftSalesTotal || 0) - (row.freelanceDeliveryFeeTotal || 0))}
+                            </div>
+                          )}
                         </td>
                       )}
 
@@ -349,9 +354,21 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                   <strong style={{ color: '#0f172a' }}>{formatCurrency(row.serviceTotal || (Number(row.serviceCashTotal || 0) + Number(row.serviceCardTotal || 0)))}</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
-                                  <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي المبيعات:</span>
+                                  <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي المبيعات (الفواتير):</span>
                                   <strong style={{ fontWeight: 800, color: '#0284c7' }}>{formatCurrency(row.shiftSalesTotal || 0)}</strong>
                                 </div>
+                                {Number(row.freelanceDeliveryFeeTotal || 0) > 0 && (
+                                  <>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626', fontSize: '0.84rem' }}>
+                                      <span>(-) رسوم توصيل طيارين (للمندوب):</span>
+                                      <strong>-{formatCurrency(row.freelanceDeliveryFeeTotal || 0)}</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '4px', marginTop: '2px' }}>
+                                      <span style={{ fontWeight: 800, color: '#16a34a' }}>صافي مبيعات المتجر:</span>
+                                      <strong style={{ fontWeight: 800, color: '#16a34a' }}>{formatCurrency((row.shiftSalesTotal || 0) - (row.freelanceDeliveryFeeTotal || 0))}</strong>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </div>
 

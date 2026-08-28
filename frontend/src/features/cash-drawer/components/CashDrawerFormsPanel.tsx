@@ -429,7 +429,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   {closeCashDrawerMovementTotal !== 0 ? <span>حركات درج النقدية: <strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong></span> : null}
                   {closeExpensesTotal > 0 ? <span>مصروفات مسجلة: <strong>{formatCurrency(closeExpensesTotal)}</strong></span> : null}
                   {closeSupplierPaymentsTotal > 0 ? <span>دفعات موردين: <strong>{formatCurrency(closeSupplierPaymentsTotal)}</strong></span> : null}
-                  <span>إجمالي مبيعات الوردية: <strong>{formatCurrency(closeShiftSalesTotal)}</strong></span>
+                  <span>إجمالي مبيعات الفواتير: <strong>{formatCurrency(closeShiftSalesTotal)}</strong></span>
+                  {Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0) > 0 ? (
+                    <>
+                      <span>(-) رسوم طيارين: <strong style={{ color: '#dc2626' }}>-{formatCurrency(selectedCloseShift.freelanceDeliveryFeeTotal || 0)}</strong></span>
+                      <span>صافي مبيعات المتجر: <strong style={{ color: '#16a34a' }}>{formatCurrency(closeShiftSalesTotal - Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0))}</strong></span>
+                    </>
+                  ) : null}
                   <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.</span>
                 </div>
               ) : null}

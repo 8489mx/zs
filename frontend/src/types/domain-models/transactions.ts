@@ -191,6 +191,10 @@ export interface CashierShift {
   walletSalesTotal?: number;
   instapaySalesTotal?: number;
   creditSalesTotal?: number;
+  deliveryFeeTotal?: number;
+  freelanceDeliveryFeeTotal?: number;
+  storeDeliveryFeeTotal?: number;
+  netStoreSalesTotal?: number;
   shiftSalesTotal?: number;
   serviceCashTotal?: number;
   serviceCardTotal?: number;
