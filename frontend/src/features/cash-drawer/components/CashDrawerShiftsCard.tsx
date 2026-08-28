@@ -629,18 +629,18 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                       <span style={{ color: '#64748b' }}>(+) مبيعات نقدية (كاش):</span>
-                                      <strong style={{ color: '#16a34a' }}>+{formatCurrency(cashSales)}</strong>
+                                      <strong style={{ color: '#0f172a' }}>+{formatCurrency(cashSales)}</strong>
                                     </div>
                                     {manualIn > 0 && (
                                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#64748b' }}>(+) إيداعات نقدية بالدرج:</span>
-                                        <strong style={{ color: '#16a34a' }}>+{formatCurrency(manualIn)}</strong>
+                                        <strong style={{ color: '#0f172a' }}>+{formatCurrency(manualIn)}</strong>
                                       </div>
                                     )}
                                     {deliveryIn > 0 && (
                                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#0284c7', fontWeight: 600 }}>(+) تحصيلات مناديب دليفري:</span>
-                                        <strong style={{ color: '#0284c7' }}>+{formatCurrency(deliveryIn)}</strong>
+                                        <span style={{ color: '#64748b' }}>(+) تحصيلات مناديب دليفري:</span>
+                                        <strong style={{ color: '#0f172a' }}>+{formatCurrency(deliveryIn)}</strong>
                                       </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
