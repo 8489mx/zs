@@ -509,7 +509,7 @@ function PosProductsPanelComponent({
           </div>
         </div>
 
-        {categories.length > 0 && (
+        {isTouchMode && categories.length > 0 && (
           <div
             className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
             style={{ gap: '6px', marginTop: '10px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
@@ -565,169 +565,171 @@ function PosProductsPanelComponent({
           </div>
         )}
 
-        <div
-          className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
-          style={{ gap: '6px', marginTop: '6px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
-          onWheel={(e) => {
-            if (e.deltaY !== 0) {
-              e.currentTarget.scrollLeft += e.deltaY;
-            }
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setShelf('all');
-              onProductFilterChange('all');
-              setSelectedIndex(0);
-            }}
-            style={{
-              padding: '5px 12px',
-              fontSize: '12px',
-              borderRadius: '7px',
-              border: shelf === 'all' && productFilter === 'all' ? '1px solid #0f172a' : '1px solid #cbd5e1',
-              background: shelf === 'all' && productFilter === 'all' ? '#0f172a' : '#ffffff',
-              color: shelf === 'all' && productFilter === 'all' ? '#ffffff' : '#334155',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontWeight: shelf === 'all' && productFilter === 'all' ? 'bold' : '500',
+        {isTouchMode && (
+          <div
+            className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
+            style={{ gap: '6px', marginTop: '6px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
+            onWheel={(e) => {
+              if (e.deltaY !== 0) {
+                e.currentTarget.scrollLeft += e.deltaY;
+              }
             }}
           >
-            الكل
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShelf('favorites');
-              onProductFilterChange('all');
-              setSelectedIndex(0);
-            }}
-            style={{
-              padding: '5px 12px',
-              fontSize: '12px',
-              borderRadius: '7px',
-              border: shelf === 'favorites' ? '1px solid #0f172a' : '1px solid #cbd5e1',
-              background: shelf === 'favorites' ? '#0f172a' : '#ffffff',
-              color: shelf === 'favorites' ? '#ffffff' : '#334155',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontWeight: shelf === 'favorites' ? 'bold' : '500',
-            }}
-          >
-            المفضلة
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onProductFilterChange('offers');
-              setShelf('all');
-              setSelectedIndex(0);
-            }}
-            style={{
-              padding: '5px 12px',
-              fontSize: '12px',
-              borderRadius: '7px',
-              border: productFilter === 'offers' ? '1px solid #0f172a' : '1px solid #cbd5e1',
-              background: productFilter === 'offers' ? '#0f172a' : '#ffffff',
-              color: productFilter === 'offers' ? '#ffffff' : '#334155',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontWeight: productFilter === 'offers' ? 'bold' : '500',
-            }}
-          >
-            بعروض
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShelf('recent');
-              onProductFilterChange('all');
-              setSelectedIndex(0);
-            }}
-            style={{
-              padding: '5px 12px',
-              fontSize: '12px',
-              borderRadius: '7px',
-              border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1',
-              background: shelf === 'recent' ? '#0f172a' : '#ffffff',
-              color: shelf === 'recent' ? '#ffffff' : '#334155',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontWeight: shelf === 'recent' ? 'bold' : '500',
-            }}
-          >
-            آخر استخدام
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onProductFilterChange('raw_materials');
-              setShelf('all');
-              setSelectedIndex(0);
-            }}
-            style={{
-              padding: '5px 12px',
-              fontSize: '12px',
-              borderRadius: '7px',
-              border: productFilter === 'raw_materials' ? '1px solid #0f172a' : '1px solid #cbd5e1',
-              background: productFilter === 'raw_materials' ? '#0f172a' : '#ffffff',
-              color: productFilter === 'raw_materials' ? '#ffffff' : '#334155',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontWeight: productFilter === 'raw_materials' ? 'bold' : '500',
-            }}
-          >
-            مواد خام
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShelf('all');
+                onProductFilterChange('all');
+                setSelectedIndex(0);
+              }}
+              style={{
+                padding: '5px 12px',
+                fontSize: '12px',
+                borderRadius: '7px',
+                border: shelf === 'all' && productFilter === 'all' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                background: shelf === 'all' && productFilter === 'all' ? '#0f172a' : '#ffffff',
+                color: shelf === 'all' && productFilter === 'all' ? '#ffffff' : '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: shelf === 'all' && productFilter === 'all' ? 'bold' : '500',
+              }}
+            >
+              الكل
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShelf('favorites');
+                onProductFilterChange('all');
+                setSelectedIndex(0);
+              }}
+              style={{
+                padding: '5px 12px',
+                fontSize: '12px',
+                borderRadius: '7px',
+                border: shelf === 'favorites' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                background: shelf === 'favorites' ? '#0f172a' : '#ffffff',
+                color: shelf === 'favorites' ? '#ffffff' : '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: shelf === 'favorites' ? 'bold' : '500',
+              }}
+            >
+              المفضلة
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onProductFilterChange('offers');
+                setShelf('all');
+                setSelectedIndex(0);
+              }}
+              style={{
+                padding: '5px 12px',
+                fontSize: '12px',
+                borderRadius: '7px',
+                border: productFilter === 'offers' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                background: productFilter === 'offers' ? '#0f172a' : '#ffffff',
+                color: productFilter === 'offers' ? '#ffffff' : '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: productFilter === 'offers' ? 'bold' : '500',
+              }}
+            >
+              بعروض
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShelf('recent');
+                onProductFilterChange('all');
+                setSelectedIndex(0);
+              }}
+              style={{
+                padding: '5px 12px',
+                fontSize: '12px',
+                borderRadius: '7px',
+                border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                background: shelf === 'recent' ? '#0f172a' : '#ffffff',
+                color: shelf === 'recent' ? '#ffffff' : '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: shelf === 'recent' ? 'bold' : '500',
+              }}
+            >
+              آخر استخدام
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onProductFilterChange('raw_materials');
+                setShelf('all');
+                setSelectedIndex(0);
+              }}
+              style={{
+                padding: '5px 12px',
+                fontSize: '12px',
+                borderRadius: '7px',
+                border: productFilter === 'raw_materials' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                background: productFilter === 'raw_materials' ? '#0f172a' : '#ffffff',
+                color: productFilter === 'raw_materials' ? '#ffffff' : '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: productFilter === 'raw_materials' ? 'bold' : '500',
+              }}
+            >
+              مواد خام
+            </button>
 
-          {/* Density Toggle Button */}
-          <button
-            type="button"
-            onClick={toggleCardDensity}
-            title={cardDensity === 'comfortable' ? 'التبديل إلى كروت مضغوطة' : 'التبديل إلى كروت موسعة'}
-            style={{
-              marginInlineStart: 'auto',
-              padding: '4px 10px',
-              fontSize: '11px',
-              borderRadius: '7px',
-              border: '1px solid #cbd5e1',
-              background: cardDensity === 'compact' ? '#0f172a' : '#ffffff',
-              color: cardDensity === 'compact' ? '#ffffff' : '#334155',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-          >
-            {cardDensity === 'compact' ? 'كروت مضغوطة' : 'كروت موسعة'}
-          </button>
+            {/* Density Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleCardDensity}
+              title={cardDensity === 'comfortable' ? 'التبديل إلى كروت مضغوطة' : 'التبديل إلى كروت موسعة'}
+              style={{
+                marginInlineStart: 'auto',
+                padding: '4px 10px',
+                fontSize: '11px',
+                borderRadius: '7px',
+                border: '1px solid #cbd5e1',
+                background: cardDensity === 'compact' ? '#0f172a' : '#ffffff',
+                color: cardDensity === 'compact' ? '#ffffff' : '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              {cardDensity === 'compact' ? 'كروت مضغوطة' : 'كروت موسعة'}
+            </button>
 
-          {/* Icon Theme Studio Button */}
-          <button
-            type="button"
-            onClick={() => setIsStudioOpen(true)}
-            title="تخصيص ألوان ومظهر أيقونات الأصناف"
-            style={{
-              padding: '4px 9px',
-              fontSize: '11px',
-              borderRadius: '7px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#334155',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <span>الأيقونات</span>
-          </button>
-        </div>
+            {/* Icon Theme Studio Button */}
+            <button
+              type="button"
+              onClick={() => setIsStudioOpen(true)}
+              title="تخصيص ألوان ومظهر أيقونات الأصناف"
+              style={{
+                padding: '4px 9px',
+                fontSize: '11px',
+                borderRadius: '7px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span>الأيقونات</span>
+            </button>
+          </div>
+        )}
 
-        {visibleRecentGroups.length ? (
+        {isTouchMode && visibleRecentGroups.length ? (
           <div className="pos-quick-picks-row" aria-label="وصول سريع">
             <span className="muted small">وصول سريع</span>
             <div className="pos-quick-picks-buttons">
