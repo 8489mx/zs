@@ -10,6 +10,8 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   PrinterIcon,
+  DownloadIcon,
+  CopyIcon,
 } from '@/shared/components/icons/AppIcons';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -104,19 +106,37 @@ function renderStatusBadge(status: string) {
 }
 
 function renderVarianceBadge(variance: number) {
-  if (variance === 0) {
-    return <span style={{ color: '#64748b', fontWeight: 600 }}>0.00 ج.م</span>;
+  if (Math.abs(variance) < 0.01) {
+    return <span style={{ color: '#64748b', fontWeight: 600, fontSize: '0.85rem' }}>0.00 ج.م</span>;
   }
   if (variance > 0) {
     return (
-      <span style={{ color: '#16a34a', fontWeight: 700, direction: 'ltr', display: 'inline-block' }}>
+      <span style={{
+        background: '#ecfdf5',
+        color: '#15803d',
+        padding: '2px 8px',
+        borderRadius: '6px',
+        fontWeight: 700,
+        fontSize: '0.86rem',
+        border: '1px solid #bbf7d0',
+        display: 'inline-block',
+      }}>
         +{formatCurrency(variance)}
       </span>
     );
   }
   return (
-    <span style={{ color: '#dc2626', fontWeight: 700, direction: 'ltr', display: 'inline-block' }}>
-      -{formatCurrency(Math.abs(variance))}
+    <span style={{
+      background: '#fef2f2',
+      color: '#dc2626',
+      padding: '2px 8px',
+      borderRadius: '6px',
+      fontWeight: 700,
+      fontSize: '0.86rem',
+      border: '1px solid #fecaca',
+      display: 'inline-block',
+    }}>
+      {formatCurrency(variance)}
     </span>
   );
 }
@@ -147,10 +167,16 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
     <Card
       title="ورديات نقطة البيع الحالية"
       actions={canViewSensitiveTotals ? (
-        <div className="actions compact-actions">
-          <Button variant="secondary" onClick={props.onCopySummary} disabled={!props.totalItems}>نسخ الملخص</Button>
-          <Button variant="secondary" onClick={props.onExportRows} disabled={!props.totalItems}>تصدير Excel</Button>
-          <Button variant="secondary" onClick={props.onPrintRows} disabled={!props.totalItems}>طباعة النتائج</Button>
+        <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Button variant="secondary" onClick={props.onCopySummary} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <CopyIcon size={14} /> <span>نسخ الملخص</span>
+          </Button>
+          <Button variant="secondary" onClick={props.onExportRows} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <DownloadIcon size={14} /> <span>تصدير Excel</span>
+          </Button>
+          <Button variant="secondary" onClick={props.onPrintRows} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <PrinterIcon size={14} /> <span>طباعة النتائج</span>
+          </Button>
         </div>
       ) : undefined}
       className="cash-drawer-shifts-card"
@@ -161,7 +187,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
         <Button variant={props.shiftFilter === 'closed' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('closed')}>مغلقة</Button>
         {canReviewPending ? (
           <Button variant={props.shiftFilter === 'pending_review' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('pending_review')}>
-            في انتظار مراجعة المدير{typeof props.pendingReviewCount === 'number' ? ` (${props.pendingReviewCount})` : ''}
+            في انتظار مراجعة المشرف{typeof props.pendingReviewCount === 'number' ? ` (${props.pendingReviewCount})` : ''}
           </Button>
         ) : null}
         <Button variant={props.shiftFilter === 'variance' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('variance')}>بفروقات</Button>
@@ -169,7 +195,9 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
       </div>
 
       <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={searchPlaceholder}>
-        <Button variant="secondary" onClick={props.onReset}>إعادة الضبط</Button>
+        <Button variant="secondary" onClick={props.onReset} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <RefreshCwIcon size={14} /> <span>إعادة الضبط</span>
+        </Button>
       </SearchToolbar>
 
       <QueryFeedback
@@ -186,20 +214,21 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: '#334155' }}>الوردية / الكاشير</th>
-                {!SINGLE_STORE_MODE && <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: '#334155' }}>الفرع والمخزن</th>}
-                {SINGLE_STORE_MODE && <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: '#334155' }}>المخزن</th>}
-                <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#334155' }}>الحالة</th>
-                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: '#334155' }}>رصيد الفتح</th>
-                {canViewSensitiveTotals && <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: '#334155' }}>إجمالي المبيعات</th>}
-                {canViewSensitiveTotals && <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, color: '#334155' }}>الفرق</th>}
-                <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#334155', width: '170px' }}>الإجراءات</th>
+                <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>الوردية / الكاشير</th>
+                {!SINGLE_STORE_MODE && <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>الفرع والمخزن</th>}
+                {SINGLE_STORE_MODE && <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>المخزن</th>}
+                <th style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>الحالة</th>
+                <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>رصيد الفتح</th>
+                {canViewSensitiveTotals && <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>إجمالي المبيعات</th>}
+                {canViewSensitiveTotals && <th style={{ padding: '14px 16px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, color: '#334155' }}>الفرق</th>}
+                <th style={{ padding: '14px 16px', textAlign: 'left', verticalAlign: 'middle', fontWeight: 700, color: '#334155', minWidth: '170px' }}>الإجراءات</th>
               </tr>
             </thead>
             <tbody>
               {props.rows.map((row) => {
                 const isExpanded = Boolean(expandedIds[row.id]);
                 const isPending = String(row.status || '') === 'pending_review';
+                const isOpen = String(row.status || '') === 'open';
 
                 return (
                   <React.Fragment key={row.id}>
@@ -208,13 +237,14 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                       style={{
                         cursor: canViewSensitiveTotals ? 'pointer' : 'default',
                         borderBottom: isExpanded ? 'none' : '1px solid #f1f5f9',
-                        background: isExpanded ? '#f8fafc' : '#ffffff',
+                        background: isExpanded ? '#f8fafc' : isOpen ? '#f0fdf4' : '#ffffff',
+                        borderInlineStart: isOpen ? '4px solid #16a34a' : '4px solid transparent',
                         transition: 'background-color 0.15s ease',
                       }}
-                      onMouseEnter={(e) => { if (!isExpanded && canViewSensitiveTotals) e.currentTarget.style.background = '#fcfdfe'; }}
-                      onMouseLeave={(e) => { if (!isExpanded && canViewSensitiveTotals) e.currentTarget.style.background = '#ffffff'; }}
+                      onMouseEnter={(e) => { if (!isExpanded && canViewSensitiveTotals) e.currentTarget.style.background = isOpen ? '#eafaf1' : '#fcfdfe'; }}
+                      onMouseLeave={(e) => { if (!isExpanded && canViewSensitiveTotals) e.currentTarget.style.background = isOpen ? '#f0fdf4' : '#ffffff'; }}
                     >
-                      <td style={{ padding: '14px 16px' }}>
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
                             {row.openedByName || row.docNo || `وردية #${row.id}`}
@@ -226,7 +256,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                       </td>
 
                       {!SINGLE_STORE_MODE && (
-                        <td style={{ padding: '14px 16px' }}>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                             <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{row.branchName || 'الفرع الرئيسي'}</span>
                             <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{row.locationName || 'المخزن الرئيسي'}</span>
@@ -235,21 +265,21 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                       )}
 
                       {SINGLE_STORE_MODE && (
-                        <td style={{ padding: '14px 16px', color: '#1e293b', fontWeight: 600 }}>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle', color: '#1e293b', fontWeight: 600 }}>
                           {row.locationName || 'المخزن الرئيسي'}
                         </td>
                       )}
 
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'right' }}>
                         {renderStatusBadge(String(row.status || ''))}
                       </td>
 
-                      <td style={{ padding: '14px 16px', fontWeight: 600, color: '#334155' }}>
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center', fontWeight: 600, color: '#334155' }}>
                         {formatCurrency(row.openingCash)}
                       </td>
 
                       {canViewSensitiveTotals && (
-                        <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a' }}>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center', fontWeight: 700, color: '#0f172a' }}>
                           <div>{formatCurrency(row.shiftSalesTotal || 0)}</div>
                           {Number(row.freelanceDeliveryFeeTotal || 0) > 0 && (
                             <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#16a34a', marginTop: '2px' }}>
@@ -260,7 +290,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                       )}
 
                       {canViewSensitiveTotals && (
-                        <td style={{ padding: '14px 16px' }}>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
                           {(() => {
                             const openingCash = Number(row.openingCash || 0);
                             const cashSales = Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0);
@@ -291,8 +321,8 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                         </td>
                       )}
 
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
                           {canReviewPending && isPending ? (
                             <button
                               type="button"

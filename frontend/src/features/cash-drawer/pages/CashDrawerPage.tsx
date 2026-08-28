@@ -105,6 +105,7 @@ export function CashDrawerPage() {
         totalItems={controller.summary.totalItems}
         openShiftCount={controller.openShiftCount}
         openShiftLabel={controller.openShift?.openedByName || controller.openShift?.docNo}
+        pendingReviewCount={controller.pendingReviewCount}
         totalVariance={controller.totalVariance}
         canViewSensitiveTotals={controller.canViewSensitiveTotals}
       />

@@ -341,3 +341,21 @@
     grid-template-columns: 1fr;
   }
 }
+
+.cash-drawer-shifts-card .filter-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cash-drawer-shifts-card .table-wrap table th,
+.cash-drawer-shifts-card .table-wrap table td {
+  vertical-align: middle !important;
+}
+
+.cash-drawer-shifts-card .table-wrap table th {
+  font-size: 0.86rem;
+  letter-spacing: -0.01em;
+}
+
