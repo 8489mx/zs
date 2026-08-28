@@ -54,18 +54,135 @@ function summarizeDetails(rows: Array<{ amount?: number }>): number {
   return Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
 }
 
-function OperationAmountGrid(props: {
+function CashIcon(props: { size?: number; color?: string }) {
+  const size = props.size || 18;
+  const color = props.color || '#16a34a';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M6 12h.01M18 12h.01" />
+    </svg>
+  );
+}
+
+function CardIcon(props: { size?: number; color?: string }) {
+  const size = props.size || 18;
+  const color = props.color || '#2563eb';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+      <line x1="6" y1="15" x2="10" y2="15" />
+    </svg>
+  );
+}
+
+function WalletIcon(props: { size?: number; color?: string }) {
+  const size = props.size || 18;
+  const color = props.color || '#7c3aed';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+      <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+    </svg>
+  );
+}
+
+function InstaPayIcon(props: { size?: number; color?: string }) {
+  const size = props.size || 18;
+  const color = props.color || '#059669';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
+function LockIcon(props: { size?: number; color?: string }) {
+  const size = props.size || 12;
+  const color = props.color || 'currentColor';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+function ChevronIcon(props: { open?: boolean; size?: number }) {
+  const size = props.size || 15;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ transform: props.open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon(props: { size?: number; color?: string }) {
+  const size = props.size || 14;
+  const color = props.color || '#16a34a';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+function AlertCircleIcon(props: { size?: number; color?: string }) {
+  const size = props.size || 14;
+  const color = props.color || '#dc2626';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+}
+
+function ZapIcon(props: { size?: number; color?: string }) {
+  const size = props.size || 13;
+  const color = props.color || 'currentColor';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
+interface PaymentChannelRowProps {
   title: string;
-  badgeColor: string;
-  iconText: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  themeColor: string;
+  bgLight: string;
+  borderColor: string;
   count: number;
   declaredTotal: number;
+  declaredFieldName: 'cardDeclaredTotal' | 'walletDeclaredTotal' | 'instapayDeclaredTotal';
+  detailsFieldName: DetailChannel;
   detailsRows: Array<{ amount?: number }>;
-  field: DetailChannel;
+  isOpen: boolean;
+  onToggle: () => void;
   register: UseFormReturn<CloseShiftValues>['register'];
   onApplyTotalToDeclared: (total: number) => void;
   disabled?: boolean;
-}) {
+}
+
+function PaymentChannelRow(props: PaymentChannelRowProps) {
   const detailsTotal = useMemo(() => summarizeDetails(props.detailsRows), [props.detailsRows]);
   const diff = Number((detailsTotal - props.declaredTotal).toFixed(2));
   const isMatch = Math.abs(diff) < 0.01 && detailsTotal > 0 && props.declaredTotal > 0;
@@ -74,142 +191,272 @@ function OperationAmountGrid(props: {
   return (
     <div
       style={{
-        gridColumn: '1 / -1',
-        background: '#f8fafc',
-        border: '1.5px solid #e2e8f0',
-        borderRadius: '12px',
-        padding: '16px',
-        marginTop: '6px',
-        marginBottom: '12px',
+        border: `1.5px solid ${props.isOpen ? props.themeColor : props.borderColor}`,
+        borderRadius: '10px',
+        background: '#ffffff',
+        overflow: 'hidden',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+        boxShadow: props.isOpen ? `0 4px 12px -2px ${props.themeColor}20` : '0 1px 3px rgba(0,0,0,0.03)',
       }}
     >
+      {/* Main Row Bar */}
       <div
         style={{
+          padding: '12px 16px',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
-          paddingBottom: '12px',
-          borderBottom: '1px solid #e2e8f0',
+          background: props.isOpen ? props.bgLight : '#ffffff',
+          borderBottom: props.isOpen ? `1px solid ${props.borderColor}` : 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '1.25rem' }}>{props.iconText}</span>
-          <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{props.title}</strong>
-          <span
+        {/* Left: Icon, Title & Locked Count Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '220px' }}>
+          <div
             style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '999px',
-              background: props.badgeColor,
-              color: '#ffffff',
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              background: props.bgLight,
+              border: `1px solid ${props.borderColor}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {props.count} {props.count === 1 ? 'عملية' : props.count === 2 ? 'عمليتان' : 'عمليات'}
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ fontSize: '0.85rem', color: '#334155' }}>
-            مجموع المربعات: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(detailsTotal)}</strong>
+            {props.icon}
           </div>
-          <div style={{ fontSize: '0.85rem', color: '#334155' }}>
-            المعلن: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(props.declaredTotal)}</strong>
-          </div>
-          {isMatch ? (
-            <span style={{ background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}>
-              ✓ متطابق تماماً
-            </span>
-          ) : !isZero ? (
-            <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '3px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}>
-              فرق: {formatCurrency(diff)}
-            </span>
-          ) : null}
-          <Button
-            type="button"
-            variant="secondary"
-            style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-            onClick={() => props.onApplyTotalToDeclared(detailsTotal)}
-            disabled={props.disabled || detailsTotal === 0}
-          >
-            ⚡ اعتماد المجموع كإجمالي معلن
-          </Button>
-        </div>
-      </div>
-
-      {props.count === 0 ? (
-        <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '0.9rem' }}>
-          لا توجد عمليات مسجلة لهذه القناة في الوردية الحالية.
-        </div>
-      ) : (
-        <div
-          style={{
-            maxHeight: '380px',
-            overflowY: 'auto',
-            padding: '12px 4px 4px 4px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-            gap: '10px',
-          }}
-        >
-          {Array.from({ length: props.count }).map((_, index) => (
-            <div
-              key={`${props.field}-${index}`}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-                boxShadow: '0 1px 2px 0 rgba(0,0,0,0.04)',
-              }}
-            >
-              <div
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{props.title}</span>
+              <span
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  fontSize: '0.75rem',
-                  color: '#64748b',
+                  gap: '4px',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: '6px',
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  border: '1px solid #e2e8f0',
                 }}
               >
-                <span>عملية #{index + 1}</span>
-              </div>
+                <LockIcon size={11} color="#64748b" />
+                <span>{props.count} {props.count === 1 ? 'عملية' : props.count === 2 ? 'عمليتان' : 'عمليات'}</span>
+              </span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{props.subtitle}</div>
+          </div>
+        </div>
+
+        {/* Right: Declared Amount Input & Expand Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>الإجمالي المعلن:</span>
+            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
               <input
-                id={`${props.field}-${index}`}
                 type="number"
                 min="0"
                 step="0.01"
                 placeholder="0.00"
+                {...props.register(props.declaredFieldName, { valueAsNumber: true })}
+                disabled={props.disabled}
                 style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid #94a3b8',
+                  width: '125px',
+                  padding: '6px 10px',
                   fontSize: '0.95rem',
                   fontWeight: 700,
                   textAlign: 'center',
-                  background: '#f8fafc',
-                }}
-                {...props.register(`${props.field}.${index}.amount` as const, { valueAsNumber: true })}
-                disabled={props.disabled}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const nextInput = document.getElementById(`${props.field}-${index + 1}`);
-                    if (nextInput) {
-                      nextInput.focus();
-                    }
-                  }
+                  borderRadius: '6px',
+                  border: '1.5px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#0f172a',
                 }}
               />
+              <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', color: '#94a3b8', pointerEvents: 'none' }}>ج.م</span>
             </div>
-          ))}
+          </div>
+
+          <Button
+            type="button"
+            variant={props.isOpen ? 'primary' : 'secondary'}
+            onClick={props.onToggle}
+            disabled={props.disabled}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.82rem',
+              padding: '6px 12px',
+            }}
+          >
+            <span>تفاصيل العمليات</span>
+            <ChevronIcon open={props.isOpen} size={14} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Expanded Accordion Details */}
+      {props.isOpen && (
+        <div style={{ padding: '16px', background: '#fafbfc' }}>
+          {/* Summary KPI Strip */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              marginBottom: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.83rem', color: '#475569' }}>
+                مجموع المربعات: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(detailsTotal)}</strong>
+              </div>
+              <div style={{ fontSize: '0.83rem', color: '#475569' }}>
+                المعلن من الماكينة: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(props.declaredTotal)}</strong>
+              </div>
+              {isMatch ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#dcfce7',
+                    color: '#15803d',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <CheckCircleIcon size={13} color="#15803d" />
+                  <span>متطابق تماماً</span>
+                </span>
+              ) : !isZero ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#fee2e2',
+                    color: '#b91c1c',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <AlertCircleIcon size={13} color="#b91c1c" />
+                  <span>فرق: {formatCurrency(diff)}</span>
+                </span>
+              ) : null}
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '0.78rem',
+                padding: '4px 10px',
+              }}
+              onClick={() => props.onApplyTotalToDeclared(detailsTotal)}
+              disabled={props.disabled || detailsTotal === 0}
+            >
+              <ZapIcon size={12} color="#0284c7" />
+              <span>اعتماد المجموع كإجمالي معلن</span>
+            </Button>
+          </div>
+
+          {/* Numbered Amount Input Cards */}
+          {props.count === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#64748b', fontSize: '0.85rem' }}>
+              لا توجد عمليات مسجلة لهذه القناة في الوردية الحالية.
+            </div>
+          ) : (
+            <div
+              style={{
+                maxHeight: '340px',
+                overflowY: 'auto',
+                padding: '4px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
+                gap: '8px',
+              }}
+            >
+              {Array.from({ length: props.count }).map((_, index) => {
+                const formattedNum = String(index + 1).padStart(2, '0');
+                return (
+                  <div
+                    key={`${props.detailsFieldName}-${index}`}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '6px 8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '0.72rem',
+                        color: '#64748b',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <span>عملية #{formattedNum}</span>
+                    </div>
+                    <input
+                      id={`${props.detailsFieldName}-${index}`}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      style={{
+                        width: '100%',
+                        padding: '5px 6px',
+                        borderRadius: '5px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        textAlign: 'center',
+                        background: '#f8fafc',
+                      }}
+                      {...props.register(`${props.detailsFieldName}.${index}.amount` as const, { valueAsNumber: true })}
+                      disabled={props.disabled}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const nextInput = document.getElementById(`${props.detailsFieldName}-${index + 1}`);
+                          if (nextInput) {
+                            nextInput.focus();
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -458,269 +705,268 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
 
       {props.activeForm === 'close' && (
         <div style={{ background: '#fff', padding: '24px', borderRadius: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.35rem', color: '#0f172a' }}>إغلاق وردية نقطة البيع</h2>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Button
-                type="button"
-                variant={showCardDetails ? 'primary' : 'secondary'}
-                style={{ fontSize: '0.85rem' }}
-                onClick={() => {
-                  setShowCardDetails((v) => !v);
-                  setShowWalletDetails(false);
-                  setShowInstapayDetails(false);
-                }}
-                disabled={props.closeMutation.isPending}
-              >
-                💳 تفاصيل الفيزا ({cardOperationCount})
-              </Button>
-              <Button
-                type="button"
-                variant={showWalletDetails ? 'primary' : 'secondary'}
-                style={{ fontSize: '0.85rem' }}
-                onClick={() => {
-                  setShowWalletDetails((v) => !v);
-                  setShowCardDetails(false);
-                  setShowInstapayDetails(false);
-                }}
-                disabled={props.closeMutation.isPending}
-              >
-                📱 تفاصيل المحافظ ({walletOperationCount})
-              </Button>
-              <Button
-                type="button"
-                variant={showInstapayDetails ? 'primary' : 'secondary'}
-                style={{ fontSize: '0.85rem' }}
-                onClick={() => {
-                  setShowInstapayDetails((v) => !v);
-                  setShowCardDetails(false);
-                  setShowWalletDetails(false);
-                }}
-                disabled={props.closeMutation.isPending}
-              >
-                ⚡ تفاصيل InstaPay ({instapayOperationCount})
-              </Button>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '20px',
+              paddingBottom: '14px',
+              borderBottom: '1px solid #f1f5f9',
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>إغلاق وردية نقطة البيع</h2>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                تسجيل إقرار مبيعات النقدية والمدفوعات الإلكترونية ومطابقة بونات الدفع
+              </div>
             </div>
-          </div>
-
-        <form className="form-grid" onSubmit={props.onCloseSubmit}>
-          {props.isManager && props.openOptions.length > 1 ? (
-            <Field label="وردية نقطة البيع المفتوحة">
-              <Controller
-                name="shiftId"
-                control={props.closeForm.control}
-                render={({ field }) => (
-                  <CustomSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    disabled={props.closeMutation.isPending}
-                    options={[
-                      { value: '', label: 'اختر وردية نقطة البيع' },
-                      ...props.openOptions.map((shift) => ({
-                        value: shift.id,
-                        label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}${String(shift.id) === String(props.myOpenShift?.id) ? ' (ورديتي الحالية)' : ''}`,
-                      })),
-                    ]}
-                  />
-                )}
-              />
-            </Field>
-          ) : (
-            <Field label="وردية نقطة البيع">
-              <div style={{
-                padding: '10px 14px',
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
                 borderRadius: '8px',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
                 fontWeight: 700,
                 color: '#0f172a',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-                <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || 'الوردية الحالية'}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
-                <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>وردية نشطة</span>
-              </div>
+              }}
+            >
+              <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || 'الوردية الحالية'}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
+              <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>وردية نشطة</span>
+            </div>
+          </div>
+
+          <form className="form-grid" onSubmit={props.onCloseSubmit}>
+            {props.isManager && props.openOptions.length > 1 ? (
+              <Field label="وردية نقطة البيع المفتوحة">
+                <Controller
+                  name="shiftId"
+                  control={props.closeForm.control}
+                  render={({ field }) => (
+                    <CustomSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={props.closeMutation.isPending}
+                      options={[
+                        { value: '', label: 'اختر وردية نقطة البيع' },
+                        ...props.openOptions.map((shift) => ({
+                          value: shift.id,
+                          label: `${shift.openedByName || 'وردية نقطة بيع'}${shift.docNo ? ` — ${shift.docNo}` : ''}${String(shift.id) === String(props.myOpenShift?.id) ? ' (ورديتي الحالية)' : ''}`,
+                        })),
+                      ]}
+                    />
+                  )}
+                />
+              </Field>
+            ) : null}
+
+            {isBlindCloseMode ? (
+              <>
+                {/* 1. Cash Section */}
+                <div
+                  style={{
+                    gridColumn: '1 / -1',
+                    background: '#f0fdf4',
+                    border: '1.5px solid #bbf7d0',
+                    borderRadius: '10px',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '8px',
+                        background: '#ffffff',
+                        border: '1px solid #86efac',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <CashIcon size={20} color="#16a34a" />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#14532d' }}>النقدية المعدودة في درج النقدية</div>
+                      <div style={{ fontSize: '0.75rem', color: '#15803d' }}>المبلغ النقدي (الكاش) الفعلي الموجود داخل الدرج</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>المبلغ الفعلي:</span>
+                    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...props.closeForm.register('countedCash', { valueAsNumber: true })}
+                        disabled={props.closeMutation.isPending}
+                        style={{
+                          width: '140px',
+                          padding: '7px 12px',
+                          fontSize: '1rem',
+                          fontWeight: 800,
+                          textAlign: 'center',
+                          borderRadius: '6px',
+                          border: '1.5px solid #86efac',
+                          background: '#ffffff',
+                          color: '#14532d',
+                        }}
+                      />
+                      <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', color: '#16a34a', pointerEvents: 'none' }}>ج.م</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Electronic Payment Methods Section */}
+                <div style={{ gridColumn: '1 / -1', marginTop: '6px', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>
+                    المدفوعات الإلكترونية وماكينات الدفع
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* Card / Visa */}
+                    <PaymentChannelRow
+                      title="فيزا وماكينات POS"
+                      subtitle="مدفوعات البطاقات البنكية حسب تقرير الماكينة"
+                      icon={<CardIcon size={18} color="#2563eb" />}
+                      themeColor="#2563eb"
+                      bgLight="#eff6ff"
+                      borderColor="#dbeafe"
+                      count={cardOperationCount}
+                      declaredTotal={cardDeclaredTotal}
+                      declaredFieldName="cardDeclaredTotal"
+                      detailsFieldName="cardDetails"
+                      detailsRows={cardDetailsRows}
+                      isOpen={showCardDetails}
+                      onToggle={() => setShowCardDetails((v) => !v)}
+                      register={props.closeForm.register}
+                      onApplyTotalToDeclared={(total) => props.closeForm.setValue('cardDeclaredTotal', total, { shouldDirty: true })}
+                      disabled={props.closeMutation.isPending}
+                    />
+
+                    {/* Wallets */}
+                    <PaymentChannelRow
+                      title="المحافظ الإلكترونية"
+                      subtitle="فودافون كاش، أورنج، اتصالات كاش، وي باي"
+                      icon={<WalletIcon size={18} color="#7c3aed" />}
+                      themeColor="#7c3aed"
+                      bgLight="#f5f3ff"
+                      borderColor="#ede9fe"
+                      count={walletOperationCount}
+                      declaredTotal={walletDeclaredTotal}
+                      declaredFieldName="walletDeclaredTotal"
+                      detailsFieldName="walletDetails"
+                      detailsRows={walletDetailsRows}
+                      isOpen={showWalletDetails}
+                      onToggle={() => setShowWalletDetails((v) => !v)}
+                      register={props.closeForm.register}
+                      onApplyTotalToDeclared={(total) => props.closeForm.setValue('walletDeclaredTotal', total, { shouldDirty: true })}
+                      disabled={props.closeMutation.isPending}
+                    />
+
+                    {/* InstaPay */}
+                    <PaymentChannelRow
+                      title="تحويلات InstaPay"
+                      subtitle="التحويلات البنكية اللحظية وتطبيق إنستاباي"
+                      icon={<InstaPayIcon size={18} color="#059669" />}
+                      themeColor="#059669"
+                      bgLight="#ecfdf5"
+                      borderColor="#d1fae5"
+                      count={instapayOperationCount}
+                      declaredTotal={instapayDeclaredTotal}
+                      declaredFieldName="instapayDeclaredTotal"
+                      detailsFieldName="instapayDetails"
+                      detailsRows={instapayDetailsRows}
+                      isOpen={showInstapayDetails}
+                      onToggle={() => setShowInstapayDetails((v) => !v)}
+                      register={props.closeForm.register}
+                      onApplyTotalToDeclared={(total) => props.closeForm.setValue('instapayDeclaredTotal', total, { shouldDirty: true })}
+                      disabled={props.closeMutation.isPending}
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Notes & PIN */}
+                <Field label="ملاحظات الإغلاق">
+                  <textarea rows={2} placeholder="اختياري (أية ملاحظات خاصة بوردية اليوم)" {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} />
+                </Field>
+
+                <div className="muted small" style={{ gridColumn: '1 / -1' }}>
+                  سيتم تسجيل الإقرار وإرسال وردية نقطة البيع في انتظار مراجعة واعتماد الإدارة.
+                </div>
+              </>
+            ) : (
+              <>
+                <Field label="النقدية المتوقعة"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
+                {selectedCloseShift ? (
+                  <div className="muted small" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+                    <span>مبيعات نقدي: <strong>{formatCurrency(closeCashSalesTotal)}</strong></span>
+                    <span>مبيعات فيزا: <strong>{formatCurrency(closeCardSalesTotal)}</strong></span>
+                    {closeDeliverySalesTotal > 0 ? <span>مبيعات دليفري: <strong>{formatCurrency(closeDeliverySalesTotal)}</strong></span> : null}
+                    {closeServiceCashTotal > 0 ? <span>خدمات نقدي: <strong>{formatCurrency(closeServiceCashTotal)}</strong></span> : null}
+                    {closeCreditSalesTotal > 0 ? <span>مبيعات آجل: <strong>{formatCurrency(closeCreditSalesTotal)}</strong></span> : null}
+                    {closeSaleReturnCashRefundTotal > 0 ? <span>مرتجعات نقدي: <strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong></span> : null}
+                    {closeCashDrawerMovementTotal !== 0 ? <span>حركات درج النقدية: <strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong></span> : null}
+                    {closeExpensesTotal > 0 ? <span>مصروفات مسجلة: <strong>{formatCurrency(closeExpensesTotal)}</strong></span> : null}
+                    {closeSupplierPaymentsTotal > 0 ? <span>دفعات موردين: <strong>{formatCurrency(closeSupplierPaymentsTotal)}</strong></span> : null}
+                    <span>إجمالي مبيعات الفواتير: <strong>{formatCurrency(closeShiftSalesTotal)}</strong></span>
+                    {Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0) > 0 ? (
+                      <>
+                        <span>(-) رسوم طيارين: <strong style={{ color: '#dc2626' }}>-{formatCurrency(selectedCloseShift.freelanceDeliveryFeeTotal || 0)}</strong></span>
+                        <span>صافي مبيعات المتجر: <strong style={{ color: '#16a34a' }}>{formatCurrency(closeShiftSalesTotal - Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0))}</strong></span>
+                      </>
+                    ) : null}
+                    <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.</span>
+                  </div>
+                ) : null}
+                <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
+                <Field label="ملاحظة الإغلاق"><textarea rows={2} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل إغلاق وردية نقطة البيع' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
+                <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>
+                  الفرق المتوقع بعد الإغلاق: <strong>{formatCurrency(props.closeVariancePreview)}</strong>
+                  {Math.abs(props.closeVariancePreview) >= 0.01 ? ' — يلزم كتابة ملاحظة قبل إغلاق وردية نقطة البيع مع وجود فرق.' : ''}
+                </div>
+              </>
+            )}
+
+            <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
+              <input
+                type="text"
+                className="secure-password-field"
+                placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
+                required
+                {...props.closeForm.register('managerPin')}
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                disabled={props.closeMutation.isPending}
+              />
             </Field>
-          )}
 
-          {isBlindCloseMode ? (
-            <>
-              <Field label="النقدية المعدودة في درج النقدية">
-                <input type="number" min="0" step="0.01" placeholder="0.00" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
-              </Field>
-
-              <Field label="إجمالي الفيزا حسب ماكينة الدفع">
-                <input type="number" min="0" step="0.01" placeholder="0.00" {...props.closeForm.register('cardDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
-              </Field>
-
-              <Field label="عدد عمليات الفيزا (محسوب ومقفل)">
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="number"
-                    value={cardOperationCount}
-                    disabled
-                    readOnly
-                    style={{ background: '#f1f5f9', cursor: 'not-allowed', color: '#334155', fontWeight: 700, width: '100%' }}
-                  />
-                  <small style={{ color: '#0284c7', fontSize: '11px', display: 'block', marginTop: '2px', fontWeight: 600 }}>
-                    🔒 محسوب تلقائياً من فواتير الوردية ({cardOperationCount} عملية)
-                  </small>
-                </div>
-              </Field>
-
-              <Field label="إجمالي محفظة إلكترونية">
-                <input type="number" min="0" step="0.01" placeholder="0.00" {...props.closeForm.register('walletDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
-              </Field>
-
-              <Field label="عدد عمليات المحفظة (محسوب ومقفل)">
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="number"
-                    value={walletOperationCount}
-                    disabled
-                    readOnly
-                    style={{ background: '#f1f5f9', cursor: 'not-allowed', color: '#334155', fontWeight: 700, width: '100%' }}
-                  />
-                  <small style={{ color: '#0284c7', fontSize: '11px', display: 'block', marginTop: '2px', fontWeight: 600 }}>
-                    🔒 محسوب تلقائياً من فواتير الوردية ({walletOperationCount} عملية)
-                  </small>
-                </div>
-              </Field>
-
-              <Field label="إجمالي InstaPay">
-                <input type="number" min="0" step="0.01" placeholder="0.00" {...props.closeForm.register('instapayDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
-              </Field>
-
-              <Field label="عدد عمليات InstaPay (محسوب ومقفل)">
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="number"
-                    value={instapayOperationCount}
-                    disabled
-                    readOnly
-                    style={{ background: '#f1f5f9', cursor: 'not-allowed', color: '#334155', fontWeight: 700, width: '100%' }}
-                  />
-                  <small style={{ color: '#0284c7', fontSize: '11px', display: 'block', marginTop: '2px', fontWeight: 600 }}>
-                    🔒 محسوب تلقائياً من فواتير الوردية ({instapayOperationCount} عملية)
-                  </small>
-                </div>
-              </Field>
-
-              {showCardDetails ? (
-                <OperationAmountGrid
-                  title="تفاصيل مبالغ عمليات الفيزا"
-                  iconText="💳"
-                  badgeColor="#2563eb"
-                  count={cardOperationCount}
-                  declaredTotal={cardDeclaredTotal}
-                  detailsRows={cardDetailsRows}
-                  field="cardDetails"
-                  register={props.closeForm.register}
-                  onApplyTotalToDeclared={(total) => props.closeForm.setValue('cardDeclaredTotal', total, { shouldDirty: true })}
-                  disabled={props.closeMutation.isPending}
-                />
-              ) : null}
-
-              {showWalletDetails ? (
-                <OperationAmountGrid
-                  title="تفاصيل مبالغ عمليات المحافظ الإلكترونية"
-                  iconText="📱"
-                  badgeColor="#7c3aed"
-                  count={walletOperationCount}
-                  declaredTotal={walletDeclaredTotal}
-                  detailsRows={walletDetailsRows}
-                  field="walletDetails"
-                  register={props.closeForm.register}
-                  onApplyTotalToDeclared={(total) => props.closeForm.setValue('walletDeclaredTotal', total, { shouldDirty: true })}
-                  disabled={props.closeMutation.isPending}
-                />
-              ) : null}
-
-              {showInstapayDetails ? (
-                <OperationAmountGrid
-                  title="تفاصيل مبالغ عمليات InstaPay"
-                  iconText="⚡"
-                  badgeColor="#059669"
-                  count={instapayOperationCount}
-                  declaredTotal={instapayDeclaredTotal}
-                  detailsRows={instapayDetailsRows}
-                  field="instapayDetails"
-                  register={props.closeForm.register}
-                  onApplyTotalToDeclared={(total) => props.closeForm.setValue('instapayDeclaredTotal', total, { shouldDirty: true })}
-                  disabled={props.closeMutation.isPending}
-                />
-              ) : null}
-
-              <Field label="ملاحظات الإغلاق">
-                <textarea rows={2} placeholder="اختياري" {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} />
-              </Field>
-
-              <div className="muted small" style={{ gridColumn: '1 / -1' }}>
-                سيتم تسجيل الإقرار وإرسال وردية نقطة البيع في انتظار مراجعة المدير.
-              </div>
-            </>
-          ) : (
-            <>
-              <Field label="النقدية المتوقعة"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
-              {selectedCloseShift ? (
-                <div className="muted small" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
-                  <span>مبيعات نقدي: <strong>{formatCurrency(closeCashSalesTotal)}</strong></span>
-                  <span>مبيعات فيزا: <strong>{formatCurrency(closeCardSalesTotal)}</strong></span>
-                  {closeDeliverySalesTotal > 0 ? <span>مبيعات دليفري: <strong>{formatCurrency(closeDeliverySalesTotal)}</strong></span> : null}
-                  {closeServiceCashTotal > 0 ? <span>خدمات نقدي: <strong>{formatCurrency(closeServiceCashTotal)}</strong></span> : null}
-                  {closeCreditSalesTotal > 0 ? <span>مبيعات آجل: <strong>{formatCurrency(closeCreditSalesTotal)}</strong></span> : null}
-                  {closeSaleReturnCashRefundTotal > 0 ? <span>مرتجعات نقدي: <strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong></span> : null}
-                  {closeCashDrawerMovementTotal !== 0 ? <span>حركات درج النقدية: <strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong></span> : null}
-                  {closeExpensesTotal > 0 ? <span>مصروفات مسجلة: <strong>{formatCurrency(closeExpensesTotal)}</strong></span> : null}
-                  {closeSupplierPaymentsTotal > 0 ? <span>دفعات موردين: <strong>{formatCurrency(closeSupplierPaymentsTotal)}</strong></span> : null}
-                  <span>إجمالي مبيعات الفواتير: <strong>{formatCurrency(closeShiftSalesTotal)}</strong></span>
-                  {Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0) > 0 ? (
-                    <>
-                      <span>(-) رسوم طيارين: <strong style={{ color: '#dc2626' }}>-{formatCurrency(selectedCloseShift.freelanceDeliveryFeeTotal || 0)}</strong></span>
-                      <span>صافي مبيعات المتجر: <strong style={{ color: '#16a34a' }}>{formatCurrency(closeShiftSalesTotal - Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0))}</strong></span>
-                    </>
-                  ) : null}
-                  <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.</span>
-                </div>
-              ) : null}
-              <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
-              <Field label="ملاحظة الإغلاق"><textarea rows={2} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل إغلاق وردية نقطة البيع' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
-              <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>
-                الفرق المتوقع بعد الإغلاق: <strong>{formatCurrency(props.closeVariancePreview)}</strong>
-                {Math.abs(props.closeVariancePreview) >= 0.01 ? ' — يلزم كتابة ملاحظة قبل إغلاق وردية نقطة البيع مع وجود فرق.' : ''}
-              </div>
-            </>
-          )}
-
-          <Field label="كلمة مرور المستخدم الحالي (تأكيد)">
-            <input
-              type="text"
-              className="secure-password-field"
-              placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
-              required
-              {...props.closeForm.register('managerPin')}
-              autoComplete="off"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-form-type="other"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              disabled={props.closeMutation.isPending}
+            <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق وردية نقطة البيع" successText="تم إغلاق وردية نقطة البيع بنجاح." />
+            <SubmitButton
+              type="submit"
+              isPending={props.closeMutation.isPending}
+              disabled={!props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
+              idleText={isBlindCloseMode ? 'إرسال إقرار الإغلاق' : 'إغلاق وردية نقطة البيع'}
+              pendingText="جارٍ الإغلاق..."
             />
-          </Field>
-
-          <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق وردية نقطة البيع" successText="تم إغلاق وردية نقطة البيع بنجاح." />
-          <SubmitButton
-            type="submit"
-            isPending={props.closeMutation.isPending}
-            disabled={!props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
-            idleText={isBlindCloseMode ? 'إرسال إقرار الإغلاق' : 'إغلاق وردية نقطة البيع'}
-            pendingText="جارٍ الإغلاق..."
-          />
-        </form>
+          </form>
         </div>
       )}
     </DialogShell>
