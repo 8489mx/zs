@@ -24,6 +24,7 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+.gemini/
 
 # additional generated artifacts
 **/*.tsbuildinfo
