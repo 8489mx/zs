@@ -59,7 +59,7 @@ type ShiftRow = {
   location_name?: string | null;
   opened_by_name?: string | null;
   closed_by_name?: string | null;
-  movement_items?: Array<{ id: string; kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment'; kindLabel: string; amount: number; note: string; createdAt: string }>;
+  movement_items?: Array<{ id: string; kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment' | 'return'; kindLabel: string; amount: number; note: string; createdAt: string }>;
 };
 
 type SettingsRow = { key?: string; value?: string | null };
@@ -353,7 +353,7 @@ export class CashDrawerService {
 
   private async fetchShiftMovementItems(shiftId: number, shift: ShiftRow, auth: AuthContext): Promise<Array<{
     id: string;
-    kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment';
+    kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment' | 'return';
     kindLabel: string;
     amount: number;
     note: string;
@@ -363,7 +363,7 @@ export class CashDrawerService {
     const openerId = Number(shift.opened_by || 0);
     const items: Array<{
       id: string;
-      kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment';
+      kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment' | 'return';
       kindLabel: string;
       amount: number;
       note: string;
@@ -418,7 +418,7 @@ export class CashDrawerService {
       });
     }
 
-    // 2. Expenses during shift
+    // 3. Expenses during shift
     if (openerId > 0 && shift.created_at) {
       const expRows = await sql<{ id: number; amount: number | string; title?: string | null; note?: string | null; expense_date?: string | Date | null; created_at?: string | Date | null }>`
         select e.id, e.amount, e.title, e.note, e.expense_date, e.created_at
@@ -444,7 +444,7 @@ export class CashDrawerService {
         });
       }
 
-      // 3. Supplier payments
+      // 4. Supplier payments
       const supRows = await sql<{ id: number; amount: number | string; supplier_name?: string | null; note?: string | null; payment_date?: string | Date | null }>`
         select sp.id, sp.amount, coalesce(sup.name, 'مورد') as supplier_name, sp.note, sp.payment_date
         from supplier_payments sp
@@ -466,6 +466,31 @@ export class CashDrawerService {
           amount: Math.abs(amt),
           note: note.trim() || 'سداد مورد',
           createdAt: sup.payment_date ? new Date(sup.payment_date).toISOString() : '',
+        });
+      }
+
+      // 5. Returns (Sale Returns)
+      const retRows = await sql<{ id: number; doc_no?: string | null; total?: number | string | null; refund_method?: string | null; reason?: string | null; created_at?: string | Date | null }>`
+        select rd.id, rd.doc_no, rd.total, rd.refund_method, rd.reason, rd.created_at
+        from return_documents rd
+        where rd.tenant_id = ${scope.tenantId} and rd.return_type = 'sale' and rd.created_by = ${openerId} and rd.created_at >= ${shift.created_at}
+          and (${shift.closed_at || null}::timestamptz is null or rd.created_at <= ${shift.closed_at || null})
+          and (${shift.branch_id || null}::int is null or rd.branch_id is null or rd.branch_id = ${Number(shift.branch_id || 0) || null})
+          and (${shift.location_id || null}::int is null or rd.location_id is null or rd.location_id = ${Number(shift.location_id || 0) || null})
+        order by rd.id asc
+      `.execute(this.db);
+
+      for (const ret of retRows.rows || []) {
+        const amt = Number(ret.total || 0);
+        const methodLabel = ret.refund_method === 'card' ? 'فيزا' : 'كاش';
+        const note = [`مرتجع (${methodLabel})`, ret.doc_no ? `#${ret.doc_no}` : '', ret.reason].filter(Boolean).join(' - ');
+        items.push({
+          id: `ret-${ret.id}`,
+          kind: 'return',
+          kindLabel: `مرتجع مبيعات (${methodLabel})`,
+          amount: Math.abs(amt),
+          note: note.trim() || 'مرتجع مبيعات',
+          createdAt: ret.created_at ? new Date(ret.created_at).toISOString() : '',
         });
       }
     }

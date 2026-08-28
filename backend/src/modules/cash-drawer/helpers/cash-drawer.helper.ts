@@ -52,7 +52,7 @@ type CashDrawerShiftSource = {
   branch_name?: string | null;
   location_name?: string | null;
   opened_by_name?: string | null;
-  movement_items?: Array<{ id: string; kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment'; kindLabel: string; amount: number; note: string; createdAt: string }>;
+  movement_items?: Array<{ id: string; kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment' | 'return'; kindLabel: string; amount: number; note: string; createdAt: string }>;
 };
 
 const BLIND_CLOSE_PREFIX = 'BLIND_CLOSE::';

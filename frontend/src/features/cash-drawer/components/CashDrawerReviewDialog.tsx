@@ -9,7 +9,9 @@ import {
   ScaleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  PrinterIcon,
 } from '@/shared/components/icons/AppIcons';
+import { printCashDrawerShiftReceipt } from '@/features/cash-drawer/utils/cash-drawer-receipt';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { CashierShift } from '@/types/domain';
 import {
@@ -397,13 +399,24 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               />
 
               {/* Action Buttons */}
-              <div className="actions compact-actions" style={{ justifyContent: 'flex-end', marginTop: '4px' }}>
-                <Button variant="secondary" onClick={props.onClose} disabled={props.isPending}>
-                  إلغاء
+              <div className="actions compact-actions" style={{ justifyContent: 'space-between', marginTop: '4px' }}>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => shift && printCashDrawerShiftReceipt(shift)}
+                  disabled={props.isPending}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <PrinterIcon size={16} /> طباعة ريسيت الوردية
                 </Button>
-                <Button variant="primary" onClick={props.onApprove} disabled={props.isPending}>
-                  {props.isPending ? 'جاري اعتماد الإغلاق...' : 'اعتماد الإغلاق النهائي'}
-                </Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button variant="secondary" onClick={props.onClose} disabled={props.isPending}>
+                    إلغاء
+                  </Button>
+                  <Button variant="primary" onClick={props.onApprove} disabled={props.isPending}>
+                    {props.isPending ? 'جاري اعتماد الإغلاق...' : 'اعتماد الإغلاق النهائي'}
+                  </Button>
+                </div>
               </div>
             </div>
           ) : null}

@@ -157,7 +157,7 @@ export interface AuditLog {
 
 export interface ShiftMovementItem {
   id: string;
-  kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment';
+  kind: 'cash_in' | 'cash_out' | 'delivery' | 'expense' | 'supplier_payment' | 'return';
   kindLabel: string;
   amount: number;
   note: string;

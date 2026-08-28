@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
-import { CreditCardIcon, RefreshCwIcon, ScaleIcon, FileTextIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import {
+  CreditCardIcon,
+  RefreshCwIcon,
+  ScaleIcon,
+  FileTextIcon,
+  AlertTriangleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PrinterIcon,
+} from '@/shared/components/icons/AppIcons';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
+import { printCashDrawerShiftReceipt } from '@/features/cash-drawer/utils/cash-drawer-receipt';
 import type { CashierShift } from '@/types/domain';
 
 interface CashDrawerShiftsCardProps {
@@ -113,6 +123,7 @@ function renderVarianceBadge(variance: number) {
 
 export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [expandedSubGroups, setExpandedSubGroups] = useState<Record<string, boolean>>({});
   const canViewSensitiveTotals = props.canViewSensitiveTotals !== false;
   const canReviewPending = props.canReviewPending === true && typeof props.onReviewShift === 'function';
   const searchPlaceholder = SINGLE_STORE_MODE
@@ -121,6 +132,11 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleSubGroup = (shiftId: string, groupKey: string) => {
+    const key = `${shiftId}_${groupKey}`;
+    setExpandedSubGroups(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const totalPages = Math.max(1, Math.ceil(props.totalPaginationItems / props.pageSize));
@@ -271,48 +287,156 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                           ) : null}
 
                           {canViewSensitiveTotals ? (
-                            <button
-                              type="button"
-                              onClick={() => toggleExpand(row.id)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '6px 12px',
-                                borderRadius: '8px',
-                                background: isExpanded ? '#e2e8f0' : '#f1f5f9',
-                                color: '#334155',
-                                border: '1px solid #cbd5e1',
-                                fontWeight: 600,
-                                fontSize: '0.82rem',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s',
-                              }}
-                            >
-                              <span>{isExpanded ? 'إخفاء' : 'التفاصيل'}</span>
-                              <svg
-                                viewBox="0 0 24 24"
-                                width="14"
-                                height="14"
-                                stroke="currentColor"
-                                strokeWidth="2.2"
-                                fill="none"
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => printCashDrawerShiftReceipt(row)}
+                                title="طباعة ريسيت الوردية (Thermal 80mm)"
                                 style={{
-                                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                  transition: 'transform 0.2s',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: '6px 8px',
+                                  borderRadius: '8px',
+                                  background: '#f8fafc',
+                                  color: '#0f172a',
+                                  border: '1px solid #cbd5e1',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s',
                                 }}
                               >
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                              </svg>
-                            </button>
+                                <PrinterIcon size={14} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => toggleExpand(row.id)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '6px 12px',
+                                  borderRadius: '8px',
+                                  background: isExpanded ? '#e2e8f0' : '#f1f5f9',
+                                  color: '#334155',
+                                  border: '1px solid #cbd5e1',
+                                  fontWeight: 600,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s',
+                                }}
+                              >
+                                <span>{isExpanded ? 'إخفاء' : 'التفاصيل'}</span>
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  width="14"
+                                  height="14"
+                                  stroke="currentColor"
+                                  strokeWidth="2.2"
+                                  fill="none"
+                                  style={{
+                                    transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s',
+                                  }}
+                                >
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </button>
+                            </>
                           ) : null}
                         </div>
                       </td>
                     </tr>
 
-                    {isExpanded && canViewSensitiveTotals && (
+                    {isExpanded && canViewSensitiveTotals && (() => {
+                      const movementItems = row.movementItems || [];
+                      const deliveryItems = movementItems.filter((i) => i.kind === 'delivery');
+                      const manualCashInItems = movementItems.filter((i) => i.kind === 'cash_in');
+                      const cashOutItems = movementItems.filter((i) => i.kind === 'cash_out');
+                      const expenseItems = movementItems.filter((i) => i.kind === 'expense');
+                      const supplierItems = movementItems.filter((i) => i.kind === 'supplier_payment');
+                      const returnItems = movementItems.filter((i) => i.kind === 'return' || i.kind.includes('return'));
+
+                      const renderMovementAccordionRow = (
+                        groupKey: string,
+                        label: string,
+                        total: number,
+                        items: typeof movementItems,
+                        isCredit: boolean
+                      ) => {
+                        if (total <= 0 && items.length === 0) return null;
+                        const isSubExpanded = !!expandedSubGroups[`${row.id}_${groupKey}`];
+                        const hasItems = items.length > 0;
+
+                        return (
+                          <div key={groupKey} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <div
+                              onClick={() => hasItems && toggleSubGroup(row.id, groupKey)}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '5px 8px',
+                                borderRadius: '6px',
+                                cursor: hasItems ? 'pointer' : 'default',
+                                background: isSubExpanded ? '#e2e8f0' : 'transparent',
+                                transition: 'all 0.15s ease',
+                                userSelect: 'none',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ color: '#475569', fontWeight: 600 }}>{label}:</span>
+                                {hasItems && (
+                                  <span style={{ fontSize: '0.72rem', background: '#e2e8f0', color: '#334155', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>
+                                    {items.length} {items.length === 1 ? 'حركة' : 'حركات'}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <strong style={{ color: isCredit ? '#16a34a' : '#dc2626' }}>
+                                  {isCredit ? '+' : '-'}{formatCurrency(total)}
+                                </strong>
+                                {hasItems && (
+                                  <span style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}>
+                                    {isSubExpanded ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {isSubExpanded && hasItems && (
+                              <div style={{
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '6px 10px',
+                                marginInlineStart: '4px',
+                                fontSize: '0.80rem',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '5px',
+                              }}>
+                                {items.map((item) => (
+                                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px', gap: '8px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                      <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.note}</span>
+                                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{item.createdAt ? formatDate(item.createdAt) : '—'}</span>
+                                    </div>
+                                    <strong style={{ color: isCredit ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>
+                                      {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
+                                    </strong>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      };
+
+                      return (
                       <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                        <td colSpan={SINGLE_STORE_MODE ? 6 : 7} style={{ padding: '0 16px 20px' }}>
+                        <td colSpan={SINGLE_STORE_MODE ? 7 : 8} style={{ padding: '16px 24px' }}>
                           <div style={{
                             background: '#ffffff',
                             borderRadius: '14px',
@@ -378,53 +502,29 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                               </div>
                             </div>
 
-                            {/* Card 2: Movements & Returns */}
+                            {/* Card 2: Movements & Returns with Interactive Accordions */}
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <RefreshCwIcon size={16} /> الحركات والمسحوبات والمصروفات
+                              <h4 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <RefreshCwIcon size={16} /> الحركات والمسحوبات والمصروفات
+                                </span>
+                                <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 400 }}>اضغط للتفاصيل</span>
                               </h4>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-                                {Number(row.cashDrawerDeliveryCashInTotal || 0) > 0 && (
-                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#64748b' }}>توريد وتحصيل مناديب (دليفري):</span>
-                                    <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerDeliveryCashInTotal || 0)}</strong>
-                                  </div>
-                                )}
-                                {Number(row.cashDrawerManualCashInTotal || 0) > 0 && (
-                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#64748b' }}>إيداعات نقدية بالدرج (يدوياً):</span>
-                                    <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerManualCashInTotal || 0)}</strong>
-                                  </div>
-                                )}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem' }}>
+                                {renderMovementAccordionRow('delivery', 'توريد وتحصيل مناديب (دليفري)', Number(row.cashDrawerDeliveryCashInTotal || 0), deliveryItems, true)}
+                                {renderMovementAccordionRow('cash_in', 'إيداعات نقدية بالدرج (يدوياً)', Number(row.cashDrawerManualCashInTotal || 0), manualCashInItems, true)}
                                 {!(Number(row.cashDrawerDeliveryCashInTotal || 0) > 0) && !(Number(row.cashDrawerManualCashInTotal || 0) > 0) && Number(row.cashDrawerCashInTotal || 0) > 0 && (
-                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#64748b' }}>إيداعات نقدية في الدرج:</span>
-                                    <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerCashInTotal || 0)}</strong>
-                                  </div>
+                                  renderMovementAccordionRow('cash_in_all', 'إيداعات نقدية في الدرج', Number(row.cashDrawerCashInTotal || 0), manualCashInItems, true)
                                 )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>مسحوبات نقدية من الدرج:</span>
-                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.cashDrawerCashOutTotal || 0)}</strong>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>مصروفات تشغيلية مسجلة:</span>
-                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.expensesTotal || 0)}</strong>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>دفعات وسداد موردين من الدرج:</span>
-                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.supplierPaymentsTotal || 0)}</strong>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ color: '#64748b' }}>مرتجعات مبيعات نقدية للعملاء:</span>
-                                  <strong style={{ color: '#dc2626' }}>-{formatCurrency(row.saleReturnCashRefundTotal || 0)}</strong>
-                                </div>
+                                {renderMovementAccordionRow('cash_out', 'مسحوبات نقدية من الدرج', Number(row.cashDrawerCashOutTotal || 0), cashOutItems, false)}
+                                {renderMovementAccordionRow('expense', 'مصروفات تشغيلية مسجلة', Number(row.expensesTotal || 0), expenseItems, false)}
+                                {renderMovementAccordionRow('supplier_payment', 'دفعات وسداد موردين من الدرج', Number(row.supplierPaymentsTotal || 0), supplierItems, false)}
+                                {renderMovementAccordionRow('return_cash', 'مرتجعات مبيعات نقدية للعملاء', Number(row.saleReturnCashRefundTotal || 0), returnItems.filter(i => i.note.includes('كاش')), false)}
                                 {Number(row.saleReturnCardRefundTotal || 0) > 0 && (
-                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: '#64748b' }}>مرتجعات بطاقات (فيزا):</span>
-                                    <strong style={{ color: '#64748b' }}>{formatCurrency(row.saleReturnCardRefundTotal || 0)}</strong>
-                                  </div>
+                                  renderMovementAccordionRow('return_card', 'مرتجعات بطاقات (فيزا)', Number(row.saleReturnCardRefundTotal || 0), returnItems.filter(i => i.note.includes('فيزا')), false)
                                 )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '4px' }}>
                                   <span style={{ fontWeight: 800, color: '#0f172a' }}>إجمالي المنصرف من الدرج:</span>
                                   <strong style={{ fontWeight: 800, color: '#dc2626' }}>
                                     -{formatCurrency(
@@ -526,12 +626,36 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                     </span>
                                   </div>
                                 ) : null}
+
+                                <button
+                                  type="button"
+                                  onClick={() => printCashDrawerShiftReceipt(row)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    borderRadius: '8px',
+                                    background: '#0f172a',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontWeight: 700,
+                                    fontSize: '0.84rem',
+                                    cursor: 'pointer',
+                                    marginTop: '8px',
+                                    transition: 'opacity 0.15s',
+                                  }}
+                                >
+                                  <PrinterIcon size={16} /> طباعة ريسيت الوردية (Thermal 80mm)
+                                </button>
                               </div>
                             </div>
                           </div>
                         </td>
                       </tr>
-                    )}
+                    ); })()}
                   </React.Fragment>
                 );
               })}
