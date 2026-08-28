@@ -263,11 +263,12 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                 min="0"
                 step="0.01"
                 placeholder="0.00"
+                className="no-spin-arrows"
                 {...props.register(props.declaredFieldName, { valueAsNumber: true })}
                 disabled={props.disabled}
                 style={{
                   width: '125px',
-                  padding: '6px 10px',
+                  padding: '6px 30px 6px 10px',
                   fontSize: '0.95rem',
                   fontWeight: 700,
                   textAlign: 'center',
@@ -275,6 +276,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                   border: '1.5px solid #cbd5e1',
                   background: '#ffffff',
                   color: '#0f172a',
+                  MozAppearance: 'textfield',
                 }}
               />
               <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', color: '#94a3b8', pointerEvents: 'none' }}>ج.م</span>
@@ -430,6 +432,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                       min="0"
                       step="0.01"
                       placeholder="0.00"
+                      className="no-spin-arrows"
                       style={{
                         width: '100%',
                         padding: '5px 6px',
@@ -439,6 +442,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                         fontWeight: 700,
                         textAlign: 'center',
                         background: '#f8fafc',
+                        MozAppearance: 'textfield',
                       }}
                       {...props.register(`${props.detailsFieldName}.${index}.amount` as const, { valueAsNumber: true })}
                       disabled={props.disabled}
@@ -705,6 +709,19 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
 
       {props.activeForm === 'close' && (
         <div style={{ background: '#fff', padding: '24px', borderRadius: '12px' }}>
+          <style>{`
+            input.no-spin-arrows::-webkit-outer-spin-button,
+            input.no-spin-arrows::-webkit-inner-spin-button {
+              -webkit-appearance: none !important;
+              margin: 0 !important;
+              display: none !important;
+            }
+            input.no-spin-arrows {
+              -moz-appearance: textfield !important;
+              appearance: textfield !important;
+            }
+          `}</style>
+
           <div
             style={{
               display: 'flex',
@@ -810,11 +827,12 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                         min="0"
                         step="0.01"
                         placeholder="0.00"
+                        className="no-spin-arrows"
                         {...props.closeForm.register('countedCash', { valueAsNumber: true })}
                         disabled={props.closeMutation.isPending}
                         style={{
                           width: '140px',
-                          padding: '7px 12px',
+                          padding: '7px 30px 7px 12px',
                           fontSize: '1rem',
                           fontWeight: 800,
                           textAlign: 'center',
@@ -822,6 +840,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                           border: '1.5px solid #86efac',
                           background: '#ffffff',
                           color: '#14532d',
+                          MozAppearance: 'textfield',
                         }}
                       />
                       <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', color: '#16a34a', pointerEvents: 'none' }}>ج.م</span>
@@ -898,10 +917,37 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   </div>
                 </div>
 
-                {/* 3. Notes & PIN */}
-                <Field label="ملاحظات الإغلاق">
-                  <textarea rows={2} placeholder="اختياري (أية ملاحظات خاصة بوردية اليوم)" {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} />
-                </Field>
+                {/* 3. Password & Optional Notes in One Unified Row */}
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'start' }}>
+                  <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
+                    <input
+                      type="text"
+                      className="secure-password-field"
+                      placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
+                      required
+                      {...props.closeForm.register('managerPin')}
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      disabled={props.closeMutation.isPending}
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+
+                  <Field label="ملاحظات الإغلاق (اختياري)">
+                    <input
+                      type="text"
+                      placeholder="أية ملاحظات خاصة بوردية اليوم..."
+                      {...props.closeForm.register('note')}
+                      disabled={props.closeMutation.isPending}
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                </div>
 
                 <div className="muted small" style={{ gridColumn: '1 / -1' }}>
                   سيتم تسجيل الإقرار وإرسال وردية نقطة البيع في انتظار مراجعة واعتماد الإدارة.
@@ -932,31 +978,44 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   </div>
                 ) : null}
                 <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
-                <Field label="ملاحظة الإغلاق"><textarea rows={2} placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل إغلاق وردية نقطة البيع' : 'اختياري عند عدم وجود فرق'} {...props.closeForm.register('note')} disabled={props.closeMutation.isPending} /></Field>
+                
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'start' }}>
+                  <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
+                    <input
+                      type="text"
+                      className="secure-password-field"
+                      placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
+                      required
+                      {...props.closeForm.register('managerPin')}
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      disabled={props.closeMutation.isPending}
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+
+                  <Field label="ملاحظة الإغلاق">
+                    <input
+                      type="text"
+                      placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل إغلاق الوردية' : 'اختياري عند عدم وجود فرق'}
+                      {...props.closeForm.register('note')}
+                      disabled={props.closeMutation.isPending}
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                </div>
+
                 <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>
                   الفرق المتوقع بعد الإغلاق: <strong>{formatCurrency(props.closeVariancePreview)}</strong>
                   {Math.abs(props.closeVariancePreview) >= 0.01 ? ' — يلزم كتابة ملاحظة قبل إغلاق وردية نقطة البيع مع وجود فرق.' : ''}
                 </div>
               </>
             )}
-
-            <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
-              <input
-                type="text"
-                className="secure-password-field"
-                placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
-                required
-                {...props.closeForm.register('managerPin')}
-                autoComplete="off"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-form-type="other"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                disabled={props.closeMutation.isPending}
-              />
-            </Field>
 
             <MutationFeedback isError={props.closeMutation.isError} isSuccess={props.closeMutation.isSuccess} error={props.closeMutation.error} errorFallback="تعذر إغلاق وردية نقطة البيع" successText="تم إغلاق وردية نقطة البيع بنجاح." />
             <SubmitButton
