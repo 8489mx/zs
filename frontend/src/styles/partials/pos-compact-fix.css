@@ -2247,3 +2247,74 @@
   max-width: 100%;
 }
 
+/* POS Cart Edge-to-Edge Stretch on the left */
+.pos-workspace .pos-checkout-column {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  height: 100% !important;
+}
+
+.pos-workspace .pos-checkout-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.pos-workspace .pos-cart-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+}
+
+.pos-workspace .pos-cart-table-head,
+.pos-workspace .pos-cart-grid-row {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.pos-workspace .pos-workspace-dock {
+  position: static !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: auto !important;
+  margin-bottom: 0 !important;
+  margin-inline: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+}
+
+.pos-workspace .pos-workspace-dock-ribbon-track {
+  padding: 2px 4px 4px 4px !important;
+  margin-bottom: 0 !important;
+}
+
+.pos-workspace .pos-workspace-dock-actions,
+.pos-workspace .pos-workspace-dock-summary {
+  align-self: flex-end !important;
+  padding-bottom: 2px !important;
+  margin-bottom: 0 !important;
+}
+
+.pos-workspace .pos-workspace-dock-chip {
+  border-bottom: none !important;
+  border-radius: 6px !important;
+  margin-bottom: 0 !important;
+}
+

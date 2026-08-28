@@ -404,3 +404,35 @@ export function syncPosCartStock(cart: PosItem[], products: Product[], options: 
     clampedCount,
   };
 }
+
+export function normalizeUnitName(rawUnit?: string): string {
+  const trimmed = String(rawUnit || '').trim();
+  if (!trimmed) return 'قطعة';
+
+  const lower = trimmed.toLowerCase();
+
+  // Keep kg and g in English as short abbreviations
+  if (lower === 'kg' || lower === 'كجم' || lower === 'كيلو' || lower === 'كيلوجرام') return 'kg';
+  if (lower === 'g' || lower === 'gm' || lower === 'gram' || lower === 'جرام') return 'g';
+
+  // English words to Arabic & normalizations
+  if (['piece', 'pieces', 'pcs', 'pc', 'item', 'items', 'unit', 'units', 'قطعه', 'حبة', 'حبه'].includes(lower)) return 'قطعة';
+  if (['box', 'boxes', 'carton', 'cartons', 'كرتونه'].includes(lower)) return 'كرتونة';
+  if (['packet', 'pack', 'packs'].includes(lower)) return 'باكت';
+  if (['bottle', 'bottles'].includes(lower)) return 'زجاجة';
+  if (['can', 'cans'].includes(lower)) return 'علبة';
+  if (['liter', 'liters', 'ltr', 'l'].includes(lower)) return 'لتر';
+  if (['meter', 'meters', 'm'].includes(lower)) return 'متر';
+  if (['service', 'services', 'خدمه'].includes(lower)) return 'خدمة';
+
+  return trimmed;
+}
+
+export function summarizeCartQuantities(cart: Array<{ unitName?: string; qty: number }>): string[] {
+  const map = new Map<string, number>();
+  for (const item of cart) {
+    const unit = normalizeUnitName(item.unitName);
+    map.set(unit, (map.get(unit) || 0) + Number(item.qty || 0));
+  }
+  return Array.from(map.entries()).map(([unit, qty]) => `${qty.toLocaleString('ar-EG', { maximumFractionDigits: 3 })} ${unit}`);
+}

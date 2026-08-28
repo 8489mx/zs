@@ -582,7 +582,7 @@ export class CatalogProductService {
       if (!unitsByProduct.has(key)) unitsByProduct.set(key, []);
       unitsByProduct.get(key)!.push({
         id: String(unit.id),
-        name: unit.name,
+        name: this.normalizeUnitName(unit.name),
         multiplier: Number(unit.multiplier || 1),
         barcode: unit.barcode || '',
         isBaseUnit: Boolean(unit.is_base_unit),
@@ -591,6 +591,23 @@ export class CatalogProductService {
       });
     }
     return unitsByProduct;
+  }
+
+  private normalizeUnitName(name: unknown): string {
+    const text = String(name || '').trim();
+    if (!text) return 'قطعة';
+    const lower = text.toLowerCase();
+    if (['piece', 'pieces', 'pcs', 'pc', 'item', 'items', 'unit', 'units', 'قطعه', 'حبة', 'حبه'].includes(lower)) return 'قطعة';
+    if (lower === 'kg' || lower === 'كجم' || lower === 'كيلو' || lower === 'كيلوجرام') return 'kg';
+    if (lower === 'g' || lower === 'gm' || lower === 'gram' || lower === 'جرام') return 'g';
+    if (['box', 'boxes', 'carton', 'cartons', 'كرتونه'].includes(lower)) return 'كرتونة';
+    if (['packet', 'pack', 'packs'].includes(lower)) return 'باكت';
+    if (['bottle', 'bottles'].includes(lower)) return 'زجاجة';
+    if (['can', 'cans'].includes(lower)) return 'علبة';
+    if (['liter', 'liters', 'ltr', 'l'].includes(lower)) return 'لتر';
+    if (['meter', 'meters', 'm'].includes(lower)) return 'متر';
+    if (['service', 'services', 'خدمه'].includes(lower)) return 'خدمة';
+    return text;
   }
 
   private async fetchProductOffers(productIds: number[], hasMinQty: boolean, actor: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
@@ -684,7 +701,7 @@ export class CatalogProductService {
     const units = context.unitsByProduct.get(String(product.id)) || [
       {
         id: `base-${product.id}`,
-        name: 'piece',
+        name: 'قطعة',
         multiplier: 1,
         barcode: product.barcode || '',
         isBaseUnit: true,
@@ -715,7 +732,7 @@ export class CatalogProductService {
       matchedUnit: product.matched_unit_id
         ? {
             id: String(product.matched_unit_id),
-            name: product.matched_unit_name || '',
+            name: this.normalizeUnitName(product.matched_unit_name),
             multiplier: Number(product.matched_unit_multiplier || 1),
             barcode: product.matched_unit_barcode || '',
         }
@@ -931,7 +948,7 @@ export class CatalogProductService {
       if (!unitsByProduct.has(key)) unitsByProduct.set(key, []);
       unitsByProduct.get(key)!.push({
         id: String(unit.id),
-        name: unit.name,
+        name: this.normalizeUnitName(unit.name),
         multiplier: Number(unit.multiplier || 1),
         barcode: unit.barcode || '',
         isBaseUnit: Boolean(unit.is_base_unit),
@@ -1033,7 +1050,7 @@ export class CatalogProductService {
       : [{ name: 'قطعة', multiplier: 1, barcode: payload.barcode || '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }];
 
     const normalizedUnits = units.map((unit, index) => ({
-      name: String(unit.name || '').trim() || (index === 0 ? 'قطعة' : 'وحدة'),
+      name: this.normalizeUnitName(unit.name) || (index === 0 ? 'قطعة' : 'وحدة'),
       multiplier: Number(unit.multiplier || 1),
       barcode: String(unit.barcode || '').trim(),
       isBaseUnit: Boolean(unit.isBaseUnit) || Number(unit.multiplier || 1) === 1 || index === 0,

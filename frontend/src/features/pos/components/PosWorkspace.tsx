@@ -20,7 +20,7 @@ import {
   printCurrentPosDraft,
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import { posApi } from '@/features/pos/api/pos.api';
-import { isNegativeStockSalesAllowed, repriceCartLine, getProductItemCode, getSaleUnit } from '@/features/pos/lib/pos.domain';
+import { isNegativeStockSalesAllowed, repriceCartLine, getProductItemCode, getSaleUnit, summarizeCartQuantities } from '@/features/pos/lib/pos.domain';
 import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
@@ -94,12 +94,7 @@ export function PosWorkspace() {
     return (pos.customersQuery.data || []).find((customer) => String(customer.id) === customerId) || null;
   }, [pos.customerId, pos.customersQuery.data, pos.lastSale?.customerId]);
   const cartQtySummaries = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const item of pos.cart) {
-      const unit = item.unitName || 'قطعة';
-      map.set(unit, (map.get(unit) || 0) + Number(item.qty || 0));
-    }
-    return Array.from(map.entries()).map(([unit, qty]) => `${qty.toLocaleString('ar-EG', { maximumFractionDigits: 3 })} ${unit}`);
+    return summarizeCartQuantities(pos.cart);
   }, [pos.cart]);
   const cartItemsCount = pos.cart.length;
   const lineDeleteConfirmItem = useMemo(

@@ -138,8 +138,8 @@ class FakeDb {
     product(2, 'Coffee', '222', 22),
   ];
   productUnits: UnitRow[] = [
-    unit(10, 1, 'piece', '111'),
-    unit(20, 2, 'box', 'BOX222'),
+    unit(10, 1, 'قطعة', '111'),
+    unit(20, 2, 'كرتونة', 'BOX222'),
   ];
   lastProductQueryLimit = 0;
   searchNeedle = '';
@@ -171,11 +171,11 @@ function unit(id: number, productId: number, name: string, barcode: string): Uni
     id,
     product_id: productId,
     name,
-    multiplier: name === 'box' ? 12 : 1,
+    multiplier: name === 'كرتونة' ? 12 : 1,
     barcode,
-    is_base_unit: name === 'piece',
-    is_sale_unit_default: name === 'piece',
-    is_purchase_unit_default: name === 'box',
+    is_base_unit: name === 'قطعة',
+    is_sale_unit_default: name === 'قطعة',
+    is_purchase_unit_default: name === 'كرتونة',
   };
 }
 
@@ -205,7 +205,7 @@ async function run(): Promise<void> {
     const result = await service.listPosProducts({ barcode: 'BOX222' }, cashier);
     const [matched] = result.products as Array<Record<string, unknown>>;
     assert.equal(matched.id, '2');
-    assert.deepEqual(matched.matchedUnit, { id: '20', name: 'box', multiplier: 12, barcode: 'BOX222' });
+    assert.deepEqual(matched.matchedUnit, { id: '20', name: 'كرتونة', multiplier: 12, barcode: 'BOX222' });
   }
 
   {

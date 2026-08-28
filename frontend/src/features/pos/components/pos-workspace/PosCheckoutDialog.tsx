@@ -15,6 +15,7 @@ import {
   type PaymentPreset,
 } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
 import { useAuthStore, isAdminUser } from '@/stores/auth-store';
+import { summarizeCartQuantities } from '@/features/pos/lib/pos.domain';
 
 interface PosCheckoutDialogProps {
   open: boolean;
@@ -154,12 +155,7 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
     )).slice(0, 40);
   }, [customerQuery, customers]);
   const cartQtySummaries = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const item of pos.cart) {
-      const unit = item.unitName || 'قطعة';
-      map.set(unit, (map.get(unit) || 0) + Number(item.qty || 0));
-    }
-    return Array.from(map.entries()).map(([unit, qty]) => `${qty.toLocaleString('ar-EG', { maximumFractionDigits: 3 })} ${unit}`);
+    return summarizeCartQuantities(pos.cart);
   }, [pos.cart]);
   const itemsCount = pos.cart.length;
 

@@ -1,6 +1,7 @@
 import type { ProductUnit } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
 import { UnitCombobox } from '@/shared/components/UnitCombobox';
+import { normalizeUnitName } from '@/features/pos/lib/pos.domain';
 
 function nextEmptyUnit(): ProductUnit {
   return {
@@ -22,7 +23,7 @@ function normalizeUnits(units: ProductUnit[]) {
   const normalized = source.map((unit, index) => {
     const next = {
       ...unit,
-      name: unit.name || (index === 0 ? 'قطعة' : ''),
+      name: normalizeUnitName(unit.name) || (index === 0 ? 'قطعة' : ''),
       multiplier: Number(unit.multiplier || 1) || 1,
       barcode: unit.barcode || '',
       isBaseUnit: Boolean(unit.isBaseUnit),
@@ -58,7 +59,7 @@ export function normalizeProductUnits(units: ProductUnit[] | undefined, barcodeF
   const initial = Array.isArray(units) && units.length
     ? units.map((unit, index) => ({
         id: unit.id || `u-${index + 1}`,
-        name: unit.name || (index === 0 ? 'قطعة' : ''),
+        name: normalizeUnitName(unit.name) || (index === 0 ? 'قطعة' : ''),
         multiplier: Number(unit.multiplier || 1) || 1,
         barcode: unit.barcode || (index === 0 ? barcodeFallback : ''),
         isBaseUnit: Boolean(unit.isBaseUnit),

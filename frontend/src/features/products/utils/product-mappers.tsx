@@ -2,6 +2,7 @@ import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/domain';
 import { getProductLocationDisplayName } from './product-location.utils';
 import { FileTextIcon } from '@/shared/components/icons/AppIcons';
+import { normalizeUnitName } from '@/features/pos/lib/pos.domain';
 
 export function matchProductSearch(product: Product, search: string, categoryName = '', supplierName = '') {
   const q = search.trim().toLowerCase();
@@ -29,7 +30,7 @@ export function getProductColumns(categoryNames: Record<string, string>, supplie
       cell: (product: Product) => (
         <div>
           <strong>{product.name}</strong>
-          <div className="muted small">وحدات: {product.units.map((unit) => unit.name).join(' / ') || 'قطعة'}</div>
+          <div className="muted small">وحدات: {product.units.map((unit) => normalizeUnitName(unit.name)).join(' / ') || 'قطعة'}</div>
         </div>
       )
     },
