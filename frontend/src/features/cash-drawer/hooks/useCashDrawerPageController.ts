@@ -197,6 +197,25 @@ export function useCashDrawerPageController() {
   }, [closeForm, movementForm, openOptions, myOpenShift, isSuperAdminOrManager]);
 
   const selectedCloseShift = openOptions.find((shift) => String(shift.id) === String(closeForm.watch('shiftId'))) || null;
+
+  useEffect(() => {
+    if (selectedCloseShift) {
+      const cardCount = Number(selectedCloseShift.cardOperationCount || 0);
+      const walletCount = Number(selectedCloseShift.walletOperationCount || 0);
+      const instapayCount = Number(selectedCloseShift.instapayOperationCount || 0);
+
+      closeForm.setValue('cardOperationCount', cardCount, { shouldDirty: false });
+      closeForm.setValue('walletOperationCount', walletCount, { shouldDirty: false });
+      closeForm.setValue('instapayOperationCount', instapayCount, { shouldDirty: false });
+    }
+  }, [
+    selectedCloseShift?.id,
+    selectedCloseShift?.cardOperationCount,
+    selectedCloseShift?.walletOperationCount,
+    selectedCloseShift?.instapayOperationCount,
+    closeForm,
+  ]);
+
   const closeExpectedCash = Number(selectedCloseShift?.expectedCash || 0);
   const closeCountedCash = Number(closeForm.watch('countedCash') || 0);
   const closeVariancePreview = Number((closeCountedCash - closeExpectedCash).toFixed(2));

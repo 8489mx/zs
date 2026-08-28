@@ -54,6 +54,168 @@ function summarizeDetails(rows: Array<{ amount?: number }>): number {
   return Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
 }
 
+function OperationAmountGrid(props: {
+  title: string;
+  badgeColor: string;
+  iconText: string;
+  count: number;
+  declaredTotal: number;
+  detailsRows: Array<{ amount?: number }>;
+  field: DetailChannel;
+  register: UseFormReturn<CloseShiftValues>['register'];
+  onApplyTotalToDeclared: (total: number) => void;
+  disabled?: boolean;
+}) {
+  const detailsTotal = useMemo(() => summarizeDetails(props.detailsRows), [props.detailsRows]);
+  const diff = Number((detailsTotal - props.declaredTotal).toFixed(2));
+  const isMatch = Math.abs(diff) < 0.01 && detailsTotal > 0 && props.declaredTotal > 0;
+  const isZero = detailsTotal === 0 && props.declaredTotal === 0;
+
+  return (
+    <div
+      style={{
+        gridColumn: '1 / -1',
+        background: '#f8fafc',
+        border: '1.5px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '16px',
+        marginTop: '6px',
+        marginBottom: '12px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          paddingBottom: '12px',
+          borderBottom: '1px solid #e2e8f0',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '1.25rem' }}>{props.iconText}</span>
+          <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{props.title}</strong>
+          <span
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: '999px',
+              background: props.badgeColor,
+              color: '#ffffff',
+            }}
+          >
+            {props.count} {props.count === 1 ? 'عملية' : props.count === 2 ? 'عمليتان' : 'عمليات'}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '0.85rem', color: '#334155' }}>
+            مجموع المربعات: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(detailsTotal)}</strong>
+          </div>
+          <div style={{ fontSize: '0.85rem', color: '#334155' }}>
+            المعلن: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(props.declaredTotal)}</strong>
+          </div>
+          {isMatch ? (
+            <span style={{ background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}>
+              ✓ متطابق تماماً
+            </span>
+          ) : !isZero ? (
+            <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '3px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}>
+              فرق: {formatCurrency(diff)}
+            </span>
+          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+            onClick={() => props.onApplyTotalToDeclared(detailsTotal)}
+            disabled={props.disabled || detailsTotal === 0}
+          >
+            ⚡ اعتماد المجموع كإجمالي معلن
+          </Button>
+        </div>
+      </div>
+
+      {props.count === 0 ? (
+        <div style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '0.9rem' }}>
+          لا توجد عمليات مسجلة لهذه القناة في الوردية الحالية.
+        </div>
+      ) : (
+        <div
+          style={{
+            maxHeight: '380px',
+            overflowY: 'auto',
+            padding: '12px 4px 4px 4px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+            gap: '10px',
+          }}
+        >
+          {Array.from({ length: props.count }).map((_, index) => (
+            <div
+              key={`${props.field}-${index}`}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                boxShadow: '0 1px 2px 0 rgba(0,0,0,0.04)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.75rem',
+                  color: '#64748b',
+                  fontWeight: 700,
+                }}
+              >
+                <span>عملية #{index + 1}</span>
+              </div>
+              <input
+                id={`${props.field}-${index}`}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #94a3b8',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  background: '#f8fafc',
+                }}
+                {...props.register(`${props.field}.${index}.amount` as const, { valueAsNumber: true })}
+                disabled={props.disabled}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const nextInput = document.getElementById(`${props.field}-${index + 1}`);
+                    if (nextInput) {
+                      nextInput.focus();
+                    }
+                  }
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const locationList = Array.isArray(props.locations) ? props.locations : [];
   const isBlindCloseMode = props.isBlindCloseMode === true;
@@ -70,20 +232,37 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const closeExpensesTotal = Number(selectedCloseShift?.expensesTotal || 0);
   const closeSupplierPaymentsTotal = Number(selectedCloseShift?.supplierPaymentsTotal || 0);
 
-  const cardOperationCount = normalizeCount(props.closeForm.watch('cardOperationCount'));
-  const walletOperationCount = normalizeCount(props.closeForm.watch('walletOperationCount'));
-  const instapayOperationCount = normalizeCount(props.closeForm.watch('instapayOperationCount'));
+  const cardOperationCount = normalizeCount(selectedCloseShift?.cardOperationCount ?? props.closeForm.watch('cardOperationCount'));
+  const walletOperationCount = normalizeCount(selectedCloseShift?.walletOperationCount ?? props.closeForm.watch('walletOperationCount'));
+  const instapayOperationCount = normalizeCount(selectedCloseShift?.instapayOperationCount ?? props.closeForm.watch('instapayOperationCount'));
 
   const [showCardDetails, setShowCardDetails] = useState(false);
   const [showWalletDetails, setShowWalletDetails] = useState(false);
   const [showInstapayDetails, setShowInstapayDetails] = useState(false);
+
+  useEffect(() => {
+    if (selectedCloseShift) {
+      const cardCount = normalizeCount(selectedCloseShift.cardOperationCount);
+      const walletCount = normalizeCount(selectedCloseShift.walletOperationCount);
+      const instapayCount = normalizeCount(selectedCloseShift.instapayOperationCount);
+      props.closeForm.setValue('cardOperationCount', cardCount, { shouldDirty: false });
+      props.closeForm.setValue('walletOperationCount', walletCount, { shouldDirty: false });
+      props.closeForm.setValue('instapayOperationCount', instapayCount, { shouldDirty: false });
+    }
+  }, [
+    selectedCloseShift?.id,
+    selectedCloseShift?.cardOperationCount,
+    selectedCloseShift?.walletOperationCount,
+    selectedCloseShift?.instapayOperationCount,
+    props.closeForm,
+  ]);
 
   const ensureDetailsLength = (field: DetailChannel, size: number) => {
     const current = props.closeForm.getValues(field) || [];
     const next = [...current];
     if (next.length > size) next.length = size;
     while (next.length < size) {
-      next.push({ amount: 0, reference: '' });
+      next.push({ amount: 0 });
     }
     props.closeForm.setValue(field, next, { shouldDirty: false });
   };
@@ -142,14 +321,6 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const walletDetailsRows = props.closeForm.watch('walletDetails') ?? EMPTY_DETAIL_ROWS;
   const instapayDetailsRows = props.closeForm.watch('instapayDetails') ?? EMPTY_DETAIL_ROWS;
 
-  const cardDetailsTotal = useMemo(() => summarizeDetails(cardDetailsRows), [cardDetailsRows]);
-  const walletDetailsTotal = useMemo(() => summarizeDetails(walletDetailsRows), [walletDetailsRows]);
-  const instapayDetailsTotal = useMemo(() => summarizeDetails(instapayDetailsRows), [instapayDetailsRows]);
-
-  const cardDetailsDiff = Number((cardDetailsTotal - cardDeclaredTotal).toFixed(2));
-  const walletDetailsDiff = Number((walletDetailsTotal - walletDeclaredTotal).toFixed(2));
-  const instapayDetailsDiff = Number((instapayDetailsTotal - instapayDeclaredTotal).toFixed(2));
-
   const watchedBranchId = props.openForm.watch('branchId');
   const availableLocations = useMemo(() => {
     if (!watchedBranchId) return locationList;
@@ -158,7 +329,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   }, [locationList, watchedBranchId]);
 
   return (
-    <DialogShell open={!!props.activeForm} onClose={props.onCloseForm} width="min(600px, 100%)">
+    <DialogShell open={!!props.activeForm} onClose={props.onCloseForm} width={props.activeForm === 'close' ? 'min(940px, 98vw)' : 'min(600px, 100%)'}>
       {props.activeForm === 'open' && (
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
           <h2 style={{ marginTop: 0, marginBottom: '24px' }}>فتح وردية نقطة بيع</h2>
@@ -286,8 +457,52 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
       )}
 
       {props.activeForm === 'close' && (
-        <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '24px' }}>إغلاق وردية نقطة البيع</h2>
+        <div style={{ background: '#fff', padding: '24px', borderRadius: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0, fontSize: '1.35rem', color: '#0f172a' }}>إغلاق وردية نقطة البيع</h2>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                type="button"
+                variant={showCardDetails ? 'primary' : 'secondary'}
+                style={{ fontSize: '0.85rem' }}
+                onClick={() => {
+                  setShowCardDetails((v) => !v);
+                  setShowWalletDetails(false);
+                  setShowInstapayDetails(false);
+                }}
+                disabled={props.closeMutation.isPending}
+              >
+                💳 تفاصيل الفيزا ({cardOperationCount})
+              </Button>
+              <Button
+                type="button"
+                variant={showWalletDetails ? 'primary' : 'secondary'}
+                style={{ fontSize: '0.85rem' }}
+                onClick={() => {
+                  setShowWalletDetails((v) => !v);
+                  setShowCardDetails(false);
+                  setShowInstapayDetails(false);
+                }}
+                disabled={props.closeMutation.isPending}
+              >
+                📱 تفاصيل المحافظ ({walletOperationCount})
+              </Button>
+              <Button
+                type="button"
+                variant={showInstapayDetails ? 'primary' : 'secondary'}
+                style={{ fontSize: '0.85rem' }}
+                onClick={() => {
+                  setShowInstapayDetails((v) => !v);
+                  setShowCardDetails(false);
+                  setShowWalletDetails(false);
+                }}
+                disabled={props.closeMutation.isPending}
+              >
+                ⚡ تفاصيل InstaPay ({instapayOperationCount})
+              </Button>
+            </div>
+          </div>
+
         <form className="form-grid" onSubmit={props.onCloseSubmit}>
           {props.isManager && props.openOptions.length > 1 ? (
             <Field label="وردية نقطة البيع المفتوحة">
@@ -330,83 +545,112 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             </Field>
           )}
 
-
           {isBlindCloseMode ? (
             <>
               <Field label="النقدية المعدودة في درج النقدية">
-                <input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+                <input type="number" min="0" step="0.01" placeholder="0.00" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
               </Field>
 
               <Field label="إجمالي الفيزا حسب ماكينة الدفع">
-                <input type="number" min="0" step="0.01" {...props.closeForm.register('cardDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+                <input type="number" min="0" step="0.01" placeholder="0.00" {...props.closeForm.register('cardDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
               </Field>
-              <Field label="عدد عمليات الفيزا">
-                <input type="number" min="0" step="1" {...props.closeForm.register('cardOperationCount', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+
+              <Field label="عدد عمليات الفيزا (محسوب ومقفل)">
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    value={cardOperationCount}
+                    disabled
+                    readOnly
+                    style={{ background: '#f1f5f9', cursor: 'not-allowed', color: '#334155', fontWeight: 700, width: '100%' }}
+                  />
+                  <small style={{ color: '#0284c7', fontSize: '11px', display: 'block', marginTop: '2px', fontWeight: 600 }}>
+                    🔒 محسوب تلقائياً من فواتير الوردية ({cardOperationCount} عملية)
+                  </small>
+                </div>
               </Field>
 
               <Field label="إجمالي محفظة إلكترونية">
-                <input type="number" min="0" step="0.01" {...props.closeForm.register('walletDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+                <input type="number" min="0" step="0.01" placeholder="0.00" {...props.closeForm.register('walletDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
               </Field>
-              <Field label="عدد عمليات محفظة إلكترونية">
-                <input type="number" min="0" step="1" {...props.closeForm.register('walletOperationCount', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+
+              <Field label="عدد عمليات المحفظة (محسوب ومقفل)">
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    value={walletOperationCount}
+                    disabled
+                    readOnly
+                    style={{ background: '#f1f5f9', cursor: 'not-allowed', color: '#334155', fontWeight: 700, width: '100%' }}
+                  />
+                  <small style={{ color: '#0284c7', fontSize: '11px', display: 'block', marginTop: '2px', fontWeight: 600 }}>
+                    🔒 محسوب تلقائياً من فواتير الوردية ({walletOperationCount} عملية)
+                  </small>
+                </div>
               </Field>
 
               <Field label="إجمالي InstaPay">
-                <input type="number" min="0" step="0.01" {...props.closeForm.register('instapayDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
-              </Field>
-              <Field label="عدد عمليات InstaPay">
-                <input type="number" min="0" step="1" {...props.closeForm.register('instapayOperationCount', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
+                <input type="number" min="0" step="0.01" placeholder="0.00" {...props.closeForm.register('instapayDeclaredTotal', { valueAsNumber: true })} disabled={props.closeMutation.isPending} />
               </Field>
 
-              <div className="actions compact-actions" style={{ gridColumn: '1 / -1' }}>
-                <Button type="button" variant="secondary" onClick={() => setShowCardDetails((value) => !value)} disabled={props.closeMutation.isPending}>تفاصيل الفيزا</Button>
-                <Button type="button" variant="secondary" onClick={() => setShowWalletDetails((value) => !value)} disabled={props.closeMutation.isPending}>تفاصيل المحافظ</Button>
-                <Button type="button" variant="secondary" onClick={() => setShowInstapayDetails((value) => !value)} disabled={props.closeMutation.isPending}>تفاصيل InstaPay</Button>
-              </div>
+              <Field label="عدد عمليات InstaPay (محسوب ومقفل)">
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    value={instapayOperationCount}
+                    disabled
+                    readOnly
+                    style={{ background: '#f1f5f9', cursor: 'not-allowed', color: '#334155', fontWeight: 700, width: '100%' }}
+                  />
+                  <small style={{ color: '#0284c7', fontSize: '11px', display: 'block', marginTop: '2px', fontWeight: 600 }}>
+                    🔒 محسوب تلقائياً من فواتير الوردية ({instapayOperationCount} عملية)
+                  </small>
+                </div>
+              </Field>
 
               {showCardDetails ? (
-                <div className="card" style={{ gridColumn: '1 / -1', padding: 10 }}>
-                  <strong style={{ display: 'block', marginBottom: 8 }}>تفاصيل الفيزا</strong>
-                  {cardOperationCount ? cardDetailsRows.map((_, index) => (
-                    <div key={`card-detail-${index}`} className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-                      <Field label={`عملية ${index + 1} - مبلغ`}><input type="number" min="0" step="0.01" {...props.closeForm.register(`cardDetails.${index}.amount` as const, { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
-                      <Field label={`عملية ${index + 1} - رقم العملية`}><input {...props.closeForm.register(`cardDetails.${index}.reference` as const)} disabled={props.closeMutation.isPending} /></Field>
-                    </div>
-                  )) : <div className="muted small">أدخل عدد عمليات الفيزا أولًا لعرض التفاصيل.</div>}
-                  <div className="muted small">
-                    إجمالي التفاصيل: <strong>{formatCurrency(cardDetailsTotal)}</strong> — الإجمالي المعلن: <strong>{formatCurrency(cardDeclaredTotal)}</strong> — فرق التفاصيل: <strong>{formatCurrency(cardDetailsDiff)}</strong>
-                  </div>
-                </div>
+                <OperationAmountGrid
+                  title="تفاصيل مبالغ عمليات الفيزا"
+                  iconText="💳"
+                  badgeColor="#2563eb"
+                  count={cardOperationCount}
+                  declaredTotal={cardDeclaredTotal}
+                  detailsRows={cardDetailsRows}
+                  field="cardDetails"
+                  register={props.closeForm.register}
+                  onApplyTotalToDeclared={(total) => props.closeForm.setValue('cardDeclaredTotal', total, { shouldDirty: true })}
+                  disabled={props.closeMutation.isPending}
+                />
               ) : null}
 
               {showWalletDetails ? (
-                <div className="card" style={{ gridColumn: '1 / -1', padding: 10 }}>
-                  <strong style={{ display: 'block', marginBottom: 8 }}>تفاصيل المحافظ</strong>
-                  {walletOperationCount ? walletDetailsRows.map((_, index) => (
-                    <div key={`wallet-detail-${index}`} className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-                      <Field label={`عملية ${index + 1} - مبلغ`}><input type="number" min="0" step="0.01" {...props.closeForm.register(`walletDetails.${index}.amount` as const, { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
-                      <Field label={`عملية ${index + 1} - رقم العملية`}><input {...props.closeForm.register(`walletDetails.${index}.reference` as const)} disabled={props.closeMutation.isPending} /></Field>
-                    </div>
-                  )) : <div className="muted small">أدخل عدد عمليات المحافظ أولًا لعرض التفاصيل.</div>}
-                  <div className="muted small">
-                    إجمالي التفاصيل: <strong>{formatCurrency(walletDetailsTotal)}</strong> — الإجمالي المعلن: <strong>{formatCurrency(walletDeclaredTotal)}</strong> — فرق التفاصيل: <strong>{formatCurrency(walletDetailsDiff)}</strong>
-                  </div>
-                </div>
+                <OperationAmountGrid
+                  title="تفاصيل مبالغ عمليات المحافظ الإلكترونية"
+                  iconText="📱"
+                  badgeColor="#7c3aed"
+                  count={walletOperationCount}
+                  declaredTotal={walletDeclaredTotal}
+                  detailsRows={walletDetailsRows}
+                  field="walletDetails"
+                  register={props.closeForm.register}
+                  onApplyTotalToDeclared={(total) => props.closeForm.setValue('walletDeclaredTotal', total, { shouldDirty: true })}
+                  disabled={props.closeMutation.isPending}
+                />
               ) : null}
 
               {showInstapayDetails ? (
-                <div className="card" style={{ gridColumn: '1 / -1', padding: 10 }}>
-                  <strong style={{ display: 'block', marginBottom: 8 }}>تفاصيل InstaPay</strong>
-                  {instapayOperationCount ? instapayDetailsRows.map((_, index) => (
-                    <div key={`instapay-detail-${index}`} className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-                      <Field label={`عملية ${index + 1} - مبلغ`}><input type="number" min="0" step="0.01" {...props.closeForm.register(`instapayDetails.${index}.amount` as const, { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
-                      <Field label={`عملية ${index + 1} - رقم العملية`}><input {...props.closeForm.register(`instapayDetails.${index}.reference` as const)} disabled={props.closeMutation.isPending} /></Field>
-                    </div>
-                  )) : <div className="muted small">أدخل عدد عمليات InstaPay أولًا لعرض التفاصيل.</div>}
-                  <div className="muted small">
-                    إجمالي التفاصيل: <strong>{formatCurrency(instapayDetailsTotal)}</strong> — الإجمالي المعلن: <strong>{formatCurrency(instapayDeclaredTotal)}</strong> — فرق التفاصيل: <strong>{formatCurrency(instapayDetailsDiff)}</strong>
-                  </div>
-                </div>
+                <OperationAmountGrid
+                  title="تفاصيل مبالغ عمليات InstaPay"
+                  iconText="⚡"
+                  badgeColor="#059669"
+                  count={instapayOperationCount}
+                  declaredTotal={instapayDeclaredTotal}
+                  detailsRows={instapayDetailsRows}
+                  field="instapayDetails"
+                  register={props.closeForm.register}
+                  onApplyTotalToDeclared={(total) => props.closeForm.setValue('instapayDeclaredTotal', total, { shouldDirty: true })}
+                  disabled={props.closeMutation.isPending}
+                />
               ) : null}
 
               <Field label="ملاحظات الإغلاق">

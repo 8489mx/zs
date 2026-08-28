@@ -102,8 +102,10 @@ export class CashDrawerService {
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
   private normalizeOperationCount(value: unknown): number { const parsed = Number(value || 0); return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0; }
   private normalizeOperationDetails(details: unknown, maxCount: number): Array<{ amount: number; reference?: string }> {
-    if (!Array.isArray(details) || maxCount <= 0) return [];
-    return details.slice(0, maxCount).map((entry) => {
+    if (!Array.isArray(details) || details.length === 0) return [];
+    const effectiveLimit = Math.max(maxCount, details.length);
+    if (effectiveLimit <= 0) return [];
+    return details.slice(0, effectiveLimit).map((entry) => {
       const amount = this.toMoney((entry as CloseOperationDetailInput)?.amount || 0);
       const reference = String((entry as CloseOperationDetailInput)?.reference || '').trim();
       return { amount: amount >= 0 ? amount : 0, ...(reference ? { reference } : {}) };
