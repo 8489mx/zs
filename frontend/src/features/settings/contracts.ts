@@ -46,6 +46,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     defaultPosMode,
     deliveryFeeMode,
     storeFleetCommissionRate: Math.max(0, Math.min(100, Number(values.storeFleetCommissionRate || 0))),
+    defaultDeliveryFee: Math.max(0, normalizeMoney(Number(values.defaultDeliveryFee || 0))),
     manufacturingModuleEnabled: values.manufacturingModuleEnabled === true,
     importModuleEnabled: values.importModuleEnabled === true,
     comboModuleEnabled: values.comboModuleEnabled === true,

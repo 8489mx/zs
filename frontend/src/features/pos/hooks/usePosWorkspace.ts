@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
@@ -148,6 +149,23 @@ export function usePosWorkspace() {
     settings: settingsQuery.data || null,
   });
 
+  const handleSetOrderType = useCallback((next: string | ((current: string) => string)) => {
+    state.setOrderType((current) => {
+      const resolved = typeof next === 'function' ? next(current) : next;
+      const defaultDeliveryFee = Number((settingsQuery.data as any)?.defaultDeliveryFee || 0);
+      if (resolved === 'delivery') {
+        if (defaultDeliveryFee > 0 && (!state.deliveryFee || state.deliveryFee === 0)) {
+          state.setDeliveryFee(defaultDeliveryFee);
+        }
+      } else if (current === 'delivery' && (resolved === 'takeaway' || resolved === 'dine_in')) {
+        if (defaultDeliveryFee > 0 && state.deliveryFee === defaultDeliveryFee) {
+          state.setDeliveryFee(0);
+        }
+      }
+      return resolved;
+    });
+  }, [settingsQuery.data, state.deliveryFee, state.setDeliveryFee, state.setOrderType]);
+
   const actions = createPosWorkspaceActions({
     cart: state.cart,
     setCart: state.setCart,
@@ -188,7 +206,7 @@ export function usePosWorkspace() {
     tableNumber: state.tableNumber,
     setTableNumber: state.setTableNumber,
     orderType: state.orderType,
-    setOrderType: state.setOrderType,
+    setOrderType: handleSetOrderType,
     deliveryFeeMode: state.deliveryFeeMode,
     setDeliveryFeeMode: state.setDeliveryFeeMode,
     deliveryRepId: state.deliveryRepId,
@@ -293,7 +311,7 @@ export function usePosWorkspace() {
     tableNumber: state.tableNumber,
     setTableNumber: state.setTableNumber,
     orderType: state.orderType,
-    setOrderType: state.setOrderType,
+    setOrderType: handleSetOrderType,
     deliveryFeeMode: state.deliveryFeeMode,
     setDeliveryFeeMode: state.setDeliveryFeeMode,
     deliveryRepId: state.deliveryRepId,

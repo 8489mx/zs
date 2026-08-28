@@ -93,6 +93,16 @@ function CourierCommissionIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function DefaultDeliveryFeeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="12" x="2" y="6" rx="2" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M6 12h.01M18 12h.01" />
+    </svg>
+  );
+}
+
 const premiumCardStyle = {
   display: 'flex',
   alignItems: 'center',
@@ -336,7 +346,7 @@ export function SalesInventorySettingsTab({
           </div>
 
           {/* Card 6: Delivery Fee Mode */}
-          <div style={{ ...premiumCardStyle, cursor: 'default', ...(isStoreFleet ? {} : { gridColumn: '1 / -1' }) }}>
+          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
               <div style={iconBadgeStyle}>
                 <DeliveryModeIcon size={20} />
@@ -352,16 +362,44 @@ export function SalesInventorySettingsTab({
               className="purchase-prototype-field-input"
               {...form.register('deliveryFeeMode')}
               disabled={disabled}
-              style={{ width: isStoreFleet ? '185px' : '260px', height: '36px', fontSize: '0.82rem', fontWeight: 700 }}
+              style={{ width: isStoreFleet ? '160px' : '190px', height: '36px', fontSize: '0.82rem', fontWeight: 700 }}
             >
               <option value="freelance_courier">مناديب حرة (طياري)</option>
               <option value="store_fleet">أسطول المتجر (داخلي)</option>
             </select>
           </div>
 
-          {/* Card 7: Store Fleet Courier Commission Rate (Only visible when store fleet is active) */}
+          {/* Card 7: Default Delivery Fee */}
+          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+              <div style={iconBadgeStyle}>
+                <DefaultDeliveryFeeIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>رسوم التوصيل الافتراضية</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                  تُملأ تلقائياً عند اختيار دليفري وقابلة للتعديل بالكاشير
+                </small>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                className="purchase-prototype-field-input"
+                type="number"
+                min="0"
+                step="1"
+                {...form.register('defaultDeliveryFee')}
+                disabled={disabled}
+                placeholder="0"
+                style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+              />
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b' }}>ج.م</span>
+            </div>
+          </div>
+
+          {/* Card 8: Store Fleet Courier Commission Rate (Only visible when store fleet is active) */}
           {isStoreFleet ? (
-            <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+            <div style={{ ...premiumCardStyle, cursor: 'default', gridColumn: '1 / -1' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
                 <div style={iconBadgeStyle}>
                   <CourierCommissionIcon size={20} />

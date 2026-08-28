@@ -62,6 +62,7 @@ export interface AppSettings {
   defaultPosMode?: 'scanner' | 'touch' | string;
   deliveryFeeMode?: 'freelance_courier' | 'store_fleet' | string;
   storeFleetCommissionRate?: number;
+  defaultDeliveryFee?: number;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
   allowZeroPurchaseCost?: boolean;

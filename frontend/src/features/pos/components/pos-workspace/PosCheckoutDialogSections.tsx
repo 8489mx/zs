@@ -526,6 +526,20 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
         </div>
 
         <div className="field">
+          <span>رسوم التوصيل (ج.م)</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className="purchase-prototype-field-input"
+            value={pos.deliveryFee === 0 ? '' : pos.deliveryFee}
+            onChange={(event) => pos.setDeliveryFee(Number(event.target.value || 0))}
+            placeholder="0"
+            style={{ padding: '6px 8px', width: '100%', fontWeight: 700, fontSize: '14px' }}
+          />
+        </div>
+
+        <div className="field" style={{ gridColumn: '1 / -1', marginTop: '2px' }}>
           <span>حالة التحصيل</span>
           <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
             {(['cod', 'prepaid_by_rep', 'prepaid_online'] as const).map((status) => (
