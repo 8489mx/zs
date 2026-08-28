@@ -95,13 +95,15 @@ export function buildUpdatePayload(
     binLocation: values.binLocation || '',
     notes: values.notes || '',
     units: normalizedUnits,
-    offers: (offers ?? existingProduct.offers ?? []).map((offer) => ({
-      type: offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
-      value: Number(offer.value || 0),
-      minQty: Math.max(1, Number(offer.minQty || 1)),
-      from: offer.from || null,
-      to: offer.to || null
-    })),
+    offers: (offers ?? existingProduct.offers ?? [])
+      .filter((offer) => Number(offer.value || 0) > 0)
+      .map((offer) => ({
+        type: offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
+        value: Number(offer.value || 0),
+        minQty: Math.max(1, Number(offer.minQty || 1)),
+        ...(offer.from ? { from: offer.from } : {}),
+        ...(offer.to ? { to: offer.to } : {})
+      })),
     customerPrices: customerPrices
       .map((entry) => ({
         customerId: Number(entry.customerId || 0),

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
 import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
@@ -21,7 +20,7 @@ import {
   printCurrentPosDraft,
 } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import { posApi } from '@/features/pos/api/pos.api';
-import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
+import { isNegativeStockSalesAllowed, repriceCartLine, getProductItemCode, getSaleUnit } from '@/features/pos/lib/pos.domain';
 import { isLikelyBarcodeQuery } from '@/features/pos/lib/pos-product-lookup';
 import { normalizePosSaleMode, usePosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
@@ -36,11 +35,12 @@ import {
   remapArabicKeyboardToEnglish,
 } from '@/features/pos/lib/pos-barcode-normalizer';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
-import type { Sale } from '@/types/domain';
+import type { Product, Sale } from '@/types/domain';
+
+const LazyPosEditProductModal = lazy(() => import('@/features/pos/components/pos-workspace/PosEditProductModal').then((m) => ({ default: m.PosEditProductModal })));
 
 export function PosWorkspace() {
   const pos = usePosWorkspace();
-  const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannerSubmitRef = useRef<{ code: string; at: number }>({ code: '', at: 0 });
   const [discountApprovalDialogOpen, setDiscountApprovalDialogOpen] = useState(false);
@@ -58,6 +58,7 @@ export function PosWorkspace() {
   const [newProductModalOpen, setNewProductModalOpen] = useState(false);
   const [newProductInitialName, setNewProductInitialName] = useState('');
   const [newProductInitialBarcode, setNewProductInitialBarcode] = useState('');
+  const [editProductId, setEditProductId] = useState<string | null>(null);
   const [modifiersModalLineKey, setModifiersModalLineKey] = useState<string>('');
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const [scannedSale, setScannedSale] = useState<Sale | null>(null);
@@ -110,6 +111,11 @@ export function PosWorkspace() {
     [heldDeleteConfirmId, pos.heldDraftSummaries],
   );
 
+  const editProduct = useMemo(
+    () => (pos.productsQuery.data || []).find((p) => String(p.id) === String(editProductId)) || null,
+    [editProductId, pos.productsQuery.data],
+  );
+
   const printCurrentDraft = useCallback(() => {
     printCurrentPosDraft(pos, selectedCustomerName, selectedCustomer?.phone, selectedCustomer?.address);
   }, [pos, selectedCustomerName, selectedCustomer]);
@@ -121,6 +127,30 @@ export function PosWorkspace() {
     });
     return () => window.cancelAnimationFrame(handle);
   }, []);
+
+  const handleProductUpdatedFromModal = useCallback((updatedProduct: Product) => {
+    setEditProductId(null);
+    void pos.refetchCatalogs();
+    pos.setCart((prevCart) => {
+      return prevCart.map((line) => {
+        if (String(line.productId) === String(updatedProduct.id)) {
+          const unit = (updatedProduct.units || []).find((u) => String(u.id || '') === String(line.unitId || '') || String(u.name || '') === String(line.unitName || '')) || getSaleUnit(updatedProduct);
+          const nextLine = {
+            ...line,
+            name: updatedProduct.name || line.name,
+            costPrice: Number(updatedProduct.costPrice || 0),
+            currentStock: Number(updatedProduct.stock || 0),
+            minStock: Number(updatedProduct.minStock || 0),
+            itemCode: getProductItemCode(updatedProduct, unit) || line.itemCode,
+          };
+          return repriceCartLine(nextLine, updatedProduct, line.qty);
+        }
+        return line;
+      });
+    });
+    pos.setScannerMessage(`تم تحديث بيانات الصنف (${updatedProduct.name}) بنجاح`);
+    focusBarcodeEntry();
+  }, [pos, focusBarcodeEntry]);
 
   const requestDiscountAuthorization = useCallback(() => {
     setDiscountApprovalDialogOpen(true);
@@ -492,6 +522,7 @@ export function PosWorkspace() {
         onRequestDiscountAuthorization={requestDiscountAuthorization}
         onRequestLineDelete={requestLineDelete}
         onItemModifiersClick={requestItemModifiers}
+        onEditProduct={(id) => setEditProductId(id)}
         onRequestSelectedLineDelete={requestSelectedLineDelete}
         onRequestHeldDelete={requestHeldDelete}
         onRequestClearHeldDrafts={requestClearHeldDrafts}
@@ -681,6 +712,21 @@ export function PosWorkspace() {
         />
       )}
 
+      {editProductId && (
+        <Suspense fallback={null}>
+          <LazyPosEditProductModal
+            isOpen={Boolean(editProductId)}
+            productId={editProductId}
+            initialProduct={editProduct}
+            onClose={() => {
+              setEditProductId(null);
+              focusBarcodeEntry();
+            }}
+            onSuccess={handleProductUpdatedFromModal}
+          />
+        </Suspense>
+      )}
+
       <PosScannedInvoiceModal
         sale={scannedSale}
         isOpen={scannedSaleModalOpen}
@@ -693,7 +739,9 @@ export function PosWorkspace() {
         onOpenReturns={(targetSale) => {
           setScannedSaleModalOpen(false);
           setScannedSale(null);
-          navigate(`/returns?invoiceId=${targetSale.id}&docNo=${encodeURIComponent(targetSale.docNo || '')}`);
+          if (typeof window !== 'undefined') {
+            window.location.hash = `#/returns?invoiceId=${targetSale.id}&docNo=${encodeURIComponent(targetSale.docNo || '')}`;
+          }
         }}
       />
     </div>

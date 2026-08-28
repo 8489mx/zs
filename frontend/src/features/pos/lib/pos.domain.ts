@@ -134,7 +134,7 @@ export function isNegativeStockSalesAllowed(settings?: { allowNegativeStockSales
   return settings?.allowNegativeStockSales === true || settings?.allowSellingBelowStock === true;
 }
 
-function getProductItemCode(product: Product, unit?: ProductUnit) {
+export function getProductItemCode(product: Product, unit?: ProductUnit) {
   return String(product.styleCode || unit?.barcode || product.barcode || product.id || '').trim();
 }
 
@@ -286,7 +286,7 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     serials: incomingSerial ? [incomingSerial] : undefined,
   };
 
-  return [repriceCartLine(newItem, product, requestedQty), ...cart];
+  return [...cart, repriceCartLine(newItem, product, requestedQty)];
 }
 
 export function updatePosItemQty(cart: PosItem[], lineKey: string, qty: number, products: Product[]) {
@@ -364,6 +364,7 @@ export function syncPosCartStock(cart: PosItem[], products: Product[], options: 
     const nextQty = Math.min(normalizedQty, stockLimit);
     const nextItem = {
       ...item,
+      name: product.name || item.name,
       unitId: String(unit.id || item.unitId || ''),
       unitName: unit.name || item.unitName,
       itemCode: getProductItemCode(product, unit) || item.itemCode,
@@ -382,7 +383,8 @@ export function syncPosCartStock(cart: PosItem[], products: Product[], options: 
     }
 
     if (
-      Number(nextItem.stockLimit) !== Number(item.stockLimit)
+      String(nextItem.name || '') !== String(item.name || '')
+      || Number(nextItem.stockLimit) !== Number(item.stockLimit)
       || Number(nextItem.currentStock) !== Number(item.currentStock)
       || Number(nextItem.minStock) !== Number(item.minStock)
       || Number(nextItem.unitMultiplier) !== Number(item.unitMultiplier)

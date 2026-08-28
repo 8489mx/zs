@@ -4,7 +4,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { FileTextIcon, TagIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
-export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
+export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
   let allowItemNotes = false;
   let allowItemModifiers = false;
   try {
@@ -54,12 +54,12 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   return (
     <section ref={containerRef} className={`pos-cart-table ${responsiveClass}`.trim()} aria-label="عناصر السلة">
       <div className="pos-cart-table-head" aria-hidden="true">
-        <div className="pos-cart-col pos-cart-col-index">م</div>
+        <div className="pos-cart-col pos-cart-col-index" style={{ textAlign: 'center' }}>م</div>
         <div className="pos-cart-col pos-cart-col-product">الصنف</div>
-        <div className="pos-cart-col pos-cart-col-qty">الكمية</div>
-        <div className="pos-cart-col pos-cart-col-price">السعر</div>
-        <div className="pos-cart-col pos-cart-col-total">الإجمالي</div>
-        <div className="pos-cart-col pos-cart-col-remove">حذف</div>
+        <div className="pos-cart-col pos-cart-col-qty" style={{ textAlign: 'center' }}>الكمية</div>
+        <div className="pos-cart-col pos-cart-col-price" style={{ textAlign: 'center' }}>السعر</div>
+        <div className="pos-cart-col pos-cart-col-total" style={{ textAlign: 'center' }}>الإجمالي</div>
+        <div className="pos-cart-col pos-cart-col-remove" style={{ textAlign: 'center' }}>حذف</div>
       </div>
 
       <div className="list-stack pos-cart-list pos-cart-list-premium pos-cart-list-upgraded pos-cart-table-body">
@@ -72,6 +72,8 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
           const isWeightedLine = item.isWeighted === true;
           const minQty = isWeightedLine ? 0.001 : 1;
           const inputStep = isWeightedLine ? 0.001 : 1;
+          const qtyLength = String(item.qty ?? 1).length;
+          const dynamicInputWidth = `${Math.max(30, qtyLength * 11 + 16)}px`;
 
           return (
             <div
@@ -79,12 +81,20 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
               key={item.lineKey}
               onClick={() => onSelectLine(item.lineKey)}
             >
-              <div className="pos-cart-col pos-cart-col-index">
+              <div className="pos-cart-col pos-cart-col-index" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <span className="pos-cart-index-badge">{index + 1}</span>
               </div>
 
-              <div className="pos-cart-col pos-cart-col-product">
-                <div className="pos-cart-product-inline" title={itemCode ? `${item.name} - ${itemCode}` : item.name}>
+              <div
+                className="pos-cart-col pos-cart-col-product"
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  onEditProduct?.(item.productId);
+                }}
+                style={{ cursor: 'pointer' }}
+                title={itemCode ? `${item.name} - #${itemCode} (انقر مرتين للتعديل)` : `${item.name} (انقر مرتين للتعديل)`}
+              >
+                <div className="pos-cart-product-inline">
                   <strong className="pos-cart-product-name">{item.name}</strong>
                   {itemCode ? <span className="pos-cart-product-code">#{itemCode}</span> : null}
                   {!item.notes && allowItemNotes && (
@@ -149,11 +159,12 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                 )}
               </div>
 
-              <div className="pos-cart-col pos-cart-col-qty">
-                <div className="pos-cart-qty-shell" style={{ gridTemplateColumns: '34px max-content 34px' }}>
+              <div className="pos-cart-col pos-cart-col-qty" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div className="pos-cart-qty-shell" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', width: 'auto' }}>
                   <button
                     type="button"
                     className="pos-cart-qty-btn"
+                    style={{ height: '26px', minHeight: '26px', width: '26px', minWidth: '26px', fontSize: '1.05rem', padding: 0 }}
                     aria-label={`زيادة كمية ${item.name}`}
                     onFocus={() => onSelectLine(item.lineKey)}
                     onClick={(event) => {
@@ -171,7 +182,19 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                     type="number"
                     aria-label="الكمية"
                     dir="ltr"
-                    style={{ fontVariantNumeric: 'tabular-nums', textAlign: 'center', fieldSizing: 'content', minWidth: '54px' } as any}
+                    style={{
+                      fontVariantNumeric: 'tabular-nums',
+                      textAlign: 'center',
+                      width: dynamicInputWidth,
+                      minWidth: '30px',
+                      maxWidth: '85px',
+                      height: '26px',
+                      minHeight: '26px',
+                      fontSize: '0.92rem',
+                      padding: '0 4px',
+                      boxSizing: 'border-box',
+                      borderRadius: '6px',
+                    } as any}
                     min={minQty}
                     step={inputStep}
                     max={item.stockLimit}
@@ -183,6 +206,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                   <button
                     type="button"
                     className="pos-cart-qty-btn"
+                    style={{ height: '26px', minHeight: '26px', width: '26px', minWidth: '26px', fontSize: '1.05rem', padding: 0 }}
                     aria-label={`تقليل كمية ${item.name}`}
                     onFocus={() => onSelectLine(item.lineKey)}
                     onClick={(event) => {
@@ -199,34 +223,35 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
                 </div>
               </div>
 
-              <div className="pos-cart-col pos-cart-col-price">
+              <div className="pos-cart-col pos-cart-col-price" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', textAlign: 'center', width: '100%' }}>
                 {item.originalPrice && item.originalPrice > item.price ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                     <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.74rem', lineHeight: 1 }}>
                       {formatCurrency(item.originalPrice)}
                     </span>
-                    <strong className="pos-cart-number" style={{ color: '#15803d' }}>{formatCurrency(item.price)}</strong>
+                    <strong className="pos-cart-number" style={{ color: '#15803d', textAlign: 'center' }}>{formatCurrency(item.price)}</strong>
                   </div>
                 ) : (
-                  <strong className="pos-cart-number">{formatCurrency(item.price)}</strong>
+                  <strong className="pos-cart-number" style={{ textAlign: 'center' }}>{formatCurrency(item.price)}</strong>
                 )}
               </div>
 
-              <div className="pos-cart-col pos-cart-col-total">
-                <strong className="pos-cart-number pos-cart-number-total">{formatCurrency(lineTotal)}</strong>
+              <div className="pos-cart-col pos-cart-col-total" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', textAlign: 'center', width: '100%' }}>
+                <strong className="pos-cart-number pos-cart-number-total" style={{ textAlign: 'center' }}>{formatCurrency(lineTotal)}</strong>
               </div>
 
-              <div className="pos-cart-col pos-cart-col-remove">
+              <div className="pos-cart-col pos-cart-col-remove" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
                 <button
                   type="button"
                   className="pos-cart-remove-button"
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px', minHeight: '26px', width: '26px', minWidth: '26px', padding: 0, borderRadius: '6px' }}
                   onFocus={() => onSelectLine(item.lineKey)}
                   onClick={(event) => {
                     event.stopPropagation();
                     onRemoveItem(item.lineKey);
                   }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18"></path>
                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>

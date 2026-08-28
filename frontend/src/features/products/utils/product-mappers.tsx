@@ -66,3 +66,12 @@ export function getProductColumns(categoryNames: Record<string, string>, supplie
     }
   ];
 }
+
+export function getProductItemCode(product: Product, unit?: { barcode?: string }) {
+  return String(product.styleCode || unit?.barcode || product.barcode || product.id || '').trim();
+}
+
+export function getSaleUnit(product: Product) {
+  const units = Array.isArray(product.units) ? product.units : [];
+  return units.find((u) => u.isSaleUnit) || units.find((u) => u.isBaseUnit) || units[0] || { id: 'default', name: 'قطعة', multiplier: 1 };
+}
