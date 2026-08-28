@@ -65,9 +65,13 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
     stableOnClose();
   }, [clearInlineManagerApproval, stableOnClose]);
   const handleConfirmSale = useCallback(() => {
+    if (pos.orderType === 'delivery' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0)) {
+      pos.setSubmitMessage('⚠️ يرجى اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل التحصيل عليه.');
+      return;
+    }
     const managerPin = approvedManagerPinRef.current || undefined;
     onConfirmSale(managerPin);
-  }, [onConfirmSale]);
+  }, [onConfirmSale, pos]);
 
   const handleInlineManagerApproval = useCallback(async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
@@ -250,6 +254,13 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
               </>
             )}
           </section>
+
+          {pos.orderType === 'delivery' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0) && (
+            <div className="error-box" style={{ margin: '12px 0 0', background: '#fef2f2', border: '1.5px solid #f87171', color: '#b91c1c', padding: '10px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚠️</span>
+              <span>يجب اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل عهدة التحصيل عليه.</span>
+            </div>
+          )}
 
           <div className="actions compact-actions pos-checkout-dialog-actions">
             <Button type="button" variant="secondary" onClick={handleDialogClose} disabled={pos.createSale.isPending}>رجوع للسلة</Button>

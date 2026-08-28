@@ -105,6 +105,7 @@ export function usePosWorkspace() {
     search: state.search,
     lastSale: state.lastSale,
     orderType: state.orderType,
+    deliveryRepId: state.deliveryRepId,
     collectionStatus: state.collectionStatus,
   });
 

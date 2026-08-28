@@ -36,6 +36,7 @@ interface PosWorkspaceDerivedParams {
   locationId: string;
   lastSale: Sale | null;
   orderType: string;
+  deliveryRepId?: string | number | null;
   collectionStatus?: string;
 }
 
@@ -46,6 +47,7 @@ function getCanSubmitHint(params: {
   requiresCashierShift: boolean;
   ownOpenShift: { id: string | number } | null;
   hasCreditWithoutCustomer: boolean;
+  hasDeliveryWithoutRep?: boolean;
   hasZeroPriceLine: boolean;
   hasDiscountPermissionViolation?: boolean;
   hasPricePermissionViolation?: boolean;
@@ -56,6 +58,7 @@ function getCanSubmitHint(params: {
   if (!params.hasCatalogReady) return 'أضف الأصناف أولًا قبل البيع.';
   if (params.requiresCashierShift && !params.ownOpenShift) return 'افتح وردية كاشير أولًا.';
   if (params.hasCreditWithoutCustomer) return 'البيع الآجل يحتاج اختيار عميل.';
+  if (params.hasDeliveryWithoutRep) return 'يرجى اختيار مندوب التوصيل لإتمام فاتورة الدليفري.';
   if (params.hasZeroPriceLine) return 'راجع السلة: يوجد صنف بسعر صفر.';
   if ((params as typeof params & { hasDiscountPermissionViolation?: boolean }).hasDiscountPermissionViolation) return 'لا تملك صلاحية تعديل الخصم.';
   if ((params as typeof params & { hasPricePermissionViolation?: boolean }).hasPricePermissionViolation) return 'لا تملك صلاحية تعديل السعر.';
@@ -218,6 +221,9 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType, item.qty) || 0)) > 0.0001;
   });
 
+  const isDelivery = params.orderType === 'delivery';
+  const hasDeliveryWithoutRep = isDelivery && (!params.deliveryRepId || Number(params.deliveryRepId) <= 0);
+
   const canSubmitSale = Boolean(
     params.cart.length
     && hasOperationalSetup
@@ -225,6 +231,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     && (!requiresCashierShift || ownOpenShift)
     && !hasZeroPriceLine
     && !hasCreditWithoutCustomer
+    && !hasDeliveryWithoutRep
     && !hasUnderpaidSale
     && !hasDiscountPermissionViolation
     && !hasPricePermissionViolation,
@@ -252,6 +259,7 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     requiresCashierShift,
     ownOpenShift,
     hasCreditWithoutCustomer,
+    hasDeliveryWithoutRep,
     hasZeroPriceLine,
     hasDiscountPermissionViolation,
     hasPricePermissionViolation,

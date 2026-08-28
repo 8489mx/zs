@@ -490,7 +490,40 @@ export class SalesWriteService {
           throw new AppError('Store credit exceeds available balance', 'STORE_CREDIT_EXCEEDED', 400);
         }
       }
-      const isCodDelivery = String(normalized.orderType || '').trim() === 'delivery' && String((payload as any).collectionStatus || '').trim() === 'cod';
+      const isDelivery = String(normalized.orderType || '').trim() === 'delivery';
+      let deliveryRepId: number | null = null;
+      let deliveryStatus: string | null = null;
+      let collectionStatus: string | null = null;
+      let resolvedDeliveryFeeMode: 'freelance_courier' | 'store_fleet' = (payload as any).deliveryFeeMode === 'store_fleet' ? 'store_fleet' : ((payload as any).deliveryFeeMode === 'freelance_courier' ? 'freelance_courier' : (null as any));
+
+      if (isDelivery) {
+        const rawRepId = (payload as any).deliveryRepId;
+        const parsedRepId = rawRepId ? Number(rawRepId) : 0;
+        if (!parsedRepId || Number.isNaN(parsedRepId) || parsedRepId <= 0) {
+          throw new AppError('يجب اختيار مندوب التوصيل لطلبات الدليفري لتسجيل عهدة التحصيل عليه', 'DELIVERY_REP_REQUIRED', 400);
+        }
+        const rep = await trx
+          .selectFrom('delivery_representatives')
+          .select(['id', 'name', 'rep_type', 'is_active'])
+          .where('id', '=', parsedRepId)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+        if (!rep) {
+          throw new AppError('مندوب التوصيل المختار غير موجود', 'DELIVERY_REP_NOT_FOUND', 400);
+        }
+        if (rep.is_active === false) {
+          throw new AppError('مندوب التوصيل المختار غير نشط', 'DELIVERY_REP_INACTIVE', 400);
+        }
+        deliveryRepId = parsedRepId;
+        deliveryStatus = (payload as any).deliveryStatus || 'pending';
+        const hasUnpaidAmount = paidAmount + 0.0001 < collectibleTotal;
+        collectionStatus = (payload as any).collectionStatus || (hasUnpaidAmount ? 'pending' : 'collected');
+        if (!resolvedDeliveryFeeMode && rep.rep_type === 'store_fleet') {
+          resolvedDeliveryFeeMode = 'store_fleet';
+        }
+      }
+
+      const isCodDelivery = isDelivery && (collectionStatus === 'cod' || collectionStatus === 'pending' || paidAmount + 0.0001 < collectibleTotal);
       const isPartialCredit = Boolean(normalized.customerId) && paidAmount + 0.0001 < collectibleTotal;
       const effectivePaymentType = (isPartialCredit || normalized.paymentType === 'credit') ? 'credit' : 'cash';
       if (effectivePaymentType !== 'credit' && !isCodDelivery && paidAmount + 0.0001 < collectibleTotal) {
@@ -504,11 +537,6 @@ export class SalesWriteService {
       }
       const changeAmount = Number(Math.max(0, finalTenderedAmount - appliedCash).toFixed(2));
 
-      let resolvedDeliveryFeeMode: 'freelance_courier' | 'store_fleet' = (payload as any).deliveryFeeMode === 'store_fleet' ? 'store_fleet' : ((payload as any).deliveryFeeMode === 'freelance_courier' ? 'freelance_courier' : (null as any));
-      if (!resolvedDeliveryFeeMode && (payload as any).deliveryRepId) {
-        const rep = await trx.selectFrom('delivery_representatives').select(['rep_type']).where('id', '=', Number((payload as any).deliveryRepId)).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
-        if ((rep as any)?.rep_type === 'store_fleet') resolvedDeliveryFeeMode = 'store_fleet';
-      }
       if (!resolvedDeliveryFeeMode) {
         const settingRow = await trx.selectFrom('settings').select(['value']).where('key', '=', 'deliveryFeeMode').where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
         if (settingRow?.value && String(settingRow.value).includes('store_fleet')) {
@@ -545,9 +573,9 @@ export class SalesWriteService {
           location_id: normalized.locationId,
           table_number: String(normalized.tableNumber || '').trim(),
           order_type: String(normalized.orderType || 'takeaway').trim(),
-          delivery_rep_id: (payload as any).deliveryRepId ? Number((payload as any).deliveryRepId) : null,
-          delivery_status: (payload as any).deliveryRepId ? ((payload as any).deliveryStatus || 'pending') : null,
-          collection_status: (payload as any).deliveryRepId ? ((payload as any).collectionStatus || null) : null,
+          delivery_rep_id: deliveryRepId,
+          delivery_status: deliveryStatus,
+          collection_status: collectionStatus,
           created_by: auth.userId,
           cancel_reason: '',
           tenant_id: scope.tenantId,

@@ -444,23 +444,39 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
     <section className="pos-checkout-dialog-section" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
       <div className="pos-checkout-section-head">
         <h4>بيانات التوصيل</h4>
-        <strong>{selectedRep?.name || 'لم يتم اختيار مندوب'}</strong>
+        <strong style={{ color: selectedRep ? '#059669' : '#dc2626', fontWeight: 700 }}>
+          {selectedRep ? `المندوب: ${selectedRep.name}` : '⚠️ مطلوب اختيار مندوب التوصيل'}
+        </strong>
       </div>
 
       <div className="document-prototype-grid compact-grid-2" style={{ gap: '12px' }}>
         <div style={{ position: 'relative' }}>
           <label className="field">
-            <span>المندوب</span>
+            <span style={{ color: !selectedRep ? '#dc2626' : undefined, fontWeight: 700 }}>
+              المندوب (إجباري لطلبات الدليفري) *
+            </span>
             <input
               className="purchase-prototype-field-input"
-              placeholder={selectedRep?.name || "-- ابحث عن مندوب --"}
+              placeholder={selectedRep?.name || "-- اختر مندوب التوصيل --"}
               value={repSearchOpen ? repSearchQuery : (selectedRep?.name || '')}
               onFocus={() => { setRepSearchOpen(true); setRepSearchQuery(''); }}
               onBlur={() => setTimeout(() => setRepSearchOpen(false), 200)}
               onChange={(e) => setRepSearchQuery(e.target.value)}
-              style={{ padding: '6px 8px', cursor: 'text', width: '100%' }}
+              style={{
+                padding: '6px 8px',
+                cursor: 'text',
+                width: '100%',
+                border: !selectedRep ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                background: !selectedRep ? '#fff5f5' : 'white',
+              }}
             />
           </label>
+
+          {!selectedRep && (
+            <small style={{ color: '#dc2626', fontSize: '11px', fontWeight: 600, display: 'block', marginTop: '2px' }}>
+              * لا يمكن إتمام الفاتورة بدون اختيار المندوب لتسجيل التحصيل عليه.
+            </small>
+          )}
 
           {repSearchOpen && (
             <div 
@@ -471,14 +487,10 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                 overflowY: 'auto', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
               }}
             >
-              <div 
-                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: !pos.deliveryRepId ? '#f8fafc' : 'white' }}
-                onMouseDown={() => { pos.setDeliveryRepId(''); setRepSearchOpen(false); }}
-              >
-                -- بدون مندوب --
-              </div>
               {filteredReps.length === 0 && (
-                <div style={{ padding: '8px 12px', color: '#64748b' }}>لا يوجد مناديب</div>
+                <div style={{ padding: '8px 12px', color: '#dc2626', fontSize: '13px', fontWeight: 600 }}>
+                  {activeReps.length === 0 ? 'لا يوجد مناديب مسجلين بالنظام' : 'لا توجد نتائج مطابقة'}
+                </div>
               )}
               {filteredReps.map(rep => (
                 <div 
