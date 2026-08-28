@@ -14,6 +14,7 @@ type CashDrawerShiftSource = {
   wallet_sales_total?: number | string | null;
   instapay_sales_total?: number | string | null;
   credit_sales_total?: number | string | null;
+  delivery_sales_total?: number | string | null;
   delivery_fee_total?: number | string | null;
   freelance_delivery_fee_total?: number | string | null;
   store_delivery_fee_total?: number | string | null;
@@ -214,6 +215,7 @@ export function mapCashDrawerShiftRow(row: CashDrawerShiftSource): CashDrawerMap
     walletSalesTotal: Number(row.wallet_sales_total || 0),
     instapaySalesTotal: Number(row.instapay_sales_total || 0),
     creditSalesTotal: Number(row.credit_sales_total || 0),
+    deliverySalesTotal: Number(row.delivery_sales_total || 0),
     deliveryFeeTotal: Number(row.delivery_fee_total || 0),
     freelanceDeliveryFeeTotal: Number(row.freelance_delivery_fee_total || 0),
     storeDeliveryFeeTotal: Number(row.store_delivery_fee_total || 0),

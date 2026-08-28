@@ -180,6 +180,7 @@ export interface CashierShift {
   walletSalesTotal?: number;
   instapaySalesTotal?: number;
   creditSalesTotal?: number;
+  deliverySalesTotal?: number;
   deliveryFeeTotal?: number;
   freelanceDeliveryFeeTotal?: number;
   storeDeliveryFeeTotal?: number;

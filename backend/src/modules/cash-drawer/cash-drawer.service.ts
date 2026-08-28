@@ -21,6 +21,7 @@ type ShiftRow = {
   wallet_sales_total?: number | string | null;
   instapay_sales_total?: number | string | null;
   credit_sales_total?: number | string | null;
+  delivery_sales_total?: number | string | null;
   delivery_fee_total?: number | string | null;
   freelance_delivery_fee_total?: number | string | null;
   store_delivery_fee_total?: number | string | null;
@@ -71,6 +72,7 @@ type ShiftSalesBreakdown = {
   walletSalesTotal: number;
   instapaySalesTotal: number;
   creditSalesTotal: number;
+  deliverySalesTotal: number;
   shiftSalesTotal: number;
   deliveryFeeTotal: number;
   freelanceDeliveryFeeTotal: number;
@@ -256,6 +258,7 @@ export class CashDrawerService {
       walletSalesTotal: 0,
       instapaySalesTotal: 0,
       creditSalesTotal: 0,
+      deliverySalesTotal: 0,
       shiftSalesTotal: 0,
       deliveryFeeTotal: 0,
       freelanceDeliveryFeeTotal: 0,
@@ -288,6 +291,7 @@ export class CashDrawerService {
              coalesce(sum(case when payment_channel = 'wallet' then amount else 0 end), 0) as wallet_sales_total,
              coalesce(sum(case when payment_channel = 'instapay' then amount else 0 end), 0) as instapay_sales_total,
              coalesce((select sum(total) from shift_sales where payment_type = 'credit' or payment_channel = 'credit'), 0) as credit_sales_total,
+             coalesce((select sum(total) from shift_sales where coalesce(collection_status, '') = 'cod' or payment_channel = 'cod'), 0) as delivery_sales_total,
              coalesce((select sum(total) from shift_sales), 0) as shift_sales_total,
              coalesce((select sum(delivery_fee) from shift_sales), 0) as delivery_fee_total,
              coalesce((select sum(case when delivery_fee_mode = 'freelance_courier' then delivery_fee else 0 end) from shift_sales), 0) as freelance_delivery_fee_total,
@@ -301,6 +305,7 @@ export class CashDrawerService {
     `.execute(this.db);
     const row = result.rows?.[0] || {};
     const shiftSalesTotal = this.toMoney(row.shift_sales_total || 0);
+    const deliverySalesTotal = this.toMoney(row.delivery_sales_total || 0);
     const deliveryFeeTotal = this.toMoney(row.delivery_fee_total || 0);
     const freelanceDeliveryFeeTotal = this.toMoney(row.freelance_delivery_fee_total || 0);
     const storeDeliveryFeeTotal = this.toMoney(row.store_delivery_fee_total || 0);
@@ -312,6 +317,7 @@ export class CashDrawerService {
       walletSalesTotal: this.toMoney(row.wallet_sales_total || 0),
       instapaySalesTotal: this.toMoney(row.instapay_sales_total || 0),
       creditSalesTotal: this.toMoney(row.credit_sales_total || 0),
+      deliverySalesTotal,
       shiftSalesTotal,
       deliveryFeeTotal,
       freelanceDeliveryFeeTotal,
@@ -486,6 +492,7 @@ export class CashDrawerService {
       wallet_sales_total: salesBreakdown.walletSalesTotal,
       instapay_sales_total: salesBreakdown.instapaySalesTotal,
       credit_sales_total: salesBreakdown.creditSalesTotal,
+      delivery_sales_total: salesBreakdown.deliverySalesTotal,
       delivery_fee_total: salesBreakdown.deliveryFeeTotal,
       freelance_delivery_fee_total: salesBreakdown.freelanceDeliveryFeeTotal,
       store_delivery_fee_total: salesBreakdown.storeDeliveryFeeTotal,

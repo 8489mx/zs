@@ -349,6 +349,12 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                   <span style={{ color: '#64748b' }}>مبيعات آجلة (ذمم):</span>
                                   <strong style={{ color: '#0f172a' }}>{formatCurrency(row.creditSalesTotal || 0)}</strong>
                                 </div>
+                                {Number(row.deliverySalesTotal || 0) > 0 && (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>مبيعات دليفري (تحصيل مناديب):</span>
+                                    <strong style={{ color: '#0f172a' }}>{formatCurrency(row.deliverySalesTotal || 0)}</strong>
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                   <span style={{ color: '#64748b' }}>خدمات سريعة:</span>
                                   <strong style={{ color: '#0f172a' }}>{formatCurrency(row.serviceTotal || (Number(row.serviceCashTotal || 0) + Number(row.serviceCardTotal || 0)))}</strong>
@@ -378,20 +384,19 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                 <RefreshCwIcon size={16} /> الحركات والمسحوبات والمصروفات
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-                                {Number(row.cashDrawerDeliveryCashInTotal || 0) > 0 ? (
-                                  <>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                      <span style={{ color: '#64748b' }}>توريد وتحصيل مناديب (دليفري):</span>
-                                      <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerDeliveryCashInTotal || 0)}</strong>
-                                    </div>
-                                    {Number(row.cashDrawerManualCashInTotal || 0) > 0 && (
-                                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#64748b' }}>إيداعات نقدية أخرى:</span>
-                                        <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerManualCashInTotal || 0)}</strong>
-                                      </div>
-                                    )}
-                                  </>
-                                ) : (
+                                {Number(row.cashDrawerDeliveryCashInTotal || 0) > 0 && (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>توريد وتحصيل مناديب (دليفري):</span>
+                                    <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerDeliveryCashInTotal || 0)}</strong>
+                                  </div>
+                                )}
+                                {Number(row.cashDrawerManualCashInTotal || 0) > 0 && (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>إيداعات نقدية بالدرج (يدوياً):</span>
+                                    <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerManualCashInTotal || 0)}</strong>
+                                  </div>
+                                )}
+                                {!(Number(row.cashDrawerDeliveryCashInTotal || 0) > 0) && !(Number(row.cashDrawerManualCashInTotal || 0) > 0) && Number(row.cashDrawerCashInTotal || 0) > 0 && (
                                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: '#64748b' }}>إيداعات نقدية في الدرج:</span>
                                     <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerCashInTotal || 0)}</strong>
@@ -447,6 +452,12 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                   <span style={{ color: '#64748b' }}>(+) مبيعات وخدمات كاش:</span>
                                   <strong style={{ color: '#16a34a' }}>+{formatCurrency(Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0))}</strong>
                                 </div>
+                                {Number(row.cashDrawerCashInTotal || 0) > 0 && (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>(+) توريدات وإيداعات بالدرج:</span>
+                                    <strong style={{ color: '#16a34a' }}>+{formatCurrency(row.cashDrawerCashInTotal || 0)}</strong>
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                   <span style={{ color: '#64748b' }}>(-) خصومات ومنصرفات الدرج:</span>
                                   <strong style={{ color: '#dc2626' }}>

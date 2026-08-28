@@ -62,6 +62,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const closeCashSalesTotal = Number(selectedCloseShift?.cashSalesTotal || 0);
   const closeCardSalesTotal = Number(selectedCloseShift?.cardSalesTotal || 0);
   const closeCreditSalesTotal = Number(selectedCloseShift?.creditSalesTotal || 0);
+  const closeDeliverySalesTotal = Number(selectedCloseShift?.deliverySalesTotal || 0);
   const closeShiftSalesTotal = Number(selectedCloseShift?.shiftSalesTotal || 0);
   const closeServiceCashTotal = Number(selectedCloseShift?.serviceCashTotal || 0);
   const closeCashDrawerMovementTotal = Number(selectedCloseShift?.cashDrawerMovementTotal || 0);
@@ -423,6 +424,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 <div className="muted small" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
                   <span>مبيعات نقدي: <strong>{formatCurrency(closeCashSalesTotal)}</strong></span>
                   <span>مبيعات فيزا: <strong>{formatCurrency(closeCardSalesTotal)}</strong></span>
+                  {closeDeliverySalesTotal > 0 ? <span>مبيعات دليفري: <strong>{formatCurrency(closeDeliverySalesTotal)}</strong></span> : null}
                   {closeServiceCashTotal > 0 ? <span>خدمات نقدي: <strong>{formatCurrency(closeServiceCashTotal)}</strong></span> : null}
                   {closeCreditSalesTotal > 0 ? <span>مبيعات آجل: <strong>{formatCurrency(closeCreditSalesTotal)}</strong></span> : null}
                   {closeSaleReturnCashRefundTotal > 0 ? <span>مرتجعات نقدي: <strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong></span> : null}
