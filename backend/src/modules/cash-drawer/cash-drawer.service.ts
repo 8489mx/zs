@@ -350,9 +350,8 @@ export class CashDrawerService {
     const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift, auth);
     const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(shift, auth);
     const expensesTotal = await this.computeShiftExpensesTotal(shift, auth);
-    const manualCashIn = movements.manualCashInTotal > 0 ? movements.manualCashInTotal : (movements.deliveryCashInTotal === 0 ? movements.cashInTotal : 0);
-    const manualNetMovement = manualCashIn - movements.cashOutTotal;
-    return this.toMoney(Number(shift.opening_cash || 0) + manualNetMovement + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
+    const netDrawerMovement = movements.cashInTotal - movements.cashOutTotal;
+    return this.toMoney(Number(shift.opening_cash || 0) + netDrawerMovement + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
   }
 
   private async fetchShiftMovementItems(shiftId: number, shift: ShiftRow, auth: AuthContext): Promise<Array<{
@@ -399,11 +398,10 @@ export class CashDrawerService {
       const amt = Number(tt.amount || 0);
       const rawNote = String(tt.note || '').trim();
       const isDelivery = rawNote.includes('دليفري') || rawNote.includes('مندوب');
-      if (isDelivery) {
-        continue;
-      }
-      const kind = amt > 0 ? 'cash_in' : 'cash_out';
-      const kindLabel = amt > 0 ? 'إيداع نقدي بالدرج (يدوياً)' : 'مسحوبات نقدية من الدرج';
+      const kind = isDelivery ? 'delivery' : (amt > 0 ? 'cash_in' : 'cash_out');
+      const kindLabel = isDelivery
+        ? (amt > 0 ? 'تحصيل وتسوية دليفري' : 'صرف أجرة طيار دليفري')
+        : (amt > 0 ? 'إيداع نقدي بالدرج (يدوياً)' : 'مسحوبات نقدية من الدرج');
 
       items.push({
         id: `tt-${tt.id}`,

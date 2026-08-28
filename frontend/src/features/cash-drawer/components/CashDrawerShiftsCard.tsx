@@ -294,9 +294,10 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                           {(() => {
                             const openingCash = Number(row.openingCash || 0);
                             const cashSales = Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0);
-                            const manualIn = Number(row.cashDrawerManualCashInTotal || (Number(row.cashDrawerDeliveryCashInTotal || 0) === 0 ? row.cashDrawerCashInTotal : 0) || 0);
+                            const deliveryIn = Number(row.cashDrawerDeliveryCashInTotal || 0);
+                            const manualIn = Number(row.cashDrawerManualCashInTotal || 0);
                             const totalOut = Number(row.cashDrawerCashOutTotal || 0) + Number(row.expensesTotal || 0) + Number(row.supplierPaymentsTotal || 0) + Number(row.saleReturnCashRefundTotal || 0);
-                            const dynamicExpectedCash = openingCash + cashSales + manualIn - totalOut;
+                            const dynamicExpectedCash = openingCash + cashSales + manualIn + deliveryIn - totalOut;
                             const drawerVariance = row.countedCash != null ? Number(row.countedCash) - dynamicExpectedCash : Number(row.variance || 0);
 
                             const expectedCard = Number(row.cardSalesTotal || 0) + Number(row.serviceCardTotal || 0) - Number(row.saleReturnCardRefundTotal || 0);
@@ -407,6 +408,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                     {isExpanded && canViewSensitiveTotals && (() => {
                       const movementItems = row.movementItems || [];
                       const manualCashInItems = movementItems.filter((i) => i.kind === 'cash_in');
+                      const deliveryItems = movementItems.filter((i) => i.kind === 'delivery');
                       const cashOutItems = movementItems.filter((i) => i.kind === 'cash_out');
                       const expenseItems = movementItems.filter((i) => i.kind === 'expense');
                       const supplierItems = movementItems.filter((i) => i.kind === 'supplier_payment');
@@ -579,7 +581,10 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                 <RefreshCwIcon size={16} /> حركات ومنصرفات الدرج
                               </h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-                                {renderMovementAccordionRow('cash_in', 'إيداعات نقدية بالدرج (يدوياً)', Number(row.cashDrawerManualCashInTotal || row.cashDrawerCashInTotal || 0), manualCashInItems, true)}
+                                {renderMovementAccordionRow('cash_in', 'إيداعات نقدية بالدرج (يدوياً)', Number(row.cashDrawerManualCashInTotal || 0), manualCashInItems, true)}
+                                {Number(row.cashDrawerDeliveryCashInTotal || 0) > 0 && (
+                                  renderMovementAccordionRow('delivery', 'تحصيلات وتسويات مناديب دليفري', Number(row.cashDrawerDeliveryCashInTotal || 0), deliveryItems, true)
+                                )}
                                 {renderMovementAccordionRow('cash_out', 'مسحوبات نقدية من الدرج', Number(row.cashDrawerCashOutTotal || 0), cashOutItems, false)}
                                 {renderMovementAccordionRow('expense', 'مصروفات تشغيلية ونثرية', Number(row.expensesTotal || 0), expenseItems, false)}
                                 {renderMovementAccordionRow('supplier_payment', 'سداد دفعات موردين', Number(row.supplierPaymentsTotal || 0), supplierItems, false)}
@@ -606,9 +611,10 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                             {(() => {
                               const openingCash = Number(row.openingCash || 0);
                               const cashSales = Number(row.cashSalesTotal || 0) + Number(row.serviceCashTotal || 0);
-                              const manualIn = Number(row.cashDrawerManualCashInTotal || (Number(row.cashDrawerDeliveryCashInTotal || 0) === 0 ? row.cashDrawerCashInTotal : 0) || 0);
+                              const deliveryIn = Number(row.cashDrawerDeliveryCashInTotal || 0);
+                              const manualIn = Number(row.cashDrawerManualCashInTotal || 0);
                               const totalOut = Number(row.cashDrawerCashOutTotal || 0) + Number(row.expensesTotal || 0) + Number(row.supplierPaymentsTotal || 0) + Number(row.saleReturnCashRefundTotal || 0);
-                              const dynamicExpectedCash = openingCash + cashSales + manualIn - totalOut;
+                              const dynamicExpectedCash = openingCash + cashSales + manualIn + deliveryIn - totalOut;
                               const dynamicVariance = row.countedCash != null ? Number(row.countedCash) - dynamicExpectedCash : (row.variance != null ? Number(row.variance) : 0);
 
                               return (
@@ -629,6 +635,12 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
                                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#64748b' }}>(+) إيداعات نقدية بالدرج:</span>
                                         <strong style={{ color: '#16a34a' }}>+{formatCurrency(manualIn)}</strong>
+                                      </div>
+                                    )}
+                                    {deliveryIn > 0 && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#0284c7', fontWeight: 600 }}>(+) تحصيلات مناديب دليفري:</span>
+                                        <strong style={{ color: '#0284c7' }}>+{formatCurrency(deliveryIn)}</strong>
                                       </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>

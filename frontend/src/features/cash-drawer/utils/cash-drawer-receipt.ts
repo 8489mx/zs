@@ -20,7 +20,7 @@ function formatVarianceText(amount: number): string {
   return `+${formatCurrency(amount)} (زيادة)`;
 }
 
-export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: string): void {
+export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, storeName?: string): string {
   const movementItems = shift.movementItems || [];
   const manualCashInItems = movementItems.filter((i) => i.kind === 'cash_in');
   const cashOutItems = movementItems.filter((i) => i.kind === 'cash_out');
@@ -32,7 +32,6 @@ export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: str
   const freelanceFee = Number(shift.freelanceDeliveryFeeTotal || 0);
   const netStoreSales = Number(shift.netStoreSalesTotal || Math.max(0, shiftSalesTotal - freelanceFee));
 
-  // Calculations
   const rawCashSales = Number(shift.cashSalesTotal || 0) + Number(shift.serviceCashTotal || 0);
   const expectedCard = Number(shift.cardSalesTotal || 0) + Number(shift.serviceCardTotal || 0) - Number(shift.saleReturnCardRefundTotal || 0);
   const expectedWallet = Number(shift.walletSalesTotal || 0);
@@ -51,7 +50,9 @@ export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: str
     Number(shift.supplierPaymentsTotal || 0) +
     Number(shift.saleReturnCashRefundTotal || 0);
 
-  const totalInflows = Number(shift.cashDrawerManualCashInTotal || (Number(shift.cashDrawerDeliveryCashInTotal || 0) === 0 ? shift.cashDrawerCashInTotal : 0) || 0);
+  const deliveryCashIn = Number(shift.cashDrawerDeliveryCashInTotal || 0);
+  const manualCashIn = Number(shift.cashDrawerManualCashInTotal || 0);
+  const totalInflows = Number(shift.cashDrawerCashInTotal || (manualCashIn + deliveryCashIn));
   const openingCash = Number(shift.openingCash || 0);
 
   const dynamicExpectedCash = openingCash + rawCashSales + totalInflows - totalOutflows;
@@ -65,15 +66,13 @@ export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: str
   const electronicDiff = cardDiff + walletDiff + instapayDiff;
   const totalShiftDiscrepancy = drawerVariance + electronicDiff;
 
-  const declaredTotalSales = declaredCash + declaredCard + declaredWallet + declaredInstapay;
-
   const cleanNote = (n: string) => escapeHtml(n.replace(/^وردية\s*#?[A-Z0-9_-]+:\s*/i, '').trim() || n);
 
   const cleanCloseNote = shift.closeNote && !shift.closeNote.startsWith('BLIND_CLOSE:')
     ? shift.closeNote
     : (!shift.closeNoteRaw?.startsWith('BLIND_CLOSE:') && shift.closeNoteRaw ? shift.closeNoteRaw : '');
 
-  const html = `
+  return `
     <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 10.5px; line-height: 1.35; color: #000; direction: rtl; text-align: right; width: 100%;">
       <!-- Header -->
       <div style="text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 6px; margin-bottom: 6px;">
@@ -118,8 +117,8 @@ export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: str
           </thead>
           <tbody>
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 3px 1px;"><strong>كاش (نقدي)</strong></td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(rawCashSales)}</td>
+              <td style="padding: 3px 1px;"><strong>كاش (نقدية الدرج)</strong></td>
+              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(dynamicExpectedCash)}</td>
               <td style="text-align: center; padding: 3px 1px;">${formatCurrency(declaredCash)}</td>
               <td style="text-align: center; padding: 3px 1px; font-weight: 700;">${drawerVariance === 0 ? 'مطابق' : formatCurrency(drawerVariance)}</td>
             </tr>
@@ -156,9 +155,9 @@ export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: str
               <td style="text-align: center; padding: 3px 1px; color: #888;">—</td>
             </tr>` : ''}
             <tr style="border-top: 1.5px solid #000; font-weight: 800; background: #f1f5f9;">
-              <td style="padding: 3px 1px;">إجمالي الفواتير</td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(shiftSalesTotal)}</td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(declaredTotalSales)}</td>
+              <td style="padding: 3px 1px;">إجمالي التحصيل والدرج</td>
+              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(dynamicExpectedCash + expectedCard + expectedWallet + expectedInstapay)}</td>
+              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(declaredCash + declaredCard + declaredWallet + declaredInstapay)}</td>
               <td style="text-align: center; padding: 3px 1px; font-weight: 800;">${totalShiftDiscrepancy === 0 ? 'مطابق' : formatCurrency(totalShiftDiscrepancy)}</td>
             </tr>
           </tbody>
@@ -245,10 +244,15 @@ export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: str
           <span>(+) مبيعات نقدية (كاش):</span>
           <strong>+${formatCurrency(rawCashSales)}</strong>
         </div>
-        ${totalInflows > 0 ? `
+        ${manualCashIn > 0 ? `
         <div style="display: flex; justify-content: space-between;">
-          <span>(+) إيداعات نقدية بالدرج:</span>
-          <strong>+${formatCurrency(totalInflows)}</strong>
+          <span>(+) إيداعات نقدية يدوية:</span>
+          <strong>+${formatCurrency(manualCashIn)}</strong>
+        </div>` : ''}
+        ${deliveryCashIn > 0 ? `
+        <div style="display: flex; justify-content: space-between;">
+          <span>(+) تحصيلات مناديب دليفري:</span>
+          <strong>+${formatCurrency(deliveryCashIn)}</strong>
         </div>` : ''}
         <div style="display: flex; justify-content: space-between;">
           <span>(-) إجمالي المنصرف من الدرج:</span>
@@ -311,7 +315,10 @@ export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: str
       </div>
     </div>
   `;
+}
 
+export function printCashDrawerShiftReceipt(shift: CashierShift, storeName?: string): void {
+  const html = generateCashDrawerSettlementReceiptHtml(shift, storeName);
   printHtmlDocument(`تقرير وردية ${shift.docNo || shift.id}`, html, {
     pageSize: 'receipt',
     layout: 'centered',
