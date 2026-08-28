@@ -267,6 +267,10 @@ export function PrintingSettingsTab({
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
                   إظهار اسم المندوب
                 </label>
+                <label className="settings-print-option" style={checkboxStyle}>
+                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printDualReceiptForOnlineDelivery')} disabled={disabled} />
+                  طباعة نسختين تلقائياً للدليفري والدفع الإلكتروني (عميل + محل)
+                </label>
               </div>
             </div>
           </div>

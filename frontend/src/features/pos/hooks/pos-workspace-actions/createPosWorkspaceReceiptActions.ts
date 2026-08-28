@@ -44,6 +44,20 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     params.setSubmitMessage('تمت طباعة الريسيت.');
   }
 
+  function printDualReceiptNow() {
+    if (!hasFreshLastSale() || !params.lastSale) return;
+    const cashierName = (params.ownOpenShift as any)?.openedByName || params.authUserName || '—';
+    printPostedSaleReceipt(params.lastSale, { pageSize: 'receipt', settings: params.settings || null, cashierName, copyType: 'dual' });
+    params.setSubmitMessage('تمت طباعة نسختي الريسيت (العميل + المحل).');
+  }
+
+  function printMerchantReceiptNow() {
+    if (!hasFreshLastSale() || !params.lastSale) return;
+    const cashierName = (params.ownOpenShift as any)?.openedByName || params.authUserName || '—';
+    printPostedSaleReceipt(params.lastSale, { pageSize: 'receipt', settings: params.settings || null, cashierName, copyType: 'merchant' });
+    params.setSubmitMessage('تمت طباعة نسخة المحل والدرج.');
+  }
+
   function printA4Now() {
     if (!hasFreshLastSale() || !params.lastSale) return;
     printLastSaleAs('a4');
@@ -82,6 +96,8 @@ export function createPosWorkspaceReceiptActions(params: PosWorkspaceActionParam
     reprintLastSale,
     reprintLastSaleReceipt,
     printReceiptNow,
+    printDualReceiptNow,
+    printMerchantReceiptNow,
     printA4Now,
     printKitchenNow,
     printBothNow,

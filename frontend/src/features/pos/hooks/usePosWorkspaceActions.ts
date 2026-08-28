@@ -26,6 +26,8 @@ interface PosWorkspaceActions {
   reprintLastSale: () => void;
   reprintLastSaleReceipt: () => void;
   printReceiptNow: () => void;
+  printDualReceiptNow: () => void;
+  printMerchantReceiptNow: () => void;
   printA4Now: () => void;
   printKitchenNow: () => void;
   printBothNow: () => void;
@@ -151,6 +153,8 @@ export function createPosWorkspaceActions(params: PosWorkspaceActionParams): Pos
     reprintLastSale: receiptActions.reprintLastSale,
     reprintLastSaleReceipt: receiptActions.reprintLastSaleReceipt,
     printReceiptNow: receiptActions.printReceiptNow,
+    printDualReceiptNow: receiptActions.printDualReceiptNow,
+    printMerchantReceiptNow: receiptActions.printMerchantReceiptNow,
     printA4Now: receiptActions.printA4Now,
     printKitchenNow: receiptActions.printKitchenNow,
     printBothNow: receiptActions.printBothNow,

@@ -13,16 +13,37 @@ export function paymentLabel(value?: string) {
   return value || 'نقدي';
 }
 
-export function formatSalePaymentText(paymentType?: string, paymentChannel?: string, paidAmount?: number, total?: number): string {
+export function formatSalePaymentText(
+  paymentType?: string,
+  paymentChannel?: string,
+  paidAmount?: number,
+  total?: number,
+  orderType?: string | null,
+  collectionStatus?: string | null
+): string {
   const paid = Number(paidAmount || 0);
   const invoiceTotal = Number(total || 0);
+  const isDelivery = orderType === 'delivery';
+
   if (paymentType === 'credit') {
     if (paid > 0.009 && paid + 0.009 < invoiceTotal) {
       return 'سداد جزئي (نقدي + آجل)';
     }
     return 'آجل';
   }
-  return paymentLabel(paymentChannel || paymentType);
+
+  const channelLabel = paymentLabel(paymentChannel || paymentType);
+
+  if (isDelivery) {
+    if (collectionStatus === 'cod' || (channelLabel === 'نقدي' && paid < 0.009)) {
+      return 'تحصيل مع المندوب (نقدي)';
+    }
+    if (paid + 0.009 >= invoiceTotal) {
+      return `خالص مسبقاً (${channelLabel})`;
+    }
+  }
+
+  return channelLabel;
 }
 
 export function getPrintOption(settings: Partial<AppSettings> | null | undefined, key: keyof AppSettings, defaultValue = true) {

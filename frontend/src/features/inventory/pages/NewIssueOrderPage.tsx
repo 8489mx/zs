@@ -44,6 +44,8 @@ export function NewIssueOrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [pendingFocusQtyLineId, setPendingFocusQtyLineId] = useState<number | null>(null);
+  const [pendingFocusProductLineId, setPendingFocusProductLineId] = useState<number | null>(null);
 
   const idempotencyKeyRef = useRef<string | null>(null);
   const currentPayloadRef = useRef<string | null>(null);
@@ -61,6 +63,38 @@ export function NewIssueOrderPage() {
       setIssueMode(settingsQuery.data.defaultBranchIssueMode as any);
     }
   }, [settingsQuery.data?.defaultBranchIssueMode]);
+
+  useEffect(() => {
+    if (pendingFocusQtyLineId === null) return;
+    const timer = window.setTimeout(() => {
+      const input = document.getElementById(`quantity-input-${pendingFocusQtyLineId}`) as HTMLInputElement | null;
+      if (input) {
+        input.focus();
+        input.select();
+      }
+      setPendingFocusQtyLineId(null);
+    }, 40);
+    return () => window.clearTimeout(timer);
+  }, [pendingFocusQtyLineId, lines]);
+
+  useEffect(() => {
+    if (pendingFocusProductLineId === null) return;
+    const timer = window.setTimeout(() => {
+      const input = document.getElementById(`product-input-${pendingFocusProductLineId}`) as HTMLInputElement | null;
+      if (input) {
+        input.focus();
+        input.select();
+      }
+      setPendingFocusProductLineId(null);
+    }, 40);
+    return () => window.clearTimeout(timer);
+  }, [pendingFocusProductLineId, lines]);
+
+  useEffect(() => {
+    if (lines.length > 0 && lines[0]?.id) {
+      setPendingFocusProductLineId(lines[0].id);
+    }
+  }, []);
 
   const availableProductIds = useMemo(() => {
     const ids = new Set<string>();
@@ -121,11 +155,71 @@ export function NewIssueOrderPage() {
     searchTerms: b.name.toLowerCase()
   }));
 
-  const addLine = () => setLines([...lines, { id: Date.now(), productId: '', qty: 1, fromLocationId: '' }]);
+  const addLine = () => {
+    const newLineId = Date.now();
+    setLines(prev => [...prev, { id: newLineId, productId: '', qty: 1, fromLocationId: '' }]);
+    setPendingFocusProductLineId(newLineId);
+  };
 
   const removeLine = (id: number) => {
     if (lines.length === 1) return;
     setLines(lines.filter(l => l.id !== id));
+  };
+
+  const handleSelectProduct = (lineId: number, productOption: { id: string; name: string }) => {
+    setLines(prevLines => {
+      const lineToUpdate = prevLines.find(l => l.id === lineId);
+      let newLines = prevLines.map(l => l.id === lineId ? { ...l, productId: productOption.id, productName: productOption.name } : l);
+
+      const stocksList = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
+      const productStocks = stocksList.filter(s => String(s.productId) === String(productOption.id) && s.qty > 0);
+
+      let newLocationId = '';
+      let newLocationName = '';
+
+      if (fromLocationId === 'all') {
+        const bestStock = productStocks.sort((a, b) => b.qty - a.qty)[0];
+        if (bestStock) {
+          newLocationId = String(bestStock.locationId);
+          const loc = locationOptions.find(l => String(l.id) === newLocationId);
+          if (loc) newLocationName = loc.name;
+        }
+      }
+
+      if (newLocationId) {
+        const bestStock = productStocks.sort((a, b) => b.qty - a.qty)[0];
+        const maxAvailable = bestStock ? bestStock.qty : 1;
+        const currentQty = lineToUpdate ? Number(lineToUpdate.qty || 1) : 1;
+        const newQty = Math.min(currentQty, maxAvailable);
+        newLines = newLines.map(l => l.id === lineId ? { ...l, fromLocationId: newLocationId, fromLocationName: newLocationName, qty: newQty } : l);
+      }
+
+      const isLast = newLines[newLines.length - 1].id === lineId;
+      if (isLast) {
+        newLines.push({ id: Date.now(), productId: '', qty: 1, fromLocationId: '' });
+      }
+
+      return newLines;
+    });
+
+    setPendingFocusQtyLineId(lineId);
+  };
+
+  const handleQtyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, lineId: number) => {
+    if ((e.key === 'Tab' && !e.shiftKey) || e.key === 'Enter') {
+      e.preventDefault();
+      const currentIndex = lines.findIndex(l => l.id === lineId);
+      if (currentIndex !== -1) {
+        if (currentIndex + 1 < lines.length) {
+          const nextLine = lines[currentIndex + 1];
+          setPendingFocusProductLineId(nextLine.id);
+        } else {
+          const newLineId = Date.now();
+          setLines(prev => [...prev, { id: newLineId, productId: '', qty: 1, fromLocationId: '' }]);
+          setPendingFocusProductLineId(newLineId);
+        }
+      }
+    }
   };
 
   const updateLine = (id: number, field: keyof LineItem, value: any) => {
@@ -163,8 +257,8 @@ export function NewIssueOrderPage() {
           newLines = newLines.map(l => l.id === id ? { ...l, productName: product.name } : l);
         }
 
-        const stocks = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
-        const productStocks = stocks.filter(s => String(s.productId) === String(value) && s.qty > 0);
+        const stocksList = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
+        const productStocks = stocksList.filter(s => String(s.productId) === String(value) && s.qty > 0);
 
         let newLocationId = '';
         let newLocationName = '';
@@ -179,17 +273,19 @@ export function NewIssueOrderPage() {
         }
 
         if (newLocationId) {
-           const bestStock = productStocks.sort((a, b) => b.qty - a.qty)[0];
-           const maxAvailable = bestStock ? bestStock.qty : 1;
-           const currentQty = lineToUpdate ? Number(lineToUpdate.qty || 1) : 1;
-           const newQty = Math.min(currentQty, maxAvailable);
-           newLines = newLines.map(l => l.id === id ? { ...l, fromLocationId: newLocationId, fromLocationName: newLocationName, qty: newQty } : l);
+          const bestStock = productStocks.sort((a, b) => b.qty - a.qty)[0];
+          const maxAvailable = bestStock ? bestStock.qty : 1;
+          const currentQty = lineToUpdate ? Number(lineToUpdate.qty || 1) : 1;
+          const newQty = Math.min(currentQty, maxAvailable);
+          newLines = newLines.map(l => l.id === id ? { ...l, fromLocationId: newLocationId, fromLocationName: newLocationName, qty: newQty } : l);
         }
 
         const isLast = newLines[newLines.length - 1].id === id;
         if (isLast) {
           newLines.push({ id: Date.now(), productId: '', qty: 1, fromLocationId: '' });
         }
+
+        setPendingFocusQtyLineId(id);
       }
 
       if (field === 'fromLocationId' && value) {
@@ -586,10 +682,11 @@ export function NewIssueOrderPage() {
                       <tr key={line.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '8px 16px' }}>
                           <AsyncSearchableCombobox
+                            inputId={`product-input-${line.id}`}
                             defaultOptions={productOptions}
                             value={line.productName || ''}
                             onChange={(v) => updateLine(line.id, 'productName', v)}
-                            onSelect={(p) => updateLine(line.id, 'productId', p.id)}
+                            onSelect={(p) => handleSelectProduct(line.id, p)}
                             getLabel={(p) => p.name}
                             fetchOptions={fetchProductOptions}
                             createLabel={(q) => `إضافة "${q}"`}
@@ -619,12 +716,15 @@ export function NewIssueOrderPage() {
                         </td>
                         <td style={{ padding: '8px 16px' }}>
                           <input
+                            id={`quantity-input-${line.id}`}
                             type="number"
                             className="purchase-prototype-field-input"
                             min="0.001"
                             step="any"
                             value={line.qty}
                             onChange={(e) => updateLine(line.id, 'qty', e.target.value ? Number(e.target.value) : '')}
+                            onFocus={(e) => e.target.select()}
+                            onKeyDown={(e) => handleQtyKeyDown(e, line.id)}
                             style={{ height: '36px' }}
                           />
                         </td>

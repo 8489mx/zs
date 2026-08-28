@@ -232,6 +232,9 @@ function renderTotals(options: {
   compact?: boolean;
   isReturn?: boolean;
   paymentText?: string;
+  orderType?: string | null;
+  payments?: Sale['payments'];
+  isMerchantCopy?: boolean;
 }) {
   const totalPieces = (options.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
   const paidAmount = Number(options.paidAmount || 0);
@@ -307,7 +310,14 @@ function renderTotals(options: {
         isHtml: true,
       },
     ] : []),
-    ...(hasDeliveryFee ? [{ label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) }] : []),
+    ...(hasDeliveryFee ? [
+      { label: 'التوصيل', value: formatReceiptMoney(Number(options.deliveryFee || 0), options.settings) },
+      ...(options.isMerchantCopy && options.orderType === 'delivery' && (options.payments?.some(p => p.paymentChannel !== 'cash') || (options.paymentText && !options.paymentText.includes('نقدي'))) ? [{
+        label: 'تسوية المندوب',
+        value: `<span style="font-size:0.86em; font-weight:700; color:#000;">تم صرف ${formatReceiptMoney(Number(options.deliveryFee || 0), options.settings)} ج.م نقداً من الدرج</span>`,
+        isHtml: true,
+      }] : []),
+    ] : []),
     ...(showTax && (!hasOffersSavings || !showDiscountBreakdown) ? [{ label: 'الضريبة', value: formatReceiptMoney(Number(options.taxAmount || 0), options.settings) }] : []),
     ...(showPaymentMethod && options.paymentText ? [{
       label: `طريقة الدفع: ${options.paymentText}`,
@@ -320,7 +330,21 @@ function renderTotals(options: {
       value: formatReceiptMoney(Number(options.total || 0), options.settings),
       strong: true,
     }]),
-    ...(showPaymentDetails ? (
+    ...(options.orderType === 'delivery' ? (
+      paidAmount + 0.009 >= Number(options.total || 0) ? [{
+        label: 'المطلوب من العميل',
+        value: `<strong style="font-size:0.92em; font-weight:800; color:#000;">0.00 ج.م (مدفوع بالكامل — تسليم فقط)</strong>`,
+        strong: true,
+        isHtml: true,
+        noColon: true,
+      }] : [{
+        label: 'المطلوب تحصيله من العميل',
+        value: `<strong style="font-size:1.05em; font-weight:800; color:#000;">${formatReceiptMoney(Number(options.total || 0) - paidAmount, options.settings)} ج.م</strong>`,
+        strong: true,
+        isHtml: true,
+      }]
+    ) : []),
+    ...(showPaymentDetails && options.orderType !== 'delivery' ? (
       remaining > 0.009 ? [
         { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
         { label: 'المتبقي', value: formatReceiptMoney(remaining, options.settings) },
@@ -442,104 +466,151 @@ export function getInvoiceStyles(compact = false) {
       width: 100%;
       font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
     }
-    .store-inline-details {
-      margin-top: ${compact ? '2px' : '3px'};
-      color: #000;
-      font-size: ${compact ? '8.8px' : '10.2px'};
-      line-height: 1.3;
+    .invoice-meta-grid {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1px;
-      text-align: center;
+      gap: ${compact ? '1px' : '2px'};
+      width: 100%;
     }
-    .invoice-meta-panel { display: grid; gap: 0; margin-bottom: 0; padding-bottom: 2px; }
-    .meta-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: ${compact ? '2px 0' : '3px 0'}; border-bottom: 1px dotted #000; font-size: ${compact ? '10.3px' : '11.8px'}; line-height: 1.3; font-family: Arial, sans-serif; }
-    .meta-line:last-child { border-bottom: 0; }
-    .meta-line.strong { font-weight: 800; font-size: ${compact ? '12.5px' : '14px'}; }
-    .meta-document-badge {
-      border: 1px solid #000;
-      border-radius: 4px;
-      padding: ${compact ? '2px 5px' : '3px 6px'};
-      margin: ${compact ? '2px 0 3px' : '2px 0 4px'};
-      background: transparent;
-      font-size: ${compact ? '11px' : '12.5px'};
-      font-family: Arial, sans-serif;
+    .meta-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      width: 100%;
+      padding: ${compact ? '1px 0' : '2px 0'};
+      font-size: ${compact ? '9.5px' : '11px'};
+      border-bottom: 1px dotted #e2e8f0;
+      gap: 6px;
     }
-    .meta-document-badge .meta-label { font-weight: 700; }
-    .meta-document-badge .meta-value { font-weight: 800; font-size: 1.06em; font-family: Arial, sans-serif; }
-    .meta-label { color: #000; white-space: nowrap; font-weight: 600; text-align: right; }
-    .meta-value { text-align: left; font-weight: 600; color: #000; overflow-wrap: anywhere; direction: ltr; unicode-bidi: isolate; font-family: Arial, sans-serif; }
-    .invoice-items-card { padding: 0; margin-top: ${compact ? '2px' : '3px'}; }
-    .invoice-items-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: auto; }
+    .meta-line:last-child {
+      border-bottom: none;
+    }
+    .meta-line.strong {
+      font-weight: 800;
+      font-size: ${compact ? '10.5px' : '12px'};
+      border-bottom: 1px solid #cbd5e1;
+      padding: ${compact ? '2px 0' : '4px 0'};
+    }
+    .meta-label {
+      color: #000;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .meta-value {
+      color: #000;
+      text-align: left;
+      unicode-bidi: plaintext;
+      word-break: break-word;
+    }
+    .invoice-items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: ${compact ? '2px 0' : '4px 0'};
+    }
     .invoice-items-table th,
-    .invoice-items-table td { padding: ${compact ? '4px 2px' : '5px 4px'}; font-size: ${compact ? '10px' : '12px'}; border-bottom: 1px solid #000; text-align: center; white-space: nowrap; line-height: 1.2; vertical-align: middle; }
-    .invoice-items-table th:last-child,
-    .invoice-items-table td:last-child { border-inline-start: 0; }
-    .invoice-items-table tbody tr:last-child td { border-bottom: 0; }
-    .invoice-items-table th { background: #000; color: #fff; font-weight: 800; font-family: Arial, sans-serif; }
-    .invoice-items-table .name-cell { text-align: right; white-space: normal; width: 100%; min-width: 72px; overflow-wrap: anywhere; vertical-align: middle; font-weight: 700; font-family: Arial, sans-serif; }
-    .invoice-items-table td:not(.name-cell) { text-align: left; font-family: Arial, sans-serif; font-weight: 800; font-size: ${compact ? '10.5px' : '12.5px'}; font-variant-numeric: tabular-nums; vertical-align: middle; }
-    .invoice-items-table td.qty-cell,
-    .invoice-items-table td.price-cell,
-    .invoice-items-table td.index-cell,
-    .invoice-items-table td.unit-cell { text-align: center; font-family: Arial, sans-serif; font-weight: 800; }
-    .invoice-items-table.compact th,
-    .invoice-items-table.compact td { font-size: 9.8px; }
-    .invoice-items-table.compact th { font-size: 9px; }
-    .invoice-items-table.compact th:first-child,
-    .invoice-items-table.compact td:first-child { text-align: right; }
-    .invoice-totals-card { padding-top: ${compact ? '3px' : '4px'}; padding-bottom: 0; border-top: 1px dashed #000; }
-    .invoice-totals-card .meta-value { text-align: left; font-family: Arial, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 700; font-size: ${compact ? '11px' : '12.5px'}; }
-    .invoice-totals-card .total-line { margin: ${compact ? '3px -2px' : '4px -3px'}; padding: ${compact ? '5px 6px' : '6px 8px'}; font-size: ${compact ? '13px' : '15px'}; background: transparent; border: 1px solid #000; border-radius: 4px; font-family: Arial, sans-serif; }
-    .invoice-totals-card .meta-line.strong .meta-value { font-weight: 900; font-size: 1.1em; font-family: Arial, sans-serif; }
-    .invoice-payment-card { border-top: 1px dashed #000; }
-    .invoice-payment-card .section-title { font-size: ${compact ? '11px' : '12.5px'}; font-weight: 700; text-align: center; padding-bottom: 4px; margin-bottom: 2px; }
-    .payment-grid { display: grid; gap: 0; }
-    .payment-chip { padding: ${compact ? '3px 0' : '4px 0'}; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: ${compact ? '10px' : '11.3px'}; border-bottom: 1px dotted #000; background: transparent; }
-    .payment-chip:last-child { border-bottom: 0; }
-    .payment-chip strong { font-variant-numeric: tabular-nums; text-align: left; font-weight: 600; }
-    .invoice-barcode-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; margin-top: ${compact ? '1px' : '2px'}; border-top: 0; break-inside: avoid; }
-    .invoice-barcode-svg-wrap { width: ${compact ? '88%' : '82%'}; max-width: ${compact ? '240px' : '280px'}; height: ${compact ? '28px' : '34px'}; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
-    .invoice-barcode-svg-wrap svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
-    .print-footer { margin-top: 5px; font-size: ${compact ? '8.8px' : '9.8px'}; padding: ${compact ? '5px 4px' : '7px 5px'}; border-top: 1px dashed #000; text-align: center; line-height: 1.35; }
-    
-    /* Theme: Boxed */
-    .receipt-theme-boxed .invoice-card { border: 1px solid #000; border-radius: ${compact ? '6px' : '8px'}; margin-bottom: 4px; }
-    .receipt-theme-boxed .invoice-totals-card, .receipt-theme-boxed .invoice-payment-card, .receipt-theme-boxed .invoice-barcode-card { border-top: 0; }
-    .receipt-theme-boxed .invoice-barcode-card { border: 1px solid #000; border-radius: ${compact ? '6px' : '8px'}; }
-    .receipt-theme-boxed .invoice-totals-card .total-line { border: 1px dashed #000; border-radius: 8px; font-size: inherit; }
-    .receipt-theme-boxed .invoice-items-table th, .receipt-theme-boxed .invoice-items-table td { border-inline-start: 1px solid #000; }
-    .receipt-theme-boxed .invoice-items-table th:last-child, .receipt-theme-boxed .invoice-items-table td:last-child { border-inline-start: 0; }
-    .receipt-theme-boxed .invoice-payment-card .section-title { border-bottom: 1px solid #000; }
-    .receipt-theme-boxed .print-footer { border: 1px dashed #000; border-radius: 8px; }
-    
-    /* Theme: Ultra Compact */
-    .receipt-theme-ultra-compact .invoice-card { padding: 0; background: transparent; }
-    .receipt-theme-ultra-compact .print-content { gap: 0; }
-    .receipt-theme-ultra-compact .invoice-brand-row { display: block; text-align: center; gap: 0; }
-    .receipt-theme-ultra-compact .invoice-meta-panel { display: block; text-align: center; margin-bottom: 2px; }
-    .receipt-theme-ultra-compact .invoice-logo-wrapper { width: 50px; height: 50px; min-height: 50px; margin: 0 auto 4px auto; }
+    .invoice-items-table td {
+      padding: ${compact ? '2px 1px' : '4px 2px'};
+      font-size: ${compact ? '9px' : '10.5px'};
+      text-align: right;
+      color: #000;
+      vertical-align: top;
+      border-bottom: 1px dotted #000;
+    }
+    .invoice-items-table th {
+      background: #000;
+      color: #fff;
+      font-weight: 800;
+      border: 1px solid #000;
+      text-align: center;
+      padding: ${compact ? '2px 1px' : '4px 2px'};
+    }
+    .invoice-items-table .index-cell { width: 5%; text-align: center; color: #000; }
+    .invoice-items-table .name-cell { width: 45%; text-align: right; font-weight: 700; color: #000; }
+    .invoice-items-table .unit-cell { width: 12%; text-align: center; color: #000; }
+    .invoice-items-table .qty-cell { width: 10%; text-align: center; font-weight: 700; color: #000; }
+    .invoice-items-table .price-cell { width: 13%; text-align: center; color: #000; }
+    .invoice-items-table .total-cell { width: 15%; text-align: left; font-weight: 800; color: #000; }
+    .invoice-totals-card {
+      border-top: 1px dashed #000;
+      margin-top: ${compact ? '2px' : '4px'};
+      padding-top: ${compact ? '2px' : '4px'};
+    }
+    .invoice-payment-card {
+      border-top: 1px dashed #cbd5e1;
+      margin-top: ${compact ? '2px' : '4px'};
+      padding-top: ${compact ? '2px' : '4px'};
+    }
+    .section-title {
+      font-size: ${compact ? '9px' : '10.5px'};
+      font-weight: 800;
+      color: #000;
+      margin-bottom: 2px;
+    }
+    .payment-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .payment-chip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      border: 1px solid #000;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-size: ${compact ? '8.5px' : '10px'};
+      width: 100%;
+      font-weight: 700;
+      color: #000;
+    }
+    .invoice-barcode-card {
+      text-align: center;
+      margin-top: ${compact ? '4px' : '6px'};
+      padding-top: ${compact ? '2px' : '4px'};
+      border-top: 1px dashed #000;
+    }
+    .invoice-barcode-svg-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .invoice-barcode-svg-wrap svg {
+      width: 100% !important;
+      max-width: 220px !important;
+      height: ${compact ? '26px' : '34px'} !important;
+      display: block;
+    }
+    .print-footer {
+      text-align: center;
+      margin-top: ${compact ? '4px' : '6px'};
+      padding-top: ${compact ? '2px' : '4px'};
+      font-size: ${compact ? '8.5px' : '9.5px'};
+      color: #000;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    /* Boxed Theme */
+    .receipt-theme-boxed .invoice-card { border: 1px solid #000; margin-bottom: 3px; border-radius: 3px; padding: 4px 6px; }
+    .receipt-theme-boxed .invoice-items-table th { background: #000; color: #fff; }
+    .receipt-theme-boxed .meta-line { border-bottom: 1px dashed #000; }
+    .receipt-theme-boxed .meta-line:last-child { border-bottom: none; }
+    .receipt-theme-boxed .total-line { border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 2px; }
+
+    /* Ultra Compact Theme */
+    .receipt-theme-ultra-compact .invoice-card { padding: 1px 0; border: none; border-radius: 0; }
+    .receipt-theme-ultra-compact .invoice-brand-row { min-height: 0; gap: 4px; }
+    .receipt-theme-ultra-compact .invoice-logo-wrapper { width: 44px; height: 28px; min-height: 28px; }
     .receipt-theme-ultra-compact .invoice-brand-copy h2 { font-size: 14px; }
-    .receipt-theme-ultra-compact .store-inline-details { display: inline; font-size: 9px; }
-    .receipt-theme-ultra-compact .store-inline-details span { display: inline; }
+    .receipt-theme-ultra-compact .store-meta-line { display: none; }
+    .receipt-theme-ultra-compact .store-inline-details { display: block; font-size: 8.5px; color: #000; margin-top: 1px; font-weight: 500; }
     .receipt-theme-ultra-compact .store-inline-details span::after { content: " - "; }
     .receipt-theme-ultra-compact .store-inline-details span:last-child::after { content: ""; }
     .receipt-theme-ultra-compact .meta-line { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; border: none; padding: 0; font-size: 10px; break-inside: avoid; }
     .receipt-theme-ultra-compact .meta-line::after { content: " | "; margin: 0 3px; font-weight: normal; font-size: 9px; }
     .receipt-theme-ultra-compact .meta-line:last-child::after { content: ""; margin: 0; }
-    .receipt-theme-ultra-compact .meta-line.strong { font-size: 12px; }
-    .receipt-theme-ultra-compact .invoice-items-table th, .receipt-theme-ultra-compact .invoice-items-table td { padding: 2px 1px; font-size: 9.5px; border-bottom: 1px dotted #000; vertical-align: middle; }
-    .receipt-theme-ultra-compact .invoice-items-table th { background: transparent; color: #000; border-bottom: 1px solid #000; border-top: 1px dashed #000; }
-    .receipt-theme-ultra-compact .invoice-items-table td { vertical-align: middle; }
-    .receipt-theme-ultra-compact .invoice-totals-card { padding: 2px 0; }
-    .receipt-theme-ultra-compact .invoice-totals-card .total-line { margin: 0; padding: 2px 0; font-size: 12.5px; border-bottom: 1px dashed #000; display: inline-flex; width: auto; }
-    .receipt-theme-ultra-compact .payment-chip { padding: 1px 0; font-size: 10px; border-bottom: 1px dotted #000; }
-    .receipt-theme-ultra-compact .invoice-barcode-card { border: 0; border-top: 1px dashed #000; padding: 3px 0; margin-top: 2px; }
-    .receipt-theme-ultra-compact .invoice-barcode-svg-wrap { width: 80%; max-width: 200px; height: 24px; margin: 0 auto; }
-    .receipt-theme-ultra-compact .print-footer { margin-top: 2px; padding: 2px 0; border: 0; border-top: 1px dashed #000; font-size: 8.5px; }
-    .receipt-theme-ultra-compact .meta-label, .receipt-theme-ultra-compact .meta-value { white-space: nowrap; overflow: visible; }
 
     body.receipt-mode .print-shell { width: 100%; max-width: 100%; padding-top: 0; margin: 0; box-sizing: border-box; }
     body.receipt-mode .print-header { display: none !important; }
@@ -578,6 +649,7 @@ export function buildReceiptDocument(options: {
   tenderedAmount?: number;
   changeAmount?: number;
   payments?: Sale['payments'];
+  copyType?: 'customer' | 'merchant' | 'dual';
 }) {
   const compact = isCompactReceipt(options.pageSize, options.settings);
   const showCustomer = getPrintOption(options.settings, 'printShowCustomer', true);
@@ -635,18 +707,53 @@ export function buildReceiptDocument(options: {
   ];
 
   const theme = getReceiptTheme(options.pageSize, options.settings);
-  return {
-    html: `
-      <div class="receipt-theme-${theme}">
+  const copyType = options.copyType || 'customer';
+
+  function renderSingleReceipt(copy: 'customer' | 'merchant') {
+    const isMerchant = copy === 'merchant';
+    const copyHeaderBanner = isMerchant
+      ? `<div class="receipt-copy-banner" style="text-align:center; font-weight:800; font-size:11px; padding:3px 6px; border:1px dashed #000; margin-bottom:5px; background:#fff; color:#000;">*** نسخة المحل والدرج ***</div>`
+      : '';
+
+    return `
+      <div class="receipt-theme-${theme} receipt-copy-${copy}">
+        ${copyHeaderBanner}
         ${renderStoreHeader(options.settings, compact)}
         ${renderMetaPanel(metaRows, compact, options.settings)}
         ${renderItemsTable(options.items, compact, options.settings)}
-        ${renderTotals({ subtotal: options.subtotal, discount: options.discount, deliveryFee: options.deliveryFee, taxAmount: options.taxAmount, total: options.total, paidAmount: options.paidAmount, tenderedAmount: options.tenderedAmount, changeAmount: options.changeAmount, items: options.items, settings: options.settings, compact, isReturn: options.isReturn, paymentText: options.paymentText || 'نقدي' })}
+        ${renderTotals({
+          subtotal: options.subtotal,
+          discount: options.discount,
+          deliveryFee: options.deliveryFee,
+          taxAmount: options.taxAmount,
+          total: options.total,
+          paidAmount: options.paidAmount,
+          tenderedAmount: options.tenderedAmount,
+          changeAmount: options.changeAmount,
+          items: options.items,
+          settings: options.settings,
+          compact,
+          isReturn: options.isReturn,
+          paymentText: options.paymentText || 'نقدي',
+          orderType: options.orderType,
+          payments: options.payments,
+          isMerchantCopy: isMerchant,
+        })}
         ${renderPaymentBreakdown(options.payments, options.settings, compact)}
         ${renderInvoiceBarcode(options.documentNumber, compact, options.settings)}
         ${renderFooter(options.settings, compact)}
       </div>
-    `,
+    `;
+  }
+
+  const cutSeparator = `<div class="receipt-cut-separator" style="page-break-after: always; break-after: page; padding-bottom: 6mm; margin-bottom: 6mm; border-bottom: 2px dashed #000; text-align: center; font-size: 9px; color: #444;">------------------------------------</div>`;
+
+  const finalHtml = copyType === 'dual'
+    ? `${renderSingleReceipt('customer')}${cutSeparator}${renderSingleReceipt('merchant')}`
+    : renderSingleReceipt(copyType === 'merchant' ? 'merchant' : 'customer');
+
+  return {
+    html: finalHtml,
     compact,
   };
 }

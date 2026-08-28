@@ -15,6 +15,7 @@ interface PosSaleSuccessDialogProps {
   onClose: () => void;
   onNewSale: () => void;
   onPrintReceipt: () => void;
+  onPrintDualReceipt?: () => void;
   onPrintA4: () => void;
   onPrintKitchen?: () => void;
   onPrintBoth?: () => void;
@@ -28,8 +29,9 @@ function buildWhatsappMessage(sale: Sale, settings?: Partial<AppSettings> | null
   const storeName = settings?.storeName || settings?.brandName || '';
   const invoiceNo = sale.docNo || sale.id || '';
   return [
-    storeName ? `${storeName}` : '',
-    `فاتورتك رقم ${invoiceNo}`,
+    storeName ? `*${storeName}*` : '',
+    `فاتورة رقم: ${invoiceNo}`,
+    `التاريخ: ${sale.date ? new Date(sale.date).toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG')}`,
     `الإجمالي: ${formatCurrency(Number(sale.total || 0))}`,
     'شكرا لتعاملكم معنا',
   ].filter(Boolean).join('\n');
@@ -43,6 +45,7 @@ export function PosSaleSuccessDialog({
   onClose,
   onNewSale,
   onPrintReceipt,
+  onPrintDualReceipt,
   onPrintA4,
   onPrintKitchen,
   onPrintBoth,
@@ -56,16 +59,20 @@ export function PosSaleSuccessDialog({
   const isDeliveryOrder = sale?.orderType === 'delivery';
   const hasDeliveryRep = Boolean(sale?.deliveryRepId || (sale as any)?.delivery_rep_id);
   const repName = (sale as any)?.deliveryRepName || (sale as any)?.delivery_rep_name;
-  const isDeliveryCod = isDeliveryOrder && hasDeliveryRep && (sale?.paymentType === 'cash' || sale?.paymentChannel === 'cash' || !sale?.paymentChannel);
+  const collectionStatus = (sale as any)?.collectionStatus || (sale as any)?.collection_status;
 
   const changeAmount = Number(sale?.changeAmount || 0);
   const tenderedAmount = Number(sale?.tenderedAmount || 0);
   const paidAmount = Number(sale?.paidAmount || 0);
   const total = Number(sale?.total || 0);
+  const deliveryFee = Number((sale as any)?.deliveryFee || (sale as any)?.delivery_fee || 0);
   const remainingDebt = Math.max(0, total - paidAmount);
-  const isCreditOrPartial = sale?.paymentType === 'credit' || remainingDebt > 0.009;
-  const changeOrRemain = isCreditOrPartial ? remainingDebt : changeAmount;
-  const changeOrRemainLabel = isCreditOrPartial ? 'المتبقي على العميل' : 'الباقي';
+  const isFullyPaid = paidAmount + 0.009 >= total;
+  const isCreditSale = sale?.paymentType === 'credit';
+  const isCreditOrPartial = isCreditSale || (remainingDebt > 0.009 && !isDeliveryOrder);
+
+  // A delivery order is COD when courier collects money from customer (collectionStatus is cod OR unpaid non-credit delivery)
+  const isDeliveryCod = isDeliveryOrder && hasDeliveryRep && (collectionStatus === 'cod' || (!isFullyPaid && !isCreditSale));
 
   const paymentMethodLabel = isDeliveryCod
     ? `دليفري — تحصيل مع المندوب${repName ? ` (${repName})` : ''}`
@@ -199,15 +206,38 @@ export function PosSaleSuccessDialog({
           <span><b>رقم الفاتورة</b>{sale.docNo || sale.id}</span>
           <span><b>الإجمالي</b>{formatCurrency(Number(sale.total || 0))}</span>
           <span><b>طريقة الدفع</b>{paymentMethodLabel}</span>
-          {isDeliveryCod ? (
+          {isDeliveryOrder ? (
+            isDeliveryCod ? (
+              <>
+                <span><b>المطلوب تحصيله</b>{formatCurrency(total)} (مع المندوب)</span>
+                <span><b>حالة التحصيل</b>عهدة مع المندوب</span>
+                {repName && <span><b>المندوب</b>{repName}</span>}
+              </>
+            ) : (
+              <>
+                <span><b>حالة التحصيل</b><strong style={{ color: '#16a34a' }}>خالص بالكامل (مدفوع)</strong></span>
+                <span><b>المطلوب من العميل</b>0.00 ج.م (خالص)</span>
+                {repName && <span><b>المندوب</b>{repName} (تسليم فقط)</span>}
+                {deliveryFee > 0 && (
+                  <span style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#0f172a' }}>
+                    <b>تسوية المندوب:</b> تم صرف {formatCurrency(deliveryFee)} نقداً من الدرج لأجرة التوصيل
+                  </span>
+                )}
+              </>
+            )
+          ) : isCreditOrPartial ? (
             <>
-              <span><b>المطلوب تحصيله</b>{formatCurrency(total)} (مع المندوب)</span>
-              <span><b>حالة التحصيل</b>عهدة مع المندوب</span>
+              <span><b>المدفوع</b>{formatCurrency(paidAmount)}</span>
+              <span><b>المتبقي على العميل</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
             </>
           ) : (
             <>
               {tenderedAmount > 0 && <span><b>المستلم نقديًا</b>{formatCurrency(tenderedAmount)}</span>}
-              <span><b>{changeOrRemainLabel}</b>{formatCurrency(changeOrRemain)}</span>
+              {changeAmount > 0.009 ? (
+                <span><b>الباقي للعميل</b><strong style={{ color: '#16a34a' }}>{formatCurrency(changeAmount)}</strong></span>
+              ) : (
+                <span><b>حالة الفاتورة</b><strong style={{ color: '#16a34a' }}>مدفوعة بالكامل</strong></span>
+              )}
             </>
           )}
           <span><b>العميل</b>{sale.customerName || customer?.name || (isDeliveryOrder ? 'عميل دليفري' : 'عميل نقدي')}</span>
@@ -217,7 +247,17 @@ export function PosSaleSuccessDialog({
         {whatsappError ? <div className="pos-sale-success-error">{whatsappError}</div> : null}
 
         <div className="pos-sale-success-actions">
-          <Button type="button" onClick={() => safePrint(onPrintReceipt)}>طباعة الريسيت F2</Button>
+          <Button type="button" onClick={() => safePrint(onPrintReceipt)}>طباعة ريسيت العميل F2</Button>
+          {(isDeliveryOrder || onPrintDualReceipt) && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => safePrint(onPrintDualReceipt || onPrintReceipt)}
+              style={{ fontWeight: 800, background: '#f8fafc', color: '#0f172a', borderColor: '#cbd5e1' }}
+            >
+              طباعة نسختين (عميل + محل)
+            </Button>
+          )}
           {settings?.posKitchenPrinterEnabled && onPrintKitchen && (
             <>
               <Button type="button" onClick={() => safePrint(onPrintKitchen)}>طباعة للمطبخ</Button>

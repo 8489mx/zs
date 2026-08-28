@@ -110,6 +110,7 @@ const baseSettingsMutationValues = {
   deliveryFeeMode: 'freelance_courier' as const,
   storeFleetCommissionRate: 0,
   defaultDeliveryFee: 0,
+  printDualReceiptForOnlineDelivery: false,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {

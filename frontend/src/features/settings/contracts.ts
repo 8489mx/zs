@@ -94,6 +94,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     printCompactReceipt: values.printCompactReceipt !== false,
     posReceiptTheme: values.posReceiptTheme || 'classic',
     printNumberFormat: values.printNumberFormat === 'english' ? 'english' : 'arabic',
+    printDualReceiptForOnlineDelivery: Boolean(values.printDualReceiptForOnlineDelivery),
     uiLanguage: values.uiLanguage === 'en' ? 'en' : 'ar',
     currency: cleanText(values.currency, 'EGP').toUpperCase(),
     timezone: cleanText(values.timezone, 'Africa/Cairo'),

@@ -636,6 +636,7 @@ export function PosWorkspace() {
           focusBarcodeEntry();
         }}
         onPrintReceipt={pos.printReceiptNow}
+        onPrintDualReceipt={pos.printDualReceiptNow}
         onPrintA4={pos.printA4Now}
         onPrintKitchen={pos.printKitchenNow}
         onPrintBoth={pos.printBothNow}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Controller, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type Control, type UseFormReturn } from 'react-hook-form';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -51,7 +51,15 @@ function normalizeCount(value: unknown): number {
 }
 
 function summarizeDetails(rows: Array<{ amount?: number }>): number {
-  return Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
+  if (!Array.isArray(rows)) return 0;
+  return Number(
+    rows
+      .reduce((sum, row) => {
+        const val = Number(row?.amount);
+        return sum + (Number.isFinite(val) ? val : 0);
+      }, 0)
+      .toFixed(2)
+  );
 }
 
 function CashIcon(props: { size?: number; color?: string }) {
@@ -60,7 +68,7 @@ function CashIcon(props: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="6" width="20" height="12" rx="2" />
-      <circle cx="12" cy="12" r="2" />
+      <circle cx="12" cy="12" r="3" />
       <path d="M6 12h.01M18 12h.01" />
     </svg>
   );
@@ -73,7 +81,6 @@ function CardIcon(props: { size?: number; color?: string }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="5" width="20" height="14" rx="2" />
       <line x1="2" y1="10" x2="22" y2="10" />
-      <line x1="6" y1="15" x2="10" y2="15" />
     </svg>
   );
 }
@@ -83,9 +90,9 @@ function WalletIcon(props: { size?: number; color?: string }) {
   const color = props.color || '#7c3aed';
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-      <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+      <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
+      <path d="M16 12a2 2 0 0 0 0 4h4v-4h-4Z" />
+      <path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" />
     </svg>
   );
 }
@@ -94,14 +101,14 @@ function InstaPayIcon(props: { size?: number; color?: string }) {
   const size = props.size || 18;
   const color = props.color || '#059669';
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
     </svg>
   );
 }
 
 function LockIcon(props: { size?: number; color?: string }) {
-  const size = props.size || 12;
+  const size = props.size || 13;
   const color = props.color || 'currentColor';
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -111,8 +118,8 @@ function LockIcon(props: { size?: number; color?: string }) {
   );
 }
 
-function ChevronIcon(props: { open?: boolean; size?: number }) {
-  const size = props.size || 15;
+function ChevronIcon(props: { open: boolean; size?: number }) {
+  const size = props.size || 14;
   return (
     <svg
       width={size}
@@ -123,7 +130,10 @@ function ChevronIcon(props: { open?: boolean; size?: number }) {
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ transform: props.open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+      style={{
+        transition: 'transform 0.2s ease',
+        transform: props.open ? 'rotate(180deg)' : 'rotate(0deg)',
+      }}
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>
@@ -171,22 +181,33 @@ interface PaymentChannelRowProps {
   bgLight: string;
   borderColor: string;
   count: number;
-  declaredTotal: number;
+  control: Control<CloseShiftValues>;
   declaredFieldName: 'cardDeclaredTotal' | 'walletDeclaredTotal' | 'instapayDeclaredTotal';
   detailsFieldName: DetailChannel;
-  detailsRows: Array<{ amount?: number }>;
   isOpen: boolean;
   onToggle: () => void;
   register: UseFormReturn<CloseShiftValues>['register'];
+  setValue: UseFormReturn<CloseShiftValues>['setValue'];
   onApplyTotalToDeclared: (total: number) => void;
   disabled?: boolean;
 }
 
 function PaymentChannelRow(props: PaymentChannelRowProps) {
-  const detailsTotal = useMemo(() => summarizeDetails(props.detailsRows), [props.detailsRows]);
-  const diff = Number((detailsTotal - props.declaredTotal).toFixed(2));
-  const isMatch = Math.abs(diff) < 0.01 && detailsTotal > 0 && props.declaredTotal > 0;
-  const isZero = detailsTotal === 0 && props.declaredTotal === 0;
+  const detailsRows = useWatch({
+    control: props.control,
+    name: props.detailsFieldName,
+  }) || EMPTY_DETAIL_ROWS;
+
+  const rawDeclared = useWatch({
+    control: props.control,
+    name: props.declaredFieldName,
+  });
+  const declaredTotal = Number(rawDeclared || 0);
+
+  const detailsTotal = useMemo(() => summarizeDetails(detailsRows), [detailsRows]);
+  const diff = Number((detailsTotal - declaredTotal).toFixed(2));
+  const isMatch = Math.abs(diff) < 0.01 && detailsTotal > 0 && declaredTotal > 0;
+  const isZero = detailsTotal === 0 && declaredTotal === 0;
 
   return (
     <div
@@ -266,6 +287,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                 className="no-spin-arrows"
                 {...props.register(props.declaredFieldName, { valueAsNumber: true })}
                 disabled={props.disabled}
+                onFocus={(e) => e.target.select()}
                 style={{
                   width: '125px',
                   padding: '6px 30px 6px 10px',
@@ -325,7 +347,7 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                 مجموع المربعات: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(detailsTotal)}</strong>
               </div>
               <div style={{ fontSize: '0.83rem', color: '#475569' }}>
-                المعلن من الماكينة: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(props.declaredTotal)}</strong>
+                المعلن من الماكينة: <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>{formatCurrency(declaredTotal)}</strong>
               </div>
               {isMatch ? (
                 <span
@@ -446,6 +468,26 @@ function PaymentChannelRow(props: PaymentChannelRowProps) {
                       }}
                       {...props.register(`${props.detailsFieldName}.${index}.amount` as const, { valueAsNumber: true })}
                       disabled={props.disabled}
+                      onFocus={(e) => e.target.select()}
+                      onPaste={(e) => {
+                        const text = e.clipboardData.getData('text');
+                        if (text && /[\r\n\t, ]/.test(text.trim())) {
+                          const numbers = text
+                            .trim()
+                            .split(/[\r\n\t, ]+/)
+                            .map((val) => Number(val))
+                            .filter((val) => Number.isFinite(val) && val >= 0);
+                          if (numbers.length > 1) {
+                            e.preventDefault();
+                            numbers.forEach((num, offset) => {
+                              const targetIndex = index + offset;
+                              if (targetIndex < props.count) {
+                                props.setValue(`${props.detailsFieldName}.${targetIndex}.amount` as const, num, { shouldDirty: true });
+                              }
+                            });
+                          }
+                        }
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -513,7 +555,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
     const next = [...current];
     if (next.length > size) next.length = size;
     while (next.length < size) {
-      next.push({ amount: 0 });
+      next.push({ amount: undefined });
     }
     props.closeForm.setValue(field, next, { shouldDirty: false });
   };
@@ -564,14 +606,6 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
     props.onCloseForm,
   ]);
 
-  const cardDeclaredTotal = Number(props.closeForm.watch('cardDeclaredTotal') || 0);
-  const walletDeclaredTotal = Number(props.closeForm.watch('walletDeclaredTotal') || 0);
-  const instapayDeclaredTotal = Number(props.closeForm.watch('instapayDeclaredTotal') || 0);
-
-  const cardDetailsRows = props.closeForm.watch('cardDetails') ?? EMPTY_DETAIL_ROWS;
-  const walletDetailsRows = props.closeForm.watch('walletDetails') ?? EMPTY_DETAIL_ROWS;
-  const instapayDetailsRows = props.closeForm.watch('instapayDetails') ?? EMPTY_DETAIL_ROWS;
-
   const watchedBranchId = props.openForm.watch('branchId');
   const availableLocations = useMemo(() => {
     if (!watchedBranchId) return locationList;
@@ -585,7 +619,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px' }}>
           <h2 style={{ marginTop: 0, marginBottom: '24px' }}>فتح وردية نقطة بيع</h2>
         <form className="form-grid" onSubmit={props.openForm.handleSubmit((values) => props.openMutation.mutate(values))}>
-          <Field label="رصيد الفتح"><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} /></Field>
+          <Field label="رصيد الفتح"><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
           {!SINGLE_STORE_MODE ? <Field label="الفرع">
             <select
               {...props.openForm.register('branchId')}
@@ -693,7 +727,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               )}
             />
           </Field>
-          <Field label="المبلغ"><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} /></Field>
+          <Field label="المبلغ"><input type="number" step="0.01" {...props.movementForm.register('amount', { valueAsNumber: true })} disabled={props.movementMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
           <Field label="سبب الحركة (إجباري)"><textarea rows={2} placeholder="اكتب سبب الصرف أو الإيداع بوضوح" required {...props.movementForm.register('note', { required: true })} disabled={props.movementMutation.isPending} /></Field>
           <MutationFeedback isError={props.movementMutation.isError} isSuccess={props.movementMutation.isSuccess} error={props.movementMutation.error} errorFallback="تعذر تسجيل الحركة" successText="تم تسجيل حركة درج النقدية بنجاح." />
           <SubmitButton
@@ -830,6 +864,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                         className="no-spin-arrows"
                         {...props.closeForm.register('countedCash', { valueAsNumber: true })}
                         disabled={props.closeMutation.isPending}
+                        onFocus={(e) => e.target.select()}
                         style={{
                           width: '140px',
                           padding: '7px 30px 7px 12px',
@@ -864,13 +899,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                       bgLight="#eff6ff"
                       borderColor="#dbeafe"
                       count={cardOperationCount}
-                      declaredTotal={cardDeclaredTotal}
+                      control={props.closeForm.control}
                       declaredFieldName="cardDeclaredTotal"
                       detailsFieldName="cardDetails"
-                      detailsRows={cardDetailsRows}
                       isOpen={showCardDetails}
                       onToggle={() => setShowCardDetails((v) => !v)}
                       register={props.closeForm.register}
+                      setValue={props.closeForm.setValue}
                       onApplyTotalToDeclared={(total) => props.closeForm.setValue('cardDeclaredTotal', total, { shouldDirty: true })}
                       disabled={props.closeMutation.isPending}
                     />
@@ -884,13 +919,13 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                       bgLight="#f5f3ff"
                       borderColor="#ede9fe"
                       count={walletOperationCount}
-                      declaredTotal={walletDeclaredTotal}
+                      control={props.closeForm.control}
                       declaredFieldName="walletDeclaredTotal"
                       detailsFieldName="walletDetails"
-                      detailsRows={walletDetailsRows}
                       isOpen={showWalletDetails}
                       onToggle={() => setShowWalletDetails((v) => !v)}
                       register={props.closeForm.register}
+                      setValue={props.closeForm.setValue}
                       onApplyTotalToDeclared={(total) => props.closeForm.setValue('walletDeclaredTotal', total, { shouldDirty: true })}
                       disabled={props.closeMutation.isPending}
                     />
@@ -904,49 +939,62 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                       bgLight="#ecfdf5"
                       borderColor="#d1fae5"
                       count={instapayOperationCount}
-                      declaredTotal={instapayDeclaredTotal}
+                      control={props.closeForm.control}
                       declaredFieldName="instapayDeclaredTotal"
                       detailsFieldName="instapayDetails"
-                      detailsRows={instapayDetailsRows}
                       isOpen={showInstapayDetails}
                       onToggle={() => setShowInstapayDetails((v) => !v)}
                       register={props.closeForm.register}
+                      setValue={props.closeForm.setValue}
                       onApplyTotalToDeclared={(total) => props.closeForm.setValue('instapayDeclaredTotal', total, { shouldDirty: true })}
                       disabled={props.closeMutation.isPending}
                     />
                   </div>
                 </div>
 
-                {/* 3. Password & Optional Notes in One Unified Row */}
-                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'start' }}>
-                  <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
-                    <input
-                      type="text"
-                      className="secure-password-field"
-                      placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
-                      required
-                      {...props.closeForm.register('managerPin')}
-                      autoComplete="off"
-                      data-lpignore="true"
-                      data-1p-ignore="true"
-                      data-form-type="other"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck={false}
-                      disabled={props.closeMutation.isPending}
-                      style={{ width: '100%' }}
-                    />
-                  </Field>
+                {/* 3. Password & Optional Notes in One Unified Single Row */}
+                <div
+                  style={{
+                    gridColumn: '1 / -1',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    width: '100%',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Field label="ملاحظات الإغلاق (اختياري)">
+                      <input
+                        type="text"
+                        placeholder="أية ملاحظات خاصة بوردية اليوم..."
+                        {...props.closeForm.register('note')}
+                        disabled={props.closeMutation.isPending}
+                        style={{ width: '100%' }}
+                      />
+                    </Field>
+                  </div>
 
-                  <Field label="ملاحظات الإغلاق (اختياري)">
-                    <input
-                      type="text"
-                      placeholder="أية ملاحظات خاصة بوردية اليوم..."
-                      {...props.closeForm.register('note')}
-                      disabled={props.closeMutation.isPending}
-                      style={{ width: '100%' }}
-                    />
-                  </Field>
+                  <div style={{ width: '260px', flexShrink: 0 }}>
+                    <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
+                      <input
+                        type="text"
+                        className="secure-password-field"
+                        placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
+                        required
+                        {...props.closeForm.register('managerPin')}
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-form-type="other"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        disabled={props.closeMutation.isPending}
+                        style={{ width: '100%' }}
+                      />
+                    </Field>
+                  </div>
                 </div>
 
                 <div className="muted small" style={{ gridColumn: '1 / -1' }}>
@@ -979,35 +1027,48 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 ) : null}
                 <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
                 
-                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'start' }}>
-                  <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
-                    <input
-                      type="text"
-                      className="secure-password-field"
-                      placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
-                      required
-                      {...props.closeForm.register('managerPin')}
-                      autoComplete="off"
-                      data-lpignore="true"
-                      data-1p-ignore="true"
-                      data-form-type="other"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck={false}
-                      disabled={props.closeMutation.isPending}
-                      style={{ width: '100%' }}
-                    />
-                  </Field>
+                <div
+                  style={{
+                    gridColumn: '1 / -1',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    width: '100%',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Field label="ملاحظة الإغلاق">
+                      <input
+                        type="text"
+                        placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل إغلاق الوردية' : 'اختياري عند عدم وجود فرق'}
+                        {...props.closeForm.register('note')}
+                        disabled={props.closeMutation.isPending}
+                        style={{ width: '100%' }}
+                      />
+                    </Field>
+                  </div>
 
-                  <Field label="ملاحظة الإغلاق">
-                    <input
-                      type="text"
-                      placeholder={Math.abs(props.closeVariancePreview) >= 0.01 ? 'اشرح سبب الفرق قبل إغلاق الوردية' : 'اختياري عند عدم وجود فرق'}
-                      {...props.closeForm.register('note')}
-                      disabled={props.closeMutation.isPending}
-                      style={{ width: '100%' }}
-                    />
-                  </Field>
+                  <div style={{ width: '260px', flexShrink: 0 }}>
+                    <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
+                      <input
+                        type="text"
+                        className="secure-password-field"
+                        placeholder="أدخل كلمة المرور لتأكيد الإغلاق"
+                        required
+                        {...props.closeForm.register('managerPin')}
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-form-type="other"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        disabled={props.closeMutation.isPending}
+                        style={{ width: '100%' }}
+                      />
+                    </Field>
+                  </div>
                 </div>
 
                 <div className={Math.abs(props.closeVariancePreview) >= 0.01 ? 'warning-box' : 'muted small'} style={{ gridColumn: '1 / -1' }}>

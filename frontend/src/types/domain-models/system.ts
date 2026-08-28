@@ -188,6 +188,7 @@ export interface AppSettings {
   printCompactReceipt?: boolean;
   posReceiptTheme?: 'boxed' | 'classic' | 'ultra-compact' | string;
   printNumberFormat?: 'arabic' | 'english' | string;
+  printDualReceiptForOnlineDelivery?: boolean;
   manufacturingModuleEnabled?: boolean;
   importModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;

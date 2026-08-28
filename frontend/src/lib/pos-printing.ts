@@ -9,13 +9,14 @@ import {
   type PosPrintPageSize,
 } from '@/lib/pos-printing/shared';
 
-interface PrintReceiptOptions {
+export interface PrintReceiptOptions {
   pageSize?: PosPrintPageSize;
   settings?: Partial<AppSettings> | null;
   cashierName?: string;
   isReturn?: boolean;
   isPurchase?: boolean;
   footerText?: string;
+  copyType?: 'customer' | 'merchant' | 'dual';
 }
 
 export function openReceiptDocument(
@@ -109,7 +110,14 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     customerName: sale.customerName || 'عميل نقدي',
     customerPhone: sale.customerPhone,
     customerAddress: sale.customerAddress,
-    paymentText: formatSalePaymentText(sale.paymentType, sale.paymentChannel, sale.paidAmount, sale.total),
+    paymentText: formatSalePaymentText(
+      sale.paymentType,
+      sale.paymentChannel,
+      sale.paidAmount,
+      sale.total,
+      (sale as any).orderType || (sale as any).order_type,
+      (sale as any).collectionStatus || (sale as any).collection_status
+    ),
     cashierName: sale.createdBy || options.cashierName || '—',
     branchName: sale.branchName || 'المتجر الرئيسي',
     locationName: sale.locationName || 'المخزن الأساسي',
@@ -137,6 +145,7 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     tenderedAmount: Number((sale as any).tenderedAmount || 0),
     changeAmount: Number((sale as any).changeAmount || 0),
     payments: sale.payments,
+    copyType: options.copyType || (options.settings?.printDualReceiptForOnlineDelivery && (sale.orderType === 'delivery' || sale.paymentChannel === 'instapay' || sale.paymentChannel === 'wallet' || sale.paymentChannel === 'card') ? 'dual' : 'customer'),
   });
 }
 
@@ -150,6 +159,14 @@ export function printPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions 
     effectiveOptions,
     effectiveOptions.pageSize === 'receipt' ? '' : 'معاينة جاهزة للطباعة'
   );
+}
+
+export function printDualPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions = {}) {
+  return printPostedSaleReceipt(sale, { ...options, copyType: 'dual' });
+}
+
+export function printMerchantPostedSaleReceipt(sale: Sale, options: PrintReceiptOptions = {}) {
+  return printPostedSaleReceipt(sale, { ...options, copyType: 'merchant' });
 }
 
 export { exportPostedSalePdf } from '@/lib/pos-printing/pdf';

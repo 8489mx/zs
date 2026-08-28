@@ -42,7 +42,7 @@ describe('PosSaleSuccessDialog', () => {
 
     expect(screen.getByText('تم البيع بنجاح')).toBeInTheDocument();
     expect(screen.getAllByText('S-100').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'طباعة الريسيت F2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /طباعة ريسيت العميل F2/ })).toBeInTheDocument();
   });
 
   it('uses the selected customer phone for WhatsApp', async () => {
@@ -90,5 +90,27 @@ describe('PosSaleSuccessDialog', () => {
     expect(screen.getByText(/المطلوب تحصيله/)).toBeInTheDocument();
     expect(screen.getByText(/عهدة مع المندوب/)).toBeInTheDocument();
     expect(screen.queryByText(/المستلم نقديًا/)).not.toBeInTheDocument();
+  });
+
+  it('correctly formats online-paid delivery orders without courier COD debt', () => {
+    const onlineDeliverySale = {
+      ...sale,
+      orderType: 'delivery',
+      deliveryRepId: 3,
+      deliveryRepName: 'سيد',
+      paymentChannel: 'instapay',
+      deliveryFee: 35,
+      total: 1035,
+      paidAmount: 1035,
+      collectionStatus: 'collected',
+    } as unknown as Sale;
+
+    renderDialog({ sale: onlineDeliverySale });
+
+    expect(screen.getByText(/خالص بالكامل \(مدفوع\)/)).toBeInTheDocument();
+    expect(screen.getByText(/المطلوب من العميل/)).toBeInTheDocument();
+    expect(screen.getByText(/سيد/)).toBeInTheDocument();
+    expect(screen.getByText(/تسوية المندوب/)).toBeInTheDocument();
+    expect(screen.queryByText(/عهدة مع المندوب/)).not.toBeInTheDocument();
   });
 });

@@ -27,9 +27,9 @@ interface CloseShiftValues {
   walletOperationCount?: number;
   instapayDeclaredTotal?: number;
   instapayOperationCount?: number;
-  cardDetails?: Array<{ amount: number; reference?: string }>;
-  walletDetails?: Array<{ amount: number; reference?: string }>;
-  instapayDetails?: Array<{ amount: number; reference?: string }>;
+  cardDetails?: Array<{ amount?: number; reference?: string }>;
+  walletDetails?: Array<{ amount?: number; reference?: string }>;
+  instapayDetails?: Array<{ amount?: number; reference?: string }>;
   note: string;
   managerPin?: string;
 }
@@ -59,15 +59,7 @@ export function useCashDrawerMutations(actions?: {
         branchId: values.branchId || '',
         locationId: values.locationId || ''
       }),
-    onSuccess: async (response: any) => {
-      if (response && response.cashierShifts && Array.isArray(response.cashierShifts)) {
-        const openShifts = response.cashierShifts.filter((s: any) => s.status === 'open');
-        queryClient.setQueryData(queryKeys.cashierShiftsPage('open:pos'), {
-          rows: openShifts,
-          pagination: response.pagination || { page: 1, pageSize: 50, totalItems: openShifts.length, totalPages: 1 },
-          summary: response.summary || { openShiftCount: openShifts.length },
-        });
-      }
+    onSuccess: async () => {
       await refreshAll();
       actions?.onOpenSuccess?.();
     }
@@ -97,9 +89,15 @@ export function useCashDrawerMutations(actions?: {
         walletOperationCount: Number(values.walletOperationCount || 0),
         instapayDeclaredTotal: Number(values.instapayDeclaredTotal || 0),
         instapayOperationCount: Number(values.instapayOperationCount || 0),
-        cardDetails: Array.isArray(values.cardDetails) ? values.cardDetails : [],
-        walletDetails: Array.isArray(values.walletDetails) ? values.walletDetails : [],
-        instapayDetails: Array.isArray(values.instapayDetails) ? values.instapayDetails : [],
+        cardDetails: Array.isArray(values.cardDetails)
+          ? values.cardDetails.map((d) => ({ amount: Number(d.amount || 0), reference: d.reference }))
+          : [],
+        walletDetails: Array.isArray(values.walletDetails)
+          ? values.walletDetails.map((d) => ({ amount: Number(d.amount || 0), reference: d.reference }))
+          : [],
+        instapayDetails: Array.isArray(values.instapayDetails)
+          ? values.instapayDetails.map((d) => ({ amount: Number(d.amount || 0), reference: d.reference }))
+          : [],
         note: values.note || '',
         managerPin: values.managerPin || ''
       }),

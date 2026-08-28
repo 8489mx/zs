@@ -764,6 +764,65 @@ export class SalesWriteService {
             normalized.locationId,
           );
         }
+
+        // When a delivery order with a freelance courier is paid electronically (online/card/wallet/instapay/credit),
+        // the courier takes their delivery fee in cash directly from the active cash drawer.
+        // Auto-record a cash_out treasury transaction so the cashier's expected cash in drawer decreases accurately.
+        if (
+          isDelivery &&
+          resolvedDeliveryFeeMode === 'freelance_courier' &&
+          normalized.deliveryFee > 0
+        ) {
+          const nonCashPaidTotal = payments
+            .filter((p) => p.paymentChannel !== 'cash')
+            .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+          if (nonCashPaidTotal > 0 || payments.length === 0 || effectivePaymentType === 'credit') {
+            const openShift = await trx
+              .selectFrom('cashier_shifts')
+              .select(['id', 'branch_id', 'location_id'])
+              .where('opened_by', '=', auth.userId)
+              .where('status', '=', 'open')
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .orderBy('id', 'desc')
+              .executeTakeFirst();
+
+            if (openShift) {
+              const repRow = deliveryRepId
+                ? await trx
+                    .selectFrom('delivery_representatives')
+                    .select(['name'])
+                    .where('id', '=', Number(deliveryRepId))
+                    .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+                    .executeTakeFirst()
+                : null;
+              const repLabel = repRow?.name ? repRow.name : `مندوب #${deliveryRepId || ''}`;
+
+              await trx
+                .insertInto('treasury_transactions')
+                .values({
+                  txn_type: 'cash_out',
+                  amount: normalized.deliveryFee,
+                  note: `صرف أجرة توصيل نقداً للمندوب ${repLabel} عن فاتورة #${docNo || id}`,
+                  reference_type: 'cashier_shift',
+                  reference_id: openShift.id,
+                  branch_id: normalized.branchId || openShift.branch_id,
+                  location_id: normalized.locationId || openShift.location_id,
+                  created_by: auth.userId,
+                  tenant_id: scope.tenantId,
+                  account_id: scope.accountId,
+                } as any)
+                .execute();
+
+              await sql`
+                update cashier_shifts
+                set expected_cash = greatest(0, coalesce(expected_cash, 0) - ${normalized.deliveryFee}),
+                    updated_at = now()
+                where tenant_id = ${scope.tenantId} and id = ${openShift.id}
+              `.execute(trx);
+            }
+          }
+        }
       }
 
       try {

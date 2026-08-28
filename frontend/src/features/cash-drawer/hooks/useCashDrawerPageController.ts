@@ -32,9 +32,9 @@ export interface CloseShiftValues {
   walletOperationCount: number;
   instapayDeclaredTotal: number;
   instapayOperationCount: number;
-  cardDetails: Array<{ amount: number; reference?: string }>;
-  walletDetails: Array<{ amount: number; reference?: string }>;
-  instapayDetails: Array<{ amount: number; reference?: string }>;
+  cardDetails: Array<{ amount?: number; reference?: string }>;
+  walletDetails: Array<{ amount?: number; reference?: string }>;
+  instapayDetails: Array<{ amount?: number; reference?: string }>;
   note: string;
   managerPin?: string;
 }
@@ -71,12 +71,12 @@ export function useCashDrawerPageController() {
   const closeForm = useForm<CloseShiftValues>({
     defaultValues: {
       shiftId: '',
-      countedCash: 0,
-      cardDeclaredTotal: 0,
+      countedCash: undefined as unknown as number,
+      cardDeclaredTotal: undefined as unknown as number,
       cardOperationCount: 0,
-      walletDeclaredTotal: 0,
+      walletDeclaredTotal: undefined as unknown as number,
       walletOperationCount: 0,
-      instapayDeclaredTotal: 0,
+      instapayDeclaredTotal: undefined as unknown as number,
       instapayOperationCount: 0,
       cardDetails: [],
       walletDetails: [],
@@ -107,12 +107,12 @@ export function useCashDrawerPageController() {
     onMovementSuccess: () => movementForm.reset({ shiftId: '', type: 'cash_in', amount: 0, note: '', managerPin: '' }),
     onCloseSuccess: () => closeForm.reset({
       shiftId: '',
-      countedCash: 0,
-      cardDeclaredTotal: 0,
+      countedCash: undefined as unknown as number,
+      cardDeclaredTotal: undefined as unknown as number,
       cardOperationCount: 0,
-      walletDeclaredTotal: 0,
+      walletDeclaredTotal: undefined as unknown as number,
       walletOperationCount: 0,
-      instapayDeclaredTotal: 0,
+      instapayDeclaredTotal: undefined as unknown as number,
       instapayOperationCount: 0,
       cardDetails: [],
       walletDetails: [],
