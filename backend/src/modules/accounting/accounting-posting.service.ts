@@ -467,27 +467,24 @@ export class AccountingPostingService {
     const cashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
     const nonCashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
 
-    const deliveryFeeMode = (sale as any).delivery_fee_mode || await this.getDeliveryFeeMode(queryable, scope.tenantId);
     const subtotal = this.toMoney(sale.subtotal);
     const discount = this.toMoney(sale.discount);
     const taxAmount = this.toMoney(sale.tax_amount);
     const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
-    const effectiveStoreDeliveryFee = deliveryFeeMode === 'store_fleet' ? deliveryFee : 0;
     const paidAmount = this.toMoney(sale.paid_amount);
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
-    const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed - (deliveryFeeMode === 'freelance_courier' ? deliveryFee : 0)));
-    const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - (deliveryFeeMode === 'freelance_courier' ? Math.max(0, paidAmount - deliveryFee) : paidAmount)));
-    const revenueCredit = this.toMoney(subtotal + effectiveStoreDeliveryFee);
-    const effectiveCashAmount = deliveryFeeMode === 'store_fleet' ? cashAmount : Math.max(0, this.toMoney(cashAmount - deliveryFee));
+    const saleTotal = this.toMoney(sale.total);
+    const receivableAmount = this.toMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
+    const revenueCredit = this.toMoney(subtotal + deliveryFee);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
 
-    if (effectiveCashAmount > 0) {
+    if (cashAmount > 0) {
       this.addLine(lines, {
         accountId: Number(settings.cash_account_id || 0),
         description: 'تحصيل نقدي من فاتورة بيع',
-        debit: effectiveCashAmount,
+        debit: cashAmount,
         credit: 0,
         partnerType: 'none',
         partnerId: null,
@@ -669,27 +666,24 @@ export class AccountingPostingService {
     const cashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
     const nonCashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
 
-    const deliveryFeeMode = (sale as any).delivery_fee_mode || await this.getDeliveryFeeMode(queryable, scope.tenantId);
     const subtotal = this.toMoney(sale.subtotal);
     const discount = this.toMoney(sale.discount);
     const taxAmount = this.toMoney(sale.tax_amount);
     const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
-    const effectiveStoreDeliveryFee = deliveryFeeMode === 'store_fleet' ? deliveryFee : 0;
     const paidAmount = this.toMoney(sale.paid_amount);
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
-    const collectibleTotal = this.toMoney(Math.max(0, Number(sale.total || 0) - storeCreditUsed - (deliveryFeeMode === 'freelance_courier' ? deliveryFee : 0)));
-    const receivableAmount = this.toMoney(Math.max(0, collectibleTotal - (deliveryFeeMode === 'freelance_courier' ? Math.max(0, paidAmount - deliveryFee) : paidAmount)));
-    const revenueCredit = this.toMoney(subtotal + effectiveStoreDeliveryFee);
-    const effectiveCashAmount = deliveryFeeMode === 'store_fleet' ? cashAmount : Math.max(0, this.toMoney(cashAmount - deliveryFee));
+    const saleTotal = this.toMoney(sale.total);
+    const receivableAmount = this.toMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
+    const revenueCredit = this.toMoney(subtotal + deliveryFee);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
 
-    if (effectiveCashAmount > 0) {
+    if (cashAmount > 0) {
       this.addLine(lines, {
         accountId: Number(settings.cash_account_id || 0),
         description: 'تحصيل نقدي من تعديل فاتورة بيع',
-        debit: effectiveCashAmount,
+        debit: cashAmount,
         credit: 0,
         partnerType: 'none',
         partnerId: null,
