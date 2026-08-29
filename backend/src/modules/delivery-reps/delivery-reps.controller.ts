@@ -55,9 +55,11 @@ export class DeliveryRepsController {
   @RequirePermissions('deliveryReps')
   listSettlements(
     @Param('id', ParseIntPipe) id: number,
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
-    return this.service.listSettlements(id, req.authContext!);
+    return this.service.listSettlements(id, req.authContext!, { dateFrom, dateTo });
   }
 
   @Get(':id/kpi')

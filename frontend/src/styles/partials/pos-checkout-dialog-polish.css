@@ -1,27 +1,36 @@
-.pos-checkout-dialog-card {
-  max-height: none;
-  overflow: visible;
+.pos-checkout-dialog-shell {
+  height: min(820px, calc(100vh - 24px)) !important;
+  min-height: min(820px, calc(100vh - 24px)) !important;
+  max-height: calc(100vh - 24px) !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-.pos-checkout-dialog-card > .card-body,
-.pos-checkout-dialog-card .card-body {
-  min-height: 0;
-  overflow: visible;
+.pos-checkout-dialog-card {
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: calc(100vh - 24px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .pos-checkout-dialog {
-  display: grid;
-  gap: 14px;
-  overflow: visible;
-  max-height: none;
-  padding-inline-end: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  flex: 1;
+  overflow-y: auto;
+  padding-inline-end: 2px;
 }
 
 .pos-checkout-dialog-section {
   display: grid;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
-  padding: 12px;
+  padding: 8px 10px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
@@ -277,13 +286,14 @@
 }
 
 .pos-checkout-dialog-actions {
+  margin-top: auto;
   position: sticky;
   bottom: 0;
   z-index: 5;
   justify-content: flex-end;
   padding-top: 10px;
   border-top: 1px solid rgba(226, 232, 240, 0.8);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), #fff 55%);
+  background: #fff;
 }
 
 .pos-checkout-dialog-actions .btn {

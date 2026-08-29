@@ -176,22 +176,52 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
   if (!open) return null;
 
   return (
-    <DialogShell open={open} onClose={handleDialogClose} width="min(980px, calc(100vw - 32px))" zIndex={86} ariaLabel="مراجعة وإتمام البيع">
-      <Card title="مراجعة وإتمام البيع" className="dialog-card pos-checkout-dialog-card">
+    <DialogShell
+      open={open}
+      onClose={handleDialogClose}
+      width="min(980px, calc(100vw - 32px))"
+      zIndex={86}
+      ariaLabel="مراجعة وإتمام البيع"
+      shellClassName="pos-checkout-dialog-shell"
+    >
+      <Card
+        title="مراجعة وإتمام البيع"
+        className="dialog-card pos-checkout-dialog-card"
+        style={{
+          height: 'min(820px, calc(100vh - 24px))',
+          minHeight: 'min(820px, calc(100vh - 24px))',
+          maxHeight: 'calc(100vh - 24px)',
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box'
+        }}
+      >
         <div className="pos-checkout-dialog">
-          <section className="pos-checkout-dialog-section pos-checkout-summary-section" style={{ paddingBottom: 0 }}>
-            <div style={{ display: 'flex', gap: '16px', background: 'var(--bg-surface-elevated)', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', alignItems: 'center', justifyContent: 'space-between', fontSize: '15px' }}>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span className="muted" style={{ fontWeight: 600 }}>العناصر:</span>
-                <strong style={{ fontSize: '1.15em', fontWeight: 800 }}>{itemsCount}</strong>
+          <section className="pos-checkout-dialog-section pos-checkout-summary-section" style={{ padding: 0, border: 'none', background: 'transparent', marginBottom: '2px' }}>
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              background: '#f8fafc',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              minHeight: '30px',
+              lineHeight: 1
+            }}>
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>العناصر:</span>
+                <strong style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{itemsCount}</strong>
+              </div>
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>الكميات:</span>
+                <strong style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{cartQtySummaries.length ? cartQtySummaries.join(' + ') : '0'}</strong>
               </div>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span className="muted" style={{ fontWeight: 600 }}>الكميات:</span>
-                <strong style={{ fontSize: '1.15em', fontWeight: 800 }}>{cartQtySummaries.length ? cartQtySummaries.join(' + ') : '0'}</strong>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '1.15em' }}>
-                <span className="muted" style={{ fontWeight: 700 }}>المطلوب:</span>
-                <strong className="is-primary" style={{ fontSize: '1.3em', fontWeight: 900, letterSpacing: '-0.5px' }}>{formatCurrency(pos.totals.total)}</strong>
+                <span style={{ color: '#64748b', fontWeight: 700 }}>المطلوب:</span>
+                <strong className="is-primary" style={{ fontSize: '15px', fontWeight: 900, color: '#170c5c' }}>{formatCurrency(pos.totals.total)}</strong>
               </div>
             </div>
           </section>
@@ -239,19 +269,14 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
             onSelectPaymentPreset={(preset) => pos.setPaymentPreset(preset)}
           />
 
-          <section className="pos-checkout-dialog-section" style={{ paddingTop: '8px' }}>
+          <section className="pos-checkout-dialog-section" style={{ padding: 0, marginTop: '2px' }}>
             {!isNotesOpen && !pos.note ? (
-              <Button type="button" variant="secondary" onClick={() => setIsNotesOpen(true)} style={{ width: '100%' }}>+ إضافة ملاحظة للفاتورة</Button>
+              <Button type="button" variant="secondary" onClick={() => setIsNotesOpen(true)} style={{ width: '100%', minHeight: '32px', fontSize: '12px' }}>+ إضافة ملاحظة للفاتورة</Button>
             ) : (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h4 style={{ margin: 0 }}>ملاحظات الفاتورة</h4>
-                  <Button type="button" variant="secondary" onClick={() => { setIsNotesOpen(false); pos.setNote(''); }} style={{ padding: '4px 8px', fontSize: '12px' }}>إلغاء</Button>
-                </div>
-                <label className="field field-wide" style={{ margin: 0 }}>
-                  <input autoFocus={isNotesOpen && !pos.note} value={pos.note} onChange={(event) => pos.setNote(event.target.value)} placeholder="ملاحظات اختيارية" disabled={pos.createSale.isPending} />
-                </label>
-              </>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%' }}>
+                <input autoFocus={isNotesOpen && !pos.note} value={pos.note} onChange={(event) => pos.setNote(event.target.value)} placeholder="ملاحظات اختيارية على الفاتورة..." disabled={pos.createSale.isPending} style={{ flex: 1, padding: '4px 8px', fontSize: '12px', height: '32px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                <Button type="button" variant="secondary" onClick={() => { setIsNotesOpen(false); pos.setNote(''); }} style={{ flexShrink: 0, height: '32px', padding: '0 8px', fontSize: '11px', borderRadius: '4px' }}>مسح</Button>
+              </div>
             )}
           </section>
 

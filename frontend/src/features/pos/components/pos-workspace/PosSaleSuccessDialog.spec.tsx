@@ -108,7 +108,6 @@ describe('PosSaleSuccessDialog', () => {
     renderDialog({ sale: onlineDeliverySale });
 
     expect(screen.getByText(/خالص بالكامل \(مدفوع\)/)).toBeInTheDocument();
-    expect(screen.getByText(/المطلوب من العميل/)).toBeInTheDocument();
     expect(screen.getByText(/سيد/)).toBeInTheDocument();
     expect(screen.getByText(/تسوية المندوب/)).toBeInTheDocument();
     expect(screen.queryByText(/عهدة مع المندوب/)).not.toBeInTheDocument();

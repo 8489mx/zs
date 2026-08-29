@@ -25,6 +25,7 @@ export interface DeliveryOrder {
   id: number;
   docNo: string;
   total: number;
+  deliveryFee?: number;
   customerName: string;
   orderType: string;
   deliveryRepId: number | null;
@@ -33,6 +34,7 @@ export interface DeliveryOrder {
   collectionStatus: string | null;
   settledAt: string | null;
   settledByName?: string;
+  createdByName?: string;
   createdAt: string;
 }
 
@@ -77,10 +79,15 @@ export const deliveryRepsApi = {
   settleAllOrders: async (repId: number, expectedAmount: number): Promise<unknown> =>
     http(`/api/delivery-reps/${repId}/settle-all`, { method: 'POST', body: JSON.stringify({ expectedAmount }) }),
 
-  listSettlements: async (repId: number): Promise<any[]> =>
-    unwrapArray<any>(await http<any[] | { settlements: any[] }>(`/api/delivery-reps/${repId}/settlements`), 'settlements'),
+  listSettlements: async (repId: number, params?: { dateFrom?: string; dateTo?: string }): Promise<any[]> => {
+    const searchParams = new URLSearchParams();
+    if (params?.dateFrom) searchParams.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) searchParams.set('dateTo', params.dateTo);
+    const qs = searchParams.toString();
+    return unwrapArray<any>(await http<any[] | { settlements: any[] }>(`/api/delivery-reps/${repId}/settlements${qs ? `?${qs}` : ''}`), 'settlements');
+  },
 
-  getKPIs: async (repId: number): Promise<{ totalOrders: number; successfulOrders: number; returnedOrders: number; successRate: number; averageDelayHours: number; rating: number }> => {
+  getKPIs: async (repId: number): Promise<{ totalOrders: number; successfulOrders: number; returnedOrders: number; successRate: number; averageDelayHours: number; averageDelayMins?: number; rating: number }> => {
     const res = await http<{ kpis: any }>(`/api/delivery-reps/${repId}/kpi`);
     return res.kpis;
   },

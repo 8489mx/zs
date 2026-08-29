@@ -51,11 +51,14 @@ export interface Sale {
   status: string;
   note: string;
   createdBy: string;
+  createdByName?: string;
+  cashierName?: string;
   branchId: string;
   branchName: string;
   locationId: string;
   locationName: string;
   date: string;
+  createdAt?: string;
   items: SaleItem[];
   cart?: any[];
 }

@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { deliveryRepsApi } from '@/shared/api/delivery-reps.api';
+import { salesApi } from '@/features/sales/api/sales.api';
 import { Button } from '@/shared/ui/button';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCurrency, formatDate, formatDateTimeArabic } from '@/lib/format';
 import { DialogShell } from '@/shared/components/dialog-shell';
+import { Card } from '@/shared/ui/card';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { printPostedSaleReceipt } from '@/lib/pos-printing';
 
 function getLocalDateStr(date: Date = new Date()): string {
   const year = date.getFullYear();
@@ -21,6 +24,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
   const [expectedAmountInput, setExpectedAmountInput] = useState('');
   const [feedbackPopup, setFeedbackPopup] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [orderToSettle, setOrderToSettle] = useState<any | null>(null);
+  const [viewingSaleId, setViewingSaleId] = useState<number | null>(null);
 
   const ordersQuery = useQuery({
     queryKey: ['delivery-rep-orders', repId, filterDateFrom, filterDateTo, filterStatus],
@@ -36,6 +40,12 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
     queryKey: ['delivery-rep-summary', repId],
     queryFn: () => deliveryRepsApi.getSummary(repId!),
     enabled: !!repId,
+  });
+
+  const viewingSaleQuery = useQuery({
+    queryKey: ['sale-detail', viewingSaleId],
+    queryFn: () => salesApi.getById(String(viewingSaleId)),
+    enabled: !!viewingSaleId,
   });
 
   const settleOrderMutation = useMutation({
@@ -213,6 +223,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
               <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>رقم الطلب</th>
               <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>التاريخ</th>
               <th style={{ padding: '8px 4px' }}>العميل</th>
+              <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>الكاشير</th>
               <th style={{ padding: '8px 4px' }}>حالة التحصيل</th>
               <th style={{ padding: '8px 4px' }}>الإجمالي</th>
               <th style={{ padding: '8px 4px' }}>مستلم المبلغ</th>
@@ -220,23 +231,53 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
             </tr>
           </thead>
           <tbody>
-            {ordersQuery.isLoading && <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td></tr>}
-            {ordersQuery.data?.length === 0 && <tr><td colSpan={7} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>لا يوجد طلبات مطابقة</td></tr>}
+            {ordersQuery.isLoading && <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td></tr>}
+            {ordersQuery.data?.length === 0 && <tr><td colSpan={8} style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>لا يوجد طلبات مطابقة</td></tr>}
             {ordersQuery.data?.map(order => {
               const isSettled = order.deliveryStatus === 'settled';
               return (
                 <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{order.docNo}</td>
-                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{formatDate(order.createdAt)}</td>
+                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setViewingSaleId(order.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: '#2563eb',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        fontSize: '13px'
+                      }}
+                      title="انقر لعرض تفاصيل وأصناف الفاتورة"
+                    >
+                      {order.docNo}
+                    </button>
+                  </td>
+                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>{formatDateTimeArabic(order.createdAt)}</td>
                   <td style={{ padding: '8px 4px' }}>{order.customerName || 'عميل نقدي'}</td>
+                  <td style={{ padding: '8px 4px', color: '#334155', fontWeight: 600, fontSize: '12px', whiteSpace: 'nowrap' }}>
+                    {order.createdByName || 'غير معروف'}
+                  </td>
                   <td style={{ padding: '8px 4px' }}>
                     {order.collectionStatus === 'cod' ? 'تحصيل من العميل' : 
                      order.collectionStatus === 'prepaid_by_rep' ? 'خالص من المندوب' : 
                      order.collectionStatus === 'prepaid_online' ? 'خالص أونلاين' : '-'}
                   </td>
-                  <td style={{ padding: '8px 4px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>{formatCurrency(order.total)}</td>
+                  <td style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0f172a' }}>{formatCurrency(order.total)}</div>
+                    {Number(order.deliveryFee || 0) > 0 ? (
+                      <div style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>
+                        أجرة: {formatCurrency(Number(order.deliveryFee))}
+                      </div>
+                    ) : null}
+                  </td>
                   <td style={{ padding: '8px 4px', color: '#64748b', fontSize: '12px' }}>
-                    {isSettled ? order.settledByName || 'غير معروف' : '-'}
+                    {order.collectionStatus === 'prepaid_online' || order.collectionStatus === 'prepaid_by_rep'
+                      ? (order.createdByName || 'كاشير البيع')
+                      : (isSettled ? (order.settledByName || 'غير معروف') : '-')}
                   </td>
                   <td style={{ padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     {isSettled ? (
@@ -266,6 +307,112 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           </tbody>
         </table>
       </div>
+
+      {/* Sale Quick View Modal */}
+      {viewingSaleId && (
+        <DialogShell
+          open={true}
+          onClose={() => setViewingSaleId(null)}
+          width="700px"
+          ariaLabel="تفاصيل الفاتورة"
+        >
+          <Card
+            title={viewingSaleQuery.data ? `تفاصيل الفاتورة #${viewingSaleQuery.data.docNo || viewingSaleQuery.data.id}` : 'جاري التحميل...'}
+            actions={
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {viewingSaleQuery.data && (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      void printPostedSaleReceipt(viewingSaleQuery.data);
+                    }}
+                    style={{ fontSize: '12px', padding: '4px 12px' }}
+                  >
+                    🖨️ طباعة الفاتورة
+                  </Button>
+                )}
+                <Button variant="secondary" onClick={() => setViewingSaleId(null)} style={{ fontSize: '12px', padding: '4px 12px' }}>
+                  إغلاق
+                </Button>
+              </div>
+            }
+          >
+            {viewingSaleQuery.isLoading ? (
+              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل تفاصيل الفاتورة...</div>
+            ) : viewingSaleQuery.data ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
+                {/* Meta Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>العميل</span>
+                    <strong>{viewingSaleQuery.data.customerName || 'عميل نقدي'}</strong>
+                    {viewingSaleQuery.data.customerPhone && <div style={{ fontSize: '11px', color: '#475569' }}>📞 {viewingSaleQuery.data.customerPhone}</div>}
+                    {viewingSaleQuery.data.customerAddress && <div style={{ fontSize: '11px', color: '#475569' }}>📍 {viewingSaleQuery.data.customerAddress}</div>}
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>الكاشير</span>
+                    <strong>{viewingSaleQuery.data.cashierName || viewingSaleQuery.data.createdByName || '-'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>المندوب</span>
+                    <strong>{viewingSaleQuery.data.deliveryRepName || '-'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>التاريخ والوقت</span>
+                    <strong style={{ direction: 'ltr', display: 'inline-block' }}>{formatDate(viewingSaleQuery.data.createdAt || viewingSaleQuery.data.date)}</strong>
+                  </div>
+                </div>
+
+                {/* Items Table */}
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                  <table className="table" style={{ width: '100%', margin: 0, fontSize: '12px' }}>
+                    <thead style={{ background: '#f1f5f9' }}>
+                      <tr>
+                        <th style={{ padding: '6px 8px' }}>الصنف</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'center' }}>الكمية</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'center' }}>السعر</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'left' }}>الإجمالي</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewingSaleQuery.data.items?.map((item: any, idx: number) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '6px 8px', fontWeight: 600 }}>{item.name || item.productName}</td>
+                          <td style={{ padding: '6px 8px', textAlign: 'center' }}>{item.qty} {item.unit || ''}</td>
+                          <td style={{ padding: '6px 8px', textAlign: 'center' }}>{formatCurrency(Number(item.price || 0))}</td>
+                          <td style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 'bold' }}>{formatCurrency(Number(item.total || (item.qty * item.price) || 0))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Totals Summary */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+                  {Number(viewingSaleQuery.data.deliveryFee || 0) > 0 && (
+                    <div style={{ color: '#059669', fontWeight: 600 }}>
+                      <span>أجرة التوصيل: </span>
+                      <strong>{formatCurrency(Number(viewingSaleQuery.data.deliveryFee))}</strong>
+                    </div>
+                  )}
+                  {Number(viewingSaleQuery.data.discount || 0) > 0 && (
+                    <div style={{ color: '#dc2626', fontWeight: 600 }}>
+                      <span>الخصم: </span>
+                      <strong>{formatCurrency(Number(viewingSaleQuery.data.discount))}</strong>
+                    </div>
+                  )}
+                  <div>
+                    <span style={{ fontWeight: 700, color: '#0f172a' }}>الإجمالي النهائي: </span>
+                    <strong style={{ fontSize: '15px', color: '#170c5c', fontWeight: 900 }}>{formatCurrency(Number(viewingSaleQuery.data.total || 0))}</strong>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#dc2626' }}>تعذر تحميل بيانات الفاتورة</div>
+            )}
+          </Card>
+        </DialogShell>
+      )}
 
       {feedbackPopup && (
         <DialogShell 

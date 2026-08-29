@@ -232,6 +232,7 @@ function renderTotals(options: {
   compact?: boolean;
   isReturn?: boolean;
   paymentText?: string;
+  paymentType?: string;
   orderType?: string | null;
   payments?: Sale['payments'];
   isMerchantCopy?: boolean;
@@ -330,31 +331,22 @@ function renderTotals(options: {
       value: formatReceiptMoney(Number(options.total || 0), options.settings),
       strong: true,
     }]),
-    ...(options.orderType === 'delivery' ? (
-      paidAmount + 0.009 >= Number(options.total || 0) ? [{
-        label: 'المطلوب من العميل',
-        value: `<strong style="font-size:0.92em; font-weight:800; color:#000;">0.00 ج.م (مدفوع بالكامل — تسليم فقط)</strong>`,
-        strong: true,
-        isHtml: true,
-        noColon: true,
-      }] : [{
-        label: 'المطلوب تحصيله من العميل',
-        value: `<strong style="font-size:1.05em; font-weight:800; color:#000;">${formatReceiptMoney(Number(options.total || 0) - paidAmount, options.settings)} ج.م</strong>`,
-        strong: true,
-        isHtml: true,
-      }]
-    ) : []),
-    ...(showPaymentDetails && options.orderType !== 'delivery' ? (
-      remaining > 0.009 ? [
-        { label: 'المدفوع', value: formatReceiptMoney(paidAmount, options.settings) },
-        { label: 'المتبقي', value: formatReceiptMoney(remaining, options.settings) },
-      ] : (
-        tenderedAmount > 0 && changeAmount > 0.009 ? [
-          { label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) },
-          { label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) },
-        ] : []
-      )
-    ) : []),
+    ...(remaining > 0.009 && paidAmount > 0.009 ? [{
+      label: `المتبقي تحصيله: ${formatReceiptMoney(remaining, options.settings)}`,
+      value: `<span style="font-size:0.88em; font-weight:700;">المدفوع: ${formatReceiptMoney(paidAmount, options.settings)}</span>`,
+      strong: true,
+      isHtml: true,
+      noColon: true,
+    }] : (remaining > 0.009 && options.paymentType === 'credit' && paidAmount <= 0.009 ? [{
+      label: `المتبقي على العميل: ${formatReceiptMoney(remaining, options.settings)}`,
+      value: `<span style="font-size:0.88em; font-weight:700;">(آجل)</span>`,
+      strong: true,
+      isHtml: true,
+      noColon: true,
+    }] : (showPaymentDetails && options.orderType !== 'delivery' && tenderedAmount > 0 && changeAmount > 0.009 ? [
+      { label: 'المستلم نقديًا', value: formatReceiptMoney(tenderedAmount, options.settings) },
+      { label: 'الباقي', value: formatReceiptMoney(changeAmount, options.settings) },
+    ] : []))),
     ...(showItemCount && showPiecesCount ? [
       { label: 'الأصناف والقطع', value: `${formatReceiptNumber(Number(options.items?.length || 0), options.settings)} صنف  -  ${formatReceiptQuantity(totalPieces, options.settings)} قطعة` },
     ] : showItemCount ? [

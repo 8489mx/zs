@@ -303,28 +303,21 @@
   font-weight: 900;
 }
 
-.pos-sale-success-actions {
+.pos-sale-success-actions-container {
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 6px;
-  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
 }
 
-.pos-sale-success-actions .btn {
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 38px;
-  padding: 0 6px;
-  font-size: 12px;
-  font-weight: 700;
+.pos-sale-success-actions-container .btn {
   white-space: nowrap;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  transition: all 0.15s ease;
 }
 
 .pos-sale-success-whatsapp {

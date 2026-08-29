@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { posApi } from '@/features/pos/api/pos.api';
@@ -153,9 +153,13 @@ export function usePosWorkspace() {
     state.setOrderType((current) => {
       const resolved = typeof next === 'function' ? next(current) : next;
       const defaultDeliveryFee = Number((settingsQuery.data as any)?.defaultDeliveryFee || 0);
+      const defaultMode = (settingsQuery.data as any)?.deliveryFeeMode;
       if (resolved === 'delivery') {
         if (defaultDeliveryFee > 0 && (!state.deliveryFee || state.deliveryFee === 0)) {
           state.setDeliveryFee(defaultDeliveryFee);
+        }
+        if (defaultMode === 'store_fleet' || defaultMode === 'freelance_courier') {
+          state.setDeliveryFeeMode(defaultMode);
         }
       } else if (current === 'delivery' && (resolved === 'takeaway' || resolved === 'dine_in')) {
         if (defaultDeliveryFee > 0 && state.deliveryFee === defaultDeliveryFee) {
@@ -164,7 +168,14 @@ export function usePosWorkspace() {
       }
       return resolved;
     });
-  }, [settingsQuery.data, state.deliveryFee, state.setDeliveryFee, state.setOrderType]);
+  }, [settingsQuery.data, state.deliveryFee, state.setDeliveryFee, state.setDeliveryFeeMode, state.setOrderType]);
+
+  useEffect(() => {
+    const defaultMode = (settingsQuery.data as any)?.deliveryFeeMode;
+    if (defaultMode === 'store_fleet' || defaultMode === 'freelance_courier') {
+      state.setDeliveryFeeMode(defaultMode);
+    }
+  }, [settingsQuery.data?.deliveryFeeMode, state.setDeliveryFeeMode]);
 
   const actions = createPosWorkspaceActions({
     cart: state.cart,

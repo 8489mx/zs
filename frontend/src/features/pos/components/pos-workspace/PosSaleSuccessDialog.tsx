@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
@@ -53,7 +52,6 @@ export function PosSaleSuccessDialog({
   const [printError, setPrintError] = useState('');
   const [whatsappError, setWhatsappError] = useState('');
   const [manualPhone, setManualPhone] = useState('');
-  const viewInvoiceLinkRef = useRef<HTMLAnchorElement | null>(null);
   const customerPhone = String(customer?.phone || '').trim();
   const showManualPhone = !customerPhone;
   const isDeliveryOrder = sale?.orderType === 'delivery';
@@ -116,7 +114,7 @@ export function PosSaleSuccessDialog({
     document.body.style.overflow = 'hidden';
 
     const handleShortcut = (event: KeyboardEvent) => {
-      if (!['F2', 'F3', 'F4', 'F8', 'F10', 'Escape'].includes(event.key)) return;
+      if (!['F2', 'F3', 'F8', 'F10', 'Escape'].includes(event.key)) return;
 
       event.preventDefault();
       event.stopPropagation();
@@ -127,10 +125,6 @@ export function PosSaleSuccessDialog({
       }
       if (event.key === 'F3') {
         onNewSale();
-        return;
-      }
-      if (event.key === 'F4') {
-        viewInvoiceLinkRef.current?.click();
         return;
       }
       if (event.key === 'F8') {
@@ -195,31 +189,54 @@ export function PosSaleSuccessDialog({
       >
         <div className="pos-sale-success-head">
           <div>
-            <span>عملية مكتملة</span>
-            <h3>تم البيع بنجاح</h3>
-            <p>استخدم الاختصارات لتنفيذ الإجراء بسرعة</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                background: '#ecfdf5',
+                color: '#059669',
+                border: '1px solid #a7f3d0',
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                display: 'inline-block'
+              }}>
+                عملية مكتملة
+              </span>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>تم البيع بنجاح</h3>
+            </div>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>استخدم الاختصارات لتنفيذ الإجراء بسرعة</p>
           </div>
-          <strong>{sale.docNo || sale.id}</strong>
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            padding: '6px 12px',
+            fontSize: '13px',
+            fontWeight: 800,
+            color: '#0f172a',
+            fontFamily: 'monospace'
+          }}>
+            #{sale.docNo || sale.id}
+          </div>
         </div>
 
         <div className="pos-sale-success-metrics">
           <span><b>رقم الفاتورة</b>{sale.docNo || sale.id}</span>
-          <span><b>الإجمالي</b>{formatCurrency(Number(sale.total || 0))}</span>
+          <span><b>الإجمالي</b><strong style={{ color: '#0f172a' }}>{formatCurrency(Number(sale.total || 0))}</strong></span>
           <span><b>طريقة الدفع</b>{paymentMethodLabel}</span>
           {isDeliveryOrder ? (
             isDeliveryCod ? (
               <>
                 <span><b>المطلوب تحصيله</b>{formatCurrency(total)} (مع المندوب)</span>
-                <span><b>حالة التحصيل</b>عهدة مع المندوب</span>
+                <span><b>حالة التحصيل</b><strong style={{ color: '#d97706' }}>عهدة مع المندوب</strong></span>
                 {repName && <span><b>المندوب</b>{repName}</span>}
               </>
             ) : (
               <>
                 <span><b>حالة التحصيل</b><strong style={{ color: '#16a34a' }}>خالص بالكامل (مدفوع)</strong></span>
-                <span><b>المطلوب من العميل</b>0.00 ج.م (خالص)</span>
                 {repName && <span><b>المندوب</b>{repName} (تسليم فقط)</span>}
                 {deliveryFee > 0 && (
-                  <span style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#0f172a' }}>
+                  <span style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7', color: '#92400e' }}>
                     <b>تسوية المندوب:</b> تم صرف {formatCurrency(deliveryFee)} نقداً من الدرج لأجرة التوصيل
                   </span>
                 )}
@@ -246,35 +263,132 @@ export function PosSaleSuccessDialog({
         {printError ? <div className="pos-sale-success-error">{printError}</div> : null}
         {whatsappError ? <div className="pos-sale-success-error">{whatsappError}</div> : null}
 
-        <div className="pos-sale-success-actions">
-          <Button type="button" onClick={() => safePrint(onPrintReceipt)}>طباعة ريسيت العميل F2</Button>
-          {(isDeliveryOrder || onPrintDualReceipt) && (
+        <div className="pos-sale-success-actions-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '14px' }}>
+          {/* Primary Operations Row */}
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+            <Button
+              type="button"
+              onClick={() => safePrint(onPrintReceipt)}
+              style={{
+                flex: 1.5,
+                minHeight: '42px',
+                fontSize: '13px',
+                fontWeight: 800,
+                background: '#0f172a',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px'
+              }}
+            >
+              طباعة ريسيت العميل F2
+            </Button>
+            {(isDeliveryOrder || onPrintDualReceipt) && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => safePrint(onPrintDualReceipt || onPrintReceipt)}
+                style={{
+                  flex: 1.2,
+                  minHeight: '42px',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px'
+                }}
+              >
+                طباعة نسختين (عميل + محل)
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="success"
+              onClick={onNewSale}
+              style={{
+                flex: 1.5,
+                minHeight: '42px',
+                fontSize: '13px',
+                fontWeight: 800,
+                borderRadius: '8px'
+              }}
+            >
+              بيع جديد F3
+            </Button>
+          </div>
+
+          {/* Kitchen Print Row if Enabled */}
+          {settings?.posKitchenPrinterEnabled && onPrintKitchen && (
+            <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+              <Button type="button" onClick={() => safePrint(onPrintKitchen)} style={{ flex: 1, minHeight: '38px', borderRadius: '8px' }}>
+                طباعة للمطبخ
+              </Button>
+              {onPrintBoth && (
+                <Button type="button" onClick={() => safePrint(onPrintBoth)} style={{ flex: 1, minHeight: '38px', borderRadius: '8px' }}>
+                  طباعة الريسيت والمطبخ
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Secondary Fast Actions Row */}
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
             <Button
               type="button"
               variant="secondary"
-              onClick={() => safePrint(onPrintDualReceipt || onPrintReceipt)}
-              style={{ fontWeight: 800, background: '#f8fafc', color: '#0f172a', borderColor: '#cbd5e1' }}
+              onClick={triggerWhatsapp}
+              style={{
+                flex: 1,
+                minHeight: '38px',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#15803d',
+                background: '#f0fdf4',
+                borderColor: '#bbf7d0',
+                borderRadius: '8px'
+              }}
             >
-              طباعة نسختين (عميل + محل)
+              إرسال واتساب F8
             </Button>
-          )}
-          {settings?.posKitchenPrinterEnabled && onPrintKitchen && (
-            <>
-              <Button type="button" onClick={() => safePrint(onPrintKitchen)}>طباعة للمطبخ</Button>
-              {onPrintBoth && (
-                <Button type="button" onClick={() => safePrint(onPrintBoth)}>طباعة الريسيت والمطبخ</Button>
-              )}
-            </>
-          )}
-          <Button type="button" variant="success" onClick={onNewSale}>بيع جديد F3</Button>
-          <Link ref={viewInvoiceLinkRef} to="/sales" className="btn btn-secondary">عرض الفاتورة F4</Link>
-          <Button type="button" variant="secondary" onClick={triggerWhatsapp}>إرسال واتساب F8</Button>
-          <Button type="button" variant="secondary" onClick={() => safePrint(onPrintA4)}>طباعة A4 F10</Button>
-          <Button type="button" variant="secondary" onClick={onClose}>إغلاق Esc</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => safePrint(onPrintA4)}
+              style={{
+                flex: 1,
+                minHeight: '38px',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#475569',
+                background: '#f8fafc',
+                borderColor: '#e2e8f0',
+                borderRadius: '8px'
+              }}
+            >
+              طباعة A4 F10
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              style={{
+                flex: 0.8,
+                minHeight: '38px',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#64748b',
+                background: '#f1f5f9',
+                borderColor: '#cbd5e1',
+                borderRadius: '8px'
+              }}
+            >
+              إغلاق Esc
+            </Button>
+          </div>
         </div>
 
         {showManualPhone ? (
-          <div className="pos-sale-success-whatsapp">
+          <div className="pos-sale-success-whatsapp" style={{ marginTop: '12px' }}>
             <Field label="رقم الهاتف">
               <input
                 value={manualPhone}

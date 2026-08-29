@@ -151,11 +151,13 @@ export class DeliveryRepsService {
     let query = this.db
       .selectFrom('sales')
       .leftJoin('customers', 'customers.id', 'sales.customer_id')
-      .leftJoin('users', 'users.id', 'sales.settled_by')
+      .leftJoin('users as settled_user', 'settled_user.id', 'sales.settled_by')
+      .leftJoin('users as created_user', 'created_user.id', 'sales.created_by')
       .select([
         'sales.id',
         'sales.doc_no as docNo',
         'sales.total',
+        'sales.delivery_fee as deliveryFee',
         'customers.name as customerName',
         'sales.order_type as orderType',
         'sales.delivery_rep_id as deliveryRepId',
@@ -163,7 +165,8 @@ export class DeliveryRepsService {
         'sales.collection_status as collectionStatus',
         'sales.settled_at as settledAt',
         'sales.created_at as createdAt',
-        'users.username as settledByName'
+        'settled_user.username as settledByName',
+        'created_user.username as createdByName'
       ])
       .where('sales.delivery_rep_id', '=', repId)
       .where('sales.tenant_id', '=', tenantId);
@@ -193,25 +196,38 @@ export class DeliveryRepsService {
     return { ok: true, orders };
   }
 
-  async listSettlements(repId: number, actor: AuthContext): Promise<Record<string, unknown>> {
+  async listSettlements(repId: number, actor: AuthContext, filters?: { dateFrom?: string; dateTo?: string }): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(actor);
-    const settlements = await this.db
+    let query = this.db
       .selectFrom('sales as s')
       .leftJoin('users as u', 'u.id', 's.settled_by')
+      .leftJoin('users as cu', 'cu.id', 's.created_by')
       .select([
         's.id',
         's.doc_no as docNo',
         's.total as amount',
+        's.delivery_fee as deliveryFee',
+        's.collection_status as collectionStatus',
         's.created_at as orderDate',
         's.settled_at as createdAt',
-        'u.username as settledByName'
+        'u.username as settledByName',
+        'cu.username as createdByName'
       ])
       .where('s.tenant_id', '=', tenantId)
       .where('s.delivery_rep_id', '=', repId)
-      .where('s.delivery_status', '=', 'settled')
-      .orderBy('s.settled_at', 'desc')
-      .execute();
-      
+      .where('s.delivery_status', '=', 'settled');
+
+    if (filters?.dateFrom) {
+      query = query.where('s.settled_at', '>=', new Date(filters.dateFrom));
+    }
+
+    if (filters?.dateTo) {
+      const dateTo = new Date(filters.dateTo);
+      dateTo.setHours(23, 59, 59, 999);
+      query = query.where('s.settled_at', '<=', dateTo);
+    }
+
+    const settlements = await query.orderBy('s.settled_at', 'desc').execute();
     return { ok: true, settlements };
   }
 
@@ -247,6 +263,7 @@ export class DeliveryRepsService {
     }
 
     const averageDelayHours = delayCount > 0 ? (totalDelayMs / delayCount) / (1000 * 60 * 60) : 0;
+    const averageDelayMins = delayCount > 0 ? Math.round(totalDelayMs / delayCount / 60000) : 0;
     const successRate = totalOrders > 0 ? (successfulOrders / totalOrders) * 100 : 0;
     
     // Rating logic (Starts at 5, deducts based on issues)
@@ -272,6 +289,7 @@ export class DeliveryRepsService {
         returnedOrders,
         successRate: Number(successRate.toFixed(1)),
         averageDelayHours: Number(averageDelayHours.toFixed(1)),
+        averageDelayMins,
         rating
       } 
     };

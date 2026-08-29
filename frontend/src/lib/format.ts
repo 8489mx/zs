@@ -56,17 +56,18 @@ export function formatDateOnly(value?: string | Date) {
 }
 
 export function formatDateTimeArabic(date?: Date | string | null) {
-  const d = date ? (typeof date === 'string' ? new Date(date) : date) : new Date();
-  if (Number.isNaN(d.getTime())) return '—';
+  if (!date) return '—';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return String(date);
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
-  const time = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  }).format(d);
-  return `${day}/${month}/${year} - ${time}`;
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const period = hours >= 12 ? 'م' : 'ص';
+  hours = hours % 12 || 12;
+  const formattedHours = String(hours).padStart(2, '0');
+  return `${day}/${month}/${year} - ${formattedHours}:${minutes} ${period}`;
 }
 
 function toIsoUtc(date: Date) {

@@ -2,6 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { StarIcon } from '@/shared/components/icons/AppIcons';
 import { deliveryRepsApi } from '../api/delivery-reps.api';
 
+function formatDuration(totalMins: number) {
+  if (totalMins <= 0) return 'فوري (أقل من دقيقة)';
+  if (totalMins < 60) return `${totalMins} دقيقة`;
+  const hrs = Math.floor(totalMins / 60);
+  const remainingMins = totalMins % 60;
+  if (remainingMins === 0) return `${hrs} ساعة`;
+  return `${hrs} ساعة و ${remainingMins} دقيقة`;
+}
+
 export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
   const kpiQuery = useQuery({
     queryKey: ['delivery-rep-kpis', repId],
@@ -57,6 +66,8 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
       </div>
     );
   };
+
+  const totalMinutes = kpis.averageDelayMins !== undefined ? kpis.averageDelayMins : Math.round((kpis.averageDelayHours || 0) * 60);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -146,8 +157,8 @@ export function DeliveryRepPerformance({ repId }: { repId: number | null }) {
         {/* Card 4: Average Delay */}
         <div style={{ padding: '16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>متوسط سرعة التوريد</span>
-          <span style={{ fontSize: '24px', fontWeight: 800, color: kpis.averageDelayHours < 1 ? '#15803d' : kpis.averageDelayHours < 24 ? '#ea580c' : '#dc2626' }}>
-            {kpis.averageDelayHours} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>ساعة</span>
+          <span style={{ fontSize: '20px', fontWeight: 800, color: (kpis.averageDelayHours || 0) < 1 ? '#15803d' : (kpis.averageDelayHours || 0) < 24 ? '#ea580c' : '#dc2626' }}>
+            {formatDuration(totalMinutes)}
           </span>
           <span style={{ fontSize: '11px', color: '#94a3b8' }}>متوسط وقت التوريد لكل طلب</span>
         </div>
