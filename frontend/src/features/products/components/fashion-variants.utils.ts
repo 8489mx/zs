@@ -1,6 +1,7 @@
 import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 
 export interface FashionVariantDraft {
+  id?: string;
   color: string;
   size: string;
   barcode: string;
@@ -45,12 +46,24 @@ export function buildFashionVariantDrafts(
   const normalizedColors = colors.length ? colors : [''];
   const normalizedSizes = sizes.length ? sizes : [''];
 
-  for (const color of normalizedColors) {
-    for (const size of normalizedSizes) {
-      if (!String(color || '').trim() && !String(size || '').trim()) continue;
-      const key = makeVariantKey(color, size);
-      const existing = existingMap.get(key);
-      nextRows.push(existing ? { ...existing, color, size } : { color, size, barcode: '', stock: Number(defaultStock || 0) });
+  if (colors.length || sizes.length) {
+    for (const color of normalizedColors) {
+      for (const size of normalizedSizes) {
+        if (!String(color || '').trim() && !String(size || '').trim()) continue;
+        const key = makeVariantKey(color, size);
+        const existing = existingMap.get(key);
+        const id = existing?.id || `v-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        nextRows.push(existing ? { ...existing, color, size } : { id, color, size, barcode: '', stock: Number(defaultStock || 0) });
+      }
+    }
+  }
+
+  // Preserve any manually added rows that might have custom color/size or empty rows in progress
+  for (const row of existingRows) {
+    const key = makeVariantKey(row.color, row.size);
+    if (!nextRows.some((nr) => makeVariantKey(nr.color, nr.size) === key)) {
+      const id = row.id || `v-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      nextRows.push({ ...row, id });
     }
   }
 

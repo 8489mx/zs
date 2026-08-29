@@ -672,162 +672,154 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
             </div>
           )}
 
-          {/* Generator Inputs: Primary & Secondary Tokens */}
-          <div className="product-form-grid-2">
-            <Field label={templateConfig.primaryLabel}>
-              <textarea
-                className="purchase-prototype-field-input"
-                rows={2}
-                value={colorsValue}
-                onChange={(event) => setColorsValue(normalizeArabicInput(event.target.value))}
-                disabled={mutation.isPending}
-                placeholder={templateConfig.primaryPlaceholder}
-                style={{ fontSize: '0.84rem', resize: 'vertical' }}
-              />
-            </Field>
+          {/* Generator Inputs: Primary & Secondary Tokens in 2 Columns */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px', alignItems: 'start' }}>
+            {/* Primary Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <Field label={templateConfig.primaryLabel}>
+                <input
+                  type="text"
+                  className="purchase-prototype-field-input"
+                  value={colorsValue}
+                  onChange={(event) => setColorsValue(normalizeArabicInput(event.target.value))}
+                  disabled={mutation.isPending}
+                  placeholder={templateConfig.primaryPlaceholder}
+                  style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
+                />
+              </Field>
+              {Boolean(templateConfig.primaryPresets.length) && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                  {templateConfig.primaryPresets.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setColorsValue(mergeFashionTokens(colorsValue, [preset]))}
+                      disabled={mutation.isPending}
+                      style={{
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#334155',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      + {preset}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            <Field label={templateConfig.secondaryLabel}>
-              <textarea
-                className="purchase-prototype-field-input"
-                rows={2}
-                value={sizesValue}
-                onChange={(event) => setSizesValue(normalizeArabicInput(event.target.value))}
-                disabled={mutation.isPending}
-                placeholder={templateConfig.secondaryPlaceholder}
-                style={{ fontSize: '0.84rem', resize: 'vertical' }}
-              />
-            </Field>
+            {/* Secondary Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <Field label={templateConfig.secondaryLabel}>
+                <input
+                  type="text"
+                  className="purchase-prototype-field-input"
+                  value={sizesValue}
+                  onChange={(event) => setSizesValue(normalizeArabicInput(event.target.value))}
+                  disabled={mutation.isPending}
+                  placeholder={templateConfig.secondaryPlaceholder}
+                  style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
+                />
+              </Field>
+
+              {activeTemplate === 'fashion' && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                  {FASHION_SIZE_PRESETS.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setSizesValue(mergeFashionTokens(sizesValue, preset.values))}
+                      disabled={mutation.isPending}
+                      style={{
+                        border: '1px solid #cbd5e1',
+                        background: '#f8fafc',
+                        color: '#1e1b4b',
+                        padding: '1px 7px',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      + {preset.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {activeTemplate === 'scents' && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                  {SCENT_SIZE_PRESETS.map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setSizesValue(mergeFashionTokens(sizesValue, [val]))}
+                      disabled={mutation.isPending}
+                      style={{
+                        border: '1px solid #bbf7d0',
+                        background: '#f0fdf4',
+                        color: '#166534',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      + {val}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {activeTemplate === 'sizes' && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                  {PACKAGING_PRESETS.map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setSizesValue(mergeFashionTokens(sizesValue, [val]))}
+                      disabled={mutation.isPending}
+                      style={{
+                        border: '1px solid #fde047',
+                        background: '#fefce8',
+                        color: '#854d0e',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      + {val}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Preset Buttons for Quick Clicks */}
-          {Boolean(templateConfig.primaryPresets.length) && (
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                اختيارات سريعة لـ {templateConfig.primaryLabel}:
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {templateConfig.primaryPresets.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setColorsValue(mergeFashionTokens(colorsValue, [preset]))}
-                    disabled={mutation.isPending}
-                    style={{
-                      border: '1px solid #cbd5e1',
-                      background: '#f8fafc',
-                      color: '#334155',
-                      padding: '2px 8px',
-                      borderRadius: '5px',
-                      fontSize: '0.74rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + {preset}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTemplate === 'fashion' && (
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                مجموعات مقاسات جاهزة للملابس:
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {FASHION_SIZE_PRESETS.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => setSizesValue(mergeFashionTokens(sizesValue, preset.values))}
-                    disabled={mutation.isPending}
-                    style={{
-                      border: '1px solid #cbd5e1',
-                      background: '#f8fafc',
-                      color: '#334155',
-                      padding: '2px 8px',
-                      borderRadius: '5px',
-                      fontSize: '0.74rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTemplate === 'scents' && (
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                أحجام وسعات شائعة للعطور:
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {SCENT_SIZE_PRESETS.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setSizesValue(mergeFashionTokens(sizesValue, [val]))}
-                    disabled={mutation.isPending}
-                    style={{
-                      border: '1px solid #cbd5e1',
-                      background: '#f8fafc',
-                      color: '#334155',
-                      padding: '2px 8px',
-                      borderRadius: '5px',
-                      fontSize: '0.74rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + {val}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTemplate === 'sizes' && (
-            <div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
-                أنواع التغليف والعبوات:
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {PACKAGING_PRESETS.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setSizesValue(mergeFashionTokens(sizesValue, [val]))}
-                    disabled={mutation.isPending}
-                    style={{
-                      border: '1px solid #cbd5e1',
-                      background: '#f8fafc',
-                      color: '#334155',
-                      padding: '2px 8px',
-                      borderRadius: '5px',
-                      fontSize: '0.74rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + {val}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Sync Button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: '2px' }}>
             <Button
               type="button"
               variant="primary"
               onClick={generateFromTokens}
               disabled={mutation.isPending || (!colorsValue.trim() && !sizesValue.trim())}
-              style={{ fontSize: '0.8rem', padding: '5px 16px', fontWeight: 700 }}
+              style={{ fontSize: '0.78rem', padding: '4px 14px', fontWeight: 700, height: '30px' }}
             >
               توليد وتحديث شبكة الفروع بناءً على القيم أعلاه
             </Button>

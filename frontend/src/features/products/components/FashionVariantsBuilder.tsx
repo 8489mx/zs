@@ -179,6 +179,23 @@ export function FashionVariantsBuilder({
     }
   }, [activeTemplate, customPrimaryLabel, customSecondaryLabel]);
 
+  function addEmptyRow() {
+    const id = `v-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    onRowsChange([
+      ...rows,
+      {
+        id,
+        color: '',
+        size: '',
+        barcode: '',
+        stock: Number(defaultStock || 0),
+        retailPrice: parentRetailPrice !== undefined && parentRetailPrice > 0 ? parentRetailPrice : undefined,
+        costPrice: parentCostPrice !== undefined && parentCostPrice > 0 ? parentCostPrice : undefined,
+        wholesalePrice: _parentWholesalePrice !== undefined && _parentWholesalePrice > 0 ? _parentWholesalePrice : undefined,
+      },
+    ]);
+  }
+
   function updateRow(index: number, patch: Partial<FashionVariantDraft>) {
     onRowsChange(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
   }
@@ -352,213 +369,277 @@ export function FashionVariantsBuilder({
           </div>
         )}
 
-        {/* Input Fields for Values */}
-        <div className="product-form-grid-2">
-          <Field label={templateConfig.primaryLabel}>
-            <textarea
-              className="purchase-prototype-field-input"
-              rows={2}
-              value={colorsValue}
-              onChange={(event) => onColorsChange(normalizeArabicInput(event.target.value))}
-              disabled={disabled}
-              placeholder={templateConfig.primaryPlaceholder}
-              style={{ resize: 'vertical' }}
-            />
-          </Field>
-          <Field label={templateConfig.secondaryLabel}>
-            <textarea
-              className="purchase-prototype-field-input"
-              rows={2}
-              value={sizesValue}
-              onChange={(event) => onSizesChange(normalizeArabicInput(event.target.value))}
-              disabled={disabled}
-              placeholder={templateConfig.secondaryPlaceholder}
-              style={{ resize: 'vertical' }}
-            />
-          </Field>
+        {/* 2-Column Grid for Primary & Secondary Properties */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px', alignItems: 'start' }}>
+          {/* Primary Column (e.g. Colors / Scents / Sizes) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <Field label={templateConfig.primaryLabel}>
+              <input
+                type="text"
+                className="purchase-prototype-field-input"
+                value={colorsValue}
+                onChange={(event) => onColorsChange(normalizeArabicInput(event.target.value))}
+                disabled={disabled}
+                placeholder={templateConfig.primaryPlaceholder}
+                style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
+              />
+            </Field>
+            {templateConfig.primaryPresets.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                {templateConfig.primaryPresets.map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onColorsChange(mergeFashionTokens(colorsValue, [val]))}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '4px',
+                      padding: '1px 6px',
+                      fontSize: '0.72rem',
+                      color: '#334155',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      lineHeight: 1.3,
+                      transition: 'all 0.1s ease',
+                    }}
+                  >
+                    + {val}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Secondary Column (e.g. Sizes / Capacities / Packaging) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <Field label={templateConfig.secondaryLabel}>
+              <input
+                type="text"
+                className="purchase-prototype-field-input"
+                value={sizesValue}
+                onChange={(event) => onSizesChange(normalizeArabicInput(event.target.value))}
+                disabled={disabled}
+                placeholder={templateConfig.secondaryPlaceholder}
+                style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
+              />
+            </Field>
+
+            {/* Presets for Secondary */}
+            {activeTemplate === 'fashion' && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                {FASHION_SIZE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onSizesChange(mergeFashionTokens(sizesValue, preset.values))}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '4px',
+                      padding: '1px 7px',
+                      fontSize: '0.72rem',
+                      color: 'var(--primary, #1e1b4b)',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      lineHeight: 1.3,
+                      transition: 'all 0.1s ease',
+                    }}
+                  >
+                    + {preset.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTemplate === 'scents' && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                {SCENT_SIZE_PRESETS.map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onSizesChange(mergeFashionTokens(sizesValue, [val]))}
+                    style={{
+                      background: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '4px',
+                      padding: '1px 6px',
+                      fontSize: '0.72rem',
+                      color: '#166534',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      lineHeight: 1.3,
+                      transition: 'all 0.1s ease',
+                    }}
+                  >
+                    + {val}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTemplate === 'sizes' && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                {PACKAGING_PRESETS.map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onSizesChange(mergeFashionTokens(sizesValue, [val]))}
+                    style={{
+                      background: '#fefce8',
+                      border: '1px solid #fde047',
+                      borderRadius: '4px',
+                      padding: '1px 6px',
+                      fontSize: '0.72rem',
+                      color: '#854d0e',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      lineHeight: 1.3,
+                      transition: 'all 0.1s ease',
+                    }}
+                  >
+                    + {val}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Presets Row */}
-        {templateConfig.primaryPresets.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-              اختيارات سريعة للخاصية الأولى (اضغط للإضافة):
+        {/* Global Settings for Variants: Default Stock & Barcode Prefix & Toolbar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 10px' }}>
+          {/* Quick Settings: Stock & Barcode prefix + Summary Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>مخزون افتراضي:</span>
+              <input
+                type="number"
+                value={Number(defaultStock || 0)}
+                onChange={(event) => onDefaultStockChange(Number(event.target.value || 0))}
+                disabled={disabled}
+                style={{
+                  width: '60px',
+                  height: '28px',
+                  borderRadius: '5px',
+                  border: '1px solid #cbd5e1',
+                  padding: '2px 6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  background: '#ffffff'
+                }}
+              />
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {templateConfig.primaryPresets.map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onColorsChange(mergeFashionTokens(colorsValue, [val]))}
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    padding: '3px 8px',
-                    fontSize: '0.75rem',
-                    color: '#334155',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-                  }}
-                >
-                  + {val}
-                </button>
-              ))}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>بادئة الباركود:</span>
+              <input
+                type="text"
+                value={barcodePrefix}
+                onChange={(event) => onBarcodePrefixChange(event.target.value)}
+                disabled={disabled}
+                placeholder={styleCode ? `${styleCode}` : 'GRP2401'}
+                style={{
+                  width: '95px',
+                  height: '28px',
+                  borderRadius: '5px',
+                  border: '1px solid #cbd5e1',
+                  padding: '2px 6px',
+                  fontSize: '0.76rem',
+                  background: '#ffffff'
+                }}
+              />
+            </div>
+
+            <div style={{ height: '16px', width: '1px', background: '#cbd5e1', margin: '0 2px' }} />
+
+            {/* Chips */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+              <span className="cashier-chip" style={{ fontWeight: 800, color: '#1e40af', background: '#dbeafe', fontSize: '0.72rem', padding: '2px 6px' }}>
+                {rows.length} صنف فرعي
+              </span>
+              <span className="cashier-chip" style={{ fontSize: '0.72rem', padding: '2px 6px' }}>{colors.length || 0} {templateConfig.primarySingleLabel}</span>
+              {sizes.length ? <span className="cashier-chip" style={{ fontSize: '0.72rem', padding: '2px 6px' }}>{sizes.length} {templateConfig.secondarySingleLabel}</span> : null}
+              {rows.length > 0 && (
+                <span className="cashier-chip" style={{ color: '#166534', background: '#dcfce7', fontSize: '0.72rem', padding: '2px 6px', fontWeight: 700 }}>
+                  إجمالي المخزون: {totalStock}
+                </span>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Secondary Presets based on template */}
-        {activeTemplate === 'fashion' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-              مجموعات مقاسات جاهزة للملابس:
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {FASHION_SIZE_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSizesChange(mergeFashionTokens(sizesValue, preset.values))}
-                  style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '6px',
-                    padding: '3px 10px',
-                    fontSize: '0.75rem',
-                    color: 'var(--primary, #1e1b4b)',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-                  }}
-                >
-                  + {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTemplate === 'scents' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-              أحجام وسعات شائعة للعطور والمستحضرات:
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {SCENT_SIZE_PRESETS.map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSizesChange(mergeFashionTokens(sizesValue, [val]))}
-                  style={{
-                    background: '#f0fdf4',
-                    border: '1px solid #bbf7d0',
-                    borderRadius: '6px',
-                    padding: '3px 8px',
-                    fontSize: '0.75rem',
-                    color: '#166534',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-                  }}
-                >
-                  + {val}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTemplate === 'sizes' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
-              أنواع التغليف والعبوات:
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {PACKAGING_PRESETS.map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSizesChange(mergeFashionTokens(sizesValue, [val]))}
-                  style={{
-                    background: '#fefce8',
-                    border: '1px solid #fde047',
-                    borderRadius: '6px',
-                    padding: '3px 8px',
-                    fontSize: '0.75rem',
-                    color: '#854d0e',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-                  }}
-                >
-                  + {val}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Global Settings for Variants: Default Stock & Barcode Prefix */}
-        <div className="product-form-grid-2" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}>
-          <Field label="مخزون افتتاحي افتراضي لكل فرع">
-            <input
-              className="purchase-prototype-field-input"
-              type="number"
-              value={Number(defaultStock || 0)}
-              onChange={(event) => onDefaultStockChange(Number(event.target.value || 0))}
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <Button
+              type="button"
+              variant="primary"
               disabled={disabled}
-            />
-          </Field>
-          <Field label="بادئة الباركود المتسلسل">
-            <input
-              className="purchase-prototype-field-input"
-              value={barcodePrefix}
-              onChange={(event) => onBarcodePrefixChange(event.target.value)}
-              disabled={disabled}
-              placeholder={styleCode ? `مثال: ${styleCode}` : 'مثال: GRP2401'}
-            />
-          </Field>
-        </div>
-
-        {/* Action Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span className="cashier-chip" style={{ fontWeight: 800, color: '#1e40af', background: '#dbeafe' }}>
-              {rows.length} صنف فرعي
-            </span>
-            <span className="cashier-chip">{colors.length || 0} {templateConfig.primarySingleLabel}</span>
-            {sizes.length ? <span className="cashier-chip">{sizes.length} {templateConfig.secondarySingleLabel}</span> : null}
-            <span className="cashier-chip" style={{ color: '#166534', background: '#dcfce7' }}>
-              إجمالي المخزون الافتتاحي: {totalStock}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={applyDefaultStockToAll} style={{ fontSize: '0.78rem' }}>
-              تطبيق المخزون الافتراضي على الكل
+              onClick={addEmptyRow}
+              style={{
+                fontSize: '0.76rem',
+                height: '28px',
+                padding: '0 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontWeight: 700,
+                background: 'var(--primary, #1e1b4b)',
+                color: '#ffffff',
+              }}
+            >
+              <span style={{ fontSize: '1rem', lineHeight: 1, fontWeight: 900 }}>+</span>
+              <span>إضافة صنف فرعي</span>
             </Button>
-            <Button type="button" variant="secondary" disabled={disabled || !rows.length || !suggestedPrefix} onClick={generateSequentialBarcodes} style={{ fontSize: '0.78rem' }}>
-              توليد باركودات متسلسلة
+            <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={applyDefaultStockToAll} style={{ fontSize: '0.74rem', height: '28px', padding: '0 8px' }}>
+              تطبيق المخزون
             </Button>
-            <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={generateSequentialSkus} style={{ fontSize: '0.78rem' }}>
-              توليد أكواد SKU
+            <Button type="button" variant="secondary" disabled={disabled || !rows.length || !suggestedPrefix} onClick={generateSequentialBarcodes} style={{ fontSize: '0.74rem', height: '28px', padding: '0 8px' }}>
+              توليد باركودات
             </Button>
-            <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={clearBarcodes} style={{ fontSize: '0.78rem' }}>
-              مسح كل الباركودات
+            <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={generateSequentialSkus} style={{ fontSize: '0.74rem', height: '28px', padding: '0 8px' }}>
+              توليد SKU
+            </Button>
+            <Button type="button" variant="secondary" disabled={disabled || !rows.length} onClick={clearBarcodes} style={{ fontSize: '0.74rem', height: '28px', padding: '0 8px', color: '#b91c1c' }}>
+              مسح الباركودات
             </Button>
           </div>
         </div>
 
         {/* Matrix Table of Generated Rows */}
         {!rows.length ? (
-          <div style={{ textAlign: 'center', padding: '24px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#64748b', fontSize: '0.84rem' }}>
-            أدخل قيمة واحدة على الأقل في <strong>{templateConfig.primaryLabel}</strong> لتجهيز الأصناف الفرعية تلقائياً.
+          <div style={{ textAlign: 'center', padding: '16px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <div style={{ color: '#64748b', fontSize: '0.82rem' }}>
+              أدخل قيم <strong>{templateConfig.primaryLabel}</strong> في الأعلى لتوليد الشبكة تلقائياً، أو أضف أصنافاً يدوياً مباشرة:
+            </div>
+            <button
+              type="button"
+              onClick={addEmptyRow}
+              disabled={disabled}
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '5px 14px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--primary, #1e1b4b)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span style={{ fontSize: '1.1rem', lineHeight: 1, fontWeight: 900 }}>+</span>
+              <span>إضافة صنف فرعي يدوياً (سطر جديد)</span>
+            </button>
           </div>
         ) : (
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflowX: 'auto', background: '#ffffff' }}>
@@ -566,34 +647,46 @@ export function FashionVariantsBuilder({
               <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 <tr style={{ color: '#475569', fontWeight: 700 }}>
                   <th style={{ padding: '8px 8px', width: '32px', textAlign: 'center', verticalAlign: 'middle' }}>#</th>
-                  <th style={{ padding: '8px 10px', width: '15%', verticalAlign: 'middle' }}>{templateConfig.primarySingleLabel}</th>
-                  <th style={{ padding: '8px 10px', width: '13%', verticalAlign: 'middle' }}>{templateConfig.secondarySingleLabel}</th>
-                  <th style={{ padding: '8px 8px', width: '15%', verticalAlign: 'middle' }}>رمز SKU</th>
-                  <th style={{ padding: '8px 8px', width: '17%', verticalAlign: 'middle' }}>الباركود</th>
-                  <th style={{ padding: '8px 8px', width: '13%', verticalAlign: 'middle' }}>سعر البيع (ج.م)</th>
-                  <th style={{ padding: '8px 8px', width: '13%', verticalAlign: 'middle' }}>سعر التكلفة (ج.م)</th>
-                  <th style={{ padding: '8px 8px', width: '10%', textAlign: 'center', verticalAlign: 'middle' }}>الرصيد</th>
+                  <th style={{ padding: '8px 6px', width: '15%', verticalAlign: 'middle' }}>{templateConfig.primarySingleLabel}</th>
+                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>{templateConfig.secondarySingleLabel}</th>
+                  <th style={{ padding: '8px 6px', width: '15%', verticalAlign: 'middle' }}>رمز SKU</th>
+                  <th style={{ padding: '8px 6px', width: '17%', verticalAlign: 'middle' }}>الباركود</th>
+                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>سعر البيع (ج.م)</th>
+                  <th style={{ padding: '8px 6px', width: '13%', verticalAlign: 'middle' }}>سعر التكلفة (ج.م)</th>
+                  <th style={{ padding: '8px 6px', width: '10%', textAlign: 'center', verticalAlign: 'middle' }}>الرصيد</th>
                   <th style={{ padding: '8px 4px', width: '36px', textAlign: 'center', verticalAlign: 'middle' }}>حذف</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, index) => (
                   <tr
-                    key={`${row.color || 'primary'}-${row.size || 'secondary'}-${index}`}
+                    key={row.id || `row-${index}`}
                     style={{ borderBottom: '1px solid #f1f5f9', background: index % 2 === 0 ? '#ffffff' : '#fafafa' }}
                   >
                     <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle', color: '#94a3b8', fontSize: '0.74rem' }}>
                       {index + 1}
                     </td>
-                    <td style={{ padding: '6px 10px', verticalAlign: 'middle' }}>
-                      <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.84rem' }}>{row.color || '-'}</span>
+                    <td style={{ padding: '4px 6px', verticalAlign: 'middle' }}>
+                      <input
+                        className="purchase-prototype-field-input"
+                        value={row.color || ''}
+                        onChange={(event) => updateRow(index, { color: normalizeArabicInput(event.target.value) })}
+                        disabled={disabled}
+                        placeholder={templateConfig.primarySingleLabel}
+                        style={{ height: '30px', fontSize: '0.78rem', fontWeight: 700, padding: '4px 8px', width: '100%' }}
+                      />
                     </td>
-                    <td style={{ padding: '6px 10px', verticalAlign: 'middle' }}>
-                      <span style={{ color: '#475569', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '0.74rem', fontWeight: 600 }}>
-                        {row.size || '-'}
-                      </span>
+                    <td style={{ padding: '4px 6px', verticalAlign: 'middle' }}>
+                      <input
+                        className="purchase-prototype-field-input"
+                        value={row.size || ''}
+                        onChange={(event) => updateRow(index, { size: normalizeArabicInput(event.target.value) })}
+                        disabled={disabled}
+                        placeholder={templateConfig.secondarySingleLabel}
+                        style={{ height: '30px', fontSize: '0.78rem', fontWeight: 600, padding: '4px 8px', width: '100%' }}
+                      />
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '4px 6px', verticalAlign: 'middle' }}>
                       <input
                         className="purchase-prototype-field-input"
                         value={row.sku || ''}
@@ -603,7 +696,7 @@ export function FashionVariantsBuilder({
                         style={{ height: '30px', fontSize: '0.76rem', padding: '4px 8px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '4px 6px', verticalAlign: 'middle' }}>
                       <input
                         className="purchase-prototype-field-input"
                         value={row.barcode}
@@ -613,7 +706,7 @@ export function FashionVariantsBuilder({
                         style={{ height: '30px', fontSize: '0.76rem', fontFamily: 'monospace', padding: '4px 8px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '4px 6px', verticalAlign: 'middle' }}>
                       <input
                         className="purchase-prototype-field-input"
                         type="number"
@@ -626,7 +719,7 @@ export function FashionVariantsBuilder({
                         style={{ height: '30px', fontSize: '0.78rem', fontWeight: 700, color: '#16a34a', padding: '4px 8px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '4px 6px', verticalAlign: 'middle' }}>
                       <input
                         className="purchase-prototype-field-input"
                         type="number"
@@ -639,7 +732,7 @@ export function FashionVariantsBuilder({
                         style={{ height: '30px', fontSize: '0.78rem', color: '#475569', padding: '4px 8px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '4px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
                       <input
                         className="purchase-prototype-field-input"
                         type="number"
@@ -650,7 +743,7 @@ export function FashionVariantsBuilder({
                         style={{ height: '30px', fontSize: '0.78rem', textAlign: 'center', fontWeight: 700, padding: '4px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '4px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
                       <button
                         type="button"
                         onClick={() => deleteRow(index)}
@@ -678,6 +771,35 @@ export function FashionVariantsBuilder({
                 ))}
               </tbody>
             </table>
+
+            {/* Table Footer with Add Row Button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={addEmptyRow}
+                disabled={disabled}
+                style={{
+                  background: '#ffffff',
+                  border: '1px dashed #94a3b8',
+                  borderRadius: '6px',
+                  padding: '4px 12px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  color: 'var(--primary, #1e1b4b)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                }}
+              >
+                <span style={{ fontSize: '1rem', lineHeight: 1, fontWeight: 900 }}>+</span>
+                <span>إضافة سطر / صنف فرعي جديد</span>
+              </button>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                يمكنك الكتابة في الحقول بالأعلى لتوليد المقاسات، أو الضغط على (+) لإدخال الأصناف يدوياً سطراً بسطر
+              </span>
+            </div>
           </div>
         )}
 
