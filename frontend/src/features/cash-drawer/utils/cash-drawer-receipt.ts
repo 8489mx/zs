@@ -65,6 +65,7 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
   const instapayDiff = declaredInstapay - expectedInstapay;
   const electronicDiff = cardDiff + walletDiff + instapayDiff;
   const totalShiftDiscrepancy = drawerVariance + electronicDiff;
+  const hasDrawerMovements = openingCash > 0 || totalInflows > 0 || totalOutflows > 0;
 
   const cleanNote = (n: string) => escapeHtml(n.replace(/^وردية\s*#?[A-Z0-9_-]+:\s*/i, '').trim() || n);
 
@@ -73,20 +74,20 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
     : (!shift.closeNoteRaw?.startsWith('BLIND_CLOSE:') && shift.closeNoteRaw ? shift.closeNoteRaw : '');
 
   return `
-    <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 10.5px; line-height: 1.35; color: #000; direction: rtl; text-align: right; width: 100%;">
+    <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 10px; line-height: 1.3; color: #000; direction: rtl; text-align: right; width: 100%;">
       <!-- Header -->
-      <div style="text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 6px; margin-bottom: 6px;">
-        <h2 style="margin: 0 0 2px; font-size: 15px; font-weight: 800;">${escapeHtml(storeName || 'إغلاق وردية الكاشير')}</h2>
-        <div style="font-size: 11px; font-weight: 700;">تقرير تسوية وجرد الوردية الشامل</div>
+      <div style="text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 4px; margin-bottom: 4px;">
+        <h2 style="margin: 0 0 1px; font-size: 14px; font-weight: 800;">${escapeHtml(storeName || 'إغلاق وردية الكاشير')}</h2>
+        <div style="font-size: 10.5px; font-weight: 700;">تقرير تسوية وجرد الوردية الشامل</div>
       </div>
 
       <!-- Shift Meta -->
-      <div style="border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 6px; font-size: 10px;">
-        <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 11px;">
+      <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-size: 9.5px;">
+        <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 10.5px;">
           <span>الوردية: <strong>#${escapeHtml(String(shift.id || shift.docNo || ''))}</strong> (${escapeHtml(shift.openedByName || 'كاشير')})</span>
           <span>${escapeHtml([shift.branchName, shift.locationName].filter(Boolean).join(' - ') || 'الفرع الرئيسي')}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; color: #222; margin-top: 2px;">
+        <div style="display: flex; justify-content: space-between; color: #222; margin-top: 1px;">
           <span>وقت الفتح: ${escapeHtml(shift.createdAt ? formatDate(shift.createdAt) : '—')}</span>
         </div>
         <div style="display: flex; justify-content: space-between; color: #222; margin-top: 1px;">
@@ -94,19 +95,19 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
           <span>(المدة: <strong>${getDurationStr(shift.createdAt, shift.closedAt)}</strong>)</span>
         </div>
         ${shift.closedByName && shift.closedByName !== shift.openedByName ? `
-        <div style="display: flex; justify-content: space-between; font-weight: 700; color: #000; margin-top: 2px;">
+        <div style="display: flex; justify-content: space-between; font-weight: 700; color: #000; margin-top: 1px;">
           <span>أُغلقت إدارياً بواسطة:</span>
           <strong>${escapeHtml(shift.closedByName)}</strong>
         </div>` : ''}
       </div>
 
       <!-- Section 1: Sales & Payment Channels Comparison Table -->
-      <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
-        <div style="font-weight: 800; font-size: 10.5px; margin-bottom: 4px; background: #eee; padding: 2px 4px; display: flex; justify-content: space-between;">
+      <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px;">
+        <div style="font-weight: 800; font-size: 10px; margin-bottom: 3px; background: #eee; padding: 1px 4px; display: flex; justify-content: space-between;">
           <span>[1] مطابقة المبيعات وقنوات التحصيل</span>
         </div>
 
-        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 2px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 1px;">
           <thead>
             <tr style="border-bottom: 1px solid #000; font-weight: 800; background: #f8fafc;">
               <th style="text-align: right; padding: 2px 1px;">القناة</th>
@@ -117,123 +118,129 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
           </thead>
           <tbody>
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 3px 1px;"><strong>كاش (نقدية الدرج)</strong></td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(dynamicExpectedCash)}</td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(declaredCash)}</td>
-              <td style="text-align: center; padding: 3px 1px; font-weight: 700;">${drawerVariance === 0 ? 'مطابق' : formatCurrency(drawerVariance)}</td>
+              <td style="padding: 2px 1px;"><strong>${hasDrawerMovements ? 'مبيعات نقدية (كاش)' : 'كاش (نقدية الدرج)'}</strong></td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(rawCashSales)}</td>
+              <td style="text-align: center; padding: 2px 1px;">${hasDrawerMovements ? '<span style="color: #475569; font-size: 8px;">يُجرد بالقسم [3]</span>' : formatCurrency(declaredCash)}</td>
+              <td style="text-align: center; padding: 2px 1px; font-weight: 700;">${hasDrawerMovements ? '<span style="color: #888;">—</span>' : (drawerVariance === 0 ? 'مطابق' : formatCurrency(drawerVariance))}</td>
             </tr>
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 3px 1px;"><strong>بطاقات (فيزا)</strong></td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(expectedCard)}</td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(declaredCard)}</td>
-              <td style="text-align: center; padding: 3px 1px; font-weight: 700;">${cardDiff === 0 ? 'مطابق' : formatCurrency(cardDiff)}</td>
+              <td style="padding: 2px 1px;"><strong>بطاقات (فيزا)</strong></td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(expectedCard)}</td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(declaredCard)}</td>
+              <td style="text-align: center; padding: 2px 1px; font-weight: 700;">${cardDiff === 0 ? 'مطابق' : formatCurrency(cardDiff)}</td>
             </tr>
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 3px 1px;"><strong>محافظ إلكترونية</strong></td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(expectedWallet)}</td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(declaredWallet)}</td>
-              <td style="text-align: center; padding: 3px 1px; font-weight: 700;">${walletDiff === 0 ? 'مطابق' : formatCurrency(walletDiff)}</td>
+              <td style="padding: 2px 1px;"><strong>محافظ إلكترونية</strong></td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(expectedWallet)}</td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(declaredWallet)}</td>
+              <td style="text-align: center; padding: 2px 1px; font-weight: 700;">${walletDiff === 0 ? 'مطابق' : formatCurrency(walletDiff)}</td>
             </tr>
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 3px 1px;"><strong>تحويل إنستاباي</strong></td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(expectedInstapay)}</td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(declaredInstapay)}</td>
-              <td style="text-align: center; padding: 3px 1px; font-weight: 700;">${instapayDiff === 0 ? 'مطابق' : formatCurrency(instapayDiff)}</td>
+              <td style="padding: 2px 1px;"><strong>تحويل إنستاباي</strong></td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(expectedInstapay)}</td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(declaredInstapay)}</td>
+              <td style="text-align: center; padding: 2px 1px; font-weight: 700;">${instapayDiff === 0 ? 'مطابق' : formatCurrency(instapayDiff)}</td>
             </tr>
             ${expectedCredit > 0 ? `
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 3px 1px;"><strong>آجل (ذمم عملاء)</strong></td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(expectedCredit)}</td>
-              <td style="text-align: center; padding: 3px 1px; color: #555;">ذمة عميل</td>
-              <td style="text-align: center; padding: 3px 1px; color: #888;">—</td>
+              <td style="padding: 2px 1px;"><strong>آجل (ذمم عملاء)</strong></td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(expectedCredit)}</td>
+              <td style="text-align: center; padding: 2px 1px; color: #555;">ذمة عميل</td>
+              <td style="text-align: center; padding: 2px 1px; color: #888;">—</td>
             </tr>` : ''}
             ${expectedDelivery > 0 ? `
             <tr style="border-bottom: 1px dashed #ccc;">
-              <td style="padding: 3px 1px;"><strong>دليفري (مناديب)</strong></td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(expectedDelivery)}</td>
-              <td style="text-align: center; padding: 3px 1px; color: #555;">مع المندوب</td>
-              <td style="text-align: center; padding: 3px 1px; color: #888;">—</td>
+              <td style="padding: 2px 1px;"><strong>دليفري (مناديب)</strong></td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(expectedDelivery)}</td>
+              <td style="text-align: center; padding: 2px 1px; color: #555;">مع المندوب</td>
+              <td style="text-align: center; padding: 2px 1px; color: #888;">—</td>
             </tr>` : ''}
             <tr style="border-top: 1.5px solid #000; font-weight: 800; background: #f1f5f9;">
-              <td style="padding: 3px 1px;">إجمالي التحصيل والدرج</td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(dynamicExpectedCash + expectedCard + expectedWallet + expectedInstapay)}</td>
-              <td style="text-align: center; padding: 3px 1px;">${formatCurrency(declaredCash + declaredCard + declaredWallet + declaredInstapay)}</td>
-              <td style="text-align: center; padding: 3px 1px; font-weight: 800;">${totalShiftDiscrepancy === 0 ? 'مطابق' : formatCurrency(totalShiftDiscrepancy)}</td>
+              <td style="padding: 2px 1px;">${hasDrawerMovements ? `إجمالي مبيعات الوردية (${shift.saleCount || 0} فواتير)` : 'إجمالي المبيعات والتحصيل'}</td>
+              <td style="text-align: center; padding: 2px 1px;">${formatCurrency(shiftSalesTotal)}</td>
+              <td style="text-align: center; padding: 2px 1px;">${hasDrawerMovements ? formatCurrency(declaredCard + declaredWallet + declaredInstapay) : formatCurrency(declaredCash + declaredCard + declaredWallet + declaredInstapay)}</td>
+              <td style="text-align: center; padding: 2px 1px; font-weight: 800;">${hasDrawerMovements ? (electronicDiff === 0 ? 'مطابق' : formatCurrency(electronicDiff)) : (totalShiftDiscrepancy === 0 ? 'مطابق' : formatCurrency(totalShiftDiscrepancy))}</td>
             </tr>
           </tbody>
         </table>
 
         ${freelanceFee > 0 ? `
-        <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 3px;">
+        <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 1px; color: #333;">
           <span>(-) أجر الطيارين (رسوم توصيل):</span>
           <span>-${formatCurrency(freelanceFee)}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; font-weight: 800; border-top: 1px dashed #000; padding-top: 2px; margin-top: 2px;">
+        <div style="display: flex; justify-content: space-between; font-weight: 800; border-top: 1px dashed #888; padding-top: 1px; margin-top: 1px;">
           <span>صافي مبيعات المتجر:</span>
           <span>${formatCurrency(netStoreSales)}</span>
         </div>` : ''}
       </div>
 
       <!-- Section 2: Movements and Expenses Breakdown -->
-      <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
-        <div style="font-weight: 800; font-size: 10.5px; margin-bottom: 4px; background: #eee; padding: 2px 4px;">
+      <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px;">
+        <div style="font-weight: 800; font-size: 10px; margin-bottom: 3px; background: #eee; padding: 1px 4px;">
           [2] حركات ومنصرفات نقدية الدرج
         </div>
 
         ${manualCashInItems.length > 0 ? `
-        <div style="font-weight: 700; margin-top: 2px;">+ إيداع نقدي بالدرج (يدوياً):</div>
+        <div style="font-weight: 700; margin-top: 1px; font-size: 9.5px;">+ إيداع نقدي بالدرج (يدوياً):</div>
         ${manualCashInItems.map((item) => `
-          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9.5px;">
+          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9px;">
             <span>${cleanNote(item.note)}</span>
             <strong>+${formatCurrency(item.amount)}</strong>
           </div>
         `).join('')}` : ''}
 
+        ${(manualCashIn > 0 || deliveryCashIn > 0) ? `
+        <div style="display: flex; justify-content: space-between; border-top: 1px dashed #bbb; padding-top: 1px; margin-top: 2px; margin-bottom: 3px; font-weight: 700; font-size: 9px;">
+          <span>إجمالي الإيداعات بالدرج:</span>
+          <span>+${formatCurrency(manualCashIn + deliveryCashIn)}</span>
+        </div>` : ''}
+
         ${cashOutItems.length > 0 ? `
-        <div style="font-weight: 700; margin-top: 2px;">- مسحوبات نقدية من الدرج:</div>
+        <div style="font-weight: 700; margin-top: 1px; font-size: 9.5px;">- مسحوبات نقدية من الدرج:</div>
         ${cashOutItems.map((item) => `
-          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9.5px;">
+          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9px;">
             <span>${cleanNote(item.note)}</span>
             <strong>-${formatCurrency(item.amount)}</strong>
           </div>
         `).join('')}` : ''}
 
         ${expenseItems.length > 0 ? `
-        <div style="font-weight: 700; margin-top: 2px;">- مصروفات تشغيلية ونثرية:</div>
+        <div style="font-weight: 700; margin-top: 1px; font-size: 9.5px;">- مصروفات تشغيلية ونثرية:</div>
         ${expenseItems.map((item) => `
-          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9.5px;">
+          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9px;">
             <span>${cleanNote(item.note)}</span>
             <strong>-${formatCurrency(item.amount)}</strong>
           </div>
         `).join('')}` : ''}
 
         ${supplierItems.length > 0 ? `
-        <div style="font-weight: 700; margin-top: 2px;">- سداد دفعات موردين:</div>
+        <div style="font-weight: 700; margin-top: 1px; font-size: 9.5px;">- سداد دفعات موردين:</div>
         ${supplierItems.map((item) => `
-          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9.5px;">
+          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9px;">
             <span>${cleanNote(item.note)}</span>
             <strong>-${formatCurrency(item.amount)}</strong>
           </div>
         `).join('')}` : ''}
 
         ${returnItems.length > 0 ? `
-        <div style="font-weight: 700; margin-top: 2px;">- مرتجع مبيعات نقدي (كاش):</div>
+        <div style="font-weight: 700; margin-top: 1px; font-size: 9.5px;">- مرتجع مبيعات نقدي (كاش):</div>
         ${returnItems.map((item) => `
-          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9.5px;">
+          <div style="display: flex; justify-content: space-between; padding-right: 6px; font-size: 9px;">
             <span>${cleanNote(item.note)}</span>
             <strong>-${formatCurrency(item.amount)}</strong>
           </div>
         `).join('')}` : ''}
 
-        <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; font-weight: 800;">
+        <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 2px; margin-top: 2px; font-weight: 800;">
           <span>إجمالي المنصرف من الدرج:</span>
           <span>-${formatCurrency(totalOutflows)}</span>
         </div>
       </div>
 
       <!-- Section 3: Cash Reconciliation Formula -->
-      <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
-        <div style="font-weight: 800; font-size: 10.5px; margin-bottom: 4px; background: #eee; padding: 2px 4px;">
+      <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px;">
+        <div style="font-weight: 800; font-size: 10px; margin-bottom: 3px; background: #eee; padding: 1px 4px;">
           [3] جرد ومطابقة نقدية الدرج (الكاش)
         </div>
         <div style="display: flex; justify-content: space-between;">
@@ -259,7 +266,7 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
           <strong>-${formatCurrency(totalOutflows)}</strong>
         </div>
 
-        <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; font-weight: 800;">
+        <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 2px; margin-top: 2px; font-weight: 800;">
           <span>صافي النقدية المتوقعة بالدرج:</span>
           <span>${formatCurrency(dynamicExpectedCash)}</span>
         </div>
@@ -267,30 +274,30 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
           <span>النقدية الفعلية المعدودة (إقرار):</span>
           <span>${formatCurrency(declaredCash)}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; font-weight: 800; border-top: 1px dashed #000; padding-top: 2px; margin-top: 2px;">
+        <div style="display: flex; justify-content: space-between; font-weight: 800; border-top: 1px dashed #000; padding-top: 1px; margin-top: 1px;">
           <span>فارق نقدية الدرج:</span>
           <span>${formatVarianceText(drawerVariance)}</span>
         </div>
       </div>
 
       <!-- Section 4: Executive Decision & Final Summary -->
-      <div style="border: 1.5px solid #000; border-radius: 4px; padding: 6px; margin-bottom: 6px; background: #fafafa;">
-        <div style="font-weight: 800; font-size: 11px; margin-bottom: 4px; text-align: center; border-bottom: 1px solid #000; padding-bottom: 2px;">
+      <div style="border: 1.5px solid #000; border-radius: 4px; padding: 4px 6px; margin-bottom: 4px; background: #fafafa;">
+        <div style="font-weight: 800; font-size: 10.5px; margin-bottom: 3px; text-align: center; border-bottom: 1px solid #000; padding-bottom: 1px;">
           [4] الخلاصة والقرار التنفيذي للوردية
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1px;">
           <span>النقدية الموردة للخزينة:</span>
           <strong>${formatCurrency(declaredCash)}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1px;">
           <span>فارق نقدية الدرج:</span>
           <strong>${formatVarianceText(drawerVariance)}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1px;">
           <span>فارق المدفوعات الإلكترونية:</span>
           <strong>${formatVarianceText(electronicDiff)}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 11.5px; border-top: 1.5px solid #000; padding-top: 3px; margin-top: 3px;">
+        <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 11px; border-top: 1.5px solid #000; padding-top: 2px; margin-top: 2px;">
           <span>إجمالي الفارق النهائي للوردية:</span>
           <span>${formatVarianceText(totalShiftDiscrepancy)}</span>
         </div>
@@ -298,20 +305,16 @@ export function generateCashDrawerSettlementReceiptHtml(shift: CashierShift, sto
 
       <!-- Section 5: Notes & Audit -->
       ${shift.openingNote || cleanCloseNote || shift.managerReviewNote ? `
-      <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; font-size: 9.5px;">
+      <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-size: 9px;">
         ${shift.openingNote ? `<div><strong>ملاحظة الافتتاح:</strong> ${escapeHtml(shift.openingNote)}</div>` : ''}
         ${cleanCloseNote ? `<div><strong>ملاحظة الإغلاق:</strong> ${escapeHtml(cleanCloseNote)}</div>` : ''}
         ${shift.managerReviewNote ? `<div><strong>ملاحظة اعتماد المدير:</strong> ${escapeHtml(shift.managerReviewNote)}</div>` : ''}
       </div>` : ''}
 
-      <!-- Section 6: Signatures Footer -->
-      <div style="padding-top: 8px; margin-top: 4px; font-size: 10px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 14px;">
-          <div>توقيع الكاشير: ........................</div>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <div>اعتماد الإدارة: ........................</div>
-        </div>
+      <!-- Section 6: Signatures Footer (Side by Side) -->
+      <div style="display: flex; justify-content: space-between; padding-top: 4px; margin-top: 2px; font-size: 9.5px; page-break-inside: avoid;">
+        <div>توقيع الكاشير: ........................</div>
+        <div>اعتماد الإدارة: ........................</div>
       </div>
     </div>
   `;
