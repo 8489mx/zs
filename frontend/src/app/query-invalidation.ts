@@ -80,26 +80,38 @@ export async function invalidateSalesDomain(
   options?: { saleId?: string; includeDashboard?: boolean }
 ) {
   const { saleId, includeDashboard = false } = options || {};
-  const tasks = [
-    queryClient.invalidateQueries({ queryKey: queryKeys.sales }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances }),
-    invalidateAuditLogs(queryClient),
+  const immediateTasks = [
+    queryClient.invalidateQueries({ queryKey: queryKeys.sales, refetchType: 'active' }),
+    queryClient.invalidateQueries({ queryKey: ['products', 'pos'], refetchType: 'active' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.cashierShiftsPage('open:pos'), refetchType: 'active' }),
   ];
-  if (saleId) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.saleDetail(saleId) }));
-  if (includeDashboard) {
-    tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
-    tasks.push(queryClient.invalidateQueries({ queryKey: ['manager-actions'] }));
+  if (saleId) {
+    immediateTasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.saleDetail(saleId) }));
   }
-  await Promise.all(tasks);
-  await Promise.all([
-    invalidateCatalogDomain(queryClient, { includeProducts: true, includeCustomers: true, includeCustomerBalances: true }),
-    invalidateInventoryDomain(queryClient, { includeProducts: true, includeDashboard }),
-    invalidateTreasuryDomain(queryClient),
-    queryClient.invalidateQueries({ queryKey: ['reports-summary'] }),
-    queryClient.invalidateQueries({ queryKey: ['delivery-rep-orders'] }),
-    queryClient.invalidateQueries({ queryKey: ['delivery-rep-summary'] }),
-  ]);
+
+  const deferredTasks = [
+    queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.posCustomers, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.customers, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.products, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['catalogProducts'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.inventoryReport, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['location-stocks'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.treasury, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.cashierShifts, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['reports-summary'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['delivery-rep-orders'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['delivery-rep-summary'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.auditLogs, refetchType: 'none' }),
+  ];
+
+  if (includeDashboard) {
+    deferredTasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'], refetchType: 'none' }));
+    deferredTasks.push(queryClient.invalidateQueries({ queryKey: ['manager-actions'], refetchType: 'none' }));
+  }
+
+  await Promise.all([...immediateTasks, ...deferredTasks]);
 }
 
 export async function invalidatePurchasesDomain(
@@ -107,36 +119,42 @@ export async function invalidatePurchasesDomain(
   options?: { purchaseId?: string; includeDashboard?: boolean }
 ) {
   const { purchaseId, includeDashboard = false } = options || {};
-  const tasks = [queryClient.invalidateQueries({ queryKey: queryKeys.purchases })];
-  if (purchaseId) tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.purchaseDetail(purchaseId) }));
+  const immediateTasks = [queryClient.invalidateQueries({ queryKey: queryKeys.purchases, refetchType: 'active' })];
+  if (purchaseId) immediateTasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.purchaseDetail(purchaseId) }));
+
+  const deferredTasks = [
+    queryClient.invalidateQueries({ queryKey: queryKeys.suppliers, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.supplierBalances, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.products, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['catalogProducts'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.inventoryReport, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['location-stocks'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.treasury, refetchType: 'none' }),
+  ];
+
   if (includeDashboard) {
-    tasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] }));
-    tasks.push(queryClient.invalidateQueries({ queryKey: ['manager-actions'] }));
+    deferredTasks.push(queryClient.invalidateQueries({ queryKey: ['dashboard-overview'], refetchType: 'none' }));
+    deferredTasks.push(queryClient.invalidateQueries({ queryKey: ['manager-actions'], refetchType: 'none' }));
   }
-  await Promise.all(tasks);
-  await Promise.all([
-    invalidateCatalogDomain(queryClient, { includeProducts: true, includeSuppliers: true, includeSupplierBalances: true }),
-    invalidateInventoryDomain(queryClient, { includeProducts: true, includeDashboard }),
-  ]);
+
+  await Promise.all([...immediateTasks, ...deferredTasks]);
 }
 
 export async function invalidateReturnsDomain(queryClient: QueryClient) {
   await Promise.all([
-    queryClient.invalidateQueries({ queryKey: queryKeys.returns }),
-    invalidateAuditLogs(queryClient),
+    queryClient.invalidateQueries({ queryKey: queryKeys.returns, refetchType: 'active' }),
     invalidateSalesDomain(queryClient),
     invalidatePurchasesDomain(queryClient),
-    invalidateTreasuryDomain(queryClient),
-    invalidateCatalogDomain(queryClient, { includeProducts: true, includeCustomers: true, includeSuppliers: true, includeCustomerBalances: true, includeSupplierBalances: true }),
   ]);
 }
 
 export async function invalidateTreasuryDomain(queryClient: QueryClient) {
   await Promise.all([
-    queryClient.invalidateQueries({ queryKey: queryKeys.treasury }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.expenses }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.cashierShifts }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.cashierShiftsPage('open:pos') }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.treasury, refetchType: 'active' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.expenses, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.cashierShifts, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.cashierShiftsPage('open:pos'), refetchType: 'active' }),
   ]);
 }
 

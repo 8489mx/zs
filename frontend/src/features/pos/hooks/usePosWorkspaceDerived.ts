@@ -186,18 +186,19 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
       || openShiftList.find((s) => String((s as any).opened_by || (s as any).openedById || (s as any).opened_by_id || (s as any).openedBy || '').trim() === currentUserId);
     return matched || null;
   }, [openShiftByUserId, openShiftList, params.authUserId]);
+
   const canApplyDiscount = authPermissionSet.has('canDiscount') || authPermissionSet.has('*') || Boolean(params.discountApprovalGranted);
   const canEditPrice = authPermissionSet.has('canEditPrice') || authPermissionSet.has('*');
   const canSellWholesale = authPermissionSet.has('canSellWholesale') || authPermissionSet.has('*') || Boolean(params.wholesaleApprovalGranted);
   const hasOperationalSetup = Boolean(branchList.length > 0 && locationList.length > 0);
   const hasCatalogReady = Boolean(productList.length > 0);
   const requiresCashierShift = params.paymentType !== 'credit';
-  const hasZeroPriceLine = params.cart.some((item) => Number(item.price || 0) <= 0);
-  const hasInvalidCartLine = params.cart.some((item) => {
+  const hasZeroPriceLine = useMemo(() => params.cart.some((item) => Number(item.price || 0) <= 0), [params.cart]);
+  const hasInvalidCartLine = useMemo(() => params.cart.some((item) => {
     const qty = Number(item.qty || 0);
     const price = Number(item.price || 0);
     return !Number.isFinite(qty) || !Number.isFinite(price) || qty <= 0 || price < 0;
-  });
+  }), [params.cart]);
   const hasCreditWithoutCustomer = params.paymentType === 'credit' && !params.customerId;
   const allowNegativeStockSales = isNegativeStockSalesAllowed(params.settings);
   const shouldAssumeFullCashPayment = allowNegativeStockSales && params.paymentType !== 'credit' && Number(params.paidAmount || 0) <= 0.0001;
@@ -209,22 +210,25 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     && !isDeliveryCOD
     && !isPartialCreditWithCustomer;
   const hasDiscountPermissionViolation = !canApplyDiscount && Math.abs(Number(params.discount || 0)) > 0.0001;
-  const hasPricePermissionViolation = !canEditPrice && params.cart.some((item) => {
-    const baselinePrice = item.priceType === 'retail' && Number(item.qty || 0) === 1
-      ? defaultPriceByProductId.get(String(item.productId))
-      : undefined;
-    if (typeof baselinePrice === 'number') {
-      return Math.abs(Number(item.price || 0) - baselinePrice) > 0.0001;
-    }
-    const product = productById.get(String(item.productId));
-    if (!product) return false;
-    return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType, item.qty) || 0)) > 0.0001;
-  });
+  const hasPricePermissionViolation = useMemo(() => {
+    if (canEditPrice) return false;
+    return params.cart.some((item) => {
+      const baselinePrice = item.priceType === 'retail' && Number(item.qty || 0) === 1
+        ? defaultPriceByProductId.get(String(item.productId))
+        : undefined;
+      if (typeof baselinePrice === 'number') {
+        return Math.abs(Number(item.price || 0) - baselinePrice) > 0.0001;
+      }
+      const product = productById.get(String(item.productId));
+      if (!product) return false;
+      return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType, item.qty) || 0)) > 0.0001;
+    });
+  }, [canEditPrice, params.cart, defaultPriceByProductId, productById]);
 
   const isDelivery = params.orderType === 'delivery';
   const hasDeliveryWithoutRep = isDelivery && (!params.deliveryRepId || Number(params.deliveryRepId) <= 0);
 
-  const canSubmitSale = Boolean(
+  const canSubmitSale = useMemo(() => Boolean(
     params.cart.length
     && hasOperationalSetup
     && hasCatalogReady
@@ -235,24 +239,38 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     && !hasUnderpaidSale
     && !hasDiscountPermissionViolation
     && !hasPricePermissionViolation,
-  );
-  const canOpenCheckout = Boolean(
+  ), [
+    params.cart.length,
+    hasOperationalSetup,
+    hasCatalogReady,
+    requiresCashierShift,
+    ownOpenShift,
+    hasZeroPriceLine,
+    hasCreditWithoutCustomer,
+    hasDeliveryWithoutRep,
+    hasUnderpaidSale,
+    hasDiscountPermissionViolation,
+    hasPricePermissionViolation,
+  ]);
+
+  const canOpenCheckout = useMemo(() => Boolean(
     params.cart.length
     && hasOperationalSetup
     && hasCatalogReady
     && (!requiresCashierShift || ownOpenShift)
     && !hasInvalidCartLine,
-  );
-  const checkoutDisabledReason = getCheckoutDisabledReason({
+  ), [params.cart.length, hasOperationalSetup, hasCatalogReady, requiresCashierShift, ownOpenShift, hasInvalidCartLine]);
+
+  const checkoutDisabledReason = useMemo(() => getCheckoutDisabledReason({
     cartLength: params.cart.length,
     hasOperationalSetup,
     hasCatalogReady,
     requiresCashierShift,
     ownOpenShift,
     hasInvalidCartLine,
-  });
+  }), [params.cart.length, hasOperationalSetup, hasCatalogReady, requiresCashierShift, ownOpenShift, hasInvalidCartLine]);
 
-  const canSubmitHint = getCanSubmitHint({
+  const canSubmitHint = useMemo(() => getCanSubmitHint({
     cartLength: params.cart.length,
     hasOperationalSetup,
     hasCatalogReady,
@@ -264,7 +282,19 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     hasDiscountPermissionViolation,
     hasPricePermissionViolation,
     hasUnderpaidSale,
-  } as Parameters<typeof getCanSubmitHint>[0]);
+  }), [
+    params.cart.length,
+    hasOperationalSetup,
+    hasCatalogReady,
+    requiresCashierShift,
+    ownOpenShift,
+    hasCreditWithoutCustomer,
+    hasDeliveryWithoutRep,
+    hasZeroPriceLine,
+    hasDiscountPermissionViolation,
+    hasPricePermissionViolation,
+    hasUnderpaidSale,
+  ]);
 
   const openShiftLabel = getShiftDisplayLabel(ownOpenShift);
 

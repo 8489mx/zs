@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { settingsSections, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import { useAuthStore } from '@/stores/auth-store';
 import { canAccessPath } from '@/app/router/access';
+import { prefetchRouteData } from '@/app/router/route-prefetch';
 
 export function SettingsSectionTabs({ currentSection, currentUserRole }: { currentSection: SettingsSectionKey; currentUserRole: string }) {
   const isPrivilegedUser = currentUserRole === 'super_admin' || currentUserRole === 'admin';
@@ -23,6 +24,8 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
         <NavLink
           key={section.key}
           to={`/settings/${section.key}`}
+          onMouseEnter={() => prefetchRouteData(`/settings/${section.key}`)}
+          onTouchStart={() => prefetchRouteData(`/settings/${section.key}`)}
           className={({ isActive }) => `btn ${isActive || currentSection === section.key ? 'btn-primary' : 'btn-secondary'}`}
         >
           {section.label}

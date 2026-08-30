@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { inventorySections, type InventorySectionKey } from '@/features/inventory/pages/inventory.page-config';
+import { prefetchRouteData } from '@/app/router/route-prefetch';
 
 export function InventorySectionTabs({ currentSection }: { currentSection: InventorySectionKey }) {
   return (
@@ -10,6 +11,8 @@ export function InventorySectionTabs({ currentSection }: { currentSection: Inven
           <NavLink
             key={section.key}
             to={`/inventory/${section.key}`}
+            onMouseEnter={() => prefetchRouteData(`/inventory/${section.key}`)}
+            onTouchStart={() => prefetchRouteData(`/inventory/${section.key}`)}
             className={`sales-action-card inventory-section-tab ${isActive ? 'is-active' : ''}`.trim()}
             style={{
               textDecoration: 'none',

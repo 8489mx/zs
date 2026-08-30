@@ -17,6 +17,7 @@ function defaultScope(): Scope {
 @Injectable()
 export class AccountingTenantFoundationService {
   private readonly logger = new Logger(AccountingTenantFoundationService.name);
+  private readonly initializedTenants = new Set<string>();
 
   private toScope(auth: AuthContext): Scope {
     const scoped = requireTenantScope(auth);
@@ -49,6 +50,10 @@ export class AccountingTenantFoundationService {
   }
 
   async ensureForScope(queryable: DbOrTx, target: Scope): Promise<void> {
+    if (this.initializedTenants.has(target.tenantId)) {
+      return;
+    }
+
     const targetAccountsCountRow = await queryable
       .selectFrom('accounting_accounts')
       .select((eb) => eb.fn.countAll<number>().as('count'))
@@ -228,5 +233,7 @@ export class AccountingTenantFoundationService {
         .execute();
       this.logger.log(`Initialized accounting_settings for tenant "${target.tenantId}" from source "${source.tenantId}"`);
     }
+
+    this.initializedTenants.add(target.tenantId);
   }
 }

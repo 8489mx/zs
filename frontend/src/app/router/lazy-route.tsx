@@ -4,9 +4,12 @@ function RouteLoadingFallback() {
   return null;
 }
 
-type LazyLoader = () => Promise<{ default: ComponentType<unknown> }>;
+export type LazyLoader = () => Promise<{ default: ComponentType<unknown> }>;
+
+const registeredLoaders = new Set<LazyLoader>();
 
 function lazyWithRetry(loader: LazyLoader) {
+  registeredLoaders.add(loader);
   return lazy(() =>
     loader().catch(() => {
       // Chunk failed to load (likely a new deployment changed the hash).
@@ -31,4 +34,20 @@ export function createLazyRoute(loader: LazyLoader): ReactNode {
       <LazyComponent />
     </Suspense>
   );
+}
+
+export function prefetchAllRouteModules() {
+  if (typeof window === 'undefined') return;
+  const loadAll = () => {
+    registeredLoaders.forEach((loader) => {
+      try {
+        void loader();
+      } catch {}
+    });
+  };
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(loadAll, { timeout: 4000 });
+  } else {
+    setTimeout(loadAll, 1200);
+  }
 }

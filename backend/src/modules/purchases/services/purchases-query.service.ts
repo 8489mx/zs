@@ -56,28 +56,109 @@ export class PurchasesQueryService {
 
   async listPurchases(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const rows = await this.fetchMappedPurchases(auth);
-    const filtered = filterPurchases(rows, query);
+    const purchases = await this.db
+      .selectFrom('purchases as p')
+      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('branches as b', 'b.id', 'p.branch_id')
+      .leftJoin('stock_locations as l', 'l.id', 'p.location_id')
+      .leftJoin('users as u', 'u.id', 'p.created_by')
+      .select([
+        'p.id', 'p.doc_no', 'p.supplier_id', 's.name as supplier_name', 'p.payment_type', 'p.subtotal', 'p.discount', 'p.tax_rate', 'p.tax_amount',
+        'p.prices_include_tax', 'p.total', 'p.note', 'p.status', 'p.branch_id', 'p.location_id', 'p.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
+        'p.required_date', 'p.currency', 'p.company_name', 'p.contact_id', 'p.shipping_address_id', 'p.cost_center_id', 'p.project_id', 'p.terms_template'
+      ])
+      .where(this.tenantPredicate(auth, 'p'))
+      .orderBy('p.id', 'desc')
+      .execute();
+
+    const shells = mapPurchaseRows(purchases as unknown as Array<Record<string, unknown>>, [], []);
+    const filtered = filterPurchases(shells, query);
     const paged = paginatePurchases(filtered, query);
-    return { purchases: paged.rows, pagination: paged.pagination, summary: summarizePurchases(filtered), scope };
+    const pagedIds = paged.rows.map((r) => Number(r.id || 0)).filter((id) => id > 0);
+
+    const [items, attachments] = pagedIds.length
+      ? await Promise.all([
+          this.db
+            .selectFrom('purchase_items')
+            .select(['id', 'purchase_id', 'product_id', 'product_name', 'qty', 'unit_cost', 'line_total', 'unit_name', 'unit_multiplier'])
+            .where('purchase_id', 'in', pagedIds)
+            .where(this.tenantPredicate(auth))
+            .orderBy('purchase_id', 'asc')
+            .orderBy('id', 'asc')
+            .execute(),
+          this.db
+            .selectFrom('purchase_attachments')
+            .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
+            .where('purchase_id', 'in', pagedIds)
+            .orderBy('purchase_id', 'asc')
+            .orderBy('id', 'asc')
+            .execute(),
+        ])
+      : [[], []];
+
+    const pagedPurchases = purchases.filter((p) => pagedIds.includes(Number(p.id)));
+    const hydratedRows = mapPurchaseRows(
+      pagedPurchases as unknown as Array<Record<string, unknown>>,
+      items as unknown as Array<Record<string, unknown>>,
+      attachments as unknown as Array<Record<string, unknown>>
+    );
+
+    return { purchases: hydratedRows, pagination: paged.pagination, summary: summarizePurchases(filtered), scope };
   }
 
   async getPurchaseById(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const rows = await this.fetchMappedPurchases(auth);
-    const purchase = rows.find((entry) => Number(entry.id || 0) === id) || null;
-    if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
-    return { purchase, scope };
+    const purchaseRow = await this.db
+      .selectFrom('purchases as p')
+      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('branches as b', 'b.id', 'p.branch_id')
+      .leftJoin('stock_locations as l', 'l.id', 'p.location_id')
+      .leftJoin('users as u', 'u.id', 'p.created_by')
+      .select([
+        'p.id', 'p.doc_no', 'p.supplier_id', 's.name as supplier_name', 'p.payment_type', 'p.subtotal', 'p.discount', 'p.tax_rate', 'p.tax_amount',
+        'p.prices_include_tax', 'p.total', 'p.note', 'p.status', 'p.branch_id', 'p.location_id', 'p.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
+        'p.required_date', 'p.currency', 'p.company_name', 'p.contact_id', 'p.shipping_address_id', 'p.cost_center_id', 'p.project_id', 'p.terms_template'
+      ])
+      .where('p.id', '=', id)
+      .where(this.tenantPredicate(auth, 'p'))
+      .executeTakeFirst();
+
+    if (!purchaseRow) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
+
+    const [items, attachments] = await Promise.all([
+      this.db
+        .selectFrom('purchase_items')
+        .select(['id', 'purchase_id', 'product_id', 'product_name', 'qty', 'unit_cost', 'line_total', 'unit_name', 'unit_multiplier'])
+        .where('purchase_id', '=', id)
+        .where(this.tenantPredicate(auth))
+        .orderBy('id', 'asc')
+        .execute(),
+      this.db
+        .selectFrom('purchase_attachments')
+        .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
+        .where('purchase_id', '=', id)
+        .orderBy('id', 'asc')
+        .execute(),
+    ]);
+
+    const mapped = mapPurchaseRows(
+      [purchaseRow as unknown as Record<string, unknown>],
+      items as unknown as Array<Record<string, unknown>>,
+      attachments as unknown as Array<Record<string, unknown>>
+    );
+
+    return { purchase: mapped[0], scope };
   }
 
   async getPurchaseAttachment(purchaseId: number, attachmentId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const row = await this.db
-      .selectFrom('purchase_attachments')
-      .selectAll()
-      .where('id', '=', attachmentId)
-      .where('purchase_id', '=', purchaseId)
-      .where(this.tenantPredicate(auth))
+      .selectFrom('purchase_attachments as pa')
+      .innerJoin('purchases as p', 'p.id', 'pa.purchase_id')
+      .select(['pa.id', 'pa.purchase_id', 'pa.file_name', 'pa.file_url', 'pa.file_type', 'pa.file_size', 'pa.created_at', 'pa.updated_at'])
+      .where('pa.id', '=', attachmentId)
+      .where('pa.purchase_id', '=', purchaseId)
+      .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
       .executeTakeFirst();
       
     if (!row) throw new AppError('Attachment not found', 'ATTACHMENT_NOT_FOUND', 404);

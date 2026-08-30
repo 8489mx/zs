@@ -357,6 +357,64 @@ export class SalesWriteService {
 
       const allowNegativeStockSales = await this.getAllowNegativeStockSales(trx, scope.tenantId);
 
+      const productIds = Array.from(new Set(normalized.items.map((it) => it.productId)));
+      const productRows = productIds.length > 0
+        ? await trx.selectFrom('products as p')
+            .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+            .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.item_type', 'b.id as bom_id'])
+            .where('p.id', 'in', productIds)
+            .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
+            .where('p.is_active', '=', true)
+            .execute()
+        : [];
+      const productMap = new Map(productRows.map((p) => [Number(p.id), p]));
+
+      const allOffers = productIds.length > 0
+        ? await trx
+            .selectFrom('product_offers')
+            .select(['product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
+            .where('product_id', 'in', productIds)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .where('is_active', '=', true)
+            .orderBy('id', 'desc')
+            .execute()
+        : [];
+      const offersByProductId = new Map<number, typeof allOffers>();
+      for (const off of allOffers) {
+        const pId = Number(off.product_id);
+        if (!offersByProductId.has(pId)) offersByProductId.set(pId, []);
+        offersByProductId.get(pId)!.push(off);
+      }
+
+      const bomIds = productRows.map((p) => (p.bom_id ? Number(p.bom_id) : 0)).filter((id) => id > 0);
+      const allBomLines = bomIds.length > 0
+        ? await trx.selectFrom('manufacturing_bom_lines as l')
+            .innerJoin('products as p', 'p.id', 'l.component_product_id')
+            .select(['l.bom_id', 'p.name as component_name'])
+            .where('l.bom_id', 'in', bomIds)
+            .execute()
+        : [];
+      const bomNamesByBomId = new Map<number, string[]>();
+      for (const bl of allBomLines) {
+        const bId = Number(bl.bom_id);
+        if (!bomNamesByBomId.has(bId)) bomNamesByBomId.set(bId, []);
+        bomNamesByBomId.get(bId)!.push(String(bl.component_name || ''));
+      }
+
+      const allStockRows = normalized.locationId && productIds.length > 0
+        ? await trx.selectFrom('product_location_stock')
+            .select(['product_id', 'location_id', 'branch_id', 'qty'])
+            .where('product_id', 'in', productIds)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .execute()
+        : [];
+      const stockRowsByProductId = new Map<number, typeof allStockRows>();
+      for (const sr of allStockRows) {
+        const pId = Number(sr.product_id);
+        if (!stockRowsByProductId.has(pId)) stockRowsByProductId.set(pId, []);
+        stockRowsByProductId.get(pId)!.push(sr);
+      }
+
       let subtotal = 0;
       const preparedItems = [];
       const autoProduceItems = [];
@@ -364,16 +422,10 @@ export class SalesWriteService {
         if (Number(item.price || 0) <= 0) {
           throw new AppError('Sale item price must be greater than zero', 'INVALID_SALE_PRICE', 400);
         }
-        const product = await trx.selectFrom('products as p')
-          .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-          .select(['p.id', 'p.name', 'p.stock_qty', 'p.retail_price', 'p.wholesale_price', 'p.cost_price', 'p.item_type', 'b.id as bom_id'])
-          .where('p.id', '=', item.productId)
-          .where(sql<boolean>`p.tenant_id = ${scope.tenantId}`)
-          .where('p.is_active', '=', true)
-          .executeTakeFirst();
+        const product = productMap.get(item.productId);
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         
-        const activeOffers = await this.getCurrentProductOffers(trx, item.productId, scope.tenantId);
+        const activeOffers = offersByProductId.get(item.productId) || [];
         const allowedUnitPrice = calculateAllowedSaleUnitPrice({
           retailPrice: product.retail_price,
           wholesalePrice: product.wholesale_price,
@@ -384,21 +436,18 @@ export class SalesWriteService {
         this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
 
         let availableStockQty = 0;
+        const productStockRows = stockRowsByProductId.get(item.productId) || [];
         if (!normalized.locationId) {
           availableStockQty = Number(product.stock_qty || 0);
         } else if (eligibleLocations.length === 1) {
-          availableStockQty = await previewConsumableStockQty(trx, { productId: item.productId, branchId: normalized.branchId, locationId: normalized.locationId, tenantId: scope.tenantId, accountId: scope.accountId });
+          const locRow = productStockRows.find((r) => Number(r.location_id) === Number(normalized.locationId));
+          const unassignedRow = productStockRows.find((r) => r.location_id == null && r.branch_id == null);
+          availableStockQty = Number((Number(locRow?.qty || 0) + Number(unassignedRow?.qty || 0)).toFixed(3));
         } else {
           // If all_operational_locations is enabled, sum the stock of all eligible locations + unassigned
           const locIds = eligibleLocations.map(l => l.id).filter(id => id != null);
-          const stockRows = await trx.selectFrom('product_location_stock')
-            .select(['location_id', 'branch_id', 'qty'])
-            .where('product_id', '=', item.productId)
-            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-            .execute();
-          
           let totalEligible = 0;
-          for (const row of stockRows) {
+          for (const row of productStockRows) {
             if (row.location_id == null && row.branch_id == null) {
               totalEligible += Number(row.qty || 0);
             } else if (row.location_id != null && locIds.includes(Number(row.location_id))) {
@@ -412,14 +461,9 @@ export class SalesWriteService {
         let finalProductName = product.name;
 
         if (hasBOM) {
-          const bomLines = await trx.selectFrom('manufacturing_bom_lines as l')
-            .innerJoin('products as p', 'p.id', 'l.component_product_id')
-            .select('p.name')
-            .where('l.bom_id', '=', Number(product.bom_id))
-            .execute();
-          
+          const bomLines = bomNamesByBomId.get(Number(product.bom_id)) || [];
           if (bomLines.length > 0) {
-            finalProductName = `${product.name} (${bomLines.map(l => l.name).join(' + ')})`;
+            finalProductName = `${product.name} (${bomLines.join(' + ')})`;
           }
         }
 
@@ -588,8 +632,16 @@ export class SalesWriteService {
       const docNo = await this.generateSaleDocNo(trx, id, scope.tenantId);
       await trx.updateTable('sales').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
-      for (const payment of payments) {
-        await trx.insertInto('sale_payments').values({ sale_id: id, payment_channel: payment.paymentChannel, amount: payment.amount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();
+      if (payments.length > 0) {
+        await trx.insertInto('sale_payments').values(
+          payments.map((payment) => ({
+            sale_id: id,
+            payment_channel: payment.paymentChannel,
+            amount: payment.amount,
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          }))
+        ).execute();
       }
 
       await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);

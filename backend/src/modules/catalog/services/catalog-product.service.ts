@@ -489,8 +489,8 @@ export class CatalogProductService {
     const tokens = normalized.split(/\s+/).filter(Boolean);
     let productQuery = this.db
       .selectFrom('products as p')
-      .leftJoin('product_units as pu', 'pu.product_id', 'p.id')
-      .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+      .leftJoin('product_units as pu', (join) => join.onRef('pu.product_id', '=', 'p.id').on(this.tenantPredicate(actor, 'pu')))
+      .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true).on(this.tenantPredicate(actor, 'b')))
       .select([
         'p.id',
         'p.name',

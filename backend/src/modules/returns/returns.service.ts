@@ -268,7 +268,7 @@ export class ReturnsService {
       : `Created ${label} by ${auth.username}`;
     await this.audit.log('إنشاء مرتجع', auditText, auth);
 
-    const result = { ok: true, createdIds: returnIds, ...(await this.listReturns({}, auth)) };
+    const result = { ok: true, createdIds: returnIds, id: returnIds[0], returnDocumentId: returnIds[0] };
 
     // Idempotency: commit the response so future duplicate requests return it
     if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
@@ -293,6 +293,32 @@ export class ReturnsService {
 
     const inMemoryReturnedQtyForProduct = new Map<string, number>();
 
+    const returnedRows = await trx
+      .selectFrom('return_items as ri')
+      .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
+      .select([
+        'ri.product_id',
+        'ri.sale_item_id',
+        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty')
+      ])
+      .where('rd.return_type', '=', 'sale')
+      .where('rd.invoice_id', '=', Number(payload.invoiceId))
+      .where(this.tenantPredicate(auth, 'rd'))
+      .where(this.tenantPredicate(auth, 'ri'))
+      .groupBy(['ri.product_id', 'ri.sale_item_id'])
+      .execute();
+
+    const returnedQtyByLine = new Map<number, number>();
+    const returnedQtyByProduct = new Map<number, number>();
+    for (const r of returnedRows) {
+      const q = Number(r.total_qty || 0);
+      if (r.sale_item_id) {
+        returnedQtyByLine.set(Number(r.sale_item_id), q);
+      }
+      const pId = Number(r.product_id || 0);
+      returnedQtyByProduct.set(pId, (returnedQtyByProduct.get(pId) || 0) + q);
+    }
+
     for (const requestItem of items) {
       // If saleItemId is provided, validate it belongs to this invoice AND this product
       if (requestItem.saleItemId) {
@@ -313,7 +339,9 @@ export class ReturnsService {
         : saleItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
       if (!saleItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       
-      const alreadyReturnedQty = await this.getReturnedQty(trx, 'sale', Number(payload.invoiceId), requestItem.productId, auth, requestItem.saleItemId);
+      const alreadyReturnedQty = requestItem.saleItemId
+        ? (returnedQtyByLine.get(requestItem.saleItemId) || 0)
+        : (returnedQtyByProduct.get(requestItem.productId) || 0);
       const limitKey = requestItem.saleItemId ? `line_${requestItem.saleItemId}` : `prod_${requestItem.productId}`;
       const currentInMemory = inMemoryReturnedQtyForProduct.get(limitKey) || 0;
       
@@ -412,13 +440,41 @@ export class ReturnsService {
 
     const inMemoryReturnedQtyForProduct = new Map<string, number>();
 
+    const returnedRows = await trx
+      .selectFrom('return_items as ri')
+      .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
+      .select([
+        'ri.product_id',
+        'ri.purchase_item_id',
+        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty')
+      ])
+      .where('rd.return_type', '=', 'purchase')
+      .where('rd.invoice_id', '=', Number(payload.invoiceId))
+      .where(this.tenantPredicate(auth, 'rd'))
+      .where(this.tenantPredicate(auth, 'ri'))
+      .groupBy(['ri.product_id', 'ri.purchase_item_id'])
+      .execute();
+
+    const returnedQtyByLine = new Map<number, number>();
+    const returnedQtyByProduct = new Map<number, number>();
+    for (const r of returnedRows) {
+      const q = Number(r.total_qty || 0);
+      if (r.purchase_item_id) {
+        returnedQtyByLine.set(Number(r.purchase_item_id), q);
+      }
+      const pId = Number(r.product_id || 0);
+      returnedQtyByProduct.set(pId, (returnedQtyByProduct.get(pId) || 0) + q);
+    }
+
     for (const requestItem of items) {
       const purchaseItem = requestItem.purchaseItemId
         ? purchaseItems.find((entry) => Number(entry.id) === requestItem.purchaseItemId)
         : purchaseItems.find((entry) => Number(entry.product_id || 0) === Number(requestItem.productId));
       if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       
-      const alreadyReturnedQty = await this.getReturnedQty(trx, 'purchase', Number(payload.invoiceId), requestItem.productId, auth, requestItem.purchaseItemId);
+      const alreadyReturnedQty = requestItem.purchaseItemId
+        ? (returnedQtyByLine.get(requestItem.purchaseItemId) || 0)
+        : (returnedQtyByProduct.get(requestItem.productId) || 0);
       const limitKey = requestItem.purchaseItemId ? `line_${requestItem.purchaseItemId}` : `prod_${requestItem.productId}`;
       const currentInMemory = inMemoryReturnedQtyForProduct.get(limitKey) || 0;
       

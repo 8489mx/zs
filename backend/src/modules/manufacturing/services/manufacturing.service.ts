@@ -71,19 +71,29 @@ export class ManufacturingService {
       .orderBy('b.id', 'desc')
       .execute();
 
+    const bomIds = boms.map((b) => Number(b.id)).filter(Boolean);
+    const allLines = bomIds.length > 0
+      ? await this.db.selectFrom('manufacturing_bom_lines')
+          .selectAll()
+          .where('bom_id', 'in', bomIds)
+          .execute()
+      : [];
+
+    const linesByBomId = new Map<number, any[]>();
+    for (const line of allLines) {
+      const bId = Number(line.bom_id);
+      if (!linesByBomId.has(bId)) linesByBomId.set(bId, []);
+      linesByBomId.get(bId)!.push({
+        componentId: line.component_product_id,
+        quantity: line.quantity,
+        unitName: line.unit_name,
+        expectedCost: line.expected_cost,
+        wastePercentage: line.waste_percentage,
+      });
+    }
+
     for (const bom of boms) {
-      const lines = await this.db.selectFrom('manufacturing_bom_lines')
-        .selectAll()
-        .where('bom_id', '=', bom.id)
-        .execute();
-      
-      (bom as any).lines = lines.map(l => ({
-        componentId: l.component_product_id,
-        quantity: l.quantity,
-        unitName: l.unit_name,
-        expectedCost: l.expected_cost,
-        wastePercentage: l.waste_percentage
-      }));
+      (bom as any).lines = linesByBomId.get(Number(bom.id)) || [];
     }
 
     return { ok: true, boms };
@@ -135,6 +145,7 @@ export class ManufacturingService {
       const woCount = await trx.selectFrom('manufacturing_work_orders')
         .select(({ fn }) => fn.count('id').as('count'))
         .where('bom_id', '=', id)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .executeTakeFirst();
       
       if (Number(woCount?.count || 0) > 0) {

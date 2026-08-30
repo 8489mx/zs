@@ -116,6 +116,7 @@ export class ReportsService {
         .where('s.created_at', '>=', fromDate)
         .where('s.created_at', '<=', toDate)
         .where(this.tenantPredicate(auth, 's'))
+        .where(this.tenantPredicate(auth, 'si'))
         .execute(),
       this.db
         .selectFrom('return_items as ri')
@@ -137,6 +138,7 @@ export class ReportsService {
         .where('rd.created_at', '>=', fromDate!)
         .where('rd.created_at', '<=', toDate!)
         .where(this.tenantPredicate(auth, 'rd'))
+        .where(this.tenantPredicate(auth, 'ri'))
         .execute(),
     ]);
 
