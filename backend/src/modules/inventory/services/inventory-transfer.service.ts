@@ -366,11 +366,15 @@ export class InventoryTransferService {
           const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
           const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `الرصيد غير كافٍ للصنف ${product.name}` });
           await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_send', qty: -qty, before_qty: fromChange.scopeBefore, after_qty: fromChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل داخلي إلى ${to.name}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
+        } else {
+          // Deduct from unassigned explicitly
+          const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: null, locationId: null };
+          await applyStockDelta(trx, { ...fromScope, delta: -qty, skipGlobalUpdate: true, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `الرصيد غير كافٍ للصنف ${product.name}` });
         }
 
         // Add to destination location
         const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: to.branchId, locationId: to.id, skipGlobalUpdate: isUnassignedLink };
-        const toChange = await applyStockDelta(trx, { ...toScope, delta: isUnassignedLink ? 0 : qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
+        const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving`, disableAutoDrain: isUnassignedLink });
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: isUnassignedLink ? 'stock_assign' : 'transfer_receive',
@@ -506,15 +510,15 @@ export class InventoryTransferService {
     const datePrefix = `${yy}${mm}${dd}`;
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
 
-    const countResult = await trx
+    const lastDoc = await trx
       .selectFrom('stock_transfers')
-      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .select(sql<number>`MAX(CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER))`.as('last_seq'))
       .where(this.tenantPredicate(auth))
       .where('created_at', '>=', startOfDay)
       .executeTakeFirst();
 
-    const count = Number(countResult?.count || 1);
-    const seq = String(count).padStart(4, '0');
+    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
+    const seq = String(nextSeq).padStart(4, '0');
     return `ZTR-${datePrefix}-${seq}`;
   }
 }

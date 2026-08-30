@@ -5,6 +5,11 @@ import { getOfflineSalesQueue, updateOfflineSaleStatus, removeOfflineSale, Offli
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateSalesDomain } from '@/app/query-invalidation';
 
+let isSyncInProgress = false;
+let retryCount = 0;
+const RETRY_INTERVALS = [30000, 60000, 120000, 120000, 120000];
+let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+
 export function usePosOfflineSync() {
   const [offlineQueue, setOfflineQueue] = useState<OfflinePosSale[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -21,35 +26,60 @@ export function usePosOfflineSync() {
   }, [refreshQueue]);
 
   const syncOfflineSales = useCallback(async () => {
-    const queue = getOfflineSalesQueue();
-    const pendingSales = queue.filter(item => item.status !== 'syncing');
-    
-    if (pendingSales.length === 0) return;
-    
-    setIsSyncing(true);
-    
-    for (const sale of pendingSales) {
-      try {
-        updateOfflineSaleStatus(sale.id, 'syncing');
-        const input = sale.payload;
-        const payload = buildPosSalePayload(input);
-        const legacyPayload = buildLegacyPosSalePayload(input);
-        const minimalPayload = buildMinimalPosSalePayload(input);
-        
-        await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });
-        removeOfflineSale(sale.id);
-      } catch (error: any) {
-        // If it's a validation error, mark as failed permanently, otherwise keep pending
-        if (error?.status === 400 || error?.status === 403) {
-          updateOfflineSaleStatus(sale.id, 'failed', error.message || 'Validation failed');
-        } else {
-          updateOfflineSaleStatus(sale.id, 'pending', 'Network failure during sync');
+    if (isSyncInProgress) return;
+    isSyncInProgress = true;
+
+    try {
+      const queue = getOfflineSalesQueue();
+      const pendingSales = queue.filter(item => item.status !== 'syncing');
+      
+      if (pendingSales.length === 0) return;
+      
+      setIsSyncing(true);
+      
+      for (const sale of pendingSales) {
+        try {
+          updateOfflineSaleStatus(sale.id, 'syncing');
+          const input = sale.payload;
+          const payload = buildPosSalePayload(input);
+          const legacyPayload = buildLegacyPosSalePayload(input);
+          const minimalPayload = buildMinimalPosSalePayload(input);
+          
+          await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });
+          removeOfflineSale(sale.id);
+        } catch (error: any) {
+          // If it's a validation error, mark as failed permanently, otherwise keep pending
+          if (error?.status === 400 || error?.status === 403) {
+            updateOfflineSaleStatus(sale.id, 'failed', error.message || 'Validation failed');
+          } else {
+            updateOfflineSaleStatus(sale.id, 'pending', 'Network failure during sync');
+          }
         }
       }
+      
+      setIsSyncing(false);
+      await invalidateSalesDomain(queryClient, { includeDashboard: true });
+
+      const remainingPending = getOfflineSalesQueue().filter(item => item.status === 'pending');
+      if (remainingPending.length > 0) {
+        if (retryCount < 5) {
+          const delay = RETRY_INTERVALS[Math.min(retryCount, RETRY_INTERVALS.length - 1)] || 120000;
+          retryCount++;
+          if (retryTimeout) clearTimeout(retryTimeout);
+          retryTimeout = setTimeout(() => {
+            syncOfflineSales();
+          }, delay);
+        }
+      } else {
+        retryCount = 0;
+        if (retryTimeout) {
+          clearTimeout(retryTimeout);
+          retryTimeout = null;
+        }
+      }
+    } finally {
+      isSyncInProgress = false;
     }
-    
-    setIsSyncing(false);
-    await invalidateSalesDomain(queryClient, { includeDashboard: true });
   }, [queryClient]);
 
   useEffect(() => {

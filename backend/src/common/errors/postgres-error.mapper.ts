@@ -117,19 +117,21 @@ function mapNotNullViolation(error: PgErrorLike, message: string, detail: string
   console.error('[DB_NOT_NULL_VIOLATION]', { message, detail, column: error.column });
   const column = normalizeKey(pickFirstString(error.column, inferColumnFromMessageAndDetail(message, detail)));
   const mapped = column ? REQUIRED_FIELD_MESSAGES[column] : '';
-  return new AppError(mapped || MSG_REQUIRED_FIELD, 'DB_NOT_NULL_VIOLATION', 400, { column: column || null });
+  const isProd = process.env.NODE_ENV === 'production';
+  return new AppError(mapped || MSG_REQUIRED_FIELD, 'DB_NOT_NULL_VIOLATION', 400, isProd ? undefined : { column: column || null });
 }
 
 function mapUniqueViolation(error: PgErrorLike, message: string, detail: string): AppError {
   const source = inferConstraintHint(error, message, detail);
   const match = UNIQUE_CONSTRAINT_MESSAGES.find((entry) => entry.matcher.test(source));
+  const isProd = process.env.NODE_ENV === 'production';
   if (match) {
-    return new AppError(match.message, match.appCode, 409, {
+    return new AppError(match.message, match.appCode, 409, isProd ? undefined : {
       constraint: asText(error.constraint) || null,
       source,
     });
   }
-  return new AppError(MSG_DUP_GENERIC, 'DB_UNIQUE_VIOLATION', 409, {
+  return new AppError(MSG_DUP_GENERIC, 'DB_UNIQUE_VIOLATION', 409, isProd ? undefined : {
     constraint: asText(error.constraint) || null,
     source: source || null,
   });

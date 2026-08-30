@@ -148,6 +148,61 @@ export function useScannerBuffer(opts: {
     [onFlush, inputRef],
   );
 
+  useEffect(() => {
+    let windowRapidCount = 0;
+    let windowLastKeystroke = 0;
+    let windowBuffer = '';
+    let windowFlushTimer: number = 0;
+
+    const handleWindowKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) {
+        return;
+      }
+
+      if (e.key.length !== 1 || e.ctrlKey || e.altKey || e.metaKey) return;
+
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const elapsed = now - windowLastKeystroke;
+      windowLastKeystroke = now;
+
+      if (elapsed > 0 && elapsed < scanThresholdMs) {
+        windowRapidCount++;
+      } else {
+        windowRapidCount = 1;
+        windowBuffer = '';
+      }
+
+      windowBuffer += e.key;
+
+      if (windowFlushTimer) window.clearTimeout(windowFlushTimer);
+
+      const isScanning = windowRapidCount >= 3;
+
+      if (isScanning) {
+        windowFlushTimer = window.setTimeout(() => {
+          const finalValue = sanitize ? sanitize(windowBuffer) : windowBuffer;
+          if (onAutoSubmitRef.current && finalValue.trim()) {
+            const autoHandled = onAutoSubmitRef.current(finalValue);
+            if (autoHandled) {
+              windowBuffer = '';
+              windowRapidCount = 0;
+              return;
+            }
+          }
+          onFlush(finalValue);
+          windowBuffer = '';
+          windowRapidCount = 0;
+        }, scanFlushMs);
+      }
+    };
+
+    window.addEventListener('keydown', handleWindowKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleWindowKeyDown);
+      if (windowFlushTimer) window.clearTimeout(windowFlushTimer);
+    };
+  }, [onFlush, sanitize, scanThresholdMs, scanFlushMs]);
+
   return {
     /** onChange handler for the input element. */
     handleChange,

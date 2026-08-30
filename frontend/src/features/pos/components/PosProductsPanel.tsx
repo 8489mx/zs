@@ -277,12 +277,8 @@ function PosProductsPanelComponent({
     });
   };
   
-  let categories: any[] = [];
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const categoriesQuery = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });
-    categories = categoriesQuery.data || [];
-  } catch {}
+  const categoriesQuery = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });
+  const categories: any[] = categoriesQuery.data || [];
   const iconSettings = useProductIconSettings();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isStudioOpen, setIsStudioOpen] = useState(false);

@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/node';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { json, urlencoded } from 'express';
-import compression from 'compression';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -54,12 +53,23 @@ async function bootstrap(): Promise<void> {
             const data = typeof event.request.data === 'string' ? JSON.parse(event.request.data) : event.request.data;
             if (data && typeof data === 'object') {
               const sensitiveKeys = ['password', 'token', 'secret', 'connection', 'smtp', 'db'];
-              for (const key of Object.keys(data)) {
-                if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
-                  data[key] = '[REDACTED]';
+              
+              const deepRedact = (obj: any, sensitiveKeys: string[]): any => {
+                if (!obj || typeof obj !== 'object') return obj;
+                if (Array.isArray(obj)) return obj.map(item => deepRedact(item, sensitiveKeys));
+                const result = { ...obj };
+                for (const key of Object.keys(result)) {
+                  if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+                    result[key] = '[REDACTED]';
+                  } else if (typeof result[key] === 'object') {
+                    result[key] = deepRedact(result[key], sensitiveKeys);
+                  }
                 }
-              }
-              event.request.data = typeof event.request.data === 'string' ? JSON.stringify(data) : data;
+                return result;
+              };
+              
+              const redactedData = deepRedact(data, sensitiveKeys);
+              event.request.data = typeof event.request.data === 'string' ? JSON.stringify(redactedData) : redactedData;
             }
           } catch (e) {
             // ignore JSON parse errors
@@ -82,7 +92,13 @@ async function bootstrap(): Promise<void> {
 
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
-  app.use(compression({ threshold: 1024 }));
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const compression = require('compression');
+    if (typeof compression === 'function') {
+      app.use(compression({ threshold: 1024 }));
+    }
+  } catch {}
 
   app.useGlobalPipes(requestValidationPipe);
   app.useGlobalFilters(new GlobalExceptionFilter(logger));

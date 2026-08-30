@@ -47,6 +47,7 @@ export class PurchasesQueryService {
       .selectFrom('purchase_attachments')
       .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
       .where('purchase_id', 'in', purchaseIds)
+      .where(this.tenantPredicate(auth))
       .orderBy('purchase_id', 'asc')
       .orderBy('id', 'asc')
       .execute() : [];
@@ -56,7 +57,13 @@ export class PurchasesQueryService {
 
   async listPurchases(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const purchases = await this.db
+    const page = Math.max(1, Number(query.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || query.limit || 25)));
+    const offset = (page - 1) * pageSize;
+    const search = String(query.search || query.q || '').trim();
+    const filter = String(query.filter || query.view || 'all').trim().toLowerCase();
+
+    let qb = this.db
       .selectFrom('purchases as p')
       .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
       .leftJoin('branches as b', 'b.id', 'p.branch_id')
@@ -65,16 +72,46 @@ export class PurchasesQueryService {
       .select([
         'p.id', 'p.doc_no', 'p.supplier_id', 's.name as supplier_name', 'p.payment_type', 'p.subtotal', 'p.discount', 'p.tax_rate', 'p.tax_amount',
         'p.prices_include_tax', 'p.total', 'p.note', 'p.status', 'p.branch_id', 'p.location_id', 'p.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
-        'p.required_date', 'p.currency', 'p.company_name', 'p.contact_id', 'p.shipping_address_id', 'p.cost_center_id', 'p.project_id', 'p.terms_template'
+        'p.required_date', 'p.currency', 'p.company_name', 'p.contact_id', 'p.shipping_address_id', 'p.cost_center_id', 'p.project_id', 'p.terms_template',
+        sql<number>`COUNT(*) OVER()`.as('total_count'),
+        sql<number>`COALESCE(SUM(p.total) OVER(), 0)`.as('agg_total_amount'),
+        sql<number>`COALESCE(SUM(CASE WHEN p.payment_type = 'cash' THEN p.total ELSE 0 END) OVER(), 0)`.as('agg_cash_total'),
+        sql<number>`COALESCE(SUM(CASE WHEN p.payment_type = 'credit' THEN p.total ELSE 0 END) OVER(), 0)`.as('agg_credit_total'),
+        sql<number>`COALESCE(SUM(CASE WHEN p.status = 'cancelled' THEN 1 ELSE 0 END) OVER(), 0)`.as('agg_cancelled_count')
       ])
-      .where(this.tenantPredicate(auth, 'p'))
+      .where(this.tenantPredicate(auth, 'p'));
+
+    if (search) {
+      qb = qb.where((eb) =>
+        eb.or([
+          eb('p.doc_no', 'ilike', `%${search}%`),
+          eb('s.name', 'ilike', `%${search}%`),
+          eb('p.note', 'ilike', `%${search}%`),
+          eb('b.name', 'ilike', `%${search}%`),
+          eb('l.name', 'ilike', `%${search}%`),
+        ])
+      );
+    }
+
+    if (filter === 'cash') {
+      qb = qb.where('p.payment_type', '=', 'cash');
+    } else if (filter === 'credit') {
+      qb = qb.where('p.payment_type', '=', 'credit');
+    } else if (filter === 'cancelled') {
+      qb = qb.where('p.status', '=', 'cancelled');
+    }
+
+    const purchases = await qb
       .orderBy('p.id', 'desc')
+      .limit(pageSize)
+      .offset(offset)
       .execute();
 
-    const shells = mapPurchaseRows(purchases as unknown as Array<Record<string, unknown>>, [], []);
-    const filtered = filterPurchases(shells, query);
-    const paged = paginatePurchases(filtered, query);
-    const pagedIds = paged.rows.map((r) => Number(r.id || 0)).filter((id) => id > 0);
+    const firstRow = (purchases[0] || {}) as Record<string, unknown>;
+    const totalItems = purchases.length > 0 ? Number(firstRow.total_count || 0) : 0;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    const pagedIds = purchases.map((r) => Number(r.id || 0)).filter((id) => id > 0);
 
     const [items, attachments] = pagedIds.length
       ? await Promise.all([
@@ -90,20 +127,35 @@ export class PurchasesQueryService {
             .selectFrom('purchase_attachments')
             .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
             .where('purchase_id', 'in', pagedIds)
+            .where(this.tenantPredicate(auth))
             .orderBy('purchase_id', 'asc')
             .orderBy('id', 'asc')
             .execute(),
         ])
       : [[], []];
 
-    const pagedPurchases = purchases.filter((p) => pagedIds.includes(Number(p.id)));
     const hydratedRows = mapPurchaseRows(
-      pagedPurchases as unknown as Array<Record<string, unknown>>,
+      purchases as unknown as Array<Record<string, unknown>>,
       items as unknown as Array<Record<string, unknown>>,
       attachments as unknown as Array<Record<string, unknown>>
     );
 
-    return { purchases: hydratedRows, pagination: paged.pagination, summary: summarizePurchases(filtered), scope };
+    const baseSummary = summarizePurchases(hydratedRows);
+    const summary = {
+      ...baseSummary,
+      totalItems,
+      totalAmount: purchases.length > 0 ? Number(Number(firstRow.agg_total_amount || 0).toFixed(2)) : 0,
+      cashTotal: purchases.length > 0 ? Number(Number(firstRow.agg_cash_total || 0).toFixed(2)) : 0,
+      creditTotal: purchases.length > 0 ? Number(Number(firstRow.agg_credit_total || 0).toFixed(2)) : 0,
+      cancelledCount: purchases.length > 0 ? Number(firstRow.agg_cancelled_count || 0) : 0,
+    };
+
+    return {
+      purchases: hydratedRows,
+      pagination: { page, pageSize, totalItems, totalPages },
+      summary,
+      scope
+    };
   }
 
   async getPurchaseById(id: number, auth: AuthContext): Promise<Record<string, unknown>> {

@@ -33,13 +33,14 @@ export class SalesFinanceService {
     referenceId: number,
     auth: AuthContext,
   ): Promise<void> {
-    const customer = await queryable
-      .selectFrom('customers')
-      .select(['balance'])
+    const updatedCustomer = await queryable
+      .updateTable('customers')
+      .set({ balance: sql`COALESCE(balance, 0) + ${amount}`, updated_at: sql`NOW()` })
       .where('id', '=', customerId)
       .where(this.tenantPredicate(auth))
+      .returning(['balance'])
       .executeTakeFirstOrThrow();
-    const nextBalance = Number(Number(customer.balance || 0) + amount).toFixed(2);
+    const nextBalance = Number(updatedCustomer.balance).toFixed(2);
     await queryable
       .insertInto('customer_ledger')
       .values({
@@ -53,12 +54,6 @@ export class SalesFinanceService {
         created_by: auth.userId,
         ...this.tenantFields(auth),
       } as any)
-      .execute();
-    await queryable
-      .updateTable('customers')
-      .set({ balance: Number(nextBalance), updated_at: sql`NOW()` })
-      .where('id', '=', customerId)
-      .where(this.tenantPredicate(auth))
       .execute();
   }
 

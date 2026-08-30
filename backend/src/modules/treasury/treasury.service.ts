@@ -23,39 +23,57 @@ export class TreasuryService {
 
   async listExpenses(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const result = await sql<{
-      id: number;
-      title: string;
-      amount: string | number;
-      expense_date: string;
-      note: string;
-      branch_id: number | null;
-      location_id: number | null;
-      branch_name: string | null;
-      location_name: string | null;
-      created_by_name: string | null;
-    }>`
-      SELECT
-        e.id,
-        e.title,
-        e.amount,
-        e.expense_date,
-        e.note,
-        e.branch_id,
-        e.location_id,
-        b.name AS branch_name,
-        l.name AS location_name,
-        u.username AS created_by_name
-      FROM expenses e
-      LEFT JOIN branches b ON b.id = e.branch_id AND b.tenant_id = ${scope.tenantId}
-      LEFT JOIN stock_locations l ON l.id = e.location_id AND l.tenant_id = ${scope.tenantId}
-      LEFT JOIN users u ON u.id = e.created_by AND u.tenant_id = ${scope.tenantId}
-      WHERE e.tenant_id = ${scope.tenantId}
-      ORDER BY e.id DESC
-    `.execute(this.db);
+    const search = String(query.search || '').trim();
+    const searchPattern = search ? `%${search}%` : null;
+    
+    const page = Math.max(1, Number(query.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 20)));
+    const offset = (page - 1) * pageSize;
 
-    const search = String(query.search || '').trim().toLowerCase();
-    let rows = result.rows.map((row) => ({
+    const querySql = search 
+      ? sql`
+          WITH filtered_expenses AS (
+            SELECT
+              e.id, e.title, e.amount, e.expense_date, e.note, e.branch_id, e.location_id,
+              b.name AS branch_name, l.name AS location_name, u.username AS created_by_name
+            FROM expenses e
+            LEFT JOIN branches b ON b.id = e.branch_id AND b.tenant_id = ${scope.tenantId}
+            LEFT JOIN stock_locations l ON l.id = e.location_id AND l.tenant_id = ${scope.tenantId}
+            LEFT JOIN users u ON u.id = e.created_by AND u.tenant_id = ${scope.tenantId}
+            WHERE e.tenant_id = ${scope.tenantId}
+            AND (
+              e.title ILIKE ${searchPattern} OR
+              e.note ILIKE ${searchPattern} OR
+              u.username ILIKE ${searchPattern} OR
+              b.name ILIKE ${searchPattern} OR
+              l.name ILIKE ${searchPattern}
+            )
+          )
+          SELECT *, COUNT(*) OVER() as total_count, SUM(amount) OVER() as total_amount
+          FROM filtered_expenses
+          ORDER BY id DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `
+      : sql`
+          WITH filtered_expenses AS (
+            SELECT
+              e.id, e.title, e.amount, e.expense_date, e.note, e.branch_id, e.location_id,
+              b.name AS branch_name, l.name AS location_name, u.username AS created_by_name
+            FROM expenses e
+            LEFT JOIN branches b ON b.id = e.branch_id AND b.tenant_id = ${scope.tenantId}
+            LEFT JOIN stock_locations l ON l.id = e.location_id AND l.tenant_id = ${scope.tenantId}
+            LEFT JOIN users u ON u.id = e.created_by AND u.tenant_id = ${scope.tenantId}
+            WHERE e.tenant_id = ${scope.tenantId}
+          )
+          SELECT *, COUNT(*) OVER() as total_count, SUM(amount) OVER() as total_amount
+          FROM filtered_expenses
+          ORDER BY id DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `;
+
+    const result = await querySql.execute(this.db) as any;
+
+    let rows = result.rows.map((row: any) => ({
       id: String(row.id),
       title: row.title || '',
       amount: Number(row.amount || 0),
@@ -68,21 +86,16 @@ export class TreasuryService {
       locationName: row.location_name || '',
     }));
 
-    if (search) {
-      rows = rows.filter((row) =>
-        [row.title, row.note, row.createdBy, row.branchName, row.locationName]
-          .some((value) => String(value || '').toLowerCase().includes(search)),
-      );
-    }
-
-    const paged = paginateRows(rows, query, { defaultSize: 20, includeRange: true });
+    const totalItems = result.rows.length > 0 ? Number(result.rows[0].total_count) : 0;
+    const totalAmount = result.rows.length > 0 ? Number(result.rows[0].total_amount) : 0;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
     return {
-      expenses: paged.rows,
-      pagination: paged.pagination,
+      expenses: rows,
+      pagination: { page, pageSize, totalItems, totalPages },
       summary: {
-        totalItems: rows.length,
-        totalAmount: Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2)),
+        totalItems,
+        totalAmount: Number(totalAmount.toFixed(2)),
       },
       scope,
     };

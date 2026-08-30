@@ -97,16 +97,16 @@ export class ReturnsService {
     const datePrefix = `${yy}${mm}${dd}`;
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
 
-    const countResult = await trx
+    const lastDoc = await trx
       .selectFrom('return_documents')
-      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .select(sql<number>`MAX(CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER))`.as('last_seq'))
       .where(this.tenantPredicate(auth))
       .where('return_type', '=', returnType)
       .where('created_at', '>=', startOfDay)
       .executeTakeFirst();
 
-    const count = Number(countResult?.count || 1);
-    const seq = String(count).padStart(4, '0');
+    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
+    const seq = String(nextSeq).padStart(4, '0');
     return `${prefix}-${datePrefix}-${seq}`;
   }
 
@@ -387,8 +387,13 @@ export class ReturnsService {
                const returnToThis = Math.min(availableInAlloc, remainingToReturn);
                remainingToReturn = Number((remainingToReturn - returnToThis).toFixed(3));
 
-               const locData = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', alloc.location_id).executeTakeFirst();
-               const branchId = locData?.branch_id || sale.branch_id;
+                const locData = await trx
+                  .selectFrom('stock_locations')
+                  .select('branch_id')
+                  .where('id', '=', alloc.location_id)
+                  .where(this.tenantPredicate(auth))
+                  .executeTakeFirst();
+                const branchId = locData?.branch_id || sale.branch_id;
 
                const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: returnToThis, branchId: branchId, locationId: alloc.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
                await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
@@ -418,6 +423,7 @@ export class ReturnsService {
     if (settlementMode === 'store_credit' && customerId) await this.addStoreCredit(trx, customerId, total, auth);
     else if (sale.payment_type === 'credit' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -total, 'sale_return', 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
     else if (refundMethod === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
+    else if (refundMethod === 'card') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return (card) ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
 
     try {
       await this.accountingPosting.postSalesReturn(trx, returnDocumentId, auth);

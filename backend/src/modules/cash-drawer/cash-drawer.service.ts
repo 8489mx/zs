@@ -128,12 +128,31 @@ export class CashDrawerService {
     if (typeof value === 'string' && value.trim()) {
       try { const parsed = JSON.parse(value); if (typeof parsed === 'string' && parsed.trim()) return parsed.trim(); } catch { return value.trim(); }
     }
-    return '1234';
+    return '';
   }
 
   private async assertManagerPin(pin: string, auth: AuthContext): Promise<void> {
+    const normalizedPin = String(pin || '').trim();
+    if (!normalizedPin) {
+      throw new AppError('أدخل رمز المشرف أو كلمة مرور الإدارة', 'MANAGER_PIN_INVALID', 400);
+    }
     const expected = await this.getManagerPin(auth);
-    if (!pin || String(pin).trim() !== expected) throw new AppError('رمز الاعتماد غير صحيح', 'MANAGER_PIN_INVALID', 400);
+    if (expected && normalizedPin === expected) return;
+
+    // Check if entered pin is an admin user password
+    const scope = this.scope(auth);
+    const adminUsers = await sql<UserPasswordRow>`
+      select id, is_active, password_hash, password_salt
+      from users
+      where tenant_id = ${scope.tenantId} and is_active = true and role in ('admin', 'super_admin')
+    `.execute(this.db);
+
+    for (const admin of adminUsers.rows || []) {
+      const check = await verifyPassword(normalizedPin, String(admin.password_hash || ''), String(admin.password_salt || ''));
+      if (check.valid) return;
+    }
+
+    throw new AppError('رمز الاعتماد غير صحيح', 'MANAGER_PIN_INVALID', 400);
   }
   private shouldRequireManagerApprovalForCashOut(auth: AuthContext): boolean { return !['admin', 'super_admin', 'manager'].includes(String(auth.role || '').trim()); }
   private canReviewPendingShift(auth: AuthContext): boolean { return ['admin', 'super_admin', 'manager'].includes(String(auth.role || '').trim()); }
@@ -552,7 +571,14 @@ export class CashDrawerService {
     }
     query = sql<ShiftRow>`${query} order by s.id desc`;
     const result = await query.execute(this.db);
-    const hydratedRows = await Promise.all((result.rows ?? []).map((row) => this.hydrateShiftRow(row, auth)));
+    const hydratedRows = await Promise.all(
+      (result.rows ?? []).map((row) => {
+        if (String(row.status || 'open') === 'open') {
+          return this.hydrateShiftRow(row, auth);
+        }
+        return row;
+      }),
+    );
     const mapped = hydratedRows.map((row) => mapCashDrawerShiftRow(row));
     if (auth.role === 'cashier') {
       return mapped.map((row) => ({

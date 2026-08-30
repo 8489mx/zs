@@ -427,7 +427,7 @@ export class HrService {
                 department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)},
                 branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)},
                 is_active = ${payload.isActive !== false}, updated_by = ${auth.userId}, updated_at = NOW()
-            WHERE id = ${id}
+            WHERE id = ${id} AND tenant_id = ${auth.tenantId}
           `.execute(trx);
         } else {
           await sql`
@@ -442,7 +442,7 @@ export class HrService {
             UPDATE ${table}
             SET name = ${clean(payload.name)}, code = ${clean(payload.code)}, description = ${clean(payload.description)},
                 is_active = ${payload.isActive !== false}, updated_by = ${auth.userId}, updated_at = NOW()
-            WHERE id = ${id}
+            WHERE id = ${id} AND tenant_id = ${auth.tenantId}
           `.execute(trx);
         } else {
           await sql`
@@ -458,7 +458,7 @@ export class HrService {
 
   async deactivateMasterData(kind: MasterKind, id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const config = masterConfig[kind];
-    await sql`UPDATE ${sql.table(config.table)} SET is_active = FALSE, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id}`.execute(this.db);
+    await sql`UPDATE ${sql.table(config.table)} SET is_active = FALSE, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log(`Deactivate ${config.auditName}`, `${config.auditName} deactivated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listMasterData(kind, {}, auth)) };
   }
@@ -576,9 +576,63 @@ export class HrService {
   }
 
   async getEmployeeProfile(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const employees = await this.listEmployees({ pageSize: 1000 }, auth);
-    const employee = ((employees.employees as Record<string, unknown>[]) || []).find((row) => String(row.id) === String(id));
-    if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
+    const result = await sql<Record<string, unknown>>`
+      SELECT e.*, d.name AS department_name, j.name AS job_title_name, p.name AS position_name, b.name AS branch_name, l.name AS location_name, u.username AS username
+      , to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date_text
+      FROM hr_employees e
+      LEFT JOIN hr_departments d ON d.id = e.department_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
+      LEFT JOIN hr_positions p ON p.id = e.position_id
+      LEFT JOIN branches b ON b.id = e.branch_id
+      LEFT JOIN stock_locations l ON l.id = e.location_id
+      LEFT JOIN users u ON u.id = e.user_id
+      WHERE e.id = ${id} AND ${this.tenantPredicate(auth, 'e')}
+    `.execute(this.db);
+
+    if (result.rows.length === 0) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
+
+    const row = result.rows[0];
+    const employee = {
+      id: String(row.id),
+      employeeNo: clean(row.employee_no),
+      nationalId: clean(row.national_id),
+      firstName: clean(row.first_name),
+      lastName: clean(row.last_name),
+      displayName: clean(row.display_name) || `${clean(row.first_name)} ${clean(row.last_name)}`.trim(),
+      status: clean(row.status) || 'active',
+      userId: row.user_id ? String(row.user_id) : '',
+      username: clean(row.username),
+      departmentId: row.department_id ? String(row.department_id) : '',
+      departmentName: clean(row.department_name),
+      jobTitleId: row.job_title_id ? String(row.job_title_id) : '',
+      jobTitleName: clean(row.job_title_name),
+      positionId: row.position_id ? String(row.position_id) : '',
+      positionName: clean(row.position_name),
+      branchId: row.branch_id ? String(row.branch_id) : '',
+      branchName: clean(row.branch_name),
+      locationId: row.location_id ? String(row.location_id) : '',
+      locationName: clean(row.location_name),
+      hireDate: clean(row.hire_date_text),
+      compensationType: clean(row.compensation_type) || 'monthly',
+      payFrequency: clean(row.pay_frequency) || 'monthly',
+      hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
+      expectedDailyHours: row.expected_daily_hours != null ? Number(row.expected_daily_hours) : null,
+      scheduledCheckInTime: clean(row.scheduled_check_in_time),
+      scheduledCheckOutTime: clean(row.scheduled_check_out_time),
+      graceMinutes: Number(row.grace_minutes || 0),
+      overtimePolicy: clean(row.overtime_policy) || 'review_only',
+      attendancePolicy: clean(row.attendance_policy) || 'strict',
+      commissionType: clean(row.commission_type) || 'inherit',
+      commissionValue: row.commission_value == null ? null : Number(row.commission_value),
+      commissionTarget: row.commission_target == null ? null : Number(row.commission_target),
+      delayPolicy: clean(row.delay_policy) || 'inherit',
+      hasSocialInsurance: row.has_social_insurance === true,
+      insuranceSalary: row.insurance_salary == null ? null : Number(row.insurance_salary),
+      hasIncomeTax: row.has_income_tax === true,
+      annualLeaveBalance: row.annual_leave_balance == null ? 21 : Number(row.annual_leave_balance),
+      usedAnnualLeaves: row.used_annual_leaves == null ? 0 : Number(row.used_annual_leaves),
+      notes: clean(row.notes),
+    };
 
     const [contacts, documents] = await Promise.all([
       this.listContacts(id, auth),
@@ -785,7 +839,7 @@ export class HrService {
               insurance_salary = ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)},
               has_income_tax = ${Boolean(payload.hasIncomeTax)},
               updated_by = ${auth.userId}, updated_at = NOW()
-          WHERE id = ${id}
+          WHERE id = ${id} AND tenant_id = ${auth.tenantId}
         `.execute(this.db);
       } else {
         await this.tx.runInTransaction(this.db, async (trx) => {
@@ -810,7 +864,7 @@ export class HrService {
   }
 
   async deactivateEmployee(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    await sql`UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id}`.execute(this.db);
+    await sql`UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log('Deactivate HR employee', `Employee #${id} deactivated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
@@ -903,12 +957,12 @@ export class HrService {
   }
 
   async deleteEmployeeAdjustment(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await sql<{ status: string }>`SELECT status FROM hr_employee_adjustments WHERE id = ${id}`.execute(this.db);
+    const result = await sql<{ status: string }>`SELECT status FROM hr_employee_adjustments WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     const adjustment = result.rows[0];
     if (!adjustment) throw new AppError('Adjustment not found', 'NOT_FOUND', 404);
     if (adjustment.status !== 'pending') throw new AppError('Cannot delete applied adjustment', 'CANNOT_DELETE_APPLIED', 400);
 
-    await sql`DELETE FROM hr_employee_adjustments WHERE id = ${id}`.execute(this.db);
+    await sql`DELETE FROM hr_employee_adjustments WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log(`Delete HR Employee Adjustment`, `Adjustment #${id} deleted by ${auth.username}`, auth);
     return { success: true };
   }
@@ -1092,7 +1146,7 @@ export class HrService {
   }
 
   async updateLoan(id: number, payload: UpsertEmployeeLoanDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const existing = await sql<{ status: string }>`SELECT status FROM hr_employee_loans WHERE id = ${id}`.execute(this.db);
+    const existing = await sql<{ status: string }>`SELECT status FROM hr_employee_loans WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     if (!existing.rows.length) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
     if (existing.rows[0].status !== 'draft') throw new AppError('Only draft loans can be edited', 'HR_LOAN_EDIT_LOCKED', 400);
 
@@ -1109,7 +1163,7 @@ export class HrService {
             repayment_mode = ${plan.repaymentMode}, monthly_installment_amount = ${plan.monthlyInstallmentAmount},
             issue_date = ${issueDate}, first_due_date = ${plan.firstDueDate}, salary_due_date = ${plan.salaryDueDate}, branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)},
             notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
       `.execute(trx);
 
       await sql`DELETE FROM hr_employee_loan_installments WHERE loan_id = ${id}`.execute(trx);
@@ -1130,7 +1184,7 @@ export class HrService {
   }
 
   async approveLoan(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    await sql`UPDATE hr_employee_loans SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND status = 'draft'`.execute(this.db);
+    await sql`UPDATE hr_employee_loans SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log('Approve HR employee loan', `Employee loan #${id} approved by ${auth.username}`, auth);
     return { ok: true, ...(await this.listLoans({}, auth)) };
   }
@@ -1143,7 +1197,7 @@ export class HrService {
       const loan = result.rows[0];
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
       if (clean(loan.status) !== 'approved') throw new AppError('Loan must be approved before disbursement', 'HR_LOAN_APPROVAL_REQUIRED', 400);
-      await sql`UPDATE hr_employee_loans SET status = 'paid', disbursed_by = ${auth.userId}, disbursed_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id}`.execute(trx);
+      await sql`UPDATE hr_employee_loans SET status = 'paid', disbursed_by = ${auth.userId}, disbursed_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
       const ledger = await sql<{ id: number }>`
         INSERT INTO hr_employee_ledger (employee_id, entry_type, amount, balance_after, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id)
         VALUES (${loan.employee_id}, 'loan_disbursement', ${Number(loan.principal_amount || 0)}, ${Number(loan.remaining_amount || 0)}, 'Employee advance/loan disbursed', 'hr_employee_loan', ${id}, ${toId(loan.branch_id)}, ${toId(loan.location_id)}, ${auth.userId}, ${this.scope(auth).tenantId}, ${this.scope(auth).accountId})
@@ -1178,7 +1232,7 @@ export class HrService {
       if (!(amount > 0)) throw new AppError('Loan has no remaining balance', 'HR_LOAN_NO_BALANCE', 400);
       const paid = Number(loan.paid_amount || 0) + amount;
       const remaining = Math.max(0, Number(loan.remaining_amount || 0) - amount);
-      await sql`UPDATE hr_employee_loans SET paid_amount = ${paid}, remaining_amount = ${remaining}, status = ${remaining > 0 ? 'partially_repaid' : 'repaid'}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id}`.execute(trx);
+      await sql`UPDATE hr_employee_loans SET paid_amount = ${paid}, remaining_amount = ${remaining}, status = ${remaining > 0 ? 'partially_repaid' : 'repaid'}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
       let remainingRepayment = amount;
       const installments = await sql<Record<string, unknown>>`
         SELECT id, amount, paid_amount
@@ -1574,7 +1628,7 @@ export class HrService {
         `.execute(db);
       }
     }
-    await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId}`.execute(db);
+    await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId} AND tenant_id = ${tenantId}`.execute(db);
   }
 
   private async calculatePayrollOperationalReview(
@@ -2174,7 +2228,7 @@ export class HrService {
       await this.rebuildPayrollRunItems(trx, id, 'draft');
 
       await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft'`.execute(trx);
-      await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id}`.execute(trx);
+      await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Review HR payroll run', `Payroll run #${id} reviewed by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
@@ -2288,7 +2342,7 @@ export class HrService {
       if (!posted) throw new AppError('Payroll accrual journal entry could not be created or already exists', 'HR_PAYROLL_ACCRUAL_FAILED', 400);
 
       await sql`UPDATE hr_payroll_run_items SET status = 'approved', updated_at = NOW() WHERE run_id = ${id} AND status = 'reviewed'`.execute(trx);
-      await sql`UPDATE hr_payroll_runs SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_at = NOW() WHERE id = ${id}`.execute(trx);
+      await sql`UPDATE hr_payroll_runs SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Approve HR payroll run', `Payroll run #${id} approved by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
@@ -2338,7 +2392,7 @@ export class HrService {
   async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const status = await this.getPayrollRunStatus(this.db, id, auth.tenantId || '');
     if (['approved', 'paid'].includes(status)) throw new AppError('Approved or paid payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
-    await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status NOT IN ('approved', 'paid')`.execute(this.db);
+    await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status NOT IN ('approved', 'paid') AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log('Cancel HR payroll run', `Payroll run #${id} cancelled by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
   }
@@ -2366,7 +2420,7 @@ export class HrService {
         VALUES (${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
       `.execute(trx);
       await this.recalculatePayrollItemTotals(trx, id);
-      await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${item.runId}`.execute(trx);
+      await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${item.runId} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Create HR payroll adjustment', `Payroll item #${id} adjustment added by ${auth.username}`, auth);
     return this.getPayrollRun(item.runId, auth);
@@ -2391,7 +2445,7 @@ export class HrService {
       itemId = Number(row.payroll_item_id || 0);
       await sql`DELETE FROM hr_payroll_item_adjustments WHERE id = ${id}`.execute(trx);
       await this.recalculatePayrollItemTotals(trx, itemId);
-      await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId}`.execute(trx);
+      await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${runId} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Delete HR payroll adjustment', `Payroll adjustment #${id} deleted by ${auth.username}`, auth);
     return this.getPayrollRun(runId, auth);
@@ -2968,7 +3022,7 @@ export class HrService {
 
   async decideAttendanceException(id: number, status: 'approved' | 'skipped', payload: DecideAttendanceExceptionDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const currentResult = await sql<Record<string, unknown>>`SELECT * FROM hr_attendance_exceptions WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const currentResult = await sql<Record<string, unknown>>`SELECT * FROM hr_attendance_exceptions WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
     console.log('query result rows:', currentResult.rows);
     const current = currentResult.rows[0];
     if (!current) throw new AppError('Attendance exception not found', 'HR_ATTENDANCE_EXCEPTION_NOT_FOUND', 404);
@@ -2985,7 +3039,7 @@ export class HrService {
           approved_duration_minutes = ${approvedDurationMinutes},
           note = ${clean(payload.note) || null},
           updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
     `.execute(this.db);
     await this.audit.log(
       `${status === 'approved' ? 'Approve' : 'Skip'} attendance exception`,
@@ -3000,6 +3054,7 @@ export class HrService {
     const result = await sql<Record<string, unknown>>`
       SELECT *
       FROM hr_leave_types
+      WHERE tenant_id = ${auth.tenantId}
       ORDER BY is_active DESC, name ASC, id ASC
     `.execute(this.db);
     const search = clean(query.search).toLowerCase();
@@ -3038,7 +3093,7 @@ export class HrService {
       await sql`
         UPDATE hr_leave_types
         SET name = ${name}, code = ${code || null}, description = ${description || null}, is_paid = ${isPaid}, is_active = ${isActive}, deducts_from_balance = ${deductsFromBalance}, updated_by = ${auth.userId}, updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
       `.execute(this.db);
     } else {
       await sql`
@@ -3146,7 +3201,7 @@ export class HrService {
 
   async approveLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
     const status = clean(current.rows[0]?.status);
     if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
     if (['cancelled', 'rejected'].includes(status)) throw new AppError('Cannot approve this leave request', 'HR_LEAVE_APPROVE_LOCKED', 400);
@@ -3159,7 +3214,7 @@ export class HrService {
           decided_at = NOW(),
           updated_by = ${auth.userId},
           updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
     `.execute(this.db);
     await this.audit.log('Approve HR leave request', `Leave request #${id} approved by ${auth.username}`, auth);
     return this.listLeaveRequests({}, auth);
@@ -3167,7 +3222,7 @@ export class HrService {
 
   async rejectLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
     const status = clean(current.rows[0]?.status);
     if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
     if (['cancelled', 'approved'].includes(status)) throw new AppError('Cannot reject this leave request', 'HR_LEAVE_REJECT_LOCKED', 400);
@@ -3180,7 +3235,7 @@ export class HrService {
           decided_at = NOW(),
           updated_by = ${auth.userId},
           updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
     `.execute(this.db);
     await this.audit.log('Reject HR leave request', `Leave request #${id} rejected by ${auth.username}`, auth);
     return this.listLeaveRequests({}, auth);
@@ -3188,7 +3243,7 @@ export class HrService {
 
   async cancelLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} LIMIT 1`.execute(this.db);
+    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
     const status = clean(current.rows[0]?.status);
     if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
     if (status === 'cancelled') return this.listLeaveRequests({}, auth);
@@ -3201,7 +3256,7 @@ export class HrService {
           decided_at = NOW(),
           updated_by = ${auth.userId},
           updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
     `.execute(this.db);
     await this.audit.log('Cancel HR leave request', `Leave request #${id} cancelled by ${auth.username}`, auth);
     return this.listLeaveRequests({}, auth);

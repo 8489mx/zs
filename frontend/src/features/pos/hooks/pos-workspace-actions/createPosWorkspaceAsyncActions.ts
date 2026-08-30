@@ -81,6 +81,7 @@ export function createPosWorkspaceAsyncActions(
   }
 
   async function handleSubmit(options: SubmitOptions = {}) {
+    if (params.createSale.isPending) return;
     if (!params.hasOperationalSetup) {
       params.setSubmitMessage('أكمل تعريف المتجر ونقطة التشغيل قبل أول فاتورة.');
       params.requestBarcodeFocus();

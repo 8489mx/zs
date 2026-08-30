@@ -34,6 +34,7 @@ type StockDeltaParams = StockScopeParams & {
   errorMessage?: string;
   allowNegative?: boolean;
   skipGlobalUpdate?: boolean;
+  disableAutoDrain?: boolean;
 };
 
 type StockSetParams = StockScopeParams & {
@@ -311,7 +312,7 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
   const location = await ensureLocationBalance(db, state, params.locationId, params.branchId ?? null);
   let locationBefore = roundStockQty(location.qty);
 
-  if (unassigned && roundStockQty(unassigned.qty) > 0.001) {
+  if (!params.disableAutoDrain && unassigned && roundStockQty(unassigned.qty) > 0.001) {
     const unassignedBefore = roundStockQty(unassigned.qty);
     const provisionedLocationQty = roundStockQty(locationBefore + unassignedBefore);
     await updateBalanceQty(db, state.scope, unassigned, 0, null);

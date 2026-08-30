@@ -1199,6 +1199,7 @@ export class AccountingService {
         .updateTable('journal_entries')
         .set({ entry_no: `JE-${String(id).padStart(8, '0')}`, updated_at: sql`NOW()` } as any)
         .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
         .execute();
 
       for (const line of preview.linesPreview) {
@@ -1243,11 +1244,11 @@ export class AccountingService {
 
   async createDraftJournalEntry(input: DraftJournalEntryInput, auth: AuthContext): Promise<number> {
     this.assertAccountingAccess(auth);
-    const validation = await this.validateBalancedLines(input.lines);
+    const validation = await this.validateBalancedLines(input.lines, auth);
     if (!validation.ok) throw new ForbiddenException(validation.message);
 
     const scope = requireTenantScope(auth);
-    const sequenceRow = await this.db.selectFrom('journal_entries').select((eb) => eb.fn.countAll<number>().as('count')).executeTakeFirst();
+    const sequenceRow = await this.db.selectFrom('journal_entries').select((eb) => eb.fn.countAll<number>().as('count')).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
     const sequence = Number(sequenceRow?.count || 0) + 1;
     const entryNo = `JE-${String(sequence).padStart(6, '0')}`;
 
@@ -1291,7 +1292,7 @@ export class AccountingService {
     return inserted;
   }
 
-  async validateBalancedLines(lines: DraftJournalLineInput[]): Promise<{ ok: true; lines: Array<Required<DraftJournalLineInput>> } | { ok: false; message: string }> {
+  async validateBalancedLines(lines: DraftJournalLineInput[], auth?: AuthContext): Promise<{ ok: true; lines: Array<Required<DraftJournalLineInput>> } | { ok: false; message: string }> {
     if (!Array.isArray(lines) || lines.length < 2) {
       return { ok: false, message: 'Journal entry must include at least two lines.' };
     }
@@ -1322,11 +1323,12 @@ export class AccountingService {
       if (!(line.debit > 0 || line.credit > 0)) return { ok: false, message: 'Each line must have debit or credit amount.' };
     }
 
-    const accounts = await this.db
-      .selectFrom('accounting_accounts')
-      .select(['id', 'is_active'])
-      .where('id', 'in', normalized.map((line) => line.accountId))
-      .execute();
+    let accountsQuery = this.db.selectFrom('accounting_accounts').select(['id', 'is_active']).where('id', 'in', normalized.map((line) => line.accountId));
+    if (auth) {
+      const scope = requireTenantScope(auth);
+      accountsQuery = accountsQuery.where('tenant_id', '=', scope.tenantId);
+    }
+    const accounts = await accountsQuery.execute();
 
     const activeMap = new Map(accounts.map((row) => [Number(row.id), Boolean(row.is_active)]));
     for (const line of normalized) {
@@ -1484,7 +1486,7 @@ export class AccountingService {
         if (dto.parentId !== undefined) {
           updateData.parent_id = dto.parentId;
           if (dto.parentId) {
-             const parent = await this.db.selectFrom('accounting_accounts').select('normal_balance').where('id', '=', dto.parentId).executeTakeFirst();
+             const parent = await this.db.selectFrom('accounting_accounts').select('normal_balance').where('id', '=', dto.parentId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
              if (parent) updateData.normal_balance = parent.normal_balance;
           }
         }
@@ -1531,6 +1533,7 @@ export class AccountingService {
     const hasChildren = await this.db.selectFrom('accounting_accounts')
       .select('id')
       .where('parent_id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
       .limit(1)
       .executeTakeFirst();
       

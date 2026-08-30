@@ -146,7 +146,7 @@ export function getSanitizedDatabaseTarget(): string {
   return getSanitizedDatabaseTargetFromResolved(config);
 }
 
-function createDb(): Kysely<Database> {
+export function createDb(): Kysely<Database> {
   const config = resolveDatabaseConfigFromEnv();
   const pool = new Pool({
     host: config.host,

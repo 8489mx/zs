@@ -388,6 +388,13 @@ export class AccountingPostingService {
       this.logger.warn(`Skipping journal insertion for ${params.sourceType} ${params.sourceId}; no active journal lines.`);
       return 0;
     }
+
+    const totalDebit = params.lines.reduce((s, l) => s + (l.debit || 0), 0);
+    const totalCredit = params.lines.reduce((s, l) => s + (l.credit || 0), 0);
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      throw new Error(`Unbalanced journal entry for ${params.sourceType} #${params.sourceId}: debit=${totalDebit.toFixed(2)} credit=${totalCredit.toFixed(2)}`);
+    }
+
     const tempEntryNo = `JE-TMP-${params.sourceType}-${params.sourceId}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const inserted = await queryable
       .insertInto('journal_entries')
@@ -448,7 +455,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
-        'delivery_fee', 'delivery_fee_mode',
+        'delivery_fee', 'delivery_fee_mode', 'prices_include_tax',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -475,7 +482,9 @@ export class AccountingPostingService {
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
     const saleTotal = this.toMoney(sale.total);
     const receivableAmount = this.toMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
-    const revenueCredit = this.toMoney(subtotal + deliveryFee);
+    const revenueCredit = sale.prices_include_tax
+      ? this.toMoney(subtotal - taxAmount + deliveryFee)
+      : this.toMoney(subtotal + deliveryFee);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
@@ -647,7 +656,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
-        'delivery_fee', 'delivery_fee_mode',
+        'delivery_fee', 'delivery_fee_mode', 'prices_include_tax',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -674,7 +683,9 @@ export class AccountingPostingService {
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
     const saleTotal = this.toMoney(sale.total);
     const receivableAmount = this.toMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
-    const revenueCredit = this.toMoney(subtotal + deliveryFee);
+    const revenueCredit = sale.prices_include_tax
+      ? this.toMoney(subtotal - taxAmount + deliveryFee)
+      : this.toMoney(subtotal + deliveryFee);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;

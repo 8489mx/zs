@@ -22,10 +22,17 @@ export class SalesQueryService {
       : sql<boolean>`tenant_id = ${tenantId}`;
   }
 
-  private async fetchSaleBaseRows(auth: AuthContext, query?: Record<string, unknown>): Promise<Array<Record<string, unknown>>> {
-    const search = typeof query?.search === 'string' ? query.search.trim() : '';
+  private async fetchSaleBaseRows(auth: AuthContext, query?: Record<string, unknown>): Promise<{ rows: Array<Record<string, unknown>>, totalItems: number }> {
+    const search = typeof query?.search === 'string' ? query.search.trim() : (typeof query?.q === 'string' ? query.q.trim() : '');
     const numericId = Number(search);
     const hasNumericId = Number.isInteger(numericId) && numericId > 0;
+    
+    const filter = String(query?.paymentChannel || query?.filter || query?.view || 'all').toLowerCase();
+    const cashier = String(query?.cashier || query?.createdBy || 'all').trim();
+    const cashierLower = cashier.toLowerCase();
+    
+    const page = Math.max(1, Number(query?.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query?.pageSize || 30)));
 
     let qb = this.db
       .selectFrom('sales as s')
@@ -39,6 +46,13 @@ export class SalesQueryService {
         's.subtotal', 's.discount', 's.tax_rate', 's.tax_amount', 's.prices_include_tax', 's.total', 's.paid_amount', 's.tendered_amount', 's.change_amount', 's.store_credit_used', 's.delivery_fee',
         's.status', 's.note', 's.table_number', 's.order_type', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
         's.delivery_rep_id', 'dr.name as delivery_rep_name',
+        sql<number>`COUNT(*) OVER()`.as('total_count'),
+        sql<number>`COALESCE(SUM(s.total) OVER(), 0)`.as('agg_total_sales'),
+        sql<number>`COALESCE(SUM(CASE WHEN s.payment_type = 'cash' OR s.payment_channel = 'cash' THEN s.total ELSE 0 END) OVER(), 0)`.as('agg_cash_total'),
+        sql<number>`COALESCE(SUM(CASE WHEN s.payment_type = 'credit' OR s.payment_channel = 'credit' THEN s.total ELSE 0 END) OVER(), 0)`.as('agg_credit_total'),
+        sql<number>`COALESCE(SUM(CASE WHEN s.status = 'cancelled' THEN 1 ELSE 0 END) OVER(), 0)`.as('agg_cancelled_count'),
+        sql<number>`COALESCE(SUM(CASE WHEN s.created_at >= CURRENT_DATE THEN 1 ELSE 0 END) OVER(), 0)`.as('agg_today_sales_count'),
+        sql<number>`COALESCE(SUM(CASE WHEN s.created_at >= CURRENT_DATE THEN s.total ELSE 0 END) OVER(), 0)`.as('agg_today_sales_total')
       ])
       .where(this.tenantPredicate(auth, 's'));
 
@@ -57,12 +71,38 @@ export class SalesQueryService {
           clauses.push(eb('s.id', '=', numericId));
         }
         return eb.or(clauses);
-      }).limit(50);
+      });
     }
 
-    return qb
+    if (filter !== 'all') {
+      if (filter === 'cash') {
+        qb = qb.where((eb) => eb.or([eb('s.payment_channel', '=', 'cash'), eb.and([eb('s.payment_type', '=', 'cash'), eb('s.payment_channel', 'is', null)])]));
+      } else if (filter === 'card') {
+        qb = qb.where('s.payment_channel', '=', 'card');
+      } else if (filter === 'credit') {
+        qb = qb.where((eb) => eb.or([eb('s.payment_type', '=', 'credit'), eb('s.payment_channel', '=', 'credit')]));
+      } else if (filter === 'wallet' || filter === 'instapay' || filter === 'mixed') {
+        qb = qb.where('s.payment_channel', '=', filter);
+      } else if (filter === 'cancelled') {
+        qb = qb.where('s.status', '=', 'cancelled');
+      }
+    }
+
+    if (cashierLower !== 'all') {
+      qb = qb.where((eb) => eb.or([
+        sql<boolean>`CAST(s.created_by AS TEXT) = ${cashier}`,
+        eb('u.username', '=', cashierLower)
+      ]));
+    }
+
+    const rows = await qb
       .orderBy('s.id', 'desc')
+      .limit(pageSize)
+      .offset((page - 1) * pageSize)
       .execute() as unknown as Array<Record<string, unknown>>;
+      
+    const totalItems = rows.length > 0 ? Number(rows[0].total_count) : 0;
+    return { rows, totalItems };
   }
 
   private mapSaleShells(sales: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
@@ -140,22 +180,30 @@ export class SalesQueryService {
     const scope = requireTenantScope(auth);
     this.authz.assertCanViewSales(auth);
 
-    const baseSales = await this.fetchSaleBaseRows(auth, query);
+    const { rows: baseSales, totalItems } = await this.fetchSaleBaseRows(auth, query);
     const shells = this.mapSaleShells(baseSales);
-    const filtered = filterSales(shells, query);
-    const summary = summarizeSales(filtered);
-    const allCashiers = summarizeSales(shells).cashiers;
-    summary.cashiers = allCashiers;
-    const paged = paginateRows(filtered, query);
-    const baseById = new Map(baseSales.map((sale) => [String(sale.id), sale]));
-    const pagedBaseSales = paged.rows
-      .map((row) => baseById.get(String(row.id)))
-      .filter((row): row is Record<string, unknown> => Boolean(row));
-    const hydratedSales = await this.hydrateSales(pagedBaseSales, auth);
+    const firstRow = (baseSales[0] || {}) as Record<string, unknown>;
+    const baseSummary = summarizeSales(shells);
+    const summary = {
+      ...baseSummary,
+      totalItems,
+      totalSales: baseSales.length > 0 ? Number(Number(firstRow.agg_total_sales || 0).toFixed(2)) : 0,
+      todaySalesCount: baseSales.length > 0 ? Number(firstRow.agg_today_sales_count || 0) : 0,
+      todaySalesTotal: baseSales.length > 0 ? Number(Number(firstRow.agg_today_sales_total || 0).toFixed(2)) : 0,
+      cashTotal: baseSales.length > 0 ? Number(Number(firstRow.agg_cash_total || 0).toFixed(2)) : 0,
+      creditTotal: baseSales.length > 0 ? Number(Number(firstRow.agg_credit_total || 0).toFixed(2)) : 0,
+      cancelledCount: baseSales.length > 0 ? Number(firstRow.agg_cancelled_count || 0) : 0,
+    };
+    
+    const page = Math.max(1, Number(query.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 30)));
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    const hydratedSales = await this.hydrateSales(baseSales, auth);
 
     return {
       sales: hydratedSales,
-      pagination: paged.pagination,
+      pagination: { page, pageSize, totalItems, totalPages },
       summary,
       scope,
     };

@@ -36,8 +36,11 @@ export type PreparedReturnLine = {
 
 export function buildSaleReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem): PreparedReturnLine {
   const soldQty = Number(source.qty || 0);
-  const unitTotal = soldQty > 0 ? roundMoney(Number(source.line_total || 0) / soldQty) : 0;
-  const lineTotal = roundMoney(Number(requestItem.qty || 0) * unitTotal);
+  const sourceLineTotal = Number(source.line_total || 0);
+  const lineTotal = (requestItem.qty === soldQty)
+    ? sourceLineTotal
+    : roundMoney((sourceLineTotal / soldQty) * requestItem.qty);
+  const unitTotal = soldQty > 0 ? roundMoney(sourceLineTotal / soldQty) : 0;
   const stockDelta = Number((Number(requestItem.qty || 0) * Number(source.unit_multiplier || 1)).toFixed(3));
   const beforeQty = Number(product.stock_qty || 0);
   const afterQty = Number((beforeQty + stockDelta).toFixed(3));
@@ -56,8 +59,11 @@ export function buildSaleReturnLine(source: ReturnSourceLine, product: ReturnPro
 
 export function buildPurchaseReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem): PreparedReturnLine {
   const purchasedQty = Number(source.qty || 0);
-  const unitTotal = purchasedQty > 0 ? roundMoney(Number(source.line_total || 0) / purchasedQty) : 0;
-  const lineTotal = roundMoney(Number(requestItem.qty || 0) * unitTotal);
+  const sourceLineTotal = Number(source.line_total || 0);
+  const lineTotal = (requestItem.qty === purchasedQty)
+    ? sourceLineTotal
+    : roundMoney((sourceLineTotal / purchasedQty) * requestItem.qty);
+  const unitTotal = purchasedQty > 0 ? roundMoney(sourceLineTotal / purchasedQty) : 0;
   const stockDelta = Number((Number(requestItem.qty || 0) * Number(source.unit_multiplier || 1)).toFixed(3));
   const beforeQty = Number(product.stock_qty || 0);
   if (beforeQty + 0.0001 < stockDelta) {

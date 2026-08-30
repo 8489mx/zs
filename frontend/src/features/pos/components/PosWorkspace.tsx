@@ -567,10 +567,15 @@ export function PosWorkspace() {
         open={checkoutDialogOpen}
         pos={pos}
         selectedCustomerName={selectedCustomerName}
-        onClose={() => setCheckoutDialogOpen(false)}
-        onConfirmSale={(managerPin) => {
+        onClose={() => {
           setCheckoutDialogOpen(false);
-          void pos.handleSubmit({ managerPin });
+          focusBarcodeEntry();
+        }}
+        onConfirmSale={(managerPin) => {
+          void pos.handleSubmit({ managerPin }).then(() => {
+            setCheckoutDialogOpen(false);
+            focusBarcodeEntry();
+          });
         }}
       />
 
@@ -596,6 +601,7 @@ export function PosWorkspace() {
         onClose={() => {
           setHeldDraftsDialogOpen(false);
           setShortcutRecallDraftId('');
+          focusBarcodeEntry();
         }}
         onRecall={async (draftId) => { 
           if (pos.cart.length > 0) {
@@ -694,7 +700,10 @@ export function PosWorkspace() {
 
       <PosItemModifiersModal
         open={Boolean(modifiersModalLineKey)}
-        onClose={() => setModifiersModalLineKey('')}
+        onClose={() => {
+          setModifiersModalLineKey('');
+          focusBarcodeEntry();
+        }}
         item={pos.cart.find((item) => item.lineKey === modifiersModalLineKey) || null}
         onSave={(modifiers) => {
           if (modifiersModalLineKey) {
@@ -705,7 +714,10 @@ export function PosWorkspace() {
 
       <PosOpenShiftModal
         open={openShiftModalOpen}
-        onClose={() => setOpenShiftModalOpen(false)}
+        onClose={() => {
+          setOpenShiftModalOpen(false);
+          focusBarcodeEntry();
+        }}
         branches={pos.branchesQuery.data || []}
         locations={pos.locationsQuery.data || []}
         defaultBranchId={pos.branchId}

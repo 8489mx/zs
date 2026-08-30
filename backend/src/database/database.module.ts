@@ -31,9 +31,11 @@ import { resolvePgSslConfig } from './ssl.util';
           }),
           application_name: 'backend-new',
           max: Number(process.env.DATABASE_POOL_MAX || configService.get<number>('database.poolMax', 25)),
-          idleTimeoutMillis: Number(process.env.DATABASE_POOL_IDLE_MS || configService.get<number>('database.poolIdleTimeoutMs', 10000)),
+          idleTimeoutMillis: Number(process.env.DATABASE_POOL_IDLE_MS || configService.get<number>('database.poolIdleTimeoutMs', 30000)),
           connectionTimeoutMillis: Number(process.env.DATABASE_POOL_TIMEOUT_MS || configService.get<number>('database.poolConnectionTimeoutMs', 10000)),
           statement_timeout: Number(process.env.DATABASE_STATEMENT_TIMEOUT_MS || 15000),
+          keepAlive: true,
+          keepAliveInitialDelayMillis: 10000,
         });
 
         return new Kysely<Database>({

@@ -365,8 +365,9 @@ export class PurchasesWriteService {
 
         const oldQty = Math.max(0, stockChange.globalBefore);
         const oldCost = item.oldCostPrice;
-        const newCost = increasedQty > 0 
-          ? ((oldQty * oldCost) + (increasedQty * item.effectiveUnitCost)) / Math.max(1, oldQty + increasedQty)
+        const totalQty = oldQty + increasedQty;
+        const newCost = (increasedQty > 0 && totalQty > 0.00001) 
+          ? ((oldQty * oldCost) + (increasedQty * item.effectiveUnitCost)) / totalQty
           : oldCost;
 
         await trx.updateTable('products')
@@ -639,8 +640,9 @@ export class PurchasesWriteService {
 
         const oldQty = Math.max(0, stockChange.globalBefore);
         const oldCost = normalizedItem.oldCostPrice;
-        const newCost = increaseQty > 0 
-          ? ((oldQty * oldCost) + (increaseQty * repricedCost)) / Math.max(1, oldQty + increaseQty)
+        const totalQty = oldQty + increaseQty;
+        const newCost = (increaseQty > 0 && totalQty > 0.00001) 
+          ? ((oldQty * oldCost) + (increaseQty * repricedCost)) / totalQty
           : oldCost;
 
         await trx.updateTable('products')
@@ -883,15 +885,15 @@ export class PurchasesWriteService {
     const datePrefix = `${yy}${mm}${dd}`;
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
 
-    const countResult = await trx
+    const lastDoc = await trx
       .selectFrom('purchases')
-      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .select(sql<number>`MAX(CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER))`.as('last_seq'))
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where('created_at', '>=', startOfDay)
       .executeTakeFirst();
 
-    const count = Number(countResult?.count || 1);
-    const seq = String(count).padStart(4, '0');
+    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
+    const seq = String(nextSeq).padStart(4, '0');
     return `ZP-${datePrefix}-${seq}`;
   }
 
@@ -924,15 +926,15 @@ export class PurchasesWriteService {
     const datePrefix = `${yy}${mm}${dd}`;
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
 
-    const countResult = await trx
+    const lastDoc = await trx
       .selectFrom('supplier_payments')
-      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .select(sql<number>`MAX(CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER))`.as('last_seq'))
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where('payment_date', '>=', startOfDay)
       .executeTakeFirst();
 
-    const count = Number(countResult?.count || 1);
-    const seq = String(count).padStart(4, '0');
+    const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
+    const seq = String(nextSeq).padStart(4, '0');
     return `ZPV-${datePrefix}-${seq}`;
   }
 }

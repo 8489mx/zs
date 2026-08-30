@@ -6,12 +6,26 @@ import { ReportRangeQueryDto } from '../dto/report-query.dto';
 import { filterScope, parseRange, normalizeProduct, dateKey, buildLastNDays, TrendPoint } from '../helpers/reports-range.helper';
 import { sumMoney, toMoney, buildTrendMap, buildAggregatedBalances } from '../helpers/reports-math.helper';
 import { sql } from '../../../database/kysely';
+import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 
 @Injectable()
 export class ReportsSummaryService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
-  async reportSummary(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  private tenantId(auth: AuthContext): string {
+    return requireTenantScope(auth).tenantId;
+  }
+
+  private tenantPredicate(auth: AuthContext, alias?: string) {
+    const tenantId = this.tenantId(auth);
+    return alias
+      ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}`
+      : sql<boolean>`tenant_id = ${tenantId}`;
+  }
+
+  async reportSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantId = this.tenantId(auth);
     const range = parseRange(query);
     const fromDate = new Date(range.from);
     const toDate = new Date(range.to);
@@ -19,6 +33,7 @@ export class ReportsSummaryService {
     let salesQuery = this.db
       .selectFrom('sales')
       .select(['id', 'total', 'discount', 'branch_id', 'location_id', 'created_at'])
+      .where('tenant_id', '=', tenantId)
       .where('status', '=', 'posted')
       .where('created_at', '>=', fromDate)
       .where('created_at', '<=', toDate);
@@ -28,6 +43,7 @@ export class ReportsSummaryService {
     let purchasesQuery = this.db
       .selectFrom('purchases')
       .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
+      .where('tenant_id', '=', tenantId)
       .where('status', '=', 'posted')
       .where('created_at', '>=', fromDate)
       .where('created_at', '<=', toDate);
@@ -37,6 +53,7 @@ export class ReportsSummaryService {
     let expensesQuery = this.db
       .selectFrom('expenses')
       .select(['id', 'amount', 'branch_id', 'location_id', 'expense_date'])
+      .where('tenant_id', '=', tenantId)
       .where('expense_date', '>=', fromDate)
       .where('expense_date', '<=', toDate);
     if (query.branchId) expensesQuery = expensesQuery.where('branch_id', '=', query.branchId);
@@ -45,6 +62,7 @@ export class ReportsSummaryService {
     let returnsQuery = this.db
       .selectFrom('return_documents')
       .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_at'])
+      .where('tenant_id', '=', tenantId)
       .where('created_at', '>=', fromDate)
       .where('created_at', '<=', toDate);
     if (query.branchId) returnsQuery = returnsQuery.where('branch_id', '=', query.branchId);
@@ -53,6 +71,7 @@ export class ReportsSummaryService {
     let treasuryQuery = this.db
       .selectFrom('treasury_transactions')
       .select(['amount', 'branch_id', 'location_id', 'created_at'])
+      .where('tenant_id', '=', tenantId)
       .where('created_at', '>=', fromDate)
       .where('created_at', '<=', toDate);
     if (query.branchId) treasuryQuery = treasuryQuery.where('branch_id', '=', query.branchId);
@@ -71,6 +90,7 @@ export class ReportsSummaryService {
         's.location_id',
         's.created_at',
       ])
+      .where('s.tenant_id', '=', tenantId)
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', fromDate)
       .where('s.created_at', '<=', toDate);
@@ -134,7 +154,8 @@ export class ReportsSummaryService {
     };
   }
 
-  async dashboardOverview(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
+  async dashboardOverview(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const tenantId = this.tenantId(auth);
     const range = parseRange(query);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -148,6 +169,7 @@ export class ReportsSummaryService {
     let recentSalesQuery = this.db
       .selectFrom('sales')
       .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
+      .where('tenant_id', '=', tenantId)
       .where('status', '=', 'posted')
       .where('created_at', '>=', trendStart)
       .where('created_at', '<=', todayEnd);
@@ -157,6 +179,7 @@ export class ReportsSummaryService {
     let recentPurchasesQuery = this.db
       .selectFrom('purchases')
       .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
+      .where('tenant_id', '=', tenantId)
       .where('status', '=', 'posted')
       .where('created_at', '>=', trendStart)
       .where('created_at', '<=', todayEnd);
@@ -174,6 +197,7 @@ export class ReportsSummaryService {
         sql<number>`coalesce(sum(si.qty), 0)`.as('qty_total'),
         sql<number>`coalesce(sum(si.line_total), 0)`.as('sales_total'),
       ])
+      .where('s.tenant_id', '=', tenantId)
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', todayStart)
       .where('s.created_at', '<=', todayEnd)
@@ -195,20 +219,23 @@ export class ReportsSummaryService {
       activeOffersRows,
       topTodayRows,
     ] = await Promise.all([
-      this.reportSummary(query),
+      this.reportSummary(query, auth),
       this.db
         .selectFrom('products')
         .select(['id', 'name', 'category_id', 'supplier_id', 'retail_price', 'stock_qty', 'min_stock_qty', 'cost_price'])
+        .where('tenant_id', '=', tenantId)
         .where('is_active', '=', true)
         .execute(),
       this.db
         .selectFrom('customers')
         .select(['id', 'name', 'balance', 'credit_limit'])
+        .where('tenant_id', '=', tenantId)
         .where('is_active', '=', true)
         .execute(),
       this.db
         .selectFrom('suppliers')
         .select(['id', 'name', 'balance'])
+        .where('tenant_id', '=', tenantId)
         .where('is_active', '=', true)
         .execute(),
       recentSalesQuery.execute(),
@@ -216,16 +243,19 @@ export class ReportsSummaryService {
       this.db
         .selectFrom('customer_ledger')
         .select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+        .where('tenant_id', '=', tenantId)
         .groupBy('customer_id')
         .execute(),
       this.db
         .selectFrom('supplier_ledger')
         .select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+        .where('tenant_id', '=', tenantId)
         .groupBy('supplier_id')
         .execute(),
       this.db
         .selectFrom('product_offers')
         .select(['id'])
+        .where('tenant_id', '=', tenantId)
         .where('is_active', '=', true)
         .where(sql<boolean>`(start_date is null or start_date <= ${todayIso}) and (end_date is null or end_date >= ${todayIso})`)
         .execute(),

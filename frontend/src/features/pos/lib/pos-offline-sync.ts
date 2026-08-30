@@ -35,7 +35,11 @@ export function enqueueOfflineSale(payload: CreatePosSaleInput): OfflinePosSale 
   };
 
   queue.push(offlineSale);
-  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  try {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  } catch (e) {
+    console.error('Failed to save offline queue — storage may be full:', e);
+  }
   
   // Dispatch custom event to notify UI
   window.dispatchEvent(new Event('pos-offline-queue-updated'));
@@ -46,14 +50,22 @@ export function enqueueOfflineSale(payload: CreatePosSaleInput): OfflinePosSale 
 export function removeOfflineSale(id: string) {
   const queue = getOfflineSalesQueue();
   const nextQueue = queue.filter(item => item.id !== id);
-  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(nextQueue));
+  try {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(nextQueue));
+  } catch (e) {
+    console.error('Failed to save offline queue — storage may be full:', e);
+  }
   window.dispatchEvent(new Event('pos-offline-queue-updated'));
 }
 
 export function updateOfflineSaleStatus(id: string, status: OfflinePosSale['status'], error?: string) {
   const queue = getOfflineSalesQueue();
   const nextQueue = queue.map(item => item.id === id ? { ...item, status, error } : item);
-  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(nextQueue));
+  try {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(nextQueue));
+  } catch (e) {
+    console.error('Failed to save offline queue — storage may be full:', e);
+  }
   window.dispatchEvent(new Event('pos-offline-queue-updated'));
 }
 

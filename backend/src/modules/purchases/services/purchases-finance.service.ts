@@ -34,8 +34,14 @@ export class PurchasesFinanceService {
     branchId: number | null,
     locationId: number | null,
   ): Promise<void> {
-    const supplier = await queryable.selectFrom('suppliers').select(['balance']).where('id', '=', supplierId).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
-    const balanceAfter = Number((Number(supplier.balance || 0) + amount).toFixed(2));
+    const updatedSupplier = await queryable
+      .updateTable('suppliers')
+      .set({ balance: sql`COALESCE(balance, 0) + ${amount}`, updated_at: sql`NOW()` })
+      .where('id', '=', supplierId)
+      .where(this.tenantPredicate(actor))
+      .returning(['balance'])
+      .executeTakeFirstOrThrow();
+    const balanceAfter = Number(updatedSupplier.balance);
     await queryable
       .insertInto('supplier_ledger')
       .values({
@@ -52,8 +58,6 @@ export class PurchasesFinanceService {
         ...this.tenantFields(actor),
       } as any)
       .execute();
-
-    await queryable.updateTable('suppliers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(this.tenantPredicate(actor)).execute();
   }
 
   async addCustomerLedgerEntry(
@@ -67,8 +71,14 @@ export class PurchasesFinanceService {
     branchId: number | null,
     locationId: number | null,
   ): Promise<void> {
-    const customer = await queryable.selectFrom('customers').select(['balance']).where('id', '=', customerId).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
-    const balanceAfter = Number((Number(customer.balance || 0) + amount).toFixed(2));
+    const updatedCustomer = await queryable
+      .updateTable('customers')
+      .set({ balance: sql`COALESCE(balance, 0) + ${amount}`, updated_at: sql`NOW()` })
+      .where('id', '=', customerId)
+      .where(this.tenantPredicate(actor))
+      .returning(['balance'])
+      .executeTakeFirstOrThrow();
+    const balanceAfter = Number(updatedCustomer.balance);
     await queryable
       .insertInto('customer_ledger')
       .values({
@@ -85,8 +95,6 @@ export class PurchasesFinanceService {
         ...this.tenantFields(actor),
       } as any)
       .execute();
-
-    await queryable.updateTable('customers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(actor)).execute();
   }
 
   async addTreasuryTransaction(
