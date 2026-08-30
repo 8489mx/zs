@@ -1,13 +1,55 @@
+import type { CSSProperties, ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Branch, Location } from '@/types/domain';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 
-export async function readFileAsDataUrl(file: File) {
+export async function readFileAsDataUrl(file: File, maxDimension = 320, quality = 0.85): Promise<string> {
   return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('تعذر قراءة ملف الشعار'));
-    reader.readAsDataURL(file);
+    if (file.type === 'image/svg+xml' || file.size < 40 * 1024) {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('تعذر قراءة ملف الشعار'));
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        const fallbackReader = new FileReader();
+        fallbackReader.onload = () => resolve(String(fallbackReader.result || ''));
+        fallbackReader.readAsDataURL(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      const mimeType = file.type.includes('png') ? 'image/png' : 'image/jpeg';
+      const compressedDataUrl = canvas.toDataURL(mimeType, quality);
+      resolve(compressedDataUrl);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const fallbackReader = new FileReader();
+      fallbackReader.onload = () => resolve(String(fallbackReader.result || ''));
+      fallbackReader.onerror = () => reject(new Error('تعذر معالجة صورة الشعار'));
+      fallbackReader.readAsDataURL(file);
+    };
+    img.src = objectUrl;
   });
 }
 
@@ -57,10 +99,6 @@ export interface LocationFormProps {
   initialValues?: { name?: string; code?: string; branchId?: string; locationType?: 'internal_warehouse' | 'branch_stock' };
   onCreated?: (payload: { locationId?: string | null; name: string; branchId: string }) => void;
 }
-
-
-
-import type { CSSProperties, ReactNode } from 'react';
 
 export const requiredStarStyle: CSSProperties = { color: '#dc2626', fontWeight: 700, marginInlineStart: 2 };
 export const comboListStyle: CSSProperties = { border: '1px solid var(--border, #dbe2ea)', borderRadius: 8, background: 'var(--surface, #fff)', marginTop: 6, maxHeight: 180, overflowY: 'auto', padding: 4 };

@@ -16,44 +16,49 @@ export class ReportsSummaryService {
     const fromDate = new Date(range.from);
     const toDate = new Date(range.to);
 
-    const salesRows = filterScope(await this.db
+    let salesQuery = this.db
       .selectFrom('sales')
       .select(['id', 'total', 'discount', 'branch_id', 'location_id', 'created_at'])
       .where('status', '=', 'posted')
       .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .execute(), query);
+      .where('created_at', '<=', toDate);
+    if (query.branchId) salesQuery = salesQuery.where('branch_id', '=', query.branchId);
+    if (query.locationId) salesQuery = salesQuery.where('location_id', '=', query.locationId);
 
-    const purchasesRows = filterScope(await this.db
+    let purchasesQuery = this.db
       .selectFrom('purchases')
       .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
       .where('status', '=', 'posted')
       .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .execute(), query);
+      .where('created_at', '<=', toDate);
+    if (query.branchId) purchasesQuery = purchasesQuery.where('branch_id', '=', query.branchId);
+    if (query.locationId) purchasesQuery = purchasesQuery.where('location_id', '=', query.locationId);
 
-    const expensesRows = filterScope(await this.db
+    let expensesQuery = this.db
       .selectFrom('expenses')
       .select(['id', 'amount', 'branch_id', 'location_id', 'expense_date'])
       .where('expense_date', '>=', fromDate)
-      .where('expense_date', '<=', toDate)
-      .execute(), query);
+      .where('expense_date', '<=', toDate);
+    if (query.branchId) expensesQuery = expensesQuery.where('branch_id', '=', query.branchId);
+    if (query.locationId) expensesQuery = expensesQuery.where('location_id', '=', query.locationId);
 
-    const returnsRows = filterScope(await this.db
+    let returnsQuery = this.db
       .selectFrom('return_documents')
       .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_at'])
       .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .execute(), query);
+      .where('created_at', '<=', toDate);
+    if (query.branchId) returnsQuery = returnsQuery.where('branch_id', '=', query.branchId);
+    if (query.locationId) returnsQuery = returnsQuery.where('location_id', '=', query.locationId);
 
-    const treasuryRows = filterScope(await this.db
+    let treasuryQuery = this.db
       .selectFrom('treasury_transactions')
       .select(['amount', 'branch_id', 'location_id', 'created_at'])
       .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .execute(), query);
+      .where('created_at', '<=', toDate);
+    if (query.branchId) treasuryQuery = treasuryQuery.where('branch_id', '=', query.branchId);
+    if (query.locationId) treasuryQuery = treasuryQuery.where('location_id', '=', query.locationId);
 
-    const saleItemsRows = filterScope(await this.db
+    let saleItemsQuery = this.db
       .selectFrom('sale_items as si')
       .innerJoin('sales as s', 's.id', 'si.sale_id')
       .select([
@@ -68,8 +73,18 @@ export class ReportsSummaryService {
       ])
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', fromDate)
-      .where('s.created_at', '<=', toDate)
-      .execute(), query);
+      .where('s.created_at', '<=', toDate);
+    if (query.branchId) saleItemsQuery = saleItemsQuery.where('s.branch_id', '=', query.branchId);
+    if (query.locationId) saleItemsQuery = saleItemsQuery.where('s.location_id', '=', query.locationId);
+
+    const [salesRows, purchasesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows] = await Promise.all([
+      salesQuery.execute(),
+      purchasesQuery.execute(),
+      expensesQuery.execute(),
+      returnsQuery.execute(),
+      treasuryQuery.execute(),
+      saleItemsQuery.execute(),
+    ]);
 
     const salesTotal = sumMoney(salesRows, (row) => row.total);
     const purchasesTotal = sumMoney(purchasesRows, (row) => row.total);
@@ -121,26 +136,6 @@ export class ReportsSummaryService {
 
   async dashboardOverview(query: ReportRangeQueryDto): Promise<Record<string, unknown>> {
     const range = parseRange(query);
-    const summary = await this.reportSummary(query);
-
-    const productsRows = await this.db
-      .selectFrom('products')
-      .select(['id', 'name', 'category_id', 'supplier_id', 'retail_price', 'stock_qty', 'min_stock_qty', 'cost_price'])
-      .where('is_active', '=', true)
-      .execute();
-
-    const customersRows = await this.db
-      .selectFrom('customers')
-      .select(['id', 'name', 'balance', 'credit_limit'])
-      .where('is_active', '=', true)
-      .execute();
-
-    const suppliersRows = await this.db
-      .selectFrom('suppliers')
-      .select(['id', 'name', 'balance'])
-      .where('is_active', '=', true)
-      .execute();
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStart = new Date(today);
@@ -148,59 +143,104 @@ export class ReportsSummaryService {
     todayEnd.setHours(23, 59, 59, 999);
     const trendStart = new Date(today);
     trendStart.setDate(trendStart.getDate() - 6);
+    const todayIso = todayStart.toISOString().slice(0, 10);
 
-    const recentSalesRows = filterScope(await this.db
+    let recentSalesQuery = this.db
       .selectFrom('sales')
       .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
       .where('status', '=', 'posted')
       .where('created_at', '>=', trendStart)
-      .where('created_at', '<=', todayEnd)
-      .execute(), query);
+      .where('created_at', '<=', todayEnd);
+    if (query.branchId) recentSalesQuery = recentSalesQuery.where('branch_id', '=', query.branchId);
+    if (query.locationId) recentSalesQuery = recentSalesQuery.where('location_id', '=', query.locationId);
 
-    const recentPurchasesRows = filterScope(await this.db
+    let recentPurchasesQuery = this.db
       .selectFrom('purchases')
       .select(['id', 'total', 'branch_id', 'location_id', 'created_at'])
       .where('status', '=', 'posted')
       .where('created_at', '>=', trendStart)
-      .where('created_at', '<=', todayEnd)
-      .execute(), query);
+      .where('created_at', '<=', todayEnd);
+    if (query.branchId) recentPurchasesQuery = recentPurchasesQuery.where('branch_id', '=', query.branchId);
+    if (query.locationId) recentPurchasesQuery = recentPurchasesQuery.where('location_id', '=', query.locationId);
 
-    const todaySalesRows = recentSalesRows.filter((row) => dateKey(row.created_at) === dateKey(todayStart));
-    const todayPurchasesRows = recentPurchasesRows.filter((row) => dateKey(row.created_at) === dateKey(todayStart));
-
-    const todaySaleItemsRows = filterScope(await this.db
+    let topTodayQuery = this.db
       .selectFrom('sale_items as si')
       .innerJoin('sales as s', 's.id', 'si.sale_id')
       .select([
         'si.product_id',
         'si.product_name',
-        'si.qty',
-        'si.line_total',
         's.branch_id',
         's.location_id',
-        's.created_at',
+        sql<number>`coalesce(sum(si.qty), 0)`.as('qty_total'),
+        sql<number>`coalesce(sum(si.line_total), 0)`.as('sales_total'),
       ])
       .where('s.status', '=', 'posted')
       .where('s.created_at', '>=', todayStart)
       .where('s.created_at', '<=', todayEnd)
-      .execute(), query);
+      .groupBy(['si.product_id', 'si.product_name', 's.branch_id', 's.location_id'])
+      .orderBy('sales_total', 'desc')
+      .limit(5);
+    if (query.branchId) topTodayQuery = topTodayQuery.where('s.branch_id', '=', query.branchId);
+    if (query.locationId) topTodayQuery = topTodayQuery.where('s.location_id', '=', query.locationId);
+
+    const [
+      summary,
+      productsRows,
+      customersRows,
+      suppliersRows,
+      recentSalesRows,
+      recentPurchasesRows,
+      customerLedgerRows,
+      supplierLedgerRows,
+      activeOffersRows,
+      topTodayRows,
+    ] = await Promise.all([
+      this.reportSummary(query),
+      this.db
+        .selectFrom('products')
+        .select(['id', 'name', 'category_id', 'supplier_id', 'retail_price', 'stock_qty', 'min_stock_qty', 'cost_price'])
+        .where('is_active', '=', true)
+        .execute(),
+      this.db
+        .selectFrom('customers')
+        .select(['id', 'name', 'balance', 'credit_limit'])
+        .where('is_active', '=', true)
+        .execute(),
+      this.db
+        .selectFrom('suppliers')
+        .select(['id', 'name', 'balance'])
+        .where('is_active', '=', true)
+        .execute(),
+      recentSalesQuery.execute(),
+      recentPurchasesQuery.execute(),
+      this.db
+        .selectFrom('customer_ledger')
+        .select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+        .groupBy('customer_id')
+        .execute(),
+      this.db
+        .selectFrom('supplier_ledger')
+        .select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
+        .groupBy('supplier_id')
+        .execute(),
+      this.db
+        .selectFrom('product_offers')
+        .select(['id'])
+        .where('is_active', '=', true)
+        .where(sql<boolean>`(start_date is null or start_date <= ${todayIso}) and (end_date is null or end_date >= ${todayIso})`)
+        .execute(),
+      topTodayQuery.execute(),
+    ]);
+
+    const todaySalesRows = recentSalesRows.filter((row) => dateKey(row.created_at) === dateKey(todayStart));
+    const todayPurchasesRows = recentPurchasesRows.filter((row) => dateKey(row.created_at) === dateKey(todayStart));
 
     const lowStock = productsRows
       .filter((row) => Number(row.stock_qty || 0) > 0 && Number(row.min_stock_qty || 0) > 0 && Number(row.stock_qty || 0) <= Number(row.min_stock_qty || 0))
       .slice(0, 8)
       .map((row) => normalizeProduct(row));
 
-    const customerLedgerRows = await this.db
-      .selectFrom('customer_ledger')
-      .select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
-      .groupBy('customer_id')
-      .execute();
-
-    const supplierLedgerRows = await this.db
-      .selectFrom('supplier_ledger')
-      .select(['supplier_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
-      .groupBy('supplier_id')
-      .execute();
+    const activeOffers = activeOffersRows.length;
 
     const customerLedgerTotals = new Map<string, number>();
     for (const row of customerLedgerRows) {
@@ -230,34 +270,6 @@ export class ReportsSummaryService {
       return Number(row.credit_limit || 0) > 0 && balance > Number(row.credit_limit || 0);
     }).length;
     const highSupplierBalances = suppliersRows.filter((row) => Number(supplierBalances.get(String(row.id)) || 0) >= 1000).length;
-
-    const todayIso = todayStart.toISOString().slice(0, 10);
-    const activeOffersRows = await this.db
-      .selectFrom('product_offers')
-      .select(['id'])
-      .where('is_active', '=', true)
-      .where(sql<boolean>`(start_date is null or start_date <= ${todayIso}) and (end_date is null or end_date >= ${todayIso})`)
-      .execute();
-    const activeOffers = activeOffersRows.length;
-
-    const topTodayRows = filterScope(await this.db
-      .selectFrom('sale_items as si')
-      .innerJoin('sales as s', 's.id', 'si.sale_id')
-      .select([
-        'si.product_id',
-        'si.product_name',
-        's.branch_id',
-        's.location_id',
-        sql<number>`coalesce(sum(si.qty), 0)`.as('qty_total'),
-        sql<number>`coalesce(sum(si.line_total), 0)`.as('sales_total'),
-      ])
-      .where('s.status', '=', 'posted')
-      .where('s.created_at', '>=', todayStart)
-      .where('s.created_at', '<=', todayEnd)
-      .groupBy(['si.product_id', 'si.product_name', 's.branch_id', 's.location_id'])
-      .orderBy('sales_total', 'desc')
-      .limit(5)
-      .execute(), query);
 
     const topCustomers = customersRows
       .map((row) => {
