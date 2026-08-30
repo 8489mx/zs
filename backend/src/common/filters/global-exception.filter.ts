@@ -24,6 +24,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
   }
 
+  private sanitizeUrl(rawUrl: string): string {
+    if (!rawUrl) return '';
+    return rawUrl.replace(/([?&](?:token|password|pin|managerPin|secret)=)[^&]+/gi, '$1[REDACTED]');
+  }
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
@@ -34,13 +39,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const body = mapped.getResponse();
     const requestId = request.headers['x-request-id'] ?? null;
     const sanitizedError = this.sanitizeError(exception);
+    const safePath = this.sanitizeUrl(request.url);
 
     if (status >= 500) {
       console.error(
         '[global-exception]',
         JSON.stringify({
           method: request.method,
-          path: request.url,
+          path: safePath,
           status,
           requestId,
           error: sanitizedError,
@@ -50,7 +56,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       this.logger.error(
         {
           method: request.method,
-          path: request.url,
+          path: safePath,
           status,
           requestId,
           error: sanitizedError,
@@ -59,13 +65,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       );
       
       if (process.env.ERROR_TRACKING_ENABLED === 'true') {
-        Sentry.captureException(exception);
+        Sentry.withScope((scope) => {
+          scope.setExtra('requestId', requestId);
+          scope.setExtra('path', safePath);
+          Sentry.captureException(exception);
+        });
       }
     } else {
       this.logger.error(
         {
           method: request.method,
-          path: request.url,
+          path: safePath,
           status,
           requestId,
           error: sanitizedError,

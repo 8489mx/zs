@@ -303,6 +303,19 @@ export class TradeInService {
 
       const txnId = Number(insertedTxn.id);
 
+      // Backfill reference_id for trade-in stock movement
+      if (targetProductId) {
+        await trx
+          .updateTable('stock_movements')
+          .set({ reference_id: txnId })
+          .where('tenant_id', '=', scope.tenantId)
+          .where('movement_type', '=', 'tradein_in')
+          .where('reference_type', '=', 'trade_in')
+          .where('reference_id', '=', 0)
+          .where('product_id', '=', targetProductId)
+          .execute();
+      }
+
       // If a product ID was linked or auto-created, automatically register the IMEI in product_serials
       if (targetProductId) {
         const existingSerial = await trx

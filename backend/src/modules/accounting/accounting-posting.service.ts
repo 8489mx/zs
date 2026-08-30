@@ -421,23 +421,26 @@ export class AccountingPostingService {
       .updateTable('journal_entries')
       .set({ entry_no: `JE-${String(entryId).padStart(8, '0')}`, updated_at: sql`NOW()` } as any)
       .where('id', '=', entryId)
+      .where('tenant_id', '=', params.tenantId)
       .execute();
 
-    for (const line of params.lines) {
+    if (params.lines.length > 0) {
       await queryable
         .insertInto('journal_entry_lines')
-        .values({
-          journal_entry_id: entryId,
-          tenant_id: params.tenantId,
-          account_id: line.accountId,
-          description: line.description,
-          debit: this.toMoney(line.debit),
-          credit: this.toMoney(line.credit),
-          partner_type: line.partnerType,
-          partner_id: line.partnerId,
-          branch_id: line.branchId,
-          location_id: line.locationId,
-        } as any)
+        .values(
+          params.lines.map((line) => ({
+            journal_entry_id: entryId,
+            tenant_id: params.tenantId,
+            account_id: line.accountId,
+            description: line.description,
+            debit: this.toMoney(line.debit),
+            credit: this.toMoney(line.credit),
+            partner_type: line.partnerType,
+            partner_id: line.partnerId,
+            branch_id: line.branchId,
+            location_id: line.locationId,
+          } as any))
+        )
         .execute();
     }
 

@@ -33,34 +33,63 @@ export class InventoryCountService {
   private tenantPredicate(auth: AuthContext, alias?: string) { const tenantId = this.tenantScope(auth).tenantId; return alias ? sql<boolean>`${sql.ref(`${alias}.tenant_id`)} = ${tenantId}` : sql<boolean>`tenant_id = ${tenantId}`; }
   private tenantFields(auth: AuthContext) { const scope = this.tenantScope(auth); return { tenant_id: scope.tenantId, account_id: scope.accountId }; }
 
-    async listStockMovements(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-      const rows = await this.db
-        .selectFrom('stock_movements as m')
-        .leftJoin('products as p', 'p.id', 'm.product_id')
-        .leftJoin('branches as b', 'b.id', 'm.branch_id')
-        .leftJoin('stock_locations as l', 'l.id', 'm.location_id')
-        .leftJoin('users as u', 'u.id', 'm.created_by')
-        .leftJoin('stock_transfers as st', (join) => join.on('m.reference_type', '=', 'transfer').onRef('m.reference_id', '=', 'st.id'))
-        .select(['m.id', 'm.product_id', 'm.movement_type', 'm.qty', 'm.before_qty', 'm.after_qty', 'm.reason', 'm.note', 'm.reference_type', 'm.reference_id', 'm.branch_id', 'm.location_id', 'm.created_at', 'p.name as product_name', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name'])
-        .where(this.tenantPredicate(auth, 'm'))
-        .where((eb) => eb.or([eb('st.status', 'is', null), eb('st.status', '!=', 'cancelled')]))
-        .orderBy('m.id', 'desc')
-        .execute();
-    let mapped = rows.map(mapStockMovementRow);
-    mapped = await this.scope.filterByScope(mapped, auth);
-    const search = String(query.search || '').toLowerCase();
+  async listStockMovements(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    const page = Math.max(1, Number(query.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 20)));
+    const offset = (page - 1) * pageSize;
+    const search = String(query.search || '').trim();
     const type = String(query.type || 'all').toLowerCase();
-    const locationId = query.locationId ? String(query.locationId) : 'all';
+    const locationId = query.locationId && query.locationId !== 'all' ? Number(query.locationId) : null;
+    const branchScope = await this.scope.branchScope(auth);
 
-    const filtered = mapped.filter((r) =>
-      (type === 'all' || String(r.type).toLowerCase() === type) &&
-      (locationId === 'all' || String(r.locationId) === locationId) &&
-      (!search || [r.productName, r.reason, r.note, r.referenceType, r.locationName, r.branchName].some((x) => String(x).toLowerCase().includes(search)))
-    );
+    let qb = this.db
+      .selectFrom('stock_movements as m')
+      .leftJoin('products as p', 'p.id', 'm.product_id')
+      .leftJoin('branches as b', 'b.id', 'm.branch_id')
+      .leftJoin('stock_locations as l', 'l.id', 'm.location_id')
+      .leftJoin('users as u', 'u.id', 'm.created_by')
+      .leftJoin('stock_transfers as st', (join) => join.on('m.reference_type', '=', 'transfer').onRef('m.reference_id', '=', 'st.id'))
+      .select([
+        'm.id', 'm.product_id', 'm.movement_type', 'm.qty', 'm.before_qty', 'm.after_qty', 'm.reason', 'm.note', 'm.reference_type', 'm.reference_id', 'm.branch_id', 'm.location_id', 'm.created_at',
+        'p.name as product_name', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name',
+        sql<number>`COUNT(*) OVER()`.as('total_count'),
+        sql<number>`COALESCE(SUM(CASE WHEN m.qty >= 0 THEN m.qty ELSE 0 END) OVER(), 0)`.as('agg_positive'),
+        sql<number>`COALESCE(SUM(CASE WHEN m.qty < 0 THEN ABS(m.qty) ELSE 0 END) OVER(), 0)`.as('agg_negative'),
+      ])
+      .where(this.tenantPredicate(auth, 'm'))
+      .where((eb) => eb.or([eb('st.status', 'is', null), eb('st.status', '!=', 'cancelled')]));
 
-    if (!query.page && !query.pageSize && !query.search && !query.type && !query.locationId) return { stockMovements: filtered, scope: this.tenantScope(auth) };
-    const paged = paginateRows(filtered, query, { defaultSize: 20 });
-    return { stockMovements: paged.rows, pagination: paged.pagination, summary: buildStockMovementSummary(filtered as Array<{ qty: number }>), scope: this.tenantScope(auth) };
+    if (branchScope.length > 0) {
+      qb = qb.where((eb) => eb.or([eb('m.branch_id', 'in', branchScope), eb('m.branch_id', 'is', null)]));
+    }
+    if (type !== 'all') {
+      qb = qb.where('m.movement_type', '=', type);
+    }
+    if (locationId) {
+      qb = qb.where('m.location_id', '=', locationId);
+    }
+    if (search) {
+      qb = qb.where((eb) => eb.or([
+        eb('p.name', 'ilike', `%${search}%`),
+        eb('m.reason', 'ilike', `%${search}%`),
+        eb('m.note', 'ilike', `%${search}%`),
+        eb('l.name', 'ilike', `%${search}%`),
+        eb('b.name', 'ilike', `%${search}%`),
+      ]));
+    }
+
+    const rows = await qb.orderBy('m.id', 'desc').limit(pageSize).offset(offset).execute();
+    const totalItems = rows.length > 0 ? Number(rows[0].total_count) : 0;
+    const positive = rows.length > 0 ? Number(rows[0].agg_positive) : 0;
+    const negative = rows.length > 0 ? Number(rows[0].agg_negative) : 0;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    return {
+      stockMovements: rows.map(mapStockMovementRow),
+      pagination: { page, pageSize, totalItems, totalPages },
+      summary: { positive, negative, totalItems },
+      scope: this.tenantScope(auth),
+    };
   }
 
   async listStockCountSessions(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {

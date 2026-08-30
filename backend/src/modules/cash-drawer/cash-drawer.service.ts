@@ -673,9 +673,6 @@ export class CashDrawerService {
     const isBlindCloseCashier = String(auth.role || '').trim() === 'cashier';
     assertCashDrawerCountedCash(countedCash);
     await this.assertCurrentUserPassword(String(payload.managerPin || '').trim(), auth);
-    const expectedCash = await this.computeShiftExpectedCash(shiftId, auth);
-    const variance = computeCashDrawerVariance(countedCash, expectedCash);
-    if (!isBlindCloseCashier && Math.abs(variance) >= 0.01) assertCashDrawerNote(note);
     const cardOperationCount = this.normalizeOperationCount(payload.cardOperationCount);
     const walletOperationCount = this.normalizeOperationCount(payload.walletOperationCount);
     const instapayOperationCount = this.normalizeOperationCount(payload.instapayOperationCount);
@@ -687,6 +684,21 @@ export class CashDrawerService {
     const closeNoteValue = blindCloseMeta ? this.serializeBlindCloseNote(blindCloseMeta) : note;
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      const lockedShift = await trx
+        .selectFrom('cashier_shifts')
+        .selectAll()
+        .where('id', '=', shiftId)
+        .where('tenant_id', '=', scope.tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedShift) throw new AppError('الوردية غير موجودة', 'SHIFT_NOT_FOUND', 404);
+      if (String(lockedShift.status || 'open') !== 'open') throw new AppError('الوردية مغلقة بالفعل', 'SHIFT_ALREADY_CLOSED', 400);
+
+      const expectedCash = await this.computeShiftExpectedCashFromShift(lockedShift, auth);
+      const variance = computeCashDrawerVariance(countedCash, expectedCash);
+      if (!isBlindCloseCashier && Math.abs(variance) >= 0.01) assertCashDrawerNote(note);
+
       await sql`update cashier_shifts set status = ${closeStatus}, expected_cash = ${expectedCash}, counted_cash = ${countedCash}, variance = ${variance}, close_note = ${closeNoteValue}, closed_by = ${auth.userId}, closed_at = now() where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(trx);
       if (closeStatus === 'closed') {
         await this.accountingPosting.postCashierShiftVariance(trx, shiftId, auth);

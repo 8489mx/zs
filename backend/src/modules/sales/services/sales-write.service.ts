@@ -286,7 +286,14 @@ export class SalesWriteService {
     const idemCtx = idempotencyStorage.getStore();
     if (idemCtx?.idempotencyKey) {
       const cached = await this.idempotency.check(idemCtx.idempotencyKey, scope);
-      if (cached) return cached.response as Record<string, unknown>;
+      if (cached) {
+        if (cached.response?.sale) return cached.response as Record<string, unknown>;
+        if (cached.response?.saleId) {
+          const sale = await this.query.getSaleById(Number(cached.response.saleId), auth);
+          return { ok: true, sale: sale.sale };
+        }
+        return cached.response as Record<string, unknown>;
+      }
     }
 
     const normalized = normalizeSalePayload(payload);
@@ -966,6 +973,16 @@ export class SalesWriteService {
         throw error;
       }
 
+      // Commit idempotency record atomically inside the business transaction
+      if (idemCtx?.idempotencyKey && idemCtx?.operationType) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+          { ok: true, saleId: id },
+          String(id)
+        );
+      }
+
       return id;
     });
     const transactionDurationMs = Date.now() - txStartedAt;
@@ -982,18 +999,7 @@ export class SalesWriteService {
       );
     }
 
-    const result = { ok: true, sale: sale.sale };
-
-    // Idempotency: commit the response so future duplicate requests return it
-    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
-      await this.idempotency.commitOperation(
-        this.db,
-        { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
-        result
-      );
-    }
-
-    return result;
+    return { ok: true, sale: sale.sale };
   }
 
   async updateSale(saleId: number, payload: UpsertSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {

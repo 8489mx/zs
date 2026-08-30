@@ -309,22 +309,23 @@ function PosProductsPanelComponent({
     [canShowScannerResults, visibleGroups, visibleTouchGroupCount],
   );
   const hasMoreTouchGroups = visibleGroups.length > displayedGroups.length;
+  const groupedProductsMap = useMemo(() => new Map(groupedProducts.map((g) => [g.key, g])), [groupedProducts]);
   const visibleRecentGroups = useMemo(
     () => recentGroupKeys
-      .map((key) => groupedProducts.find((group) => group.key === key))
+      .map((key) => groupedProductsMap.get(key))
       .filter(Boolean)
       .slice(0, 6) as PosProductGroup[],
-    [groupedProducts, recentGroupKeys],
+    [groupedProductsMap, recentGroupKeys],
   );
   const visibleFavoriteGroups = useMemo(
     () => favoriteKeys
-      .map((key) => groupedProducts.find((group) => group.key === key))
+      .map((key) => groupedProductsMap.get(key))
       .filter(Boolean)
       .slice(0, 5) as PosProductGroup[],
-    [favoriteKeys, groupedProducts],
+    [favoriteKeys, groupedProductsMap],
   );
   const selectedGroup = displayedGroups[selectedIndex] || null;
-  const openGroup = groupedProducts.find((group) => group.key === openGroupKey) || null;
+  const openGroup = openGroupKey ? (groupedProductsMap.get(openGroupKey) || null) : null;
 
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem(favoritesStorageKey, JSON.stringify(favoriteKeys));

@@ -194,7 +194,12 @@ export class ImportSalesService {
         
         if (accountId && finalCost > 0) {
           if (existingExpenseId) {
-            await trx.updateTable('expenses').set({ amount: finalCost, account_id: accountId }).where('id', '=', existingExpenseId).execute();
+            await trx
+              .updateTable('expenses')
+              .set({ amount: finalCost, account_id: accountId })
+              .where('id', '=', existingExpenseId)
+              .where('tenant_id', '=', tenantId)
+              .execute();
             return existingExpenseId;
           } else {
             const expense = await trx.insertInto('expenses').values({

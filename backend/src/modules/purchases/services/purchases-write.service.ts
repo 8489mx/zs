@@ -394,15 +394,20 @@ export class PurchasesWriteService {
       }
 
       if (payload.attachments && payload.attachments.length > 0) {
-        for (const attachment of payload.attachments) {
-          await trx.insertInto('purchase_attachments').values({
-            purchase_id: id,
-            file_name: attachment.fileName,
-            file_url: attachment.fileUrl,
-            file_size: attachment.fileSize,
-            file_type: attachment.fileType,
-          }).execute();
-        }
+        await trx
+          .insertInto('purchase_attachments')
+          .values(
+            payload.attachments.map((attachment) => ({
+              purchase_id: id,
+              file_name: attachment.fileName,
+              file_url: attachment.fileUrl,
+              file_size: attachment.fileSize,
+              file_type: attachment.fileType,
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+            } as any))
+          )
+          .execute();
       }
 
       if (paymentType === 'credit') {
