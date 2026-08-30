@@ -14,6 +14,7 @@ import { SerialLookupModal } from '@/features/products/components/SerialLookupMo
 import { QuickProductModal } from '@/shared/components/QuickProductModal';
 import { PosNewProductModal } from '@/features/pos/components/pos-workspace/PosNewProductModal';
 import { PosScannedInvoiceModal } from '@/features/pos/components/pos-workspace/PosScannedInvoiceModal';
+import { PosRecentSalesReprintModal } from '@/features/pos/components/pos-workspace/PosRecentSalesReprintModal';
 import { salesApi } from '@/features/sales/api/sales.api';
 import {
   getSelectedCustomerName,
@@ -64,6 +65,7 @@ export function PosWorkspace() {
   const [shortcutRecallDraftId, setShortcutRecallDraftId] = useState('');
   const [scannedSale, setScannedSale] = useState<Sale | null>(null);
   const [scannedSaleModalOpen, setScannedSaleModalOpen] = useState(false);
+  const [reprintModalOpen, setReprintModalOpen] = useState(false);
   const defaultPosMode = normalizePosSaleMode(pos.settingsQuery.data?.defaultPosMode);
   const [posMode, setPosMode] = usePosSaleMode(defaultPosMode);
 
@@ -515,6 +517,7 @@ export function PosWorkspace() {
     onRequestCheckout: requestCheckoutDialog,
     onOpenHeldDrafts: () => setHeldDraftsDialogOpen(true),
     onRecallHeldDraftByIndex: requestRecallHeldDraftByIndex,
+    onOpenReprintModal: () => setReprintModalOpen(true),
   });
 
   return (
@@ -529,6 +532,7 @@ export function PosWorkspace() {
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenSerialLookup={() => setSerialLookupOpen(true)}
+        onOpenReprintModal={() => setReprintModalOpen(true)}
       />
 
       <PosWorkspaceMainContent
@@ -667,6 +671,20 @@ export function PosWorkspace() {
         onPrintA4={pos.printA4Now}
         onPrintKitchen={pos.printKitchenNow}
         onPrintBoth={pos.printBothNow}
+      />
+
+      <PosRecentSalesReprintModal
+        isOpen={reprintModalOpen}
+        onClose={() => {
+          setReprintModalOpen(false);
+          focusBarcodeEntry();
+        }}
+        lastSale={pos.lastSale}
+        settings={pos.settingsQuery.data || null}
+        cashierName={(pos.ownOpenShift as any)?.openedByName || '—'}
+        onReprintLastSale={() => {
+          pos.reprintLastSale();
+        }}
       />
 
       <PosDraftSwitcherOverlay

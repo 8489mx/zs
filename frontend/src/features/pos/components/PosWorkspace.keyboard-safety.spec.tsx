@@ -292,11 +292,11 @@ describe('POS workspace destructive keyboard safety', () => {
     expect(pos.handleSubmit).not.toHaveBeenCalled();
   });
 
-  it('uses F9 for last sale reprint', () => {
+  it('uses F9 for last sale reprint modal', () => {
     render(<PosWorkspace />);
 
     fireEvent.keyDown(window, { key: 'F9' });
 
-    expect(testState.pos?.reprintLastSale).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByText(/إعادة طباعة الفواتير/).length).toBeGreaterThan(0);
   });
 });

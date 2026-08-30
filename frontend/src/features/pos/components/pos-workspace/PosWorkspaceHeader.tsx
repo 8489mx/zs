@@ -20,9 +20,10 @@ interface PosWorkspaceHeaderProps {
   onPrintDraft: () => void;
   onRequestOpenShift?: () => void;
   onOpenSerialLookup?: () => void;
+  onOpenReprintModal?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenNewProduct, onOpenQuickService, onRequestOpenShift }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenNewProduct, onOpenQuickService, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
 
   return (
@@ -56,7 +57,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
            <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F6</Button>
           <Button type="button" variant="secondary" onClick={onOpenNewProduct} style={{ fontWeight: 700, color: '#1e3a8a' }}>+ صنف جديد</Button>
           <Button type="button" variant="secondary" onClick={onOpenQuickService}>خدمة سريعة F8</Button>
-          <Button type="button" variant="secondary" onClick={pos.reprintLastSale}>F9 إعادة طباعة آخر فاتورة</Button>
+          <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale}>F9 إعادة طباعة الفواتير</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
           {pos.ownOpenShift ? (
