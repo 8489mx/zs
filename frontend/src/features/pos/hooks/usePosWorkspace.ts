@@ -54,7 +54,7 @@ export function usePosWorkspace() {
   const state = usePosWorkspaceState();
   const paidAmount = Number((
     state.paymentChannel === 'wallet' || state.paymentChannel === 'instapay'
-      ? Number(state.transferAmount || 0)
+      ? Number(state.cashAmount || 0) + Number(state.transferAmount || 0)
       : Number(state.cashAmount || 0) + Number(state.cardAmount || 0)
   ).toFixed(2));
 

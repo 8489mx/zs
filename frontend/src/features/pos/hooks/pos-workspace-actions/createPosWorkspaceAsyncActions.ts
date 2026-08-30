@@ -153,31 +153,35 @@ export function createPosWorkspaceAsyncActions(
       return;
     }
 
-    const effectivePaymentType = settleAsCash || settleAsCard ? 'cash' : params.paymentType;
+    const effectivePaymentType = settleAsCash || settleAsCard || settleAsTransfer ? 'cash' : params.paymentType;
+    const effectiveCustomerId = String(params.customerId || '').trim();
+    const effectiveCashAmount = effectivePaymentType === 'credit'
+      ? initialCashAmount
+      : (settleAsCash ? total : initialCashAmount);
+    const effectiveCardAmount = effectivePaymentType === 'credit'
+      ? initialCardAmount
+      : (settleAsCard ? total : initialCardAmount);
+    const effectiveTransferAmount = effectivePaymentType === 'credit'
+      ? initialTransferAmount
+      : (settleAsTransfer ? total : initialTransferAmount);
+
+    const effectivePaidAmount = Number((
+      effectiveCashAmount + effectiveCardAmount + effectiveTransferAmount
+    ).toFixed(2));
+
+    const transferChannel = params.paymentChannel === 'wallet' ? 'wallet' : 'instapay';
     const effectivePaymentChannel = settleAsCash
       ? 'cash'
       : settleAsCard
         ? 'card'
-        : (params.paymentChannel === 'wallet' || params.paymentChannel === 'instapay')
-          ? params.paymentChannel
-          : params.paymentChannel;
-    const effectiveCustomerId = String(params.customerId || '').trim();
-    const effectiveCashAmount = effectivePaymentType === 'credit'
-      ? initialCashAmount
-      : (effectivePaymentChannel === 'card' ? 0 : (settleAsCash ? total : initialCashAmount));
-    const effectiveCardAmount = effectivePaymentType === 'credit'
-      ? initialCardAmount
-      : (effectivePaymentChannel === 'card' ? total : (settleAsCard ? total : initialCardAmount));
-    const effectiveTransferAmount = effectivePaymentType === 'credit'
-      ? initialTransferAmount
-      : (effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay')
-        ? (settleAsTransfer ? total : initialTransferAmount)
-        : 0;
-    const effectivePaidAmount = Number((
-      effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay'
-        ? effectiveTransferAmount
-        : effectiveCashAmount + effectiveCardAmount
-    ).toFixed(2));
+        : settleAsTransfer
+          ? transferChannel
+          : (effectiveCashAmount > 0 && (effectiveTransferAmount > 0 || effectiveCardAmount > 0))
+            ? 'mixed'
+            : (effectiveTransferAmount > 0
+              ? transferChannel
+              : (effectiveCardAmount > 0 ? 'card' : (params.paymentChannel || 'cash')));
+
     const isPartialCreditWithCustomer = Boolean(effectiveCustomerId) && effectivePaidAmount < total;
     const isUnderpaid = effectivePaymentType !== 'credit' && !isPartialCreditWithCustomer && !isCodDelivery && effectivePaidAmount < total;
 
@@ -228,12 +232,11 @@ export function createPosWorkspaceAsyncActions(
         note: params.note,
         paidAmount: effectivePaidAmount,
         tenderedAmount: effectiveCashAmount,
-        payments: (effectivePaymentChannel === 'wallet' || effectivePaymentChannel === 'instapay')
-          ? (effectiveTransferAmount > 0 ? [{ paymentChannel: effectivePaymentChannel, amount: effectiveTransferAmount }] : [])
-          : [
-            ...(effectiveCashAmount > 0 ? [{ paymentChannel: 'cash' as const, amount: effectiveCashAmount }] : []),
-            ...(effectiveCardAmount > 0 ? [{ paymentChannel: 'card' as const, amount: effectiveCardAmount }] : []),
-          ],
+        payments: [
+          ...(effectiveCashAmount > 0 ? [{ paymentChannel: 'cash' as const, amount: effectiveCashAmount }] : []),
+          ...(effectiveCardAmount > 0 ? [{ paymentChannel: 'card' as const, amount: effectiveCardAmount }] : []),
+          ...(effectiveTransferAmount > 0 ? [{ paymentChannel: (params.paymentChannel === 'wallet' ? 'wallet' as const : 'instapay' as const), amount: effectiveTransferAmount }] : []),
+        ],
         taxRate: params.totals.taxRate,
         pricesIncludeTax: params.totals.pricesIncludeTax,
         expectedTotal: total,

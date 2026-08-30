@@ -4,17 +4,15 @@ import type { PaymentChannel, PaymentType, PosDraftSnapshot } from '@/features/p
 
 export function normalizePaymentChannel(
   paymentType: PaymentType,
-  cashAmount: number,
+  _cashAmount: number,
   cardAmount: number,
-  _transferAmount: number,
+  transferAmount: number,
   currentChannel?: PaymentChannel,
 ): PaymentChannel {
   if (paymentType === 'credit') return 'credit';
   if (currentChannel === 'wallet' || currentChannel === 'instapay') return currentChannel;
-  const hasCash = Number(cashAmount || 0) > 0;
-  const hasCard = Number(cardAmount || 0) > 0;
-  if (hasCash && hasCard) return 'mixed' as PaymentChannel;
-  if (hasCard) return 'card';
+  if (currentChannel === 'card' || Number(cardAmount || 0) > 0) return 'card';
+  if (Number(transferAmount || 0) > 0) return 'instapay';
   return 'cash';
 }
 

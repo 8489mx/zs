@@ -83,7 +83,6 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
               step="0.01"
               value={props.cashAmount}
               onChange={(event) => props.onCashAmountChange(Number(event.target.value || 0))}
-              disabled={transferSelected}
             />
             <Button
               type="button"
@@ -103,7 +102,6 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
             step="0.01"
             value={props.cardAmount}
             onChange={(event) => props.onCardAmountChange(Number(event.target.value || 0))}
-            disabled={transferSelected}
           />
         </label>
 

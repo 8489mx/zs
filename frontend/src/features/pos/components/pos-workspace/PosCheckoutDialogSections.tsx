@@ -324,7 +324,6 @@ export function PosCheckoutPaymentSection({
             step="0.01"
             value={pos.cashAmount}
             onChange={(event) => pos.setCashAmount(Number(event.target.value || 0))}
-            disabled={transferSelected}
             style={{ height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1' }}
           />
         </label>
