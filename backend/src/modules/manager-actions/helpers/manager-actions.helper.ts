@@ -121,8 +121,8 @@ export function buildManagerActionInsights({
   saleMargins,
   customers,
   customerBalances,
-  stagnantThresholdDays = 30,
-  expiryAlertDays = 30,
+  stagnantThresholdDays = 60,
+  expiryAlertDays = 60,
   now = new Date(),
   limit = 8,
 }: BuildManagerActionInsightsInput): ManagerActionInsight[] {
@@ -228,7 +228,7 @@ export function buildManagerActionInsights({
       const expDate = new Date(`${expiryDateStr}T00:00:00`);
       if (!Number.isNaN(expDate.getTime())) {
         const daysRemaining = daysBetween(now, expDate);
-        const configuredExpiryDays = Number(expiryAlertDays) > 0 ? Number(expiryAlertDays) : 30;
+        const configuredExpiryDays = Number(expiryAlertDays) > 0 ? Number(expiryAlertDays) : 60;
         if (daysRemaining <= 0) {
           insights.push(buildInsight({
             id: `product-expired-${id}`,
@@ -262,7 +262,7 @@ export function buildManagerActionInsights({
       const referenceDate = lastSoldAt ?? toDate(product.created_at);
       if (referenceDate) {
         const daysWithoutSales = daysBetween(referenceDate, now);
-        const stagnantDays = Number(stagnantThresholdDays) > 0 ? Number(stagnantThresholdDays) : 30;
+        const stagnantDays = Number(stagnantThresholdDays) > 0 ? Number(stagnantThresholdDays) : 60;
         const stagnantDangerDays = Math.max(90, stagnantDays * 2);
 
         if (daysWithoutSales >= stagnantDangerDays) {

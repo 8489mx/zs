@@ -66,9 +66,9 @@ function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = fal
   const taxNumber = showTaxNumber ? formatReceiptText(String(settings?.taxNumber || '').trim(), settings) : '';
   const logoData = showLogo ? String(settings?.logoData || '').trim() : '';
   const details = [
-    phone ? `<span>الهاتف: ${escapeHtml(phone)}</span>` : '',
-    address ? `<span>العنوان: ${escapeHtml(address)}</span>` : '',
-    taxNumber ? `<span>الرقم الضريبي: ${escapeHtml(taxNumber)}</span>` : '',
+    phone ? `<div class="store-detail-line store-phone-line">${escapeHtml(phone)}</div>` : '',
+    address ? `<div class="store-detail-line store-address-line">${escapeHtml(address)}</div>` : '',
+    taxNumber ? `<div class="store-detail-line store-tax-line">الرقم الضريبي: ${escapeHtml(taxNumber)}</div>` : '',
   ].filter(Boolean).join('');
 
   return `
@@ -458,6 +458,32 @@ export function getInvoiceStyles(compact = false) {
       width: 100%;
       font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
     }
+    .store-inline-details {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5px;
+      font-size: ${compact ? '8.5px' : '9.5px'};
+      color: #000;
+      margin-top: 2px;
+      font-weight: 600;
+      line-height: 1.25;
+      text-align: center;
+      width: 100%;
+    }
+    .store-detail-line {
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
+    .store-phone-line {
+      white-space: nowrap;
+      font-weight: 700;
+    }
+    .store-address-line {
+      word-break: normal;
+      overflow-wrap: break-word;
+    }
     .invoice-meta-grid {
       display: flex;
       flex-direction: column;
@@ -597,9 +623,8 @@ export function getInvoiceStyles(compact = false) {
     .receipt-theme-ultra-compact .invoice-logo-wrapper { width: 44px; height: 28px; min-height: 28px; }
     .receipt-theme-ultra-compact .invoice-brand-copy h2 { font-size: 14px; }
     .receipt-theme-ultra-compact .store-meta-line { display: none; }
-    .receipt-theme-ultra-compact .store-inline-details { display: block; font-size: 8.5px; color: #000; margin-top: 1px; font-weight: 500; }
-    .receipt-theme-ultra-compact .store-inline-details span::after { content: " - "; }
-    .receipt-theme-ultra-compact .store-inline-details span:last-child::after { content: ""; }
+    .receipt-theme-ultra-compact .store-inline-details { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 8.5px; color: #000; margin-top: 1px; font-weight: 600; text-align: center; }
+    .receipt-theme-ultra-compact .store-detail-line { display: block; width: 100%; text-align: center; }
     .receipt-theme-ultra-compact .meta-line { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; border: none; padding: 0; font-size: 10px; break-inside: avoid; }
     .receipt-theme-ultra-compact .meta-line::after { content: " | "; margin: 0 3px; font-weight: normal; font-size: 9px; }
     .receipt-theme-ultra-compact .meta-line:last-child::after { content: ""; margin: 0; }

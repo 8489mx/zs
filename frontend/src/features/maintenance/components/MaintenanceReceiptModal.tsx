@@ -248,7 +248,7 @@ export function printMaintenanceSticker(
   });
 }
 
-export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, settings?: Partial<AppSettings> | null) {
+async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, settings?: Partial<AppSettings> | null) {
   const barcodeSvg = buildCode128Svg(ticket.ticketNo);
   const discountInfo = extractTicketDiscount(ticket.technicianNotes);
   let totalCost = ticket.finalCost || ticket.expectedCost || 0;

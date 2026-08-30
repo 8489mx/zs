@@ -188,7 +188,9 @@ export function DashboardDailyDecisionGrid({
           borderRadius: '10px',
           display: 'inline-flex',
           gap: '4px',
-          flexWrap: 'wrap',
+          flexWrap: 'nowrap',
+          overflowX: 'auto',
+          maxWidth: '100%',
           marginBottom: '16px',
         }}
       >
@@ -200,15 +202,16 @@ export function DashboardDailyDecisionGrid({
             color: activeTab === 'buying' ? '#0f172a' : '#64748b',
             boxShadow: activeTab === 'buying' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             border: 'none',
-            padding: '7px 14px',
+            padding: '6px 12px',
             borderRadius: '8px',
-            fontSize: '0.82rem',
+            fontSize: '0.80rem',
             fontWeight: activeTab === 'buying' ? 700 : 500,
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
           }}
         >
-          أولويات الشراء {data.buying.priorityTotal > 0 ? `(${data.buying.priorityTotal})` : ''}
+          نواقص الشراء {data.buying.priorityTotal > 0 ? `(${data.buying.priorityTotal})` : ''}
         </button>
         <button
           type="button"
@@ -218,11 +221,12 @@ export function DashboardDailyDecisionGrid({
             color: activeTab === 'stagnant' ? '#0f172a' : '#64748b',
             boxShadow: activeTab === 'stagnant' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             border: 'none',
-            padding: '7px 14px',
+            padding: '6px 12px',
             borderRadius: '8px',
-            fontSize: '0.82rem',
+            fontSize: '0.80rem',
             fontWeight: activeTab === 'stagnant' ? 700 : 500,
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
           }}
         >
@@ -236,15 +240,16 @@ export function DashboardDailyDecisionGrid({
             color: activeTab === 'profit' ? '#0f172a' : '#64748b',
             boxShadow: activeTab === 'profit' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             border: 'none',
-            padding: '7px 14px',
+            padding: '6px 12px',
             borderRadius: '8px',
-            fontSize: '0.82rem',
+            fontSize: '0.80rem',
             fontWeight: activeTab === 'profit' ? 700 : 500,
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
           }}
         >
-          أرباح الأصناف والأقسام
+          مصادر الأرباح
         </button>
         <button
           type="button"
@@ -254,15 +259,16 @@ export function DashboardDailyDecisionGrid({
             color: activeTab === 'collection' ? '#0f172a' : '#64748b',
             boxShadow: activeTab === 'collection' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             border: 'none',
-            padding: '7px 14px',
+            padding: '6px 12px',
             borderRadius: '8px',
-            fontSize: '0.82rem',
+            fontSize: '0.80rem',
             fontWeight: activeTab === 'collection' ? 700 : 500,
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
           }}
         >
-          التحصيل ومديونيات العملاء {data.collection.topDebtsTotal > 0 ? `(${data.collection.topDebtsTotal})` : ''}
+          تحصيل العملاء {data.collection.topDebtsTotal > 0 ? `(${data.collection.topDebtsTotal})` : ''}
         </button>
         <button
           type="button"
@@ -272,12 +278,11 @@ export function DashboardDailyDecisionGrid({
             color: activeTab === 'payables' ? '#0f172a' : '#64748b',
             boxShadow: activeTab === 'payables' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             border: 'none',
-            padding: '7px 14px',
+            padding: '6px 12px',
             borderRadius: '8px',
-            fontSize: '0.82rem',
+            fontSize: '0.80rem',
             fontWeight: activeTab === 'payables' ? 700 : 500,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
         >
           مستحقات الموردين {topSuppliers.length > 0 ? `(${topSuppliers.length})` : ''}

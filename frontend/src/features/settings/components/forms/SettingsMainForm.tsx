@@ -34,6 +34,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       phone: '',
       address: '',
       lowStockThreshold: 5,
+      expiryAlertDays: 60,
+      stagnantProductDays: 60,
       invoiceFooter: '',
       invoiceQR: '',
       taxNumber: '',
@@ -286,6 +288,8 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       whatsappLinkMode: settings.whatsappLinkMode === 'app' ? 'app' : settings.whatsappLinkMode === 'web' ? 'web' : 'wa_me',
       defaultBranchIssueMode: settings.defaultBranchIssueMode === 'transfer_to_branch_stock' ? 'transfer_to_branch_stock' : 'final_issue',
       invoiceNumberingScheme: settings.invoiceNumberingScheme === 'sequential' ? 'sequential' : 'daily',
+      expiryAlertDays: Math.max(1, Number(settings.expiryAlertDays || 60)),
+      stagnantProductDays: Math.max(1, Number(settings.stagnantProductDays || 60)),
     });
   }, [settings, form, branches]);
 
@@ -407,6 +411,50 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     mutation.mutate(values);
   });
 
+  const tabErrors = useMemo(() => {
+    const errors = form.formState.errors;
+    const map: Record<string, string[]> = {
+      general: [],
+      sales_inventory: [],
+      modules: [],
+      printing: [],
+      security: [],
+    };
+
+    const fieldToTab: Record<string, { tab: string; label: string }> = {
+      storeName: { tab: 'general', label: 'اسم النشاط / المتجر' },
+      brandName: { tab: 'general', label: 'الاسم التجاري' },
+      phone: { tab: 'general', label: 'الهاتف' },
+      address: { tab: 'general', label: 'العنوان' },
+      currentBranchId: { tab: 'general', label: 'الفرع الرئيسي' },
+      currentLocationId: { tab: 'general', label: 'مكان الاستلام الافتراضي' },
+      accentColor: { tab: 'general', label: 'لون الواجهة' },
+      currency: { tab: 'general', label: 'العملة' },
+      timezone: { tab: 'general', label: 'المنطقة الزمنية' },
+      lowStockThreshold: { tab: 'sales_inventory', label: 'حد المخزون الأدنى' },
+      expiryAlertDays: { tab: 'sales_inventory', label: 'تنبيه قرب الصلاحية' },
+      stagnantProductDays: { tab: 'sales_inventory', label: 'تنبيه ركود الأصناف' },
+      taxNumber: { tab: 'sales_inventory', label: 'الرقم الضريبي' },
+      taxRate: { tab: 'sales_inventory', label: 'نسبة الضريبة' },
+      weightedBarcodePrefix: { tab: 'sales_inventory', label: 'بادئة باركود الميزان' },
+      managerPin: { tab: 'security', label: 'الرقم السري للمدير' },
+      autoBackup: { tab: 'security', label: 'النسخ الاحتياطي التلقائي' },
+      paperSize: { tab: 'printing', label: 'مقاس الورق' },
+      invoiceFooter: { tab: 'printing', label: 'تذييل الفاتورة' },
+    };
+
+    for (const [field, err] of Object.entries(errors)) {
+      if (!err || field === 'root') continue;
+      const meta = fieldToTab[field];
+      if (meta) {
+        map[meta.tab].push(meta.label);
+      } else {
+        map.general.push(field);
+      }
+    }
+    return map;
+  }, [form.formState.errors]);
+
   return (
     <form id="settings-main-form" className="page-stack settings-core-form" dir="rtl" autoComplete="off" onSubmit={submit}>
       
@@ -423,8 +471,25 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
         {/* التابات */}
         {!form.formState.isValid && form.formState.isSubmitted && Object.keys(form.formState.errors).length > 0 && (
-          <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', borderRadius: 8, marginBottom: 12, fontSize: '0.82rem' }}>
-            يوجد حقول مطلوبة لم يتم إدخالها بشكل صحيح في تبويبات أخرى (مثل اسم النشاط في تبويب &quot;عام&quot;). يرجى مراجعتها ثم المحاولة مرة أخرى.
+          <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', borderRadius: 8, marginBottom: 14, fontSize: '0.85rem' }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>يرجى استكمال أو مراجعة الحقول التالية:</div>
+            <ul style={{ margin: 0, paddingInlineStart: 20 }}>
+              {Object.entries(tabErrors).map(([tabId, errs]) => {
+                if (!errs.length) return null;
+                const tabNames: Record<string, string> = {
+                  general: 'عام',
+                  sales_inventory: 'البيع والمخزون',
+                  modules: 'موديولات النظام',
+                  printing: 'الطباعة',
+                  security: 'الأمان',
+                };
+                return (
+                  <li key={tabId} style={{ marginTop: 2 }}>
+                    <strong>تبويب &quot;{tabNames[tabId]}&quot;:</strong> {errs.join('، ')}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
         <div className="settings-tabs" style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px', overflowX: 'auto' }}>
@@ -441,7 +506,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               onClick={() => setActiveTab(tab.id as any)}
               style={{
                 background: activeTab === tab.id ? 'var(--primary, #0f172a)' : 'transparent',
-                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                color: activeTab === tab.id ? '#ffffff' : (tabErrors[tab.id]?.length ? '#ef4444' : '#64748b'),
                 border: 'none',
                 padding: '6px 16px',
                 borderRadius: '7px',
@@ -451,9 +516,17 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                 transition: 'background-color 0.15s ease, color 0.15s ease',
                 whiteSpace: 'nowrap',
                 boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              {tab.label}
+              <span>{tab.label}</span>
+              {tabErrors[tab.id]?.length > 0 ? (
+                <span style={{ background: '#ef4444', color: '#fff', fontSize: '10px', borderRadius: '10px', padding: '1px 6px', fontWeight: 800 }}>
+                  {tabErrors[tab.id].length}
+                </span>
+              ) : null}
             </button>
           ))}
         </div>

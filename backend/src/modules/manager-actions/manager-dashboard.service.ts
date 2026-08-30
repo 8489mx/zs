@@ -35,7 +35,7 @@ export class ManagerDashboardService {
       try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
       return acc;
     }, {});
-    const stagnantThresholdDays = Number(settingsMap.stagnantProductDays) > 0 ? Number(settingsMap.stagnantProductDays) : 30;
+    const stagnantThresholdDays = Number(settingsMap.stagnantProductDays) > 0 ? Number(settingsMap.stagnantProductDays) : 60;
     const salesTotal = m(n(salesLast30?.total));
     const salesCount = n(salesLast30?.count);
     const previousTotal = m(n(salesPrevious30?.total));
