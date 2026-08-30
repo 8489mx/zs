@@ -239,8 +239,19 @@ function PosProductsPanelComponent({
   const scannerBuffer = useScannerBuffer({
     externalValue: search,
     onFlush: onSearchChange,
+    onAutoSubmit: (val) => {
+      const trimmed = val.trim();
+      if (!trimmed) return false;
+      if (hasExactCodeMatch(products, trimmed) || isInvoiceBarcodeQuery(trimmed)) {
+        return onSearchSubmitFirstResult(trimmed);
+      }
+      return false;
+    },
     inputRef: searchInputRef,
     sanitize: sanitizeSearchInputLive,
+    scanThresholdMs: 65,
+    scanFlushMs: 75,
+    typeFlushMs: 120,
   });
 
   const [shelf, setShelf] = useState<PosGroupShelf>('all');

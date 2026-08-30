@@ -43,6 +43,7 @@ export function PosWorkspace() {
   const pos = usePosWorkspace();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannerSubmitRef = useRef<{ code: string; at: number }>({ code: '', at: 0 });
+  const lastInvoiceScanRef = useRef<{ query: string; at: number }>({ query: '', at: 0 });
   const [discountApprovalDialogOpen, setDiscountApprovalDialogOpen] = useState(false);
   const [wholesaleApprovalDialogOpen, setWholesaleApprovalDialogOpen] = useState(false);
   const [clearCartConfirmOpen, setClearCartConfirmOpen] = useState(false);
@@ -215,19 +216,26 @@ export function PosWorkspace() {
   }, [pos]);
 
   const resolveScannedInvoice = useCallback(async (rawQuery: string): Promise<boolean> => {
+    const clean = String(rawQuery || '').trim();
+    if (!clean) return false;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (lastInvoiceScanRef.current.query === clean && (now - lastInvoiceScanRef.current.at) < 800) {
+      return true;
+    }
+    lastInvoiceScanRef.current = { query: clean, at: now };
+
     try {
-      const searchTerms = getNormalizedInvoiceSearchTerms(rawQuery);
+      const searchTerms = getNormalizedInvoiceSearchTerms(clean);
       if (!searchTerms.length) return false;
 
       // 1. Fast path: Search the primary normalized term directly
       const primaryTerm = searchTerms[0];
       const salesResult = await salesApi.listPage({ search: primaryTerm, pageSize: 5 });
       const matchingSale = (salesResult.rows || []).find((s) => {
-        if (String(s.id) === primaryTerm) return true;
         if (matchesSaleDocNo(s.docNo, primaryTerm)) return true;
-        if (matchesSaleDocNo(s.docNo, rawQuery)) return true;
+        if (matchesSaleDocNo(s.docNo, clean)) return true;
         return false;
-      }) || (salesResult.rows?.length === 1 ? salesResult.rows[0] : null);
+      });
 
       if (matchingSale) {
         setScannedSale(matchingSale);
@@ -244,7 +252,7 @@ export function PosWorkspace() {
           remainingTerms.map((term) => salesApi.listPage({ search: term, pageSize: 5 }))
         );
         for (const res of results) {
-          const found = (res.rows || []).find((s) => matchesSaleDocNo(s.docNo, rawQuery)) || (res.rows?.length === 1 ? res.rows[0] : null);
+          const found = (res.rows || []).find((s) => matchesSaleDocNo(s.docNo, clean) || matchesSaleDocNo(s.docNo, primaryTerm));
           if (found) {
             setScannedSale(found);
             setScannedSaleModalOpen(true);
@@ -265,10 +273,6 @@ export function PosWorkspace() {
       try {
         const parsed = parseQuantityPrefixQuery(rawQuery);
         const query = parsed.cleanQuery || rawQuery;
-
-        // 1. Check if invoice first
-        const isInvoice = await resolveScannedInvoice(query);
-        if (isInvoice) return;
 
         const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
         if (weightedBarcode) {
@@ -292,6 +296,12 @@ export function PosWorkspace() {
           pos.setSubmitMessage(`باركود ميزان: لم يتم العثور على كود الصنف ${weightedBarcode.productCode}.`);
           focusBarcodeEntry();
           return;
+        }
+
+        // 1. Check if invoice
+        if (isInvoiceBarcodeQuery(query)) {
+          const isInvoice = await resolveScannedInvoice(query);
+          if (isInvoice) return;
         }
 
         const remappedQuery = remapArabicKeyboardToEnglish(query);
@@ -402,7 +412,6 @@ export function PosWorkspace() {
     if (exactCodeMatch.status === 'not-found') {
       const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
       if (weightedBarcode) {
-        // Only submit locally if we are SURE it's in the cache. Otherwise fallback to remote so we don't flash a false error message.
         const localWeightedMatch = matchProductByWeightedCode(pos.productsQuery.data || [], weightedBarcode.productCode);
         if (localWeightedMatch.status === 'matched') {
           const submitted = handleQuickAddSubmit(raw);
@@ -410,30 +419,41 @@ export function PosWorkspace() {
             pos.setSearch('');
             return true;
           }
+        } else {
+          resolveRemoteBarcodeMatch(raw);
+          return true;
         }
       }
     }
 
-    if (exactCodeMatch.status === 'not-found' && isLikelyBarcodeQuery(query)) {
-      resolveRemoteBarcodeMatch(raw);
-      return true;
-    }
-
-    const firstProduct = pos.filteredSaleProducts[0];
-    if (!firstProduct) {
-      // Before showing not-found, check invoice
+    // If query is a numeric barcode (not a product text search)
+    if (isLikelyBarcodeQuery(query) || /^\d+$/.test(query)) {
       void (async () => {
-        const isInvoice = await resolveScannedInvoice(query);
+        const isInvoice = await resolveScannedInvoice(query || raw);
         if (!isInvoice) {
-          pos.setSubmitMessage('لا توجد نتيجة مطابقة الآن لإضافتها.');
-          focusBarcodeEntry();
+          resolveRemoteBarcodeMatch(raw);
         }
       })();
       return true;
     }
-    pos.handleAddProduct(firstProduct, undefined, { quantity: requestedQuantity });
-    pos.setSearch('');
-    return true;
+
+    // Only if it was a TEXT search query (e.g. "شاي ليبتون") and search actually filtered results
+    if (pos.search.trim() || query.trim()) {
+      const targetQuery = (query || pos.search).toLowerCase().trim();
+      const matchedProduct = pos.filteredSaleProducts.find((p) =>
+        p.name.toLowerCase().includes(targetQuery) ||
+        p.sku?.toLowerCase().includes(targetQuery)
+      );
+      if (matchedProduct) {
+        pos.handleAddProduct(matchedProduct, undefined, { quantity: requestedQuantity });
+        pos.setSearch('');
+        return true;
+      }
+    }
+
+    pos.setSubmitMessage('لا توجد نتيجة مطابقة لهذا البحث أو الباركود.');
+    focusBarcodeEntry();
+    return false;
   }, [focusBarcodeEntry, handleQuickAddSubmit, pos, resolveRemoteBarcodeMatch, resolveScannedInvoice]);
 
   useEffect(() => {

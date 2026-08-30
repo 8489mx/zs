@@ -22,8 +22,12 @@ export class SalesQueryService {
       : sql<boolean>`tenant_id = ${tenantId}`;
   }
 
-  private async fetchSaleBaseRows(auth: AuthContext): Promise<Array<Record<string, unknown>>> {
-    return this.db
+  private async fetchSaleBaseRows(auth: AuthContext, query?: Record<string, unknown>): Promise<Array<Record<string, unknown>>> {
+    const search = typeof query?.search === 'string' ? query.search.trim() : '';
+    const numericId = Number(search);
+    const hasNumericId = Number.isInteger(numericId) && numericId > 0;
+
+    let qb = this.db
       .selectFrom('sales as s')
       .leftJoin('customers as c', 'c.id', 's.customer_id')
       .leftJoin('branches as b', 'b.id', 's.branch_id')
@@ -36,7 +40,27 @@ export class SalesQueryService {
         's.status', 's.note', 's.table_number', 's.order_type', 's.branch_id', 's.location_id', 's.created_by as created_by_id', 's.created_at', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name', 'u.username as created_by_username',
         's.delivery_rep_id', 'dr.name as delivery_rep_name',
       ])
-      .where(this.tenantPredicate(auth, 's'))
+      .where(this.tenantPredicate(auth, 's'));
+
+    if (search) {
+      const cleanSearch = search.replace(/[-\/_.\s]/g, '');
+      qb = qb.where((eb) => {
+        const clauses: any[] = [
+          eb('s.doc_no', 'ilike', `%${search}%`),
+          sql<boolean>`REPLACE(REPLACE(s.doc_no, '-', ''), '/', '') ILIKE ${'%' + cleanSearch + '%'}`,
+          eb('c.name', 'ilike', `%${search}%`),
+          eb('c.phone', 'ilike', `%${search}%`),
+          eb('s.customer_name', 'ilike', `%${search}%`),
+          eb('s.customer_phone', 'ilike', `%${search}%`),
+        ];
+        if (hasNumericId && search.length <= 6) {
+          clauses.push(eb('s.id', '=', numericId));
+        }
+        return eb.or(clauses);
+      }).limit(50);
+    }
+
+    return qb
       .orderBy('s.id', 'desc')
       .execute() as unknown as Array<Record<string, unknown>>;
   }
@@ -116,7 +140,7 @@ export class SalesQueryService {
     const scope = requireTenantScope(auth);
     this.authz.assertCanViewSales(auth);
 
-    const baseSales = await this.fetchSaleBaseRows(auth);
+    const baseSales = await this.fetchSaleBaseRows(auth, query);
     const shells = this.mapSaleShells(baseSales);
     const filtered = filterSales(shells, query);
     const summary = summarizeSales(filtered);

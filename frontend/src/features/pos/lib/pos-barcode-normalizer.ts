@@ -48,15 +48,19 @@ export function isInvoiceBarcodeQuery(raw: string): boolean {
   if (!query) return false;
   const remapped = remapArabicKeyboardToEnglish(query).trim().toUpperCase();
 
-  // Matches invoice patterns like Z-260825-0011, Z/260825/0011, INV-1234, 260825-0011, Z2608250011
+  // Matches invoice patterns like Z-260825-0011, Z/260825/0011, INV-1234, 260825-0011, Z2608250011, 2608206
   if (/^Z[-/_.]?\d+/i.test(remapped) || /^INV[-/_.]?\d+/i.test(remapped)) return true;
   if (/^\d{6,}[-/_.]\d+/.test(remapped)) return true;
-  if (/^\d{8,}$/.test(remapped)) return true;
-  if (/^[A-Za-z]+[-/_]\d+/.test(remapped)) return true;
-  if (/^Z/i.test(remapped) && remapped.length >= 6) return true;
-  if (/^ZL\d+/i.test(remapped) && remapped.length >= 6) return true;
+  if (/^Z/i.test(remapped) && remapped.length >= 5) return true;
+  if (/^ZL\d+/i.test(remapped) && remapped.length >= 5) return true;
   // Also check if raw contained Arabic 'ئ' or 'ظ' (mapped to Z)
   if (/^[ئظ][-/_.]?\d+/i.test(query)) return true;
+
+  // Exact invoice barcode format: YYMMDD + sequence (e.g. 2608206 -> 26=Year, 08=Month, 20=Day, 6=Seq)
+  const invoiceDateMatch = remapped.match(/^(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(\d{1,6})$/);
+  if (invoiceDateMatch) {
+    return true;
+  }
 
   return false;
 }
@@ -64,32 +68,34 @@ export function isInvoiceBarcodeQuery(raw: string): boolean {
 export function getNormalizedInvoiceSearchTerms(raw: string): string[] {
   const original = String(raw || '').trim();
   if (!original) return [];
-  const remapped = remapArabicKeyboardToEnglish(original).trim();
+  const remapped = remapArabicKeyboardToEnglish(original).trim().toUpperCase();
   const strippedRemapped = stripSeparators(remapped);
   const strippedOriginal = stripSeparators(original);
 
   const terms = new Set<string>();
-  if (original) terms.add(original);
-  if (remapped) terms.add(remapped);
-  if (strippedRemapped) terms.add(strippedRemapped);
-  if (strippedOriginal) terms.add(strippedOriginal);
 
-  // If query contains date pattern YYMMDD and sequence number (e.g. 260825 and 0011)
-  const numbersMatch = remapped.match(/(\d{6})[^\d]*(\d{3,})/);
+  // 1. If query contains date pattern YYMMDD and sequence number (e.g. 260828-0024 or 2608280024)
+  const numbersMatch = remapped.match(/^(\d{6})[^\d]*(\d+)$/) || remapped.match(/(\d{6})[^\d]*(\d+)/);
   if (numbersMatch) {
     const [, datePart, seqPart] = numbersMatch;
-    terms.add(`Z-${datePart}-${seqPart}`);
-    terms.add(`Z/${datePart}/${seqPart}`);
-    terms.add(`${datePart}-${seqPart}`);
-    terms.add(`${datePart}${seqPart}`);
-    terms.add(seqPart);
+    const numSeq = Number(seqPart);
+    if (!Number.isNaN(numSeq)) {
+      terms.add(`Z-${datePart}-${seqPart.padStart(4, '0')}`);
+      terms.add(`Z-${datePart}-${seqPart}`);
+      terms.add(`${datePart}-${seqPart.padStart(4, '0')}`);
+      terms.add(`${datePart}-${seqPart}`);
+      terms.add(`${datePart}${seqPart.padStart(4, '0')}`);
+      terms.add(`${datePart}${seqPart}`);
+    }
   }
 
-  // If starts with Z or Z- or Z/, extract the numeric tail
-  const numericTail = remapped.replace(/^Z[-/_.]?/i, '').trim();
-  if (numericTail && numericTail.length >= 3) {
-    terms.add(numericTail);
-  }
+  // 2. Add remapped English code (e.g. Z-260830-0001)
+  if (remapped) terms.add(remapped);
+  if (strippedRemapped) terms.add(strippedRemapped);
+
+  // 3. Fallback to original
+  if (original && original !== remapped) terms.add(original);
+  if (strippedOriginal && strippedOriginal !== strippedRemapped) terms.add(strippedOriginal);
 
   return Array.from(terms).filter(Boolean);
 }
@@ -99,6 +105,7 @@ export function matchesSaleDocNo(saleDocNo: string | undefined | null, query: st
   const search = String(query || '').trim().toLowerCase();
   if (!target || !search) return false;
 
+  // 1. Direct or separator-stripped exact match
   if (target === search) return true;
   if (stripSeparators(target) === stripSeparators(search)) return true;
 
@@ -106,11 +113,32 @@ export function matchesSaleDocNo(saleDocNo: string | undefined | null, query: st
   if (target === remappedSearch) return true;
   if (stripSeparators(target) === stripSeparators(remappedSearch)) return true;
 
-  // Check if both contain the same numeric sequence
+  // 2. Exact full numeric sequence match
   const targetNums = target.replace(/\D/g, '');
-  const searchNums = search.replace(/\D/g, '');
-  if (targetNums && searchNums && (targetNums === searchNums || (targetNums.length >= 6 && searchNums.includes(targetNums)) || (searchNums.length >= 6 && targetNums.includes(searchNums)))) {
+  const searchNums = remappedSearch.replace(/\D/g, '');
+  if (targetNums && searchNums && targetNums === searchNums) {
     return true;
+  }
+
+  // 3. Date + Sequence matching (e.g. Z-260820-0006 vs 2608206 or Z-260830-0016 vs 260830-16)
+  const targetDateMatch = target.match(/(\d{6})[^\d]*(\d+)/);
+  const searchDateMatch = remappedSearch.match(/(\d{6})[^\d]*(\d+)/);
+  if (targetDateMatch && searchDateMatch) {
+    const targetDate = targetDateMatch[1];
+    const searchDate = searchDateMatch[1];
+    const targetSeq = Number(targetDateMatch[2]);
+    const searchSeq = Number(searchDateMatch[2]);
+
+    if (targetDate === searchDate && targetSeq === searchSeq && !Number.isNaN(targetSeq) && !Number.isNaN(searchSeq)) {
+      return true;
+    }
+  }
+
+  // 4. Sequential scheme match (e.g. Z-123 vs 123)
+  if (/^z[-/_.]?\d+$/i.test(target) && /^\d+$/.test(searchNums)) {
+    if (Number(targetNums) === Number(searchNums) && !Number.isNaN(Number(searchNums))) {
+      return true;
+    }
   }
 
   return false;

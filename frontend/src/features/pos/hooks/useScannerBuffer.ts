@@ -22,25 +22,28 @@ export function useScannerBuffer(opts: {
   externalValue: string;
   /** Called when the buffer flushes (scanner done or typing pause). */
   onFlush: (value: string) => void;
+  /** Optional handler to immediately execute a match and clear input on success. */
+  onAutoSubmit?: (value: string) => boolean | Promise<boolean> | void;
   /** Ref to the input element — used for direct DOM manipulation. */
   inputRef: RefObject<HTMLInputElement | null>;
   /** Optional sanitizer applied to each input change. */
   sanitize?: (raw: string) => string;
   /** Max ms between keystrokes to be considered rapid/scanner input. Default: 60 */
   scanThresholdMs?: number;
-  /** Delay before flushing scanner input (after last rapid keystroke). Default: 70 */
+  /** Delay before flushing scanner input (after last rapid keystroke). Default: 15 */
   scanFlushMs?: number;
-  /** Delay before flushing manual typing input. Default: 150 */
+  /** Delay before flushing manual typing input. Default: 80 */
   typeFlushMs?: number;
 }) {
   const {
     externalValue,
     onFlush,
+    onAutoSubmit,
     inputRef,
     sanitize,
     scanThresholdMs = 60,
-    scanFlushMs = 35,
-    typeFlushMs = 100,
+    scanFlushMs = 15,
+    typeFlushMs = 80,
   } = opts;
 
   // Use a ref — NOT state — so typing never triggers React re-renders.
@@ -48,6 +51,8 @@ export function useScannerBuffer(opts: {
   const flushTimerRef = useRef<number>(0);
   const lastKeystrokeRef = useRef<number>(0);
   const rapidCountRef = useRef(0);
+  const onAutoSubmitRef = useRef(onAutoSubmit);
+  useEffect(() => { onAutoSubmitRef.current = onAutoSubmit; }, [onAutoSubmit]);
 
   // Sync external → DOM when the external value changes
   // (e.g., search cleared after adding a product, or set programmatically).
@@ -97,16 +102,27 @@ export function useScannerBuffer(opts: {
         rapidCountRef.current = 1;
       }
 
-      // 3+ rapid keystrokes → likely scanner
+      // 3+ rapid keystrokes → scanner
       const isScanning = rapidCountRef.current >= 3;
 
       // Clear any pending flush
       if (flushTimerRef.current) window.clearTimeout(flushTimerRef.current);
 
-      // Schedule flush: shorter delay for scanner, longer for manual typing
+      // Schedule flush: ultra-fast for scanner, smooth for manual typing
       const delay = isScanning ? scanFlushMs : typeFlushMs;
       flushTimerRef.current = window.setTimeout(() => {
-        onFlush(localValueRef.current);
+        const current = localValueRef.current;
+        // Only auto-submit on true rapid scanner input, NEVER during manual typing
+        if (isScanning && onAutoSubmitRef.current && current.trim()) {
+          const autoHandled = onAutoSubmitRef.current(current);
+          if (autoHandled) {
+            localValueRef.current = '';
+            if (inputRef.current) inputRef.current.value = '';
+            rapidCountRef.current = 0;
+            return;
+          }
+        }
+        onFlush(current);
         rapidCountRef.current = 0;
       }, delay);
     },
