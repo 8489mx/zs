@@ -16,27 +16,33 @@ export function prefetchRouteData(to: string) {
 
   try {
     switch (path) {
-      case 'sales':
+      case 'sales': {
+        const salesParams = { page: 1, pageSize: 30, search: '', filter: 'all' as const, cashier: 'all' };
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.sales,
-          queryFn: () => salesApi.listPage({ page: 1, pageSize: 30 }),
+          queryKey: queryKeys.salesPage(JSON.stringify(salesParams)),
+          queryFn: () => salesApi.listPage(salesParams),
           staleTime: 60_000,
         });
         break;
-      case 'products':
+      }
+      case 'products': {
+        const productParams = { page: 1, pageSize: 20 };
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.products,
-          queryFn: () => productsApi.listPage({ page: 1, pageSize: 20 }),
+          queryKey: queryKeys.productsPage('page=1&pageSize=20'),
+          queryFn: () => productsApi.listPage(productParams),
           staleTime: 60_000,
         });
         break;
-      case 'purchases':
+      }
+      case 'purchases': {
+        const purchasesParams = { page: 1, pageSize: 25, search: '', filter: 'all' as const };
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.purchases,
-          queryFn: () => purchasesApi.listPage({ page: 1, pageSize: 25 }),
+          queryKey: queryKeys.purchasesPage(JSON.stringify(purchasesParams)),
+          queryFn: () => purchasesApi.listPage(purchasesParams),
           staleTime: 60_000,
         });
         break;
+      }
       case 'inventory':
         void queryClient.prefetchQuery({
           queryKey: queryKeys.inventoryReport,

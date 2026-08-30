@@ -61,11 +61,27 @@ export function ReturnsWorkspace() {
   const user = useAuthStore((s) => s.user);
   const canDirectReturn = user?.role === 'super_admin' || user?.role === 'admin' || Boolean(user?.permissions?.includes('canDirectReturn'));
 
-  const invoiceRows = useMemo(() => (
-    form.type === 'sale'
-      ? (salesQuery.data || []).filter((sale) => sale.status === 'posted')
-      : (purchasesQuery.data || []).filter((purchase) => purchase.status === 'posted')
-  ), [form.type, purchasesQuery.data, salesQuery.data]);
+  const invoiceRows = useMemo(() => {
+    const rawSales: Sale[] = Array.isArray(salesQuery.data)
+      ? salesQuery.data
+      : Array.isArray((salesQuery.data as any)?.rows)
+      ? (salesQuery.data as any).rows
+      : Array.isArray((salesQuery.data as any)?.sales)
+      ? (salesQuery.data as any).sales
+      : [];
+
+    const rawPurchases: Purchase[] = Array.isArray(purchasesQuery.data)
+      ? purchasesQuery.data
+      : Array.isArray((purchasesQuery.data as any)?.rows)
+      ? (purchasesQuery.data as any).rows
+      : Array.isArray((purchasesQuery.data as any)?.purchases)
+      ? (purchasesQuery.data as any).purchases
+      : [];
+
+    return form.type === 'sale'
+      ? rawSales.filter((sale) => sale.status === 'posted')
+      : rawPurchases.filter((purchase) => purchase.status === 'posted');
+  }, [form.type, purchasesQuery.data, salesQuery.data]);
 
   const selectedInvoice = invoiceRows.find((row) => String(row.id) === String(form.invoiceId)) as Sale | Purchase | undefined;
   const rows = useMemo(() => query.data?.returns || [], [query.data?.returns]);
