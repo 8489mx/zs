@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
-import { formatSalePaymentText } from '@/lib/pos-printing/shared';
+import { formatSalePaymentText, paymentLabel } from '@/lib/pos-printing/shared';
 import type { AppSettings, Customer, Sale } from '@/types/domain';
 
 interface PosSaleSuccessDialogProps {
@@ -69,8 +69,8 @@ export function PosSaleSuccessDialog({
   const isCreditSale = sale?.paymentType === 'credit';
   const isCreditOrPartial = isCreditSale || (remainingDebt > 0.009 && !isDeliveryOrder);
 
-  // A delivery order is COD when courier collects money from customer (collectionStatus is cod OR unpaid non-credit delivery)
-  const isDeliveryCod = isDeliveryOrder && hasDeliveryRep && (collectionStatus === 'cod' || (!isFullyPaid && !isCreditSale));
+  const isDeliveryCreditSale = isDeliveryOrder && isCreditSale;
+  const isDeliveryCod = isDeliveryOrder && hasDeliveryRep && !isDeliveryCreditSale && (collectionStatus === 'cod' || !isFullyPaid);
 
   const paymentMethodLabel = isDeliveryCod
     ? `دليفري — تحصيل مع المندوب${repName ? ` (${repName})` : ''}`
@@ -227,13 +227,27 @@ export function PosSaleSuccessDialog({
           {isDeliveryOrder ? (
             isDeliveryCod ? (
               <>
-                <span><b>المطلوب تحصيله</b>{formatCurrency(total)} (مع المندوب)</span>
+                {paidAmount > 0 && <span><b>المدفوع مقدماً</b>{formatCurrency(paidAmount)}</span>}
+                <span><b>المطلوب تحصيله</b><strong style={{ color: '#d97706' }}>{formatCurrency(remainingDebt)}</strong> (مع المندوب)</span>
                 <span><b>حالة التحصيل</b><strong style={{ color: '#d97706' }}>عهدة مع المندوب</strong></span>
-                {repName && <span><b>المندوب</b>{repName}</span>}
+                {repName && <span><b>المندوب</b>{repName} (تحصيل وتسليم)</span>}
+              </>
+            ) : isDeliveryCreditSale ? (
+              <>
+                {paidAmount > 0 && <span><b>المدفوع مقدماً</b>{formatCurrency(paidAmount)}</span>}
+                <span><b>المتبقي على العميل</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
+                <span><b>حالة الفاتورة</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? 'آجل بالكامل على حساب العميل' : 'سداد جزئي (متبقي آجل)'}</strong></span>
+                {repName && <span><b>المندوب</b>{repName} (تسليم فقط — الحساب مسجل على العميل)</span>}
+                {deliveryFee > 0 && (
+                  <span style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7', color: '#92400e' }}>
+                    <b>تسوية المندوب:</b> تم صرف {formatCurrency(deliveryFee)} نقداً من الدرج لأجرة التوصيل
+                  </span>
+                )}
               </>
             ) : (
               <>
-                <span><b>حالة التحصيل</b><strong style={{ color: '#16a34a' }}>خالص بالكامل (مدفوع)</strong></span>
+                {paidAmount > 0 && <span><b>المدفوع</b>{formatCurrency(paidAmount)}</span>}
+                <span><b>حالة التحصيل</b><strong style={{ color: '#16a34a' }}>مدفوع مسبقاً بالكامل</strong></span>
                 {repName && <span><b>المندوب</b>{repName} (تسليم فقط)</span>}
                 {deliveryFee > 0 && (
                   <span style={{ gridColumn: '1 / -1', background: '#fffbeb', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fef3c7', color: '#92400e' }}>
@@ -246,6 +260,7 @@ export function PosSaleSuccessDialog({
             <>
               <span><b>المدفوع</b>{formatCurrency(paidAmount)}</span>
               <span><b>المتبقي على العميل</b><strong style={{ color: '#dc2626' }}>{formatCurrency(remainingDebt)}</strong></span>
+              <span><b>حالة الفاتورة</b><strong style={{ color: '#d97706' }}>{paidAmount === 0 ? 'آجل بالكامل على حساب العميل' : 'سداد جزئي (متبقي آجل)'}</strong></span>
             </>
           ) : (
             <>
@@ -258,6 +273,12 @@ export function PosSaleSuccessDialog({
             </>
           )}
           <span><b>العميل</b>{sale.customerName || customer?.name || (isDeliveryOrder ? 'عميل دليفري' : 'عميل نقدي')}</span>
+          {Array.isArray(sale.payments) && sale.payments.length > 1 && (
+            <span style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+              <b>تفاصيل المدفوعات:</b>{' '}
+              {sale.payments.map((p) => `${paymentLabel(p.paymentChannel)}: ${formatCurrency(Number(p.amount || 0))}`).join(' + ')}
+            </span>
+          )}
         </div>
 
         {printError ? <div className="pos-sale-success-error">{printError}</div> : null}

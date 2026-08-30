@@ -107,9 +107,33 @@ describe('PosSaleSuccessDialog', () => {
 
     renderDialog({ sale: onlineDeliverySale });
 
-    expect(screen.getByText(/خالص بالكامل \(مدفوع\)/)).toBeInTheDocument();
+    expect(screen.getByText(/مدفوع مسبقاً بالكامل/)).toBeInTheDocument();
     expect(screen.getByText(/سيد/)).toBeInTheDocument();
     expect(screen.getByText(/تسوية المندوب/)).toBeInTheDocument();
+    expect(screen.queryByText(/عهدة مع المندوب/)).not.toBeInTheDocument();
+  });
+
+  it('correctly formats partial credit delivery orders with customer debt and courier delivery-only role', () => {
+    const partialCreditDeliverySale = {
+      ...sale,
+      orderType: 'delivery',
+      deliveryRepId: 3,
+      deliveryRepName: 'طاهر',
+      paymentType: 'credit',
+      paymentChannel: 'mixed',
+      deliveryFee: 35,
+      total: 235,
+      paidAmount: 230,
+      customerName: 'بسيسي',
+    } as unknown as Sale;
+
+    renderDialog({ sale: partialCreditDeliverySale });
+
+    expect(screen.getByText(/سداد جزئي \(متبقي آجل\)/)).toBeInTheDocument();
+    expect(screen.getByText(/المتبقي على العميل/)).toBeInTheDocument();
+    expect(screen.getByText(/طاهر/)).toBeInTheDocument();
+    expect(screen.getByText(/تسليم فقط/)).toBeInTheDocument();
+    expect(screen.queryByText(/مدفوع مسبقاً بالكامل/)).not.toBeInTheDocument();
     expect(screen.queryByText(/عهدة مع المندوب/)).not.toBeInTheDocument();
   });
 });

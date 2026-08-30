@@ -24,12 +24,17 @@ export function formatSalePaymentText(
   const paid = Number(paidAmount || 0);
   const invoiceTotal = Number(total || 0);
   const isDelivery = orderType === 'delivery';
+  const channel = String(paymentChannel || '').trim().toLowerCase();
 
   if (paymentType === 'credit') {
     if (paid > 0.009 && paid + 0.009 < invoiceTotal) {
+      if (channel === 'wallet') return 'سداد جزئي (محفظة + آجل)';
+      if (channel === 'instapay') return 'سداد جزئي (InstaPay + آجل)';
+      if (channel === 'card') return 'سداد جزئي (فيزا + آجل)';
+      if (channel === 'mixed') return 'سداد جزئي (مختلط + آجل)';
       return 'سداد جزئي (نقدي + آجل)';
     }
-    return 'آجل';
+    return 'آجل بالكامل';
   }
 
   const channelLabel = paymentLabel(paymentChannel || paymentType);
