@@ -14,8 +14,7 @@
     "strict": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "esModuleInterop": true,
-    "types": ["node"]
+    "esModuleInterop": true
   },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
