@@ -103,6 +103,15 @@ export class ManufacturingService {
     const scope = requireTenantScope(auth);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      const existingBom = await trx.selectFrom('manufacturing_boms')
+        .select(['id'])
+        .where('id', '=', id)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+      if (!existingBom) {
+        throw new AppError('قائمة المكونات غير موجودة', 'BOM_NOT_FOUND', 404);
+      }
+
       const overheadCost = payload.overheadCost || 0;
       const totalExpectedCost = payload.lines.reduce((sum, line) => sum + line.expectedCost * line.quantity, 0) + overheadCost;
 
@@ -142,6 +151,15 @@ export class ManufacturingService {
     const scope = requireTenantScope(auth);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      const targetBom = await trx.selectFrom('manufacturing_boms')
+        .select(['id'])
+        .where('id', '=', id)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+      if (!targetBom) {
+        throw new AppError('قائمة المكونات غير موجودة', 'BOM_NOT_FOUND', 404);
+      }
+
       const woCount = await trx.selectFrom('manufacturing_work_orders')
         .select(({ fn }) => fn.count('id').as('count'))
         .where('bom_id', '=', id)

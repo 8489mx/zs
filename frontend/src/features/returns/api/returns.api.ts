@@ -48,5 +48,12 @@ export const returnsApi = {
     }
     return { returns: rows, summary };
   },
-  create: (payload: unknown) => http('/api/returns', { method: 'POST', body: JSON.stringify(payload) })
+  create: (payload: unknown, headers?: Record<string, string>) => http('/api/returns', {
+    method: 'POST',
+    headers: {
+      'x-idempotency-key': crypto.randomUUID(),
+      ...headers,
+    },
+    body: JSON.stringify(payload),
+  })
 };

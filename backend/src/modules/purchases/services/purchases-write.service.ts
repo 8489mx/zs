@@ -159,9 +159,9 @@ export class PurchasesWriteService {
     auth: AuthContext,
     extras: Record<string, unknown> = {},
   ): Promise<Record<string, unknown>> {
-    const purchase = (await this.queryService.fetchMappedPurchases(auth)).find((entry) => Number(entry.id) === purchaseId) || null;
-    const purchases = await this.queryService.listPurchases({}, auth);
-    return { ok: true, purchase, purchases: purchases.purchases, ...extras };
+    const purchaseResult = await this.queryService.getPurchaseById(purchaseId, auth);
+    const purchases = await this.queryService.listPurchases({ page: 1, pageSize: 25 }, auth);
+    return { ok: true, purchase: purchaseResult.purchase, purchases: purchases.purchases, ...extras };
   }
 
   async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {

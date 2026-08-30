@@ -38,8 +38,8 @@ async function runMultiModuleMasterSimulation() {
   const accountingPosting = new AccountingPostingService(accountingFoundation);
 
   const manufacturingService = new ManufacturingService(db as any, tx, auditService, accountingPosting);
-  const maintenanceService = new MaintenanceService(db as any, auditService);
-  const tradeinService = new TradeInService(db as any, auditService);
+  const maintenanceService = new MaintenanceService(db as any, tx, auditService);
+  const tradeinService = new TradeInService(db as any, tx, auditService);
   const importSalesService = new ImportSalesService(db as any);
 
   const userRow = await sql<{ id: number; tenant_id: string; account_id: string; username: string }>`

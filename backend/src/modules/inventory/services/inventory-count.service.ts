@@ -192,23 +192,54 @@ export class InventoryCountService {
   }
 
   async listDamagedStock(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    const rows = await this.db
+    const page = Math.max(1, Number(query.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 10)));
+    const offset = (page - 1) * pageSize;
+    const search = String(query.search || query.q || '').trim();
+
+    let baseQuery = this.db
       .selectFrom('damaged_stock_records as d')
       .leftJoin('products as p', 'p.id', 'd.product_id')
       .leftJoin('branches as b', 'b.id', 'd.branch_id')
       .leftJoin('stock_locations as l', 'l.id', 'd.location_id')
       .leftJoin('users as u', 'u.id', 'd.created_by')
+      .where(this.tenantPredicate(auth, 'd'));
+
+    if (search) {
+      const term = `%${search.toLowerCase()}%`;
+      baseQuery = baseQuery.where(sql<boolean>`(
+        lower(coalesce(p.name, '')) like ${term}
+        OR lower(coalesce(d.reason, '')) like ${term}
+        OR lower(coalesce(d.note, '')) like ${term}
+        OR lower(coalesce(b.name, '')) like ${term}
+        OR lower(coalesce(l.name, '')) like ${term}
+      )`);
+    }
+
+    const countRes = await baseQuery
+      .select(({ fn }) => [fn.count('d.id').as('total'), fn.sum('d.qty').as('total_qty')])
+      .executeTakeFirst();
+
+    const totalItems = Number(countRes?.total || 0);
+    const totalQty = Number(countRes?.total_qty || 0);
+
+    const rows = await baseQuery
       .select(['d.id', 'd.product_id', 'd.branch_id', 'd.location_id', 'd.qty', 'd.reason', 'd.note', 'd.created_at', 'p.name as product_name', 'b.name as branch_name', 'l.name as location_name', 'u.username as created_by_name'])
-      .where(this.tenantPredicate(auth, 'd'))
       .orderBy('d.id', 'desc')
+      .limit(pageSize)
+      .offset(offset)
       .execute();
+
     let mapped = rows.map(mapDamagedStockRow);
     mapped = await this.scope.filterByScope(mapped, auth);
-    const search = String(query.search || query.q || '').toLowerCase();
-    const filtered = mapped.filter((r) => !search || [r.productName, r.reason, r.note, r.locationName, r.branchName].some((x) => String(x).toLowerCase().includes(search)));
-    if (!query.page && !query.pageSize && !query.search && !query.q) return { damagedStockRecords: filtered, scope: this.tenantScope(auth) };
-    const paged = paginateRows(filtered, query, { defaultSize: 10 });
-    return { damagedStockRecords: paged.rows, pagination: paged.pagination, summary: buildDamagedStockSummary(filtered as Array<{ qty: number }>), scope: this.tenantScope(auth) };
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    return {
+      damagedStockRecords: mapped,
+      pagination: { page, pageSize, totalItems, totalPages },
+      summary: { totalItems, totalQty: Number(totalQty.toFixed(3)) },
+      scope: this.tenantScope(auth),
+    };
   }
 
   async createDamagedStock(payload: CreateDamagedStockDto, auth: AuthContext): Promise<Record<string, unknown>> {

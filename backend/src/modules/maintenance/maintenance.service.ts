@@ -7,6 +7,8 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
+import { TransactionHelper } from '../../database/helpers/transaction.helper';
+import { applyStockDelta } from '../../common/utils/location-stock-ledger';
 import { UpsertMaintenanceTicketDto } from './dto/upsert-maintenance-ticket.dto';
 import { UpdateTicketStatusDto, AddTicketPartDto } from './dto/update-ticket-status.dto';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
@@ -15,6 +17,7 @@ import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
 export class MaintenanceService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
   ) {}
 
@@ -168,52 +171,54 @@ export class MaintenanceService {
 
   async createTicket(payload: UpsertMaintenanceTicketDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-    const countRes = await this.db
-      .selectFrom('maintenance_tickets')
-      .select((eb) => eb.fn.count('id').as('count'))
-      .where('tenant_id', '=', scope.tenantId)
-      .executeTakeFirst();
-    const nextNum = Number(countRes?.count || 0) + 1;
-    const ticketNo = `ZM-${String(nextNum).padStart(4, '0')}`;
+    const result = await this.tx.runInTransaction(this.db, async (trx) => {
+      const countRes = await trx
+        .selectFrom('maintenance_tickets')
+        .select((eb) => eb.fn.count('id').as('count'))
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      const nextNum = Number(countRes?.count || 0) + 1;
+      const ticketNo = `ZM-${String(nextNum).padStart(4, '0')}`;
 
-    const result = await this.db
-      .insertInto('maintenance_tickets')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-        ticket_no: ticketNo,
-        customer_id: payload.customerId ?? null,
-        customer_name: (payload.customerName || (payload as any).name || 'عميل نقدي').trim(),
-        customer_phone: (payload.customerPhone || (payload as any).phone || '').trim(),
-        device_brand: payload.deviceBrand?.trim() ?? null,
-        device_model: (payload.deviceModel || (payload as any).model || 'جهاز عام').trim(),
-        serial_number: payload.serialNumber?.trim() ?? null,
-        passcode: payload.passcode?.trim() ?? null,
-        problem_description: (payload.problemDescription || (payload as any).customerProblem || (payload as any).problem || 'صيانة عامة').trim(),
-        device_condition: payload.deviceCondition?.trim() ?? null,
-        expected_cost: payload.expectedCost ?? 0,
-        final_cost: payload.finalCost ?? payload.expectedCost ?? 0,
-        advance_payment: payload.advancePayment ?? 0,
-        status: payload.status ?? 'received',
-        technician_id: payload.technicianId ?? null,
-        technician_name: payload.technicianName?.trim() ?? null,
-        technician_notes: payload.technicianNotes?.trim() ?? null,
-        branch_id: payload.branchId ?? null,
-        location_id: payload.locationId ?? null,
-        warranty_days: payload.warrantyDays ?? 30,
-        received_at: new Date(),
-      } as any)
-      .returning('id')
-      .executeTakeFirst();
+      const inserted = await trx
+        .insertInto('maintenance_tickets')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          ticket_no: ticketNo,
+          customer_id: payload.customerId ?? null,
+          customer_name: (payload.customerName || (payload as any).name || 'عميل نقدي').trim(),
+          customer_phone: (payload.customerPhone || (payload as any).phone || '').trim(),
+          device_brand: payload.deviceBrand?.trim() ?? null,
+          device_model: (payload.deviceModel || (payload as any).model || 'جهاز عام').trim(),
+          serial_number: payload.serialNumber?.trim() ?? null,
+          passcode: payload.passcode?.trim() ?? null,
+          problem_description: (payload.problemDescription || (payload as any).customerProblem || (payload as any).problem || 'صيانة عامة').trim(),
+          device_condition: payload.deviceCondition?.trim() ?? null,
+          expected_cost: payload.expectedCost ?? 0,
+          final_cost: payload.finalCost ?? payload.expectedCost ?? 0,
+          advance_payment: payload.advancePayment ?? 0,
+          status: payload.status ?? 'received',
+          technician_id: payload.technicianId ?? null,
+          technician_name: payload.technicianName?.trim() ?? null,
+          technician_notes: payload.technicianNotes?.trim() ?? null,
+          branch_id: payload.branchId ?? null,
+          location_id: payload.locationId ?? null,
+          warranty_days: payload.warrantyDays ?? 30,
+          received_at: new Date(),
+        } as any)
+        .returning('id')
+        .executeTakeFirst();
 
-    if (!result?.id) {
-      throw new AppError('تعذر إنشاء تذكرة الصيانة', 'CREATE_TICKET_FAILED', 400);
-    }
+      if (!inserted?.id) {
+        throw new AppError('تعذر إنشاء تذكرة الصيانة', 'CREATE_TICKET_FAILED', 400);
+      }
 
-    // If advance payment was made, record cash-in to treasury
-    if (payload.advancePayment && Number(payload.advancePayment) > 0) {
-      try {
-        await this.db
+      const ticketId = Number(inserted.id);
+
+      // If advance payment was made, record cash-in to treasury atomically
+      if (payload.advancePayment && Number(payload.advancePayment) > 0) {
+        await trx
           .insertInto('treasury_transactions')
           .values({
             tenant_id: scope.tenantId,
@@ -222,133 +227,138 @@ export class MaintenanceService {
             amount: Number(payload.advancePayment),
             note: `عربون صيانة تذكرة ${ticketNo} - العميل: ${(payload.customerName || '').trim()}`,
             reference_type: 'maintenance_ticket',
-            reference_id: Number(result.id),
+            reference_id: ticketId,
             branch_id: payload.branchId ?? null,
             location_id: payload.locationId ?? null,
             created_by: auth.userId ? Number(auth.userId) : null,
           })
           .execute();
-      } catch (err) {
-        console.warn('Failed to record advance payment to treasury:', err);
       }
-    }
 
-    await this.audit.log('إنشاء تذكرة صيانة', `تم إنشاء تذكرة صيانة ${ticketNo} للعميل ${payload.customerName}`, auth);
-    return { ok: true, id: String(result.id), ticketNo };
+      return { id: String(ticketId), ticketNo };
+    });
+
+    await this.audit.log('إنشاء تذكرة صيانة', `تم إنشاء تذكرة صيانة ${result.ticketNo} للعميل ${payload.customerName}`, auth);
+    return { ok: true, id: result.id, ticketNo: result.ticketNo };
   }
 
   async updateTicket(id: number, payload: UpsertMaintenanceTicketDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-    const existing = await this.db
-      .selectFrom('maintenance_tickets')
-      .select(['id', 'ticket_no'])
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', id)
-      .executeTakeFirst();
+    const ticketNo = await this.tx.runInTransaction(this.db, async (trx) => {
+      const existing = await trx
+        .selectFrom('maintenance_tickets')
+        .select(['id', 'ticket_no'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', id)
+        .executeTakeFirst();
 
-    if (!existing) {
-      throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
-    }
+      if (!existing) {
+        throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
+      }
 
-    await this.db
-      .updateTable('maintenance_tickets')
-      .set({
-        customer_id: payload.customerId ?? null,
-        customer_name: (payload.customerName || (payload as any).name || 'عميل نقدي').trim(),
-        customer_phone: (payload.customerPhone || (payload as any).phone || '').trim(),
-        device_brand: payload.deviceBrand?.trim() ?? null,
-        device_model: (payload.deviceModel || (payload as any).model || 'جهاز عام').trim(),
-        serial_number: payload.serialNumber?.trim() ?? null,
-        passcode: payload.passcode?.trim() ?? null,
-        problem_description: (payload.problemDescription || (payload as any).customerProblem || (payload as any).problem || 'صيانة عامة').trim(),
-        device_condition: payload.deviceCondition?.trim() ?? null,
-        expected_cost: payload.expectedCost ?? 0,
-        final_cost: payload.finalCost ?? 0,
-        advance_payment: payload.advancePayment ?? 0,
-        status: payload.status ?? 'received',
-        technician_id: payload.technicianId ?? null,
-        technician_name: payload.technicianName?.trim() ?? null,
-        technician_notes: payload.technicianNotes?.trim() ?? null,
-        branch_id: payload.branchId ?? null,
-        location_id: payload.locationId ?? null,
-        warranty_days: payload.warrantyDays ?? 30,
-        updated_at: new Date(),
-      })
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', id)
-      .execute();
+      await trx
+        .updateTable('maintenance_tickets')
+        .set({
+          customer_id: payload.customerId ?? null,
+          customer_name: (payload.customerName || (payload as any).name || 'عميل نقدي').trim(),
+          customer_phone: (payload.customerPhone || (payload as any).phone || '').trim(),
+          device_brand: payload.deviceBrand?.trim() ?? null,
+          device_model: (payload.deviceModel || (payload as any).model || 'جهاز عام').trim(),
+          serial_number: payload.serialNumber?.trim() ?? null,
+          passcode: payload.passcode?.trim() ?? null,
+          problem_description: (payload.problemDescription || (payload as any).customerProblem || (payload as any).problem || 'صيانة عامة').trim(),
+          device_condition: payload.deviceCondition?.trim() ?? null,
+          expected_cost: payload.expectedCost ?? 0,
+          final_cost: payload.finalCost ?? 0,
+          advance_payment: payload.advancePayment ?? 0,
+          status: payload.status ?? 'received',
+          technician_id: payload.technicianId ?? null,
+          technician_name: payload.technicianName?.trim() ?? null,
+          technician_notes: payload.technicianNotes?.trim() ?? null,
+          branch_id: payload.branchId ?? null,
+          location_id: payload.locationId ?? null,
+          warranty_days: payload.warrantyDays ?? 30,
+          updated_at: new Date(),
+        })
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', id)
+        .execute();
 
-    await this.audit.log('تعديل تذكرة صيانة', `تم تحديث بيانات تذكرة الصيانة ${existing.ticket_no}`, auth);
+      return existing.ticket_no;
+    });
+
+    await this.audit.log('تعديل تذكرة صيانة', `تم تحديث بيانات تذكرة الصيانة ${ticketNo}`, auth);
     return { ok: true };
   }
 
   async updateTicketStatus(id: number, payload: UpdateTicketStatusDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-    const existing = await this.db
-      .selectFrom('maintenance_tickets')
-      .selectAll()
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', id)
-      .executeTakeFirst();
+    const existing = await this.tx.runInTransaction(this.db, async (trx) => {
+      const ticket = await trx
+        .selectFrom('maintenance_tickets')
+        .selectAll()
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', id)
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (!existing) {
-      throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
-    }
+      if (!ticket) {
+        throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
+      }
 
-    const updates: Record<string, any> = {
-      status: payload.status,
-      updated_at: new Date(),
-    };
+      const updates: Record<string, any> = {
+        status: payload.status,
+        updated_at: new Date(),
+      };
 
-    if (payload.finalCost !== undefined) {
-      updates.final_cost = payload.finalCost;
-    }
-    if (payload.technicianNotes !== undefined) {
-      updates.technician_notes = payload.technicianNotes;
-    }
-    if (payload.status === 'repaired' && !existing.repaired_at) {
-      updates.repaired_at = new Date();
-    }
-    if (payload.status === 'delivered' && !existing.delivered_at) {
-      updates.delivered_at = new Date();
-    }
+      if (payload.finalCost !== undefined) {
+        updates.final_cost = payload.finalCost;
+      }
+      if (payload.technicianNotes !== undefined) {
+        updates.technician_notes = payload.technicianNotes;
+      }
+      if (payload.status === 'repaired' && !ticket.repaired_at) {
+        updates.repaired_at = new Date();
+      }
+      if (payload.status === 'delivered' && !ticket.delivered_at) {
+        updates.delivered_at = new Date();
+      }
 
-    await this.db
-      .updateTable('maintenance_tickets')
-      .set(updates)
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', id)
-      .execute();
+      await trx
+        .updateTable('maintenance_tickets')
+        .set(updates)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', id)
+        .execute();
 
-    // When status changes to delivered, collect remaining balance into treasury
-    if (payload.status === 'delivered' && existing.status !== 'delivered') {
-      const finalCost = payload.finalCost !== undefined ? Number(payload.finalCost) : Number(existing.final_cost || existing.expected_cost || 0);
-      const advance = Number(existing.advance_payment || 0);
-      const remaining = payload.collectedAmount !== undefined
-        ? Number(payload.collectedAmount)
-        : Math.max(0, finalCost - advance);
-      if (remaining > 0) {
-        try {
-          await this.db
+      // When status changes to delivered, collect remaining balance into treasury
+      if (payload.status === 'delivered' && ticket.status !== 'delivered') {
+        const finalCost = payload.finalCost !== undefined ? Number(payload.finalCost) : Number(ticket.final_cost || ticket.expected_cost || 0);
+        const advance = Number(ticket.advance_payment || 0);
+        const remaining = payload.collectedAmount !== undefined
+          ? Number(payload.collectedAmount)
+          : Math.max(0, finalCost - advance);
+        if (remaining > 0) {
+          await trx
             .insertInto('treasury_transactions')
             .values({
               tenant_id: scope.tenantId,
               account_id: scope.accountId,
               txn_type: 'revenue',
               amount: remaining,
-              note: `تحصيل صيانة وتسليم جهاز ${existing.ticket_no} - العميل: ${existing.customer_name}`,
+              note: `تحصيل صيانة وتسليم جهاز ${ticket.ticket_no} - العميل: ${ticket.customer_name}`,
               reference_type: 'maintenance_ticket',
-              reference_id: Number(existing.id),
-              branch_id: existing.branch_id ? Number(existing.branch_id) : null,
-              location_id: existing.location_id ? Number(existing.location_id) : null,
+              reference_id: Number(ticket.id),
+              branch_id: ticket.branch_id ? Number(ticket.branch_id) : null,
+              location_id: ticket.location_id ? Number(ticket.location_id) : null,
               created_by: auth.userId ? Number(auth.userId) : null,
             })
             .execute();
-        } catch (err) {
-          console.warn('Failed to record delivery payment to treasury:', err);
         }
       }
-    }
+
+      return ticket;
+    });
 
     const statusLabels: Record<string, string> = {
       received: 'تم الاستلام',
@@ -367,226 +377,234 @@ export class MaintenanceService {
 
   async addPart(ticketId: number, payload: AddTicketPartDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-    const ticket = await this.db
-      .selectFrom('maintenance_tickets')
-      .select(['id', 'expected_cost', 'final_cost'])
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', ticketId)
-      .executeTakeFirst();
-
-    if (!ticket) {
-      throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
-    }
-
-    const partRes = await this.db
-      .insertInto('maintenance_ticket_parts')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-        ticket_id: ticketId,
-        product_id: payload.productId,
-        product_name: payload.productName.trim(),
-        qty: payload.qty,
-        unit_cost: payload.unitCost ?? 0,
-        unit_price: payload.unitPrice,
-        location_id: payload.locationId ?? null,
-      })
-      .returning('id')
-      .executeTakeFirst();
-
-    // Automatically deduct inventory from products table & record stock movement
-    const prod = await this.db
-      .selectFrom('products')
-      .select(['stock_qty'])
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', payload.productId)
-      .executeTakeFirst();
-
-    if (prod) {
-      const currentQty = Number(prod.stock_qty || 0);
-      const deductQty = Number(payload.qty);
-      const afterQty = Math.max(0, currentQty - deductQty);
-      await this.db
-        .updateTable('products')
-        .set({ stock_qty: afterQty })
-        .where('tenant_id', '=', scope.tenantId)
-        .where('id', '=', payload.productId)
-        .execute();
-
-      try {
-        await this.db
-          .insertInto('stock_movements')
-          .values({
-            product_id: payload.productId,
-            movement_type: 'maintenance_consumption',
-            qty: -deductQty,
-            before_qty: currentQty,
-            after_qty: afterQty,
-            reason: 'صرف قطعة غيار لتذكرة صيانة',
-            note: `تذكرة صيانة #${ticketId} - قطعة: ${payload.productName.trim()}`,
-            reference_type: 'maintenance_ticket',
-            reference_id: ticketId,
-            location_id: payload.locationId ?? null,
-            created_by: auth.userId ? Number(auth.userId) : null,
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-          })
-          .execute();
-      } catch (err) {
-        console.warn('Failed to record stock movement for maintenance part:', err);
-      }
-    }
-
-    // If ticket has 0 cost set initially, initialize it to the part price.
-    // If ticket already has an agreed price, preserve it (all-inclusive pricing).
-    let newFinalCost = Number(ticket.final_cost || 0);
-    if (newFinalCost === 0 && Number(ticket.expected_cost || 0) === 0) {
-      const addedAmount = Number(payload.qty) * Number(payload.unitPrice);
-      newFinalCost = addedAmount;
-      await this.db
-        .updateTable('maintenance_tickets')
-        .set({ final_cost: newFinalCost, updated_at: new Date() })
+    const result = await this.tx.runInTransaction(this.db, async (trx) => {
+      const ticket = await trx
+        .selectFrom('maintenance_tickets')
+        .selectAll()
         .where('tenant_id', '=', scope.tenantId)
         .where('id', '=', ticketId)
-        .execute();
-    }
+        .forUpdate()
+        .executeTakeFirst();
 
-    return { ok: true, partId: String(partRes?.id), newFinalCost };
+      if (!ticket) {
+        throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
+      }
+
+      const targetLocationId = payload.locationId ?? (ticket.location_id ? Number(ticket.location_id) : null);
+      const targetBranchId = ticket.branch_id ? Number(ticket.branch_id) : null;
+      const deductQty = Number(payload.qty);
+
+      const partRes = await trx
+        .insertInto('maintenance_ticket_parts')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          ticket_id: ticketId,
+          product_id: payload.productId,
+          product_name: payload.productName.trim(),
+          qty: deductQty,
+          unit_cost: payload.unitCost ?? 0,
+          unit_price: payload.unitPrice,
+          location_id: targetLocationId,
+        })
+        .returning('id')
+        .executeTakeFirst();
+
+      const stockChange = await applyStockDelta(trx, {
+        productId: payload.productId,
+        delta: -deductQty,
+        branchId: targetBranchId,
+        locationId: targetLocationId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        errorCode: 'INSUFFICIENT_STOCK',
+        errorMessage: `الرصيد غير كافٍ لصرف قطعة الغيار ${payload.productName.trim()}`,
+      });
+
+      await trx
+        .insertInto('stock_movements')
+        .values({
+          product_id: payload.productId,
+          movement_type: 'maintenance_consumption',
+          qty: -deductQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'صرف قطعة غيار لتذكرة صيانة',
+          note: `تذكرة صيانة #${ticketId} - قطعة: ${payload.productName.trim()}`,
+          reference_type: 'maintenance_ticket',
+          reference_id: ticketId,
+          branch_id: targetBranchId,
+          location_id: targetLocationId,
+          created_by: auth.userId ? Number(auth.userId) : null,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any)
+        .execute();
+
+      let newFinalCost = Number(ticket.final_cost || 0);
+      if (newFinalCost === 0 && Number(ticket.expected_cost || 0) === 0) {
+        const addedAmount = deductQty * Number(payload.unitPrice);
+        newFinalCost = addedAmount;
+        await trx
+          .updateTable('maintenance_tickets')
+          .set({ final_cost: newFinalCost, updated_at: new Date() })
+          .where('tenant_id', '=', scope.tenantId)
+          .where('id', '=', ticketId)
+          .execute();
+      }
+
+      return { partId: String(partRes?.id), newFinalCost };
+    });
+
+    return { ok: true, partId: result.partId, newFinalCost: result.newFinalCost };
   }
 
   async removePart(ticketId: number, partId: number, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-    const part = await this.db
-      .selectFrom('maintenance_ticket_parts')
-      .selectAll()
-      .where('tenant_id', '=', scope.tenantId)
-      .where('ticket_id', '=', ticketId)
-      .where('id', '=', partId)
-      .executeTakeFirst();
-
-    if (!part) {
-      throw new AppError('قطعة الغيار غير موجودة بالتذكرة', 'PART_NOT_FOUND', 404);
-    }
-
-    await this.db
-      .deleteFrom('maintenance_ticket_parts')
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', partId)
-      .execute();
-
-    // Return stock back to products table & record stock movement
-    const prod = await this.db
-      .selectFrom('products')
-      .select(['stock_qty'])
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', part.product_id)
-      .executeTakeFirst();
-
-    if (prod) {
-      const currentQty = Number(prod.stock_qty || 0);
-      const returnQty = Number(part.qty);
-      const afterQty = currentQty + returnQty;
-      await this.db
-        .updateTable('products')
-        .set({ stock_qty: afterQty })
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const ticket = await trx
+        .selectFrom('maintenance_tickets')
+        .selectAll()
         .where('tenant_id', '=', scope.tenantId)
-        .where('id', '=', part.product_id)
+        .where('id', '=', ticketId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!ticket) {
+        throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
+      }
+
+      const part = await trx
+        .selectFrom('maintenance_ticket_parts')
+        .selectAll()
+        .where('tenant_id', '=', scope.tenantId)
+        .where('ticket_id', '=', ticketId)
+        .where('id', '=', partId)
+        .executeTakeFirst();
+
+      if (!part) {
+        throw new AppError('قطعة الغيار غير موجودة بالتذكرة', 'PART_NOT_FOUND', 404);
+      }
+
+      await trx
+        .deleteFrom('maintenance_ticket_parts')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', partId)
         .execute();
 
-      try {
-        await this.db
-          .insertInto('stock_movements')
-          .values({
-            product_id: Number(part.product_id),
-            movement_type: 'maintenance_return',
-            qty: returnQty,
-            before_qty: currentQty,
-            after_qty: afterQty,
-            reason: 'إلغاء صرف قطعة غيار من تذكرة صيانة',
-            note: `إلغاء من تذكرة صيانة #${ticketId}`,
-            reference_type: 'maintenance_ticket',
-            reference_id: ticketId,
-            created_by: auth.userId ? Number(auth.userId) : null,
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-          })
-          .execute();
-      } catch (err) {
-        console.warn('Failed to record stock movement for maintenance part return:', err);
-      }
-    }
+      const returnQty = Number(part.qty);
+      const targetLocationId = part.location_id ? Number(part.location_id) : (ticket.location_id ? Number(ticket.location_id) : null);
+      const targetBranchId = ticket.branch_id ? Number(ticket.branch_id) : null;
+
+      const stockChange = await applyStockDelta(trx, {
+        productId: Number(part.product_id),
+        delta: returnQty,
+        branchId: targetBranchId,
+        locationId: targetLocationId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        allowNegative: true,
+      });
+
+      await trx
+        .insertInto('stock_movements')
+        .values({
+          product_id: Number(part.product_id),
+          movement_type: 'maintenance_return',
+          qty: returnQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'إلغاء صرف قطعة غيار من تذكرة صيانة',
+          note: `إلغاء من تذكرة صيانة #${ticketId}`,
+          reference_type: 'maintenance_ticket',
+          reference_id: ticketId,
+          branch_id: targetBranchId,
+          location_id: targetLocationId,
+          created_by: auth.userId ? Number(auth.userId) : null,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any)
+        .execute();
+    });
 
     return { ok: true };
   }
 
   async deleteTicket(id: number, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-
-    // Return all consumed parts back to inventory before deletion
-    const parts = await this.db
-      .selectFrom('maintenance_ticket_parts')
-      .selectAll()
-      .where('tenant_id', '=', scope.tenantId)
-      .where('ticket_id', '=', id)
-      .execute();
-
-    for (const part of parts) {
-      const prod = await this.db
-        .selectFrom('products')
-        .select(['stock_qty'])
+    const partsCount = await this.tx.runInTransaction(this.db, async (trx) => {
+      const ticket = await trx
+        .selectFrom('maintenance_tickets')
+        .selectAll()
         .where('tenant_id', '=', scope.tenantId)
-        .where('id', '=', part.product_id)
+        .where('id', '=', id)
+        .forUpdate()
         .executeTakeFirst();
 
-      if (prod) {
-        const currentQty = Number(prod.stock_qty || 0);
-        const returnQty = Number(part.qty);
-        const afterQty = currentQty + returnQty;
-
-        await this.db
-          .updateTable('products')
-          .set({ stock_qty: afterQty })
-          .where('tenant_id', '=', scope.tenantId)
-          .where('id', '=', part.product_id)
-          .execute();
-
-        try {
-          await this.db
-            .insertInto('stock_movements')
-            .values({
-              product_id: Number(part.product_id),
-              movement_type: 'maintenance_return',
-              qty: returnQty,
-              before_qty: currentQty,
-              after_qty: afterQty,
-              reason: 'إلغاء تذكرة صيانة - إرجاع قطع الغيار للمخزون',
-              note: `حذف تذكرة صيانة #${id} - قطعة: ${part.product_name}`,
-              reference_type: 'maintenance_ticket',
-              reference_id: id,
-              created_by: auth.userId ? Number(auth.userId) : null,
-              tenant_id: scope.tenantId,
-              account_id: scope.accountId,
-            })
-            .execute();
-        } catch (err) {
-          console.warn('Failed to record stock movement on ticket delete:', err);
-        }
+      if (!ticket) {
+        throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
       }
-    }
 
-    await this.db
-      .deleteFrom('maintenance_ticket_parts')
-      .where('tenant_id', '=', scope.tenantId)
-      .where('ticket_id', '=', id)
-      .execute();
+      // Return all consumed parts back to inventory before deletion
+      const parts = await trx
+        .selectFrom('maintenance_ticket_parts')
+        .selectAll()
+        .where('tenant_id', '=', scope.tenantId)
+        .where('ticket_id', '=', id)
+        .execute();
 
-    await this.db
-      .deleteFrom('maintenance_tickets')
-      .where('tenant_id', '=', scope.tenantId)
-      .where('id', '=', id)
-      .execute();
+      for (const part of parts) {
+        const returnQty = Number(part.qty);
+        const targetLocationId = part.location_id ? Number(part.location_id) : (ticket.location_id ? Number(ticket.location_id) : null);
+        const targetBranchId = ticket.branch_id ? Number(ticket.branch_id) : null;
 
-    await this.audit.log('حذف تذكرة صيانة', `تم حذف تذكرة الصيانة #${id} واسترجاع ${parts.length} قطعة غيار إلى المخزون`, auth);
+        const stockChange = await applyStockDelta(trx, {
+          productId: Number(part.product_id),
+          delta: returnQty,
+          branchId: targetBranchId,
+          locationId: targetLocationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          allowNegative: true,
+        });
+
+        await trx
+          .insertInto('stock_movements')
+          .values({
+            product_id: Number(part.product_id),
+            movement_type: 'maintenance_return',
+            qty: returnQty,
+            before_qty: stockChange.scopeBefore,
+            after_qty: stockChange.scopeAfter,
+            reason: 'إلغاء تذكرة صيانة - إرجاع قطع الغيار للمخزون',
+            note: `حذف تذكرة صيانة #${id} - قطعة: ${part.product_name}`,
+            reference_type: 'maintenance_ticket',
+            reference_id: id,
+            branch_id: targetBranchId,
+            location_id: targetLocationId,
+            created_by: auth.userId ? Number(auth.userId) : null,
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          } as any)
+          .execute();
+      }
+
+      await trx
+        .deleteFrom('maintenance_ticket_parts')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('ticket_id', '=', id)
+        .execute();
+
+      await trx
+        .deleteFrom('maintenance_tickets')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', id)
+        .execute();
+
+      return parts.length;
+    });
+
+    await this.audit.log('حذف تذكرة صيانة', `تم حذف تذكرة الصيانة #${id} واسترجاع ${partsCount} قطعة غيار إلى المخزون`, auth);
     return { ok: true };
   }
 }

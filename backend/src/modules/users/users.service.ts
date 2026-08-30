@@ -11,6 +11,7 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
 import { assertStrongPassword } from '../../core/auth/utils/password-policy';
 import { ensureUsersPayload, filterUsers, mapUserRow, normalizeBranchIds, normalizeUserId, normalizeUserListQuery, summarizeUsers } from './helpers/users.helper';
+import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -18,6 +19,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export class UsersService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
   ) {}
 
@@ -322,13 +324,15 @@ export class UsersService {
     }
 
     const { tenantId } = this.scope(actor);
-    await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${id}`.execute(this.db);
-    await this.db.deleteFrom('sessions').where('user_id', '=', id).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
-    
-    // Nullify audit logs actor reference to allow deleting users who only have login/audit history
-    await sql`update audit_logs set created_by = null where created_by = ${id}`.execute(this.db);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${id}`.execute(trx);
+      await trx.deleteFrom('sessions').where('user_id', '=', id).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
+      
+      // Nullify audit logs actor reference scoped strictly to current tenant to allow deleting users who only have login/audit history
+      await sql`update audit_logs set created_by = null where tenant_id = ${tenantId} and created_by = ${id}`.execute(trx);
 
-    await this.db.deleteFrom('users').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      await trx.deleteFrom('users').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+    });
     await this.audit.log('حذف مستخدم', `تم حذف المستخدم ${existing.username} بواسطة ${actor.username}`, actor);
 
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);
