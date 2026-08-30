@@ -43,6 +43,14 @@ if (deployTarget === 'backend' || deployTarget === 'api' || deployTarget === 'ho
     run('npm', ['--prefix', 'backend', 'install', '--include=dev']);
   }
   run('npm', ['--prefix', 'backend', 'run', 'build']);
+  const fs = require('fs');
+  const path = require('path');
+  const distFile = path.resolve(__dirname, '../backend/dist/main.js');
+  if (!fs.existsSync(distFile)) {
+    console.error(`[build ERROR] Compiled output not found at ${distFile}`);
+    process.exit(1);
+  }
+  console.log('[build SUCCESS] Backend built successfully at %s', distFile);
   process.exit(0);
 }
 
