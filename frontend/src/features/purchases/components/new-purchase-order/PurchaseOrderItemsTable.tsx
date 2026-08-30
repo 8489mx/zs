@@ -14,6 +14,7 @@ interface ItemsTableProps {
   pendingFocusLineId: number | null;
   activeQuickAction: 'tax' | 'discount' | null;
   setActiveQuickAction: (val: any) => void;
+  taxRate?: number;
   customTaxRate: string;
   setCustomTaxRate: (val: string) => void;
   discountMode: 'percent' | 'value';
@@ -64,9 +65,10 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
             className="purchase-prototype-quick-action"
             title={t('apply_tax')}
             onClick={() => props.setActiveQuickAction((curr: any) => (curr === 'tax' ? null : 'tax'))}
+            style={props.taxRate && props.taxRate > 0 ? { borderColor: '#2563eb', color: '#1d4ed8', backgroundColor: '#eff6ff', fontWeight: 700 } : undefined}
           >
             <span aria-hidden="true">%</span>
-            <span>{t('tax_rate')}</span>
+            <span>{t('tax_rate')}{props.taxRate && props.taxRate > 0 ? ` (${props.taxRate}%)` : ''}</span>
           </button>
           <button
             type="button"
@@ -82,10 +84,20 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
       {props.activeQuickAction === 'tax' ? (
         <div className="purchase-prototype-popover" role="dialog" aria-label={t('tax_rate')}>
           <div className="purchase-prototype-popover-row">
-            <button type="button" className="purchase-prototype-popover-option" onClick={() => props.applyTaxPreset(0)}>
+            <button
+              type="button"
+              className={`purchase-prototype-popover-option ${!props.taxRate || props.taxRate === 0 ? 'active' : ''}`}
+              onClick={() => props.applyTaxPreset(0)}
+              style={!props.taxRate || props.taxRate === 0 ? { backgroundColor: '#e0e7ff', borderColor: '#4338ca', color: '#3730a3', fontWeight: 700 } : undefined}
+            >
               بدون ضريبة
             </button>
-            <button type="button" className="purchase-prototype-popover-option" onClick={() => props.applyTaxPreset(14)}>
+            <button
+              type="button"
+              className={`purchase-prototype-popover-option ${props.taxRate === 14 ? 'active' : ''}`}
+              onClick={() => props.applyTaxPreset(14)}
+              style={props.taxRate === 14 ? { backgroundColor: '#e0e7ff', borderColor: '#4338ca', color: '#3730a3', fontWeight: 700 } : undefined}
+            >
               14%
             </button>
             <input

@@ -56,7 +56,7 @@ export function useNewPurchaseOrderController() {
   const [company, setCompany] = useState('');
   const [contact, setContact] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
-  const [taxRate, setTaxRate] = useState(14);
+  const [taxRate, setTaxRate] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [costCenter, setCostCenter] = useState('');
   const [project, setProject] = useState('');
@@ -90,7 +90,7 @@ export function useNewPurchaseOrderController() {
     setCompany('');
     setContact('');
     setShippingAddress('');
-    setTaxRate(14);
+    setTaxRate(0);
     setDiscount(0);
     setCostCenter('');
     setProject('');
@@ -870,6 +870,7 @@ export function useNewPurchaseOrderController() {
   const applyTaxPreset = (rate: number) => {
     markDocumentDirty();
     setTaxRate(rate);
+    setCustomTaxRate(String(rate));
     setActiveQuickAction(null);
   };
 
@@ -1058,7 +1059,7 @@ export function useNewPurchaseOrderController() {
     setCompany('');
     setContact('');
     setShippingAddress('');
-    setTaxRate(14);
+    setTaxRate(0);
     setDiscount(0);
     setCostCenter('');
     setProject('');
@@ -1257,7 +1258,7 @@ export function useNewPurchaseOrderController() {
         company: parsed.company ?? company,
         contact: parsed.contact ?? contact,
         shippingAddress: parsed.shippingAddress ?? shippingAddress,
-        taxRate: typeof parsed.taxRate === 'number' ? parsed.taxRate : taxRate,
+        taxRate: typeof parsed.taxRate === 'number' ? parsed.taxRate : 0,
         discount: typeof parsed.discount === 'number' ? parsed.discount : discount,
         discountMode: parsed.discountMode === 'percent' ? 'percent' : 'value',
         customTaxRate: parsed.customTaxRate ?? customTaxRate,

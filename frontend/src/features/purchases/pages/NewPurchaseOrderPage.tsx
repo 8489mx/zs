@@ -79,6 +79,7 @@ export function NewPurchaseOrderPage() {
           pendingFocusLineId={ctrl.pendingFocusLineId}
           activeQuickAction={ctrl.activeQuickAction}
           setActiveQuickAction={ctrl.setActiveQuickAction}
+          taxRate={ctrl.taxRate}
           customTaxRate={ctrl.customTaxRate}
           setCustomTaxRate={ctrl.setCustomTaxRate}
           discountMode={ctrl.discountMode}
