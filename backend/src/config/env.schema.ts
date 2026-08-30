@@ -95,6 +95,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     const raw = {
       ...config,
       APP_MODE: appMode,
+      APP_PORT: isPortable ? 3001 : (config.PORT ?? config.APP_PORT ?? 3001),
+      APP_HOST: config.HOST ?? config.APP_HOST ?? '0.0.0.0',
       DATABASE_HOST: dbHost,
       DATABASE_PORT: isPortable ? 5432 : (config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT),
       DATABASE_NAME: isPortable ? 'pglite' : (config.DATABASE_NAME ?? config.DB_NAME),

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const backendDir = path.resolve(__dirname, 'backend');
+const backendNodeModules = path.join(backendDir, 'node_modules');
 const mainPath = path.resolve(backendDir, 'dist', 'main.js');
 
 if (!fs.existsSync(mainPath)) {
@@ -11,11 +12,14 @@ if (!fs.existsSync(mainPath)) {
   process.exit(1);
 }
 
-// Change working directory to backend so all relative paths/modules/uploads align
+// Change working directory to backend
 process.chdir(backendDir);
 
-// Ensure backend/node_modules is in require lookup paths
-require('module').globalPaths.push(path.join(backendDir, 'node_modules'));
+// Inject backend/node_modules into Node.js resolution paths
+process.env.NODE_PATH = [backendNodeModules, process.env.NODE_PATH || ''].filter(Boolean).join(path.delimiter);
+try {
+  require('module').Module._initPaths();
+} catch (_) {}
 
 console.log(`[hostinger-api-entry] Bootstrapping NestJS backend from ${mainPath}...`);
 require(mainPath);
