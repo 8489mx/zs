@@ -37,14 +37,22 @@ const deployTarget = String(process.env.ZS_DEPLOY_TARGET || '').trim().toLowerCa
 
 if (deployTarget === 'backend' || deployTarget === 'api' || deployTarget === 'hostinger-api') {
   console.log('[build] ZS_DEPLOY_TARGET=%s: installing and building backend only.', deployTarget);
-  run('npm', ['--prefix', 'backend', 'ci']);
+  const ciRes = spawnSync('npm', ['--prefix', 'backend', 'ci', '--include=dev'], { stdio: 'inherit', shell: process.platform === 'win32' });
+  if (ciRes.status !== 0) {
+    console.warn('[build] npm ci failed, falling back to npm install --include=dev');
+    run('npm', ['--prefix', 'backend', 'install', '--include=dev']);
+  }
   run('npm', ['--prefix', 'backend', 'run', 'build']);
   process.exit(0);
 }
 
 if (deployTarget === 'frontend' || deployTarget === 'web' || deployTarget === 'hostinger-frontend') {
   console.log('[build] ZS_DEPLOY_TARGET=%s: installing and building frontend only.', deployTarget);
-  run('npm', ['--prefix', 'frontend', 'ci']);
+  const ciRes = spawnSync('npm', ['--prefix', 'frontend', 'ci', '--include=dev'], { stdio: 'inherit', shell: process.platform === 'win32' });
+  if (ciRes.status !== 0) {
+    console.warn('[build] npm ci failed, falling back to npm install --include=dev');
+    run('npm', ['--prefix', 'frontend', 'install', '--include=dev']);
+  }
   run('npm', ['--prefix', 'frontend', 'run', 'build']);
   process.exit(0);
 }
