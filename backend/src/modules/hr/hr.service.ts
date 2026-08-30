@@ -1355,12 +1355,12 @@ export class HrService {
     return status;
   }
 
-  private async getPayrollItemRun(db: Kysely<Database>, itemId: number): Promise<{ runId: number; runStatus: string; itemStatus: string }> {
+  private async getPayrollItemRun(db: Kysely<Database>, itemId: number, tenantId: string): Promise<{ runId: number; runStatus: string; itemStatus: string }> {
     const result = await sql<{ run_id: number; run_status: string; item_status: string }>`
       SELECT i.run_id, r.status AS run_status, i.status AS item_status
       FROM hr_payroll_run_items i
       JOIN hr_payroll_runs r ON r.id = i.run_id
-      WHERE i.id = ${itemId}
+      WHERE i.id = ${itemId} AND i.tenant_id = ${tenantId} AND r.tenant_id = ${tenantId}
       LIMIT 1
     `.execute(db);
     const row = result.rows[0];
@@ -2382,7 +2382,7 @@ export class HrService {
             payment_reference = ${payload.paymentReference || null},
             payment_notes = ${payload.notes || ''},
             updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
       `.execute(trx);
     });
     await this.audit.log('Pay HR payroll run', `Payroll run #${id} paid by ${auth.username} via ${payload.paymentChannel}`, auth);
@@ -2398,21 +2398,21 @@ export class HrService {
   }
 
   async updatePayrollRunItem(id: number, payload: UpsertPayrollItemDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const item = await this.getPayrollItemRun(this.db, id);
+    const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
     if (item.runStatus !== 'draft') throw new AppError('Payroll items can only be edited while the run is draft', 'HR_PAYROLL_ITEM_EDIT_LOCKED', 400);
     const status = clean(payload.status);
     if (status && !['draft', 'excluded'].includes(status)) throw new AppError('Payroll item status is invalid', 'HR_PAYROLL_ITEM_STATUS_INVALID', 400);
     await sql`
       UPDATE hr_payroll_run_items
       SET status = ${status || item.itemStatus || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
     `.execute(this.db);
     await this.audit.log('Update HR payroll item', `Payroll item #${id} updated by ${auth.username}`, auth);
     return this.getPayrollRun(item.runId, auth);
   }
 
   async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const item = await this.getPayrollItemRun(this.db, id);
+    const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
     if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`
@@ -2435,7 +2435,7 @@ export class HrService {
         FROM hr_payroll_item_adjustments a
         JOIN hr_payroll_run_items i ON i.id = a.payroll_item_id
         JOIN hr_payroll_runs r ON r.id = i.run_id
-        WHERE a.id = ${id}
+        WHERE a.id = ${id} AND i.tenant_id = ${auth.tenantId} AND r.tenant_id = ${auth.tenantId}
         LIMIT 1
       `.execute(trx);
       const row = result.rows[0];

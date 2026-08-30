@@ -107,9 +107,9 @@ export class ServicesService {
       select s.id, s.name, s.amount, s.notes, s.service_date, coalesce(s.payment_channel, 'cash') as payment_channel,
              s.branch_id, s.location_id, coalesce(b.name, '') as branch_name, coalesce(l.name, '') as location_name, u.username as created_by_name
       from services s
-      left join branches b on b.id = s.branch_id
-      left join stock_locations l on l.id = s.location_id
-      left join users u on u.id = s.created_by
+      left join branches b on b.id = s.branch_id and b.tenant_id = ${scope.tenantId}
+      left join stock_locations l on l.id = s.location_id and l.tenant_id = ${scope.tenantId}
+      left join users u on u.id = s.created_by and u.tenant_id = ${scope.tenantId}
       where s.tenant_id = ${scope.tenantId}
       order by s.id desc
     `.execute(db);

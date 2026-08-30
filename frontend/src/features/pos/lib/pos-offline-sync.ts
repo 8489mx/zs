@@ -20,9 +20,9 @@ export function getOfflineSalesQueue(): OfflinePosSale[] {
   }
 }
 
-export function enqueueOfflineSale(payload: CreatePosSaleInput): OfflinePosSale {
+export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempotencyKey?: string): OfflinePosSale {
   const queue = getOfflineSalesQueue();
-  const draftId = (payload as any).docNo ? String((payload as any).docNo) : `offline_${Date.now()}`;
+  const draftId = existingIdempotencyKey || ((payload as any).docNo ? String((payload as any).docNo) : `offline_${Date.now()}`);
   
   const offlineSale: OfflinePosSale = {
     id: draftId,

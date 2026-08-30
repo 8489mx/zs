@@ -394,33 +394,34 @@ export class DeliveryRepsService {
   }
 
   async settleAllOrders(repId: number, expectedAmount: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const unsettledOrders = await this.db
-      .selectFrom('sales')
-      .select(['id', 'total', 'customer_id'])
-      .where('delivery_rep_id', '=', repId)
-      .where('collection_status', '=', 'cod')
-      .where((eb) => eb.or([
-        eb('delivery_status', '!=', 'settled'),
-        eb('delivery_status', 'is', null)
-      ]))
-      .where(this.tenantPredicate(actor))
-      .execute();
-
-    if (unsettledOrders.length === 0) {
-      throw new AppError('No unsettled orders found for this representative', 'NO_ORDERS', 400);
-    }
-
-    const actualTotal = unsettledOrders.reduce((sum, order) => sum + Number(order.total), 0);
-
-    if (Math.abs(actualTotal - expectedAmount) > 0.01) {
-      throw new AppError(`مبلغ التسوية (${expectedAmount}) لا يتطابق مع إجمالي المطلوب من المندوب (${actualTotal}).`, 'AMOUNT_MISMATCH', 400);
-    }
-
-    const saleIds = unsettledOrders.map(o => o.id);
-    
-    await this.db.transaction().execute(async (trx) => {
+    const result = await this.db.transaction().execute(async (trx) => {
       const openShift = await this.findOwnOpenShift(trx, actor);
       if (!openShift) throw new AppError('لا بد من فتح وردية أولاً لاستلام الفلوس من المندوب', 'NO_OPEN_SHIFT', 400);
+
+      const unsettledOrders = await trx
+        .selectFrom('sales')
+        .select(['id', 'total', 'customer_id'])
+        .where('delivery_rep_id', '=', repId)
+        .where('collection_status', '=', 'cod')
+        .where((eb) => eb.or([
+          eb('delivery_status', '!=', 'settled'),
+          eb('delivery_status', 'is', null)
+        ]))
+        .where(this.tenantPredicate(actor))
+        .forUpdate()
+        .execute();
+
+      if (unsettledOrders.length === 0) {
+        throw new AppError('No unsettled orders found for this representative', 'NO_ORDERS', 400);
+      }
+
+      const actualTotal = unsettledOrders.reduce((sum, order) => sum + Number(order.total), 0);
+
+      if (Math.abs(actualTotal - expectedAmount) > 0.01) {
+        throw new AppError(`مبلغ التسوية (${expectedAmount}) لا يتطابق مع إجمالي المطلوب من المندوب (${actualTotal}).`, 'AMOUNT_MISMATCH', 400);
+      }
+
+      const saleIds = unsettledOrders.map(o => o.id);
       
       const repRow = await trx.selectFrom('delivery_representatives').select(['name']).where('id', '=', repId).where(this.tenantPredicate(actor)).executeTakeFirst();
       const repLabel = repRow?.name ? `${repRow.name} (#${repId})` : `مندوب #${repId}`;
@@ -455,9 +456,11 @@ export class DeliveryRepsService {
         .where('id', 'in', saleIds)
         .where(this.tenantPredicate(actor))
         .execute();
+
+      return { settledCount: saleIds.length, totalAmount: actualTotal };
     });
 
-    await this.audit.log('تسوية كل الطلبات', `تمت تسوية ${saleIds.length} طلب للمندوب #${repId} بواسطة ${actor.username}`, actor);
-    return { ok: true, settledCount: saleIds.length, totalAmount: actualTotal };
+    await this.audit.log('تسوية كل الطلبات', `تمت تسوية ${result.settledCount} طلب للمندوب #${repId} بواسطة ${actor.username}`, actor);
+    return { ok: true, settledCount: result.settledCount, totalAmount: result.totalAmount };
   }
 }

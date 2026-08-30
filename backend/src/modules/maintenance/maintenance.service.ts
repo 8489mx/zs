@@ -76,7 +76,7 @@ export class MaintenanceService {
         deviceBrand: t.device_brand,
         deviceModel: t.device_model,
         serialNumber: t.serial_number,
-        passcode: t.passcode,
+        passcode: t.passcode ? '******' : null,
         problemDescription: t.problem_description,
         deviceCondition: t.device_condition,
         expectedCost: Number(t.expected_cost),

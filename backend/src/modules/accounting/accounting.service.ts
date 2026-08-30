@@ -1202,21 +1202,23 @@ export class AccountingService {
         .where('tenant_id', '=', scope.tenantId)
         .execute();
 
-      for (const line of preview.linesPreview) {
+      if (preview.linesPreview.length > 0) {
         await trx
           .insertInto('journal_entry_lines')
-          .values({
-            journal_entry_id: id,
-            tenant_id: scope.tenantId,
-            account_id: line.accountId,
-            description: line.description,
-            debit: this.toMoney(line.debit),
-            credit: this.toMoney(line.credit),
-            partner_type: 'none',
-            partner_id: null,
-            branch_id: null,
-            location_id: null,
-          } as any)
+          .values(
+            preview.linesPreview.map((line) => ({
+              journal_entry_id: id,
+              tenant_id: scope.tenantId,
+              account_id: line.accountId,
+              description: line.description,
+              debit: this.toMoney(line.debit),
+              credit: this.toMoney(line.credit),
+              partner_type: 'none',
+              partner_id: null,
+              branch_id: null,
+              location_id: null,
+            } as any))
+          )
           .execute();
       }
 

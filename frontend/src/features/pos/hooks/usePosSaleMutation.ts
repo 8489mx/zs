@@ -23,7 +23,7 @@ export function usePosSaleMutation() {
           return await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': idempotencyKey });
         } catch (error: any) {
           if (error?.message?.includes('fetch') || error?.message?.includes('Network Error') || error?.name === 'TypeError') {
-            const offlineSale = enqueueOfflineSale(input);
+            const offlineSale = enqueueOfflineSale(input, idempotencyKey);
             return { id: offlineSale.id, offline: true, ...input };
           }
           throw error;
