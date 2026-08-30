@@ -1,7 +1,7 @@
 import type { Product } from '@/types/domain';
 
-export const POS_PRODUCT_LOOKUP_LIMIT = 240;
-export const POS_PRODUCT_CACHE_LIMIT = 600;
+export const POS_PRODUCT_LOOKUP_LIMIT = 300;
+export const POS_PRODUCT_CACHE_LIMIT = 1200;
 
 export function isLikelyBarcodeQuery(value: string) {
   const trimmed = String(value || '').trim();
@@ -24,4 +24,21 @@ export function mergeLookupProducts(...groups: Array<Product[] | null | undefine
   }
 
   return merged;
+}
+
+export function createProductBarcodeMap(products: Product[]): Map<string, Product> {
+  const map = new Map<string, Product>();
+  for (const p of products) {
+    if (p.barcode) {
+      map.set(p.barcode.trim().toLowerCase(), p);
+    }
+    if (p.units) {
+      for (const u of p.units) {
+        if (u.barcode) {
+          map.set(u.barcode.trim().toLowerCase(), p);
+        }
+      }
+    }
+  }
+  return map;
 }

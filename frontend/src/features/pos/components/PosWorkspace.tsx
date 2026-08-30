@@ -304,6 +304,13 @@ export function PosWorkspace() {
           if (isInvoice) return;
         }
 
+        // 2. Fast path 0ms: Check local in-memory catalog cache first
+        const localMatch = matchProductByCode(pos.catalogProducts, query);
+        if (localMatch.status === 'matched') {
+          const submitted = pos.handleQuickAddCodeSubmit(rawQuery, pos.catalogProducts);
+          if (submitted) { pos.setSearch(''); return; }
+        }
+
         const remappedQuery = remapArabicKeyboardToEnglish(query);
         const lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
         let remoteMatch = matchProductByCode(lookupProducts, query);

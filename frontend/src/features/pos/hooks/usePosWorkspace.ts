@@ -369,6 +369,7 @@ export function usePosWorkspace() {
     locationsQuery,
     productsQuery,
     saleProducts,
+    catalogProducts,
     createSale,
     quickCustomerMutation: mutations.quickCustomerMutation,
     discountAuthorizationMutation: mutations.discountAuthorizationMutation,

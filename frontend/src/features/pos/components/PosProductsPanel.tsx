@@ -81,9 +81,12 @@ function focusSearchInput(searchInputRef: RefObject<HTMLInputElement | null>) {
 }
 
 function hasExactCodeMatch(products: Product[], query: string) {
-  const normalized = query.trim();
+  const normalized = query.trim().toLowerCase();
   if (!normalized) return false;
-  return products.some((product) => product.barcode === normalized || product.units?.some((unit) => unit.barcode === normalized));
+  return products.some((product) => 
+    product.barcode?.trim().toLowerCase() === normalized || 
+    product.units?.some((unit) => unit.barcode?.trim().toLowerCase() === normalized)
+  );
 }
 
 function InlineGroupPicker({

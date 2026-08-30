@@ -46,8 +46,8 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       retry: shouldRetry,
-      staleTime: 3 * 60_000,
-      gcTime: 20 * 60_000,
+      staleTime: 5 * 60_000,
+      gcTime: 30 * 60_000,
       placeholderData: keepPreviousData,
       networkMode: 'always'
     },
