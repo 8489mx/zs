@@ -20,6 +20,7 @@ export type ManagerActionProductRow = {
   stock_qty?: number | string | null;
   min_stock_qty?: number | string | null;
   created_at?: Date | string | null;
+  metadata?: unknown;
 };
 
 export type ManagerActionLastSaleRow = {
@@ -63,6 +64,8 @@ export type BuildManagerActionInsightsInput = {
   saleMargins: ManagerActionSaleMarginRow[];
   customers: ManagerActionCustomerRow[];
   customerBalances: ManagerActionCustomerBalanceRow[];
+  stagnantThresholdDays?: number;
+  expiryAlertDays?: number;
   now?: Date;
   limit?: number;
 };
@@ -118,6 +121,8 @@ export function buildManagerActionInsights({
   saleMargins,
   customers,
   customerBalances,
+  stagnantThresholdDays = 30,
+  expiryAlertDays = 30,
   now = new Date(),
   limit = 8,
 }: BuildManagerActionInsightsInput): ManagerActionInsight[] {
@@ -212,33 +217,76 @@ export function buildManagerActionInsights({
       }));
     }
 
+    const metadata = product.metadata && typeof product.metadata === 'object'
+      ? (product.metadata as Record<string, any>)
+      : typeof product.metadata === 'string'
+      ? (() => { try { return JSON.parse(product.metadata as string); } catch { return {}; } })()
+      : {};
+
+    const expiryDateStr = metadata?.expiryDate ? String(metadata.expiryDate).trim().slice(0, 10) : '';
+    if (expiryDateStr && stockQty > 0) {
+      const expDate = new Date(`${expiryDateStr}T00:00:00`);
+      if (!Number.isNaN(expDate.getTime())) {
+        const daysRemaining = daysBetween(now, expDate);
+        const configuredExpiryDays = Number(expiryAlertDays) > 0 ? Number(expiryAlertDays) : 30;
+        if (daysRemaining <= 0) {
+          insights.push(buildInsight({
+            id: `product-expired-${id}`,
+            domain: 'inventory',
+            severity: 'danger',
+            title: 'صنف منتهي الصلاحية',
+            message: `${name}: انتهت صلاحيته بتاريخ ${expiryDateStr} (يوجد رصيد: ${stockQty}).`,
+            actionLabel: 'راجع المخزون',
+            actionHref: `/inventory?productId=${id}`,
+            metrics: { productId: id, expiryDate: expiryDateStr, daysRemaining, stockQty },
+            rank: 98 + Math.abs(daysRemaining),
+          }));
+        } else if (daysRemaining <= configuredExpiryDays) {
+          insights.push(buildInsight({
+            id: `product-near-expiry-${id}`,
+            domain: 'inventory',
+            severity: daysRemaining <= 7 ? 'danger' : 'warning',
+            title: 'صنف وشيك الانتهاء',
+            message: `${name}: تنتهي صلاحيته خلال ${daysRemaining} يوم (${expiryDateStr}).`,
+            actionLabel: 'راجع المخزون',
+            actionHref: `/inventory?productId=${id}`,
+            metrics: { productId: id, expiryDate: expiryDateStr, daysRemaining, stockQty },
+            rank: 75 + Math.max(0, configuredExpiryDays - daysRemaining),
+          }));
+        }
+      }
+    }
+
     if (hasSaleHistory) {
       const lastSoldAt = lastSaleByProduct.get(id);
       const referenceDate = lastSoldAt ?? toDate(product.created_at);
       if (referenceDate) {
         const daysWithoutSales = daysBetween(referenceDate, now);
-        if (daysWithoutSales >= 90) {
+        const stagnantDays = Number(stagnantThresholdDays) > 0 ? Number(stagnantThresholdDays) : 30;
+        const stagnantDangerDays = Math.max(90, stagnantDays * 2);
+
+        if (daysWithoutSales >= stagnantDangerDays) {
           insights.push(buildInsight({
             id: `product-stagnant-danger-${id}`,
             domain: 'products',
             severity: 'danger',
-            title: 'صنف راكد',
-            message: `${name}: لا توجد مبيعات منذ ${daysWithoutSales} يوم.`,
+            title: 'صنف شديد الركود',
+            message: `${name}: لا توجد مبيعات منذ ${daysWithoutSales} يوم (الحد: ${stagnantDays} يوم).`,
             actionLabel: 'افتح الأصناف',
             actionHref: '/products',
-            metrics: { productId: id, daysWithoutSales },
+            metrics: { productId: id, daysWithoutSales, thresholdDays: stagnantDays },
             rank: 82 + Math.min(30, daysWithoutSales / 10),
           }));
-        } else if (daysWithoutSales >= 30) {
+        } else if (daysWithoutSales >= stagnantDays) {
           insights.push(buildInsight({
             id: `product-stagnant-warning-${id}`,
             domain: 'products',
             severity: 'warning',
-            title: 'حركة بيع ضعيفة',
+            title: 'صنف راكد',
             message: `${name}: لا توجد مبيعات منذ ${daysWithoutSales} يوم.`,
             actionLabel: 'افتح الأصناف',
             actionHref: '/products',
-            metrics: { productId: id, daysWithoutSales },
+            metrics: { productId: id, daysWithoutSales, thresholdDays: stagnantDays },
             rank: 58 + Math.min(20, daysWithoutSales / 10),
           }));
         }

@@ -48,115 +48,144 @@ export class ReportsService {
     };
   }
 
+  private applyReportScopeFilter<T extends object>(queryBuilder: T, query: ReportRangeQueryDto, tableAlias?: string): T {
+    let qb: any = queryBuilder;
+    const branchCol = tableAlias ? `${tableAlias}.branch_id` : 'branch_id';
+    const locCol = tableAlias ? `${tableAlias}.location_id` : 'location_id';
+    const userCol = tableAlias ? `${tableAlias}.created_by` : 'created_by';
+
+    if (query.branchId != null) {
+      const branchIdNum = Number(query.branchId);
+      if (Number.isFinite(branchIdNum) && branchIdNum > 0) {
+        qb = qb.where(sql.ref(branchCol), '=', branchIdNum);
+      }
+    }
+    if (query.locationId != null) {
+      const locIdNum = Number(query.locationId);
+      if (Number.isFinite(locIdNum) && locIdNum > 0) {
+        qb = qb.where(sql.ref(locCol), '=', locIdNum);
+      }
+    }
+    const targetUserId = query.userId ?? (query as Record<string, unknown>).createdBy;
+    if (targetUserId != null) {
+      const userIdNum = Number(targetUserId);
+      if (Number.isFinite(userIdNum) && userIdNum > 0) {
+        qb = qb.where(sql.ref(userCol), '=', userIdNum);
+      }
+    }
+    return qb;
+  }
+
   async reportSummary(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const range = parseRange(query);
     const fromDate = new Date(range.from);
     const toDate = new Date(range.to);
 
-    const [
-      rawSalesRows,
-      rawPurchasesRows,
-      rawServicesRows,
-      rawExpensesRows,
-      rawReturnsRows,
-      rawTreasuryRows,
-      rawSaleItemsRows,
-      rawReturnedSaleItemsRows,
-    ] = await Promise.all([
-      this.db
-        .selectFrom('sales')
-        .select(['id', 'total', 'discount', 'delivery_fee', 'delivery_fee_mode', 'delivery_rep_id', 'branch_id', 'location_id', 'created_by', 'created_at'])
-        .where('status', '=', 'posted')
-        .where('created_at', '>=', fromDate!)
-        .where('created_at', '<=', toDate!)
-        .where(this.tenantPredicate(auth))
-        .execute(),
-      this.db
-        .selectFrom('purchases')
-        .select(['id', 'total', 'branch_id', 'location_id', 'created_by', 'created_at'])
-        .where('status', '=', 'posted')
-        .where('created_at', '>=', fromDate!)
-        .where('created_at', '<=', toDate!)
-        .where(this.tenantPredicate(auth))
-        .execute(),
-      (this.db as any)
-        .selectFrom('services')
-        .select(['id', 'amount as total', 'branch_id', 'location_id', 'created_by', 'service_date as created_at'])
-        .where('is_active', '=', true)
-        .where('service_date', '>=', fromDate!)
-        .where('service_date', '<=', toDate!)
-        .where(this.tenantPredicate(auth))
-        .execute(),
-      this.db
-        .selectFrom('expenses')
-        .select(['id', 'amount', 'branch_id', 'location_id', 'created_by', 'expense_date'])
-        .where('expense_date', '>=', fromDate)
-        .where('expense_date', '<=', toDate)
-        .where(this.tenantPredicate(auth))
-        .execute(),
-      this.db
-        .selectFrom('return_documents')
-        .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_by', 'created_at'])
-        .where('created_at', '>=', fromDate!)
-        .where('created_at', '<=', toDate!)
-        .where(this.tenantPredicate(auth))
-        .execute(),
-      this.db
-        .selectFrom('treasury_transactions')
-        .select(['amount', 'branch_id', 'location_id', 'created_by', 'created_at'])
-        .where('created_at', '>=', fromDate!)
-        .where('created_at', '<=', toDate!)
-        .where(this.tenantPredicate(auth))
-        .execute(),
-      this.db
-        .selectFrom('sale_items as si')
-        .innerJoin('sales as s', 's.id', 'si.sale_id')
-        .select(['si.product_id', 'si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_by', 's.created_at'])
-        .where('s.status', '=', 'posted')
-        .where('s.created_at', '>=', fromDate)
-        .where('s.created_at', '<=', toDate)
-        .where(this.tenantPredicate(auth, 's'))
-        .where(this.tenantPredicate(auth, 'si'))
-        .execute(),
-      this.db
-        .selectFrom('return_items as ri')
-        .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
-        .leftJoin('sale_items as si', (join) => join
-          .onRef('si.sale_id', '=', 'rd.invoice_id')
-          .onRef('si.product_id', '=', 'ri.product_id')
-        )
-        .leftJoin('products as p', 'p.id', 'ri.product_id')
-        .select([
-          'ri.qty',
-          (eb) => eb.fn.coalesce('si.cost_price', 'p.cost_price').as('cost_price'),
-          'rd.branch_id',
-          'rd.location_id',
-          'rd.created_by',
-          'rd.created_at'
-        ])
-        .where('rd.return_type', '=', 'sale')
-        .where('rd.created_at', '>=', fromDate!)
-        .where('rd.created_at', '<=', toDate!)
-        .where(this.tenantPredicate(auth, 'rd'))
-        .where(this.tenantPredicate(auth, 'ri'))
-        .execute(),
-    ]);
+    let salesQuery = this.db
+      .selectFrom('sales')
+      .select(['id', 'total', 'discount', 'delivery_fee', 'delivery_fee_mode', 'delivery_rep_id', 'branch_id', 'location_id', 'created_by', 'created_at'])
+      .where('status', '=', 'posted')
+      .where('created_at', '>=', fromDate!)
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
+    salesQuery = this.applyReportScopeFilter(salesQuery, query);
 
-    const salesRows = filterScope(rawSalesRows, query);
-    const normalizedServicesRows = rawServicesRows.map((row: any) => ({
-      ...row,
-      total: Number(row.total || 0),
-      branch_id: row.branch_id == null ? null : Number(row.branch_id),
-      location_id: row.location_id == null ? null : Number(row.location_id),
-    }));
-    const servicesRows = filterScope(normalizedServicesRows, query) as typeof normalizedServicesRows;
-    const purchasesRows = filterScope(rawPurchasesRows, query);
-    const expensesRows = filterScope(rawExpensesRows, query);
-    const returnsRows = filterScope(rawReturnsRows, query);
-    const treasuryRows = filterScope(rawTreasuryRows, query);
-    const saleItemsRows = filterScope(rawSaleItemsRows, query);
-    const returnedSaleItemsRows = filterScope(rawReturnedSaleItemsRows, query);
-    const [deliverySettingRow, commissionSettingRow] = await Promise.all([
+    let purchasesQuery = this.db
+      .selectFrom('purchases')
+      .select(['id', 'total', 'branch_id', 'location_id', 'created_by', 'created_at'])
+      .where('status', '=', 'posted')
+      .where('created_at', '>=', fromDate!)
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
+    purchasesQuery = this.applyReportScopeFilter(purchasesQuery, query);
+
+    let servicesQuery = (this.db as any)
+      .selectFrom('services')
+      .select(['id', 'amount as total', 'branch_id', 'location_id', 'created_by', 'service_date as created_at'])
+      .where('is_active', '=', true)
+      .where('service_date', '>=', fromDate!)
+      .where('service_date', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
+    servicesQuery = this.applyReportScopeFilter(servicesQuery, query);
+
+    let expensesQuery = this.db
+      .selectFrom('expenses')
+      .select(['id', 'amount', 'branch_id', 'location_id', 'created_by', 'expense_date'])
+      .where('expense_date', '>=', fromDate)
+      .where('expense_date', '<=', toDate)
+      .where(this.tenantPredicate(auth));
+    expensesQuery = this.applyReportScopeFilter(expensesQuery, query);
+
+    let returnsQuery = this.db
+      .selectFrom('return_documents')
+      .select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_by', 'created_at'])
+      .where('created_at', '>=', fromDate!)
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
+    returnsQuery = this.applyReportScopeFilter(returnsQuery, query);
+
+    let treasuryQuery = this.db
+      .selectFrom('treasury_transactions')
+      .select(['amount', 'branch_id', 'location_id', 'created_by', 'created_at'])
+      .where('created_at', '>=', fromDate!)
+      .where('created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth));
+    treasuryQuery = this.applyReportScopeFilter(treasuryQuery, query);
+
+    let saleItemsQuery = this.db
+      .selectFrom('sale_items as si')
+      .innerJoin('sales as s', 's.id', 'si.sale_id')
+      .select(['si.product_id', 'si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_by', 's.created_at'])
+      .where('s.status', '=', 'posted')
+      .where('s.created_at', '>=', fromDate)
+      .where('s.created_at', '<=', toDate)
+      .where(this.tenantPredicate(auth, 's'))
+      .where(this.tenantPredicate(auth, 'si'));
+    saleItemsQuery = this.applyReportScopeFilter(saleItemsQuery, query, 's');
+
+    let returnedSaleItemsQuery = this.db
+      .selectFrom('return_items as ri')
+      .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
+      .leftJoin('sale_items as si', (join) => join
+        .onRef('si.sale_id', '=', 'rd.invoice_id')
+        .onRef('si.product_id', '=', 'ri.product_id')
+      )
+      .leftJoin('products as p', 'p.id', 'ri.product_id')
+      .select([
+        'ri.qty',
+        (eb) => eb.fn.coalesce('si.cost_price', 'p.cost_price').as('cost_price'),
+        'rd.branch_id',
+        'rd.location_id',
+        'rd.created_by',
+        'rd.created_at'
+      ])
+      .where('rd.return_type', '=', 'sale')
+      .where('rd.created_at', '>=', fromDate!)
+      .where('rd.created_at', '<=', toDate!)
+      .where(this.tenantPredicate(auth, 'rd'))
+      .where(this.tenantPredicate(auth, 'ri'));
+    returnedSaleItemsQuery = this.applyReportScopeFilter(returnedSaleItemsQuery, query, 'rd');
+
+    const [
+      salesRows,
+      purchasesRows,
+      rawServicesRows,
+      expensesRows,
+      returnsRows,
+      treasuryRows,
+      saleItemsRows,
+      returnedSaleItemsRows,
+      deliverySettingRow,
+      commissionSettingRow,
+    ] = await Promise.all([
+      salesQuery.execute(),
+      purchasesQuery.execute(),
+      servicesQuery.execute(),
+      expensesQuery.execute(),
+      returnsQuery.execute(),
+      treasuryQuery.execute(),
+      saleItemsQuery.execute(),
+      returnedSaleItemsQuery.execute(),
       this.db
         .selectFrom('settings')
         .select(['value'])
@@ -170,6 +199,13 @@ export class ReportsService {
         .where(this.tenantPredicate(auth))
         .executeTakeFirst(),
     ]);
+
+    const servicesRows = rawServicesRows.map((row: any) => ({
+      ...row,
+      total: Number(row.total || 0),
+      branch_id: row.branch_id == null ? null : Number(row.branch_id),
+      location_id: row.location_id == null ? null : Number(row.location_id),
+    }));
 
     let deliveryFeeMode = 'freelance_courier';
     if (deliverySettingRow?.value) {

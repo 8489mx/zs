@@ -229,3 +229,13 @@ input[type="radio"]:active,
   border-color: #2563eb !important;
 }
 
+/* ========================================================
+   HIGH-PERFORMANCE DATA TABLE & LIST RENDERING (60FPS SCROLL)
+   ======================================================== */
+table tbody tr,
+.data-table-body tr,
+.data-table-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
+}
+

@@ -159,8 +159,8 @@ export function DashboardManagerOverviewSections({
           className="dashboard-premium-card dashboard-card-compact manager-overview-card"
         >
           <div className="manager-overview-mini-metrics">
-            <MetricTile label="راكد منذ 30 يوم" value={formatNumber(data.stagnant.days30)} />
-            <MetricTile label="راكد منذ 90 يوم" value={formatNumber(data.stagnant.days90)} />
+            <MetricTile label={`راكد (حد المتجر: ${data.stagnant.thresholdDays || 30} يوم)`} value={formatNumber(data.stagnant.daysConfigured ?? data.stagnant.days30)} />
+            <MetricTile label="راكد أكثر من 90 يوم" value={formatNumber(data.stagnant.days90)} />
             <MetricTile label="قيمة المخزون الراكد" value={formatCurrency(data.stagnant.inventoryValue)} />
           </div>
           <ProductList rows={data.stagnant.items} type="stagnant" />

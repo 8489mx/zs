@@ -43,10 +43,11 @@ function shouldRetry(failureCount: number, error: unknown) {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       retry: shouldRetry,
-      staleTime: 60_000,
-      gcTime: 15 * 60_000,
+      staleTime: 3 * 60_000,
+      gcTime: 20 * 60_000,
       placeholderData: keepPreviousData,
       networkMode: 'always'
     },

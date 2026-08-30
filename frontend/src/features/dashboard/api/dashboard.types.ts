@@ -110,9 +110,11 @@ export type DashboardManagerOverviewPayload = {
     weakMarginHighSales: DashboardProfitItem[];
   };
   stagnant: {
+    thresholdDays?: number;
     days30: number;
     days60: number;
     days90: number;
+    daysConfigured?: number;
     inventoryValue: number;
     items: DashboardStagnantItem[];
     itemsTotal: number;

@@ -2162,17 +2162,14 @@
 
 /* POS Edit Product Modal */
 .pos-edit-product-modal-overlay {
-  animation: fadeInModalOverlay 0.12s ease-out;
+  animation: none !important;
+  transition: none !important;
   padding: 16px !important;
 }
 
-@keyframes fadeInModalOverlay {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .pos-edit-product-dialog-shell {
-  animation: slideUpModal 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: none !important;
+  transition: none !important;
   width: 94vw !important;
   max-width: 1060px !important;
   max-height: 90vh !important;
@@ -2182,11 +2179,6 @@
   border: 1px solid #cbd5e1 !important;
   overflow: hidden !important;
   margin: auto !important;
-}
-
-@keyframes slideUpModal {
-  from { transform: translateY(8px) scale(0.99); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .edit-product-modal-mode {

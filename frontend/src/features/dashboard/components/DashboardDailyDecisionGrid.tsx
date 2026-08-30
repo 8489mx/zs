@@ -226,7 +226,7 @@ export function DashboardDailyDecisionGrid({
             transition: 'all 0.15s ease',
           }}
         >
-          الأصناف الراكدة {data.stagnant.days30 > 0 ? `(${data.stagnant.days30})` : ''}
+          الأصناف الراكدة {(data.stagnant.daysConfigured ?? data.stagnant.days30) > 0 ? `(${data.stagnant.daysConfigured ?? data.stagnant.days30})` : ''}
         </button>
         <button
           type="button"
@@ -244,7 +244,7 @@ export function DashboardDailyDecisionGrid({
             transition: 'all 0.15s ease',
           }}
         >
-          تحليل الربحية
+          أرباح الأصناف والأقسام
         </button>
         <button
           type="button"
@@ -262,7 +262,7 @@ export function DashboardDailyDecisionGrid({
             transition: 'all 0.15s ease',
           }}
         >
-          متابعة التحصيل {data.collection.topDebts.length > 0 ? `(${data.collection.topDebts.length})` : ''}
+          التحصيل ومديونيات العملاء {data.collection.topDebtsTotal > 0 ? `(${data.collection.topDebtsTotal})` : ''}
         </button>
         <button
           type="button"
@@ -288,9 +288,9 @@ export function DashboardDailyDecisionGrid({
       {activeTab === 'buying' && (
         <div className="page-stack" style={{ gap: '12px' }}>
           <div className="manager-overview-mini-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-            <MetricTile label="أصناف نافدة" value={formatNumber(data.buying.outOfStockTotal)} />
-            <MetricTile label="أصناف منخفضة" value={formatNumber(data.buying.lowStockTotal)} />
-            <MetricTile label="إجمالي أولوية الشراء" value={formatNumber(data.buying.priorityTotal)} />
+            <MetricTile label="أصناف نفدت تماماً" value={formatNumber(data.buying.outOfStockTotal)} />
+            <MetricTile label="أصناف وصلت للحد الأدنى" value={formatNumber(data.buying.lowStockTotal)} />
+            <MetricTile label="أصناف ذات أولوية شراء" value={formatNumber(data.buying.priorityTotal)} />
           </div>
           <ProductList rows={data.buying.priority} type="buying" />
         </div>
@@ -299,8 +299,8 @@ export function DashboardDailyDecisionGrid({
       {activeTab === 'stagnant' && (
         <div className="page-stack" style={{ gap: '12px' }}>
           <div className="manager-overview-mini-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-            <MetricTile label="راكد منذ 30 يوم" value={formatNumber(data.stagnant.days30)} />
-            <MetricTile label="راكد منذ 90 يوم" value={formatNumber(data.stagnant.days90)} />
+            <MetricTile label={`راكد (حد المتجر: ${data.stagnant.thresholdDays || 30} يوم)`} value={formatNumber(data.stagnant.daysConfigured ?? data.stagnant.days30)} />
+            <MetricTile label="راكد أكثر من 90 يوم" value={formatNumber(data.stagnant.days90)} />
             <MetricTile label="قيمة المخزون الراكد" value={formatCurrency(data.stagnant.inventoryValue)} />
           </div>
           <ProductList rows={data.stagnant.items} type="stagnant" />

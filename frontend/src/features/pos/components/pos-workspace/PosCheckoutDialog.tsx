@@ -25,7 +25,7 @@ interface PosCheckoutDialogProps {
   onConfirmSale: (managerPin?: string) => void;
 }
 
-export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, onConfirmSale }: PosCheckoutDialogProps) {
+function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, onConfirmSale }: PosCheckoutDialogProps) {
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [isManualCustomerOpen, setIsManualCustomerOpen] = useState(false);
@@ -297,4 +297,9 @@ export function PosCheckoutDialog({ open, pos, selectedCustomerName, onClose, on
       </Card>
     </DialogShell>
   );
+}
+
+export function PosCheckoutDialog(props: PosCheckoutDialogProps) {
+  if (!props.open) return null;
+  return <PosCheckoutDialogContent {...props} />;
 }

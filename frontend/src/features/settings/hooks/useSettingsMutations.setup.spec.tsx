@@ -34,6 +34,8 @@ const baseSettingsMutationValues = {
   phone: '',
   address: '',
   lowStockThreshold: 5,
+  expiryAlertDays: 30,
+  stagnantProductDays: 30,
   invoiceFooter: '',
   invoiceQR: '',
   taxNumber: '',

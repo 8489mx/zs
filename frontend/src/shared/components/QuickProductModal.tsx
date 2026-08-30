@@ -33,7 +33,7 @@ export interface QuickProductModalProps {
   onSuccess: (product: Product) => void;
 }
 
-export function QuickProductModal({ isOpen, onClose, initialName = '', itemType, onSuccess }: QuickProductModalProps) {
+function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType, onSuccess }: QuickProductModalProps) {
   const queryClient = useQueryClient();
   const { data: categories = [] } = useCategoriesQuery();
   const { data: locations = [] } = useLocationsQuery();
@@ -569,4 +569,9 @@ export function QuickProductModal({ isOpen, onClose, initialName = '', itemType,
       </div>
     </DialogShell>
   );
+}
+
+export function QuickProductModal(props: QuickProductModalProps) {
+  if (!props.isOpen) return null;
+  return <QuickProductModalContent {...props} />;
 }

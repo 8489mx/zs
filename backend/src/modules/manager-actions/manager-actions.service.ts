@@ -29,6 +29,7 @@ export class ManagerActionsService {
       saleMargins,
       customers,
       customerBalances,
+      settingsRows,
     ] = await Promise.all([
       this.safeQuery(() => this.loadProducts(scope.tenantId)),
       this.safeQuery(() => this.loadProductLastSales(scope.tenantId)),
@@ -36,7 +37,13 @@ export class ManagerActionsService {
       this.safeQuery(() => this.loadSaleMargins(scope.tenantId)),
       this.safeQuery(() => this.loadCustomers(scope.tenantId)),
       this.safeQuery(() => this.loadCustomerBalances(scope.tenantId)),
+      this.safeQuery(() => this.loadSettings(scope.tenantId)),
     ]);
+
+    const settingsMap = settingsRows.reduce<Record<string, any>>((acc, row) => {
+      try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
+      return acc;
+    }, {});
 
     return {
       insights: buildManagerActionInsights({
@@ -46,6 +53,8 @@ export class ManagerActionsService {
         saleMargins,
         customers,
         customerBalances,
+        stagnantThresholdDays: Number(settingsMap.stagnantProductDays) > 0 ? Number(settingsMap.stagnantProductDays) : 30,
+        expiryAlertDays: Number(settingsMap.expiryAlertDays) > 0 ? Number(settingsMap.expiryAlertDays) : 30,
         limit: safeLimit,
       }),
       scope,
@@ -60,10 +69,18 @@ export class ManagerActionsService {
     }
   }
 
+  private loadSettings(tenantId: string): Promise<Array<{ key: string; value: string }>> {
+    return this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .execute();
+  }
+
   private loadProducts(tenantId: string): Promise<ManagerActionProductRow[]> {
     return this.db
       .selectFrom('products')
-      .select(['id', 'name', 'retail_price', 'cost_price', 'stock_qty', 'min_stock_qty', 'created_at'])
+      .select(['id', 'name', 'retail_price', 'cost_price', 'stock_qty', 'min_stock_qty', 'created_at', 'metadata'])
       .where('is_active', '=', true)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();

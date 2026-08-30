@@ -8,6 +8,7 @@ import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import type { Product, ProductOffer } from '@/types/domain';
 import { buildUpdatePayload, normalizeCustomerPrices, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { formatCurrency } from '@/lib/format';
 
 import { todayIsoDate } from './offers/product-offer.utils';
@@ -25,6 +26,8 @@ interface ProductOfferDialogProps {
 
 export function ProductOfferDialog({ open, product: initialProduct, onClose, onSaved }: ProductOfferDialogProps) {
   const queryClient = useQueryClient();
+  const { data: settings } = useSettingsQuery();
+  const expiryThresholdDays = Number(settings?.expiryAlertDays || 30);
   const [activeProduct, setActiveProduct] = useState<Product | null>(initialProduct || null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilter, setSearchFilter] = useState<SearchFilterKey>('all');
@@ -356,7 +359,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
         const expDate = new Date(`${String(exp).slice(0, 10)}T00:00:00`);
         if (!Number.isNaN(expDate.getTime())) {
           const diffDays = Math.ceil((expDate.getTime() - todayTime) / (24 * 60 * 60 * 1000));
-          isNearExpiry = diffDays <= 45;
+          isNearExpiry = diffDays <= expiryThresholdDays;
         }
       }
 
@@ -377,7 +380,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
           return true;
       }
     });
-  }, [searchResults, searchFilter]);
+  }, [searchResults, searchFilter, expiryThresholdDays]);
 
   const filterStats = useMemo(() => {
     const today = todayIsoDate();
@@ -411,7 +414,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
         const expDate = new Date(`${String(exp).slice(0, 10)}T00:00:00`);
         if (!Number.isNaN(expDate.getTime())) {
           const diffDays = Math.ceil((expDate.getTime() - todayTime) / (24 * 60 * 60 * 1000));
-          if (diffDays <= 45) nearExpiryCount++;
+          if (diffDays <= expiryThresholdDays) nearExpiryCount++;
         }
       }
 
@@ -432,7 +435,7 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
       stagnant: stagnantCount,
       overstock: overstockCount,
     };
-  }, [searchResults]);
+  }, [searchResults, expiryThresholdDays]);
 
   const offers: ProductOffer[] = activeProduct?.offers || [];
   const retailPrice = Number(activeProduct?.retailPrice || (activeProduct as any)?.retail_price || 0);

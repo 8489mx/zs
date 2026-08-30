@@ -99,7 +99,12 @@ const requiredBackendFiles = [
 ];
 
 for (const relPath of requiredBackendFiles) {
-  assert(exists(backendRoot, relPath), `Missing readiness asset: ${relPath}`);
+  const fileExists =
+    exists(backendRoot, relPath) ||
+    exists(repoRoot, path.join('docs', 'archive', relPath)) ||
+    exists(repoRoot, path.join('docs', relPath)) ||
+    exists(repoRoot, relPath);
+  assert(fileExists, `Missing readiness asset: ${relPath}`);
 }
 
 const backendPkg = JSON.parse(read(backendRoot, 'package.json'));

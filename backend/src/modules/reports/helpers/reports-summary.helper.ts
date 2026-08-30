@@ -165,13 +165,29 @@ export function buildReportSummaryPayload(args: {
   expensesRows: SummaryExpenseRow[];
   returnsRows: SummaryReturnRow[];
   treasuryRows: SummaryTreasuryRow[];
-  saleItemsRows: SummarySaleItemRow[];
+  saleItemsRows?: SummarySaleItemRow[];
   returnedSaleItemsRows?: SummarySaleItemRow[];
+  cogsOverride?: number;
+  topProductsOverride?: Array<{ name: string; qty: number; revenue: number; total: number }>;
   topProductsLimit?: number;
   deliveryFeeMode?: string;
   storeFleetCommissionRate?: number;
 }) {
-  const { salesRows, servicesRows = [], purchasesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows, returnedSaleItemsRows = [], topProductsLimit = 10, deliveryFeeMode = 'freelance_courier', storeFleetCommissionRate = 0 } = args;
+  const {
+    salesRows,
+    servicesRows = [],
+    purchasesRows,
+    expensesRows,
+    returnsRows,
+    treasuryRows,
+    saleItemsRows = [],
+    returnedSaleItemsRows = [],
+    cogsOverride,
+    topProductsOverride,
+    topProductsLimit = 10,
+    deliveryFeeMode = 'freelance_courier',
+    storeFleetCommissionRate = 0,
+  } = args;
   const splitReturns = splitReturnRowsByType(returnsRows);
 
   const salesTotal = sumMoney(salesRows, (row) => row.total);
@@ -183,7 +199,7 @@ export function buildReportSummaryPayload(args: {
   
   const rawCogs = saleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
   const returnedCogs = returnedSaleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
-  const cogs = toMoney(rawCogs - returnedCogs);
+  const cogs = cogsOverride != null ? toMoney(cogsOverride) : toMoney(rawCogs - returnedCogs);
   
   const cashIn = sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) > 0), (row) => row.amount);
   const cashOut = Math.abs(sumMoney(treasuryRows.filter((row) => Number(row.amount || 0) < 0), (row) => row.amount));
@@ -235,6 +251,6 @@ export function buildReportSummaryPayload(args: {
       storeFleetCourierShare,
       storeFleetCommissionRate: commissionRate,
     }),
-    topProducts: buildTopProducts(saleItemsRows, topProductsLimit),
+    topProducts: topProductsOverride != null ? topProductsOverride : buildTopProducts(saleItemsRows, topProductsLimit),
   };
 }

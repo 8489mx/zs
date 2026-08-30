@@ -51,5 +51,35 @@ import { buildManagerActionInsights } from '../../src/modules/manager-actions/he
   assert.equal(insights[0].severity, 'danger');
   assert.ok(insights.every((insight) => insight.title && insight.message && insight.actionHref));
 
+  // Test custom stagnantThresholdDays and expiryAlertDays
+  const customInsights = buildManagerActionInsights({
+    now: new Date('2026-04-27T12:00:00.000Z'),
+    limit: 10,
+    stagnantThresholdDays: 120,
+    expiryAlertDays: 60,
+    products: [
+      {
+        id: 3,
+        name: 'منتج راكد مخصص',
+        retail_price: 150,
+        cost_price: 100,
+        stock_qty: 10,
+        min_stock_qty: 2,
+        metadata: { expiryDate: '2026-06-15' }, // 49 days left -> within 60 days alert
+      },
+    ],
+    productLastSales: [
+      { product_id: 3, last_sold_at: '2026-03-01T00:00:00.000Z' }, // 57 days ago -> NOT stagnant since threshold is 120
+    ],
+    sales: [],
+    saleMargins: [],
+    customers: [],
+    customerBalances: [],
+  });
+
+  const customIds = customInsights.map((i) => i.id);
+  assert.ok(customIds.includes('product-near-expiry-3'), 'Should alert on near-expiry product within custom 60-day threshold');
+  assert.ok(!customIds.includes('product-stagnant-warning-3'), 'Should not alert on stagnant if under 120 days');
+
   console.log('manager-actions.helper.spec: ok');
 })();

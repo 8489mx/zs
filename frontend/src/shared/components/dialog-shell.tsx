@@ -49,12 +49,14 @@ export function DialogShell({
     const focusDialog = () => {
       const shell = shellRef.current;
       if (!shell) return;
-      if (typeof shell.scrollIntoView === 'function') {
-        shell.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+      const target =
+        shell.querySelector<HTMLElement>('[data-autofocus]') ||
+        shell.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]):not(.dialog-shell-close-btn)');
+      if (target) {
+        target.focus({ preventScroll: true });
+      } else {
+        shell.focus({ preventScroll: true });
       }
-      const focusable = getFocusableElements(shell);
-      const preferredTarget = shell.querySelector<HTMLElement>('[data-autofocus]');
-      (preferredTarget || focusable[0] || shell).focus();
     };
 
     const frameId = window.requestAnimationFrame(focusDialog);

@@ -1541,7 +1541,34 @@ export interface TenantSubscriptionPaymentTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface DailyFinancialSummariesTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  summary_date: ColumnType<Date, string | Date, string | Date>;
+  branch_id: number | null;
+  location_id: number | null;
+  sales_count: number;
+  sales_total: number;
+  sales_discount: number;
+  cogs_total: number;
+  returns_count: number;
+  sales_returns_total: number;
+  purchases_count: number;
+  purchases_total: number;
+  purchase_returns_total: number;
+  expenses_count: number;
+  expenses_total: number;
+  services_count: number;
+  services_total: number;
+  gross_profit: number;
+  net_profit: number;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | undefined, Date | string>;
+}
+
 export interface Database {
+  daily_financial_summaries: DailyFinancialSummariesTable;
   saas_plans: SaasPlanTable;
   tenant_subscriptions: TenantSubscriptionTable;
   tenant_subscription_payments: TenantSubscriptionPaymentTable;

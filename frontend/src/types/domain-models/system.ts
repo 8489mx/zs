@@ -145,6 +145,8 @@ export interface AppSettings {
   phone?: string;
   address?: string;
   lowStockThreshold?: number;
+  expiryAlertDays?: number;
+  stagnantProductDays?: number;
   invoiceFooter?: string;
   invoiceQR?: string;
   taxNumber?: string;
