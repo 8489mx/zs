@@ -94,9 +94,21 @@ export class SalesWriteService {
     locationId: number | null,
     scope: { tenantId: string; accountId: string },
     auth: AuthContext,
+    visitedProductIds: Set<number> = new Set(),
+    depth = 0,
   ) {
+    if (depth > 6) {
+      throw new AppError('تجاوز الحد الأقصى لعمق شجرة التركيبات التصنيعية المتداخلة', 'BOM_RECURSION_LIMIT', 400);
+    }
+
     for (const item of items) {
       if (!item.hasBOM || !item.bomId) continue;
+      if (visitedProductIds.has(item.productId)) {
+        throw new AppError(`اكتشاف حلقة تكرار دائرية في تركيبة التصنيع للمنتج #${item.productId}`, 'CIRCULAR_BOM_DETECTED', 400);
+      }
+      const nextVisited = new Set(visitedProductIds);
+      nextVisited.add(item.productId);
+
       const shortfall = item.requiredQty - item.availableQty;
       if (shortfall <= 0) continue;
 
@@ -166,7 +178,7 @@ export class SalesWriteService {
                 hasBOM: true,
                 bomId: subBom.id,
                 unitMultiplier: 1 // base units
-              }], saleId, branchId, locationId, scope, auth);
+              }], saleId, branchId, locationId, scope, auth, nextVisited, depth + 1);
            }
         }
 

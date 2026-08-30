@@ -22,6 +22,9 @@ export class ManufacturingService {
 
   async createBom(payload: CreateBomDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
+    if (payload.lines.some((l) => Number(l.componentProductId) === Number(payload.productId))) {
+      throw new AppError('لا يمكن للمنتج أن يكون مكوناً داخلاً في تصنيع نفسه', 'BOM_SELF_REFERENCE_FORBIDDEN', 400);
+    }
     let bomId = 0;
 
     await this.tx.runInTransaction(this.db, async (trx) => {
@@ -101,6 +104,9 @@ export class ManufacturingService {
 
   async updateBom(id: number, payload: CreateBomDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
+    if (payload.lines.some((l) => Number(l.componentProductId) === Number(payload.productId))) {
+      throw new AppError('لا يمكن للمنتج أن يكون مكوناً داخلاً في تصنيع نفسه', 'BOM_SELF_REFERENCE_FORBIDDEN', 400);
+    }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       const existingBom = await trx.selectFrom('manufacturing_boms')
@@ -264,6 +270,7 @@ export class ManufacturingService {
         ])
         .where('wo.id', '=', id)
         .where(sql<boolean>`wo.tenant_id = ${scope.tenantId}`)
+        .forUpdate()
         .executeTakeFirst();
       
       if (!wo) throw new AppError('Work order not found', 'NOT_FOUND', 404);
@@ -369,6 +376,7 @@ export class ManufacturingService {
           updated_at: sql`NOW()`,
         } as any)
         .where('id', '=', id)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute();
 
       // Update finished good average cost_price

@@ -300,7 +300,7 @@ export class PharmacyService {
             units_per_box: masterMatch?.units_per_box || 2,
             unit_name: masterMatch?.unit_name || 'شريط',
             box_price: pubPrice || masterMatch?.box_price || 0,
-            strip_price: pubPrice ? pubPrice / (masterMatch?.units_per_box || 2) : masterMatch?.strip_price || 0,
+            strip_price: pubPrice ? Number((pubPrice / (masterMatch?.units_per_box || 2)).toFixed(2)) : (masterMatch?.strip_price || 0),
             barcode: line.barcode || masterMatch?.barcode || null,
             controlled_level: masterMatch?.controlled_level || 'none',
           })

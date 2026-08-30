@@ -269,6 +269,16 @@ export class HrService {
     return { tenant_id: tenantId, account_id: accountId };
   }
 
+  private async assertEmployeeBelongsToTenant(employeeId: number, auth: AuthContext): Promise<void> {
+    const { tenantId } = this.scope(auth);
+    const row = await sql<{ id: number }>`
+      SELECT id FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${tenantId} LIMIT 1
+    `.execute(this.db);
+    if (!row.rows.length) {
+      throw new AppError('الموظف غير موجود أو لا يتبع المنشأة الحالية', 'HR_EMPLOYEE_NOT_FOUND', 404);
+    }
+  }
+
   private maskSalary<T extends Record<string, unknown>>(row: T, auth: AuthContext): T {
     if (canViewSalary(auth)) return row;
     const masked = { ...row };
@@ -869,14 +879,16 @@ export class HrService {
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
 
-  async listContacts(employeeId: number, _auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employee_contacts WHERE employee_id = ${employeeId} ORDER BY is_primary DESC, id DESC`.execute(this.db);
+  async listContacts(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employee_contacts WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id DESC`.execute(this.db);
     return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), contactType: clean(row.contact_type), value: clean(row.value), label: clean(row.label), isPrimary: row.is_primary === true, notes: clean(row.notes) })) };
   }
 
   async upsertContact(employeeId: number, id: number | null, payload: UpsertEmployeeContactDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
     if (id) {
-      await sql`UPDATE hr_employee_contacts SET contact_type = ${clean(payload.contactType) || 'phone'}, value = ${clean(payload.value)}, label = ${clean(payload.label)}, is_primary = ${payload.isPrimary === true}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
+      await sql`UPDATE hr_employee_contacts SET contact_type = ${clean(payload.contactType) || 'phone'}, value = ${clean(payload.value)}, label = ${clean(payload.label)}, is_primary = ${payload.isPrimary === true}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     } else {
       await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${clean(payload.contactType) || 'phone'}, ${clean(payload.value)}, ${clean(payload.label)}, ${payload.isPrimary === true}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
     }
@@ -884,14 +896,16 @@ export class HrService {
     return this.listContacts(employeeId, auth);
   }
 
-  async listDocuments(employeeId: number, _auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await sql<Record<string, unknown>>`SELECT d.*, u.username AS uploaded_by_name FROM hr_employee_documents d LEFT JOIN users u ON u.id = d.uploaded_by WHERE d.employee_id = ${employeeId} ORDER BY d.id DESC`.execute(this.db);
+  async listDocuments(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const result = await sql<Record<string, unknown>>`SELECT d.*, u.username AS uploaded_by_name FROM hr_employee_documents d LEFT JOIN users u ON u.id = d.uploaded_by WHERE d.employee_id = ${employeeId} AND d.tenant_id = ${auth.tenantId} ORDER BY d.id DESC`.execute(this.db);
     return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), title: clean(row.title), documentType: clean(row.document_type), fileUrl: clean(row.file_url), expiryDate: row.expiry_date ? String(row.expiry_date).slice(0, 10) : '', notes: clean(row.notes), uploadedByName: clean(row.uploaded_by_name) })) };
   }
 
   async upsertDocument(employeeId: number, id: number | null, payload: UpsertEmployeeDocumentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
     if (id) {
-      await sql`UPDATE hr_employee_documents SET title = ${clean(payload.title)}, document_type = ${clean(payload.documentType)}, file_url = ${clean(payload.fileUrl)}, expiry_date = ${payload.expiryDate || null}, notes = ${clean(payload.notes)}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
+      await sql`UPDATE hr_employee_documents SET title = ${clean(payload.title)}, document_type = ${clean(payload.documentType)}, file_url = ${clean(payload.fileUrl)}, expiry_date = ${payload.expiryDate || null}, notes = ${clean(payload.notes)}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     } else {
       await sql`INSERT INTO hr_employee_documents (tenant_id, account_id, employee_id, title, document_type, file_url, expiry_date, notes, uploaded_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${clean(payload.title)}, ${clean(payload.documentType)}, ${clean(payload.fileUrl)}, ${payload.expiryDate || null}, ${clean(payload.notes)}, ${auth.userId})`.execute(this.db);
     }
@@ -900,14 +914,16 @@ export class HrService {
   }
 
   async listContracts(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employment_contracts WHERE employee_id = ${employeeId} ORDER BY id DESC`.execute(this.db);
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employment_contracts WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} ORDER BY id DESC`.execute(this.db);
     return { rows: result.rows.map((row) => this.maskSalary({ id: String(row.id), employeeId: String(row.employee_id), contractNo: clean(row.contract_no), contractType: clean(row.contract_type), status: clean(row.status), startDate: String(row.start_date).slice(0, 10), endDate: row.end_date ? String(row.end_date).slice(0, 10) : '', baseSalary: Number(row.base_salary || 0), currency: clean(row.currency), notes: clean(row.notes) }, auth)) };
   }
 
   async upsertContract(employeeId: number, id: number | null, payload: UpsertEmploymentContractDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
     const contractNo = clean(payload.contractNo) || (!id ? await this.generateNumber(this.db, 'hr_employment_contracts', 'CON', auth) : '');
     if (id) {
-      await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${clean(payload.currency) || 'EGP'}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
+      await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${clean(payload.currency) || 'EGP'}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     } else {
       await sql`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${contractNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
     }
@@ -916,13 +932,15 @@ export class HrService {
   }
 
   async listCompensation(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_compensation_packages WHERE employee_id = ${employeeId} ORDER BY id DESC`.execute(this.db);
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_compensation_packages WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} ORDER BY id DESC`.execute(this.db);
     return { rows: result.rows.map((row) => this.maskSalary({ id: String(row.id), employeeId: String(row.employee_id), contractId: row.contract_id ? String(row.contract_id) : '', packageName: clean(row.package_name), allowanceAmount: Number(row.allowance_amount || 0), deductionAmount: Number(row.deduction_amount || 0), effectiveFrom: row.effective_from ? String(row.effective_from).slice(0, 10) : '', effectiveTo: row.effective_to ? String(row.effective_to).slice(0, 10) : '', notes: clean(row.notes) }, auth)) };
   }
 
   async upsertCompensation(employeeId: number, id: number | null, payload: UpsertCompensationPackageDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
     if (id) {
-      await sql`UPDATE hr_compensation_packages SET contract_id = ${toId(payload.contractId)}, package_name = ${clean(payload.packageName)}, allowance_amount = ${Number(payload.allowanceAmount || 0)}, deduction_amount = ${Number(payload.deductionAmount || 0)}, effective_from = ${payload.effectiveFrom || null}, effective_to = ${payload.effectiveTo || null}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId}`.execute(this.db);
+      await sql`UPDATE hr_compensation_packages SET contract_id = ${toId(payload.contractId)}, package_name = ${clean(payload.packageName)}, allowance_amount = ${Number(payload.allowanceAmount || 0)}, deduction_amount = ${Number(payload.deductionAmount || 0)}, effective_from = ${payload.effectiveFrom || null}, effective_to = ${payload.effectiveTo || null}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     } else {
       await sql`INSERT INTO hr_compensation_packages (tenant_id, account_id, employee_id, contract_id, package_name, allowance_amount, deduction_amount, effective_from, effective_to, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${toId(payload.contractId)}, ${clean(payload.packageName)}, ${Number(payload.allowanceAmount || 0)}, ${Number(payload.deductionAmount || 0)}, ${payload.effectiveFrom || null}, ${payload.effectiveTo || null}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
     }
@@ -931,7 +949,8 @@ export class HrService {
   }
 
   async listEmployeeAdjustments(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employee_adjustments WHERE employee_id = ${employeeId} ORDER BY date DESC, id DESC`.execute(this.db);
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employee_adjustments WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} ORDER BY date DESC, id DESC`.execute(this.db);
     return {
       rows: result.rows.map((row) => ({
         id: String(row.id),
@@ -1272,8 +1291,13 @@ export class HrService {
     return { ok: true, ...(await this.listLoans({}, auth)) };
   }
 
-  async listLedger(employeeId: number, _auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await sql<Record<string, unknown>>`SELECT * FROM hr_employee_ledger WHERE employee_id = ${employeeId} ORDER BY id DESC`.execute(this.db);
+  async listLedger(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const result = await sql<Record<string, unknown>>`
+      SELECT * FROM hr_employee_ledger 
+      WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} 
+      ORDER BY id DESC
+    `.execute(this.db);
     return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), entryType: clean(row.entry_type), amount: Number(row.amount || 0), balanceAfter: Number(row.balance_after || 0), note: clean(row.note), repaymentMethod: clean(row.repayment_method), referenceType: clean(row.reference_type), referenceId: row.reference_id ? String(row.reference_id) : '', createdAt: String(row.created_at) })) };
   }
 

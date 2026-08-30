@@ -19,10 +19,35 @@ export class SettingsService {
       : sql<boolean>`tenant_id = ${tenantId} AND account_id = ${accountId}`;
   }
 
+  private readonly sensitiveSettingKeys = new Set([
+    'managerPin',
+    'managerApprovalPin',
+    'manager_pin',
+    'electronicInvoiceSecret',
+    'electronicInvoiceClientId',
+    'taxToken',
+    'tax_api_token',
+    'smtpPassword',
+    'smtp_password',
+    'backupEncryptionKey',
+    'cloudBackupSecret',
+    'developerMasterPassword',
+  ]);
+
   async getSettings(actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(actor);
+    const canManageSettings = actor.role === 'super_admin'
+      || actor.permissions?.includes('canManageSettings')
+      || actor.permissions?.includes('settings');
+
     const rows = await this.db.selectFrom('settings').selectAll().where(this.tenantPredicate(actor)).execute();
-    const settings = rows.reduce<Record<string, unknown>>((acc, row) => { try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; } return acc; }, {});
+    const settings = rows.reduce<Record<string, unknown>>((acc, row) => {
+      if (!canManageSettings && this.sensitiveSettingKeys.has(row.key)) {
+        return acc;
+      }
+      try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
+      return acc;
+    }, {});
     return { ...settings, scope };
   }
 

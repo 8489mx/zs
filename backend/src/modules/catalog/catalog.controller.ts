@@ -81,7 +81,7 @@ export class CatalogController {
   }
 
   @Post('products')
-  @RequireAnyPermission('products', 'sales')
+  @RequirePermissions('products')
   createProduct(@Body() payload: UpsertProductDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.catalogService.createProduct(payload, req.authContext!);
   }
