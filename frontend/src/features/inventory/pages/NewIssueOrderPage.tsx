@@ -13,6 +13,7 @@ import { withIdempotency } from '@/lib/idempotency';
 import { referenceDataApi } from '@/services/reference-data.api';
 import { queryKeys } from '@/app/query-keys';
 import { useAppToolbar } from '@/stores/toolbar-store';
+import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
 
 type LineItem = {
   id: number;
@@ -46,11 +47,24 @@ export function NewIssueOrderPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [pendingFocusQtyLineId, setPendingFocusQtyLineId] = useState<number | null>(null);
   const [pendingFocusProductLineId, setPendingFocusProductLineId] = useState<number | null>(null);
+  const [cameraScanLineId, setCameraScanLineId] = useState<number | null>(null);
 
   const idempotencyKeyRef = useRef<string | null>(null);
   const currentPayloadRef = useRef<string | null>(null);
 
   const [issueMode, setIssueMode] = useState<'final_issue' | 'transfer_to_branch_stock'>('final_issue');
+
+  const handleCameraScanForLine = async (scannedCode: string) => {
+    if (cameraScanLineId !== null) {
+      const opts = await fetchProductOptions(scannedCode);
+      if (opts.length > 0) {
+        handleSelectProduct(cameraScanLineId, opts[0]);
+      } else {
+        updateLine(cameraScanLineId, 'productName', scannedCode);
+      }
+    }
+    setCameraScanLineId(null);
+  };
 
   const products = Array.isArray(productsQuery.data) ? productsQuery.data : [];
   const locations = Array.isArray(locationsQuery.data) ? locationsQuery.data : [];
@@ -808,19 +822,46 @@ export function NewIssueOrderPage() {
 
                     <div className="item-card-field">
                       <Field label="الصنف (بحث بالاسم أو الباركود)">
-                        <AsyncSearchableCombobox
-                          inputId={`product-input-mobile-${line.id}`}
-                          defaultOptions={productOptions}
-                          value={line.productName || ''}
-                          onChange={(v) => updateLine(line.id, 'productName', v)}
-                          onSelect={(p) => handleSelectProduct(line.id, p)}
-                          getLabel={(p) => p.name}
-                          fetchOptions={fetchProductOptions}
-                          createLabel={(q) => `إضافة "${q}"`}
-                          placeholder="ابحث عن صنف أو امسح باركود..."
-                          inline={true}
-                          inputClassName="purchase-prototype-field-input"
-                        />
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <AsyncSearchableCombobox
+                              inputId={`product-input-mobile-${line.id}`}
+                              defaultOptions={productOptions}
+                              value={line.productName || ''}
+                              onChange={(v) => updateLine(line.id, 'productName', v)}
+                              onSelect={(p) => handleSelectProduct(line.id, p)}
+                              getLabel={(p) => p.name}
+                              fetchOptions={fetchProductOptions}
+                              createLabel={(q) => `إضافة "${q}"`}
+                              placeholder="ابحث عن صنف أو امسح باركود..."
+                              inline={true}
+                              inputClassName="purchase-prototype-field-input"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCameraScanLineId(line.id)}
+                            title="مسح باركود بالكاميرا"
+                            style={{
+                              height: '38px',
+                              width: '38px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              color: '#2563eb',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              flexShrink: 0
+                            }}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                              <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                          </button>
+                        </div>
                       </Field>
                     </div>
 
@@ -901,6 +942,13 @@ export function NewIssueOrderPage() {
           </div>
         </section>
       </main>
+
+      <CameraBarcodeScannerModal
+        isOpen={cameraScanLineId !== null}
+        onClose={() => setCameraScanLineId(null)}
+        onScan={handleCameraScanForLine}
+        title="مسح باركود الصنف بكاميرا الهاتف"
+      />
     </div>
   );
 }

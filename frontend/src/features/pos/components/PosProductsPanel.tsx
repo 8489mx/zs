@@ -20,6 +20,7 @@ import { ProductIconStudioModal } from '@/shared/components/icons/ProductIconStu
 import { useProductIconSettings } from '@/shared/components/icons/product-icon-theme';
 import { isInvoiceBarcodeQuery, sanitizeSearchInputLive } from '@/features/pos/lib/pos-barcode-normalizer';
 import { useScannerBuffer } from '@/features/pos/hooks/useScannerBuffer';
+import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
 
 interface PosProductsPanelProps {
   search: string;
@@ -282,6 +283,15 @@ function PosProductsPanelComponent({
   const iconSettings = useProductIconSettings();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+
+  const handleCameraBarcodeScan = (scannedCode: string) => {
+    if (searchInputRef.current) {
+      searchInputRef.current.value = scannedCode;
+    }
+    scannerBuffer.flushNow(scannedCode);
+    onSearchSubmitFirstResult(scannedCode);
+  };
 
   const categoryFilteredProducts = useMemo(() => {
     if (!selectedCategoryId) return products;
@@ -463,7 +473,7 @@ function PosProductsPanelComponent({
           <div className="pos-products-toolbar-stack" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
             <div className="pos-products-unified-search-field">
-              <div className="field" style={{ margin: 0 }}>
+              <div className="field" style={{ margin: 0, position: 'relative' }}>
                 <input
                   ref={searchInputRef}
                   autoFocus
@@ -471,8 +481,34 @@ function PosProductsPanelComponent({
                   onChange={scannerBuffer.handleChange}
                   onKeyDown={handleSearchKeyDown}
                   placeholder="اضرب الباركود هنا أو اكتب الاسم ثم Enter"
-                  style={{ borderRadius: '8px', width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                  style={{ borderRadius: '8px', width: '100%', padding: '10px 48px 10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
                 />
+                <button
+                  type="button"
+                  className="pos-camera-scan-btn"
+                  onClick={() => setIsCameraScannerOpen(true)}
+                  title="مسح باركود بكاميرا الموبايل"
+                  style={{
+                    position: 'absolute',
+                    left: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#2563eb',
+                    borderRadius: '6px',
+                    padding: '6px 8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -1101,6 +1137,14 @@ function PosProductsPanelComponent({
         <ProductIconStudioModal
           open={isStudioOpen}
           onClose={() => setIsStudioOpen(false)}
+        />
+
+        <CameraBarcodeScannerModal
+          isOpen={isCameraScannerOpen}
+          onClose={() => setIsCameraScannerOpen(false)}
+          onScan={handleCameraBarcodeScan}
+          title="مسح باركود الصنف بكاميرا الهاتف"
+          continuous={true}
         />
       </div>
     </Card>

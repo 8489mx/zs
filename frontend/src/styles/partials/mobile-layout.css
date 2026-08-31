@@ -1081,6 +1081,335 @@
   display: block;
 }
 
+/* ==========================================================================
+   Camera Barcode Scanner Modal Styles (Mobile & PWA)
+   ========================================================================== */
+.camera-barcode-modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10050 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+}
+
+.camera-barcode-modal-container {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-radius: 20px !important;
+  width: 100% !important;
+  max-width: 440px !important;
+  overflow: hidden !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  animation: cameraModalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes cameraModalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.camera-barcode-modal-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: #1e293b !important;
+}
+
+.camera-barcode-modal-title-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.camera-barcode-modal-icon {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.camera-barcode-modal-title-group h4 {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  color: #f8fafc !important;
+}
+
+.camera-barcode-modal-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.camera-barcode-torch-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #cbd5e1 !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.camera-barcode-torch-btn.active {
+  background: #eab308 !important;
+  color: #000000 !important;
+  border-color: #fde047 !important;
+  box-shadow: 0 0 14px rgba(234, 179, 8, 0.6) !important;
+}
+
+.camera-barcode-close-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  color: #cbd5e1 !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+
+.camera-barcode-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+}
+
+.camera-barcode-viewport-wrap {
+  position: relative !important;
+  width: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  background: #020617 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.camera-barcode-video-target {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.camera-barcode-video-target video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.camera-barcode-video-target canvas {
+  display: none !important;
+}
+
+.camera-barcode-video-target #qr-shaded-region {
+  display: none !important;
+}
+
+.camera-barcode-overlay-target {
+  position: absolute !important;
+  width: 80% !important;
+  height: 52% !important;
+  pointer-events: none !important;
+  border-radius: 14px !important;
+  z-index: 10 !important;
+  box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.5) !important;
+}
+
+@keyframes cameraLaserScan {
+  0% {
+    top: 8%;
+    opacity: 0.7;
+  }
+  50% {
+    top: 88%;
+    opacity: 1;
+  }
+  100% {
+    top: 8%;
+    opacity: 0.7;
+  }
+}
+
+.camera-barcode-laser {
+  position: absolute !important;
+  left: 6% !important;
+  right: 6% !important;
+  height: 2.5px !important;
+  background: linear-gradient(90deg, transparent, #22c55e, #4ade80, #22c55e, transparent) !important;
+  box-shadow: 0 0 14px #22c55e, 0 0 4px #4ade80 !important;
+  animation: cameraLaserScan 2s ease-in-out infinite !important;
+  border-radius: 2px !important;
+}
+
+.camera-barcode-corner {
+  position: absolute !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-color: #3b82f6 !important;
+  border-style: solid !important;
+}
+
+.corner-tl {
+  top: -2px !important;
+  left: -2px !important;
+  border-width: 4px 0 0 4px !important;
+  border-top-left-radius: 10px !important;
+}
+
+.corner-tr {
+  top: -2px !important;
+  right: -2px !important;
+  border-width: 4px 4px 0 0 !important;
+  border-top-right-radius: 10px !important;
+}
+
+.corner-bl {
+  bottom: -2px !important;
+  left: -2px !important;
+  border-width: 0 0 4px 4px !important;
+  border-bottom-left-radius: 10px !important;
+}
+
+.corner-br {
+  bottom: -2px !important;
+  right: -2px !important;
+  border-width: 0 4px 4px 0 !important;
+  border-bottom-right-radius: 10px !important;
+}
+
+.camera-barcode-status-layer,
+.camera-barcode-error-layer {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  padding: 24px !important;
+  text-align: center !important;
+  z-index: 30 !important;
+}
+
+.camera-barcode-spinner {
+  width: 40px !important;
+  height: 40px !important;
+  border: 3.5px solid rgba(255, 255, 255, 0.15) !important;
+  border-top-color: #3b82f6 !important;
+  border-radius: 50% !important;
+  animation: spin 0.8s linear infinite !important;
+}
+
+.camera-barcode-error-layer p {
+  color: #f87171 !important;
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+.camera-barcode-retry-btn {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 8px 20px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+.camera-barcode-success-banner {
+  position: absolute !important;
+  bottom: 14px !important;
+  left: 14px !important;
+  right: 14px !important;
+  background: rgba(15, 23, 42, 0.92) !important;
+  border: 1.5px solid #22c55e !important;
+  color: #f0fdf4 !important;
+  padding: 9px 14px !important;
+  border-radius: 12px !important;
+  font-size: 13.5px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  z-index: 20 !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  animation: cameraBannerFade 0.2s ease-out !important;
+}
+
+@keyframes cameraBannerFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.camera-barcode-modal-footer {
+  padding: 14px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  background: #0f172a !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.camera-barcode-footer-tip {
+  font-size: 12.5px !important;
+  color: #94a3b8 !important;
+  text-align: center !important;
+}
+
+.camera-barcode-continuous-toggle {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 13px !important;
+  color: #cbd5e1 !important;
+  cursor: pointer !important;
+  padding: 6px 10px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+}
+
+.camera-barcode-continuous-toggle input[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+  accent-color: #2563eb !important;
+  cursor: pointer !important;
+}
+
+
 
 
 
