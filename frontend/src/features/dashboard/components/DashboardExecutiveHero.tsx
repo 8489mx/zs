@@ -227,26 +227,50 @@ export function DashboardExecutiveHero({
 
       {/* Top Header: Greeting, Live Status, Theme Switcher & KPI Badges */}
       <div
+        className="dashboard-hero-top-header"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
           flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '20px',
+          gap: '14px',
+          marginBottom: '16px',
           position: 'relative',
           zIndex: 1,
         }}
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '1.42rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: isDark ? '#ffffff' : '#0f172a' }}>
+        <div className="dashboard-hero-greeting-box" style={{ flex: '1 1 240px', minWidth: 0, width: '100%' }}>
+          <div
+            className="dashboard-hero-greeting-row"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              marginBottom: '4px',
+              width: '100%',
+            }}
+          >
+            <h1
+              className="dashboard-hero-title"
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 800,
+                margin: 0,
+                letterSpacing: '-0.02em',
+                color: isDark ? '#ffffff' : '#0f172a',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
               {greeting.text}
             </h1>
 
             {/* Theme Toggle Button - Sleek Icon Only */}
             <button
               type="button"
+              className="dashboard-hero-theme-toggle"
               onClick={handleToggleTheme}
               title={isDark ? 'التبديل إلى المظهر الفاتح' : 'التبديل إلى المظهر الليلي'}
               aria-label={isDark ? 'التبديل إلى المظهر الفاتح' : 'التبديل إلى المظهر الليلي'}
@@ -254,8 +278,9 @@ export function DashboardExecutiveHero({
                 background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
                 border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #cbd5e1',
                 color: isDark ? '#f59e0b' : '#475569',
-                width: '30px',
-                height: '30px',
+                width: '32px',
+                height: '32px',
+                minWidth: '32px',
                 borderRadius: '50%',
                 cursor: 'pointer',
                 display: 'inline-flex',
@@ -264,6 +289,7 @@ export function DashboardExecutiveHero({
                 boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
                 transition: 'all 0.2s ease',
                 padding: 0,
+                flexShrink: 0,
               }}
             >
               {isDark ? (
@@ -288,7 +314,17 @@ export function DashboardExecutiveHero({
             </button>
           </div>
           
-          <p style={{ margin: 0, fontSize: '0.86rem', color: isDark ? '#94a3b8' : '#64748b' }}>
+          <p
+            className="dashboard-hero-subtitle"
+            style={{
+              margin: 0,
+              fontSize: '0.82rem',
+              color: isDark ? '#94a3b8' : '#64748b',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
             {greeting.sub} · <strong style={{ color: isDark ? '#e2e8f0' : '#0f172a' }}>{todayFormatted}</strong>
           </p>
         </div>
@@ -434,26 +470,31 @@ export function DashboardExecutiveHero({
 
       {/* Chart Section Header: Title + Timeframe Switcher & Mode Toggle */}
       <div
+        className="dashboard-hero-chart-header"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '12px',
+          gap: '10px',
           borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #e2e8f0',
-          paddingTop: '16px',
+          paddingTop: '14px',
           marginBottom: '10px',
           position: 'relative',
           zIndex: 1,
         }}
       >
-        {/* Title + Timeframe Pill Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}>
-            حركة المبيعات وتدفق النشاط
-          </span>
+        <span
+          className="dashboard-hero-chart-title"
+          style={{ fontSize: '0.88rem', fontWeight: 700, color: isDark ? '#f8fafc' : '#1e293b' }}
+        >
+          حركة المبيعات وتدفق النشاط
+        </span>
 
+        <div className="dashboard-hero-chart-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Timeframe Pill Switcher */}
           <div
+            className="dashboard-hero-pill-group timeframe-pill-group"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
               padding: '3px',
@@ -520,75 +561,76 @@ export function DashboardExecutiveHero({
               آخر ٣٠ يوماً
             </button>
           </div>
-        </div>
 
-        {/* Metric Mode Filter */}
-        <div
-          style={{
-            background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
-            padding: '3px',
-            borderRadius: '8px',
-            display: 'inline-flex',
-            gap: '3px',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #e2e8f0',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveMetric('sales')}
+          {/* Metric Mode Filter */}
+          <div
+            className="dashboard-hero-pill-group metric-pill-group"
             style={{
-              background: activeMetric === 'sales'
-                ? (isDark ? '#0284c7' : '#ffffff')
-                : 'transparent',
-              color: activeMetric === 'sales'
-                ? (isDark ? '#ffffff' : '#0f172a')
-                : (isDark ? '#94a3b8' : '#64748b'),
-              boxShadow: activeMetric === 'sales'
-                ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
-                : 'none',
-              border: activeMetric === 'sales' && !isDark ? '1px solid #cbd5e1' : 'none',
-              padding: '5px 12px',
-              borderRadius: '6px',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              lineHeight: 1.2,
+              background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
+              padding: '3px',
+              borderRadius: '8px',
               display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              gap: '3px',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #e2e8f0',
             }}
           >
-            المبيعات
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveMetric('both')}
-            style={{
-              background: activeMetric === 'both'
-                ? (isDark ? '#0284c7' : '#ffffff')
-                : 'transparent',
-              color: activeMetric === 'both'
-                ? (isDark ? '#ffffff' : '#0f172a')
-                : (isDark ? '#94a3b8' : '#64748b'),
-              boxShadow: activeMetric === 'both'
-                ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
-                : 'none',
-              border: activeMetric === 'both' && !isDark ? '1px solid #cbd5e1' : 'none',
-              padding: '5px 12px',
-              borderRadius: '6px',
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              lineHeight: 1.2,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            مقارنة الشراء والبيع
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveMetric('sales')}
+              style={{
+                background: activeMetric === 'sales'
+                  ? (isDark ? '#0284c7' : '#ffffff')
+                  : 'transparent',
+                color: activeMetric === 'sales'
+                  ? (isDark ? '#ffffff' : '#0f172a')
+                  : (isDark ? '#94a3b8' : '#64748b'),
+                boxShadow: activeMetric === 'sales'
+                  ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
+                  : 'none',
+                border: activeMetric === 'sales' && !isDark ? '1px solid #cbd5e1' : 'none',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                lineHeight: 1.2,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              المبيعات
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveMetric('both')}
+              style={{
+                background: activeMetric === 'both'
+                  ? (isDark ? '#0284c7' : '#ffffff')
+                  : 'transparent',
+                color: activeMetric === 'both'
+                  ? (isDark ? '#ffffff' : '#0f172a')
+                  : (isDark ? '#94a3b8' : '#64748b'),
+                boxShadow: activeMetric === 'both'
+                  ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
+                  : 'none',
+                border: activeMetric === 'both' && !isDark ? '1px solid #cbd5e1' : 'none',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                lineHeight: 1.2,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              مقارنة الشراء والبيع
+            </button>
+          </div>
         </div>
       </div>
 
