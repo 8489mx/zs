@@ -1767,6 +1767,194 @@
   }
 }
 
+/* ==========================================================================
+   Universal Mobile Layout Fixes for All System Pages 
+   (Inventory, Customers, Suppliers, Purchases, Products, Returns)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. Global Page Header Actions (Single horizontal smooth scrollable strip) */
+  .page-header-actions,
+  .page-header-actions .actions,
+  .compact-actions,
+  .page-header .actions,
+  .page-header--dense .actions,
+  .pos-header-actions-row,
+  .sales-action-strip {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .page-header-actions .actions::-webkit-scrollbar,
+  .compact-actions::-webkit-scrollbar,
+  .page-header .actions::-webkit-scrollbar,
+  .sales-action-strip::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .page-header-actions .actions .btn,
+  .page-header-actions .actions button,
+  .compact-actions .btn,
+  .compact-actions button,
+  .page-header .actions .btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+    border-radius: 8px !important;
+  }
+
+  /* 2. Inventory Page: Section Tabs (نظرة عامة، أذونات، الجرد، التالف، الحركات) */
+  .inventory-workspace .inventory-section-tabs,
+  .inventory-section-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .inventory-workspace .inventory-section-tab,
+  .inventory-section-tab {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+  }
+
+  .inventory-workspace .inventory-section-tab strong,
+  .inventory-section-tab strong {
+    font-size: 0.88rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+  }
+
+  .inventory-workspace .inventory-section-tab span,
+  .inventory-section-tab span {
+    font-size: 0.68rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+  }
+
+  /* 3. Universal 2x2 Stats Grid for All Pages (Customers, Suppliers, Purchases, Products, Inventory) */
+  .stats-grid,
+  .inventory-spotlight-grid,
+  .sales-action-strip.stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .stat-card,
+  .stats-grid .stat-card,
+  .inventory-spotlight-card {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+  }
+
+  .stat-card span,
+  .stats-grid .stat-card span {
+    font-size: 0.72rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+  }
+
+  .stat-card strong,
+  .stats-grid .stat-card strong {
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+  }
+
+  /* 4. Search Toolbars & Filter Chips Across All Pages */
+  .toolbar-grid,
+  .compact-toolbar,
+  .returns-workspace .toolbar-grid,
+  .sales-workspace .sales-register-card .toolbar-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .toolbar-grid > div:first-child {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .toolbar-extra,
+  .toolbar-chip-row,
+  .filter-chip-row,
+  .catalog-filter-chips {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding-bottom: 2px !important;
+  }
+
+  .toolbar-extra::-webkit-scrollbar,
+  .toolbar-chip-row::-webkit-scrollbar,
+  .filter-chip-row::-webkit-scrollbar,
+  .catalog-filter-chips::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .toolbar-chip-row button,
+  .toolbar-chip-row .btn,
+  .filter-chip-row button,
+  .filter-chip-row .btn,
+  .catalog-filter-chips button {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+    padding: 6px 14px !important;
+    border-radius: 8px !important;
+  }
+
+  /* 5. Toolbars Meta Rows */
+  .toolbar-meta-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+
+  .toolbar-meta-pill {
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+  }
+}
+
+
 
 
 
