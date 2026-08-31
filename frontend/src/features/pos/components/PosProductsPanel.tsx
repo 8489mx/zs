@@ -480,7 +480,7 @@ function PosProductsPanelComponent({
                   defaultValue={search}
                   onChange={scannerBuffer.handleChange}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="اضرب الباركود هنا أو اكتب الاسم ثم Enter"
+                  placeholder="امسح باركود أو اكتب الاسم..."
                   style={{ borderRadius: '8px', width: '100%', padding: '10px 48px 10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
                 />
                 <button
