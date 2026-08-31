@@ -518,7 +518,7 @@ export function DashboardExecutiveHero({
                   ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
                   : 'none',
                 border: timeframe === '7d' && !isDark ? '1px solid #cbd5e1' : 'none',
-                padding: '5px 12px',
+                padding: '5px 10px',
                 borderRadius: '6px',
                 fontSize: '0.76rem',
                 fontWeight: 700,
@@ -530,7 +530,7 @@ export function DashboardExecutiveHero({
                 justifyContent: 'center',
               }}
             >
-              آخر ٧ أيام
+              ٧ أيام
             </button>
             <button
               type="button"
@@ -546,7 +546,7 @@ export function DashboardExecutiveHero({
                   ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
                   : 'none',
                 border: timeframe === '30d' && !isDark ? '1px solid #cbd5e1' : 'none',
-                padding: '5px 12px',
+                padding: '5px 10px',
                 borderRadius: '6px',
                 fontSize: '0.76rem',
                 fontWeight: 700,
@@ -558,7 +558,7 @@ export function DashboardExecutiveHero({
                 justifyContent: 'center',
               }}
             >
-              آخر ٣٠ يوماً
+              ٣٠ يوم
             </button>
           </div>
 
@@ -588,7 +588,7 @@ export function DashboardExecutiveHero({
                   ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
                   : 'none',
                 border: activeMetric === 'sales' && !isDark ? '1px solid #cbd5e1' : 'none',
-                padding: '5px 12px',
+                padding: '5px 10px',
                 borderRadius: '6px',
                 fontSize: '0.76rem',
                 fontWeight: 700,
@@ -616,7 +616,7 @@ export function DashboardExecutiveHero({
                   ? (isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)')
                   : 'none',
                 border: activeMetric === 'both' && !isDark ? '1px solid #cbd5e1' : 'none',
-                padding: '5px 12px',
+                padding: '5px 10px',
                 borderRadius: '6px',
                 fontSize: '0.76rem',
                 fontWeight: 700,
@@ -628,7 +628,7 @@ export function DashboardExecutiveHero({
                 justifyContent: 'center',
               }}
             >
-              مقارنة الشراء والبيع
+              مقارنة
             </button>
           </div>
         </div>
