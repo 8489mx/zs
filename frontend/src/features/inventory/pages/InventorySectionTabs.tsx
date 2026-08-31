@@ -4,7 +4,7 @@ import { prefetchRouteData } from '@/app/router/route-prefetch';
 
 export function InventorySectionTabs({ currentSection }: { currentSection: InventorySectionKey }) {
   return (
-    <div className="sales-action-strip inventory-section-tabs" style={{ marginBottom: '14px', gap: '10px' }}>
+    <div className="inventory-section-tabs" style={{ marginBottom: '14px', gap: '10px' }}>
       {inventorySections.map((section) => {
         const isActive = currentSection === section.key;
         return (
@@ -13,7 +13,7 @@ export function InventorySectionTabs({ currentSection }: { currentSection: Inven
             to={`/inventory/${section.key}`}
             onMouseEnter={() => prefetchRouteData(`/inventory/${section.key}`)}
             onTouchStart={() => prefetchRouteData(`/inventory/${section.key}`)}
-            className={`sales-action-card inventory-section-tab ${isActive ? 'is-active' : ''}`.trim()}
+            className={`inventory-section-tab ${isActive ? 'is-active' : ''}`.trim()}
             style={{
               textDecoration: 'none',
               cursor: 'pointer',
