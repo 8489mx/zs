@@ -330,9 +330,10 @@ export function DashboardExecutiveHero({
         </div>
 
         {/* 4 Unified, Calming, Glassmorphic KPI Cards */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="dashboard-hero-kpi-grid" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {/* Card 1: Sales */}
           <div
+            className="dashboard-hero-kpi-card"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -347,19 +348,20 @@ export function DashboardExecutiveHero({
               transition: 'all 0.2s ease',
             }}
           >
-            <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
+            <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
               مبيعات اليوم
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
-              <strong style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
+            <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+              <strong className="dashboard-hero-kpi-value" style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
                 {formatCurrency(todaySalesAmount)}
               </strong>
-              <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
+              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
             </div>
           </div>
 
           {/* Card 2: Invoices */}
           <div
+            className="dashboard-hero-kpi-card"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -374,19 +376,20 @@ export function DashboardExecutiveHero({
               transition: 'all 0.2s ease',
             }}
           >
-            <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
+            <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
               فواتير اليوم
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
-              <strong style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
+            <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+              <strong className="dashboard-hero-kpi-value" style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', fontWeight: 800 }}>
                 {todaySalesCount}
               </strong>
-              <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>فاتورة</span>
+              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>فاتورة</span>
             </div>
           </div>
 
           {/* Card 3: Treasury */}
           <div
+            className="dashboard-hero-kpi-card"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -401,10 +404,10 @@ export function DashboardExecutiveHero({
               transition: 'all 0.2s ease',
             }}
           >
-            <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
+            <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
               صافي الخزينة
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '3px', justifyContent: 'center', direction: 'rtl' }}>
+            <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '3px', justifyContent: 'center', direction: 'rtl' }}>
               {treasuryNet < 0 && (
                 <span
                   style={{
@@ -418,6 +421,7 @@ export function DashboardExecutiveHero({
                 </span>
               )}
               <strong
+                className="dashboard-hero-kpi-value"
                 style={{
                   fontSize: '1.05rem',
                   color: isDark
@@ -429,12 +433,13 @@ export function DashboardExecutiveHero({
               >
                 {formatCurrency(Math.abs(treasuryNet))}
               </strong>
-              <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
+              <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
             </div>
           </div>
 
           {/* Card 4: Inventory Alerts */}
           <div
+            className="dashboard-hero-kpi-card"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -449,18 +454,18 @@ export function DashboardExecutiveHero({
               transition: 'all 0.2s ease',
             }}
           >
-            <div style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
+            <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
               تنبيهات المخزون
             </div>
             {totalStockAlerts > 0 ? (
-              <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
-                <strong style={{ fontSize: '1.05rem', color: isDark ? '#fb7185' : '#e11d48', fontWeight: 800 }}>
+              <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px', justifyContent: 'center' }}>
+                <strong className="dashboard-hero-kpi-value" style={{ fontSize: '1.05rem', color: isDark ? '#fb7185' : '#e11d48', fontWeight: 800 }}>
                   {totalStockAlerts}
                 </strong>
-                <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>صنف</span>
+                <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>صنف</span>
               </div>
             ) : (
-              <strong style={{ fontSize: '0.92rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 700 }}>
+              <strong className="dashboard-hero-kpi-value" style={{ fontSize: '0.92rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 700 }}>
                 مستقر ✓
               </strong>
             )}
