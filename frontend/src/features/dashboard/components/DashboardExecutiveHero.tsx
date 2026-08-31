@@ -110,13 +110,14 @@ export function DashboardExecutiveHero({
   // Prepare chart data (7 points or 30 points)
   const chartData = useMemo(() => {
     const pointsCount = Math.max(salesTrend.length, purchasesTrend.length);
+    const shortDays = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+
     if (!pointsCount) {
       const dummyCount = timeframe === '7d' ? 7 : 30;
       const dummy = [];
-      const weekdays = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
       for (let i = 0; i < dummyCount; i++) {
         dummy.push({
-          label: timeframe === '7d' ? weekdays[i % 7] : `${i + 1}`,
+          label: timeframe === '7d' ? shortDays[i % 7] : `${i + 1}`,
           fullDate: `يوم ${i + 1}`,
           sales: i === dummyCount - 1 ? (todaySalesAmount || 0) : 0,
           purchases: 0,
@@ -137,9 +138,9 @@ export function DashboardExecutiveHero({
         if (rawKey.includes('-')) {
           const d = new Date(rawKey);
           if (timeframe === '7d') {
-            label = new Intl.DateTimeFormat('ar-EG', { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+            label = shortDays[d.getDay()];
           } else {
-            label = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short' }).format(d);
+            label = `${d.getDate()}`;
           }
           fullDate = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
         }
@@ -661,10 +662,10 @@ export function DashboardExecutiveHero({
             <XAxis
               dataKey="label"
               stroke={isDark ? 'rgba(255, 255, 255, 0.16)' : '#cbd5e1'}
-              tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 11, fontWeight: 600 }}
+              tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 11, fontWeight: 700 }}
               tickLine={false}
-              dy={8}
-              minTickGap={timeframe === '30d' ? 22 : 8}
+              dy={6}
+              minTickGap={timeframe === '30d' ? 14 : 4}
               interval={timeframe === '30d' ? 'preserveStartEnd' : 0}
               axisLine={{ stroke: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0' }}
             />
