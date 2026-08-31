@@ -87,7 +87,11 @@ export class AppModule implements NestModule {
 
     consumer
       .apply(LoginRateLimitMiddleware)
-      .forRoutes({ path: 'api/auth/login', method: RequestMethod.POST });
+      .forRoutes(
+        { path: 'api/auth/login', method: RequestMethod.POST },
+        { path: 'api/developer/feature-plans', method: RequestMethod.GET },
+        { path: 'api/developer/update-plan', method: RequestMethod.POST },
+      );
 
     consumer
       .apply(AuthBurstRateLimitMiddleware)
@@ -96,6 +100,7 @@ export class AppModule implements NestModule {
         { path: 'api/auth/change-password', method: RequestMethod.POST },
         { path: 'api/auth/sessions/revoke-others', method: RequestMethod.POST },
         { path: 'api/auth/sessions/:id', method: RequestMethod.DELETE },
+        { path: 'api/developer/*', method: RequestMethod.ALL },
       );
   }
 }

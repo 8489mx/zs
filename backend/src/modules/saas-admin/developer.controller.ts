@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Headers, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Post, Get, Headers, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { timingSafeEqual } from 'crypto';
 import { SaasAdminService } from './saas-admin.service';
@@ -18,8 +18,16 @@ export class DeveloperController {
     private readonly configService: ConfigService,
   ) {}
 
+  private assertDeveloperAccessAllowed(): void {
+    const appMode = String(this.configService.get<string>('APP_MODE') || this.configService.get<string>('app.mode') || '').trim().toUpperCase();
+    if (appMode === 'CLOUD_SAAS') {
+      throw new ForbiddenException('Developer endpoints are disabled in CLOUD_SAAS mode');
+    }
+  }
+
   @Get('feature-plans')
   async listFeaturePlans(@Headers('x-master-password') masterPasswordHeader?: string) {
+    this.assertDeveloperAccessAllowed();
     const masterPassword = this.configService.get<string>('DEVELOPER_MASTER_PASSWORD') || process.env.DEVELOPER_MASTER_PASSWORD;
     if (!masterPassword || !masterPasswordHeader || !safeCompare(masterPasswordHeader, masterPassword)) {
       throw new UnauthorizedException('Developer access unauthorized');
@@ -29,6 +37,7 @@ export class DeveloperController {
 
   @Post('update-plan')
   async updatePlan(@Body() body: DeveloperUpdatePlanDto) {
+    this.assertDeveloperAccessAllowed();
     const masterPassword = this.configService.get<string>('DEVELOPER_MASTER_PASSWORD') || process.env.DEVELOPER_MASTER_PASSWORD;
     if (!masterPassword || !body.masterPassword || !safeCompare(body.masterPassword, masterPassword)) {
       throw new UnauthorizedException('Invalid master password');

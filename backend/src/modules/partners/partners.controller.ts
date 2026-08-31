@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import { AllowAuthenticated, RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { AllowAuthenticated, RequirePermissions, RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -55,7 +55,7 @@ export class PartnersController {
   }
 
   @Get('suppliers')
-  @AllowAuthenticated()
+  @RequireAnyPermission('suppliers', 'purchases')
   listSuppliers(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.partnersService.listSuppliers(query, req.authContext!);
   }
@@ -83,7 +83,7 @@ export class PartnersController {
   }
 
   @Get([':partnerType/:partnerId/contacts', 'partners/:partnerType/:partnerId/contacts'])
-  @AllowAuthenticated()
+  @RequireAnyPermission('customers', 'suppliers', 'sales', 'purchases')
   listContacts(
     @Param('partnerType') partnerType: string,
     @Param('partnerId', ParseIntPipe) partnerId: number,
@@ -93,7 +93,7 @@ export class PartnersController {
   }
 
   @Post([':partnerType/:partnerId/contacts', 'partners/:partnerType/:partnerId/contacts'])
-  @AllowAuthenticated()
+  @RequireAnyPermission('customers', 'suppliers')
   createContact(
     @Param('partnerType') partnerType: string,
     @Param('partnerId', ParseIntPipe) partnerId: number,
@@ -104,7 +104,7 @@ export class PartnersController {
   }
 
   @Get([':partnerType/:partnerId/addresses', 'partners/:partnerType/:partnerId/addresses'])
-  @AllowAuthenticated()
+  @RequireAnyPermission('customers', 'suppliers', 'sales', 'purchases')
   listAddresses(
     @Param('partnerType') partnerType: string,
     @Param('partnerId', ParseIntPipe) partnerId: number,
@@ -114,7 +114,7 @@ export class PartnersController {
   }
 
   @Post([':partnerType/:partnerId/addresses', 'partners/:partnerType/:partnerId/addresses'])
-  @AllowAuthenticated()
+  @RequireAnyPermission('customers', 'suppliers')
   createAddress(
     @Param('partnerType') partnerType: string,
     @Param('partnerId', ParseIntPipe) partnerId: number,

@@ -12,7 +12,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
@@ -26,7 +26,7 @@ export class MaintenanceController {
   constructor(private readonly maintenanceService: MaintenanceService) {}
 
   @Get()
-  @RequirePermissions('canViewSales')
+  @RequireAnyPermission('services', 'sales')
   listTickets(
     @Req() req: RequestWithAuth,
     @Query('status') status?: string,
@@ -43,19 +43,19 @@ export class MaintenanceController {
   }
 
   @Get(':id')
-  @RequirePermissions('canViewSales')
+  @RequireAnyPermission('services', 'sales')
   getTicket(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.maintenanceService.getTicket(id, req.authContext!);
   }
 
   @Post()
-  @RequirePermissions('canCreateSales')
+  @RequireAnyPermission('services', 'sales')
   createTicket(@Body() payload: UpsertMaintenanceTicketDto, @Req() req: RequestWithAuth) {
     return this.maintenanceService.createTicket(payload, req.authContext!);
   }
 
   @Put(':id')
-  @RequirePermissions('canCreateSales')
+  @RequireAnyPermission('services', 'sales')
   updateTicket(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpsertMaintenanceTicketDto,
@@ -65,7 +65,7 @@ export class MaintenanceController {
   }
 
   @Patch(':id/status')
-  @RequirePermissions('canCreateSales')
+  @RequireAnyPermission('services', 'sales')
   updateTicketStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpdateTicketStatusDto,
@@ -75,7 +75,7 @@ export class MaintenanceController {
   }
 
   @Post(':id/parts')
-  @RequirePermissions('canCreateSales')
+  @RequireAnyPermission('services', 'sales', 'products')
   addPart(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: AddTicketPartDto,
@@ -85,7 +85,7 @@ export class MaintenanceController {
   }
 
   @Delete(':id/parts/:partId')
-  @RequirePermissions('canCreateSales')
+  @RequireAnyPermission('services', 'sales', 'products')
   removePart(
     @Param('id', ParseIntPipe) id: number,
     @Param('partId', ParseIntPipe) partId: number,
@@ -95,7 +95,7 @@ export class MaintenanceController {
   }
 
   @Delete(':id')
-  @RequirePermissions('canManageProducts')
+  @RequirePermissions('canDelete')
   deleteTicket(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.maintenanceService.deleteTicket(id, req.authContext!);
   }

@@ -169,10 +169,14 @@ export class SalesQueryService {
         .execute(),
     ]);
 
+    const canViewCostPrice = auth.role === 'super_admin'
+      || (auth.permissions && (auth.permissions.includes('canViewProfit') || auth.permissions.includes('reports')));
+
     return mapSaleRows(
       sales,
       items as unknown as Array<Record<string, unknown>>,
       payments as unknown as Array<Record<string, unknown>>,
+      Boolean(canViewCostPrice),
     );
   }
 

@@ -101,15 +101,33 @@ export class UsersService {
       normalizedQuery,
     );
 
-    const paged = paginateRows(users, query, { defaultSize: 10 });
-    const summary = summarizeUsers(users);
+    const canManageUsers = actor.role === 'super_admin' || (actor.permissions && (actor.permissions.includes('canManageUsers') || actor.permissions.includes('canEditUsers')));
+    const sanitizedUsers = canManageUsers
+      ? users
+      : users.map((u) => ({
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          role: u.role,
+          isActive: u.isActive,
+          branchIds: u.branchIds,
+          defaultBranchId: u.defaultBranchId,
+          permissions: [],
+          mustChangePassword: false,
+          failedLoginCount: 0,
+          lockedUntil: null,
+          lastLoginAt: null,
+        }));
+
+    const paged = paginateRows(sanitizedUsers, query, { defaultSize: 10 });
+    const summary = summarizeUsers(sanitizedUsers);
 
     return {
       users: paged.rows,
       pagination: {
         page: paged.pagination.page,
         pageSize: paged.pagination.pageSize,
-        total: users.length,
+        total: sanitizedUsers.length,
         totalPages: paged.pagination.totalPages,
       },
       summary,

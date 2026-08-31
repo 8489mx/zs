@@ -20,7 +20,7 @@ export class ServicesController {
   }
 
   @Post('services')
-  @RequireAnyPermission('services', 'sales')
+  @RequirePermissions('services')
   createService(@Body() payload: UpsertServiceDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.servicesService.createService(payload, req.authContext!);
   }

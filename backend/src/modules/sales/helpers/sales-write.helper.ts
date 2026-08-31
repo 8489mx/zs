@@ -165,12 +165,14 @@ export function calculateAllowedSaleUnitPrice(params: {
   priceType: 'retail' | 'wholesale';
   offers?: SaleProductOfferRow[];
   qty?: number;
+  unitMultiplier?: number;
   todayIso?: string;
 }): number {
+  const multiplier = Number(params.unitMultiplier || 1) > 0 ? Number(params.unitMultiplier || 1) : 1;
   if (params.priceType === 'wholesale') {
-    return roundCurrency(Number(params.wholesalePrice || params.retailPrice || 0));
+    return roundCurrency(Number(params.wholesalePrice || params.retailPrice || 0) * multiplier);
   }
-  const basePrice = Number(params.retailPrice || 0);
+  const basePrice = roundCurrency(Number(params.retailPrice || 0) * multiplier);
   const todayIso = normalizeDateOnly(params.todayIso) || todayLocalIsoDate();
   const qty = Number(params.qty || 1);
   const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, qty, basePrice);

@@ -23,7 +23,7 @@ export class TradeInController {
   constructor(private readonly tradeInService: TradeInService) {}
 
   @Get()
-  @RequirePermissions('canViewPurchases')
+  @RequirePermissions('purchases')
   listTransactions(
     @Req() req: RequestWithAuth,
     @Query('q') q?: string,
@@ -38,19 +38,19 @@ export class TradeInController {
   }
 
   @Get(':id')
-  @RequirePermissions('canViewPurchases')
+  @RequirePermissions('purchases')
   getTransaction(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.tradeInService.getTransaction(id, req.authContext!);
   }
 
   @Post()
-  @RequirePermissions('canCreatePurchases')
+  @RequirePermissions('purchases')
   createTransaction(@Body() payload: UpsertTradeInDto, @Req() req: RequestWithAuth) {
     return this.tradeInService.createTransaction(payload, req.authContext!);
   }
 
   @Delete(':id')
-  @RequirePermissions('canManageProducts')
+  @RequirePermissions('canDelete')
   deleteTransaction(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.tradeInService.deleteTransaction(id, req.authContext!);
   }

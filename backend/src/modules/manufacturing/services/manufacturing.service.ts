@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Kysely, sql } from '../../../database/kysely';
+import { Kysely, sql, Transaction } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
@@ -20,14 +20,61 @@ export class ManufacturingService {
     private readonly accountingPosting: AccountingPostingService,
   ) {}
 
+  private async assertNoCircularDependency(
+    trx: Kysely<Database> | Transaction<Database>,
+    targetProductId: number,
+    componentProductIds: number[],
+    tenantId: string,
+    visited: Set<number> = new Set(),
+  ): Promise<void> {
+    if (componentProductIds.some((id) => Number(id) === Number(targetProductId))) {
+      throw new AppError('لا يمكن للمنتج أن يكون مكوناً داخلاً في تصنيع نفسه', 'BOM_SELF_REFERENCE_FORBIDDEN', 400);
+    }
+
+    const currentVisited = new Set(visited);
+    currentVisited.add(targetProductId);
+
+    for (const compId of componentProductIds) {
+      if (currentVisited.has(compId)) {
+        throw new AppError(`اكتشاف حلقة تكرار دائرية في شجرة التصنيع تشمل المنتج #${compId}`, 'CIRCULAR_BOM_DETECTED', 400);
+      }
+
+      const subBom = await trx
+        .selectFrom('manufacturing_boms as b')
+        .select(['b.id'])
+        .where('b.product_id', '=', compId)
+        .where('b.is_active', '=', true)
+        .where(sql<boolean>`b.tenant_id = ${tenantId}`)
+        .executeTakeFirst();
+
+      if (subBom) {
+        const subLines = await trx
+          .selectFrom('manufacturing_bom_lines')
+          .select(['component_product_id'])
+          .where('bom_id', '=', Number(subBom.id))
+          .execute();
+
+        const subCompIds = subLines.map((l: any) => Number(l.component_product_id)).filter(Boolean);
+        if (subCompIds.length > 0) {
+          const nextVisited = new Set(currentVisited);
+          nextVisited.add(compId);
+          await this.assertNoCircularDependency(trx, targetProductId, subCompIds, tenantId, nextVisited);
+        }
+      }
+    }
+  }
+
   async createBom(payload: CreateBomDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-    if (payload.lines.some((l) => Number(l.componentProductId) === Number(payload.productId))) {
+    const componentIds = payload.lines.map((l) => Number(l.componentProductId));
+    if (componentIds.some((id) => id === Number(payload.productId))) {
       throw new AppError('لا يمكن للمنتج أن يكون مكوناً داخلاً في تصنيع نفسه', 'BOM_SELF_REFERENCE_FORBIDDEN', 400);
     }
     let bomId = 0;
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await this.assertNoCircularDependency(trx, Number(payload.productId), componentIds, scope.tenantId);
+
       const overheadCost = payload.overheadCost || 0;
       const totalExpectedCost = payload.lines.reduce((sum, line) => sum + line.expectedCost * line.quantity, 0) + overheadCost;
 
@@ -104,11 +151,14 @@ export class ManufacturingService {
 
   async updateBom(id: number, payload: CreateBomDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
-    if (payload.lines.some((l) => Number(l.componentProductId) === Number(payload.productId))) {
+    const componentIds = payload.lines.map((l) => Number(l.componentProductId));
+    if (componentIds.some((cid) => cid === Number(payload.productId))) {
       throw new AppError('لا يمكن للمنتج أن يكون مكوناً داخلاً في تصنيع نفسه', 'BOM_SELF_REFERENCE_FORBIDDEN', 400);
     }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await this.assertNoCircularDependency(trx, Number(payload.productId), componentIds, scope.tenantId);
+
       const existingBom = await trx.selectFrom('manufacturing_boms')
         .select(['id'])
         .where('id', '=', id)

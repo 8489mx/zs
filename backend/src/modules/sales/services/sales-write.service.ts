@@ -260,6 +260,82 @@ export class SalesWriteService {
     }
   }
 
+  private async deductPharmacyBatchesFefo(
+    trx: Kysely<Database> | Transaction<Database>,
+    productId: number,
+    requiredQty: number,
+    scope: { tenantId: string; accountId: string },
+    allowNegative: boolean,
+  ): Promise<void> {
+    try {
+      const batches = await trx
+        .selectFrom('pharmacy_batches')
+        .selectAll()
+        .where((eb) =>
+          eb.or([
+            eb('product_id', '=', productId),
+            eb(
+              'drug_id',
+              'in',
+              trx
+                .selectFrom('pharmacy_drugs')
+                .select('id')
+                .where('product_id', '=', productId)
+                .where(sql<boolean>`tenant_id = ${scope.tenantId}`),
+            ),
+          ]),
+        )
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .where('status', '=', 'active')
+        .where('quantity', '>', 0)
+        .orderBy('expiry_date', 'asc')
+        .orderBy('id', 'asc')
+        .forUpdate()
+        .execute();
+
+      if (!batches.length) return;
+
+      let remaining = requiredQty;
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const currentMonthIso = todayIso.slice(0, 7);
+
+      for (const batch of batches) {
+        if (remaining <= 0) break;
+        const exp = String(batch.expiry_date || '').trim();
+        const isExpired = exp && (exp.length === 7 ? exp < currentMonthIso : exp < todayIso);
+        if (isExpired && !allowNegative) {
+          throw new AppError(
+            `لا يمكن بيع الصنف: التشغيلة (${batch.batch_number}) منتهية الصلاحية بتاريخ (${batch.expiry_date})`,
+            'EXPIRED_BATCH_SALE_FORBIDDEN',
+            400,
+          );
+        }
+
+        const batchQty = Number(batch.quantity || 0);
+        const alloc = Math.min(batchQty, remaining);
+        const newQty = Number((batchQty - alloc).toFixed(3));
+        const nextStatus = newQty <= 0 ? 'depleted' : 'active';
+
+        await trx
+          .updateTable('pharmacy_batches')
+          .set({
+            quantity: newQty,
+            status: nextStatus,
+            updated_at: sql`NOW()`,
+          } as any)
+          .where('id', '=', Number(batch.id))
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+
+        remaining = Number((remaining - alloc).toFixed(3));
+      }
+    } catch (err: any) {
+      if (err instanceof AppError) throw err;
+      // If pharmacy tables are not installed or schema mismatch, do not block general retail POS
+      this.logger.warn(`Pharmacy batch deduction skipped for product #${productId}: ${err?.message}`);
+    }
+  }
+
   async authorizeDiscountOverride(secret: string, auth: AuthContext): Promise<Record<string, unknown>> {
     const result = await this.authz.authorizeDiscountOverride(String(secret || '').trim(), auth, this.db);
     return { ok: true, authorized: true, mode: result.mode, authorizedByName: result.authorizedByName };
@@ -451,6 +527,7 @@ export class SalesWriteService {
           priceType: item.priceType,
           offers: activeOffers,
           qty: item.qty,
+          unitMultiplier: item.unitMultiplier,
         });
         this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
 
@@ -798,6 +875,8 @@ export class SalesWriteService {
              allocation_order: allocationOrder++,
           }).execute();
         }
+
+        await this.deductPharmacyBatchesFefo(trx, item.productId, item.requiredQty, scope, allowNegativeStockSales);
 
         if (item.modifiers && Array.isArray(item.modifiers)) {
           for (const mod of item.modifiers) {
@@ -1253,6 +1332,7 @@ export class SalesWriteService {
           priceType: item.priceType,
           offers: activeOffers,
           qty: item.qty,
+          unitMultiplier: item.unitMultiplier,
         });
         this.assertUnitPriceChangeAllowed(auth, Number(item.price || 0), allowedUnitPrice);
         
@@ -1459,6 +1539,8 @@ export class SalesWriteService {
              allocation_order: allocationOrder++,
           }).execute();
         }
+
+        await this.deductPharmacyBatchesFefo(trx, item.productId, item.requiredQty, scope, allowNegativeStockSales);
 
         if (item.modifiers && Array.isArray(item.modifiers)) {
           for (const mod of item.modifiers) {

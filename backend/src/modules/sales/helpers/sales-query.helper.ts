@@ -16,6 +16,7 @@ export function mapSaleRows(
   sales: Array<Record<string, unknown>>,
   items: Array<Record<string, unknown>>,
   payments: Array<Record<string, unknown>>,
+  canViewCostPrice: boolean = false,
 ): SaleRow[] {
   const itemsBySale = new Map<string, Array<Record<string, unknown>>>();
   for (const item of items) {
@@ -38,7 +39,7 @@ export function mapSaleRows(
       total: Number(item.line_total || 0),
       unitName: item.unit_name || 'قطعة',
       unitMultiplier: Number(item.unit_multiplier || 1),
-      cost: Number(item.cost_price || 0),
+      ...(canViewCostPrice ? { cost: Number(item.cost_price || 0) } : {}),
       priceType: item.price_type || 'retail',
       modifiers: itemModifiers,
       serials: typeof item.serials === 'string' ? JSON.parse(item.serials || '[]') : (item.serials || []),

@@ -12,25 +12,25 @@ export class AddonsController {
   constructor(private readonly addonsService: AddonsService) {}
 
   @Get()
-  @RequirePermissions('canManageProducts')
+  @RequirePermissions('products')
   listAddons(@Req() req: RequestWithAuth) {
     return this.addonsService.listAddons(req.authContext!);
   }
 
   @Post()
-  @RequirePermissions('canManageProducts')
+  @RequirePermissions('products')
   createAddon(@Body() payload: UpsertAddonDto, @Req() req: RequestWithAuth) {
     return this.addonsService.createAddon(payload, req.authContext!);
   }
 
   @Put(':id')
-  @RequirePermissions('canManageProducts')
+  @RequirePermissions('products')
   updateAddon(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertAddonDto, @Req() req: RequestWithAuth) {
     return this.addonsService.updateAddon(id, payload, req.authContext!);
   }
 
   @Delete(':id')
-  @RequirePermissions('canManageProducts')
+  @RequirePermissions('products')
   deleteAddon(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.addonsService.deleteAddon(id, req.authContext!);
   }
