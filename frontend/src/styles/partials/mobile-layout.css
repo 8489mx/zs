@@ -727,6 +727,40 @@
 }
 
 @media (max-width: 900px) {
+  /* Universal Page & Container Containment */
+  html, body, #root, .app-root, .app-layout, .main-col, .content-wrap,
+  .page-shell, .page-stack, .document-prototype-shell,
+  .inventory-workspace, .sales-workspace, .returns-workspace, .pricing-center-page {
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .content-wrap {
+    overflow-x: hidden !important;
+  }
+
+  .document-prototype-column {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    gap: 12px !important;
+  }
+
+  .document-prototype-section,
+  .form-section,
+  .card,
+  .panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
   .dashboard-balanced-grid,
   .two-column-layout {
     grid-template-columns: 1fr !important;
@@ -738,21 +772,31 @@
     grid-template-columns: 1fr !important;
   }
 
-  /* Ensure tables scroll smoothly and columns don't clip */
-  .table-wrap {
+  /* Ensure tables scroll smoothly and columns don't stretch the container */
+  .table-wrap,
+  .data-table-wrap,
+  .table-responsive {
     overflow-x: auto !important;
     max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    display: block !important;
     -webkit-overflow-scrolling: touch !important;
     border-radius: 8px !important;
+    box-sizing: border-box !important;
   }
 
-  .table-wrap table {
+  .table-wrap table,
+  .data-table-wrap table {
     min-width: 580px !important;
+    max-width: none !important;
     width: 100% !important;
   }
 
   .table-wrap th,
-  .table-wrap td {
+  .table-wrap td,
+  .data-table-wrap th,
+  .data-table-wrap td {
     padding: 8px 10px !important;
     white-space: nowrap !important;
   }
