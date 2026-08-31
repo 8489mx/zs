@@ -26,7 +26,7 @@ export class TrialSignupMailService {
   }
 
   private buildText(payload: TrialSignupMailPayload): string {
-    const loginUrl = String(process.env.APP_LOGIN_URL || '').trim() || 'https://app.karimzakaria.com/login';
+    const loginUrl = String(process.env.APP_LOGIN_URL || '').trim() || '/login';
     const trialDays = payload.trialDays ?? DEFAULT_TRIAL_DAYS;
 
     return [
@@ -67,7 +67,7 @@ export class TrialSignupMailService {
   }
 
   private buildHtml(payload: TrialSignupMailPayload): string {
-    const loginUrl = String(process.env.APP_LOGIN_URL || '').trim() || 'https://app.karimzakaria.com/login';
+    const loginUrl = String(process.env.APP_LOGIN_URL || '').trim() || '/login';
     const trialDays = payload.trialDays ?? DEFAULT_TRIAL_DAYS;
     const safeBusinessName = escapeHtml(payload.businessName);
     const safeUsername = escapeHtml(payload.username);

@@ -1,4 +1,4 @@
-import { createHashRouter, Navigate, Outlet, RouterProvider, useLocation, useNavigate } from 'react-router-dom';
+import { createBrowserRouter, createHashRouter, Navigate, Outlet, RouterProvider, useLocation, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { createLazyRoute } from '@/app/router/lazy-route';
 import { AppShell } from '@/shared/layout/app-shell';
@@ -14,6 +14,16 @@ import { FirstRunSetupPage } from '@/features/activation/pages/FirstRunSetupPage
 import { SupplierQuickPaymentDialog } from '@/features/accounts/components/SupplierQuickPaymentDialog';
 import { QuickCashAdvanceModal } from '@/features/hr/components/QuickCashAdvanceModal';
 import { QuickOffersModal } from '@/features/products/components/QuickOffersModal';
+
+const isElectron = typeof window !== 'undefined' && (
+  Boolean((window as any).electronAPI) ||
+  Boolean((window as any).process?.versions?.electron) ||
+  window.navigator.userAgent.toLowerCase().includes('electron') ||
+  import.meta.env.MODE === 'electron' ||
+  import.meta.env.MODE === 'portable'
+);
+
+const createRouter = isElectron ? createHashRouter : createBrowserRouter;
 
 function NoWorkspaceAccess() {
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -104,7 +114,7 @@ function LoginRoute() {
   return createLazyRoute(() => import('@/features/auth/pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 }
 
-const router = createHashRouter([
+const router = createRouter([
   { path: '/activate', element: <AppGateGuard expected="activation"><ActivationPage /></AppGateGuard> },
   { path: '/setup', element: <AppGateGuard expected="setup"><FirstRunSetupPage /></AppGateGuard> },
   {

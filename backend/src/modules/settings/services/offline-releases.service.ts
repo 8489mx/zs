@@ -108,7 +108,7 @@ export class OfflineReleasesService implements OnModuleInit {
 
       const isLatest = m.version === latestVersion;
       const passcode = m.passcode || generateReleasePasscode(m.version);
-      const patchUrl = m.patchUrl || `https://api.karimzakaria.com/downloads/updates/Z-ERP-Patch-v${m.version}.zip`;
+      const patchUrl = m.patchUrl || `/downloads/updates/Z-ERP-Patch-v${m.version}.zip`;
 
       if (!existing) {
         if (isLatest) {
