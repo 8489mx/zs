@@ -54,7 +54,7 @@ export function PricingCenterPage() {
           title="مركز التسعير الجماعي"
           badge={<span className="nav-pill">تعديل الأسعار</span>}
           actions={(
-            <div className="actions compact-actions">
+            <div className="actions compact-actions pricing-center-header-actions">
               <Button variant="secondary" onClick={resetPricingCenter}>إعادة الضبط</Button>
               <Button onClick={runPreview} disabled={previewMutation.isPending}>
                 {previewMutation.isPending ? 'جاري المعاينة...' : 'معاينة الأثر'}
@@ -67,24 +67,14 @@ export function PricingCenterPage() {
         />
 
         {/* Top 4 Clean KPI Metric Bar */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px' }}>
+        <div className="pricing-center-stats-grid">
           {stats.map((stat) => (
             <div
               key={stat.label}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                minHeight: '40px',
-                boxSizing: 'border-box',
-              }}
+              className="pricing-center-stat-card"
             >
-              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>{stat.label}</span>
-              <strong style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{stat.value}</strong>
+              <span className="pricing-center-stat-label">{stat.label}</span>
+              <strong className="pricing-center-stat-val">{stat.value}</strong>
             </div>
           ))}
         </div>
@@ -118,7 +108,7 @@ export function PricingCenterPage() {
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
                     ١. نطاق الأصناف المستهدفة
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '8px' }}>
+                  <div className="pricing-center-scope-grid">
                     <Field label="المورد">
                       <CustomSelect
                         value={payload.filters.supplierId || ''}
@@ -278,7 +268,7 @@ export function PricingCenterPage() {
                   <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
                     ٣. قواعد الاستثناء والتوسيع
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px 16px' }}>
+                  <div className="pricing-center-rules-grid">
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600, color: '#1e293b' }}>
                       <input
                         type="checkbox"
