@@ -1874,15 +1874,21 @@
   }
 
   .page-header-title {
-    font-size: 13.5px !important;
+    font-size: 14.5px !important;
     font-weight: 800 !important;
     white-space: nowrap !important;
     margin: 0 !important;
     line-height: 1.2 !important;
   }
 
-  .page-header-badge {
-    flex-shrink: 0 !important;
+  /* Hide descriptions, explanatory notes, and subtitle badges in mobile headers */
+  .page-header-description,
+  .page-header-badge .nav-pill,
+  .page-header .nav-pill,
+  .page-header .section-description,
+  .document-prototype-description,
+  .page-header-badge:not(.pos-page-header .page-header-badge) {
+    display: none !important;
   }
 
   .page-header-actions,
