@@ -1855,18 +1855,36 @@
    (Inventory, Customers, Suppliers, Purchases, Products, Returns)
    ========================================================================== */
 @media (max-width: 768px) {
-  /* 1. Global Page Header Actions (Super Compact & Full-Width Single horizontal smooth strip) */
+  /* 1. Global Page Header: Title on Right, Compact Actions on Left in ONE Single Clean Row */
   .page-header-row {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 6px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-height: 36px !important;
   }
 
   .page-header-copy {
-    width: 100% !important;
     display: flex !important;
-    justify-content: space-between !important;
     align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    max-width: 55% !important;
+  }
+
+  .page-header-title {
+    font-size: 13.5px !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  .page-header-badge {
+    flex-shrink: 0 !important;
   }
 
   .page-header-actions,
@@ -1878,6 +1896,9 @@
   .purchase-prototype-header-actions,
   .sales-action-strip {
     display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     scrollbar-width: none !important;
@@ -1885,7 +1906,8 @@
     -webkit-overflow-scrolling: touch !important;
     gap: 4px !important;
     padding: 2px 0 !important;
-    width: 100% !important;
+    flex: 1 1 auto !important;
+    max-width: 55% !important;
     box-sizing: border-box !important;
   }
 
@@ -1912,11 +1934,34 @@
     white-space: nowrap !important;
     font-size: 11px !important;
     font-weight: 700 !important;
-    padding: 4px 8px !important;
+    padding: 3px 8px !important;
     min-height: 28px !important;
     height: 28px !important;
     border-radius: 6px !important;
     line-height: 1 !important;
+  }
+
+  /* POS Mode Toggle: Ultra-compact side-by-side in header */
+  .pos-mode-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    background: #f1f5f9 !important;
+    padding: 2px !important;
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    gap: 2px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .pos-mode-toggle button,
+  .pos-mode-toggle .btn {
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    min-height: 24px !important;
+    height: 24px !important;
+    border-radius: 5px !important;
+    border: none !important;
   }
 
   /* 2. Inventory Page: Section Tabs (نظرة عامة، أذونات، الجرد، التالف، الحركات) */
