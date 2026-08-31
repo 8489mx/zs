@@ -47,7 +47,6 @@ export class PurchasesQueryService {
       .selectFrom('purchase_attachments')
       .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
       .where('purchase_id', 'in', purchaseIds)
-      .where(this.tenantPredicate(auth))
       .orderBy('purchase_id', 'asc')
       .orderBy('id', 'asc')
       .execute() : [];
@@ -127,7 +126,6 @@ export class PurchasesQueryService {
             .selectFrom('purchase_attachments')
             .select(['id', 'purchase_id', 'file_name', 'file_url', 'file_type', 'file_size'])
             .where('purchase_id', 'in', pagedIds)
-            .where(this.tenantPredicate(auth))
             .orderBy('purchase_id', 'asc')
             .orderBy('id', 'asc')
             .execute(),

@@ -304,20 +304,65 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
     }
     const total = toMoney(params.totals.total);
     params.setPaymentType('cash');
-    params.setTransferAmount(0);
-    if (preset === 'card') {
-      params.setPaymentChannel('card');
-      params.setCashAmount(0);
-      params.setCardAmount(total);
-    } else if (preset === 'wallet' || preset === 'instapay') {
+
+    const currentCash = toMoney(params.cashAmount);
+    const currentCard = toMoney(params.cardAmount);
+    const currentTransfer = toMoney(params.transferAmount);
+    const isCurrentTransfer = params.paymentChannel === 'wallet' || params.paymentChannel === 'instapay';
+
+    if (preset === 'wallet' || preset === 'instapay') {
       params.setPaymentChannel(preset);
-      params.setCashAmount(0);
-      params.setCardAmount(0);
-      params.setTransferAmount(total);
+      if (isCurrentTransfer) {
+        // Switching between electronic sub-channels (Wallet <-> InstaPay):
+        // Keep cash and transfer distributions untouched!
+        if (currentTransfer === 0 && currentCash === 0 && currentCard === 0) {
+          params.setTransferAmount(total);
+        }
+      } else if (currentCash > 0 && currentCash < total && currentCard === 0) {
+        // Cashier entered a cash split first: keep cash and assign remainder to transfer
+        params.setTransferAmount(toMoney(Math.max(0, total - currentCash)));
+        params.setCardAmount(0);
+      } else if (currentTransfer > 0) {
+        // Keep existing transfer and cash
+        params.setCardAmount(0);
+      } else {
+        // Full single payment
+        params.setCashAmount(0);
+        params.setCardAmount(0);
+        params.setTransferAmount(total);
+      }
+    } else if (preset === 'card') {
+      params.setPaymentChannel('card');
+      if (currentCash > 0 && currentCash < total && currentTransfer === 0) {
+        // Keep cash and assign remainder to card
+        params.setCardAmount(toMoney(Math.max(0, total - currentCash)));
+        params.setTransferAmount(0);
+      } else if (currentCard > 0) {
+        // Keep existing card
+        params.setTransferAmount(0);
+      } else {
+        // Full single payment
+        params.setCashAmount(0);
+        params.setCardAmount(total);
+        params.setTransferAmount(0);
+      }
     } else {
+      // Preset is 'cash'
       params.setPaymentChannel('cash');
-      params.setCashAmount(total);
-      params.setCardAmount(0);
+      if (currentTransfer > 0 && currentTransfer < total && currentCard === 0) {
+        // Keep transfer and fill remainder in cash
+        params.setCashAmount(toMoney(Math.max(0, total - currentTransfer)));
+        params.setCardAmount(0);
+      } else if (currentCard > 0 && currentCard < total && currentTransfer === 0) {
+        // Keep card and fill remainder in cash
+        params.setCashAmount(toMoney(Math.max(0, total - currentCard)));
+        params.setTransferAmount(0);
+      } else {
+        // Full single payment
+        params.setCashAmount(total);
+        params.setCardAmount(0);
+        params.setTransferAmount(0);
+      }
     }
     params.requestBarcodeFocus();
   }

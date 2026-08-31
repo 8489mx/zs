@@ -318,4 +318,66 @@ describe('createPosWorkspaceBaseActions', () => {
       expect(updatedCart2.length).toBe(0);
     });
   });
+
+  describe('setPaymentPreset', () => {
+    it('preserves cash and transfer distribution when switching between wallet and instapay', () => {
+      const setPaymentChannel = vi.fn();
+      const setCashAmount = vi.fn();
+      const setTransferAmount = vi.fn();
+      const actions = createPosWorkspaceBaseActions(makeParams({
+        totals: { discountValue: 0, deliveryFee: 0, taxRate: 0, pricesIncludeTax: false, total: 200 },
+        paymentChannel: 'instapay',
+        cashAmount: 100,
+        transferAmount: 50,
+        setPaymentChannel,
+        setCashAmount,
+        setTransferAmount,
+      }));
+
+      actions.setPaymentPreset('wallet');
+
+      expect(setPaymentChannel).toHaveBeenCalledWith('wallet');
+      expect(setCashAmount).not.toHaveBeenCalled();
+      expect(setTransferAmount).not.toHaveBeenCalled();
+    });
+
+    it('sets full transfer amount for a fresh single-channel payment', () => {
+      const setPaymentChannel = vi.fn();
+      const setCashAmount = vi.fn();
+      const setTransferAmount = vi.fn();
+      const actions = createPosWorkspaceBaseActions(makeParams({
+        totals: { discountValue: 0, deliveryFee: 0, taxRate: 0, pricesIncludeTax: false, total: 200 },
+        paymentChannel: 'cash',
+        cashAmount: 0,
+        transferAmount: 0,
+        setPaymentChannel,
+        setCashAmount,
+        setTransferAmount,
+      }));
+
+      actions.setPaymentPreset('instapay');
+
+      expect(setPaymentChannel).toHaveBeenCalledWith('instapay');
+      expect(setCashAmount).toHaveBeenCalledWith(0);
+      expect(setTransferAmount).toHaveBeenCalledWith(200);
+    });
+
+    it('preserves existing cash split and auto-fills remaining balance into transfer', () => {
+      const setPaymentChannel = vi.fn();
+      const setTransferAmount = vi.fn();
+      const actions = createPosWorkspaceBaseActions(makeParams({
+        totals: { discountValue: 0, deliveryFee: 0, taxRate: 0, pricesIncludeTax: false, total: 200 },
+        paymentChannel: 'cash',
+        cashAmount: 120,
+        transferAmount: 0,
+        setPaymentChannel,
+        setTransferAmount,
+      }));
+
+      actions.setPaymentPreset('wallet');
+
+      expect(setPaymentChannel).toHaveBeenCalledWith('wallet');
+      expect(setTransferAmount).toHaveBeenCalledWith(80);
+    });
+  });
 });
