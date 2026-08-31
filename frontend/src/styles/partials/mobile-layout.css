@@ -1855,13 +1855,27 @@
    (Inventory, Customers, Suppliers, Purchases, Products, Returns)
    ========================================================================== */
 @media (max-width: 768px) {
-  /* 1. Global Page Header Actions (Single horizontal smooth scrollable strip) */
+  /* 1. Global Page Header Actions (Super Compact & Full-Width Single horizontal smooth strip) */
+  .page-header-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+  }
+
+  .page-header-copy {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
   .page-header-actions,
   .page-header-actions .actions,
   .compact-actions,
   .page-header .actions,
   .page-header--dense .actions,
   .pos-header-actions-row,
+  .purchase-prototype-header-actions,
   .sales-action-strip {
     display: flex !important;
     flex-wrap: nowrap !important;
@@ -1869,29 +1883,40 @@
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
     -webkit-overflow-scrolling: touch !important;
-    gap: 6px !important;
-    padding-bottom: 2px !important;
+    gap: 4px !important;
+    padding: 2px 0 !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
+  .page-header-actions::-webkit-scrollbar,
   .page-header-actions .actions::-webkit-scrollbar,
   .compact-actions::-webkit-scrollbar,
   .page-header .actions::-webkit-scrollbar,
-  .sales-action-strip::-webkit-scrollbar {
+  .sales-action-strip::-webkit-scrollbar,
+  .purchase-prototype-header-actions::-webkit-scrollbar {
     display: none !important;
   }
 
+  .page-header-actions .btn,
+  .page-header-actions button,
   .page-header-actions .actions .btn,
   .page-header-actions .actions button,
   .compact-actions .btn,
   .compact-actions button,
-  .page-header .actions .btn {
+  .page-header .actions .btn,
+  .page-header .actions button,
+  .purchase-prototype-header-actions .btn,
+  .purchase-prototype-header-actions button {
     flex-shrink: 0 !important;
     white-space: nowrap !important;
-    font-size: 12px !important;
-    padding: 6px 12px !important;
-    border-radius: 8px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 4px 8px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    border-radius: 6px !important;
+    line-height: 1 !important;
   }
 
   /* 2. Inventory Page: Section Tabs (نظرة عامة، أذونات، الجرد، التالف، الحركات) */
