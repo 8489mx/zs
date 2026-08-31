@@ -1940,47 +1940,78 @@
     line-height: 1 !important;
   }
 
-  /* Specific Override: POS Single-Row Header with Mode Toggle on the Left */
+  /* Specific Override: POS Single-Row Header with Mode Toggle & Shift Button on the Left */
   .pos-page-header .page-header-row {
     flex-direction: row !important;
     justify-content: space-between !important;
     align-items: center !important;
     width: 100% !important;
-    min-height: 34px !important;
+    min-height: 36px !important;
   }
 
   .pos-page-header .page-header-copy {
     width: auto !important;
+    flex-shrink: 0 !important;
     max-width: 50% !important;
+  }
+
+  /* Hide desktop keyboard shortcut buttons from POS mobile header */
+  .pos-page-header .pos-header-actions-row > button:not(.pos-mode-toggle button),
+  .pos-page-header .pos-header-actions-row > .pos-header-branch-info {
+    display: none !important;
   }
 
   .pos-page-header .page-header-actions,
   .pos-page-header .pos-header-actions-row {
-    width: auto !important;
-    max-width: 50% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
     justify-content: flex-end !important;
+    width: auto !important;
+    max-width: 55% !important;
+    gap: 6px !important;
+    overflow: visible !important;
   }
 
   .pos-mode-toggle {
     display: inline-flex !important;
     align-items: center !important;
-    background: #f1f5f9 !important;
+    background: #e2e8f0 !important;
     padding: 2px !important;
     border-radius: 8px !important;
     border: 1px solid #cbd5e1 !important;
-    gap: 2px !important;
+    gap: 3px !important;
     flex-shrink: 0 !important;
   }
 
   .pos-mode-toggle button,
   .pos-mode-toggle .btn {
+    padding: 4px 10px !important;
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    min-height: 26px !important;
+    height: 26px !important;
+    border-radius: 6px !important;
+    border: none !important;
+    flex: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .pos-page-header .pos-header-actions-row a {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+  }
+
+  .pos-page-header .pos-header-actions-row a .btn,
+  .pos-page-header .pos-header-actions-row a button {
     padding: 3px 8px !important;
     font-size: 11px !important;
     font-weight: 700 !important;
-    min-height: 24px !important;
-    height: 24px !important;
-    border-radius: 5px !important;
-    border: none !important;
+    min-height: 26px !important;
+    height: 26px !important;
+    border-radius: 6px !important;
     flex: none !important;
   }
 
