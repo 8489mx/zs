@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
 import { SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import { AsyncSearchableCombobox } from '@/shared/ui/async-searchable-combobox';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -163,113 +164,349 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
         </div>
       ) : null}
 
-      <div className="document-line-items-table-wrap">
-        <table className="document-line-items-table">
-          <thead>
-            <tr>
-              <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '35%' }}>{t('item_label')}</th>
-              <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%' }}>القسم</th>
-              <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%' }}>المخزن</th>
-              <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%' }}>{t('quantity')}</th>
-              <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%' }}>{t('price_title')}</th>
-              <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '10%' }}>{t('total_amount')}</th>
-              <th className="purchase-prototype-table-head purchase-prototype-table-head-actions" style={{ width: '5%' }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {props.lines.map((line) => {
-              const rowErrors = props.validationErrors.rows[line.id] ?? {};
-              const amount = (line.qty || 0) * (line.unitPrice || 0);
-              return (
-                <tr
-                  key={line.id}
-                  data-line-id={line.id}
-                  className={[
-                    line.warehouse === 'لا يؤثر على المخزون' ? 'document-line-service' : '',
-                    props.pendingFocusLineId === line.id ? 'document-line-highlight' : ''
-                  ].filter(Boolean).join(' ')}
-                >
-                  <td className="purchase-prototype-table-cell purchase-prototype-table-cell-product">
-                    <AsyncSearchableCombobox
-                      inline
-                      inputId={`product-input-${line.id}`}
-                      className="purchase-prototype-inline-combobox"
-                      inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                      placeholder={t('search_item')}
-                      value={line.itemName}
-                      onChange={(value) => {
-                        props.markDocumentDirty();
-                        props.setLineError(line.id, 'product', undefined);
-                        props.onUpdateLine(line.id, 'itemName', value);
-                      }}
-                      fetchOptions={props.fetchProductOptions}
-                      getLabel={(option) => option.name}
-                      getMeta={(option) => {
-                        const priceLabel = option.price && option.price > 0 ? `${Number.isInteger(option.price) ? option.price.toFixed(0) : option.price.toFixed(2)} EGP` : undefined;
-                        const meta = [option.code, option.barcode, priceLabel].filter(Boolean).join(' · ');
-                        return meta || undefined;
-                      }}
-                      onSelect={(option) => props.onProductSelect(line.id, option)}
-                      onCreate={(query) => props.onOpenQuickCreate('product', query, line.id)}
-                      createLabel={(query) => `+ إنشاء صنف جديد "${query}"`}
-                      minSearchLength={2}
-                      searchOnSingleDigit
-                      showIdleHelper={false}
-                      showDropdownOnEmpty={false}
-                      error={rowErrors.product}
-                      dropdownClassName={props.purchaseDropdownClassName}
-                    />
-                    {props.enableMobileStoreFeatures && line.trackSerials ? (
-                      <div style={{ marginTop: '4px' }}>
-                        <button
-                          type="button"
-                          style={{
-                            fontSize: '0.75rem',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid #c084fc',
-                            background: '#faf5ff',
-                            color: '#7e22ce',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                          onClick={() => {
-                            const currentText = (line.serials || []).join('\n');
-                            const input = window.prompt(
-                              `أدخل أرقام السيريال / IMEI للصنف "${line.itemName}" (رقم في كل سطر أو مفصولة بفواصل):\nالكمية الحالية: ${line.qty}`,
-                              currentText
-                            );
-                            if (input !== null) {
-                              const serials = input
-                                .split(/[\n,]+/)
-                                .map((s) => s.trim())
-                                .filter(Boolean);
-                              props.onUpdateLine(line.id, 'serials', serials);
-                              if (serials.length > 0 && line.qty !== serials.length) {
-                                props.onUpdateLine(line.id, 'qty', serials.length);
+      {/* Desktop Table View */}
+      <div className="purchase-prototype-desktop-table">
+        <div className="document-line-items-table-wrap">
+          <table className="document-line-items-table">
+            <thead>
+              <tr>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-product" style={{ width: '35%' }}>{t('item_label')}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-category" style={{ width: '15%' }}>القسم</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-warehouse" style={{ width: '15%' }}>المخزن</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-qty" style={{ width: '10%' }}>{t('quantity')}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-price" style={{ width: '10%' }}>{t('price_title')}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-amount" style={{ width: '10%' }}>{t('total_amount')}</th>
+                <th className="purchase-prototype-table-head purchase-prototype-table-head-actions" style={{ width: '5%' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {props.lines.map((line) => {
+                const rowErrors = props.validationErrors.rows[line.id] ?? {};
+                const amount = (line.qty || 0) * (line.unitPrice || 0);
+                return (
+                  <tr
+                    key={line.id}
+                    data-line-id={line.id}
+                    className={[
+                      line.warehouse === 'لا يؤثر على المخزون' ? 'document-line-service' : '',
+                      props.pendingFocusLineId === line.id ? 'document-line-highlight' : ''
+                    ].filter(Boolean).join(' ')}
+                  >
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-product">
+                      <AsyncSearchableCombobox
+                        inline
+                        inputId={`product-input-${line.id}`}
+                        className="purchase-prototype-inline-combobox"
+                        inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                        placeholder={t('search_item')}
+                        value={line.itemName}
+                        onChange={(value) => {
+                          props.markDocumentDirty();
+                          props.setLineError(line.id, 'product', undefined);
+                          props.onUpdateLine(line.id, 'itemName', value);
+                        }}
+                        fetchOptions={props.fetchProductOptions}
+                        getLabel={(option) => option.name}
+                        getMeta={(option) => {
+                          const priceLabel = option.price && option.price > 0 ? `${Number.isInteger(option.price) ? option.price.toFixed(0) : option.price.toFixed(2)} EGP` : undefined;
+                          const meta = [option.code, option.barcode, priceLabel].filter(Boolean).join(' · ');
+                          return meta || undefined;
+                        }}
+                        onSelect={(option) => props.onProductSelect(line.id, option)}
+                        onCreate={(query) => props.onOpenQuickCreate('product', query, line.id)}
+                        createLabel={(query) => `+ إنشاء صنف جديد "${query}"`}
+                        minSearchLength={2}
+                        searchOnSingleDigit
+                        showIdleHelper={false}
+                        showDropdownOnEmpty={false}
+                        error={rowErrors.product}
+                        dropdownClassName={props.purchaseDropdownClassName}
+                      />
+                      {props.enableMobileStoreFeatures && line.trackSerials ? (
+                        <div style={{ marginTop: '4px' }}>
+                          <button
+                            type="button"
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              border: '1px solid #c084fc',
+                              background: '#faf5ff',
+                              color: '#7e22ce',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                            onClick={() => {
+                              const currentText = (line.serials || []).join('\n');
+                              const input = window.prompt(
+                                `أدخل أرقام السيريال / IMEI للصنف "${line.itemName}" (رقم في كل سطر أو مفصولة بفواصل):\nالكمية الحالية: ${line.qty}`,
+                                currentText
+                              );
+                              if (input !== null) {
+                                const serials = input
+                                  .split(/[\n,]+/)
+                                  .map((s) => s.trim())
+                                  .filter(Boolean);
+                                props.onUpdateLine(line.id, 'serials', serials);
+                                if (serials.length > 0 && line.qty !== serials.length) {
+                                  props.onUpdateLine(line.id, 'qty', serials.length);
+                                }
                               }
-                            }
+                            }}
+                          >
+                            <SmartphoneIcon size={12} color="#7e22ce" />
+                            <span>{line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : '+ إدخال أرقام السيريال / الـ IMEI'}</span>
+                          </button>
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category">
+                      {line.isService ? (
+                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
+                      ) : (
+                        <SearchableCombobox
+                          inline
+                          className="purchase-prototype-inline-combobox"
+                          inputId={`category-input-${line.id}`}
+                          inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                          placeholder="ابحث عن قسم..."
+                          value={line.category || ''}
+                          onChange={(value) => {
+                            props.markDocumentDirty();
+                            props.setLineError(line.id, 'category', undefined);
+                            props.onUpdateLine(line.id, 'category', value);
                           }}
-                        >
-                          <SmartphoneIcon size={12} color="#7e22ce" />
-                          <span>{line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : '+ إدخال أرقام السيريال / الـ IMEI'}</span>
-                        </button>
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="purchase-prototype-table-cell purchase-prototype-table-cell-category">
+                          options={props.categories}
+                          search={props.searchCategory}
+                          getLabel={(option) => option.name}
+                          getMeta={(option) => option.code}
+                          onSelect={(option) => props.onCategorySelect(line.id, option)}
+                          onCreate={(query) => props.onOpenQuickCreate('category', query, line.id)}
+                          createLabel={(query) => `+ إنشاء قسم جديد "${query}"`}
+                          dropdownClassName={props.purchaseDropdownClassName}
+                        />
+                      )}
+                    </td>
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-warehouse">
+                      {line.isService ? (
+                        <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
+                      ) : (
+                        <SearchableCombobox
+                          inline
+                          className="purchase-prototype-inline-combobox"
+                          inputId={`warehouse-input-${line.id}`}
+                          inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                          placeholder="ابحث عن مخزن..."
+                          value={line.warehouse}
+                          onChange={(value) => {
+                            props.markDocumentDirty();
+                            props.setLineError(line.id, 'warehouse', undefined);
+                            props.onUpdateLine(line.id, 'warehouse', value);
+                          }}
+                          options={props.warehouses}
+                          search={searchWarehouse}
+                          getLabel={(option) => option.name}
+                          getMeta={(option) => option.code}
+                          onSelect={(option) => props.onWarehouseSelect(line.id, option)}
+                          onCreate={(query) => props.onOpenQuickCreate('warehouse', query, line.id)}
+                          createLabel={(query) => `+ إنشاء مستودع جديد "${query}"`}
+                          error={rowErrors.warehouse}
+                          dropdownClassName={props.purchaseDropdownClassName}
+                        />
+                      )}
+                    </td>
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-qty">
+                      <input
+                        className="purchase-prototype-table-input"
+                        id={`quantity-input-${line.id}`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={line.qty}
+                        aria-invalid={Boolean(rowErrors.qty)}
+                        onChange={(event) => {
+                          props.markDocumentDirty();
+                          props.setLineError(line.id, 'qty', undefined);
+                          const parsed = parseLocalizedNumber(event.target.value);
+                          props.onUpdateLine(line.id, 'qty', Number.isFinite(parsed) ? parsed : 0);
+                        }}
+                      />
+                    </td>
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-price">
+                      <input
+                        className="purchase-prototype-table-input"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.unitPrice}
+                        aria-invalid={Boolean(rowErrors.price)}
+                        onChange={(event) => {
+                          props.markDocumentDirty();
+                          props.setLineError(line.id, 'price', undefined);
+                          const parsed = parseLocalizedNumber(event.target.value);
+                          props.onUpdateLine(line.id, 'unitPrice', Number.isFinite(parsed) ? parsed : 0);
+                        }}
+                      />
+                    </td>
+                    <td className="line-total">{formatMoney(amount, props.language)}</td>
+                    <td className="purchase-prototype-table-cell purchase-prototype-table-cell-actions">
+                      <button type="button" className="document-row-delete purchase-prototype-row-delete" onClick={() => props.onRemoveLine(line.id)} disabled={props.lines.length === 1}>
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Mobile Smart Item Cards */}
+      <div className="purchase-prototype-mobile-cards">
+        {props.lines.map((line, index) => {
+          const rowErrors = props.validationErrors.rows[line.id] ?? {};
+          const amount = (line.qty || 0) * (line.unitPrice || 0);
+
+          return (
+            <div key={line.id} className="purchase-prototype-item-card">
+              <div className="item-card-header">
+                <div className="item-card-badge">
+                  <span className="item-card-num">بند #{index + 1}</span>
+                  <span className="item-card-stock-pill stock-ok">
+                    الإجمالي: {formatMoney(amount, props.language)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="item-card-delete-btn"
+                  onClick={() => props.onRemoveLine(line.id)}
+                  disabled={props.lines.length === 1}
+                  title="حذف البند"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="item-card-field">
+                <Field label={t('item_label')} error={rowErrors.product}>
+                  <AsyncSearchableCombobox
+                    inline
+                    inputId={`product-input-mobile-${line.id}`}
+                    className="purchase-prototype-inline-combobox"
+                    inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                    placeholder={t('search_item')}
+                    value={line.itemName}
+                    onChange={(value) => {
+                      props.markDocumentDirty();
+                      props.setLineError(line.id, 'product', undefined);
+                      props.onUpdateLine(line.id, 'itemName', value);
+                    }}
+                    fetchOptions={props.fetchProductOptions}
+                    getLabel={(option) => option.name}
+                    getMeta={(option) => {
+                      const priceLabel = option.price && option.price > 0 ? `${Number.isInteger(option.price) ? option.price.toFixed(0) : option.price.toFixed(2)} EGP` : undefined;
+                      const meta = [option.code, option.barcode, priceLabel].filter(Boolean).join(' · ');
+                      return meta || undefined;
+                    }}
+                    onSelect={(option) => props.onProductSelect(line.id, option)}
+                    onCreate={(query) => props.onOpenQuickCreate('product', query, line.id)}
+                    createLabel={(query) => `+ إنشاء صنف جديد "${query}"`}
+                    minSearchLength={2}
+                    searchOnSingleDigit
+                    showIdleHelper={false}
+                    showDropdownOnEmpty={false}
+                    dropdownClassName={props.purchaseDropdownClassName}
+                  />
+                </Field>
+                {props.enableMobileStoreFeatures && line.trackSerials ? (
+                  <div style={{ marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      style={{
+                        fontSize: '0.75rem',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #c084fc',
+                        background: '#faf5ff',
+                        color: '#7e22ce',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        width: '100%',
+                        justifyContent: 'center'
+                      }}
+                      onClick={() => {
+                        const currentText = (line.serials || []).join('\n');
+                        const input = window.prompt(
+                          `أدخل أرقام السيريال / IMEI للصنف "${line.itemName}" (رقم في كل سطر أو مفصولة بفواصل):\nالكمية الحالية: ${line.qty}`,
+                          currentText
+                        );
+                        if (input !== null) {
+                          const serials = input.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+                          props.onUpdateLine(line.id, 'serials', serials);
+                          if (serials.length > 0 && line.qty !== serials.length) {
+                            props.onUpdateLine(line.id, 'qty', serials.length);
+                          }
+                        }
+                      }}
+                    >
+                      <SmartphoneIcon size={14} color="#7e22ce" />
+                      <span>{line.serials && line.serials.length > 0 ? `سيريالات: (${line.serials.length} أجهزة مسجلة)` : '+ إدخال أرقام السيريال / IMEI'}</span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="item-card-row">
+                <div className="item-card-field">
+                  <Field label="المخزن" error={rowErrors.warehouse}>
                     {line.isService ? (
-                      <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
+                      <input className="purchase-prototype-field-input" value="لا يؤثر على المخزون" disabled readOnly />
                     ) : (
                       <SearchableCombobox
                         inline
                         className="purchase-prototype-inline-combobox"
-                        inputId={`category-input-${line.id}`}
+                        inputId={`warehouse-input-mobile-${line.id}`}
                         inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                        placeholder="ابحث عن قسم..."
+                        placeholder="اختر المخزن..."
+                        value={line.warehouse}
+                        onChange={(value) => {
+                          props.markDocumentDirty();
+                          props.setLineError(line.id, 'warehouse', undefined);
+                          props.onUpdateLine(line.id, 'warehouse', value);
+                        }}
+                        options={props.warehouses}
+                        search={searchWarehouse}
+                        getLabel={(option) => option.name}
+                        getMeta={(option) => option.code}
+                        onSelect={(option) => props.onWarehouseSelect(line.id, option)}
+                        onCreate={(query) => props.onOpenQuickCreate('warehouse', query, line.id)}
+                        createLabel={(query) => `+ إنشاء مستودع جديد "${query}"`}
+                        dropdownClassName={props.purchaseDropdownClassName}
+                      />
+                    )}
+                  </Field>
+                </div>
+
+                <div className="item-card-field">
+                  <Field label="القسم" error={rowErrors.category}>
+                    {line.isService ? (
+                      <input className="purchase-prototype-field-input" value="خدمي" disabled readOnly />
+                    ) : (
+                      <SearchableCombobox
+                        inline
+                        className="purchase-prototype-inline-combobox"
+                        inputId={`category-input-mobile-${line.id}`}
+                        inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
+                        placeholder="اختر القسم..."
                         value={line.category || ''}
                         onChange={(value) => {
                           props.markDocumentDirty();
@@ -286,79 +523,53 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                         dropdownClassName={props.purchaseDropdownClassName}
                       />
                     )}
-                  </td>
-                  <td className="purchase-prototype-table-cell purchase-prototype-table-cell-warehouse">
-                    {line.isService ? (
-                      <input className="purchase-prototype-table-input purchase-prototype-table-input-readonly" value="لا يؤثر على المخزون" disabled readOnly />
-                    ) : (
-                      <SearchableCombobox
-                        inline
-                        className="purchase-prototype-inline-combobox"
-                        inputId={`warehouse-input-${line.id}`}
-                        inputClassName="purchase-prototype-field-input purchase-prototype-combobox-input purchase-prototype-combobox-input-inline"
-                        placeholder="ابحث عن مخزن..."
-                        value={line.warehouse}
-                        onChange={(value) => {
-                          props.markDocumentDirty();
-                          props.setLineError(line.id, 'warehouse', undefined);
-                          props.onUpdateLine(line.id, 'warehouse', value);
-                        }}
-                        options={props.warehouses}
-                        search={searchWarehouse}
-                        getLabel={(option) => option.name}
-                        getMeta={(option) => option.code}
-                        onSelect={(option) => props.onWarehouseSelect(line.id, option)}
-                        onCreate={(query) => props.onOpenQuickCreate('warehouse', query, line.id)}
-                        createLabel={(query) => `+ إنشاء مستودع جديد "${query}"`}
-                        error={rowErrors.warehouse}
-                        dropdownClassName={props.purchaseDropdownClassName}
-                      />
-                    )}
-                  </td>
-                  <td className="purchase-prototype-table-cell purchase-prototype-table-cell-qty">
+                  </Field>
+                </div>
+              </div>
+
+              <div className="item-card-row">
+                <div className="item-card-field">
+                  <Field label={t('quantity')} error={rowErrors.qty}>
                     <input
-                      className="purchase-prototype-table-input"
-                      id={`quantity-input-${line.id}`}
+                      className="purchase-prototype-field-input"
+                      id={`quantity-input-mobile-${line.id}`}
                       type="number"
                       min="0"
                       step="1"
                       value={line.qty}
-                      aria-invalid={Boolean(rowErrors.qty)}
                       onChange={(event) => {
                         props.markDocumentDirty();
                         props.setLineError(line.id, 'qty', undefined);
                         const parsed = parseLocalizedNumber(event.target.value);
                         props.onUpdateLine(line.id, 'qty', Number.isFinite(parsed) ? parsed : 0);
                       }}
+                      style={{ height: '38px', minHeight: '38px', fontSize: '15px', fontWeight: 700, textAlign: 'center', boxSizing: 'border-box' }}
                     />
-                  </td>
-                  <td className="purchase-prototype-table-cell purchase-prototype-table-cell-price">
+                  </Field>
+                </div>
+
+                <div className="item-card-field">
+                  <Field label={t('price_title')} error={rowErrors.price}>
                     <input
-                      className="purchase-prototype-table-input"
+                      className="purchase-prototype-field-input"
                       type="number"
                       min="0"
                       step="0.01"
                       value={line.unitPrice}
-                      aria-invalid={Boolean(rowErrors.price)}
                       onChange={(event) => {
                         props.markDocumentDirty();
                         props.setLineError(line.id, 'price', undefined);
                         const parsed = parseLocalizedNumber(event.target.value);
                         props.onUpdateLine(line.id, 'unitPrice', Number.isFinite(parsed) ? parsed : 0);
                       }}
+                      style={{ height: '38px', minHeight: '38px', fontSize: '15px', fontWeight: 700, textAlign: 'center', boxSizing: 'border-box' }}
                     />
-                  </td>
-                  <td className="line-total">{formatMoney(amount, props.language)}</td>
-                  <td className="purchase-prototype-table-cell purchase-prototype-table-cell-actions">
-                    <button type="button" className="document-row-delete purchase-prototype-row-delete" onClick={() => props.onRemoveLine(line.id)} disabled={props.lines.length === 1}>
-                      ×
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </Field>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="document-line-items-actions">

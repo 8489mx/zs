@@ -104,31 +104,33 @@ function CategorySection({
         </div>
       </div>
 
-      {/* Sub-header */}
+      {/* Sub-header & table rows */}
       {!collapsed && (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: '40px minmax(200px, 2fr) 120px 100px minmax(220px, 3fr) 150px', gap: '12px', padding: '10px 18px', background: '#f8fafc', borderBottom: '1px solid var(--border, #e2e8f0)', alignItems: 'center' }}>
-            <span />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>الصنف</span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>القسم</span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الرصيد الكلي</span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>أماكن التخزين والرصيد</span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'end', paddingInlineEnd: '8px' }}>إجراءات</span>
+        <div className="inventory-tree-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+          <div style={{ minWidth: '760px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '40px minmax(200px, 2fr) 120px 100px minmax(220px, 3fr) 150px', gap: '12px', padding: '10px 18px', background: '#f8fafc', borderBottom: '1px solid var(--border, #e2e8f0)', alignItems: 'center' }}>
+              <span />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>الصنف</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>القسم</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الرصيد الكلي</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'start' }}>أماكن التخزين والرصيد</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'end', paddingInlineEnd: '8px' }}>إجراءات</span>
+            </div>
+            {products.map((product) => (
+              <ProductTreeRow
+                key={product.id}
+                product={product}
+                filterLocationId={filterLocationId}
+                isSelected={selectedIds.has(product.id)}
+                onToggleSelect={onToggleSelect}
+                onTransfer={onTransfer}
+                onAssign={onAssign}
+                onConsolidate={onConsolidate}
+                onRemoveLocation={onRemoveLocation}
+              />
+            ))}
           </div>
-          {products.map((product) => (
-            <ProductTreeRow
-              key={product.id}
-              product={product}
-              filterLocationId={filterLocationId}
-              isSelected={selectedIds.has(product.id)}
-              onToggleSelect={onToggleSelect}
-              onTransfer={onTransfer}
-              onAssign={onAssign}
-              onConsolidate={onConsolidate}
-              onRemoveLocation={onRemoveLocation}
-            />
-          ))}
-        </>
+        </div>
       )}
     </div>
   );

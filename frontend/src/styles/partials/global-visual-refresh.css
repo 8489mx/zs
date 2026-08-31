@@ -612,6 +612,7 @@ th {
   .page-shell > .inventory-spotlight-grid,
   .page-shell > .settings-overview-grid,
   .dashboard-premium-shell > .compact-spotlight-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
   }
 }

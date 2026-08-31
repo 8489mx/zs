@@ -273,7 +273,8 @@
   .audit-page .stats-grid.compact-grid,
   .accounts-workspace .stats-grid.compact-grid,
   .treasury-workspace .stats-grid.compact-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
   }
 }
 

@@ -210,7 +210,7 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
         emptyTitle="لا توجد ورديات نقطة بيع مطابقة حاليًا"
         emptyHint="افتح وردية نقطة بيع جديدة أو وسّع شروط البحث الحالية."
       >
-        <div className="table-wrap table-wrap-sticky" style={{ overflowX: 'hidden' }}>
+        <div className="table-wrap table-wrap-sticky">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>

@@ -642,61 +642,192 @@ export function NewIssueOrderPage() {
         <section className="document-prototype-section">
           <h3 className="document-prototype-section-title">الأصناف</h3>
           <div className="document-prototype-grid">
-            <div className="purchase-prototype-items-table-wrapper" style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-              <table className="purchase-prototype-items-table" style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'right' }}>
-                <thead style={{ backgroundColor: 'var(--surface-color)', borderBottom: '1px solid var(--border-color)' }}>
-                  <tr>
-                    <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500, width: fromLocationId === 'all' ? '30%' : '40%' }}>الصنف (بحث بالاسم أو الباركود)</th>
-                    {fromLocationId === 'all' && (
-                      <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500, width: '20%' }}>مخزن الصرف</th>
-                    )}
-                    <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500, width: '20%' }}>الكمية المتاحة (بالمخزن)</th>
-                    <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontWeight: 500, width: '20%' }}>الكمية المصروفة</th>
-                    <th style={{ padding: '12px 16px', width: '10%' }}></th>
-                  </tr>
-                </thead>
-                <tbody style={{ }}>
-                  {lines.map((line) => {
-                    const product = products.find(p => String(p.id) === line.productId);
-                    let availableStock = '-';
+            {/* Desktop Table View */}
+            <div className="purchase-prototype-desktop-table">
+              <div className="purchase-prototype-items-table-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <table className="purchase-prototype-items-table" style={{ width: '100%', minWidth: '780px', borderCollapse: 'collapse', textAlign: 'right' }}>
+                  <thead style={{ backgroundColor: 'var(--surface-color)', borderBottom: '1px solid var(--border-color)' }}>
+                    <tr>
+                      <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '280px' }}>الصنف (بحث بالاسم أو الباركود)</th>
+                      {fromLocationId === 'all' && (
+                        <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '180px' }}>مخزن الصرف</th>
+                      )}
+                      <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '130px' }}>الكمية المتاحة (بالمخزن)</th>
+                      <th style={{ padding: '10px 14px', color: 'var(--text-secondary)', fontWeight: 600, width: '120px' }}>الكمية المصروفة</th>
+                      <th style={{ padding: '10px 14px', width: '50px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line) => {
+                      const product = products.find(p => String(p.id) === line.productId);
+                      let availableStock = '-';
 
-                    if (product) {
-                      const stocks = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
-                      const locId = fromLocationId === 'all' ? line.fromLocationId : fromLocationId;
+                      if (product) {
+                        const stocks = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
+                        const locId = fromLocationId === 'all' ? line.fromLocationId : fromLocationId;
 
-                      if (locId && locId !== 'all') {
-                        const locStock = stocks.find(s => String(s.productId) === String(line.productId) && String(s.locationId) === String(locId));
-                        if (locStock) {
-                          const remaining = Math.max(0, locStock.qty - (line.qty || 0));
-                          availableStock = String(remaining);
+                        if (locId && locId !== 'all') {
+                          const locStock = stocks.find(s => String(s.productId) === String(line.productId) && String(s.locationId) === String(locId));
+                          if (locStock) {
+                            const remaining = Math.max(0, locStock.qty - (line.qty || 0));
+                            availableStock = String(remaining);
+                          } else {
+                            availableStock = '0';
+                          }
                         } else {
-                          availableStock = '0';
+                          const totalStock = stocks.filter(s => String(s.productId) === String(line.productId)).reduce((acc, s) => acc + s.qty, 0);
+                          availableStock = String(Math.max(0, totalStock - (line.qty || 0)));
                         }
-                      } else {
-                        const totalStock = stocks.filter(s => String(s.productId) === String(line.productId)).reduce((acc, s) => acc + s.qty, 0);
-                        availableStock = String(Math.max(0, totalStock - (line.qty || 0)));
                       }
-                    }
 
-                    return (
-                      <tr key={line.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '8px 16px' }}>
-                          <AsyncSearchableCombobox
-                            inputId={`product-input-${line.id}`}
-                            defaultOptions={productOptions}
-                            value={line.productName || ''}
-                            onChange={(v) => updateLine(line.id, 'productName', v)}
-                            onSelect={(p) => handleSelectProduct(line.id, p)}
-                            getLabel={(p) => p.name}
-                            fetchOptions={fetchProductOptions}
-                            createLabel={(q) => `إضافة "${q}"`}
-                            placeholder="بحث عن صنف..."
-                            inline={true}
-                            inputClassName="purchase-prototype-field-input"
-                          />
-                        </td>
-                        {fromLocationId === 'all' && (
+                      return (
+                        <tr key={line.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                           <td style={{ padding: '8px 16px' }}>
+                            <AsyncSearchableCombobox
+                              inputId={`product-input-${line.id}`}
+                              defaultOptions={productOptions}
+                              value={line.productName || ''}
+                              onChange={(v) => updateLine(line.id, 'productName', v)}
+                              onSelect={(p) => handleSelectProduct(line.id, p)}
+                              getLabel={(p) => p.name}
+                              fetchOptions={fetchProductOptions}
+                              createLabel={(q) => `إضافة "${q}"`}
+                              placeholder="بحث عن صنف..."
+                              inline={true}
+                              inputClassName="purchase-prototype-field-input"
+                            />
+                          </td>
+                          {fromLocationId === 'all' && (
+                            <td style={{ padding: '8px 16px' }}>
+                              <SearchableCombobox
+                                options={locationOptions.filter(l => l.id !== 'all')}
+                                value={line.fromLocationName || ''}
+                                onChange={(v) => updateLine(line.id, 'fromLocationName', v)}
+                                onSelect={(l) => updateLine(line.id, 'fromLocationId', l.id)}
+                                getLabel={(l) => l.name}
+                                search={(l, q) => l.searchTerms.includes(q.toLowerCase())}
+                                createLabel={(q) => `إضافة "${q}"`}
+                                placeholder="اختر المخزن..."
+                                inline={true}
+                                inputClassName="purchase-prototype-field-input"
+                              />
+                            </td>
+                          )}
+                          <td style={{ padding: '8px 16px', color: 'var(--text-secondary)' }}>
+                            {availableStock}
+                          </td>
+                          <td style={{ padding: '8px 16px' }}>
+                            <input
+                              id={`quantity-input-${line.id}`}
+                              type="number"
+                              className="purchase-prototype-field-input"
+                              min="0.001"
+                              step="any"
+                              value={line.qty}
+                              onChange={(e) => updateLine(line.id, 'qty', e.target.value ? Number(e.target.value) : '')}
+                              onFocus={(e) => e.target.select()}
+                              onKeyDown={(e) => handleQtyKeyDown(e, line.id)}
+                              style={{ height: '36px' }}
+                            />
+                          </td>
+                          <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => removeLine(line.id)}
+                              disabled={lines.length === 1 && !line.productId}
+                              style={{
+                                color: 'var(--danger-color)',
+                                background: 'none',
+                                border: 'none',
+                                cursor: (lines.length === 1 && !line.productId) ? 'not-allowed' : 'pointer',
+                                padding: '8px',
+                                opacity: (lines.length === 1 && !line.productId) ? 0.5 : 1
+                              }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Smart Item Cards */}
+            <div className="purchase-prototype-mobile-cards">
+              {lines.map((line, index) => {
+                const product = products.find(p => String(p.id) === line.productId);
+                let availableStock = '-';
+
+                if (product) {
+                  const stocks = Array.isArray(locationStocksQuery.data) ? locationStocksQuery.data : [];
+                  const locId = fromLocationId === 'all' ? line.fromLocationId : fromLocationId;
+
+                  if (locId && locId !== 'all') {
+                    const locStock = stocks.find(s => String(s.productId) === String(line.productId) && String(s.locationId) === String(locId));
+                    if (locStock) {
+                      const remaining = Math.max(0, locStock.qty - (line.qty || 0));
+                      availableStock = String(remaining);
+                    } else {
+                      availableStock = '0';
+                    }
+                  } else {
+                    const totalStock = stocks.filter(s => String(s.productId) === String(line.productId)).reduce((acc, s) => acc + s.qty, 0);
+                    availableStock = String(Math.max(0, totalStock - (line.qty || 0)));
+                  }
+                }
+
+                return (
+                  <div key={line.id} className="purchase-prototype-item-card">
+                    <div className="item-card-header">
+                      <div className="item-card-badge">
+                        <span className="item-card-num">بند #{index + 1}</span>
+                        {line.productId && (
+                          <span className={`item-card-stock-pill ${availableStock === '0' ? 'stock-zero' : 'stock-ok'}`}>
+                            الرصيد المتاح: {availableStock}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="item-card-delete-btn"
+                        onClick={() => removeLine(line.id)}
+                        disabled={lines.length === 1 && !line.productId}
+                        title="حذف البند"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="item-card-field">
+                      <Field label="الصنف (بحث بالاسم أو الباركود)">
+                        <AsyncSearchableCombobox
+                          inputId={`product-input-mobile-${line.id}`}
+                          defaultOptions={productOptions}
+                          value={line.productName || ''}
+                          onChange={(v) => updateLine(line.id, 'productName', v)}
+                          onSelect={(p) => handleSelectProduct(line.id, p)}
+                          getLabel={(p) => p.name}
+                          fetchOptions={fetchProductOptions}
+                          createLabel={(q) => `إضافة "${q}"`}
+                          placeholder="ابحث عن صنف أو امسح باركود..."
+                          inline={true}
+                          inputClassName="purchase-prototype-field-input"
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="item-card-row">
+                      {fromLocationId === 'all' && (
+                        <div className="item-card-field">
+                          <Field label="مخزن الصرف">
                             <SearchableCombobox
                               options={locationOptions.filter(l => l.id !== 'all')}
                               value={line.fromLocationName || ''}
@@ -709,14 +840,14 @@ export function NewIssueOrderPage() {
                               inline={true}
                               inputClassName="purchase-prototype-field-input"
                             />
-                          </td>
-                        )}
-                        <td style={{ padding: '8px 16px', color: 'var(--text-secondary)' }}>
-                          {availableStock}
-                        </td>
-                        <td style={{ padding: '8px 16px' }}>
+                          </Field>
+                        </div>
+                      )}
+
+                      <div className="item-card-field">
+                        <Field label="الكمية المصروفة">
                           <input
-                            id={`quantity-input-${line.id}`}
+                            id={`quantity-input-mobile-${line.id}`}
                             type="number"
                             className="purchase-prototype-field-input"
                             min="0.001"
@@ -725,49 +856,30 @@ export function NewIssueOrderPage() {
                             onChange={(e) => updateLine(line.id, 'qty', e.target.value ? Number(e.target.value) : '')}
                             onFocus={(e) => e.target.select()}
                             onKeyDown={(e) => handleQtyKeyDown(e, line.id)}
-                            style={{ height: '36px' }}
+                            style={{ height: '38px', minHeight: '38px', fontSize: '15px', fontWeight: 700, textAlign: 'center', boxSizing: 'border-box' }}
                           />
-                        </td>
-                        <td style={{ padding: '8px 16px', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => removeLine(line.id)}
-                            disabled={lines.length === 1 && !line.productId}
-                            style={{
-                              color: 'var(--danger-color)',
-                              background: 'none',
-                              border: 'none',
-                              cursor: (lines.length === 1 && !line.productId) ? 'not-allowed' : 'pointer',
-                              padding: '8px',
-                              opacity: (lines.length === 1 && !line.productId) ? 0.5 : 1
-                            }}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <line x1="18" y1="6" x2="6" y2="18"></line>
-                              <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </Field>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <div style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: '12px' }}>
               <button
                 type="button"
+                className="purchase-prototype-add-line-btn"
                 onClick={addLine}
                 style={{
                   color: 'var(--primary-color)',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px'
+                  gap: '6px'
                 }}
               >
                 <span>+</span> إضافة صنف جديد

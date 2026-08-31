@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
 import { PosCartPanel } from '@/features/pos/components/PosCartPanel';
@@ -6,6 +7,7 @@ import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWor
 import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import { useSplitter } from '@/shared/hooks/useSplitter';
 import { useAuthStore } from '@/stores/auth-store';
+import { formatCurrency } from '@/lib/format';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import type { PosPriceType } from '@/features/pos/types/pos.types';
@@ -67,6 +69,7 @@ export function PosWorkspaceMainContent({
   onPriceTypeChange,
 }: PosWorkspaceMainContentProps) {
   const user = useAuthStore((state) => state.user);
+  const [mobileActiveTab, setMobileActiveTab] = useState<'products' | 'cart'>('products');
   const defaultLeft = posMode === 'scanner' ? 75 : 65;
   const { leftRatio, rightRatio, startDrag } = useSplitter(`pos_split_${posMode}_${user?.id || 'default'}`, defaultLeft);
 
@@ -88,10 +91,38 @@ export function PosWorkspaceMainContent({
       errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
     >
       <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <div className="pos-grid-premium" style={gridStyle}>
+        {/* Mobile Tab Switcher */}
+        <div className="pos-mobile-tab-switcher">
+          <button
+            type="button"
+            className={`pos-mobile-tab-btn ${mobileActiveTab === 'products' ? 'is-active' : ''}`}
+            onClick={() => setMobileActiveTab('products')}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8" />
+            </svg>
+            <span>الأصناف ({pos.filteredSaleProducts.length})</span>
+          </button>
+
+          <button
+            type="button"
+            className={`pos-mobile-tab-btn ${mobileActiveTab === 'cart' ? 'is-active' : ''}`}
+            onClick={() => setMobileActiveTab('cart')}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span>السلة ({cartItemsCount})</span>
+            {pos.totals.total > 0 && <span className="pos-mobile-tab-total">{formatCurrency(pos.totals.total)}</span>}
+          </button>
+        </div>
+
+        <div className={`pos-grid-premium ${mobileActiveTab === 'products' ? 'pos-mobile-show-products' : 'pos-mobile-show-cart'}`} style={gridStyle}>
 
           {/* Products column: startup issues banner + products panel stacked */}
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', overflow: 'hidden', flex: 1 }}>
+          <div className={`pos-products-column ${mobileActiveTab === 'products' ? 'is-mobile-active' : 'is-mobile-hidden'}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', overflow: 'hidden', flex: 1 }}>
             <PosWorkspaceStartupIssues pos={pos} onRequestOpenShift={onRequestOpenShift} />
             <PosProductsPanel
             search={pos.search}
@@ -103,14 +134,16 @@ export function PosWorkspaceMainContent({
             recentProducts={pos.recentProducts}
             productFilter={pos.productFilter}
             onProductFilterChange={pos.setProductFilter}
-            onAddProduct={pos.handleAddProduct}
+            onAddProduct={(prod) => {
+              pos.handleAddProduct(prod);
+            }}
             searchInputRef={searchInputRef}
             posMode={posMode}
             onOpenNewProduct={onOpenNewProduct}
           />
           </div>
 
-        <div className="pos-checkout-column">
+        <div className={`pos-checkout-column ${mobileActiveTab === 'cart' ? 'is-mobile-active' : 'is-mobile-hidden'}`}>
           <PosCartPanel
             cart={pos.cart}
             customers={pos.customersQuery.data || []}
@@ -240,6 +273,38 @@ export function PosWorkspaceMainContent({
         >
           <div style={{ width: '4px', height: '40px', background: 'rgba(15, 23, 42, 0.15)', borderRadius: '8px' }} />
         </div>
+
+        {/* Mobile Sticky Floating Cart Bar (visible when on products tab and cart has items) */}
+        {mobileActiveTab === 'products' && cartItemsCount > 0 && (
+          <div className="pos-mobile-floating-cart-bar">
+            <div className="pos-mobile-floating-cart-info" onClick={() => setMobileActiveTab('cart')} role="button" tabIndex={0}>
+              <div className="pos-mobile-floating-cart-badge">{cartItemsCount}</div>
+              <div className="pos-mobile-floating-cart-text">
+                <strong className="pos-mobile-floating-cart-total">{formatCurrency(pos.totals.total)}</strong>
+                <span className="pos-mobile-floating-cart-sub">{cartItemsCount} صنف بالسلة • اضغط للعرض</span>
+              </div>
+            </div>
+            <div className="pos-mobile-floating-cart-actions">
+              <button
+                type="button"
+                className="pos-mobile-floating-checkout-btn"
+                onClick={() => {
+                  if (pos.canOpenCheckout) {
+                    onRequestCheckout();
+                  } else {
+                    setMobileActiveTab('cart');
+                  }
+                }}
+              >
+                <span>الدفع (F10)</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </QueryFeedback>
   );

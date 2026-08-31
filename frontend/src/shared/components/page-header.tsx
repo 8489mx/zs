@@ -63,7 +63,7 @@ export function PageHeader({
           )}
           {description ? <div className="page-header-description text-muted" style={{ fontSize: '0.8rem' }}>{description}</div> : null}
         </div>
-        {actions ? <div className="page-header-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>{actions}</div> : null}
+        {actions ? <div className="page-header-actions" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>{actions}</div> : null}
       </div>
 
       {showNav ? (

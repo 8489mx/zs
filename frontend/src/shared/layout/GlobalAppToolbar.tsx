@@ -65,7 +65,21 @@ export function GlobalAppToolbar() {
               <span>تحديث متوفر: v{updateInfo.latestVersion}</span>
             </button>
           )}
-          <div className="purchase-prototype-search-container" role="search">
+          {/* Mobile compact search button */}
+          <button
+            type="button"
+            className="mobile-search-icon-btn"
+            onClick={() => setGlobalSearchOpen(true)}
+            aria-label="بحث سريع"
+            title="بحث شامل"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+
+          <div className="purchase-prototype-search-container desktop-only-toolbar-item" role="search">
             <button className="purchase-prototype-search" onClick={() => setGlobalSearchOpen(true)} aria-label="بحث شامل">
               <span aria-hidden="true">⌕</span>
               <span style={{ flex: 1, textAlign: 'right', color: 'var(--text-muted)' }}>ابحث في أي مكان...</span>
@@ -76,17 +90,20 @@ export function GlobalAppToolbar() {
           </div>
           <button 
             type="button"
-            style={{ width: 40, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--surface-sunken)', border: '1px solid var(--border-color)', borderRadius: 8, cursor: 'pointer', flexShrink: 0 }}
+            className="desktop-only-toolbar-item"
+            style={{ width: 36, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--surface-sunken)', border: '1px solid var(--border-color)', borderRadius: 8, cursor: 'pointer', flexShrink: 0 }}
             title="تحديث البيانات (Refresh)"
             onClick={() => window.location.reload()}
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="23 4 23 10 17 10"></polyline>
               <polyline points="1 20 1 14 7 14"></polyline>
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
             </svg>
           </button>
-          <FullScreenToggleButton />
+          <div className="desktop-only-toolbar-item">
+            <FullScreenToggleButton />
+          </div>
           <ManagerNotificationsBell />
           <AppAccountMenu />
         </div>

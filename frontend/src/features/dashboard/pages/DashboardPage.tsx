@@ -72,7 +72,7 @@ export function DashboardPage() {
         />
 
         {/* 2. الهيكل الثنائي المتوازن للداشبورد */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.55fr) minmax(0, 1fr)', gap: '16px', alignItems: 'start', marginBottom: '16px' }}>
+        <div className="dashboard-balanced-grid">
           
           {/* العمود الرئيسي (الأيمن) */}
           <div className="page-stack" style={{ gap: '16px' }}>

@@ -176,7 +176,7 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.65rem' }}>
+        <div className="purchase-prototype-form-grid">
           {/* Row 1: المورد - التليفون - طريقة الدفع */}
           <SearchableCombobox
             label={t('supplier')}

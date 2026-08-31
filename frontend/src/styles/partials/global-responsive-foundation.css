@@ -197,20 +197,72 @@ body,
 
   :where(.card):not(.pos-workspace *, .pos-sale-success-modal-shell, .dialog-shell) {
     padding: 12px;
+    border-radius: 10px;
+  }
+
+  :where(.panel-grid, .three-column-grid, .two-column-grid, .form-grid, .inline-create-grid, .grid.two-columns, .grid.three-columns):not(.pos-workspace *) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :where(.stats-grid, .compact-grid, .workspace-stats-grid):not(.pos-workspace *) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  :where(.btn, .button, button):not(.pos-workspace *, .pos-sale-success-modal-shell *, .pos-cart-qty-btn, .mobile-bottom-nav-item, .filter-chip-row *, .compact-actions *) {
+    min-height: 36px;
+    padding-inline: 12px;
+    font-size: 13px;
     border-radius: 8px;
   }
 
-  :where(.stats-grid, .compact-grid, .panel-grid, .three-column-grid, .two-column-grid, .form-grid, .inline-create-grid):not(.pos-workspace *) {
-    grid-template-columns: 1fr;
+  :where(.compact-actions, .actions, .page-header-actions):not(.pos-workspace *) {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
   }
 
-  :where(.btn, .button, button):not(.pos-workspace *, .pos-sale-success-modal-shell *) {
-    min-height: 34px;
-    padding-inline: 10px;
+  :where(.compact-actions .btn, .page-header-actions .btn):not(.pos-workspace *) {
+    min-height: 32px;
+    height: 32px;
+    padding: 4px 10px;
     font-size: 12px;
+    width: auto;
+  }
+
+  :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.pos-workspace *, .pos-cart-col-qty input) {
+    min-height: 38px;
+    font-size: 13.5px;
+    border-radius: 8px;
+  }
+
+  :where(.table-wrap):not(.pos-workspace *) {
+    border-radius: 8px;
+    -webkit-overflow-scrolling: touch;
   }
 
   :where(.table-wrap th, .table-wrap td):not(.pos-workspace *) {
     padding: 8px 10px;
+    font-size: 12.5px;
+  }
+}
+
+@media (max-width: 640px) {
+  :where(.dialog-shell) {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    border-radius: 14px !important;
+    margin: 8px auto !important;
+  }
+
+  :where(.dialog-card) {
+    padding: 16px 14px !important;
+  }
+
+  :where(.page-header-row):not(.pos-workspace *) {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 }

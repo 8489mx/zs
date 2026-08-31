@@ -17,7 +17,7 @@ export default function DeliveryRepsPage() {
         description="إدارة مناديب التوصيل، متابعة طلباتهم وتسوية الحسابات وتقييم الأداء." 
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr)', gap: '24px', alignItems: 'start' }}>
+      <div className="two-column-layout">
         <FormSection title="قائمة المناديب">
           <div style={{ overflow: 'hidden', margin: '-16px' }}>
             <DeliveryRepsList 

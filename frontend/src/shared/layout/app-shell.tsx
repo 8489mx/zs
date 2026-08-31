@@ -26,6 +26,7 @@ import {
 } from '@/features/pos/lib/pos-shell';
 import { QuickAttendanceShortcut } from '@/shared/layout/quick-attendance-shortcut';
 import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
+import { MobileBottomNav } from '@/shared/layout/MobileBottomNav';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -222,6 +223,21 @@ export function AppShell({ children }: PropsWithChildren) {
     if (typeof window !== 'undefined') return window.localStorage.getItem('zsystems_sidebar_collapsed') === 'true';
     return false;
   });
+
+  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+    if (typeof window !== 'undefined') return window.innerWidth <= 900;
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 900);
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const effectiveSidebarCollapsed = isMobileScreen ? false : isSidebarCollapsed;
   
   const { isMobileSidebarOpen, setMobileSidebarOpen } = useToolbarStore();
 
@@ -492,7 +508,7 @@ export function AppShell({ children }: PropsWithChildren) {
           group,
           groupItems,
           isActive: activeSidebarGroupKey === group.key,
-          isOpen: !isSidebarCollapsed,
+          isOpen: !effectiveSidebarCollapsed,
         };
       }
 
@@ -510,7 +526,7 @@ export function AppShell({ children }: PropsWithChildren) {
         isOpen: true,
       };
     }).filter((g): g is NonNullable<typeof g> => Boolean(g));
-  }, [activeSidebarGroupKey, isSearchingSidebar, isSidebarCollapsed, navigationMap, normalizedSidebarQuery, sidebarGroups]);
+  }, [activeSidebarGroupKey, isSearchingSidebar, effectiveSidebarCollapsed, navigationMap, normalizedSidebarQuery, sidebarGroups]);
 
   const totalMatchingItemsCount = filteredPrimaryNavigationItems.length + filteredSidebarGroups.reduce((acc, g) => acc + g.groupItems.length, 0);
 
@@ -678,7 +694,7 @@ export function AppShell({ children }: PropsWithChildren) {
         to={item.to} 
         end={item.end} 
         data-key={item.key} 
-        data-tooltip={isSidebarCollapsed ? item.label : undefined}
+        data-tooltip={effectiveSidebarCollapsed ? item.label : undefined}
         style={toneStyle} 
         onMouseEnter={() => prefetchRouteData(item.to)}
         onTouchStart={() => prefetchRouteData(item.to)}
@@ -708,7 +724,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }
 
   return (
-    <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
+    <div className={`app-layout ${effectiveSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
       {!isPosRoute || !isPosChromeHidden ? (
         <>
           <aside ref={sidebarRef} className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
@@ -757,8 +773,8 @@ export function AppShell({ children }: PropsWithChildren) {
               <button 
                 type="button" 
                 className="sidebar-search-icon-btn" 
-                data-tooltip={isSidebarCollapsed ? "البحث السريع (Ctrl + K)" : undefined}
-                title={isSidebarSearchOpen ? 'بحث' : (isSidebarCollapsed ? undefined : 'بحث سريع في القوائم والتابات')}
+                data-tooltip={effectiveSidebarCollapsed ? "البحث السريع (Ctrl + K)" : undefined}
+                title={isSidebarSearchOpen ? 'بحث' : (effectiveSidebarCollapsed ? undefined : 'بحث سريع في القوائم والتابات')}
                 onClick={(e) => {
                   if (!isSidebarSearchOpen) {
                     e.stopPropagation();
@@ -766,10 +782,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   }
                 }}
               >
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
+                <SearchIcon size={16} color="#2563eb" strokeWidth={2.4} />
               </button>
               {isSidebarSearchOpen ? (
                 <>
@@ -804,7 +817,13 @@ export function AppShell({ children }: PropsWithChildren) {
                     ✕
                   </button>
                 </>
-              ) : null}
+              ) : (
+                !effectiveSidebarCollapsed && (
+                  <span className="sidebar-search-placeholder-text">
+                    بحث سريع في القوائم...
+                  </span>
+                )
+              )}
             </div>
           </div>
 
@@ -819,12 +838,12 @@ export function AppShell({ children }: PropsWithChildren) {
                   <div 
                     className="sidebar-group-trigger" 
                     style={toneStyle}
-                    data-tooltip={isSidebarCollapsed ? group.label : undefined}
+                    data-tooltip={effectiveSidebarCollapsed ? group.label : undefined}
                     onClick={() => {
-                      if (isSidebarCollapsed) toggleSidebar();
+                      if (effectiveSidebarCollapsed) toggleSidebar();
                     }}
-                    role={isSidebarCollapsed ? 'button' : undefined}
-                    tabIndex={isSidebarCollapsed ? 0 : undefined}
+                    role={effectiveSidebarCollapsed ? 'button' : undefined}
+                    tabIndex={effectiveSidebarCollapsed ? 0 : undefined}
                   >
                     <span className="sidebar-group-icon" aria-hidden="true"><AppNavIcon itemKey={groupIconItemKey} /></span>
                     <span className="sidebar-label">{group.label}</span>
@@ -851,19 +870,21 @@ export function AppShell({ children }: PropsWithChildren) {
               </div>
             </div>
             <div className="sidebar-footer-actions">
-              <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" data-tooltip={isSidebarCollapsed ? t("sidebar.logout") : undefined}>
+              <Button variant="danger" onClick={handleLogout} className="sidebar-logout-btn" data-tooltip={effectiveSidebarCollapsed ? t("sidebar.logout") : undefined}>
                 <span className="btn-label">{t("sidebar.logout")}</span>
                 <span className="btn-icon">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 </span>
               </Button>
-              <button type="button" onClick={toggleSidebar} className="sidebar-toggle-btn" data-tooltip={isSidebarCollapsed ? t("sidebar.expand_menu") : undefined}>
-                {isSidebarCollapsed ? (
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                )}
-              </button>
+              {!isMobileScreen && (
+                <button type="button" onClick={toggleSidebar} className="sidebar-toggle-btn" data-tooltip={effectiveSidebarCollapsed ? t("sidebar.expand_menu") : undefined}>
+                  {effectiveSidebarCollapsed ? (
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </aside>
@@ -886,6 +907,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>
       </div>
+      {!isPosChromeHidden && <MobileBottomNav />}
       <AppCloseGuard />
       <PasswordRotationGate />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />

@@ -133,6 +133,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
           </button>
           <input
             type="number"
+            inputMode="decimal"
             aria-label="الكمية"
             dir="ltr"
             style={{

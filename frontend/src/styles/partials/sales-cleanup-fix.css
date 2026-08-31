@@ -97,18 +97,44 @@
   margin-top: 12px !important;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 900px) {
   .sales-workspace .sales-register-card .toolbar-grid {
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .sales-workspace .sales-register-card .toolbar-grid > div:first-child {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .sales-workspace .sales-register-card .toolbar-extra {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .sales-workspace .sales-register-card .sales-register-toolbar-filters {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .sales-workspace .sales-register-card .sales-toolbar-filter-field {
+    min-width: 0 !important;
+    width: 100% !important;
   }
 
   .sales-workspace .sales-register-card .toolbar-grid > .field > span,
   .sales-workspace .sales-register-card .toolbar-grid > .field > label {
     display: block !important;
-  }
-
-  .sales-workspace .sales-register-card .toolbar-chip-row {
-    flex-wrap: wrap !important;
   }
 
   .sales-workspace .sales-quick-customer-inline-grid {

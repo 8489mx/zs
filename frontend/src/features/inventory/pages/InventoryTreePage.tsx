@@ -229,18 +229,18 @@ export function InventoryTreePage() {
         />
 
       {/* Stats */}
-      <StatsGrid items={statsItems} className="stats-grid compact-grid" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }} />
+      <StatsGrid items={statsItems} className="stats-grid compact-grid inventory-tree-stats-grid" />
 
       {/* Filters Toolbar */}
-      <div style={{
+      <div className="inventory-tree-toolbar" style={{
         background: '#ffffff',
         border: '1px solid var(--border, #e2e8f0)',
         borderRadius: '12px',
-        padding: '14px 18px',
+        padding: '12px 14px',
         marginBottom: '16px',
         display: 'flex',
         flexWrap: 'wrap',
-        gap: '12px',
+        gap: '10px',
         alignItems: 'center',
         boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)',
       }}>
