@@ -180,113 +180,57 @@ export function DashboardDailyDecisionGrid({
       }
       className="dashboard-premium-card"
     >
-      {/* Apple-style Segmented Tabs */}
-      <div
-        style={{
-          background: '#f1f5f9',
-          padding: '4px',
-          borderRadius: '10px',
-          display: 'inline-flex',
-          gap: '4px',
-          flexWrap: 'nowrap',
-          overflowX: 'auto',
-          maxWidth: '100%',
-          marginBottom: '16px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setActiveTab('buying')}
-          style={{
-            background: activeTab === 'buying' ? '#ffffff' : 'transparent',
-            color: activeTab === 'buying' ? '#0f172a' : '#64748b',
-            boxShadow: activeTab === 'buying' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            border: 'none',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '0.80rem',
-            fontWeight: activeTab === 'buying' ? 700 : 500,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          نواقص الشراء {data.buying.priorityTotal > 0 ? `(${data.buying.priorityTotal})` : ''}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('stagnant')}
-          style={{
-            background: activeTab === 'stagnant' ? '#ffffff' : 'transparent',
-            color: activeTab === 'stagnant' ? '#0f172a' : '#64748b',
-            boxShadow: activeTab === 'stagnant' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            border: 'none',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '0.80rem',
-            fontWeight: activeTab === 'stagnant' ? 700 : 500,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          الأصناف الراكدة {(data.stagnant.daysConfigured ?? data.stagnant.days30) > 0 ? `(${data.stagnant.daysConfigured ?? data.stagnant.days30})` : ''}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('profit')}
-          style={{
-            background: activeTab === 'profit' ? '#ffffff' : 'transparent',
-            color: activeTab === 'profit' ? '#0f172a' : '#64748b',
-            boxShadow: activeTab === 'profit' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            border: 'none',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '0.80rem',
-            fontWeight: activeTab === 'profit' ? 700 : 500,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          مصادر الأرباح
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('collection')}
-          style={{
-            background: activeTab === 'collection' ? '#ffffff' : 'transparent',
-            color: activeTab === 'collection' ? '#0f172a' : '#64748b',
-            boxShadow: activeTab === 'collection' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            border: 'none',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '0.80rem',
-            fontWeight: activeTab === 'collection' ? 700 : 500,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          تحصيل العملاء {data.collection.topDebtsTotal > 0 ? `(${data.collection.topDebtsTotal})` : ''}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('payables')}
-          style={{
-            background: activeTab === 'payables' ? '#ffffff' : 'transparent',
-            color: activeTab === 'payables' ? '#0f172a' : '#64748b',
-            boxShadow: activeTab === 'payables' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            border: 'none',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '0.80rem',
-            fontWeight: activeTab === 'payables' ? 700 : 500,
-            cursor: 'pointer',
-          }}
-        >
-          مستحقات الموردين {topSuppliers.length > 0 ? `(${topSuppliers.length})` : ''}
-        </button>
+      {/* Apple-style Smooth Chips Carousel */}
+      <div className="decision-grid-tabs-wrapper">
+        <div className="decision-grid-tabs-bar">
+          <button
+            type="button"
+            className={`decision-tab-chip ${activeTab === 'buying' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('buying')}
+          >
+            <span>نواقص الشراء</span>
+            {data.buying.priorityTotal > 0 && (
+              <span className="decision-tab-badge badge-danger">{data.buying.priorityTotal}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            className={`decision-tab-chip ${activeTab === 'stagnant' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('stagnant')}
+          >
+            <span>الأصناف الراكدة</span>
+            {(data.stagnant.daysConfigured ?? data.stagnant.days30) > 0 && (
+              <span className="decision-tab-badge badge-warning">{data.stagnant.daysConfigured ?? data.stagnant.days30}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            className={`decision-tab-chip ${activeTab === 'profit' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('profit')}
+          >
+            <span>مصادر الأرباح</span>
+          </button>
+          <button
+            type="button"
+            className={`decision-tab-chip ${activeTab === 'collection' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('collection')}
+          >
+            <span>تحصيل العملاء</span>
+            {data.collection.topDebtsTotal > 0 && (
+              <span className="decision-tab-badge badge-info">{data.collection.topDebtsTotal}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            className={`decision-tab-chip ${activeTab === 'payables' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('payables')}
+          >
+            <span>مستحقات الموردين</span>
+            {topSuppliers.length > 0 && (
+              <span className="decision-tab-badge badge-neutral">{topSuppliers.length}</span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Tab Content */}

@@ -1570,6 +1570,93 @@
   }
 }
 
+/* ==========================================================================
+   Dashboard Decision Grid Chips Carousel (Mobile & Smooth UX)
+   ========================================================================== */
+.decision-grid-tabs-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  margin-bottom: 16px !important;
+}
+
+.decision-grid-tabs-bar {
+  display: flex !important;
+  gap: 6px !important;
+  overflow-x: auto !important;
+  padding: 4px !important;
+  background: #f1f5f9 !important;
+  border-radius: 12px !important;
+  scrollbar-width: none !important; /* Hide scrollbar for Firefox */
+  -ms-overflow-style: none !important; /* Hide scrollbar for IE/Edge */
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+}
+
+.decision-grid-tabs-bar::-webkit-scrollbar {
+  display: none !important; /* Hide scrollbar for Chrome/Safari */
+}
+
+.decision-tab-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 7px 13px !important;
+  border-radius: 9px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.decision-tab-chip:hover {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+.decision-tab-chip.is-active {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1.5px 4px rgba(15, 23, 42, 0.08), 0 0.5px 1px rgba(15, 23, 42, 0.04) !important;
+}
+
+.decision-tab-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1.5px 6.5px !important;
+  font-size: 0.70rem !important;
+  font-weight: 800 !important;
+  border-radius: 6px !important;
+  line-height: 1.1 !important;
+}
+
+.decision-tab-badge.badge-danger {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+.decision-tab-badge.badge-warning {
+  background: #fef3c7 !important;
+  color: #d97706 !important;
+}
+
+.decision-tab-badge.badge-info {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+.decision-tab-badge.badge-neutral {
+  background: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+
 
 
 
