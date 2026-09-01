@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import * as ZXingModule from 'html5-qrcode/third_party/zxing-js.umd.js';
 import { triggerHaptic } from '@/shared/utils/haptics';
 import { Button } from '@/shared/ui/button';
+
+const ZXing: any = (ZXingModule as any).default || ZXingModule;
 
 interface CameraBarcodeScannerModalProps {
   isOpen: boolean;
@@ -33,6 +36,85 @@ function playScanBeep() {
     // Ignore audio errors
   }
   triggerHaptic('success');
+}
+
+function decodeFrameWithZXing(canvas: HTMLCanvasElement): string | null {
+  if (!ZXing || !ZXing.HTMLCanvasElementLuminanceSource) return null;
+
+  try {
+    const luminanceSource = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+    
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.CODE_93,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.QR_CODE,
+      ZXing.BarcodeFormat.DATA_MATRIX,
+    ]);
+
+    // 1. Primary: MultiFormatOneDReader with GlobalHistogramBinarizer (best for commodity EAN-13 lines)
+    if (ZXing.MultiFormatOneDReader && ZXing.GlobalHistogramBinarizer) {
+      try {
+        const binarizer = new ZXing.GlobalHistogramBinarizer(luminanceSource);
+        const bitmap = new ZXing.BinaryBitmap(binarizer);
+        const oneDReader = new ZXing.MultiFormatOneDReader(hints);
+        const result = oneDReader.decode(bitmap, hints);
+        if (result && result.getText()) {
+          return result.getText();
+        }
+      } catch {}
+    }
+
+    // 2. Secondary: MultiFormatReader with GlobalHistogramBinarizer
+    if (ZXing.GlobalHistogramBinarizer) {
+      try {
+        const binarizer = new ZXing.GlobalHistogramBinarizer(luminanceSource);
+        const bitmap = new ZXing.BinaryBitmap(binarizer);
+        const reader = new ZXing.MultiFormatReader();
+        reader.setHints(hints);
+        const result = reader.decode(bitmap);
+        if (result && result.getText()) {
+          return result.getText();
+        }
+      } catch {}
+    }
+
+    // 3. Fallback: HybridBinarizer (for 2D QR / DataMatrix)
+    if (ZXing.HybridBinarizer) {
+      try {
+        const binarizer = new ZXing.HybridBinarizer(luminanceSource);
+        const bitmap = new ZXing.BinaryBitmap(binarizer);
+        const reader = new ZXing.MultiFormatReader();
+        reader.setHints(hints);
+        const result = reader.decode(bitmap);
+        if (result && result.getText()) {
+          return result.getText();
+        }
+      } catch {}
+    }
+
+    // 4. Fallback: Inverted Luminance Source (for low-contrast or colored packaging)
+    if (ZXing.InvertedLuminanceSource && ZXing.GlobalHistogramBinarizer) {
+      try {
+        const invertedSource = new ZXing.InvertedLuminanceSource(luminanceSource);
+        const binarizer = new ZXing.GlobalHistogramBinarizer(invertedSource);
+        const bitmap = new ZXing.BinaryBitmap(binarizer);
+        const oneDReader = new ZXing.MultiFormatOneDReader(hints);
+        const result = oneDReader.decode(bitmap, hints);
+        if (result && result.getText()) {
+          return result.getText();
+        }
+      } catch {}
+    }
+  } catch {}
+  return null;
 }
 
 export function CameraBarcodeScannerModal({
@@ -199,76 +281,12 @@ export function CameraBarcodeScannerModal({
         }
       );
 
-function decodeFrameWithZXing(canvas: HTMLCanvasElement): string | null {
-  const ZXing = (window as any).ZXing;
-  if (!ZXing) return null;
-
-  try {
-    const luminanceSource = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
-    
-    // Configure hints with TRY_HARDER: true
-    const hints = new Map();
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-      ZXing.BarcodeFormat.EAN_13,
-      ZXing.BarcodeFormat.CODE_128,
-      ZXing.BarcodeFormat.EAN_8,
-      ZXing.BarcodeFormat.UPC_A,
-      ZXing.BarcodeFormat.UPC_E,
-      ZXing.BarcodeFormat.CODE_39,
-      ZXing.BarcodeFormat.CODE_93,
-      ZXing.BarcodeFormat.ITF,
-      ZXing.BarcodeFormat.QR_CODE,
-      ZXing.BarcodeFormat.DATA_MATRIX,
-    ]);
-
-    // 1. Try dedicated MultiFormatOneDReader with GlobalHistogramBinarizer (best for 1D barcodes like EAN-13)
-    if (ZXing.MultiFormatOneDReader && ZXing.GlobalHistogramBinarizer) {
-      try {
-        const binarizer = new ZXing.GlobalHistogramBinarizer(luminanceSource);
-        const bitmap = new ZXing.BinaryBitmap(binarizer);
-        const oneDReader = new ZXing.MultiFormatOneDReader(hints);
-        const result = oneDReader.decode(bitmap, hints);
-        if (result && result.getText()) {
-          return result.getText();
-        }
-      } catch {}
-    }
-
-    // 2. Try MultiFormatReader with GlobalHistogramBinarizer
-    if (ZXing.GlobalHistogramBinarizer) {
-      try {
-        const binarizer = new ZXing.GlobalHistogramBinarizer(luminanceSource);
-        const bitmap = new ZXing.BinaryBitmap(binarizer);
-        const reader = new ZXing.MultiFormatReader();
-        reader.setHints(hints);
-        const result = reader.decode(bitmap);
-        if (result && result.getText()) {
-          return result.getText();
-        }
-      } catch {}
-    }
-
-    // 3. Try MultiFormatReader with HybridBinarizer
-    if (ZXing.HybridBinarizer) {
-      try {
-        const binarizer = new ZXing.HybridBinarizer(luminanceSource);
-        const bitmap = new ZXing.BinaryBitmap(binarizer);
-        const reader = new ZXing.MultiFormatReader();
-        reader.setHints(hints);
-        const result = reader.decode(bitmap);
-        if (result && result.getText()) {
-          return result.getText();
-        }
-      } catch {}
-    }
-  } catch {}
-  return null;
-}
-
-      // Fast dual-engine background loop (Native BarcodeDetector + MultiFormatOneDReader)
+      // Fast dual-engine background loop (Native BarcodeDetector + MultiFormatOneDReader + Zoom Crop)
       const offscreenCanvas = document.createElement('canvas');
       const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+
+      const centerCropCanvas = document.createElement('canvas');
+      const centerCropCtx = centerCropCanvas.getContext('2d', { willReadFrequently: true });
 
       const videoEl = scannerEl.querySelector('video') as HTMLVideoElement;
       if (videoEl) {
@@ -306,7 +324,7 @@ function decodeFrameWithZXing(canvas: HTMLCanvasElement): string | null {
                 } catch {}
               }
 
-              // 2. Try High-Resolution ZXing MultiFormatOneDReader with GlobalHistogramBinarizer
+              // 2. High-Resolution Full Frame ZXing MultiFormatOneDReader with GlobalHistogramBinarizer
               const vw = videoEl.videoWidth || 1280;
               const vh = videoEl.videoHeight || 720;
               if (offscreenCanvas.width !== vw || offscreenCanvas.height !== vh) {
@@ -321,9 +339,28 @@ function decodeFrameWithZXing(canvas: HTMLCanvasElement): string | null {
                   return;
                 }
               }
+
+              // 3. Center Crop Pass (75% zoom - for fine barcode lines from distance)
+              const cropW = Math.floor(vw * 0.75);
+              const cropH = Math.floor(vh * 0.75);
+              const cropX = Math.floor((vw - cropW) / 2);
+              const cropY = Math.floor((vh - cropH) / 2);
+
+              if (centerCropCanvas.width !== cropW || centerCropCanvas.height !== cropH) {
+                centerCropCanvas.width = cropW;
+                centerCropCanvas.height = cropH;
+              }
+              if (centerCropCtx) {
+                centerCropCtx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+                const decodedZoom = decodeFrameWithZXing(centerCropCanvas);
+                if (decodedZoom) {
+                  handleScanSuccess(decodedZoom);
+                  return;
+                }
+              }
             }
           } catch {}
-        }, 75);
+        }, 65);
       }
 
       if (isMountedRef.current) {
