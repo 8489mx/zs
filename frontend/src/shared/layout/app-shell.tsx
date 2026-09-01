@@ -907,7 +907,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>
       </div>
-      {!isPosChromeHidden && <MobileBottomNav />}
+      {(isMobileScreen || !isPosChromeHidden) && <MobileBottomNav />}
       <AppCloseGuard />
       <PasswordRotationGate />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
