@@ -38,6 +38,37 @@ function playScanBeep() {
   triggerHaptic('success');
 }
 
+/**
+ * Fast histogram contrast stretching (Auto-Levels)
+ * Normalizes low-contrast camera frames so gray/faded lines become sharp black & white.
+ */
+function applyAutoContrast(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  try {
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+    let minL = 255;
+    let maxL = 0;
+    
+    // Fast luminance sampling (every 16th pixel)
+    for (let i = 0; i < data.length; i += 16) {
+      const l = (data[i] * 299 + data[i + 1] * 587 + data[i + 2] * 114) / 1000;
+      if (l < minL) minL = l;
+      if (l > maxL) maxL = l;
+    }
+
+    const range = maxL - minL;
+    if (range > 25 && range < 225) {
+      const scale = 255 / range;
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.min(255, Math.max(0, (data[i] - minL) * scale));
+        data[i + 1] = Math.min(255, Math.max(0, (data[i + 1] - minL) * scale));
+        data[i + 2] = Math.min(255, Math.max(0, (data[i + 2] - minL) * scale));
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+  } catch {}
+}
+
 function decodeFrameWithZXing(canvas: HTMLCanvasElement): string | null {
   if (!ZXing || !ZXing.HTMLCanvasElementLuminanceSource) return null;
 
@@ -239,13 +270,17 @@ export function CameraBarcodeScannerModal({
       }
 
       const scanConfig: any = {
-        fps: 10,
+        fps: 15,
         videoConstraints: {
           facingMode: { ideal: 'environment' },
-          width: { min: 640, ideal: 1280, max: 1920 },
-          height: { min: 480, ideal: 720, max: 1080 },
+          width: { min: 1280, ideal: 1920, max: 1920 },
+          height: { min: 720, ideal: 1080, max: 1080 },
           focusMode: { ideal: 'continuous' },
-          advanced: [{ focusMode: 'continuous' }],
+          advanced: [
+            { focusMode: 'continuous' },
+            { exposureMode: 'continuous' },
+            { whiteBalanceMode: 'continuous' },
+          ],
         },
         aspectRatio: 1.333333,
         disableFlip: true,
@@ -281,12 +316,15 @@ export function CameraBarcodeScannerModal({
         }
       );
 
-      // Fast dual-engine background loop (Native BarcodeDetector + MultiFormatOneDReader + Zoom Crop)
+      // Fast multi-scale background loop with Auto-Contrast Booster
       const offscreenCanvas = document.createElement('canvas');
       const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
 
       const centerCropCanvas = document.createElement('canvas');
       const centerCropCtx = centerCropCanvas.getContext('2d', { willReadFrequently: true });
+
+      const tightCropCanvas = document.createElement('canvas');
+      const tightCropCtx = tightCropCanvas.getContext('2d', { willReadFrequently: true });
 
       const videoEl = scannerEl.querySelector('video') as HTMLVideoElement;
       if (videoEl) {
@@ -309,11 +347,14 @@ export function CameraBarcodeScannerModal({
           } catch {}
         }
 
+        let loopCounter = 0;
         nativeDetectorTimerRef.current = setInterval(async () => {
           if (!isMountedRef.current) return;
           try {
             if (videoEl.readyState >= 2) {
-              // 1. Try Native BarcodeDetector if available
+              loopCounter++;
+
+              // 1. Hardware BarcodeDetector if available
               if (detector) {
                 try {
                   const detected = await detector.detect(videoEl);
@@ -324,25 +365,36 @@ export function CameraBarcodeScannerModal({
                 } catch {}
               }
 
-              // 2. High-Resolution Full Frame ZXing MultiFormatOneDReader with GlobalHistogramBinarizer
               const vw = videoEl.videoWidth || 1280;
               const vh = videoEl.videoHeight || 720;
+
+              // 2. Full Frame Pass (for large/normal barcodes)
               if (offscreenCanvas.width !== vw || offscreenCanvas.height !== vh) {
                 offscreenCanvas.width = vw;
                 offscreenCanvas.height = vh;
               }
               if (offscreenCtx) {
                 offscreenCtx.drawImage(videoEl, 0, 0, vw, vh);
-                const decoded = decodeFrameWithZXing(offscreenCanvas);
+                let decoded = decodeFrameWithZXing(offscreenCanvas);
                 if (decoded) {
                   handleScanSuccess(decoded);
                   return;
                 }
+
+                // Alternate Auto-Contrast pass every 2 cycles for low-light / faded barcodes
+                if (loopCounter % 2 === 0) {
+                  applyAutoContrast(offscreenCtx, vw, vh);
+                  decoded = decodeFrameWithZXing(offscreenCanvas);
+                  if (decoded) {
+                    handleScanSuccess(decoded);
+                    return;
+                  }
+                }
               }
 
-              // 3. Center Crop Pass (75% zoom - for fine barcode lines from distance)
-              const cropW = Math.floor(vw * 0.75);
-              const cropH = Math.floor(vh * 0.75);
+              // 3. Medium Center Crop (65% area - for distance / handheld products)
+              const cropW = Math.floor(vw * 0.65);
+              const cropH = Math.floor(vh * 0.65);
               const cropX = Math.floor((vw - cropW) / 2);
               const cropY = Math.floor((vh - cropH) / 2);
 
@@ -352,15 +404,43 @@ export function CameraBarcodeScannerModal({
               }
               if (centerCropCtx) {
                 centerCropCtx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-                const decodedZoom = decodeFrameWithZXing(centerCropCanvas);
+                let decodedZoom = decodeFrameWithZXing(centerCropCanvas);
                 if (decodedZoom) {
                   handleScanSuccess(decodedZoom);
+                  return;
+                }
+
+                if (loopCounter % 2 === 1) {
+                  applyAutoContrast(centerCropCtx, cropW, cropH);
+                  decodedZoom = decodeFrameWithZXing(centerCropCanvas);
+                  if (decodedZoom) {
+                    handleScanSuccess(decodedZoom);
+                    return;
+                  }
+                }
+              }
+
+              // 4. Tight Center Crop (40% area - for tiny barcodes on small packaging)
+              const tightW = Math.floor(vw * 0.40);
+              const tightH = Math.floor(vh * 0.40);
+              const tightX = Math.floor((vw - tightW) / 2);
+              const tightY = Math.floor((vh - tightH) / 2);
+
+              if (tightCropCanvas.width !== tightW || tightCropCanvas.height !== tightH) {
+                tightCropCanvas.width = tightW;
+                tightCropCanvas.height = tightH;
+              }
+              if (tightCropCtx) {
+                tightCropCtx.drawImage(videoEl, tightX, tightY, tightW, tightH, 0, 0, tightW, tightH);
+                const decodedTight = decodeFrameWithZXing(tightCropCanvas);
+                if (decodedTight) {
+                  handleScanSuccess(decodedTight);
                   return;
                 }
               }
             }
           } catch {}
-        }, 65);
+        }, 50);
       }
 
       if (isMountedRef.current) {
