@@ -26,12 +26,16 @@ export function UserManagementQuickActions({
       style={{
         display: 'flex',
         gap: '6px',
-        overflowX: 'auto',
-        paddingBottom: '6px',
-        marginBottom: '10px',
-        WebkitOverflowScrolling: 'touch',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        padding: '8px 12px',
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '10px',
+        marginBottom: '12px',
       }}
     >
+      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', marginInlineEnd: '4px' }}>قوالب الصلاحيات السريعة:</span>
       <Button
         type="button"
         variant="secondary"

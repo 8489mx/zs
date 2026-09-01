@@ -102,22 +102,30 @@ button.btn-primary:hover:not(:disabled),
   :where(.toolbar-grid, .compact-toolbar):not(.pos-workspace, .pos-workspace *) {
     display: flex !important;
     flex-direction: row !important;
+    flex-wrap: wrap !important;
     align-items: flex-end !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     gap: 12px !important;
     width: 100% !important;
   }
 
   :where(.toolbar-grid > div:first-child):not(.pos-workspace, .pos-workspace *) {
-    flex: 1 1 auto !important;
-    min-width: 240px !important;
+    flex: 2 1 240px !important;
+    min-width: 200px !important;
   }
 
   :where(.toolbar-grid .field):not(.pos-workspace, .pos-workspace *) {
+    flex: 1 1 160px !important;
+    min-width: 140px !important;
     margin-bottom: 0 !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 4px !important;
+  }
+
+  :where(.toolbar-grid .actions):not(.pos-workspace, .pos-workspace *) {
+    flex: 0 0 auto !important;
+    margin-bottom: 0 !important;
   }
 
   :where(.toolbar-grid .field > span, .toolbar-grid .field > label):not(.pos-workspace, .pos-workspace *) {

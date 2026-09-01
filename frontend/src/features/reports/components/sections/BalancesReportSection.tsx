@@ -53,7 +53,7 @@ export function BalancesReportSection({
         preserveChildrenOnEmpty
         emptyAction={<Button variant="secondary" onClick={onBalancesFiltersReset}>إعادة الضبط</Button>}
       >
-        <div className="reports-spotlight-grid section-spotlight-grid compact-spotlight-grid">
+        <div className="reports-spotlight-grid section-spotlight-grid compact-spotlight-grid balances-spotlight-grid">
           <ReportMetricCard label="مستحق من العملاء" value={totals?.customerReceivables ?? summary?.totalBalance ?? 0} helper="مبالغ لم تحصل بعد" tone="warning" formatter={formatCurrency} progress={relativePercent(totals?.customerReceivables ?? summary?.totalBalance ?? 0, values)} />
           <ReportMetricCard label="مستحق للموردين" value={totals?.supplierPayables || 0} helper="التزامات على المنشأة" tone="danger" formatter={formatCurrency} progress={relativePercent(totals?.supplierPayables || 0, values)} />
           <ReportMetricCard label={netPositionLabel} value={Math.abs(netPosition)} helper="الفرق بين مستحقات العملاء والموردين" tone={netPosition >= 0 ? 'success' : 'danger'} formatter={formatCurrency} progress={relativePercent(Math.abs(netPosition), values)} />

@@ -140,6 +140,7 @@
 .detail-panel-title { margin: 0 0 6px; font-size: 18px; }
 .detail-panel-subtitle { color: var(--muted); font-size: 13px; line-height: 1.7; }
 .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.detail-grid .detail-item:last-child:nth-child(odd) { grid-column: span 2; }
 .detail-item { padding: 12px 14px; background: #fff; }
 .detail-label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
 .detail-value { font-weight: 700; }

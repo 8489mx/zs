@@ -196,7 +196,9 @@
 }
 
 /* Inventory section tabs: compact, single row, preserve readable active state */
-.inventory-workspace .inventory-section-tabs {
+.inventory-workspace .inventory-section-tabs,
+.inventory-section-tabs {
+  display: grid !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   gap: 10px;
   margin-bottom: 10px;

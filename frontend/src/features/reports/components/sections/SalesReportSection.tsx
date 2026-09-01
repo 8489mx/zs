@@ -81,7 +81,7 @@ export function SalesReportSection({
             title="إحصائيات وتفصيل رسوم التوصيل والمناديب"
             description="فصل دقيق بين مستحقات المناديب الحرة (طياري) وإيرادات أسطول المتجر ونسبة الطيارين وصافي أرباح المحل."
           >
-            <div className="reports-spotlight-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            <div className="reports-spotlight-grid delivery-spotlight-grid">
               <ReportMetricCard
                 label="إجمالي رسوم التوصيل"
                 value={report?.delivery?.total || 0}

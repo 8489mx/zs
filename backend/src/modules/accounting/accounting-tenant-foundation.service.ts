@@ -44,9 +44,17 @@ export class AccountingTenantFoundationService {
       }
     }
 
-    throw new InternalServerErrorException(
-      'Default tenant accounting chart is missing. Seed accounting_accounts for tenant "default" first.',
-    );
+    const anyTenantRow = await queryable
+      .selectFrom('accounting_accounts')
+      .select('tenant_id')
+      .where('tenant_id', 'is not', null)
+      .limit(1)
+      .executeTakeFirst();
+    if (anyTenantRow?.tenant_id) {
+      return anyTenantRow.tenant_id;
+    }
+
+    return preferred;
   }
 
   async ensureForScope(queryable: DbOrTx, target: Scope): Promise<void> {

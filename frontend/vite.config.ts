@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const pkg = require('./package.json') as { version: string };
 
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [
     react(),
     VitePWA({
