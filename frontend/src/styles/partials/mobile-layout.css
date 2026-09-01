@@ -52,6 +52,11 @@
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.35) !important;
   }
 
+  .app-layout .sidebar-fixed .brand,
+  .app-layout.sidebar-collapsed .sidebar-fixed .brand {
+    padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+  }
+
   [dir="ltr"] .app-layout .sidebar-fixed.is-mobile-open,
   [dir="ltr"] .app-layout.sidebar-collapsed .sidebar-fixed.is-mobile-open {
     transform: translateX(0) !important;
@@ -142,8 +147,8 @@
   }
 
   .content-wrap {
-    padding: 14px 10px;
-    padding-bottom: max(60px, calc(52px + env(safe-area-inset-bottom, 0px))) !important;
+    padding: 12px 10px;
+    padding-bottom: 24px !important;
   }
 }
 
@@ -323,7 +328,7 @@
 @media (max-width: 900px) {
   .mobile-bottom-nav {
     position: fixed !important;
-    bottom: 12px !important;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
     left: 12px !important;
     right: 12px !important;
     margin: 0 auto !important;
@@ -786,7 +791,7 @@
     min-width: 0 !important;
     box-sizing: border-box !important;
     gap: 12px !important;
-    padding-bottom: 72px !important;
+    padding-bottom: 24px !important;
   }
 
   .document-prototype-section,
@@ -1728,8 +1733,13 @@
    ========================================================================== */
 @media (max-width: 768px) {
   /* POS Header */
+  .pos-page,
+  .pos-workspace,
   .pos-page-header {
-    padding-top: max(env(safe-area-inset-top, 0px), 12px) !important;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .pos-page-header {
     padding-bottom: 8px !important;
     padding-left: 12px !important;
     padding-right: 12px !important;

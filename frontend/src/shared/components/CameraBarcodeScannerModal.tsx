@@ -123,6 +123,9 @@ export function CameraBarcodeScannerModal({
           Html5QrcodeSupportedFormats.DATA_MATRIX,
         ],
         verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
+        },
       });
       scannerRef.current = html5QrCode;
 
@@ -137,12 +140,17 @@ export function CameraBarcodeScannerModal({
         console.warn('getCameras warning:', camErr);
       }
 
-      const scanConfig = {
-        fps: 25,
-        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => ({
-          width: Math.floor(viewfinderWidth * 0.88),
-          height: Math.floor(viewfinderHeight * 0.75),
-        }),
+      const scanConfig: any = {
+        fps: 15,
+        videoConstraints: {
+          facingMode: { ideal: 'environment' },
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 },
+          focusMode: { ideal: 'continuous' },
+          advanced: [{ focusMode: 'continuous' }],
+        },
+        aspectRatio: 1.333333,
+        disableFlip: true,
       };
 
       // Determine camera selector with intelligent fallback
