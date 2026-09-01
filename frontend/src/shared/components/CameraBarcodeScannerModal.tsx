@@ -199,40 +199,131 @@ export function CameraBarcodeScannerModal({
         }
       );
 
-      // Fast native BarcodeDetector background loop for instant recognition
-      if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
-        try {
-          const detector = new (window as any).BarcodeDetector({
-            formats: [
-              'ean_13',
-              'ean_8',
-              'code_128',
-              'code_39',
-              'upc_a',
-              'upc_e',
-              'qr_code',
-              'itf',
-              'data_matrix',
-            ],
-          });
+function decodeFrameWithZXing(canvas: HTMLCanvasElement): string | null {
+  const ZXing = (window as any).ZXing;
+  if (!ZXing) return null;
 
-          const videoEl = scannerEl.querySelector('video');
-          if (videoEl) {
-            nativeDetectorTimerRef.current = setInterval(async () => {
-              if (!isMountedRef.current) return;
-              try {
-                if (videoEl.readyState >= 2) {
+  try {
+    const luminanceSource = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+    
+    // Configure hints with TRY_HARDER: true
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.CODE_93,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.QR_CODE,
+      ZXing.BarcodeFormat.DATA_MATRIX,
+    ]);
+
+    // 1. Try dedicated MultiFormatOneDReader with GlobalHistogramBinarizer (best for 1D barcodes like EAN-13)
+    if (ZXing.MultiFormatOneDReader && ZXing.GlobalHistogramBinarizer) {
+      try {
+        const binarizer = new ZXing.GlobalHistogramBinarizer(luminanceSource);
+        const bitmap = new ZXing.BinaryBitmap(binarizer);
+        const oneDReader = new ZXing.MultiFormatOneDReader(hints);
+        const result = oneDReader.decode(bitmap, hints);
+        if (result && result.getText()) {
+          return result.getText();
+        }
+      } catch {}
+    }
+
+    // 2. Try MultiFormatReader with GlobalHistogramBinarizer
+    if (ZXing.GlobalHistogramBinarizer) {
+      try {
+        const binarizer = new ZXing.GlobalHistogramBinarizer(luminanceSource);
+        const bitmap = new ZXing.BinaryBitmap(binarizer);
+        const reader = new ZXing.MultiFormatReader();
+        reader.setHints(hints);
+        const result = reader.decode(bitmap);
+        if (result && result.getText()) {
+          return result.getText();
+        }
+      } catch {}
+    }
+
+    // 3. Try MultiFormatReader with HybridBinarizer
+    if (ZXing.HybridBinarizer) {
+      try {
+        const binarizer = new ZXing.HybridBinarizer(luminanceSource);
+        const bitmap = new ZXing.BinaryBitmap(binarizer);
+        const reader = new ZXing.MultiFormatReader();
+        reader.setHints(hints);
+        const result = reader.decode(bitmap);
+        if (result && result.getText()) {
+          return result.getText();
+        }
+      } catch {}
+    }
+  } catch {}
+  return null;
+}
+
+      // Fast dual-engine background loop (Native BarcodeDetector + MultiFormatOneDReader)
+      const offscreenCanvas = document.createElement('canvas');
+      const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+
+      const videoEl = scannerEl.querySelector('video') as HTMLVideoElement;
+      if (videoEl) {
+        let detector: any = null;
+        if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+          try {
+            detector = new (window as any).BarcodeDetector({
+              formats: [
+                'ean_13',
+                'ean_8',
+                'code_128',
+                'code_39',
+                'upc_a',
+                'upc_e',
+                'qr_code',
+                'itf',
+                'data_matrix',
+              ],
+            });
+          } catch {}
+        }
+
+        nativeDetectorTimerRef.current = setInterval(async () => {
+          if (!isMountedRef.current) return;
+          try {
+            if (videoEl.readyState >= 2) {
+              // 1. Try Native BarcodeDetector if available
+              if (detector) {
+                try {
                   const detected = await detector.detect(videoEl);
                   if (detected && detected.length > 0 && detected[0]?.rawValue) {
                     handleScanSuccess(detected[0].rawValue);
+                    return;
                   }
+                } catch {}
+              }
+
+              // 2. Try High-Resolution ZXing MultiFormatOneDReader with GlobalHistogramBinarizer
+              const vw = videoEl.videoWidth || 1280;
+              const vh = videoEl.videoHeight || 720;
+              if (offscreenCanvas.width !== vw || offscreenCanvas.height !== vh) {
+                offscreenCanvas.width = vw;
+                offscreenCanvas.height = vh;
+              }
+              if (offscreenCtx) {
+                offscreenCtx.drawImage(videoEl, 0, 0, vw, vh);
+                const decoded = decodeFrameWithZXing(offscreenCanvas);
+                if (decoded) {
+                  handleScanSuccess(decoded);
+                  return;
                 }
-              } catch {}
-            }, 100);
-          }
-        } catch (e) {
-          console.warn('Native BarcodeDetector setup skipped:', e);
-        }
+              }
+            }
+          } catch {}
+        }, 75);
       }
 
       if (isMountedRef.current) {
