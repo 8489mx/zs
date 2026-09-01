@@ -48,8 +48,8 @@ function normalizeSlug(value) {
 }
 
 function assertStrongTrialPassword(password) {
-  if (password.length < 14) {
-    throw new Error('Trial owner password must be at least 14 characters long.');
+  if (String(password || '').trim().length < 1) {
+    throw new Error('كلمة المرور لا يمكن أن تكون فارغة.');
   }
 }
 

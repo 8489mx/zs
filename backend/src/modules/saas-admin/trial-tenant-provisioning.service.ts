@@ -121,8 +121,8 @@ export class TrialTenantProvisioningService {
   }
 
   private assertStrongTrialPassword(password: string): void {
-    if (String(password || '').length < 14) {
-      throw new BadRequestException('كلمة المرور يجب أن تكون 14 حرفًا على الأقل.');
+    if (String(password || '').trim().length < 1) {
+      throw new BadRequestException('كلمة المرور لا يمكن أن تكون فارغة.');
     }
   }
 

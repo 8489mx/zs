@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/components/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
 import { saasAdminApi, SaasPlan } from '../api/saas-admin.api';
 
@@ -36,8 +37,8 @@ export function SaasPlansPage() {
 
   const createMutation = useMutation({
     mutationFn: () => saasAdminApi.createPlan({
-      code: newPlan.code,
-      name: newPlan.name,
+      code: newPlan.code.trim().toUpperCase(),
+      name: newPlan.name.trim(),
       price: Number(newPlan.price),
       currency: newPlan.currency,
       billingPeriodMonths: Number(newPlan.billing_period_months),
@@ -56,23 +57,6 @@ export function SaasPlansPage() {
     },
   });
 
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if ((isCreateModalOpen || editingPlan) && (event.key === 'Escape' || event.key === 'Esc')) {
-        event.preventDefault();
-        setIsCreateModalOpen(false);
-        setEditingPlan(null);
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCreateModalOpen, editingPlan]);
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate();
-  };
-
   const updateMutation = useMutation({
     mutationFn: (input: { id: number; data: any }) => saasAdminApi.updatePlan(input.id, input.data),
     onSuccess: () => {
@@ -85,14 +69,19 @@ export function SaasPlansPage() {
     },
   });
 
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate();
+  };
+
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPlan) return;
     updateMutation.mutate({
       id: editingPlan.id,
       data: {
-        code: editingPlan.code,
-        name: editingPlan.name,
+        code: editingPlan.code.trim().toUpperCase(),
+        name: editingPlan.name.trim(),
         price: Number(editingPlan.price),
         currency: editingPlan.currency,
         billingPeriodMonths: Number(editingPlan.billing_period_months),
@@ -107,24 +96,39 @@ export function SaasPlansPage() {
   const plans = plansQuery.data || [];
 
   return (
-    <main className="document-prototype-column">
+    <div className="page-stack page-shell">
       <PageHeader 
-        title="خطط الاشتراك (SaaS)" 
-        description="إدارة باقات الاشتراك المتاحة للعملاء"
+        title="خطط وباقات الاشتراك (SaaS Plans)" 
+        description="إدارة باقات وأسعار الاشتراكات وحدود الفروع والمستخدمين المتاحة للعملاء."
+        badge={<span className="nav-pill" style={{ background: '#ede9fe', color: '#6d28d9', borderColor: '#c4b5fd' }}>SaaS Admin</span>}
         actions={
-          <button type="button" className="button" onClick={() => setIsCreateModalOpen(true)}>
-            إضافة خطة جديدة
+          <button 
+            type="button" 
+            className="button" 
+            style={{
+              background: 'linear-gradient(135deg, #170c5c 0%, #312e81 100%)',
+              color: '#ffffff',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              fontWeight: 800,
+            }}
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            <span>+</span>
+            <span>إضافة باقة جديدة</span>
           </button>
         }
       />
 
       {feedback && (
-        <div className="warning-box mb-4">
+        <div className="success-box mb-4">
           {feedback}
         </div>
       )}
 
-      <FormSection title="الخطط المتاحة">
+      <FormSection title="الخطط والباقات المتاحة">
         <QueryFeedback
           isLoading={plansQuery.isLoading}
           isError={plansQuery.isError}
@@ -132,8 +136,8 @@ export function SaasPlansPage() {
           isEmpty={!plans.length}
           loadingText="جاري تحميل الخطط..."
           errorTitle="تعذر تحميل الخطط"
-          emptyTitle="لا توجد خطط"
-          emptyHint="قم بإنشاء خطة اشتراك جديدة."
+          emptyTitle="لا توجد خطط مسجلة"
+          emptyHint="قم بإنشاء خطة اشتراك جديدة لتفعيلها للعملاء."
         >
           <DataTable<SaasPlan>
             data={plans}
@@ -141,34 +145,52 @@ export function SaasPlansPage() {
             columns={[
               {
                 id: 'code',
-                header: 'الكود',
-                render: (row) => <span>{row.code}</span>,
+                header: 'كود الباقة',
+                render: (row) => (
+                  <span className="tenant-slug-badge" style={{ fontWeight: 800, color: '#1e1b4b' }}>
+                    {row.code}
+                  </span>
+                ),
               },
               {
                 id: 'name',
-                header: 'اسم الخطة',
-                render: (row) => <strong>{row.name}</strong>,
+                header: 'اسم الباقة',
+                render: (row) => <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>{row.name}</strong>,
               },
               {
                 id: 'price',
-                header: 'السعر',
-                render: (row) => <span>{row.price} {row.currency}</span>,
+                header: 'السعر والعملة',
+                render: (row) => (
+                  <span style={{ fontWeight: 700, color: '#059669', fontSize: '13px' }}>
+                    {row.price} {row.currency}
+                  </span>
+                ),
               },
               {
                 id: 'duration',
-                header: 'المدة (أشهر)',
-                render: (row) => <span>{row.billing_period_months}</span>,
+                header: 'المدة',
+                render: (row) => (
+                  <span style={{ fontSize: '12.5px' }}>
+                    {row.billing_period_months === 12 ? 'سنة واحدة (12 شهر)' : row.billing_period_months === 1 ? 'شهر واحد' : `${row.billing_period_months} أشهر`}
+                  </span>
+                ),
               },
               {
                 id: 'limits',
-                header: 'الحدود (مستخدمين / فروع)',
-                render: (row) => <span>{row.max_users || 'غير محدود'} / {row.max_branches || 'غير محدود'}</span>,
+                header: 'حدود المستخدمين والفروع',
+                render: (row) => (
+                  <div style={{ display: 'flex', gap: '8px', fontSize: '12px' }}>
+                    <span>{row.max_users ? `${row.max_users} مستخدم` : 'مستخدمين غير محدود'}</span>
+                    <span>•</span>
+                    <span>{row.max_branches ? `${row.max_branches} فرع` : 'فروع غير محدودة'}</span>
+                  </div>
+                ),
               },
               {
                 id: 'status',
                 header: 'الحالة',
                 render: (row) => (
-                  <span className={`badge ${row.is_active ? 'badge-success' : 'badge-danger'}`}>
+                  <span className={`tenant-status-pill ${row.is_active ? 'active' : 'suspended'}`}>
                     {row.is_active ? 'مفعلة' : 'معطلة'}
                   </span>
                 ),
@@ -177,7 +199,12 @@ export function SaasPlansPage() {
                 id: 'actions',
                 header: 'الإجراءات',
                 render: (row) => (
-                  <button type="button" className="button button-sm button-secondary" onClick={() => setEditingPlan(row)}>
+                  <button 
+                    type="button" 
+                    className="button button-secondary"
+                    style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 700 }}
+                    onClick={() => setEditingPlan(row)}
+                  >
                     تعديل
                   </button>
                 ),
@@ -187,133 +214,232 @@ export function SaasPlansPage() {
         </QueryFeedback>
       </FormSection>
 
-      {isCreateModalOpen ? (
-        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setIsCreateModalOpen(false); }}>
-          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إضافة خطة جديدة">
-            <FormSection title="إضافة خطة جديدة" actions={<button type="button" className="button button-secondary" onClick={() => setIsCreateModalOpen(false)}>إغلاق</button>}>
-              <form onSubmit={handleCreate} className="stack gap-12">
-                <Field label="الكود (إنجليزي)">
-                  <input 
-                    required 
-                    value={newPlan.code} 
-                    onChange={(e) => setNewPlan({ ...newPlan, code: e.target.value })} 
-                    dir="ltr"
-                    placeholder="e.g. BASIC"
-                  />
-                </Field>
-                
-                <Field label="اسم الخطة">
-                  <input 
-                    required 
-                    value={newPlan.name} 
-                    onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })} 
-                    placeholder="e.g. الخطة الأساسية"
-                  />
-                </Field>
+      {/* ========================================================
+          CREATE NEW PLAN MODAL
+          ======================================================== */}
+      {isCreateModalOpen && (
+        <DialogShell
+          open={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          width="640px"
+          ariaLabel="إضافة باقة جديدة"
+        >
+          <div className="dialog-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                  إضافة باقة اشتراك جديدة
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                  تحديد السعر ومدة الاشتراك وحدود الاستخدام للباقة السحابية.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="dialog-shell-close-btn"
+                onClick={() => setIsCreateModalOpen(false)}
+                title="إغلاق"
+              >
+                ✕
+              </button>
+            </div>
 
-                <div className="grid-2">
-                  <Field label="السعر">
+            <form onSubmit={handleCreate}>
+              {/* القسم 1: المعرف والاسم */}
+              <div className="saas-modal-card">
+                <div className="saas-modal-card-title">
+                  <span>1. بيانات الباقة الأساسية</span>
+                </div>
+                <div className="saas-modal-grid-2">
+                  <Field label="كود الباقة (إنجليزي) *">
+                    <input 
+                      required 
+                      value={newPlan.code} 
+                      onChange={(e) => setNewPlan({ ...newPlan, code: e.target.value })} 
+                      dir="ltr"
+                      placeholder="مثال: BASIC, PRO, ENTERPRISE"
+                    />
+                  </Field>
+                  <Field label="اسم الباقة بالعربية *">
+                    <input 
+                      required 
+                      value={newPlan.name} 
+                      onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })} 
+                      placeholder="مثال: الباقة الأساسية"
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              {/* القسم 2: التسعير والمدة */}
+              <div className="saas-modal-card">
+                <div className="saas-modal-card-title">
+                  <span>2. التسعير وفترة الفوترة</span>
+                </div>
+                <div className="saas-modal-grid-3">
+                  <Field label="السعر *">
                     <input 
                       required 
                       type="number"
                       min="0"
                       value={newPlan.price === 0 ? '' : newPlan.price} 
                       onChange={(e) => setNewPlan({ ...newPlan, price: Number(e.target.value) })} 
+                      placeholder="0.00"
                     />
                   </Field>
-                  
                   <Field label="العملة">
                     <select 
                       value={newPlan.currency} 
                       onChange={(e) => setNewPlan({ ...newPlan, currency: e.target.value })}
                     >
-                      <option value="EGP">EGP</option>
-                      <option value="USD">USD</option>
-                      <option value="SAR">SAR</option>
+                      <option value="EGP">EGP (جنيه)</option>
+                      <option value="USD">USD (دولار)</option>
+                      <option value="SAR">SAR (ريال)</option>
+                      <option value="AED">AED (درهم)</option>
+                    </select>
+                  </Field>
+                  <Field label="فترة الفوترة (أشهر)">
+                    <select
+                      value={newPlan.billing_period_months}
+                      onChange={(e) => setNewPlan({ ...newPlan, billing_period_months: Number(e.target.value) })}
+                    >
+                      <option value={1}>شهر واحد (1)</option>
+                      <option value={3}>3 أشهر</option>
+                      <option value={6}>6 أشهر</option>
+                      <option value={12}>سنة كاملة (12)</option>
+                      <option value={24}>سنتان (24)</option>
                     </select>
                   </Field>
                 </div>
+              </div>
 
-                <Field label="فترة الاشتراك (بالأشهر)">
-                  <input 
-                    required 
-                    type="number"
-                    min="1"
-                    value={newPlan.billing_period_months === 0 ? '' : newPlan.billing_period_months} 
-                    onChange={(e) => setNewPlan({ ...newPlan, billing_period_months: Number(e.target.value) })} 
-                  />
-                </Field>
-
-                <div className="grid-2">
-                  <Field label="الحد الأقصى للمستخدمين (0 لغير محدود)">
-                    <div className="stack gap-4">
-                      <input 
-                        type="number"
-                        min="0"
-                        value={newPlan.max_users === 0 ? '' : newPlan.max_users} 
-                        onChange={(e) => setNewPlan({ ...newPlan, max_users: Number(e.target.value) })} 
-                      />
-                      <span className="muted small">اتركه 0 إذا كانت الخطة غير محدودة</span>
-                    </div>
+              {/* القسم 3: الحدود والميزات */}
+              <div className="saas-modal-card">
+                <div className="saas-modal-card-title">
+                  <span>3. الحدود والميزات المرتبطة</span>
+                </div>
+                <div className="saas-modal-grid-2">
+                  <Field label="الحد الأقصى للمستخدمين (0 = غير محدود)">
+                    <input 
+                      type="number"
+                      min="0"
+                      value={newPlan.max_users === 0 ? '' : newPlan.max_users} 
+                      onChange={(e) => setNewPlan({ ...newPlan, max_users: Number(e.target.value) })} 
+                      placeholder="0 لغير محدود"
+                    />
                   </Field>
-                  
-                  <Field label="الحد الأقصى للفروع (0 لغير محدود)">
+                  <Field label="الحد الأقصى للفروع (0 = غير محدود)">
                     <input 
                       type="number"
                       min="0"
                       value={newPlan.max_branches === 0 ? '' : newPlan.max_branches} 
                       onChange={(e) => setNewPlan({ ...newPlan, max_branches: Number(e.target.value) })} 
+                      placeholder="0 لغير محدود"
                     />
                   </Field>
                 </div>
-
-                <Field label="باقة الميزات المرتبطة (اختياري)">
-                  <select
-                    value={newPlan.feature_plan_id}
-                    onChange={(e) => setNewPlan({ ...newPlan, feature_plan_id: e.target.value })}
-                  >
-                    <option value="">-- بدون ربط (سيتم تحديدها لاحقاً) --</option>
-                    {featurePlansQuery.data?.map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-                    ))}
-                  </select>
-                </Field>
-
-                <div className="actions">
-                  <button type="submit" className="button" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الخطة'}
-                  </button>
+                <div style={{ marginTop: '10px' }}>
+                  <Field label="باقة الميزات الافتراضية (اختياري)">
+                    <select
+                      value={newPlan.feature_plan_id}
+                      onChange={(e) => setNewPlan({ ...newPlan, feature_plan_id: e.target.value })}
+                    >
+                      <option value="">-- بدون ربط (يتم تحديد الميزات يدوياً) --</option>
+                      {featurePlansQuery.data?.map((p: any) => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                      ))}
+                    </select>
+                  </Field>
                 </div>
-              </form>
-            </FormSection>
-          </div>
-        </div>
-      ) : null}
+              </div>
 
-      {editingPlan ? (
-        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setEditingPlan(null); }}>
-          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="تعديل الخطة">
-            <FormSection title="تعديل الخطة" actions={<button type="button" className="button button-secondary" onClick={() => setEditingPlan(null)}>إغلاق</button>}>
-              <form onSubmit={handleUpdate} className="stack gap-12">
-                <Field label="الكود (إنجليزي)">
-                  <input 
-                    required 
-                    value={editingPlan.code} 
-                    onChange={(e) => setEditingPlan({ ...editingPlan, code: e.target.value })} 
-                    dir="ltr"
-                    className="ltr-input"
-                  />
-                </Field>
-                <Field label="اسم الخطة">
-                  <input 
-                    required 
-                    value={editingPlan.name} 
-                    onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })} 
-                  />
-                </Field>
-                
-                <div className="row gap-12" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                  <Field label="السعر">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => setIsCreateModalOpen(false)}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="button"
+                  style={{
+                    background: 'linear-gradient(135deg, #170c5c 0%, #312e81 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    padding: '10px 24px',
+                  }}
+                  disabled={createMutation.isPending || !newPlan.code || !newPlan.name}
+                >
+                  {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الباقة'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </DialogShell>
+      )}
+
+      {/* ========================================================
+          EDIT PLAN MODAL
+          ======================================================== */}
+      {editingPlan && (
+        <DialogShell
+          open={Boolean(editingPlan)}
+          onClose={() => setEditingPlan(null)}
+          width="640px"
+          ariaLabel="تعديل باقة الاشتراك"
+        >
+          <div className="dialog-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                  تعديل باقة الاشتراك: {editingPlan.name}
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                  تحديث التسعير وفترة الفوترة وحدود النسخ للباقة.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="dialog-shell-close-btn"
+                onClick={() => setEditingPlan(null)}
+                title="إغلاق"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate}>
+              <div className="saas-modal-card">
+                <div className="saas-modal-card-title">
+                  <span>1. بيانات الباقة الأساسية</span>
+                </div>
+                <div className="saas-modal-grid-2">
+                  <Field label="كود الباقة (إنجليزي) *">
+                    <input 
+                      required 
+                      value={editingPlan.code} 
+                      onChange={(e) => setEditingPlan({ ...editingPlan, code: e.target.value })} 
+                      dir="ltr"
+                    />
+                  </Field>
+                  <Field label="اسم الباقة بالعربية *">
+                    <input 
+                      required 
+                      value={editingPlan.name} 
+                      onChange={(e) => setEditingPlan({ ...editingPlan, name: e.target.value })} 
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              <div className="saas-modal-card">
+                <div className="saas-modal-card-title">
+                  <span>2. التسعير وفترة الفوترة</span>
+                </div>
+                <div className="saas-modal-grid-3">
+                  <Field label="السعر *">
                     <input 
                       required 
                       type="number" 
@@ -324,80 +450,98 @@ export function SaasPlansPage() {
                     />
                   </Field>
                   <Field label="العملة">
-                    <select value={editingPlan.currency} onChange={(e) => setEditingPlan({ ...editingPlan, currency: e.target.value })} dir="ltr">
-                      <option value="EGP">EGP</option>
-                      <option value="USD">USD</option>
-                      <option value="SAR">SAR</option>
-                      <option value="AED">AED</option>
+                    <select value={editingPlan.currency} onChange={(e) => setEditingPlan({ ...editingPlan, currency: e.target.value })}>
+                      <option value="EGP">EGP (جنيه)</option>
+                      <option value="USD">USD (دولار)</option>
+                      <option value="SAR">SAR (ريال)</option>
+                      <option value="AED">AED (درهم)</option>
+                    </select>
+                  </Field>
+                  <Field label="فترة الفوترة (أشهر)">
+                    <select
+                      value={editingPlan.billing_period_months}
+                      onChange={(e) => setEditingPlan({ ...editingPlan, billing_period_months: Number(e.target.value) })}
+                    >
+                      <option value={1}>شهر واحد (1)</option>
+                      <option value={3}>3 أشهر</option>
+                      <option value={6}>6 أشهر</option>
+                      <option value={12}>سنة كاملة (12)</option>
+                      <option value={24}>سنتان (24)</option>
                     </select>
                   </Field>
                 </div>
+              </div>
 
-                <Field label="فترة الاشتراك (بالأشهر)">
-                  <input 
-                    required 
-                    type="number" 
-                    min="1"
-                    value={editingPlan.billing_period_months} 
-                    onChange={(e) => setEditingPlan({ ...editingPlan, billing_period_months: Number(e.target.value) })} 
-                  />
-                </Field>
-
-                <div className="row gap-12" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                  <Field label="أقصى عدد مستخدمين (اختياري)">
+              <div className="saas-modal-card">
+                <div className="saas-modal-card-title">
+                  <span>3. الحدود والميزات والحالة</span>
+                </div>
+                <div className="saas-modal-grid-2">
+                  <Field label="أقصى عدد مستخدمين (0 = غير محدود)">
                     <input 
                       type="number" 
                       min="0"
                       value={editingPlan.max_users || ''} 
                       onChange={(e) => setEditingPlan({ ...editingPlan, max_users: e.target.value ? Number(e.target.value) : null })} 
-                      placeholder="غير محدود"
+                      placeholder="0 لغير محدود"
                     />
                   </Field>
-                  <Field label="أقصى عدد فروع (اختياري)">
+                  <Field label="أقصى عدد فروع (0 = غير محدود)">
                     <input 
                       type="number" 
                       min="0"
                       value={editingPlan.max_branches || ''} 
                       onChange={(e) => setEditingPlan({ ...editingPlan, max_branches: e.target.value ? Number(e.target.value) : null })} 
-                      placeholder="غير محدود"
+                      placeholder="0 لغير محدود"
                     />
                   </Field>
                 </div>
-
-                <Field label="باقة الميزات المرتبطة (اختياري)">
-                  <select
-                    value={editingPlan.feature_plan_id || ''}
-                    onChange={(e) => setEditingPlan({ ...editingPlan, feature_plan_id: e.target.value })}
-                  >
-                    <option value="">-- بدون ربط (سيتم تحديدها لاحقاً) --</option>
-                    {featurePlansQuery.data?.map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field label="حالة الخطة">
-                  <label className="row gap-8 align-center">
+                <div style={{ marginTop: '10px' }}>
+                  <Field label="باقة الميزات المرتبطة">
+                    <select
+                      value={editingPlan.feature_plan_id || ''}
+                      onChange={(e) => setEditingPlan({ ...editingPlan, feature_plan_id: e.target.value })}
+                    >
+                      <option value="">-- بدون ربط --</option>
+                      {featurePlansQuery.data?.map((p: any) => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <div style={{ marginTop: '12px', padding: '8px 12px', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700 }}>
                     <input 
                       type="checkbox" 
                       checked={editingPlan.is_active} 
                       onChange={(e) => setEditingPlan({ ...editingPlan, is_active: e.target.checked })} 
+                      style={{ width: '18px', height: '18px' }}
                     />
-                    مفعلة (تظهر للعملاء)
+                    <span>مفعلة ومتاحة لاشتراكات العملاء</span>
                   </label>
-                </Field>
-
-                <div className="actions pt-12" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                  <button type="submit" className="button button-primary" disabled={updateMutation.isPending}>
-                    حفظ التعديلات
-                  </button>
                 </div>
-              </form>
-            </FormSection>
-          </div>
-        </div>
-      ) : null}
+              </div>
 
-    </main>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => setEditingPlan(null)}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="button button-primary"
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </DialogShell>
+      )}
+    </div>
   );
 }
