@@ -46,18 +46,16 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
     const auth = request.authContext;
 
-    // Check feature gates for all tenant users except platform admin
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || this.configService?.get?.('PLATFORM_TENANT_ID') || '').trim();
-    const isPlatformAdmin = Boolean(auth?.role === 'super_admin' && platformTenantId && auth?.tenantId === platformTenantId);
+    // Super Admin has full unrestricted access to all features and permissions across the system
+    const isSuperAdmin = auth?.role === 'super_admin';
 
-    if (!isPlatformAdmin && requiredFeature && auth) {
+    if (!isSuperAdmin && requiredFeature && auth) {
       if (!this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, requiredFeature)) {
         throw new ForbiddenException('هذه الميزة غير متاحة في باقتك الحالية. يرجى الترقية.');
       }
     }
 
-    // Super Admins have complete access to all granular system permissions within their allowed features
-    if (auth?.role === 'super_admin') {
+    if (isSuperAdmin) {
       return true;
     }
 
