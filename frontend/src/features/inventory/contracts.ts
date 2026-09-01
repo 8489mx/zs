@@ -2,7 +2,7 @@ import { damagedStockSchema, inventoryAdjustmentSchema, type DamagedStockOutput,
 
 export function buildInventoryAdjustmentPayload(values: InventoryAdjustmentOutput) {
   const parsed = inventoryAdjustmentSchema.parse(values);
-  return {
+  const payload: Record<string, unknown> = {
     productId: parsed.productId,
     actionType: parsed.actionType,
     qty: parsed.qty,
@@ -10,19 +10,25 @@ export function buildInventoryAdjustmentPayload(values: InventoryAdjustmentOutpu
     note: parsed.note || '',
     branchId: parsed.branchId || null,
     locationId: parsed.locationId || null,
-    managerPin: parsed.managerPin
   };
+  if (parsed.managerPin && parsed.managerPin.trim()) {
+    payload.managerPin = parsed.managerPin.trim();
+  }
+  return payload;
 }
 
 export function buildDamagedStockPayload(values: DamagedStockOutput) {
   const parsed = damagedStockSchema.parse(values);
-  return {
+  const payload: Record<string, unknown> = {
     productId: parsed.productId,
     qty: parsed.qty,
     reason: parsed.reason,
     note: parsed.note || '',
     branchId: parsed.branchId || null,
     locationId: parsed.locationId || null,
-    managerPin: parsed.managerPin
   };
+  if (parsed.managerPin && parsed.managerPin.trim()) {
+    payload.managerPin = parsed.managerPin.trim();
+  }
+  return payload;
 }

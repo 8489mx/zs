@@ -7,7 +7,6 @@ import { Button } from '@/shared/ui/button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
-import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import type { Branch, Location, Product } from '@/types/domain';
@@ -70,9 +69,6 @@ function hasDamagedDraft(values: DamagedStockInput, locations: Location[]): bool
 }
 
 export function InventoryActionsPanel({ products, selectedProduct = null, selectedProductToken = 0, branches, locations, locationStocks = [], isCatalogLoading, isCatalogError, catalogError, canManageInventory = true }: InventoryActionsPanelProps) {
-  const { user } = useAuthStore();
-  const isAdmin = isAdminUser(user);
-
   const adjustmentDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const damagedDisclosureRef = useRef<HTMLDetailsElement | null>(null);
   const lastPreparedAdjustmentTokenRef = useRef(0);

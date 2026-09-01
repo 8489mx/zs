@@ -1,4 +1,4 @@
-﻿name: Deploy to Oracle SaaS Server
+name: Deploy to Oracle SaaS Server
 
 on:
   push:
@@ -27,4 +27,7 @@ jobs:
           script_stop: true
           script: |
             echo "🚀 Starting automated deployment..."
+            cd /var/www/zsystems
+            git fetch origin main
+            git reset --hard origin/main
             /var/www/zsystems/update.sh

@@ -34,4 +34,8 @@ export class InventoryAdjustmentDto {
   @Type(() => Number)
   @IsNumber()
   locationId?: number;
+
+  @IsOptional()
+  @IsString()
+  managerPin?: string;
 }

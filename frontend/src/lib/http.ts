@@ -16,7 +16,7 @@ export class ApiError extends Error {
 
 export const APP_UNAUTHORIZED_EVENT = 'zsystems:unauthorized';
 export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 const LOCAL_SESSION_STORAGE_KEY = 'zs.localSessionId';
 export const AUTH_STATE_VERSION_KEY = 'zs.authStateVersion';
 export const AUTH_STATE_VERSION = '2';

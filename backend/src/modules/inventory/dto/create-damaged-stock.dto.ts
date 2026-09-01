@@ -30,4 +30,7 @@ export class CreateDamagedStockDto {
   @IsString()
   note!: string;
 
+  @IsOptional()
+  @IsString()
+  managerPin?: string;
 }
