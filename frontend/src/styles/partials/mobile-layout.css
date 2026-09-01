@@ -499,6 +499,11 @@
   color: #6d28d9;
 }
 
+.checker-icon {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
 .product-icon {
   background: #dcfce7;
   color: #15803d;
@@ -2259,6 +2264,808 @@
     gap: 8px !important;
   }
 }
+
+/* ==========================================================================
+   Quick Price & Stock Checker Modal Styling (فاحص الأسعار والمخزون)
+   ========================================================================== */
+.price-checker-modal {
+  padding: 16px;
+  direction: rtl;
+  text-align: right;
+}
+
+.price-checker-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.price-checker-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ffedd5;
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.price-checker-title {
+  margin: 0 0 2px 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.price-checker-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Search Bar */
+.price-checker-search-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.price-checker-input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.price-checker-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 36px 0 12px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.price-checker-input:focus {
+  background: #ffffff;
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+
+.price-checker-clear-btn {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.price-checker-btn-search {
+  height: 42px;
+  padding: 0 16px;
+  background: #ea580c;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.price-checker-btn-search:hover {
+  background: #c2410c;
+}
+
+.price-checker-btn-search:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.price-checker-btn-camera {
+  height: 42px;
+  padding: 0 14px;
+  background: #170c5c;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.price-checker-btn-camera:active {
+  transform: scale(0.96);
+  background: #312e81;
+}
+
+/* Card View */
+.price-checker-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.price-checker-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.price-checker-prod-name {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.price-checker-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.price-checker-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.price-checker-badge.barcode {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.price-checker-badge.sku {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.price-checker-badge.kind {
+  background: #fdf4ff;
+  color: #a21caf;
+}
+
+.price-checker-stock-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 10px;
+  min-width: 68px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.price-checker-stock-pill.in-stock {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.price-checker-stock-pill.low-stock {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.price-checker-stock-pill.out-of-stock {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.price-checker-stock-pill strong {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.price-checker-stock-pill span {
+  font-size: 9.5px;
+  font-weight: 700;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+/* Prices Grid */
+.price-checker-prices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.price-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.price-box.retail {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.price-box.wholesale {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.price-box.cost {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.price-box-label {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+
+.price-box-val {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.price-box-val small {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Sections in Card */
+.price-checker-section {
+  margin-bottom: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.price-checker-section-title {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.price-checker-units-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price-checker-unit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.price-checker-unit-row .unit-name {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.price-checker-unit-row .unit-price {
+  font-weight: 800;
+  color: #047857;
+}
+
+.price-checker-unit-row .unit-barcode {
+  font-size: 10.5px;
+  color: #64748b;
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Locations Grid */
+.price-checker-locations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+}
+
+.price-checker-loc-item {
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.price-checker-loc-item .loc-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.price-checker-loc-item .loc-qty {
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.price-checker-loc-item .loc-qty.has-stock {
+  color: #16a34a;
+}
+
+.price-checker-loc-item .loc-qty.zero-stock {
+  color: #94a3b8;
+}
+
+/* Card Actions */
+.price-checker-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.price-checker-btn-pos {
+  flex: 1.5;
+  height: 40px;
+  background: #170c5c;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.price-checker-btn-pos:active {
+  transform: scale(0.97);
+  background: #312e81;
+}
+
+.price-checker-btn-reset {
+  flex: 1;
+  height: 40px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.price-checker-btn-reset:hover {
+  background: #e2e8f0;
+}
+
+/* Multiple Results */
+.price-checker-results-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  margin: 0 0 8px 0;
+}
+
+.price-checker-results-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price-checker-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  text-align: right;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.price-checker-result-item:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.result-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.result-item-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.result-item-meta {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.result-item-end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.result-item-price {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.result-item-stock {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Initial & Empty State */
+.price-checker-initial-state,
+.price-checker-empty-state {
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.initial-scan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.initial-scan-card:hover {
+  background: #fff7ed;
+  border-color: #ea580c;
+}
+
+.initial-scan-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffedd5;
+  color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.initial-scan-card strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.initial-scan-card span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.price-checker-empty-state .empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.price-checker-empty-state h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.price-checker-empty-state p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.price-checker-spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ==========================================================================
+   Camera Capture & Attachment Upload Styling
+   ========================================================================== */
+.camera-capture-upload-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.camera-capture-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.camera-capture-buttons-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.camera-capture-btn {
+  flex: 1;
+  height: 38px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.camera-capture-btn.camera-primary {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.camera-capture-btn.camera-primary:active {
+  background: #dcfce7;
+  transform: scale(0.97);
+}
+
+.camera-capture-btn.camera-secondary {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.camera-capture-btn.camera-secondary:active {
+  background: #f1f5f9;
+  transform: scale(0.97);
+}
+
+.camera-capture-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.camera-capture-preview-img-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  flex-shrink: 0;
+}
+
+.camera-capture-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-capture-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.camera-capture-file-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.camera-capture-preview-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.camera-capture-btn-change {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #0284c7;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.camera-capture-btn-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #ef4444;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Sales Detail Mobile View & Smart Cards
+   ========================================================================== */
+.invoice-desktop-table {
+  display: block;
+}
+
+.invoice-mobile-items-list {
+  display: none;
+}
+
+.btn-whatsapp-share:hover {
+  background: #1ebc59 !important;
+}
+
+.btn-whatsapp-share:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 900px) {
+  .invoice-desktop-table {
+    display: none !important;
+  }
+
+  .invoice-mobile-items-list {
+    display: block !important;
+  }
+
+  .invoice-mobile-items-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+    margin: 0 0 8px 0;
+  }
+
+  .invoice-mobile-items-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .invoice-mobile-item-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 9px 12px;
+  }
+
+  .mobile-item-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .mobile-item-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+  }
+
+  .mobile-item-total {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #16a34a;
+    white-space: nowrap;
+  }
+
+  .mobile-item-card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    color: #64748b;
+  }
+
+  .mobile-item-unit {
+    background: #e2e8f0;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .mobile-item-calc {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .invoice-detail-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 6px !important;
+  }
+
+  .invoice-detail-actions .btn,
+  .invoice-detail-actions button {
+    flex: 1 !important;
+    min-height: 32px !important;
+    padding: 4px 8px !important;
+    font-size: 11.5px !important;
+    justify-content: center !important;
+  }
+}
+
+
 
 
 

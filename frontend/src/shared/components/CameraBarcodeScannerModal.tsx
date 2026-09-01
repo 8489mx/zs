@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { triggerHaptic } from '@/shared/utils/haptics';
 
 interface CameraBarcodeScannerModalProps {
   isOpen: boolean;
@@ -28,13 +29,7 @@ function playScanBeep() {
   } catch {
     // Ignore audio error
   }
-  if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    try {
-      navigator.vibrate(50);
-    } catch {
-      // Ignore vibration error
-    }
-  }
+  triggerHaptic('success');
 }
 
 export function CameraBarcodeScannerModal({
@@ -127,7 +122,7 @@ export function CameraBarcodeScannerModal({
         await html5QrCode.start(
           { facingMode: 'environment' },
           config,
-          (decodedText) => {
+          (decodedText: string) => {
             handleScanSuccess(decodedText);
           },
           () => {

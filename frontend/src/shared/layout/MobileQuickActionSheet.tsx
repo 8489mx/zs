@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { QuickProductModal } from '@/shared/components/QuickProductModal';
+import { PriceStockCheckerModal } from '@/shared/components/PriceStockCheckerModal';
+import { triggerHaptic } from '@/shared/utils/haptics';
 
 interface MobileQuickActionSheetProps {
   isOpen: boolean;
@@ -11,8 +13,10 @@ interface MobileQuickActionSheetProps {
 export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionSheetProps) {
   const navigate = useNavigate();
   const [quickProductOpen, setQuickProductOpen] = useState(false);
+  const [priceCheckerOpen, setPriceCheckerOpen] = useState(false);
 
   const handleAction = (callback: () => void) => {
+    triggerHaptic('selection');
     onClose();
     callback();
   };
@@ -46,6 +50,27 @@ export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionShe
               <div className="mobile-quick-action-text">
                 <strong>نقطة البيع (POS)</strong>
                 <span>كاشير وبيع مباشر سريع</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              className="mobile-quick-action-btn action-checker"
+              onClick={() => {
+                triggerHaptic('medium');
+                onClose();
+                setPriceCheckerOpen(true);
+              }}
+            >
+              <div className="mobile-quick-action-icon checker-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                  <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
+              </div>
+              <div className="mobile-quick-action-text">
+                <strong>فاحص الأسعار والمخزون</strong>
+                <span>مسح باركود ومعاينة الرصيد</span>
               </div>
             </button>
 
@@ -149,6 +174,13 @@ export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionShe
           onSuccess={() => {
             setQuickProductOpen(false);
           }}
+        />
+      )}
+
+      {priceCheckerOpen && (
+        <PriceStockCheckerModal
+          isOpen={priceCheckerOpen}
+          onClose={() => setPriceCheckerOpen(false)}
         />
       )}
     </>

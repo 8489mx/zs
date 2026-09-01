@@ -5,6 +5,7 @@ import { Field } from '@/shared/ui/field';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { SubmitButton } from '@/shared/components/submit-button';
+import { CameraCaptureUpload } from '@/shared/components/CameraCaptureUpload';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import type { Location } from '@/types/domain';
@@ -41,6 +42,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
 }) {
   const warehouseList = warehouses || locations || [];
   const [customPresets, setCustomPresets] = useState<string[]>([]);
+  const [receiptImage, setReceiptImage] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -148,11 +150,20 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
 
         <Field label="ملاحظات">
           <textarea
-            rows={3}
+            rows={2}
             value={expenseForm.note}
             onChange={(e) => setExpenseForm((current) => ({ ...current, note: e.target.value }))}
           />
         </Field>
+
+        <CameraCaptureUpload
+          label="إرفاق صورة إيصال / فاتورة المصروف"
+          previewUrl={receiptImage}
+          onFileSelect={(_file, preview) => {
+            setReceiptImage(preview || null);
+          }}
+          onRemove={() => setReceiptImage(null)}
+        />
 
         <MutationFeedback
           isError={expenseMutation.isError}
