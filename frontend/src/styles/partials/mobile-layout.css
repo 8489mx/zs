@@ -1170,37 +1170,44 @@
 }
 
 /* ==========================================================================
-   Camera Barcode Scanner Modal Styles (Mobile & PWA)
+   Z-ERP Luxury Barcode Scanner Styling (Native Mobile Experience)
    ========================================================================== */
-.camera-barcode-modal-backdrop {
+.z-scanner-backdrop {
   position: fixed !important;
   inset: 0 !important;
   z-index: 10050 !important;
-  background: rgba(0, 0, 0, 0.8) !important;
-  backdrop-filter: blur(8px) !important;
+  background: rgba(15, 23, 42, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 16px !important;
+  box-sizing: border-box !important;
 }
 
-.camera-barcode-modal-container {
+.z-scanner-card {
   background: #0f172a !important;
   color: #ffffff !important;
-  border-radius: 20px !important;
+  border-radius: 24px !important;
   width: 100% !important;
   max-width: 440px !important;
   overflow: hidden !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12) !important;
   display: flex !important;
   flex-direction: column !important;
-  animation: cameraModalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: zScannerScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative !important;
 }
 
-@keyframes cameraModalScaleIn {
+.z-scanner-card.is-success-flash {
+  box-shadow: 0 0 0 3px #22c55e, 0 25px 50px -12px rgba(34, 197, 94, 0.4) !important;
+}
+
+@keyframes zScannerScaleIn {
   from {
     opacity: 0;
-    transform: scale(0.94) translateY(12px);
+    transform: scale(0.95) translateY(8px);
   }
   to {
     opacity: 1;
@@ -1208,49 +1215,63 @@
   }
 }
 
-.camera-barcode-modal-header {
+.z-scanner-header {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
   padding: 14px 18px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-  background: #1e293b !important;
+  background: rgba(30, 41, 59, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  z-index: 10 !important;
 }
 
-.camera-barcode-modal-title-group {
+.z-scanner-title-wrap {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
 }
 
-.camera-barcode-modal-icon {
-  background: rgba(59, 130, 246, 0.2) !important;
-  color: #60a5fa !important;
-  width: 34px !important;
-  height: 34px !important;
+.z-scanner-logo-badge {
+  width: 36px !important;
+  height: 36px !important;
   border-radius: 10px !important;
+  background: linear-gradient(135deg, #170c5c 0%, #3b82f6 100%) !important;
+  color: #ffffff !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
 }
 
-.camera-barcode-modal-title-group h4 {
-  font-size: 15px !important;
-  font-weight: 700 !important;
+.z-scanner-titles {
+  display: flex !important;
+  flex-direction: column !important;
+  text-align: right !important;
+}
+
+.z-scanner-title {
   margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
   color: #f8fafc !important;
+  line-height: 1.2 !important;
 }
 
-.camera-barcode-modal-controls {
+.z-scanner-sub {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+}
+
+.z-scanner-header-actions {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
 }
 
-.camera-barcode-torch-btn {
-  background: rgba(255, 255, 255, 0.1) !important;
+.z-scanner-btn-torch {
+  background: rgba(255, 255, 255, 0.08) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
   border-radius: 50% !important;
   width: 36px !important;
   height: 36px !important;
@@ -1258,140 +1279,118 @@
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  transition: all 0.2s !important;
+  transition: all 0.15s ease !important;
 }
 
-.camera-barcode-torch-btn.active {
-  background: #eab308 !important;
-  color: #000000 !important;
-  border-color: #fde047 !important;
-  box-shadow: 0 0 14px rgba(234, 179, 8, 0.6) !important;
+.z-scanner-btn-torch.is-on {
+  background: #f59e0b !important;
+  color: #0f172a !important;
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.6) !important;
 }
 
-.camera-barcode-close-btn {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: none !important;
-  color: #cbd5e1 !important;
+.z-scanner-btn-close {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0 !important;
   border-radius: 50% !important;
   width: 36px !important;
   height: 36px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 16px !important;
+  font-size: 15px !important;
   cursor: pointer !important;
-  transition: background 0.2s !important;
+  transition: all 0.15s ease !important;
 }
 
-.camera-barcode-close-btn:hover {
-  background: rgba(239, 68, 68, 0.2) !important;
-  color: #ef4444 !important;
+.z-scanner-btn-close:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  color: #f87171 !important;
 }
 
-.camera-barcode-viewport-wrap {
+.z-scanner-viewport-wrap {
   position: relative !important;
   width: 100% !important;
-  aspect-ratio: 1 / 1 !important;
+  aspect-ratio: 4 / 3 !important;
   background: #020617 !important;
   overflow: hidden !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
 }
 
-.camera-barcode-video-target {
+.z-scanner-video-feed {
   width: 100% !important;
   height: 100% !important;
 }
 
-.camera-barcode-video-target video {
+.z-scanner-video-feed video {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
 }
 
-.camera-barcode-video-target canvas {
+.z-scanner-video-feed canvas,
+.z-scanner-video-feed #qr-shaded-region {
   display: none !important;
 }
 
-.camera-barcode-video-target #qr-shaded-region {
-  display: none !important;
-}
-
-.camera-barcode-overlay-target {
+/* Subtle Apple-style Viewfinder Overlay */
+.z-scanner-aim-frame {
   position: absolute !important;
-  width: 80% !important;
-  height: 52% !important;
+  top: 15% !important;
+  left: 10% !important;
+  right: 10% !important;
+  bottom: 15% !important;
   pointer-events: none !important;
-  border-radius: 14px !important;
-  z-index: 10 !important;
-  box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 0 0 2000px rgba(15, 23, 42, 0.45) !important;
 }
 
-@keyframes cameraLaserScan {
-  0% {
-    top: 8%;
-    opacity: 0.7;
-  }
-  50% {
-    top: 88%;
-    opacity: 1;
-  }
-  100% {
-    top: 8%;
-    opacity: 0.7;
-  }
-}
-
-.camera-barcode-laser {
+.z-aim-corner {
   position: absolute !important;
-  left: 6% !important;
-  right: 6% !important;
-  height: 2.5px !important;
-  background: linear-gradient(90deg, transparent, #22c55e, #4ade80, #22c55e, transparent) !important;
-  box-shadow: 0 0 14px #22c55e, 0 0 4px #4ade80 !important;
-  animation: cameraLaserScan 2s ease-in-out infinite !important;
-  border-radius: 2px !important;
-}
-
-.camera-barcode-corner {
-  position: absolute !important;
-  width: 24px !important;
-  height: 24px !important;
-  border-color: #3b82f6 !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-color: rgba(255, 255, 255, 0.85) !important;
   border-style: solid !important;
 }
 
-.corner-tl {
-  top: -2px !important;
-  left: -2px !important;
-  border-width: 4px 0 0 4px !important;
-  border-top-left-radius: 10px !important;
+.z-aim-corner.top-left {
+  top: 0 !important;
+  left: 0 !important;
+  border-width: 3.5px 0 0 3.5px !important;
+  border-top-left-radius: 12px !important;
 }
 
-.corner-tr {
-  top: -2px !important;
-  right: -2px !important;
-  border-width: 4px 4px 0 0 !important;
-  border-top-right-radius: 10px !important;
+.z-aim-corner.top-right {
+  top: 0 !important;
+  right: 0 !important;
+  border-width: 3.5px 3.5px 0 0 !important;
+  border-top-right-radius: 12px !important;
 }
 
-.corner-bl {
-  bottom: -2px !important;
-  left: -2px !important;
-  border-width: 0 0 4px 4px !important;
-  border-bottom-left-radius: 10px !important;
+.z-aim-corner.bottom-left {
+  bottom: 0 !important;
+  left: 0 !important;
+  border-width: 0 0 3.5px 3.5px !important;
+  border-bottom-left-radius: 12px !important;
 }
 
-.corner-br {
-  bottom: -2px !important;
-  right: -2px !important;
-  border-width: 0 4px 4px 0 !important;
-  border-bottom-right-radius: 10px !important;
+.z-aim-corner.bottom-right {
+  bottom: 0 !important;
+  right: 0 !important;
+  border-width: 0 3.5px 3.5px 0 !important;
+  border-bottom-right-radius: 12px !important;
 }
 
-.camera-barcode-status-layer,
-.camera-barcode-error-layer {
+.z-aim-center-line {
+  position: absolute !important;
+  top: 50% !important;
+  left: 15% !important;
+  right: 15% !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.z-scanner-overlay-state {
   position: absolute !important;
   inset: 0 !important;
   background: rgba(15, 23, 42, 0.95) !important;
@@ -1400,62 +1399,69 @@
   align-items: center !important;
   justify-content: center !important;
   gap: 12px !important;
-  padding: 24px !important;
+  padding: 20px !important;
   text-align: center !important;
-  z-index: 30 !important;
+  z-index: 25 !important;
 }
 
-.camera-barcode-spinner {
-  width: 40px !important;
-  height: 40px !important;
-  border: 3.5px solid rgba(255, 255, 255, 0.15) !important;
+.z-scanner-spinner {
+  width: 36px !important;
+  height: 36px !important;
+  border: 3px solid rgba(255, 255, 255, 0.15) !important;
   border-top-color: #3b82f6 !important;
   border-radius: 50% !important;
   animation: spin 0.8s linear infinite !important;
 }
 
-.camera-barcode-error-layer p {
-  color: #f87171 !important;
-  font-size: 13.5px !important;
-  line-height: 1.5 !important;
-  margin: 0 !important;
+.z-scanner-state-text {
+  font-size: 13px !important;
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
 }
 
-.camera-barcode-retry-btn {
+.z-scanner-error-icon {
+  font-size: 28px !important;
+}
+
+.z-scanner-error-text {
+  color: #f87171 !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.z-scanner-btn-dismiss {
   background: #ef4444 !important;
   color: #ffffff !important;
   border: none !important;
+  padding: 6px 18px !important;
   border-radius: 8px !important;
-  padding: 8px 20px !important;
-  font-size: 13px !important;
+  font-size: 12.5px !important;
   font-weight: 700 !important;
   cursor: pointer !important;
 }
 
-.camera-barcode-success-banner {
+.z-scanner-success-toast {
   position: absolute !important;
-  bottom: 14px !important;
-  left: 14px !important;
-  right: 14px !important;
-  background: rgba(15, 23, 42, 0.92) !important;
+  bottom: 12px !important;
+  left: 12px !important;
+  right: 12px !important;
+  background: #0f172a !important;
   border: 1.5px solid #22c55e !important;
-  color: #f0fdf4 !important;
-  padding: 9px 14px !important;
   border-radius: 12px !important;
-  font-size: 13.5px !important;
+  padding: 8px 12px !important;
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
-  z-index: 20 !important;
-  backdrop-filter: blur(8px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
-  animation: cameraBannerFade 0.2s ease-out !important;
+  gap: 10px !important;
+  z-index: 30 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  animation: zToastSlideUp 0.18s ease-out !important;
 }
 
-@keyframes cameraBannerFade {
+@keyframes zToastSlideUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -1463,38 +1469,84 @@
   }
 }
 
-.camera-barcode-modal-footer {
-  padding: 14px 18px !important;
+.z-success-icon {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: #22c55e !important;
+  color: #ffffff !important;
   display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-  background: #0f172a !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  flex-shrink: 0 !important;
 }
 
-.camera-barcode-footer-tip {
-  font-size: 12.5px !important;
+.z-success-text {
+  display: flex !important;
+  flex-direction: column !important;
+  text-align: right !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.z-success-text small {
+  font-size: 10.5px !important;
+  color: #86efac !important;
+}
+
+.z-success-text strong {
+  font-size: 14px !important;
+  color: #ffffff !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.z-scanner-footer {
+  padding: 12px 16px !important;
+  background: #0f172a !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.z-scanner-hint {
+  margin: 0 !important;
+  font-size: 12px !important;
   color: #94a3b8 !important;
   text-align: center !important;
 }
 
-.camera-barcode-continuous-toggle {
+.z-scanner-continuous-switch {
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
-  font-size: 13px !important;
-  color: #cbd5e1 !important;
+  justify-content: center !important;
+  gap: 8px !important;
   cursor: pointer !important;
-  padding: 6px 10px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-radius: 8px !important;
+  user-select: none !important;
 }
 
-.camera-barcode-continuous-toggle input[type="checkbox"] {
+.z-scanner-continuous-switch input {
   width: 16px !important;
   height: 16px !important;
-  accent-color: #2563eb !important;
-  cursor: pointer !important;
+  accent-color: #3b82f6 !important;
+}
+
+.switch-label {
+  font-size: 12px !important;
+  color: #cbd5e1 !important;
+  font-weight: 600 !important;
+}
+
+/* Dashboard Desktop Header Actions hiding on mobile */
+@media (max-width: 900px) {
+  .dashboard-header-actions {
+    display: none !important;
+  }
 }
 
 /* ==========================================================================

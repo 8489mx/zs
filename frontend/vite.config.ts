@@ -14,6 +14,28 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
+      manifest: {
+        name: 'Z-ERP - منظومة إدارة الأعمال',
+        short_name: 'Z-ERP',
+        description: 'نظام إدارة المبيعات ونقاط البيع والمخزون والحسابات المتكامل',
+        theme_color: '#170c5c',
+        background_color: '#0f172a',
+        display: 'standalone',
+        display_override: ['standalone', 'window-controls-overlay', 'minimal-ui'],
+        orientation: 'any',
+        start_url: '/',
+        scope: '/',
+        lang: 'ar',
+        dir: 'rtl',
+        icons: [
+          {
+            src: '/logo.png',
+            sizes: '192x192 512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
