@@ -55,8 +55,9 @@ export function CameraBarcodeScannerModal({
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerIdRef = useRef(`z-scanner-${Math.random().toString(36).substring(2, 9)}`);
-  const lastScanTimeRef = useRef<number>(0);
   const isMountedRef = useRef(true);
+  const lastScanTimeRef = useRef<number>(0);
+  const nativeDetectorTimerRef = useRef<any>(null);
 
   const handleScanSuccess = useCallback((decodedText: string) => {
     const raw = String(decodedText || '').trim();
@@ -80,6 +81,10 @@ export function CameraBarcodeScannerModal({
   }, [isContinuousMode, lastScanned, onClose, onScan]);
 
   const stopCurrentScanner = useCallback(async () => {
+    if (nativeDetectorTimerRef.current) {
+      clearInterval(nativeDetectorTimerRef.current);
+      nativeDetectorTimerRef.current = null;
+    }
     if (scannerRef.current) {
       try {
         if (scannerRef.current.isScanning) {
@@ -129,11 +134,22 @@ export function CameraBarcodeScannerModal({
       });
       scannerRef.current = html5QrCode;
 
-      // Query available video devices
+      // Query available video devices and ensure REAR/BACK camera is always first!
       let cameras: Array<{ id: string; label: string }> = [];
       try {
         cameras = await Html5Qrcode.getCameras();
         if (cameras && cameras.length > 0) {
+          const rearCameras = cameras.filter((c) =>
+            /back|rear|environment|main|primary|wide|خلف/i.test(c.label)
+          );
+          const frontCameras = cameras.filter((c) =>
+            /front|user|selfie|face|أمام/i.test(c.label)
+          );
+          const otherCameras = cameras.filter(
+            (c) => !rearCameras.includes(c) && !frontCameras.includes(c)
+          );
+          const sorted = [...rearCameras, ...otherCameras, ...frontCameras];
+          cameras = sorted.length > 0 ? sorted : cameras;
           setAvailableCameras(cameras);
         }
       } catch (camErr) {
@@ -141,7 +157,7 @@ export function CameraBarcodeScannerModal({
       }
 
       const scanConfig: any = {
-        fps: 15,
+        fps: 10,
         videoConstraints: {
           facingMode: { ideal: 'environment' },
           width: { min: 640, ideal: 1280, max: 1920 },
@@ -153,12 +169,23 @@ export function CameraBarcodeScannerModal({
         disableFlip: true,
       };
 
-      // Determine camera selector with intelligent fallback
+      // Always default to REAR/BACK camera
       let cameraToUse: any = { facingMode: 'environment' };
 
       if (cameras && cameras.length > 0) {
-        const safeIdx = camIndex % cameras.length;
-        cameraToUse = cameras[safeIdx].id;
+        if (camIndex === 0) {
+          const explicitBack = cameras.find((c) =>
+            /back|rear|environment|main|wide|خلف/i.test(c.label)
+          );
+          if (explicitBack) {
+            cameraToUse = explicitBack.id;
+          } else {
+            cameraToUse = { facingMode: 'environment' };
+          }
+        } else {
+          const safeIdx = camIndex % cameras.length;
+          cameraToUse = cameras[safeIdx].id;
+        }
       }
 
       await html5QrCode.start(
@@ -171,6 +198,42 @@ export function CameraBarcodeScannerModal({
           // Frame scan error - ignore normal stream noise
         }
       );
+
+      // Fast native BarcodeDetector background loop for instant recognition
+      if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+        try {
+          const detector = new (window as any).BarcodeDetector({
+            formats: [
+              'ean_13',
+              'ean_8',
+              'code_128',
+              'code_39',
+              'upc_a',
+              'upc_e',
+              'qr_code',
+              'itf',
+              'data_matrix',
+            ],
+          });
+
+          const videoEl = scannerEl.querySelector('video');
+          if (videoEl) {
+            nativeDetectorTimerRef.current = setInterval(async () => {
+              if (!isMountedRef.current) return;
+              try {
+                if (videoEl.readyState >= 2) {
+                  const detected = await detector.detect(videoEl);
+                  if (detected && detected.length > 0 && detected[0]?.rawValue) {
+                    handleScanSuccess(detected[0].rawValue);
+                  }
+                }
+              } catch {}
+            }, 100);
+          }
+        } catch (e) {
+          console.warn('Native BarcodeDetector setup skipped:', e);
+        }
+      }
 
       if (isMountedRef.current) {
         setIsInitializing(false);

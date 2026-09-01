@@ -24,16 +24,19 @@
     top: 0 !important;
     bottom: 0 !important;
     right: 0 !important;
-    width: 280px !important;
-    min-width: 280px !important;
+    width: 290px !important;
+    min-width: 290px !important;
     max-width: 85vw !important;
     z-index: 1000 !important;
     transform: translateX(100%) !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    height: 100dvh !important;
+    height: 100% !important;
+    min-height: 100dvh !important;
     background: #ffffff !important;
     box-shadow: none !important;
     padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
     scrollbar-width: none !important;
     -webkit-overflow-scrolling: touch !important;
   }
@@ -52,14 +55,78 @@
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.35) !important;
   }
 
-  .app-layout .sidebar-fixed .brand,
-  .app-layout.sidebar-collapsed .sidebar-fixed .brand {
-    padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
-  }
-
   [dir="ltr"] .app-layout .sidebar-fixed.is-mobile-open,
   [dir="ltr"] .app-layout.sidebar-collapsed .sidebar-fixed.is-mobile-open {
     transform: translateX(0) !important;
+  }
+
+  /* Mobile Brand Header - clean separation from status bar and search */
+  .app-layout .sidebar-fixed .brand,
+  .app-layout.sidebar-collapsed .sidebar-fixed .brand,
+  .sidebar-collapsed .brand {
+    padding-top: calc(18px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 14px !important;
+    padding-inline: 16px !important;
+    display: flex !important;
+    flex-direction: row-reverse !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    margin-bottom: 4px !important;
+    background: transparent !important;
+    height: auto !important;
+    min-height: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .brand-logo {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .brand-logo-img {
+    width: 40px !important;
+    height: 40px !important;
+    object-fit: contain !important;
+  }
+
+  /* Mobile Search Wrapper - sits comfortably below the brand with clean margins */
+  .app-layout .sidebar-fixed .sidebar-search-wrapper,
+  .sidebar-collapsed .sidebar-search-wrapper {
+    padding: 0 16px 12px !important;
+    margin-top: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    z-index: 10 !important;
+  }
+
+  .app-layout .sidebar-fixed .sidebar-search-pill,
+  .sidebar-collapsed .sidebar-search-pill {
+    width: 100% !important;
+    height: 40px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-layout .sidebar-fixed .sidebar-search-input,
+  .sidebar-collapsed .sidebar-search-input {
+    display: block !important;
+    font-size: 13px !important;
+    width: 100% !important;
   }
 
   /* Force all sidebar elements, labels and brand to be visible in the mobile drawer */
@@ -76,28 +143,11 @@
     display: block !important;
   }
 
-  .sidebar-collapsed .sidebar-search-input {
-    display: block !important;
-  }
-
-  .sidebar-collapsed .sidebar-search-pill {
-    width: 100% !important;
-  }
-
-  .sidebar-collapsed .sidebar-search-wrapper {
-    padding: 0 12px !important;
-  }
-
   .sidebar-collapsed .sidebar-group-trigger,
   .sidebar-collapsed .sidebar-link {
     justify-content: flex-start !important;
     padding: 9px 12px !important;
     width: 100% !important;
-  }
-
-  .sidebar-collapsed .brand {
-    padding: 12px 14px !important;
-    justify-content: space-between !important;
   }
 
   .sidebar-collapsed .sidebar-footer,
@@ -126,11 +176,19 @@
   }
 
   .sidebar-mobile-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.4);
-    backdrop-filter: blur(4px);
-    z-index: 999;
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 100% !important;
+    min-height: 100dvh !important;
+    background: rgba(15, 23, 42, 0.4) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    z-index: 999 !important;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
@@ -147,8 +205,8 @@
   }
 
   .content-wrap {
-    padding: 12px 10px;
-    padding-bottom: 24px !important;
+    padding: 10px 8px !important;
+    padding-bottom: 0 !important;
   }
 }
 
@@ -328,9 +386,9 @@
 @media (max-width: 900px) {
   .mobile-bottom-nav {
     position: fixed !important;
-    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
-    left: 12px !important;
-    right: 12px !important;
+    bottom: 8px !important;
+    left: 10px !important;
+    right: 10px !important;
     margin: 0 auto !important;
     max-width: 440px !important;
     height: 52px !important;
@@ -791,7 +849,7 @@
     min-width: 0 !important;
     box-sizing: border-box !important;
     gap: 12px !important;
-    padding-bottom: 24px !important;
+    padding-bottom: 0 !important;
   }
 
   .document-prototype-section,
