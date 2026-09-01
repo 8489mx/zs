@@ -1,0 +1,30 @@
+﻿name: Deploy to Oracle SaaS Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-oracle-saas
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Oracle Cloud VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: SSH and Update Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 92.5.178.54
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            echo "🚀 Starting automated deployment..."
+            /var/www/zsystems/update.sh
