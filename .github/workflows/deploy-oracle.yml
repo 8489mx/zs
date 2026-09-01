@@ -27,7 +27,42 @@ jobs:
           script_stop: true
           script: |
             echo "🚀 Starting automated deployment..."
-            cd /var/www/zsystems
+            
+            TARGET_DIR=""
+            for dir in "/var/www/zsystems" "/var/www/zs" "/home/ubuntu/zsystems" "/home/ubuntu/zs" "/home/ubuntu/z-systems"; do
+              if [ -d "$dir" ]; then
+                TARGET_DIR="$dir"
+                break
+              fi
+            done
+
+            if [ -z "$TARGET_DIR" ]; then
+              echo "⚠️ Target directory not found. Creating /var/www/zsystems..."
+              TARGET_DIR="/var/www/zsystems"
+              sudo mkdir -p "$TARGET_DIR"
+              sudo chown -R ubuntu:ubuntu "$TARGET_DIR"
+            fi
+
+            echo "📂 Working directory: $TARGET_DIR"
+            cd "$TARGET_DIR"
+            git config --global --add safe.directory "$TARGET_DIR" || true
+
+            if [ ! -d ".git" ]; then
+              echo "⚙️ Initializing git repository..."
+              git init
+              git remote add origin https://github.com/8489mx/zs.git 2>/dev/null || git remote set-url origin https://github.com/8489mx/zs.git
+            fi
+
+            echo "📥 Fetching latest code from origin/main..."
             git fetch origin main
             git reset --hard origin/main
-            /var/www/zsystems/update.sh
+
+            if [ -f "./update.sh" ]; then
+              chmod +x ./update.sh
+              ./update.sh
+            elif [ -f "/var/www/zsystems/update.sh" ]; then
+              chmod +x /var/www/zsystems/update.sh
+              /var/www/zsystems/update.sh
+            fi
+
+            echo "✅ Deployment finished successfully!"
