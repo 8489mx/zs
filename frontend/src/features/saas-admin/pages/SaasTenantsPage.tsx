@@ -39,9 +39,22 @@ function statusBadgeClass(status: SaasTenantStatus): string {
   return 'tenant-status-pill';
 }
 
+function isPlatformTenantRow(row: SaasTenantRow, platformTenantId: string, currentTenantId?: string): boolean {
+  const rowId = String(row.id || '').trim();
+  const rowSlug = String(row.slug || '').trim().toLowerCase();
+  return (
+    rowId === 'default' ||
+    rowId === platformTenantId ||
+    (Boolean(currentTenantId) && rowId === currentTenantId) ||
+    rowSlug === 'default' ||
+    rowSlug === 'karimzakaria-demo'
+  );
+}
+
 interface TenantActionsMenuProps {
   row: SaasTenantRow;
   platformTenantId: string;
+  currentTenantId?: string;
   onImpersonate: (id: string, name: string) => void;
   isImpersonating: boolean;
   onShowDetails: (id: string) => void;
@@ -60,6 +73,7 @@ interface TenantActionsMenuProps {
 function TenantActionsMenu({
   row,
   platformTenantId,
+  currentTenantId,
   onImpersonate,
   isImpersonating,
   onShowDetails,
@@ -75,29 +89,35 @@ function TenantActionsMenu({
   onDelete,
 }: TenantActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const isPlatform = String(row.id || '').trim() === platformTenantId;
+  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
 
   const toggleDropdown = () => {
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const dropdownWidth = 230;
-      const dropdownHeight = 370;
+      const spaceBelow = window.innerHeight - rect.bottom - 16;
+      const spaceAbove = rect.top - 16;
       
-      let top = rect.bottom + 6;
-      let left = rect.left;
-      
-      if (top + dropdownHeight > window.innerHeight && rect.top > dropdownHeight) {
-        top = rect.top - dropdownHeight - 6;
-      }
-      
-      if (left + dropdownWidth > window.innerWidth - 10) {
-        left = window.innerWidth - dropdownWidth - 10;
-      }
-      if (left < 10) left = 10;
+      let top: number;
+      let maxHeight: number;
 
-      setDropdownPos({ top, left });
+      if (spaceBelow < 280 && spaceAbove > spaceBelow) {
+        maxHeight = Math.min(340, Math.max(160, spaceAbove));
+        top = Math.max(10, rect.top - maxHeight - 6);
+      } else {
+        top = rect.bottom + 6;
+        maxHeight = Math.min(340, Math.max(160, spaceBelow));
+      }
+      
+      let left = rect.left;
+      if (left + dropdownWidth > window.innerWidth - 12) {
+        left = window.innerWidth - dropdownWidth - 12;
+      }
+      if (left < 12) left = 12;
+
+      setDropdownPos({ top, left, maxHeight });
       setIsOpen(true);
     } else {
       setIsOpen(false);
@@ -121,7 +141,28 @@ function TenantActionsMenu({
   }, [isOpen]);
 
   if (isPlatform) {
-    return <span className="muted small">نسخة المنصة الرئيسية</span>;
+    return (
+      <div className="tenant-actions-cell">
+        <button
+          type="button"
+          className="button button-secondary"
+          style={{ padding: '5px 9px', fontSize: '12px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+          onClick={() => onShowDetails(row.id)}
+          title="سجل النشاط وتفاصيل النسخة الرئيسية"
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span>سجل النشاط</span>
+        </button>
+        <span style={{ fontSize: '11px', color: '#5b21b6', fontWeight: 800, padding: '3px 8px', background: '#f5f3ff', borderRadius: '6px', border: '1px solid #ddd6fe', whiteSpace: 'nowrap' }}>
+          نسخة المنصة (محمية)
+        </span>
+      </div>
+    );
   }
 
   return (
@@ -195,9 +236,10 @@ function TenantActionsMenu({
             position: 'fixed',
             top: `${dropdownPos.top}px`,
             left: `${dropdownPos.left}px`,
+            maxHeight: `${dropdownPos.maxHeight}px`,
             zIndex: 100000,
-            maxHeight: '80vh',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
           }}
         >
           <div className="tenant-actions-group-title">الاشتراك والفوترة</div>
@@ -437,12 +479,14 @@ export function SaasTenantsPage() {
 
   const resetOwnerPasswordMutation = useMutation({
     mutationFn: (input: { tenantId: string; tenantName: string; newPassword?: string }) =>
-      saasAdminApi.resetOwnerPassword(input.tenantId, input.newPassword).then((res) => ({ ...res, tenantName: input.tenantName })),
-    onSuccess: async (payload) => {
+      saasAdminApi.resetOwnerPassword(input.tenantId, input.newPassword).then((res: any) => ({ ...res, tenantName: input.tenantName })),
+    onSuccess: async (payload: any) => {
+      const username = String(payload?.username || payload?.owner?.username || '');
+      const temporaryPassword = String(payload?.password || payload?.temporaryPassword || payload?.owner?.temporaryPassword || '');
       setOwnerResetResult({
         tenantName: payload.tenantName,
-        username: payload.owner.username,
-        temporaryPassword: payload.owner.temporaryPassword,
+        username,
+        temporaryPassword,
       });
       setFeedback('تمت إعادة كلمة مرور مالك النسخة بنجاح.');
       await invalidateTenants();
@@ -612,34 +656,47 @@ export function SaasTenantsPage() {
                 header: 'النشاط والمعرف',
                 sortable: true,
                 sortValue: (row) => row.businessName || row.slug,
-                render: (row) => (
-                  <div style={{ minWidth: '150px' }}>
-                    <button 
-                      type="button" 
-                      className="tenant-name-btn"
-                      onClick={() => setDetailsTenantId(row.id)}
-                      title="عرض تفاصيل وسجل النشاط"
-                    >
-                      {row.businessName || row.slug}
-                    </button>
-                    <div className="tenant-slug-badge">
-                      <span>slug:</span>
-                      <strong>{row.slug}</strong>
+                render: (row) => {
+                  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
+                  return (
+                    <div style={{ minWidth: '150px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button 
+                          type="button" 
+                          className="tenant-name-btn"
+                          onClick={() => setDetailsTenantId(row.id)}
+                          title="عرض تفاصيل وسجل النشاط"
+                        >
+                          {row.businessName || row.slug}
+                        </button>
+                        {isPlatform && (
+                          <span style={{ fontSize: '10.5px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                            المنصة الرئيسية
+                          </span>
+                        )}
+                      </div>
+                      <div className="tenant-slug-badge">
+                        <span>slug:</span>
+                        <strong>{row.slug}</strong>
+                      </div>
                     </div>
-                  </div>
-                ),
+                  );
+                },
               },
               {
                 id: 'owner',
                 header: 'المالك والمستخدم',
                 sortable: true,
                 sortValue: (row) => row.ownerName,
-                render: (row) => (
-                  <div style={{ minWidth: '120px' }}>
-                    <strong style={{ fontSize: '13px', color: '#0f172a' }}>{row.ownerName}</strong>
-                    <div className="muted small">@{row.ownerUsername}</div>
-                  </div>
-                ),
+                render: (row) => {
+                  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
+                  return (
+                    <div style={{ minWidth: '120px' }}>
+                      <strong style={{ fontSize: '13px', color: '#0f172a' }}>{row.ownerName || 'المسؤول'}</strong>
+                      <div className="muted small">{isPlatform ? 'حساب المالك الرئيسي' : `@${row.ownerUsername || 'admin'}`}</div>
+                    </div>
+                  );
+                },
               },
               {
                 id: 'phone',
@@ -662,41 +719,78 @@ export function SaasTenantsPage() {
               {
                 id: 'billing',
                 header: 'الاشتراك والباقة',
-                render: (row) => (
-                  <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className="tenant-plan-badge">{row.planName || 'بدون باقة'}</span>
-                    <span className="muted small" style={{ fontSize: '11px' }}>
-                      {row.subscriptionStatus === 'active' ? '● اشتراك نشط' : row.subscriptionStatus === 'past_due' ? '● فترة سماح' : row.subscriptionStatus || '-'}
-                    </span>
-                  </div>
-                ),
+                render: (row) => {
+                  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
+                  if (isPlatform) {
+                    return (
+                      <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className="tenant-plan-badge" style={{ background: '#f5f3ff', color: '#6b21a8', border: '1px solid #ddd6fe', fontWeight: 800 }}>
+                          حساب المؤسس (وصول شامل)
+                        </span>
+                        <span className="muted small" style={{ color: '#059669', fontSize: '11px', fontWeight: 700 }}>
+                          ● نسخة المالك غير خاضعة لباقات
+                        </span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span className="tenant-plan-badge">{row.planName || 'بدون باقة'}</span>
+                      <span className="muted small" style={{ fontSize: '11px' }}>
+                        {row.subscriptionStatus === 'active' ? '● اشتراك نشط' : row.subscriptionStatus === 'past_due' ? '● فترة سماح' : row.subscriptionStatus || '-'}
+                      </span>
+                    </div>
+                  );
+                },
               },
               {
                 id: 'dates',
                 header: 'صلاحية الاشتراك',
-                render: (row) => (
-                  <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600 }}>
-                      {row.subscriptionEndDate ? `ينتهي: ${formatDate(row.subscriptionEndDate)}` : '-'}
-                    </span>
-                    {row.graceEndDate && (
-                      <span className="muted small" style={{ color: '#d97706', fontSize: '11px' }}>
-                        سماح لغاية: {formatDate(row.graceEndDate)}
+                render: (row) => {
+                  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
+                  if (isPlatform) {
+                    return (
+                      <div style={{ minWidth: '130px' }}>
+                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#059669' }}>
+                          مدى الحياة (دائم) ∞
+                        </span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600 }}>
+                        {row.subscriptionEndDate ? `ينتهي: ${formatDate(row.subscriptionEndDate)}` : '-'}
                       </span>
-                    )}
-                  </div>
-                ),
+                      {row.graceEndDate && (
+                        <span className="muted small" style={{ color: '#d97706', fontSize: '11px' }}>
+                          سماح لغاية: {formatDate(row.graceEndDate)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                },
               },
               {
                 id: 'status',
                 header: 'الحالة',
                 sortable: true,
                 sortValue: (row) => row.status,
-                render: (row) => (
-                  <span className={statusBadgeClass(row.status)}>
-                    {statusLabel(row.status)}
-                  </span>
-                ),
+                render: (row) => {
+                  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
+                  if (isPlatform) {
+                    return (
+                      <span className="tenant-status-pill active" style={{ background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#6d28d9', fontWeight: 800 }}>
+                        النسخة الرئيسية
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className={statusBadgeClass(row.status)}>
+                      {statusLabel(row.status)}
+                    </span>
+                  );
+                },
               },
               {
                 id: 'trial',
@@ -704,6 +798,10 @@ export function SaasTenantsPage() {
                 sortable: true,
                 sortValue: (row) => row.trialEndsAt || '',
                 render: (row) => {
+                  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
+                  if (isPlatform) {
+                    return <span className="muted small">-</span>;
+                  }
                   const days = row.trialDaysRemaining;
                   const isTrial = row.status === 'trial';
                   return (
@@ -725,6 +823,7 @@ export function SaasTenantsPage() {
                   <TenantActionsMenu
                     row={row}
                     platformTenantId={platformTenantId}
+                    currentTenantId={currentTenantId}
                     isImpersonating={impersonateMutation.isPending}
                     onImpersonate={(id, name) => {
                       if (window.confirm(`هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`)) {

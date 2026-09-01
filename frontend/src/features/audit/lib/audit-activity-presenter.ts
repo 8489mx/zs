@@ -103,6 +103,16 @@ const ACTION_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /(تسوية طلب توصيل|settle delivery order)/i, label: 'تسوية طلب توصيل' },
   { pattern: /(تسوية كل الطلبات|settle all delivery orders)/i, label: 'تسوية كل طلبات التوصيل' },
 
+  // SaaS & Tenants & Passwords
+  { pattern: /(إعادة كلمة مرور|reset owner password|reset password|كلمة مرور)/i, label: 'إعادة كلمة المرور' },
+  { pattern: /(إنشاء نسخة تجريبية|create trial tenant|create tenant|إنشاء نسخة)/i, label: 'إنشاء نسخة تجريبية' },
+  { pattern: /(تعديل خطة اشتراك|update plan|تحديث باقة)/i, label: 'تعديل باقة الاشتراك' },
+  { pattern: /(تجديد اشتراك|renew tenant)/i, label: 'تجديد اشتراك' },
+  { pattern: /(تسجيل دفعة|record payment)/i, label: 'تسجيل دفعة مالية' },
+  { pattern: /(تمديد تجربة|extend trial)/i, label: 'تمديد الفترة التجريبية' },
+  { pattern: /(إيقاف نسخة|suspend tenant)/i, label: 'إيقاف النسخة مؤقتاً' },
+  { pattern: /(حذف نسخة|delete tenant)/i, label: 'حذف نسخة سحابية' },
+
   // System & Settings
   { pattern: /(backup created|نسخ احتياطي|backup)/i, label: 'نسخة احتياطية' },
   { pattern: /(branch created|إضافة فرع)/i, label: 'إضافة فرع' },
@@ -111,14 +121,14 @@ const ACTION_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
 ];
 
 const TYPE_META: Record<AuditActivityType, ActivityMeta> = {
-  auth: { type: 'auth', label: 'دخول وخروج', badgeClass: 'audit-badge-auth' },
+  auth: { type: 'auth', label: 'أمان ودخول', badgeClass: 'audit-badge-auth' },
   maintenance: { type: 'maintenance', label: 'صيانة', badgeClass: 'audit-badge-maintenance' },
   import: { type: 'import', label: 'استيراد', badgeClass: 'audit-badge-import' },
   inventory: { type: 'inventory', label: 'مخزون', badgeClass: 'audit-badge-inventory' },
-  sales: { type: 'sales', label: 'مبيعات', badgeClass: 'audit-badge-sales' },
+  sales: { type: 'sales', label: 'مبيعات ومدفوعات', badgeClass: 'audit-badge-sales' },
   purchases: { type: 'purchases', label: 'مشتريات', badgeClass: 'audit-badge-purchases' },
-  hr: { type: 'hr', label: 'موظفين', badgeClass: 'audit-badge-hr' },
-  settings: { type: 'settings', label: 'إعدادات', badgeClass: 'audit-badge-settings' },
+  hr: { type: 'hr', label: 'موارد بشرية', badgeClass: 'audit-badge-hr' },
+  settings: { type: 'settings', label: 'منظومة وإعدادات', badgeClass: 'audit-badge-settings' },
   backup: { type: 'backup', label: 'نسخ احتياطي', badgeClass: 'audit-badge-backup' },
   sensitive: { type: 'sensitive', label: 'عمليات حساسة', badgeClass: 'audit-badge-sensitive' },
   general: { type: 'general', label: 'عام', badgeClass: 'audit-badge-general' },
@@ -149,16 +159,16 @@ export function getAuditActionLabel(action: string): string {
 function detectType(row: AuditLog): AuditActivityType {
   const text = readCombinedText(row);
 
-  if (/(login|logout|session|تسجيل دخول|تسجيل خروج)/i.test(text)) return 'auth';
+  if (/(login|logout|session|password|كلمة مرور|تسجيل دخول|تسجيل خروج)/i.test(text)) return 'auth';
   if (/(maintenance|ticket|صيانة|تذكرة)/i.test(text)) return 'maintenance';
   if (/(import|استيراد|csv|excel)/i.test(text)) return 'import';
   if (/(backup|نسخ احتياطي)/i.test(text)) return 'backup';
   if (/(attendance|موظف|hr|حضور|انصراف|سلفة|رواتب|payroll|leave|إجازة)/i.test(text)) return 'hr';
-  if (/(settings|إعدادات|branch|location|فرع|مخزن)/i.test(text)) return 'settings';
-  if (/(delete|remove|حذف|إلغاء|إبطال|revoke)/i.test(text)) return 'sensitive';
+  if (/(delete|remove|حذف|إلغاء|إبطال|revoke|إيقاف)/i.test(text)) return 'sensitive';
+  if (/(tenant|slug|نسخة|مستأجر|اشتراك|باقة|plan|settings|إعدادات|branch|location|فرع|مخزن)/i.test(text)) return 'settings';
   if (/(inventory|stock|مخزون|جرد|صنف|تالف|category|تصنيف)/i.test(text)) return 'inventory';
   if (/(purchase|supplier|مشتريات|مورد)/i.test(text)) return 'purchases';
-  if (/(sale|invoice|customer|مبيعات|فاتورة|عميل|مندوب)/i.test(text)) return 'sales';
+  if (/(payment|sale|invoice|customer|مبيعات|فاتورة|عميل|مندوب|دفعة)/i.test(text)) return 'sales';
   return 'general';
 }
 
@@ -167,8 +177,14 @@ export function getAuditActivityMeta(row: AuditLog): ActivityMeta {
 }
 
 export function normalizeAuditDetailText(detailText: string): string {
-  const raw = String(detailText || '').trim();
+  let raw = String(detailText || '').trim();
   if (!raw) return '—';
+
+  // Strip raw UUIDs and redundant trailing actor text
+  raw = raw.replace(/\s*\([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\)/g, '');
+  raw = raw.replace(/\s*\([0-9a-fA-F-]{36}\)/g, '');
+  raw = raw.replace(/\s*بواسطة:\s*[a-zA-Z0-9_.-]+$/gi, '');
+  raw = raw.trim();
 
   // 1. Maintenance ticket status change
   const ticketStatusMatch = raw.match(/Updated ticket\s+([A-Za-z0-9_-]+)\s+status to\s+([A-Za-z0-9_]+)/i);

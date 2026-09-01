@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function AppCloseGuard() {
   const [isOpen, setIsOpen] = useState(false);
+  const isAuthenticated = useAuthStore((state) => Boolean(state.user));
 
   useEffect(() => {
+    // 1. Electron Desktop App Guard
     const electronRuntime = (window as any).electronRuntime;
     if (electronRuntime && typeof electronRuntime.onShowCustomCloseDialog === 'function') {
       const unsubscribe = electronRuntime.onShowCustomCloseDialog(() => {
@@ -14,7 +17,21 @@ export function AppCloseGuard() {
         unsubscribe();
       };
     }
-  }, []);
+
+    // 2. Web Browser & PWA Tab / Window Close Guard
+    if (isAuthenticated) {
+      const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [isAuthenticated]);
 
   const handleConfirmClose = () => {
     setIsOpen(false);

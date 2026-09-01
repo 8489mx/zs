@@ -722,7 +722,16 @@ export class SaasAdminService {
       .execute();
 
     await this.audit.log('إعادة كلمة مرور مالك النسخة', `تمت إعادة كلمة مرور مالك النسخة ${tenant.slug} (${tenant.id}) - المستخدم: ${owner.username}`, auth, { targetTenantId: tenant.id });
-    return { ok: true, password: finalPassword, username: owner.username };
+    return {
+      ok: true,
+      password: finalPassword,
+      username: owner.username,
+      owner: {
+        username: owner.username,
+        temporaryPassword: finalPassword,
+        mustChangePassword: !isCustomPassword,
+      },
+    };
   }
 
   async deleteTenant(id: string, auth: AuthContext): Promise<{ ok: boolean }> {

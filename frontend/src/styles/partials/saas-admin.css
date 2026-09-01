@@ -185,6 +185,27 @@
   flex-direction: column;
   gap: 2px;
   animation: dropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 #f8fafc !important;
+}
+
+.tenant-actions-dropdown::-webkit-scrollbar {
+  display: block !important;
+  width: 5px !important;
+}
+
+.tenant-actions-dropdown::-webkit-scrollbar-track {
+  background: #f8fafc !important;
+  border-radius: 4px !important;
+}
+
+.tenant-actions-dropdown::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+
+.tenant-actions-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
 }
 
 @keyframes dropdownFadeIn {
