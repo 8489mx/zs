@@ -153,7 +153,9 @@
   .sidebar-collapsed .sidebar-footer,
   .sidebar-footer {
     display: flex !important;
-    padding: 10px 14px !important;
+    padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    background: #ffffff !important;
+    margin-top: auto !important;
   }
 
   /* Hide desktop-only collapse button on mobile drawer */
@@ -184,6 +186,8 @@
     right: 0 !important;
     width: 100vw !important;
     height: 100% !important;
+    height: 100dvh !important;
+    min-height: 100% !important;
     min-height: 100dvh !important;
     background: rgba(15, 23, 42, 0.4) !important;
     backdrop-filter: blur(4px) !important;
@@ -206,7 +210,8 @@
 
   .content-wrap {
     padding: 10px 8px !important;
-    padding-bottom: 0 !important;
+    padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -386,16 +391,16 @@
 @media (max-width: 900px) {
   .mobile-bottom-nav {
     position: fixed !important;
-    bottom: 2px !important;
+    bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
     left: 8px !important;
     right: 8px !important;
     margin: 0 auto !important;
-    max-width: 420px !important;
-    height: 48px !important;
-    background: rgba(255, 255, 255, 0.58) !important;
-    backdrop-filter: blur(16px) saturate(190%) contrast(105%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(190%) contrast(105%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.65) !important;
+    max-width: 440px !important;
+    height: 50px !important;
+    background: rgba(255, 255, 255, 0.75) !important;
+    backdrop-filter: blur(20px) saturate(190%) contrast(105%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(190%) contrast(105%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.85) !important;
     border-radius: 26px !important;
     display: grid !important;
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
@@ -403,7 +408,7 @@
     justify-items: center !important;
     z-index: 990 !important;
     padding: 0 4px !important;
-    box-shadow: 0 12px 36px -4px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(0, 0, 0, 0.05), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95) !important;
     box-sizing: border-box !important;
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease !important;
     transform: translateY(0) !important;
@@ -837,7 +842,6 @@
     box-sizing: border-box !important;
     min-height: 100% !important;
     min-height: 100dvh !important;
-    min-height: -webkit-fill-available !important;
   }
 
   .content-wrap {
