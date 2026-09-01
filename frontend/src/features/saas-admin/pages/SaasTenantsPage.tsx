@@ -591,9 +591,9 @@ export function SaasTenantsPage() {
       {isForbiddenByApi ? <div className="warning-box">هذه الصفحة مخصّصة لإدارة المنصة فقط.</div> : null}
 
       {ownerResetResult ? (
-        <div className="saas-credentials-card" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
+        <div className="saas-credentials-card">
           <div className="saas-credentials-header">
-            <span className="saas-credentials-title" style={{ color: '#38bdf8' }}>
+            <span className="saas-credentials-title">
               تم إعادة تعيين كلمة مرور المالك بنجاح
             </span>
             <button type="button" className="saas-copy-btn" onClick={() => setOwnerResetResult(null)}>
@@ -602,7 +602,7 @@ export function SaasTenantsPage() {
           </div>
           <div className="saas-credential-row">
             <span className="saas-credential-label">النشاط / النسخة:</span>
-            <span className="saas-credential-val" style={{ color: '#f8fafc' }}>{ownerResetResult.tenantName}</span>
+            <span className="saas-credential-val">{ownerResetResult.tenantName}</span>
           </div>
           <div className="saas-credential-row">
             <span className="saas-credential-label">اسم المستخدم:</span>
@@ -614,7 +614,7 @@ export function SaasTenantsPage() {
           <div className="saas-credential-row">
             <span className="saas-credential-label">كلمة المرور الجديدة:</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="saas-credential-val" style={{ color: '#34d399' }}>{ownerResetResult.temporaryPassword}</span>
+              <span className="saas-credential-val">{ownerResetResult.temporaryPassword}</span>
               <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(ownerResetResult.temporaryPassword)}>نسخ</button>
             </div>
           </div>
@@ -911,7 +911,7 @@ export function SaasTenantsPage() {
                 </div>
                 <div className="saas-credential-row">
                   <span className="saas-credential-label">اسم المنشأة:</span>
-                  <strong className="saas-credential-val" style={{ color: '#fef08a' }}>{createResult.businessName || createResult.tenantSlug}</strong>
+                  <strong className="saas-credential-val">{createResult.businessName || createResult.tenantSlug}</strong>
                 </div>
                 <div className="saas-credential-row">
                   <span className="saas-credential-label">المعرف السحابي (Slug):</span>
@@ -927,7 +927,7 @@ export function SaasTenantsPage() {
                 <div className="saas-credential-row">
                   <span className="saas-credential-label">كلمة المرور المؤقتة:</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="saas-credential-val" style={{ color: '#34d399' }}>{createResult.temporaryPassword}</span>
+                    <span className="saas-credential-val">{createResult.temporaryPassword}</span>
                     <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(createResult.temporaryPassword)}>نسخ</button>
                   </div>
                 </div>
