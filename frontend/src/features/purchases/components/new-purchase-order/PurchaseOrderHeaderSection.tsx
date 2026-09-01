@@ -162,24 +162,24 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
         }
       />
       <section className="document-prototype-section">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-          <h3 className="document-prototype-section-title" style={{ margin: 0 }}>{t('basic_info')}</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label className="button button-secondary purchase-camera-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', height: '30px', margin: 0 }}>
+        <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
+          <h3 className="document-prototype-section-title" style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{t('basic_info')}</h3>
+          <div className="section-header-actions-group" style={{ gap: '6px' }}>
+            <label className="section-header-action-btn purchase-camera-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
               <input type="file" accept="image/*" capture="environment" onChange={props.onFileUpload} style={{ display: 'none' }} />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
               </svg>
-              <span>تصوير بالكاميرا</span>
+              <span>كاميرا</span>
             </label>
-            <label className="button button-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', height: '30px', margin: 0 }}>
+            <label className="section-header-action-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
               <input type="file" multiple onChange={props.onFileUpload} style={{ display: 'none' }} />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
                 <path d="M21 12.5 12.8 20.7a5 5 0 0 1-7.1-7.1L14.2 5.1a3.5 3.5 0 0 1 4.9 4.9L9.9 19.2" />
               </svg>
-              <span>{props.isUploading ? 'جاري الرفع...' : 'إرفاق مستندات'}</span>
-              {props.attachments.length > 0 && <span className="nav-pill" style={{ fontSize: '0.7rem', padding: '1px 5px' }}>{props.attachments.length}</span>}
+              <span>{props.isUploading ? 'رفع...' : 'إرفاق'}</span>
+              {props.attachments.length > 0 && <span className="nav-pill" style={{ fontSize: '0.65rem', padding: '1px 4px', marginInlineStart: '2px' }}>{props.attachments.length}</span>}
             </label>
           </div>
         </div>

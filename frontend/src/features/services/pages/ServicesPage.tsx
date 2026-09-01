@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
@@ -202,18 +201,32 @@ export function ServicesPage() {
         badge={<span className="nav-pill">الخدمات</span>}
         actions={
           <div className="actions compact-actions">
-            <Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)}>+ إضافة خدمة جديدة</Button>
-            <Button type="button" variant="secondary" onClick={openPresetDialog}>تخصيص الخدمات</Button>
-            <Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير Excel</Button>
-            <Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة السجل</Button>
+            <Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)}>+ خدمة جديدة</Button>
+            <Button type="button" variant="secondary" onClick={openPresetDialog}>تخصيص</Button>
+            <Button type="button" variant="secondary" onClick={() => void exportServices()} disabled={!insights.totalItems}>تصدير</Button>
+            <Button type="button" variant="secondary" onClick={() => void printServices()} disabled={!insights.totalItems}>طباعة</Button>
           </div>
         }
       />
       <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-3" />
       {pageNotice ? <div className={`notice-banner ${pageNoticeTone === 'error' ? 'is-error' : 'is-success'}`}>{pageNotice}</div> : null}
 
-      <FormSection title="سجل الخدمات" actions={<div className="actions compact-actions"><Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)}>+ إضافة خدمة</Button><Button type="button" variant="secondary" onClick={() => { setSearch(''); setViewFilter('all'); setSelectedService(null); setPage(1); }}>إلغاء الفلاتر</Button></div>}>
+      <section className="document-prototype-section">
+        <div className="section-header-compact-row">
+          <h3 className="document-prototype-section-title">سجل الخدمات</h3>
+          <div className="section-header-actions-group">
+            <Button type="button" variant="primary" onClick={() => setIsCreateOpen(true)} className="section-header-action-btn">
+              + خدمة جديدة
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => { setSearch(''); setViewFilter('all'); setSelectedService(null); setPage(1); }} className="section-header-action-btn">
+              إلغاء الفلاتر
+            </Button>
+          </div>
+        </div>
+
         <SearchToolbar
+          title="بحث وتصفية"
+          actions={<span className="nav-pill">{viewFilter === 'all' ? 'كل الخدمات' : viewFilter === 'today' ? 'اليوم' : viewFilter === 'high' ? 'الأعلى قيمة' : 'بملاحظات'}</span>}
           search={search}
           onSearchChange={(value) => { setSearch(value); setPage(1); }}
           searchPlaceholder="ابحث باسم الخدمة أو الملاحظات أو المنفذ"
@@ -250,7 +263,7 @@ export function ServicesPage() {
             pagination={{ page, pageSize, totalItems: insights.totalItems || rows.length, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'خدمة' }}
           />
         </QueryFeedback>
-      </FormSection>
+      </section>
 
       {/* Modal for Creating Service */}
       <DialogShell

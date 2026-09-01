@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FormSection } from '@/shared/components/form-section';
+import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/components/data-table';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -111,17 +111,16 @@ export function AuditPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
       <PageHeader title="سجل النشاط" description="ابدأ بالبحث والفلاتر ثم راجع السجل الحالي أو صدّر النتائج عند الحاجة." badge={<span className="nav-pill">سجل العمليات</span>} />
       {copyFeedback ? <div className={copyFeedback.kind === 'error' ? 'warning-box' : 'success-box'}>{copyFeedback.text}</div> : null}
-      <FormSection
-        title="آخر الأنشطة"
-        actions={
-          <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
-            <button className="button button-secondary" onClick={resetAuditView}>إعادة الضبط</button>
-            <button className="button button-secondary" onClick={copyAuditSummary} disabled={!totalRows}>نسخ الملخص</button>
-            <button className="button button-secondary" onClick={() => void exportAuditRows()} disabled={!totalRows || isExporting}>{isExporting ? 'جارٍ التصدير...' : 'تصدير النتائج'}</button>
-            <button className="button button-secondary" onClick={() => void printAuditRows()} disabled={!totalRows || isExporting}>{isExporting ? 'جارٍ التجهيز...' : 'طباعة النتائج'}</button>
+      <section className="document-prototype-section">
+        <div className="section-header-compact-row">
+          <h3 className="document-prototype-section-title">آخر الأنشطة</h3>
+          <div className="section-header-actions-group">
+            <Button variant="secondary" className="section-header-action-btn" onClick={resetAuditView}>إعادة ضبط</Button>
+            <Button variant="secondary" className="section-header-action-btn" onClick={copyAuditSummary} disabled={!totalRows}>نسخ</Button>
+            <Button variant="secondary" className="section-header-action-btn" onClick={() => void exportAuditRows()} disabled={!totalRows || isExporting}>{isExporting ? '...' : 'تصدير'}</Button>
+            <Button variant="secondary" className="section-header-action-btn" onClick={() => void printAuditRows()} disabled={!totalRows || isExporting}>{isExporting ? '...' : 'طباعة'}</Button>
           </div>
-        }
-      >
+        </div>
         <FilterChipGroup value={filterMode} options={auditFilterOptions} onChange={setFilterMode} />
         <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالإجراء أو التفاصيل أو المنفذ">
           <Field label="نوع النشاط">
@@ -142,7 +141,7 @@ export function AuditPage() {
             />
           </Field>
         </SearchToolbar>
-        <StatsGrid items={stats} style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }} />
+        <StatsGrid items={stats} className="stats-grid compact-grid audit-stats-grid" />
         <QueryFeedback
           isLoading={query.isLoading || usersQuery.isLoading}
           isError={query.isError || usersQuery.isError}
@@ -212,7 +211,7 @@ export function AuditPage() {
             itemLabel="سجل"
           />
         </QueryFeedback>
-      </FormSection>
+      </section>
       </main>
     </div>
   );

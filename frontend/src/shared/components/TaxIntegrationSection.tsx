@@ -95,7 +95,7 @@ export function TaxIntegrationSection() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* 2-Column High-Density Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px', alignItems: 'start' }}>
+      <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px', alignItems: 'start' }}>
         
         {/* Column 1: API Credentials Card */}
         <QueryCard
@@ -268,7 +268,7 @@ export function TaxIntegrationSection() {
               {/* Endpoint Status Box */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
                 <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '2px' }}>نقطة الاتصال النشطة (API Endpoint):</div>
-                <strong style={{ color: '#0f172a', fontSize: '0.76rem', direction: 'ltr', display: 'block', textAlign: 'right', fontFamily: 'monospace' }}>
+                <strong style={{ color: '#0f172a', fontSize: '0.76rem', direction: 'ltr', display: 'block', textAlign: 'right', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                   {currentEnv === 'production' ? 'https://api.invoicing.eta.gov.eg' : 'https://api.preprod.invoicing.eta.gov.eg'}
                 </strong>
               </div>

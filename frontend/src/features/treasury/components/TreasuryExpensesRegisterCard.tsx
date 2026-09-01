@@ -1,4 +1,3 @@
-import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -23,10 +22,30 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
   onOpenCreate?: () => void;
 }) {
   return (
-    <div className="expenses-register-section">
-      <FormSection title="سجل المصروفات" actions={onOpenCreate ? <div className="actions compact-actions"><Button variant="primary" onClick={onOpenCreate}>+ تسجيل مصروف جديد</Button></div> : undefined}>
-        <SearchToolbar search={expenseSearch} onSearchChange={onExpenseSearchChange} searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث باسم المصروف أو الملاحظات أو المخزن' : 'ابحث باسم المصروف أو الملاحظات أو الفرع'} onReset={onReset} resetLabel="تفريغ" />
-        <QueryFeedback isLoading={expensesQuery.isLoading} isError={expensesQuery.isError} error={expensesQuery.error} isEmpty={!expenseSummary.totalItems} loadingText="جاري تحميل المصروفات..." errorTitle="تعذر تحميل المصروفات" emptyTitle="لا توجد مصروفات مسجلة حاليًا" emptyHint="سجل أول مصروف من النموذج أعلاه وسيظهر هنا مباشرة.">
+    <section className="document-prototype-section expenses-register-section">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">سجل المصروفات</h3>
+        <div className="section-header-actions-group">
+          {onOpenCreate && (
+            <Button variant="primary" onClick={onOpenCreate} className="section-header-action-btn">
+              + مصروف جديد
+            </Button>
+          )}
+          <Button variant="secondary" onClick={onReset} className="section-header-action-btn" style={{ marginInlineStart: '6px' }}>
+            إلغاء الفلاتر
+          </Button>
+        </div>
+      </div>
+      <SearchToolbar
+        title="بحث وتصفية"
+        actions={<span className="nav-pill">العدد: {expenseSummary.totalItems}</span>}
+        search={expenseSearch}
+        onSearchChange={onExpenseSearchChange}
+        searchPlaceholder={SINGLE_STORE_MODE ? 'ابحث باسم المصروف أو الملاحظات أو المخزن' : 'ابحث باسم المصروف أو الملاحظات أو الفرع'}
+        onReset={onReset}
+        resetLabel="تفريغ"
+      />
+      <QueryFeedback isLoading={expensesQuery.isLoading} isError={expensesQuery.isError} error={expensesQuery.error} isEmpty={!expenseSummary.totalItems} loadingText="جاري تحميل المصروفات..." errorTitle="تعذر تحميل المصروفات" emptyTitle="لا توجد مصروفات مسجلة حاليًا" emptyHint="سجل أول مصروف من النموذج أعلاه وسيظهر هنا مباشرة.">
           <DataTable 
             rows={expenses} 
             columns={[
@@ -103,7 +122,6 @@ export function TreasuryExpensesRegisterCard({ expenseSearch, onExpenseSearchCha
           />
           <PaginationControls page={expensePagination?.page || 1} totalPages={expensePagination?.totalPages || 1} pageSize={expensePagination?.pageSize || expensePageSize} pageSizeOptions={[10,20,50,100]} totalItems={expensePagination?.totalItems || 0} rangeStart={expensePagination?.rangeStart || 0} rangeEnd={expensePagination?.rangeEnd || 0} onPageChange={setExpensePage} onPageSizeChange={(value) => { setExpensePageSize(value); setExpensePage(1); }} itemLabel="مصروف" />
         </QueryFeedback>
-      </FormSection>
-    </div>
+    </section>
   );
 }

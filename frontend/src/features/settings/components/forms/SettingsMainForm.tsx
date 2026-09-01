@@ -593,7 +593,6 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       </div>
 
       <div className="actions compact-actions sticky-form-actions settings-save-actions">
-        <button type="button" className="btn btn-secondary" onClick={() => form.setValue('logoData', '', { shouldDirty: true })} disabled={mutation.isPending || !form.watch('logoData')}>حذف الشعار</button>
         <button type="button" className="btn btn-secondary" onClick={() => { if (canNavigateAway()) form.reset(); }} disabled={mutation.isPending || !form.formState.isDirty}>تفريغ التغييرات</button>
       </div>
 

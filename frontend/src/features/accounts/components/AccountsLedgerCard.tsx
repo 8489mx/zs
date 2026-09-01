@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { QueryCard } from '@/shared/components/query-card';
+import { QueryFeedback } from '@/shared/components/query-feedback';
 
 export function AccountsLedgerCard({
   title,
@@ -27,20 +27,25 @@ export function AccountsLedgerCard({
   children: ReactNode;
 }) {
   return (
-    <QueryCard
-      title={title}
-      description={description}
-      actions={actions}
-      isLoading={isLoading}
-      isError={isError}
-      error={error}
-      isEmpty={isEmpty}
-      loadingText={loadingText}
-      emptyTitle={emptyTitle}
-      emptyHint={emptyHint}
-      preserveChildrenOnEmpty
-    >
-      {children}
-    </QueryCard>
+    <section className="document-prototype-section">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">{title}</h3>
+        <div className="section-header-actions-group">
+          {actions}
+        </div>
+      </div>
+      <p className="muted small section-header-subtitle">{description}</p>
+      <QueryFeedback
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        isEmpty={isEmpty}
+        loadingText={loadingText}
+        emptyTitle={emptyTitle}
+        emptyHint={emptyHint}
+      >
+        {children}
+      </QueryFeedback>
+    </section>
   );
 }

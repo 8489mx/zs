@@ -62,8 +62,8 @@ export function buildInventorySectionSpotlightCards(params: {
     return [
       { key: 'pending', label: 'تحويلات بانتظار الاستلام', value: `${pendingTransfers}` },
       { key: 'all', label: 'إجمالي التحويلات المطابقة', value: `${transferSummary.totalItems}` },
-      { key: 'selected', label: 'التحويل المحدد', value: selectedTransfer ? (selectedTransfer.docNo || selectedTransfer.id) : 'اختر تحويلًا من الجدول' },
-      { key: 'action', label: 'الأولوية الآن', value: pendingTransfers ? 'راجع التحويلات المرسلة غير المستلمة' : 'لا توجد تحويلات معلقة' },
+      { key: 'selected', label: 'التحويل المحدد', value: selectedTransfer ? (selectedTransfer.docNo || selectedTransfer.id) : 'لا يوجد' },
+      { key: 'action', label: 'الأولوية الآن', value: pendingTransfers ? `${pendingTransfers} بحاجة استلام` : 'لا توجد معلقة' },
     ];
   }
   if (currentSection === 'counts') {
@@ -79,13 +79,13 @@ export function buildInventorySectionSpotlightCards(params: {
       { key: 'records', label: 'سجلات التالف', value: `${damagedSummary.totalItems}` },
       { key: 'qty', label: 'إجمالي الكمية التالفة', value: `${damagedSummary.totalQty}` },
       { key: 'page', label: 'المعروض الآن', value: `${damagedRecordsLength}` },
-      { key: 'action', label: 'الأولوية الآن', value: damagedSummary.totalItems ? 'راجع أسباب التالف واطبع السجل عند الحاجة' : 'لا توجد سجلات تالفة في هذا النطاق' },
+      { key: 'action', label: 'الأولوية الآن', value: damagedSummary.totalItems ? 'مراجعة التالف' : 'لا توجد سجلات' },
     ];
   }
   return [
     { key: 'moves', label: 'حركات المخزون', value: `${stockMovementsLength}` },
     { key: 'draft', label: 'جلسات الجرد', value: `${stockCountSummary.totalItems}` },
     { key: 'transfers', label: 'التحويلات', value: `${transferSummary.totalItems}` },
-    { key: 'action', label: 'الأولوية الآن', value: stockMovementsLength ? 'استخدم السجل لتتبع آخر التعديلات' : 'لا توجد حركات بعد' },
+    { key: 'action', label: 'الأولوية الآن', value: stockMovementsLength ? 'سجل الحركات متاح' : 'لا توجد حركات' },
   ];
 }

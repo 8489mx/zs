@@ -592,3 +592,35 @@
     align-items: flex-start;
   }
 }
+
+@media (max-width: 768px) {
+  .system-update-hero-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .system-update-hero-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .system-release-item {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .system-release-item > div:last-child {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+  .system-release-item > div:last-child button {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+  .system-release-version-row {
+    flex-wrap: wrap !important;
+  }
+}

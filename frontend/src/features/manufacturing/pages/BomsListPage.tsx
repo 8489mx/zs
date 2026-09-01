@@ -2,8 +2,6 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
-import { FormSection } from '@/shared/components/form-section';
-
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
 import { bomsApi, type BomRecord } from '@/features/manufacturing/api/boms.api';
@@ -62,16 +60,24 @@ export default function BomsListPage() {
       ]}
       title="قوائم المكونات (BOMs)"
       actions={
-        <Button 
-          type="button" 
-          className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary" 
-          onClick={() => navigate('/manufacturing/boms/new')}
-        >
-          <span>إضافة تركيبة جديدة</span>
-        </Button>
+        <div className="actions compact-actions">
+          <Button 
+            type="button" 
+            variant="primary"
+            onClick={() => navigate('/manufacturing/boms/new')}
+          >
+            + تركيبة جديدة
+          </Button>
+        </div>
       }
     >
-        <FormSection title="قائمة معادلات التصنيع" className="cash-drawer-shifts-card">
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row">
+            <h3 className="document-prototype-section-title">قائمة معادلات التصنيع</h3>
+            <div className="section-header-actions-group">
+              <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>العدد: {boms.length}</span>
+            </div>
+          </div>
           <div className="page-stack">
           {isLoading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>جاري التحميل...</div>
@@ -89,7 +95,7 @@ export default function BomsListPage() {
             />
           )}
           </div>
-        </FormSection>
+        </section>
     </ManufacturingLayout>
   );
 }

@@ -167,15 +167,15 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
     <Card
       title="ورديات نقطة البيع الحالية"
       actions={canViewSensitiveTotals ? (
-        <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Button variant="secondary" onClick={props.onCopySummary} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            <CopyIcon size={14} /> <span>نسخ الملخص</span>
+        <div className="actions compact-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <Button variant="secondary" onClick={props.onCopySummary} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <CopyIcon size={13} /> <span>نسخ</span>
           </Button>
-          <Button variant="secondary" onClick={props.onExportRows} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            <DownloadIcon size={14} /> <span>تصدير Excel</span>
+          <Button variant="secondary" onClick={props.onExportRows} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <DownloadIcon size={13} /> <span>تصدير</span>
           </Button>
-          <Button variant="secondary" onClick={props.onPrintRows} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            <PrinterIcon size={14} /> <span>طباعة النتائج</span>
+          <Button variant="secondary" onClick={props.onPrintRows} disabled={!props.totalItems} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <PrinterIcon size={13} /> <span>طباعة</span>
           </Button>
         </div>
       ) : undefined}
@@ -187,16 +187,16 @@ export function CashDrawerShiftsCard(props: CashDrawerShiftsCardProps) {
         <Button variant={props.shiftFilter === 'closed' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('closed')}>مغلقة</Button>
         {canReviewPending ? (
           <Button variant={props.shiftFilter === 'pending_review' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('pending_review')}>
-            في انتظار مراجعة المشرف{typeof props.pendingReviewCount === 'number' ? ` (${props.pendingReviewCount})` : ''}
+            المراجعة{typeof props.pendingReviewCount === 'number' ? ` (${props.pendingReviewCount})` : ''}
           </Button>
         ) : null}
-        <Button variant={props.shiftFilter === 'variance' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('variance')}>بفروقات</Button>
+        <Button variant={props.shiftFilter === 'variance' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('variance')}>فروقات</Button>
         <Button variant={props.shiftFilter === 'today' ? 'primary' : 'secondary'} onClick={() => props.onShiftFilterChange('today')}>اليوم</Button>
       </div>
 
       <SearchToolbar search={props.search} onSearchChange={props.onSearchChange} searchPlaceholder={searchPlaceholder}>
-        <Button variant="secondary" onClick={props.onReset} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-          <RefreshCwIcon size={14} /> <span>إعادة الضبط</span>
+        <Button variant="secondary" onClick={props.onReset} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <RefreshCwIcon size={13} /> <span>إعادة ضبط</span>
         </Button>
       </SearchToolbar>
 

@@ -1,4 +1,3 @@
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -90,12 +89,17 @@ export function SalesRegisterCard(props: Props) {
   } = props;
 
   return (
-    <FormSection
-      title={t('sales.2a9511')}
-      description={t('sales.05777d')}
-      actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>{t('sales.91cafe')}</Button><Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint}>{t('sales.c1f6d4')}</Button><span className="nav-pill">{t('sales.ec4337')}</span></div>}
-      className="workspace-panel sales-register-card"
-    >
+    <section className="document-prototype-section workspace-panel sales-register-card">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">{t('sales.2a9511')}</h3>
+        <div className="section-header-actions-group">
+          <Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems} className="section-header-action-btn">تصدير</Button>
+          <Button variant="secondary" onClick={() => void onPrintRegister()} disabled={!totalItems || !canPrint} className="section-header-action-btn" style={{ marginInlineStart: '6px' }}>طباعة</Button>
+        </div>
+      </div>
+      <p className="muted small section-header-subtitle">
+        {t('sales.05777d')}
+      </p>
       <SearchToolbar
         search={search}
         onSearchChange={onSearchChange}
@@ -104,10 +108,10 @@ export function SalesRegisterCard(props: Props) {
         actions={<span className="nav-pill">{activeFilterLabel}</span>}
         meta={(
           <>
-            <span className="toolbar-meta-pill">إجمالي الفواتير: {totalItems}</span>
+            <span className="toolbar-meta-pill">الفواتير: {totalItems}</span>
             <span className="toolbar-meta-pill">المعروض: {rangeStart}-{rangeEnd}</span>
             <span className="toolbar-meta-pill">الإجمالي: {formatCurrency(totalSales)}</span>
-            <span className="toolbar-meta-pill">المحدد: {selectedSale ? (selectedSale.docNo || selectedSale.id) : 'لا يوجد'}</span>
+            {selectedSale ? <span className="toolbar-meta-pill">المحدد: {selectedSale.docNo || selectedSale.id}</span> : null}
           </>
         )}
         onReset={onReset}
@@ -142,10 +146,11 @@ export function SalesRegisterCard(props: Props) {
         isLoading={isLoading}
         isError={isError}
         error={error}
-        isEmpty={!rows.length && !isLoading}
-        loadingText={t('sales.6e28d8')}
-        emptyTitle={t('sales.981f5a')}
-        emptyHint={t('sales.c90033')}
+        isEmpty={!rows.length}
+        loadingText={t('sales.f8413b')}
+        errorTitle={t('sales.1b017b')}
+        emptyTitle={t('sales.38df37')}
+        emptyHint={t('sales.c31e9c')}
       >
         <SalesTable
           rows={rows}
@@ -168,6 +173,6 @@ export function SalesRegisterCard(props: Props) {
           itemLabel={t('sales.f95919')}
         />
       </QueryFeedback>
-    </FormSection>
+    </section>
   );
 }

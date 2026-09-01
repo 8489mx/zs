@@ -50,16 +50,16 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
 
   return (
     <section className="document-prototype-section">
-      <div className="document-prototype-section-header">
-        <h3 className="document-prototype-section-title">{t('items_section')}</h3>
+      <div className="section-header-compact-row" style={{ marginBottom: '0.6rem' }}>
+        <h3 className="document-prototype-section-title" style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>{t('items_section')}</h3>
         <div className="purchase-prototype-quick-actions" aria-label={t('quick_item_actions')}>
           <button type="button" className="purchase-prototype-quick-action" title="إضافة صنف جديد" onClick={() => props.onOpenQuickCreate('product', '', null)} style={{ fontWeight: 700, color: '#1e40af' }}>
             <span aria-hidden="true">+</span>
-            <span>صنف جديد</span>
+            <span>صنف</span>
           </button>
           <button type="button" className="purchase-prototype-quick-action" title={t('add_service_line')} onClick={props.onAddServiceLine}>
             <span aria-hidden="true">+</span>
-            <span>{t('service_type')}</span>
+            <span>خدمة</span>
           </button>
           <button
             type="button"
@@ -69,7 +69,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
             style={props.taxRate && props.taxRate > 0 ? { borderColor: '#2563eb', color: '#1d4ed8', backgroundColor: '#eff6ff', fontWeight: 700 } : undefined}
           >
             <span aria-hidden="true">%</span>
-            <span>{t('tax_rate')}{props.taxRate && props.taxRate > 0 ? ` (${props.taxRate}%)` : ''}</span>
+            <span>ضريبة{props.taxRate && props.taxRate > 0 ? ` ${props.taxRate}%` : ''}</span>
           </button>
           <button
             type="button"
@@ -77,7 +77,7 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
             title="إضافة خصم على الفاتورة"
             onClick={() => props.setActiveQuickAction((curr: any) => (curr === 'discount' ? null : 'discount'))}
           >
-            <span>{t('discount_label')}</span>
+            <span>خصم</span>
           </button>
         </div>
       </div>

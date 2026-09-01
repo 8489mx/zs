@@ -225,9 +225,9 @@ export function HrAttendancePage() {
           description="تسجيل الحضور اليومي، مراجعة الاستثناءات والتأخير والأوفر تايم في شاشة واحدة."
           actions={
             <div className="actions compact-actions">
-              <Button variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen(!importOpen)}>استيراد إكسيل</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>سجل المرتبات</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع</Button>
+              <Button variant={importOpen ? 'primary' : 'secondary'} onClick={() => setImportOpen(!importOpen)}>استيراد</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>المرتبات</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>الموظفون</Button>
             </div>
           }
         />
@@ -278,7 +278,7 @@ export function HrAttendancePage() {
               <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر للتبديل والتصفية الفورية</span>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
+            <div className="hr-operational-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
               {[
                 { label: 'إجمالي اليوم', value: summary.total, onClick: () => { setActiveTab('attendance'); setAttendanceFilter('all'); }, isAlert: false, active: activeTab === 'attendance' && attendanceFilter === 'all' },
                 { label: 'حاضر', value: summary.present, onClick: () => { setActiveTab('attendance'); setAttendanceFilter('recorded'); }, isAlert: false, active: activeTab === 'attendance' && attendanceFilter === 'recorded' },

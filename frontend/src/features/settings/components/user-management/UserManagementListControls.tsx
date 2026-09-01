@@ -5,7 +5,7 @@ import type { UserBulkAction } from '@/features/settings/hooks/useUserManagement
 
 export function UserManagementQuickActions({
   setupMode,
-  onNewUser,
+  onNewUser: _onNewUser,
   onApplyRolePermissions,
   onApplyTemplate,
   activeTemplate,
@@ -18,19 +18,92 @@ export function UserManagementQuickActions({
   activeTemplate?: string | null;
   onCopyPermissions: () => void;
 }) {
+  if (setupMode) return null;
+
   return (
-    <div className="actions compact-actions settings-users-quick-actions" style={{ marginBottom: 8 }}>
-      <Button type="button" onClick={onNewUser}>{setupMode ? 'إضافة مستخدم جديد' : 'مستخدم جديد'}</Button>
-      {!setupMode ? <Button type="button" variant="secondary" onClick={onApplyRolePermissions}>تطبيق صلاحيات الدور</Button> : null}
-      {!setupMode ? (
-        <>
-          <Button type="button" variant={activeTemplate === 'cashier' ? 'primary' : 'secondary'} style={activeTemplate === 'cashier' ? { outline: '2px dashed var(--primary-color, #170c5c)', outlineOffset: '2px' } : undefined} onClick={() => onApplyTemplate('cashier')}>قالب كاشير</Button>
-          <Button type="button" variant={activeTemplate === 'owner' ? 'primary' : 'secondary'} style={activeTemplate === 'owner' ? { outline: '2px dashed var(--primary-color, #170c5c)', outlineOffset: '2px' } : undefined} onClick={() => onApplyTemplate('owner')}>قالب مالك</Button>
-          <Button type="button" variant={activeTemplate === 'inventory' ? 'primary' : 'secondary'} style={activeTemplate === 'inventory' ? { outline: '2px dashed var(--primary-color, #170c5c)', outlineOffset: '2px' } : undefined} onClick={() => onApplyTemplate('inventory')}>قالب مخزون</Button>
-          <Button type="button" variant={activeTemplate === 'accountant' ? 'primary' : 'secondary'} style={activeTemplate === 'accountant' ? { outline: '2px dashed var(--primary-color, #170c5c)', outlineOffset: '2px' } : undefined} onClick={() => onApplyTemplate('accountant')}>قالب محاسب</Button>
-        </>
-      ) : null}
-      {!setupMode ? <Button type="button" variant="secondary" onClick={onCopyPermissions}>نسخ الصلاحيات</Button> : null}
+    <div
+      className="settings-users-template-strip"
+      style={{
+        display: 'flex',
+        gap: '6px',
+        overflowX: 'auto',
+        paddingBottom: '6px',
+        marginBottom: '10px',
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      <Button
+        type="button"
+        variant="secondary"
+        style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap', flexShrink: 0 }}
+        onClick={onApplyRolePermissions}
+      >
+        تطبيق صلاحيات الدور
+      </Button>
+      <Button
+        type="button"
+        variant={activeTemplate === 'cashier' ? 'primary' : 'secondary'}
+        style={{
+          fontSize: '11.5px',
+          padding: '4px 10px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          ...(activeTemplate === 'cashier' ? { outline: '2px dashed var(--primary-color, #170c5c)', outlineOffset: '2px' } : {}),
+        }}
+        onClick={() => onApplyTemplate('cashier')}
+      >
+        قالب كاشير
+      </Button>
+      <Button
+        type="button"
+        variant={activeTemplate === 'owner' ? 'primary' : 'secondary'}
+        style={{
+          fontSize: '11.5px',
+          padding: '4px 10px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          ...(activeTemplate === 'owner' ? { outline: '2px dashed var(--primary-color, #170c5c)', outlineOffset: '2px' } : {}),
+        }}
+        onClick={() => onApplyTemplate('owner')}
+      >
+        قالب مالك
+      </Button>
+      <Button
+        type="button"
+        variant={activeTemplate === 'inventory' ? 'primary' : 'secondary'}
+        style={{
+          fontSize: '11.5px',
+          padding: '4px 10px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          ...(activeTemplate === 'inventory' ? { outline: '2px dashed var(--primary-color, #170c5c)', outlineOffset: '2px' } : {}),
+        }}
+        onClick={() => onApplyTemplate('inventory')}
+      >
+        قالب مخزن
+      </Button>
+      <Button
+        type="button"
+        variant={activeTemplate === 'accountant' ? 'primary' : 'secondary'}
+        style={{
+          fontSize: '11.5px',
+          padding: '4px 10px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          ...(activeTemplate === 'accountant' ? { outline: '2px dashed var(--primary-color, #170c5c)', outlineOffset: '2px' } : {}),
+        }}
+        onClick={() => onApplyTemplate('accountant')}
+      >
+        قالب محاسب
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap', flexShrink: 0 }}
+        onClick={onCopyPermissions}
+      >
+        نسخ الصلاحيات
+      </Button>
     </div>
   );
 }
@@ -61,7 +134,7 @@ export function UserManagementStatsFilters({
         <Field label="بحث سريع">
           <input value={userSearch} onChange={(e) => onUserSearchChange(e.target.value)} placeholder="ابحث بالاسم أو المستخدم أو الصلاحية" />
         </Field>
-        <div className="actions compact-actions" style={{ flexWrap: 'wrap' }}>
+        <div className="filter-chip-row" style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
           {[
             ['all', 'الكل'],
             ['super-admins', 'السوبر أدمن'],
@@ -70,7 +143,13 @@ export function UserManagementStatsFilters({
             ['inactive', 'الموقوفون'],
             ['locked', 'المقفلون']
           ].map(([value, label]) => (
-            <Button key={value} type="button" variant={userFilter === value ? 'primary' : 'secondary'} onClick={() => onUserFilterChange(value as 'all' | 'super-admins' | 'admins' | 'cashiers' | 'inactive' | 'locked')}>
+            <Button
+              key={value}
+              type="button"
+              variant={userFilter === value ? 'primary' : 'secondary'}
+              style={{ fontSize: '11.5px', padding: '4px 10px', whiteSpace: 'nowrap', flexShrink: 0 }}
+              onClick={() => onUserFilterChange(value as 'all' | 'super-admins' | 'admins' | 'cashiers' | 'inactive' | 'locked')}
+            >
               {label}
             </Button>
           ))}

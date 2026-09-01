@@ -1,6 +1,5 @@
 import { Fragment, useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { FileTextIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -204,47 +203,33 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
   }
 
   return (
-    <FormSection 
-      title="قائمة الأصناف الحالية" 
-      description="إدارة وتسعير ومتابعة مخزون المنتجات والأصناف." 
-      actions={
-        <div className="actions compact-actions">
-          <span className="nav-pill">قيمة البيع {formatCurrency(props.inventorySaleValue)}</span>
+    <section className="document-prototype-section workspace-panel">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">قائمة الأصناف الحالية</h3>
+        <div className="section-header-actions-group">
           <Button
             variant="secondary"
             onClick={() => setIsStudioOpen(true)}
-            style={{
-              background: '#f8fafc',
-              color: '#0f172a',
-              borderColor: '#cbd5e1',
-              fontWeight: 700,
-              fontSize: '12px',
-            }}
+            className="section-header-action-btn"
             title="تخصيص ألوان الأيقونات لكل المنظومة أو إلغاء وتفريغ الأيقونات"
           >
-            تخصيص الأيقونات
+            الأيقونات
           </Button>
           <Button
             variant="secondary"
             onClick={() => void handleAutoAssignIcons()}
             disabled={isAutoAssigning}
-            style={{
-              background: '#eff6ff',
-              color: '#1d4ed8',
-              borderColor: '#bfdbfe',
-              fontWeight: 700,
-              fontSize: '12px',
-            }}
+            className="section-header-action-btn"
+            style={{ marginInlineStart: '6px' }}
             title="فحص أسماء الأصناف وتعيين الأيقونات المناسبة لها تلقائياً"
           >
-            {isAutoAssigning ? 'جارٍ الضبط الذكي...' : 'ضبط الأيقونات ذكياً'}
+            {isAutoAssigning ? 'جارٍ الضبط...' : 'ضبط ذكي'}
           </Button>
-          <Button variant="secondary" onClick={props.onExportCsv}>تصدير Excel</Button>
-          <Button variant="secondary" onClick={props.onPrint} disabled={!props.canPrint}>طباعة</Button>
         </div>
-      } 
-      className="workspace-panel"
-    >
+      </div>
+      <p className="muted small section-header-subtitle">
+        إدارة وتسعير ومتابعة مخزون المنتجات والأصناف.
+      </p>
       {autoAssignMsg && (
         <div
           style={{
@@ -842,6 +827,6 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           isBulkLoading={isAutoAssigning}
         />
       </QueryFeedback>
-    </FormSection>
+    </section>
   );
 }

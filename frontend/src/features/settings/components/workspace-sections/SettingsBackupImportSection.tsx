@@ -242,14 +242,14 @@ export function SettingsBackupImportSection({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Top Quick Actions Bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', width: '100%' }}>
               <Button
                 type="button"
                 onClick={handleBackupDownload}
                 disabled={backupBusy || !canManageBackups}
-                style={{ background: '#0f172a', color: '#ffffff', fontSize: '0.84rem', padding: '8px 18px', fontWeight: 700 }}
+                style={{ background: '#0f172a', color: '#ffffff', fontSize: '0.82rem', padding: '7px 14px', fontWeight: 700, flex: '1 1 auto', minWidth: '160px' }}
               >
-                تنزيل نسخة احتياطية الآن
+                تنزيل نسخة احتياطية
               </Button>
 
               <Button
@@ -257,9 +257,9 @@ export function SettingsBackupImportSection({
                 variant="secondary"
                 onClick={() => void saveBackupFileToFolderNow()}
                 disabled={backupBusy || !canManageBackups}
-                style={{ fontSize: '0.84rem', padding: '8px 16px' }}
+                style={{ fontSize: '0.80rem', padding: '7px 12px', flex: '1 1 auto' }}
               >
-                حفظ نسخة في المجلد الآن
+                حفظ نسخة بالمجلد
               </Button>
 
               <Button
@@ -267,9 +267,9 @@ export function SettingsBackupImportSection({
                 variant="secondary"
                 onClick={handleSupportBundleDownload}
                 disabled={backupBusy || !canManageBackups}
-                style={{ fontSize: '0.84rem', padding: '8px 16px' }}
+                style={{ fontSize: '0.80rem', padding: '7px 12px', flex: '1 1 auto' }}
               >
-                تنزيل حزمة الدعم
+                حزمة الدعم
               </Button>
             </div>
 
@@ -475,7 +475,7 @@ export function SettingsBackupImportSection({
         title="استيراد وتصدير البيانات"
         actions={<span className="nav-pill">ملفات Excel / CSV</span>}
       >
-        <div className="two-column-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
+        <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
           {!canManageBackups ? <div className="muted small" style={{ gridColumn: '1 / -1' }}>إدارة النسخ الاحتياطي والاسترداد غير متاحة لهذا الحساب.</div> : null}
           <ImportWorkbench
             title="استيراد الأصناف"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { MobileQuickActionSheet } from '@/shared/layout/MobileQuickActionSheet';
@@ -7,6 +7,52 @@ export function MobileBottomNav() {
   const location = useLocation();
   const { toggleMobileSidebar, isMobileSidebarOpen } = useToolbarStore();
   const [quickActionOpen, setQuickActionOpen] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const diff = currentScrollY - lastScrollY.current;
+
+      // Always show near the top of the page
+      if (currentScrollY < 40) {
+        setIsHidden(false);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      // Check if near bottom of document
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      if (currentScrollY + windowHeight >= docHeight - 40) {
+        setIsHidden(false);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      // Scroll Down -> Hide
+      if (diff > 10) {
+        setIsHidden(true);
+      } 
+      // Scroll Up -> Show
+      else if (diff < -8) {
+        setIsHidden(false);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // When location changes or quick action opens, make sure nav is visible
+  useEffect(() => {
+    setIsHidden(false);
+  }, [location.pathname, quickActionOpen]);
 
   // Check active routes
   const isPos = location.pathname.startsWith('/pos');
@@ -15,7 +61,10 @@ export function MobileBottomNav() {
 
   return (
     <>
-      <nav className="mobile-bottom-nav" aria-label="شريط التنقل السفلي">
+      <nav 
+        className={`mobile-bottom-nav ${isHidden ? 'is-hidden' : ''}`} 
+        aria-label="شريط التنقل السفلي"
+      >
         <NavLink
           to="/"
           end

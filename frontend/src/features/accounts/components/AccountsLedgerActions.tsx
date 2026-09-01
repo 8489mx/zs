@@ -16,26 +16,29 @@ interface AccountsLedgerActionsProps {
 
 export function AccountsLedgerActions({ title, filename, partyName, entries, canPrint, disabled, loadAllEntries }: AccountsLedgerActionsProps) {
   return (
-    <div className="actions compact-actions">
+    <div className="section-header-actions-group">
       <Button
         variant="secondary"
+        className="section-header-action-btn"
         onClick={async () => {
           const rows = await loadAllEntries();
           if (rows) exportLedgerCsv(filename, rows);
         }}
         disabled={disabled || !canPrint}
       >
-        تصدير Excel
+        تصدير
       </Button>
       <Button
         variant="secondary"
+        className="section-header-action-btn"
         onClick={() => void copyLedgerSummary(title, partyName, entries, async () => (await loadAllEntries()) || [])}
         disabled={disabled || !canPrint}
       >
-        نسخ الكشف
+        نسخ
       </Button>
       <Button
         variant="secondary"
+        className="section-header-action-btn"
         onClick={() => void printLedgerSummary(title, partyName, entries, async () => (await loadAllEntries()) || [])}
         disabled={disabled || !canPrint}
       >

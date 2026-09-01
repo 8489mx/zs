@@ -63,10 +63,9 @@ export function ExpensesPage() {
           badge={<span className="nav-pill">الخدمات والحسابات</span>}
           actions={
             <div className="actions compact-actions">
-              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ تسجيل مصروف جديد</Button>
-              <Button variant="secondary" onClick={exportExpenses} disabled={!expensePagination?.totalItems || isExportingExpenses}>تصدير Excel</Button>
-              <Button variant="secondary" onClick={() => printMatchingExpenses(expenseSearch)} disabled={!expensePagination?.totalItems || isExportingExpenses}>طباعة النتائج</Button>
-              <Button variant="secondary" onClick={() => printMatchingExpenses(expenseSearch)} disabled={!expensePagination?.totalItems}>طباعة الملخص</Button>
+              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ مصروف جديد</Button>
+              <Button variant="secondary" onClick={exportExpenses} disabled={!expensePagination?.totalItems || isExportingExpenses}>تصدير</Button>
+              <Button variant="secondary" onClick={() => printMatchingExpenses(expenseSearch)} disabled={!expensePagination?.totalItems || isExportingExpenses}>طباعة</Button>
             </div>
           }
         />

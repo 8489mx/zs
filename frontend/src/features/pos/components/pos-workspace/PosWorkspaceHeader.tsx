@@ -30,12 +30,12 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
     <PageHeader
       title="نقطة البيع"
       badge={(
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', direction: 'ltr', color: '#0f172a' }} aria-label="Z ERP">
-          <ZErpIcon size={38} />
-          <strong style={{ fontSize: '16px', fontWeight: 900, letterSpacing: '0.04em', lineHeight: 1 }}>ERP</strong>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', direction: 'ltr', color: '#0f172a' }} aria-label="Z ERP">
+          <ZErpIcon size={26} />
+          <strong style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1 }}>ERP</strong>
           {offlineQueue.length > 0 && (
-            <span style={{ background: hasFailedSales ? '#dc3545' : '#fd7e14', color: 'white', padding: '2px 8px', borderRadius: '8px', fontSize: '12px', marginRight: '8px', direction: 'rtl' }}>
-              {isSyncing ? 'جاري المزامنة...' : `أوفلاين (${offlineQueue.length})`}
+            <span style={{ background: hasFailedSales ? '#dc3545' : '#fd7e14', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '11px', marginRight: '6px', direction: 'rtl' }}>
+              {isSyncing ? '...' : `(${offlineQueue.length})`}
             </span>
           )}
         </span>
@@ -62,11 +62,15 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
           {pos.ownOpenShift ? (
             <Link to="/cash-drawer">
-              <Button type="button" variant="secondary">تقفيل الوردية</Button>
+              <Button type="button" variant="secondary" className="pos-close-shift-btn">
+                <span className="pos-close-shift-text-full">تقفيل الوردية</span>
+                <span className="pos-close-shift-text-short">تقفيل</span>
+              </Button>
             </Link>
           ) : (
-            <Button type="button" variant="primary" onClick={onRequestOpenShift}>
-              فتح وردية
+            <Button type="button" variant="primary" className="pos-close-shift-btn" onClick={onRequestOpenShift}>
+              <span className="pos-close-shift-text-full">فتح وردية</span>
+              <span className="pos-close-shift-text-short">فتح</span>
             </Button>
           )}
         </div>

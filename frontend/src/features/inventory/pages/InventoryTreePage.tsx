@@ -291,30 +291,33 @@ export function InventoryTreePage() {
           <option value="qtyDesc">الأعلى رصيداً أولاً</option>
           <option value="qtyAsc">الأقل رصيداً أولاً</option>
         </select>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap', userSelect: 'none', color: '#334155' }}>
-          <input
-            type="checkbox"
-            checked={showOnlyWithStock}
-            onChange={(e) => { setShowOnlyWithStock(e.target.checked); if (e.target.checked) setShowUnassigned(false); }}
-            style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
-          />
-          بها رصيد فقط
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap', userSelect: 'none', color: '#334155' }}>
-          <input
-            type="checkbox"
-            checked={showUnassigned}
-            onChange={(e) => { setShowUnassigned(e.target.checked); if (e.target.checked) setShowOnlyWithStock(false); }}
-            style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
-          />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            غير مربوطة بمخزن <AlertTriangleIcon size={14} color="#d97706" />
-          </span>
-        </label>
+        <div className="inventory-tree-checkboxes-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap', userSelect: 'none', color: '#334155' }}>
+            <input
+              type="checkbox"
+              checked={showOnlyWithStock}
+              onChange={(e) => { setShowOnlyWithStock(e.target.checked); if (e.target.checked) setShowUnassigned(false); }}
+              style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
+            />
+            بها رصيد فقط
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap', userSelect: 'none', color: '#334155' }}>
+            <input
+              type="checkbox"
+              checked={showUnassigned}
+              onChange={(e) => { setShowUnassigned(e.target.checked); if (e.target.checked) setShowOnlyWithStock(false); }}
+              style={{ width: '15px', height: '15px', accentColor: 'var(--primary, #170c5c)' }}
+            />
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              غير مربوطة بمخزن <AlertTriangleIcon size={13} color="#d97706" />
+            </span>
+          </label>
+        </div>
         {(search || filterLocationId || showOnlyWithStock || showUnassigned || sortMode !== 'default') && (
           <Button
             variant="secondary"
             onClick={() => { setSearch(''); setFilterLocationId(''); setShowOnlyWithStock(false); setShowUnassigned(false); setSortMode('default'); }}
+            style={{ fontSize: '11px', height: '28px', padding: '2px 10px' }}
           >
             تفريغ الفلاتر
           </Button>

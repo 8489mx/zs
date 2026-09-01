@@ -1,16 +1,16 @@
 import { Link, useLocation } from 'react-router-dom';
 
 const HR_SECTIONS = [
-  { label: 'نظرة عامة', to: '/hr', match: (pathname: string) => pathname === '/hr' },
-  { label: 'الموظفون', to: '/hr/employees', match: (pathname: string) => pathname.startsWith('/hr/employees') },
-  { label: 'الحضور والانصراف', to: '/hr/attendance', match: (pathname: string) => pathname.startsWith('/hr/attendance') },
-  { label: 'الإجازات', to: '/hr/leaves', match: (pathname: string) => pathname.startsWith('/hr/leaves') },
-  { label: 'السلف', to: '/hr/loans', match: (pathname: string) => pathname.startsWith('/hr/loans') },
-  { label: 'المرتبات', to: '/hr/payroll', match: (pathname: string) => pathname.startsWith('/hr/payroll') },
-  { label: 'المستندات', to: '/hr/documents', match: (pathname: string) => pathname.startsWith('/hr/documents') },
-  { label: 'العُهد', to: '/hr/assets', match: (pathname: string) => pathname.startsWith('/hr/assets') },
-  { label: 'التقارير', to: '/hr/reports', match: (pathname: string) => pathname.startsWith('/hr/reports') },
-  { label: 'الإعدادات', to: '/hr/settings', match: (pathname: string) => pathname.startsWith('/hr/settings') },
+  { label: 'نظرة عامة', shortLabel: 'نظرة عامة', to: '/hr', match: (pathname: string) => pathname === '/hr' },
+  { label: 'الموظفون', shortLabel: 'الموظفون', to: '/hr/employees', match: (pathname: string) => pathname.startsWith('/hr/employees') },
+  { label: 'الحضور والانصراف', shortLabel: 'الحضور', to: '/hr/attendance', match: (pathname: string) => pathname.startsWith('/hr/attendance') },
+  { label: 'الإجازات', shortLabel: 'الإجازات', to: '/hr/leaves', match: (pathname: string) => pathname.startsWith('/hr/leaves') },
+  { label: 'السلف', shortLabel: 'السلف', to: '/hr/loans', match: (pathname: string) => pathname.startsWith('/hr/loans') },
+  { label: 'المرتبات', shortLabel: 'المرتبات', to: '/hr/payroll', match: (pathname: string) => pathname.startsWith('/hr/payroll') },
+  { label: 'المستندات', shortLabel: 'المستندات', to: '/hr/documents', match: (pathname: string) => pathname.startsWith('/hr/documents') },
+  { label: 'العُهد', shortLabel: 'العُهد', to: '/hr/assets', match: (pathname: string) => pathname.startsWith('/hr/assets') },
+  { label: 'التقارير', shortLabel: 'التقارير', to: '/hr/reports', match: (pathname: string) => pathname.startsWith('/hr/reports') },
+  { label: 'الإعدادات', shortLabel: 'الإعدادات', to: '/hr/settings', match: (pathname: string) => pathname.startsWith('/hr/settings') },
 ];
 
 export function HrSectionNav() {
@@ -21,13 +21,6 @@ export function HrSectionNav() {
       className="hr-section-nav"
       aria-label="تنقل الموارد البشرية"
       dir="rtl"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        flexWrap: 'wrap',
-        width: '100%',
-      }}
     >
       {HR_SECTIONS.map((section) => {
         const isActive = section.match(location.pathname);
@@ -35,30 +28,11 @@ export function HrSectionNav() {
           <Link
             key={section.to}
             to={section.to}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '5px 12px',
-              borderRadius: '7px',
-              fontSize: '0.815rem',
-              fontWeight: isActive ? 700 : 500,
-              color: isActive ? '#ffffff' : 'var(--text-secondary, #475569)',
-              background: isActive ? 'var(--primary, var(--primary-color, #170c5c))' : 'rgba(0, 0, 0, 0.04)',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.08)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.04)';
-              }
-            }}
+            className={`hr-section-nav-link ${isActive ? 'is-active' : ''}`}
+            title={section.label}
           >
-            {section.label}
+            <span className="hr-nav-text-full">{section.label}</span>
+            <span className="hr-nav-text-short">{section.shortLabel}</span>
           </Link>
         );
       })}

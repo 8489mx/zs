@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
 import type { DashboardManagerOverviewPayload } from '@/features/dashboard/api/dashboard.types';
 
@@ -21,12 +20,18 @@ export function DashboardMonthlySnapshot({ data }: DashboardMonthlySnapshotProps
     || Number(data.profitSummary.netProfit || 0) !== 0;
 
   return (
-    <FormSection
-      title="لمحة شهرية مختصرة"
-      description="أرقام كافية للاتجاه العام، والتفاصيل الكاملة مكانها التقارير."
-      actions={<Link className="button button-secondary" to="/reports">عرض التقارير</Link>}
-      className="dashboard-premium-card dashboard-card-compact dashboard-monthly-snapshot-card"
-    >
+    <section className="document-prototype-section dashboard-premium-card dashboard-card-compact dashboard-monthly-snapshot-card">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">
+          لمحة شهرية مختصرة
+        </h3>
+        <div className="section-header-actions-group">
+          <Link className="section-header-action-btn" to="/reports">عرض التقارير</Link>
+        </div>
+      </div>
+      <p className="muted small section-header-subtitle">
+        أرقام كافية للاتجاه العام، والتفاصيل الكاملة مكانها التقارير.
+      </p>
       {hasMonthlyActivity ? (
         <div className="dashboard-monthly-snapshot-grid">
           <div className="manager-overview-metric">
@@ -48,6 +53,6 @@ export function DashboardMonthlySnapshot({ data }: DashboardMonthlySnapshotProps
       ) : (
         <div className="dashboard-inline-empty dashboard-monthly-empty">لا توجد بيانات شهرية كافية حاليًا.</div>
       )}
-    </FormSection>
+    </section>
   );
 }

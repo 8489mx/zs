@@ -30,11 +30,11 @@ export function CustomersPage() {
           badge={<span className="nav-pill">{controller.summary?.totalCustomers || 0} عميل</span>}
           actions={
             <div className="actions compact-actions">
-              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ إضافة عميل جديد</Button>
-              <Button variant="secondary" onClick={controller.resetCustomersView}>إعادة الضبط</Button>
-              <Button variant="secondary" onClick={controller.exportCustomersCsv} disabled={!controller.summary?.totalCustomers}>تصدير Excel</Button>
-              <Button variant="secondary" onClick={() => void controller.copyCustomersSummary()} disabled={!controller.summary?.totalCustomers}>نسخ الملخص</Button>
-              <Button variant="secondary" onClick={controller.printCustomersRegister} disabled={!controller.rows.length || !controller.canPrint}>طباعة السجل</Button>
+              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ عميل جديد</Button>
+              <Button variant="secondary" onClick={controller.resetCustomersView}>إعادة ضبط</Button>
+              <Button variant="secondary" onClick={controller.exportCustomersCsv} disabled={!controller.summary?.totalCustomers}>تصدير</Button>
+              <Button variant="secondary" onClick={() => void controller.copyCustomersSummary()} disabled={!controller.summary?.totalCustomers}>نسخ</Button>
+              <Button variant="secondary" onClick={controller.printCustomersRegister} disabled={!controller.rows.length || !controller.canPrint}>طباعة</Button>
             </div>
           }
         />

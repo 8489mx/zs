@@ -30,11 +30,11 @@ export function SuppliersPage() {
           badge={<span className="nav-pill">{controller.summary?.totalSuppliers || 0} مورد</span>}
           actions={
             <div className="actions compact-actions">
-              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ إضافة مورد جديد</Button>
-              <Button variant="secondary" onClick={controller.resetSuppliersView}>إعادة الضبط</Button>
-              <Button variant="secondary" onClick={controller.exportSuppliersCsv} disabled={!controller.summary?.totalSuppliers}>تصدير Excel</Button>
-              <Button variant="secondary" onClick={() => void controller.copySuppliersSummary()} disabled={!controller.summary?.totalSuppliers}>نسخ الملخص</Button>
-              <Button variant="secondary" onClick={controller.printSuppliersRegister} disabled={!controller.summary?.totalSuppliers || !controller.canPrint}>طباعة السجل</Button>
+              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ مورد جديد</Button>
+              <Button variant="secondary" onClick={controller.resetSuppliersView}>إعادة ضبط</Button>
+              <Button variant="secondary" onClick={controller.exportSuppliersCsv} disabled={!controller.summary?.totalSuppliers}>تصدير</Button>
+              <Button variant="secondary" onClick={() => void controller.copySuppliersSummary()} disabled={!controller.summary?.totalSuppliers}>نسخ</Button>
+              <Button variant="secondary" onClick={controller.printSuppliersRegister} disabled={!controller.summary?.totalSuppliers || !controller.canPrint}>طباعة</Button>
             </div>
           }
         />

@@ -1,4 +1,3 @@
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -32,9 +31,15 @@ export function InventoryOverviewStats({
 
 export function InventoryMovementCard() {
   return (
-    <FormSection title="سجل حركات المخزون" description="كل زيادة أو خصم أو تالف أو نتيجة جرد في مسار واحد قابل للتصفية والمراجعة." actions={<span className="nav-pill">سجل الحركات</span>}>
+    <section className="document-prototype-section">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">سجل حركات المخزون</h3>
+      </div>
+      <p className="muted small section-header-subtitle">
+        كل زيادة أو خصم أو تالف أو نتيجة جرد في مسار واحد قابل للتصفية والمراجعة.
+      </p>
       <StockMovementRegister />
-    </FormSection>
+    </section>
   );
 }
 
@@ -66,18 +71,29 @@ export function InventoryStatusCard({
   onProductSelect?: (product: Product) => void;
 }) {
   return (
-    <FormSection title="متابعة حالة الأصناف" description="ابدأ هنا: فلتر سريع ثم راجع الجدول واضغط على الصنف المطلوب لفتح تسوية سريعة مباشرة." actions={<span className="nav-pill">حالة الأصناف</span>}>
+    <section className="document-prototype-section">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">متابعة حالة الأصناف</h3>
+      </div>
+      <p className="muted small section-header-subtitle">
+        ابدأ هنا: فلتر سريع ثم راجع الجدول واضغط على الصنف المطلوب لفتح تسوية سريعة مباشرة.
+      </p>
       <div className="filter-chip-row">
         <Button type="button" variant={statusFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('all')}>الكل</Button>
         <Button type="button" variant={statusFilter === 'healthy' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('healthy')}>سليم</Button>
         <Button type="button" variant={statusFilter === 'low' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('low')}>منخفض</Button>
         <Button type="button" variant={statusFilter === 'out' ? 'primary' : 'secondary'} onClick={() => onStatusFilterChange('out')}>نافد</Button>
       </div>
-      <SearchToolbar search={search} onSearchChange={onSearchChange} searchPlaceholder="ابحث باسم الصنف أو الباركود أو كود المجموعة">
+      <SearchToolbar
+        search={search}
+        onSearchChange={onSearchChange}
+        searchPlaceholder="ابحث باسم الصنف أو الباركود أو كود المجموعة"
+        title="بحث وتصفية"
+        actions={<span className="nav-pill">{statusFilter === 'all' ? 'كل الحالات' : statusFilter === 'healthy' ? 'سليم' : statusFilter === 'low' ? 'منخفض' : 'نافد'}</span>}
+        onReset={onReset}
+        resetLabel="تفريغ"
+      >
         <InventoryStatusFilterField value={statusFilter} onChange={onStatusFilterChange} />
-        <div className="actions compact-actions align-end-inline">
-          <Button type="button" variant="secondary" onClick={onReset}>إلغاء الفلاتر</Button>
-        </div>
       </SearchToolbar>
       <QueryFeedback
         isLoading={isLoading}
@@ -90,6 +106,6 @@ export function InventoryStatusCard({
       >
         <InventoryTable rows={rows.slice(0, 60)} includeSensitivePricing={includeSensitivePricing} selectedProductId={selectedProductId} onProductSelect={onProductSelect} />
       </QueryFeedback>
-    </FormSection>
+    </section>
   );
 }

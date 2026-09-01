@@ -24,9 +24,9 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         badge={<span className="nav-pill">{controller.rangeDays} يوم</span>}
         actions={(
           <div className="actions compact-actions">
-            <Button variant="secondary" onClick={controller.exportExecutiveSummary} disabled={!controller.report}>تصدير الملخص</Button>
-            <Button variant="secondary" onClick={controller.printExecutiveSummary} disabled={!controller.report}>طباعة الملخص</Button>
-            <Button variant="secondary" onClick={() => void controller.copyExecutiveSummary()} disabled={!controller.report}>نسخ الملخص</Button>
+            <Button variant="secondary" onClick={controller.exportExecutiveSummary} disabled={!controller.report}>تصدير</Button>
+            <Button variant="secondary" onClick={controller.printExecutiveSummary} disabled={!controller.report}>طباعة</Button>
+            <Button variant="secondary" onClick={() => void controller.copyExecutiveSummary()} disabled={!controller.report}>نسخ</Button>
           </div>
         )}
       />

@@ -188,10 +188,10 @@ export function HrLoansPage() {
           actions={
             <div className="actions compact-actions">
               <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-                {showCreate ? 'إغلاق نموذج السلفة' : 'سلفة جديدة'}
+                {showCreate ? 'إغلاق النموذج' : '+ سلفة جديدة'}
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>المرتبات</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>الموظفون</Button>
             </div>
           }
         />

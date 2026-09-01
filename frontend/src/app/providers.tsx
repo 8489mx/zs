@@ -31,6 +31,10 @@ function ThemeProvider({ children }: PropsWithChildren) {
 }
 
 function shouldRetry(failureCount: number, error: unknown) {
+  const status = (error as { status?: number })?.status;
+  if (status === 401 || status === 403 || status === 404) {
+    return false;
+  }
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403 || error.status === 404) {
       return false;

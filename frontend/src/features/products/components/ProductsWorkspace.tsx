@@ -51,20 +51,20 @@ export function ProductsWorkspace() {
           actions={(
             <div className="actions compact-actions page-header-actions">
               <Button onClick={() => navigate('/products/new')}>
-                {defaultProductKind === 'fashion' ? 'إضافة موديل ملابس' : 'إضافة صنف جديد'}
+                {defaultProductKind === 'fashion' ? '+ موديل جديد' : '+ صنف جديد'}
               </Button>
               {settingsQuery.data?.enableMobileStoreFeatures === true && (
                 <Button variant="secondary" onClick={() => setSerialLookupOpen(true)}>
-                  فحص سيريال / IMEI
+                  سيريال / IMEI
                 </Button>
               )}
               {settingsQuery.data?.restaurantModuleEnabled === true && (
                 <Button onClick={() => setAddonsDialogOpen(true)}>
-                  إدارة الإضافات
+                  الإضافات
                 </Button>
               )}
-              <Button variant="secondary" onClick={controller.resetProductsView}>إعادة الضبط</Button>
-              <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير Excel</Button>
+              <Button variant="secondary" onClick={controller.resetProductsView}>إعادة ضبط</Button>
+              <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير</Button>
               <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
             </div>
           )}

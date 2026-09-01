@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { DataTable } from '@/shared/ui/data-table';
-import { FormSection } from '@/shared/components/form-section';
 import { Field } from '@/shared/ui/field';
 import { http } from '@/lib/http';
 import { useAuthStore } from '@/stores/auth-store';
@@ -163,18 +162,23 @@ export default function WorkOrdersListPage() {
       ]}
       title="أوامر الإنتاج"
       actions={
-        <Button 
-          type="button" 
-          className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-primary" 
-          onClick={() => navigate('/manufacturing/work-orders/new')}
-        >
-          <span>إضافة أمر إنتاج</span>
-        </Button>
+        <div className="actions compact-actions">
+          <Button 
+            type="button" 
+            variant="primary"
+            onClick={() => navigate('/manufacturing/work-orders/new')}
+          >
+            + أمر إنتاج
+          </Button>
+        </div>
       }
     >
-        <FormSection title="أوامر الشغل" className="document-prototype-section">
-          <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <div style={{ margin: 0, minWidth: '200px' }}>
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row">
+            <h3 className="document-prototype-section-title">أوامر الشغل</h3>
+          </div>
+          <div className="work-orders-filters-row" style={{ padding: '12px 14px', borderBottom: '1px solid #e5e7eb', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+            <div style={{ margin: 0 }}>
               <Field label="الفترة الزمنية">
                 <select className="purchase-prototype-field-input" value={dateFilter} onChange={e => setDateFilter(e.target.value as any)}>
                   <option value="all">كل الأوقات</option>
@@ -185,7 +189,7 @@ export default function WorkOrdersListPage() {
               </Field>
             </div>
             
-            <div style={{ margin: 0, minWidth: '200px' }}>
+            <div style={{ margin: 0 }}>
               <Field label="المستخدم (المنفذ)">
                 <select className="purchase-prototype-field-input" value={userFilter} onChange={e => setUserFilter(e.target.value)}>
                   <option value="all">كل المستخدمين</option>
@@ -236,7 +240,7 @@ export default function WorkOrdersListPage() {
             </div>
           )}
           </div>
-        </FormSection>
+        </section>
     </ManufacturingLayout>
   );
 }

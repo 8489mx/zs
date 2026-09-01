@@ -189,7 +189,7 @@ export function AccountsInvoiceDetailCard({
       errorTitle="تعذر تحميل تفاصيل الفاتورة"
       isEmpty={!hasSelectedDocument || (!normalizedSale && !normalizedPurchase)}
       emptyTitle="اختر فاتورة من القيود لعرض تفاصيلها"
-      emptyHint="سيظهر هنا محتوى الفاتورة بالأصناف والكميات والأسعار من نفس شاشة الحسابات."
+      emptyHint="سيظهر هنا محتوى الفاتورة بالأصناف والأسعار."
     >
       {documentType === 'sale' ? (
         <SharedSaleDetailCard sale={normalizedSale || undefined} />

@@ -1,4 +1,3 @@
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -39,20 +38,21 @@ interface Props {
 
 export function PurchasesRegisterCard(props: Props) {
   const queryState = props.purchasesQuery.purchasesQuery;
-  const selectedLabel = props.selectedPurchase ? (props.selectedPurchase.docNo || props.selectedPurchase.id) : 'لا يوجد';
+  const selectedLabel = props.selectedPurchase ? (props.selectedPurchase.docNo || props.selectedPurchase.id) : null;
 
   return (
-    <FormSection
-      title="سجل فواتير الشراء"
-      description="راجع الفواتير بسرعة، فلتر النتائج، وافتح التفاصيل من نفس المكان."
-      actions={
-        <div className="section-title-actions purchases-register-header-actions">
-          <span className="nav-pill">النتائج: {props.totalItems}</span>
-          <span className="nav-pill">المحدد: {selectedLabel}</span>
-        </div>
-      }
-      className="workspace-panel purchases-register-card"
-    >
+    <section className="document-prototype-section workspace-panel purchases-register-card">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">سجل فواتير الشراء</h3>
+        {selectedLabel ? (
+          <div className="section-header-actions-group">
+            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>المحدد: {selectedLabel}</span>
+          </div>
+        ) : null}
+      </div>
+      <p className="muted small section-header-subtitle">
+        راجع الفواتير بسرعة، فلتر النتائج، وافتح التفاصيل من نفس المكان.
+      </p>
       <SearchToolbar
         search={props.search}
         onSearchChange={props.setSearch}
@@ -113,6 +113,6 @@ export function PurchasesRegisterCard(props: Props) {
           itemLabel="فاتورة"
         />
       </QueryFeedback>
-    </FormSection>
+    </section>
   );
 }

@@ -184,7 +184,7 @@ export function HrComingSoonPage() {
                 <span style={{ fontSize: '0.725rem', color: '#64748b' }}>مؤشرات اليوم لجميع أقسام الموارد البشرية</span>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
+              <div className="hr-operational-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
                 {[
                   { label: 'إجمالي الموظفين', value: totalEmployees, to: '/hr/employees', isAlert: false },
                   { label: 'نشط', value: activeEmployees, to: '/hr/employees', isAlert: false },
@@ -225,25 +225,26 @@ export function HrComingSoonPage() {
               </div>
             </div>
 
-            {/* Quick Actions Shortcuts Row */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            {/* Quick Actions Shortcuts Row (3x3 Grid on Mobile) */}
+            <div className="hr-quick-actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', marginBottom: '14px' }}>
               {[
-                { label: 'إضافة موظف', icon: <UsersIcon size={15} />, to: '/hr/employees/new', variant: 'primary' as const },
-                { label: 'تسجيل الحضور', icon: <ClockIcon size={15} />, to: '/hr/attendance', variant: 'secondary' as const },
-                { label: 'طلب إجازة', icon: <CalendarIcon size={15} />, to: '/hr/leaves', variant: 'secondary' as const },
-                { label: 'سلفة جديدة', icon: <WalletIcon size={15} />, to: '/hr/loans', variant: 'secondary' as const },
-                { label: 'تسليم عهدة', icon: <BriefcaseIcon size={15} />, to: '/hr/assets', variant: 'secondary' as const },
-                { label: 'مسير المرتبات', icon: <BanknotesIcon size={15} />, to: '/hr/payroll', variant: 'secondary' as const },
-                { label: 'المستندات', icon: <FileTextIcon size={15} />, to: '/hr/documents', variant: 'secondary' as const },
-                { label: 'التقارير', icon: <ChartBarIcon size={15} />, to: '/hr/reports', variant: 'secondary' as const },
-                { label: 'الإعدادات', icon: <CogIcon size={15} />, to: '/hr/settings', variant: 'secondary' as const },
+                { label: 'إضافة موظف', icon: <UsersIcon size={14} />, to: '/hr/employees/new', variant: 'primary' as const },
+                { label: 'تسجيل الحضور', icon: <ClockIcon size={14} />, to: '/hr/attendance', variant: 'secondary' as const },
+                { label: 'طلب إجازة', icon: <CalendarIcon size={14} />, to: '/hr/leaves', variant: 'secondary' as const },
+                { label: 'سلفة جديدة', icon: <WalletIcon size={14} />, to: '/hr/loans', variant: 'secondary' as const },
+                { label: 'تسليم عهدة', icon: <BriefcaseIcon size={14} />, to: '/hr/assets', variant: 'secondary' as const },
+                { label: 'مسير المرتبات', icon: <BanknotesIcon size={14} />, to: '/hr/payroll', variant: 'secondary' as const },
+                { label: 'المستندات', icon: <FileTextIcon size={14} />, to: '/hr/documents', variant: 'secondary' as const },
+                { label: 'التقارير', icon: <ChartBarIcon size={14} />, to: '/hr/reports', variant: 'secondary' as const },
+                { label: 'الإعدادات', icon: <CogIcon size={14} />, to: '/hr/settings', variant: 'secondary' as const },
               ].map((act, i) => (
                 <Button
                   key={i}
                   type="button"
                   variant={act.variant}
                   onClick={() => navigate(act.to)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                  className="hr-quick-action-btn"
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', padding: '6px 8px', fontSize: '0.76rem', borderRadius: '6px', width: '100%' }}
                 >
                   {act.icon}
                   <span>{act.label}</span>

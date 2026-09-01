@@ -185,7 +185,7 @@ export function ImportWorkbench({
           {description && <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>{description}</div>}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           {onExportData && (
             <button
               type="button"
@@ -194,9 +194,9 @@ export function ImportWorkbench({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                fontSize: '0.78rem',
+                gap: '4px',
+                padding: '5px 10px',
+                fontSize: '0.76rem',
                 fontWeight: 700,
                 borderRadius: '6px',
                 border: '1px solid #0f172a',
@@ -208,7 +208,7 @@ export function ImportWorkbench({
               onMouseEnter={(e) => { if (!isExporting) e.currentTarget.style.background = '#1e293b'; }}
               onMouseLeave={(e) => { if (!isExporting) e.currentTarget.style.background = '#0f172a'; }}
             >
-              {isExporting ? 'جاري التصدير...' : 'تصدير البيانات الحالية'}
+              {isExporting ? 'جاري التصدير...' : 'تصدير البيانات'}
             </button>
           )}
 
@@ -218,9 +218,9 @@ export function ImportWorkbench({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              fontSize: '0.78rem',
+              gap: '4px',
+              padding: '5px 10px',
+              fontSize: '0.76rem',
               fontWeight: 700,
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
@@ -232,7 +232,7 @@ export function ImportWorkbench({
             onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
           >
-            تحميل قالب فارغ
+            قالب فارغ
           </button>
 
           <button

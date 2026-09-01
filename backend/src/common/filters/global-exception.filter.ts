@@ -72,7 +72,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         });
       }
     } else {
-      this.logger.error(
+      this.logger.warn(
+        exception instanceof Error ? exception.message : 'Client error',
         {
           method: request.method,
           path: safePath,
@@ -80,7 +81,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           requestId,
           error: sanitizedError,
         },
-        exception instanceof Error ? exception.message : 'Unknown error',
       );
     }
 

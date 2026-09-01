@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FormSection } from '@/shared/components/form-section';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { LoadingState } from '@/shared/ui/loading-state';
@@ -166,20 +165,22 @@ export function DashboardDailyDecisionGrid({
   }
 
   return (
-    <FormSection
-      title="مركز اتخاذ القرارات"
-      description="متابعة فورية للأولويات: نواقص الشراء، الأصناف الراكدة، مصادر الربحية، والمديونيات المستحقة."
-      actions={
-        <div className="actions compact-actions">
-          {activeTab === 'buying' && <Link className="button button-secondary" to="/inventory">مراجعة المخزون</Link>}
-          {activeTab === 'stagnant' && <Link className="button button-secondary" to="/inventory">إدارة الراكد</Link>}
-          {activeTab === 'profit' && <Link className="button button-secondary" to="/reports/profit">تقرير الأرباح</Link>}
-          {activeTab === 'collection' && <Link className="button button-secondary" to="/accounts">كشف الحسابات</Link>}
-          {activeTab === 'payables' && <Link className="button button-secondary" to="/suppliers">سجل الموردين</Link>}
+    <section className="document-prototype-section dashboard-premium-card">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">
+          مركز اتخاذ القرارات
+        </h3>
+        <div className="section-header-actions-group">
+          {activeTab === 'buying' && <Link className="section-header-action-btn" to="/inventory">مراجعة المخزون</Link>}
+          {activeTab === 'stagnant' && <Link className="section-header-action-btn" to="/inventory">إدارة الراكد</Link>}
+          {activeTab === 'profit' && <Link className="section-header-action-btn" to="/reports/profit">تقرير الأرباح</Link>}
+          {activeTab === 'collection' && <Link className="section-header-action-btn" to="/accounts">كشف الحسابات</Link>}
+          {activeTab === 'payables' && <Link className="section-header-action-btn" to="/suppliers">سجل الموردين</Link>}
         </div>
-      }
-      className="dashboard-premium-card"
-    >
+      </div>
+      <p className="muted small section-header-subtitle">
+        متابعة فورية للأولويات: نواقص الشراء، الأصناف الراكدة، مصادر الربحية، والمديونيات المستحقة.
+      </p>
       {/* Apple-style Smooth Chips Carousel */}
       <div className="decision-grid-tabs-wrapper">
         <div className="decision-grid-tabs-bar">
@@ -236,7 +237,7 @@ export function DashboardDailyDecisionGrid({
       {/* Tab Content */}
       {activeTab === 'buying' && (
         <div className="page-stack" style={{ gap: '12px' }}>
-          <div className="manager-overview-mini-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          <div className="manager-overview-mini-metrics">
             <MetricTile label="أصناف نفدت تماماً" value={formatNumber(data.buying.outOfStockTotal)} />
             <MetricTile label="أصناف وصلت للحد الأدنى" value={formatNumber(data.buying.lowStockTotal)} />
             <MetricTile label="أصناف ذات أولوية شراء" value={formatNumber(data.buying.priorityTotal)} />
@@ -247,7 +248,7 @@ export function DashboardDailyDecisionGrid({
 
       {activeTab === 'stagnant' && (
         <div className="page-stack" style={{ gap: '12px' }}>
-          <div className="manager-overview-mini-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          <div className="manager-overview-mini-metrics">
             <MetricTile label={`راكد (حد المتجر: ${data.stagnant.thresholdDays || 30} يوم)`} value={formatNumber(data.stagnant.daysConfigured ?? data.stagnant.days30)} />
             <MetricTile label="راكد أكثر من 90 يوم" value={formatNumber(data.stagnant.days90)} />
             <MetricTile label="قيمة المخزون الراكد" value={formatCurrency(data.stagnant.inventoryValue)} />
@@ -258,7 +259,7 @@ export function DashboardDailyDecisionGrid({
 
       {activeTab === 'profit' && (
         <div className="page-stack" style={{ gap: '12px' }}>
-          <div className="manager-overview-mini-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          <div className="manager-overview-mini-metrics">
             <MetricTile label="أعلى ربح محقق" value={data.profitSources.topProducts[0] ? formatCurrency(data.profitSources.topProducts[0].grossProfit) : 'غير متاح'} />
             <MetricTile label="هامش أعلى صنف" value={data.profitSources.topProducts[0] ? formatPercent(data.profitSources.topProducts[0].marginPercent) : 'غير متاح'} />
             <MetricTile label="أصناف بهامش ضعيف" value={formatNumber(data.profitSources.weakMarginHighSales.length)} />
@@ -278,7 +279,7 @@ export function DashboardDailyDecisionGrid({
 
       {activeTab === 'collection' && (
         <div className="page-stack" style={{ gap: '12px' }}>
-          <div className="manager-overview-mini-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          <div className="manager-overview-mini-metrics">
             <MetricTile label="أعلى أرصدة مستحقة" value={formatNumber(data.collection.topDebts.length)} />
             <MetricTile label="عملاء تجاوزوا الحد" value={formatNumber(data.collection.aboveCreditLimit.length)} />
             <MetricTile label="عملاء قاربوا الحد" value={formatNumber(data.collection.nearCreditLimit.length)} />
@@ -289,7 +290,7 @@ export function DashboardDailyDecisionGrid({
 
       {activeTab === 'payables' && (
         <div className="page-stack" style={{ gap: '12px' }}>
-          <div className="manager-overview-mini-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          <div className="manager-overview-mini-metrics">
             <MetricTile label="إجمالي ديون الموردين" value={formatCurrency(totalSupplierDebt)} />
             <MetricTile label="أعلى مورد مستحق" value={topSuppliers[0] ? formatCurrency(topSuppliers[0].total) : '0 ج.م'} />
             <MetricTile label="عدد الموردين الدائنين" value={formatNumber(topSuppliers.length)} />
@@ -297,6 +298,6 @@ export function DashboardDailyDecisionGrid({
           <SupplierList rows={topSuppliers} />
         </div>
       )}
-    </FormSection>
+    </section>
   );
 }

@@ -725,7 +725,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   return (
     <div className={`app-layout ${effectiveSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}>
-      {!isPosRoute || !isPosChromeHidden ? (
+      {(!isPosRoute || !isPosChromeHidden || isMobileScreen) ? (
         <>
           <aside ref={sidebarRef} className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
             <div className="brand">

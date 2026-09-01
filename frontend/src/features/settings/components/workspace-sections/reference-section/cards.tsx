@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { QueryCard } from '@/shared/components/query-card';
+import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
 import { downloadEntityListCsv, printEntityList } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import type { Branch, Location } from '@/types/domain';
@@ -38,17 +38,16 @@ export function BranchReferenceCard(props: {
   const isBranchLimitReached = !hasMultiBranch && branches.length >= 1;
 
   return (
-    <QueryCard
-      title={`الفروع (${branches.length})`}
-      className="settings-reference-card"
-      actions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+    <section className="document-prototype-section settings-reference-card">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">الفروع ({branches.length})</h3>
+        <div className="section-header-actions-group">
           {canManageSettings && onShowAddBranch && (
             isBranchLimitReached ? (
               <span
                 style={{
-                  fontSize: '0.72rem',
-                  padding: '4px 8px',
+                  fontSize: '0.70rem',
+                  padding: '3px 6px',
                   background: '#fef3c7',
                   color: '#92400e',
                   border: '1px solid #fde68a',
@@ -56,36 +55,36 @@ export function BranchReferenceCard(props: {
                   fontWeight: 700,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'help',
+                  gap: '3px',
+                  whiteSpace: 'nowrap',
                 }}
-                title="وصلت للحد الأقصى في باقتك (فرع واحد). يرجى الترقية لإضافة فروع جديدة."
+                title="وصلت للحد الأقصى في باقتك (فرع واحد)."
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                الحد الأقصى (فرع 1)
+                حد الباقة (1)
               </span>
             ) : (
-              <Button variant="primary" onClick={onShowAddBranch} style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#0f172a' }}>
-                + إضافة فرع
+              <Button variant="primary" onClick={onShowAddBranch} className="section-header-action-btn">
+                + فرع
               </Button>
             )
           )}
-          <Button variant="secondary" onClick={() => downloadEntityListCsv('branches.csv', ['name', 'code'], branchList.map((branch) => [branch.name || '', branch.code || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+          <Button variant="secondary" className="section-header-action-btn" onClick={() => downloadEntityListCsv('branches.csv', ['name', 'code'], branchList.map((branch) => [branch.name || '', branch.code || '']))}>
             تصدير
           </Button>
-          <Button variant="secondary" onClick={() => printEntityList('الفروع الحالية', ['الاسم', 'الكود'], branchList.map((branch) => [branch.name || '', branch.code || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+          <Button variant="secondary" className="section-header-action-btn" onClick={() => printEntityList('الفروع الحالية', ['الاسم', 'الكود'], branchList.map((branch) => [branch.name || '', branch.code || '']))}>
             طباعة
           </Button>
         </div>
-      }
-      isLoading={branchesQuery.isLoading}
-      isError={branchesQuery.isError}
-      error={branchesQuery.error}
-      isEmpty={!branches.length}
-      loadingText="جاري تحميل الفروع الحالية..."
-      emptyTitle="لم تتم إضافة فروع بعد"
-      emptyHint="أضف فرعًا جديدًا للبدء."
-    >
+      </div>
+      <QueryFeedback
+        isLoading={branchesQuery.isLoading}
+        isError={branchesQuery.isError}
+        error={branchesQuery.error}
+        isEmpty={!branches.length}
+        loadingText="جاري تحميل الفروع الحالية..."
+        emptyTitle="لم تتم إضافة فروع بعد"
+        emptyHint="أضف فرعًا جديدًا للبدء."
+      >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {/* Compact Search & Filter Strip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -171,7 +170,8 @@ export function BranchReferenceCard(props: {
           )}
         </div>
       </div>
-    </QueryCard>
+      </QueryFeedback>
+    </section>
   );
 }
 
@@ -204,17 +204,16 @@ export function LocationReferenceCard(props: {
   const isLocationLimitReached = !hasMultiWarehouse && locations.length >= 1;
 
   return (
-    <QueryCard
-      title={`المخازن والمواقع (${locations.length})`}
-      className="settings-reference-card"
-      actions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+    <section className="document-prototype-section settings-reference-card">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">المخازن والمواقع ({locations.length})</h3>
+        <div className="section-header-actions-group">
           {canManageSettings && onShowAddLocation && (
             isLocationLimitReached ? (
               <span
                 style={{
-                  fontSize: '0.72rem',
-                  padding: '4px 8px',
+                  fontSize: '0.70rem',
+                  padding: '3px 6px',
                   background: '#fef3c7',
                   color: '#92400e',
                   border: '1px solid #fde68a',
@@ -222,36 +221,36 @@ export function LocationReferenceCard(props: {
                   fontWeight: 700,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'help',
+                  gap: '3px',
+                  whiteSpace: 'nowrap',
                 }}
-                title="وصلت للحد الأقصى في باقتك (مخزن واحد). يرجى تفعيل موديول المخزون المتقدم لإضافة مخازن إضافية."
+                title="وصلت للحد الأقصى في باقتك (مخزن واحد)."
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                الحد الأقصى (مخزن 1)
+                حد الباقة (1)
               </span>
             ) : (
-              <Button variant="primary" onClick={onShowAddLocation} style={{ fontSize: '0.78rem', padding: '5px 12px', background: '#0f172a' }}>
-                + إضافة مخزن
+              <Button variant="primary" onClick={onShowAddLocation} className="section-header-action-btn">
+                + مخزن
               </Button>
             )
           )}
-          <Button variant="secondary" onClick={() => downloadEntityListCsv('locations.csv', ['name', 'code', 'branch'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+          <Button variant="secondary" className="section-header-action-btn" onClick={() => downloadEntityListCsv('locations.csv', ['name', 'code', 'branch'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))}>
             تصدير
           </Button>
-          <Button variant="secondary" onClick={() => printEntityList('المخازن الحالية', ['الاسم', 'الكود', 'الفرع'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))} style={{ fontSize: '0.78rem', padding: '5px 10px' }}>
+          <Button variant="secondary" className="section-header-action-btn" onClick={() => printEntityList('المخازن الحالية', ['الاسم', 'الكود', 'الفرع'], locationList.map((location) => [location.name || '', location.code || '', location.branchName || '']))}>
             طباعة
           </Button>
         </div>
-      }
-      isLoading={locationsQuery.isLoading}
-      isError={locationsQuery.isError}
-      error={locationsQuery.error}
-      isEmpty={!locations.length}
-      loadingText="جاري تحميل المخازن..."
-      emptyTitle="لم تتم إضافة مخازن بعد"
-      emptyHint="أضف مخزنًا جديدًا للبدء."
-    >
+      </div>
+      <QueryFeedback
+        isLoading={locationsQuery.isLoading}
+        isError={locationsQuery.isError}
+        error={locationsQuery.error}
+        isEmpty={!locations.length}
+        loadingText="جاري تحميل المخازن..."
+        emptyTitle="لم تتم إضافة مخازن بعد"
+        emptyHint="أضف مخزنًا جديدًا للبدء."
+      >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {/* Compact Search & Filter Strip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#f8fafc', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -335,6 +334,7 @@ export function LocationReferenceCard(props: {
           )}
         </div>
       </div>
-    </QueryCard>
+      </QueryFeedback>
+    </section>
   );
 }

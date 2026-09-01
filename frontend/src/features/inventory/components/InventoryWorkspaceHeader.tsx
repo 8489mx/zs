@@ -11,8 +11,8 @@ export function InventoryWorkspaceHeader({
   onCopySummary,
   onExportExcel,
   onPrintList,
-  onPrintByCategory,
-  onPrintByHighestValue,
+  onPrintByCategory: _onPrintByCategory,
+  onPrintByHighestValue: _onPrintByHighestValue,
 }: {
   canPrint: boolean;
   hasRows: boolean;
@@ -26,14 +26,14 @@ export function InventoryWorkspaceHeader({
   onPrintByHighestValue?: () => void;
 }) {
   const primaryAction = currentSection === 'transfers'
-    ? { to: '/inventory/transfers', label: 'إنشاء تحويل جديد' }
+    ? { to: '/inventory/transfers', label: 'تحويل جديد' }
     : currentSection === 'counts'
-      ? { to: '/inventory/counts', label: 'بدء جلسة جرد' }
+      ? { to: '/inventory/counts', label: 'جلسة جرد' }
       : currentSection === 'damaged'
-        ? { to: '/inventory/damaged', label: 'مراجعة التالف' }
+        ? { to: '/inventory/damaged', label: 'سجل التالف' }
         : currentSection === 'movements'
-          ? { to: '/inventory/movements', label: 'فتح سجل الحركات' }
-          : { to: '/inventory/overview', label: 'متابعة حالة المخزون' };
+          ? { to: '/inventory/movements', label: 'سجل الحركات' }
+          : { to: '/inventory/overview', label: 'حالة المخزون' };
 
   return (
     <PageHeader
@@ -43,16 +43,10 @@ export function InventoryWorkspaceHeader({
       actions={(
         <div className="actions compact-actions">
           <Link to={primaryAction.to}><Button>{primaryAction.label}</Button></Link>
-          <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
-          <Button variant="secondary" onClick={onCopySummary}>نسخ الملخص</Button>
-          <Button variant="secondary" onClick={onExportExcel} disabled={!hasRows}>تصدير Excel</Button>
-          <Button variant="secondary" onClick={onPrintList} disabled={!hasRows || !canPrint} title="طباعة تقرير المخزون مرتباً من الأقل مخزوناً للأعلى">طباعة القائمة</Button>
-          {currentSection === 'overview' && onPrintByCategory && onPrintByHighestValue && (
-            <>
-              <Button variant="secondary" onClick={onPrintByCategory} disabled={!hasRows || !canPrint} title="طباعة الأصناف مرتبة حسب الأقسام لتسهيل الجرد على الرفوف">جرد بالأقسام</Button>
-              <Button variant="secondary" onClick={onPrintByHighestValue} disabled={!hasRows || !canPrint} title="طباعة الأصناف مرتبة من الأعلى قيمة إجمالية للأقل">الأعلى قيمة</Button>
-            </>
-          )}
+          <Button variant="secondary" onClick={onReset}>إعادة ضبط</Button>
+          <Button variant="secondary" onClick={onCopySummary}>نسخ</Button>
+          <Button variant="secondary" onClick={onExportExcel} disabled={!hasRows}>تصدير</Button>
+          <Button variant="secondary" onClick={onPrintList} disabled={!hasRows || !canPrint} title="طباعة تقرير المخزون">طباعة</Button>
         </div>
       )}
     />

@@ -1,7 +1,6 @@
 // regression marker: startNewUser('admin')
 import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import type { Branch } from '@/types/domain';
@@ -93,17 +92,16 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
 
   return (
     <>
-      <FormSection
-        className="settings-users-card"
-        title="المستخدمون والصلاحيات"
-        actions={(
-          <div className="actions compact-actions">
+      <section className="document-prototype-section settings-users-card">
+        <div className="section-header-compact-row">
+          <h3 className="document-prototype-section-title">المستخدمون والصلاحيات</h3>
+          <div className="section-header-actions-group">
             {!setupMode ? (
               isUserLimitReached ? (
                 <span
                   style={{
-                    fontSize: '0.74rem',
-                    padding: '5px 10px',
+                    fontSize: '0.70rem',
+                    padding: '3px 6px',
                     background: '#fef3c7',
                     color: '#92400e',
                     border: '1px solid #fde68a',
@@ -111,23 +109,47 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
                     fontWeight: 700,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    cursor: 'help',
+                    gap: '3px',
+                    whiteSpace: 'nowrap',
                   }}
-                  title={`وصلت للحد الأقصى في باقتك (${maxAllowedUsers} مستخدمين). يرجى ترقية الباقة لإضافة مستخدمين جدد.`}
+                  title={`وصلت للحد الأقصى في باقتك (${maxAllowedUsers} مستخدمين).`}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                  الحد الأقصى للباقة ({maxAllowedUsers} مستخدمين)
+                  حد الباقة ({maxAllowedUsers})
                 </span>
               ) : (
-                <Button type="button" variant="primary" onClick={() => { startNewUser('cashier'); setIsEditorOpen(true); }}>+ مستخدم جديد</Button>
+                <Button type="button" variant="primary" className="section-header-action-btn" onClick={() => { startNewUser('cashier'); setIsEditorOpen(true); }}>
+                  + مستخدم جديد
+                </Button>
               )
             ) : null}
-            {!setupMode ? <Button type="button" variant="secondary" onClick={async () => { const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter }); exportUsersCsv('users-results.csv', payload.rows.map(normalizeUserRecord)); }}>تصدير النتائج</Button> : null}
-            {!setupMode ? <Button type="button" variant="secondary" onClick={async () => { const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter }); printUsersList('قائمة المستخدمين', payload.rows.map(normalizeUserRecord)); }}>طباعة النتائج</Button> : null}
+            {!setupMode ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="section-header-action-btn"
+                onClick={async () => {
+                  const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter });
+                  exportUsersCsv('users-results.csv', payload.rows.map(normalizeUserRecord));
+                }}
+              >
+                تصدير
+              </Button>
+            ) : null}
+            {!setupMode ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="section-header-action-btn"
+                onClick={async () => {
+                  const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter });
+                  printUsersList('قائمة المستخدمين', payload.rows.map(normalizeUserRecord));
+                }}
+              >
+                طباعة
+              </Button>
+            ) : null}
           </div>
-        )}
-      >
+        </div>
         <QueryFeedback
           isLoading={usersQuery.isLoading}
           isError={usersQuery.isError}
@@ -195,7 +217,7 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
             )}
           </div>
         </QueryFeedback>
-      </FormSection>
+      </section>
 
       {/* Modal for Editing/Creating User in Non-Setup Mode */}
       {!setupMode && (

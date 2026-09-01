@@ -32,11 +32,11 @@ export function ReturnsWorkspaceHeader({
         badge={<span className="nav-pill">بيع {salesReturns} / شراء {purchaseReturns}</span>}
         actions={(
           <div className="actions compact-actions">
-            {onOpenCreate && <Button variant="primary" onClick={onOpenCreate}>+ تسجيل مرتجع جديد</Button>}
-            <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
-            <Button variant="secondary" onClick={() => void onCopySummary()} disabled={!totalItems}>نسخ الملخص</Button>
-            <Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>تصدير Excel</Button>
-            <Button variant="secondary" onClick={() => void onPrint()} disabled={!totalItems}>طباعة السجل</Button>
+            {onOpenCreate && <Button variant="primary" onClick={onOpenCreate}>+ مرتجع جديد</Button>}
+            <Button variant="secondary" onClick={onReset}>إعادة ضبط</Button>
+            <Button variant="secondary" onClick={() => void onCopySummary()} disabled={!totalItems}>نسخ</Button>
+            <Button variant="secondary" onClick={() => void onExportCsv()} disabled={!totalItems}>تصدير</Button>
+            <Button variant="secondary" onClick={() => void onPrint()} disabled={!totalItems}>طباعة</Button>
           </div>
         )}
       />

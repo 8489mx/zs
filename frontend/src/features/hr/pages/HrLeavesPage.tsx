@@ -203,10 +203,10 @@ export function HrLeavesPage() {
           actions={
             <div className="actions compact-actions">
               <Button type="button" onClick={() => setShowCreate((current) => !current)}>
-                {showCreate ? 'إغلاق نموذج الطلب' : 'إضافة طلب إجازة'}
+                {showCreate ? 'إغلاق النموذج' : '+ طلب إجازة'}
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>فتح المرتبات</Button>
-              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/payroll')}>المرتبات</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>الموظفون</Button>
             </div>
           }
         />

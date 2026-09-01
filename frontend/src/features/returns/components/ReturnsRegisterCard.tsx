@@ -1,6 +1,6 @@
-import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
+import { Field } from '@/shared/ui/field';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { getReturnDateValue, returnTypeLabel } from '@/features/returns/lib/returns-workspace.helpers';
@@ -46,22 +46,33 @@ export function ReturnsRegisterCard({
   onPageSizeChange,
 }: Props) {
   return (
-    <FormSection title="سجل المرتجعات" actions={<span className="nav-pill">السجل</span>} className="workspace-panel returns-register-card">
-      <SearchToolbar search={search} onSearchChange={onSearchChange} searchPlaceholder="ابحث برقم المستند أو الصنف أو الملاحظات">
-        <Button variant="secondary" onClick={onReset}>إعادة الضبط</Button>
-      </SearchToolbar>
-      <div className="filter-chip-row">
-        <input
-          value={employeeFilter}
-          onChange={(event) => onEmployeeFilterChange(event.target.value)}
-          placeholder="فلترة باسم منفذ المرتجع"
-          style={{ minWidth: 220 }}
-        />
+    <section className="document-prototype-section workspace-panel returns-register-card">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">سجل المرتجعات</h3>
+      </div>
+      <div className="filter-chip-row" style={{ marginTop: '8px' }}>
         <Button variant={viewFilter === 'all' ? 'primary' : 'secondary'} onClick={() => onFilterChange('all')}>الكل</Button>
         <Button variant={viewFilter === 'sales' ? 'primary' : 'secondary'} onClick={() => onFilterChange('sales')}>مرتجع بيع</Button>
         <Button variant={viewFilter === 'purchase' ? 'primary' : 'secondary'} onClick={() => onFilterChange('purchase')}>مرتجع شراء</Button>
         <Button variant={viewFilter === 'today' ? 'primary' : 'secondary'} onClick={() => onFilterChange('today')}>اليوم</Button>
       </div>
+      <SearchToolbar
+        search={search}
+        onSearchChange={onSearchChange}
+        searchPlaceholder="ابحث برقم المستند أو الصنف أو الملاحظات"
+        title="بحث وتصفية"
+        actions={<span className="nav-pill">{viewFilter === 'all' ? 'كل المرتجعات' : viewFilter === 'sales' ? 'مرتجع بيع' : viewFilter === 'purchase' ? 'مرتجع شراء' : 'اليوم'}</span>}
+        onReset={onReset}
+        resetLabel="تفريغ"
+      >
+        <Field label="منفذ المرتجع">
+          <input
+            value={employeeFilter}
+            onChange={(event) => onEmployeeFilterChange(event.target.value)}
+            placeholder="اسم منفذ المرتجع"
+          />
+        </Field>
+      </SearchToolbar>
       {isLoading ? <div className="loading-card">جاري تحميل المرتجعات...</div> : rows.length ? (
         <div style={{ overflowX: 'auto', width: '100%' }}>
           <DataTable
@@ -93,6 +104,6 @@ export function ReturnsRegisterCard({
           />
         </div>
       ) : <div className="empty-state-card">لا توجد مرتجعات حاليًا</div>}
-    </FormSection>
+    </section>
   );
 }

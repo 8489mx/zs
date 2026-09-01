@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
-import { FormSection } from '@/shared/components/form-section';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
 import { NetworkIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
@@ -143,45 +142,42 @@ export function WarehousesGridPage() {
       <StatsGrid items={stats} className="stats-grid compact-grid grid-cols-4" />
 
       {/* Filter / Search Bar */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid var(--border, #e2e8f0)',
+      <div className="surface-card" style={{
+        padding: '10px 14px',
+        marginBottom: '14px',
         borderRadius: '12px',
-        padding: '12px 18px',
-        marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)',
       }}>
-        <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
-          <input
-            type="text"
-            placeholder="ابحث باسم المخزن أو الكود أو الفرع..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border, #cbd5e1)',
-              fontSize: '13px',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
-        <div style={{ fontSize: '13px', color: '#64748b' }}>
-          إجمالي الأماكن: <strong style={{ color: '#0f172a' }}>{filteredLocations.length}</strong>
-        </div>
+        <input
+          type="text"
+          placeholder="ابحث باسم المخزن أو الكود أو الفرع..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            border: '1px solid var(--border, #cbd5e1)',
+            fontSize: '13px',
+            boxSizing: 'border-box',
+          }}
+        />
       </div>
 
-      <FormSection title="قائمة أماكن المخزون">
+      <section className="document-prototype-section">
+        <div className="section-header-compact-row">
+          <h3 className="document-prototype-section-title">قائمة أماكن المخزون</h3>
+          <div className="section-header-actions-group">
+            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>إجمالي الأماكن: {filteredLocations.length}</span>
+          </div>
+        </div>
+
         {locationsQuery.isLoading || isOverviewLoading ? (
           <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>جاري تحميل المخازن...</div>
         ) : filteredLocations.length === 0 ? (
           <div className="muted small" style={{ padding: 32, textAlign: 'center' }}>لا توجد مخازن مطابقة للبحث</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '18px', marginTop: '14px' }}>
+          <div className="warehouses-locations-grid">
             {filteredLocations.map((loc) => {
               const locInfo = overviewData?.locations?.find((l: any) => String(l.id) === String(loc.id));
               const locValue = locInfo?.totalValue || 0;
@@ -190,120 +186,64 @@ export function WarehousesGridPage() {
               return (
                 <div 
                   key={loc.id} 
-                  className="surface-card hoverable-card"
-                  style={{ 
-                    padding: '20px', 
-                    cursor: 'pointer', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: '16px',
-                    border: '1px solid var(--border, #e2e8f0)',
-                    borderRadius: '14px',
-                    backgroundColor: '#ffffff',
-                    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
-                    transition: 'all 0.2s ease-in-out',
-                    position: 'relative',
-                  }}
+                  className="surface-card hoverable-card warehouse-compact-card"
                   onClick={() => navigate(`/inventory/warehouses/${loc.id}`)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '10px',
-                        backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--primary, #170c5c)',
-                      }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="warehouse-card-top-row">
+                    <div className="warehouse-card-identity">
+                      <div className="warehouse-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
                           <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
                           <path d="M2 7h20"/>
                           <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
                         </svg>
                       </div>
-                      <span style={{ 
-                        fontSize: '11px', 
-                        fontWeight: 700, 
-                        padding: '3px 8px', 
-                        borderRadius: '8px', 
-                        backgroundColor: '#ecfdf5', 
-                        color: '#047857',
-                        border: '1px solid #a7f3d0'
-                      }}>
-                        {formatLocationType(loc.locationType)}
-                      </span>
+                      <div className="warehouse-card-titles">
+                        <div className="warehouse-card-name-row">
+                          <h3 className="warehouse-card-title">{loc.name}</h3>
+                          <span className="warehouse-type-badge">
+                            {formatLocationType(loc.locationType)}
+                          </span>
+                        </div>
+                        <div className="warehouse-card-subtitle">
+                          {loc.branchName ? `الفرع: ${loc.branchName}` : loc.code ? `كود: ${loc.code}` : 'موقع رئيسي'}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Action buttons */}
-                    <div style={{ display: 'flex', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="warehouse-card-actions" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={(e) => handleEdit(loc, e)}
                         title="تعديل المخزن"
-                        style={{
-                          background: '#f8fafc',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '6px',
-                          padding: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          color: '#475569',
-                        }}
+                        className="warehouse-action-btn edit-btn"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                       </button>
                       <button
                         type="button"
                         onClick={(e) => handleDelete(loc, e)}
                         title="حذف المخزن"
-                        style={{
-                          background: '#fef2f2',
-                          border: '1px solid #fecaca',
-                          borderRadius: '6px',
-                          padding: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          color: '#dc2626',
-                        }}
+                        className="warehouse-action-btn delete-btn"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                       </button>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 style={{ margin: '0 0 4px 0', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-                      {loc.name}
-                    </h3>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                      {loc.branchName ? `الفرع: ${loc.branchName}` : loc.code ? `كود المخزن: ${loc.code}` : 'موقع تخزين رئيسي'}
-                    </div>
-                  </div>
-
-                  <div style={{ 
-                    marginTop: 'auto', 
-                    paddingTop: '14px', 
-                    borderTop: '1px solid #f1f5f9', 
-                    display: 'flex', 
-                    alignItems: 'flex-end', 
-                    justifyContent: 'space-between' 
-                  }}>
-                    <div>
-                      <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                        <PackageIcon size={14} color="#64748b" />
-                        <span>{productCount} {productCount === 1 ? 'صنف' : 'أصناف'}</span>
+                  <div className="warehouse-card-bottom-row">
+                    <div className="warehouse-card-metrics">
+                      <span className="warehouse-count-pill">
+                        <PackageIcon size={12} color="#64748b" />
+                        <span>{productCount} أصناف</span>
                       </span>
-                      <strong style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary, #170c5c)' }}>
+                      <strong className="warehouse-value-amount">
                         {formatCurrency(locValue)}
                       </strong>
                     </div>
-                    <span style={{ fontSize: '12.5px', color: 'var(--primary, #170c5c)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="warehouse-details-link">
                       عرض الأصناف <span>←</span>
                     </span>
                   </div>
@@ -312,7 +252,7 @@ export function WarehousesGridPage() {
             })}
           </div>
         )}
-      </FormSection>
+      </section>
 
       {/* Dialog for Create/Edit Location */}
       {modalOpen && (

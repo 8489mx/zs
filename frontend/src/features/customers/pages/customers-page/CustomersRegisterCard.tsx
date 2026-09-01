@@ -1,4 +1,3 @@
-import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
@@ -34,7 +33,17 @@ interface CustomersRegisterCardProps {
 
 export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
   return (
-    <FormSection title="العملاء الحاليون" description="فلترة سريعة مع ملخصات وإمكانية التعديل والإضافة المباشرة." actions={<div className="actions compact-actions">{props.onOpenCreate && <Button variant="primary" onClick={props.onOpenCreate}>+ إضافة عميل</Button>}<Button variant="secondary" onClick={() => { props.setSearch(''); props.setFilterMode('all'); props.setPage(1); }}>إلغاء الفلاتر</Button><Button variant="secondary" onClick={() => void props.copyCustomersSummary()} disabled={!props.summary?.totalCustomers}>نسخ الملخص</Button><Button variant="secondary" onClick={props.printCustomersRegister} disabled={!props.rows.length || !props.canPrint}>طباعة السجل</Button><span className="nav-pill">السجل</span></div>}>
+    <section className="document-prototype-section">
+      <div className="section-header-compact-row">
+        <h3 className="document-prototype-section-title">العملاء الحاليون</h3>
+        <div className="section-header-actions-group">
+          {props.onOpenCreate && <Button variant="primary" onClick={props.onOpenCreate} className="section-header-action-btn">+ عميل جديد</Button>}
+          <Button variant="secondary" onClick={() => { props.setSearch(''); props.setFilterMode('all'); props.setPage(1); }} className="section-header-action-btn" style={{ marginInlineStart: '6px' }}>إلغاء الفلاتر</Button>
+        </div>
+      </div>
+      <p className="muted small section-header-subtitle">
+        فلترة سريعة مع ملخصات وإمكانية التعديل والإضافة المباشرة.
+      </p>
       <SearchToolbar
         search={props.search}
         onSearchChange={(value) => { props.setSearch(value); props.setPage(1); }}
@@ -42,7 +51,13 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
         title="بحث وتصفية"
         description="ابدأ بالفلتر المناسب ثم اختر العميل المطلوب لتظهر لوحة التعديل فورًا."
         actions={<span className="nav-pill">{props.filterMode === 'all' ? 'كل العملاء' : props.filterMode === 'vip' ? 'VIP' : props.filterMode === 'debt' ? 'عليهم رصيد' : 'نقدي'}</span>}
-        meta={<><span className="toolbar-meta-pill">النتائج: {props.summary?.totalCustomers || props.rows.length}</span><span className="toolbar-meta-pill">المحدد: {props.selectedCustomer?.name || 'لا يوجد'}</span><span className="toolbar-meta-pill">الرصيد: {props.selectedCustomer ? formatCurrency(props.selectedCustomer.balance || 0) : formatCurrency(props.totalBalance)}</span></>}
+        meta={(
+          <>
+            <span className="toolbar-meta-pill">النتائج: {props.summary?.totalCustomers || props.rows.length}</span>
+            <span className="toolbar-meta-pill">الرصيد: {props.selectedCustomer ? formatCurrency(props.selectedCustomer.balance || 0) : formatCurrency(props.totalBalance)}</span>
+            {props.selectedCustomer ? <span className="toolbar-meta-pill">المحدد: {props.selectedCustomer.name}</span> : null}
+          </>
+        )}
         onReset={() => { props.setSearch(''); props.setFilterMode('all'); props.setPage(1); }}
         resetLabel="تفريغ"
       >
@@ -62,6 +77,6 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
           return <span style={{ background: '#f1f5f9', color: '#475569', fontWeight: 500, padding: '2px 8px', borderRadius: '6px', fontSize: '12px', display: 'inline-block' }}>عادي</span>;
         } }, { key: 'balance', header: 'الرصيد', cell: (customer) => formatCurrency(customer.balance || 0) }, { key: 'creditLimit', header: 'حد الائتمان', cell: (customer) => formatCurrency(customer.creditLimit || 0) }, { key: 'actions', header: 'إجراءات', cell: (customer) => <div className="actions" style={{ flexWrap: 'nowrap' }}><Button variant="secondary" onClick={(event) => { event.stopPropagation(); props.setSelectedCustomer(customer); }}>تعديل</Button><Button variant="danger" onClick={(event) => { event.stopPropagation(); props.setCustomerToDelete(customer); }} disabled={!props.canDelete}>حذف</Button></div> }]} />
       </QueryFeedback>
-    </FormSection>
+    </section>
   );
 }

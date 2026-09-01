@@ -74,8 +74,18 @@ export function AccountingJournalEntriesPage() {
   return (
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
-      <PageHeader title="القيود اليومية" badge={<span className="nav-pill">دفتر اليومية العامة</span>} />
-      <FormSection title="القيود اليومية">
+      <PageHeader
+        title="القيود اليومية"
+        description="استعراض وتتبع قيود اليومية العامة الناتجة عن حركات النظام المالية."
+        badge={<span className="nav-pill">دفتر اليومية العامة</span>}
+      />
+      <section className="document-prototype-section">
+        <div className="section-header-compact-row">
+          <h3 className="document-prototype-section-title">سجل القيود المسجلة</h3>
+          <div className="section-header-actions-group">
+            <span className="nav-pill" style={{ fontSize: '11px', padding: '2px 8px' }}>إجمالي القيود: {rows.length}</span>
+          </div>
+        </div>
         <QueryFeedback
           isLoading={query.isLoading}
           isError={query.isError}
@@ -98,16 +108,21 @@ export function AccountingJournalEntriesPage() {
                 sortable: true,
                 sortValue: (row) => Number(row.id || 0),
                 render: (row) => (
-                  <button
-                    type="button"
-                    className="button button-secondary"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleSelectEntry(row.id);
+                  <span
+                    style={{
+                      fontWeight: 800,
+                      fontSize: '11px',
+                      color: 'var(--primary, #170c5c)',
+                      backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                      padding: '2px 6px',
+                      borderRadius: '5px',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-block',
+                      fontFamily: 'monospace',
                     }}
                   >
                     {row.entryNo}
-                  </button>
+                  </span>
                 ),
               },
               {
@@ -146,7 +161,7 @@ export function AccountingJournalEntriesPage() {
             }}
           />
         </QueryFeedback>
-      </FormSection>
+      </section>
 
       {selectedEntryId ? (
         <div ref={detailsRef}>
