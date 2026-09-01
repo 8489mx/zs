@@ -892,7 +892,7 @@ export class PurchasesWriteService {
 
     const lastDoc = await trx
       .selectFrom('purchases')
-      .select(sql<number>`MAX(CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER))`.as('last_seq'))
+      .select(sql<number>`COALESCE(MAX(CASE WHEN doc_no ~ '^[A-Za-z0-9]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq'))
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where('created_at', '>=', startOfDay)
       .executeTakeFirst();
@@ -933,7 +933,7 @@ export class PurchasesWriteService {
 
     const lastDoc = await trx
       .selectFrom('supplier_payments')
-      .select(sql<number>`MAX(CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER))`.as('last_seq'))
+      .select(sql<number>`COALESCE(MAX(CASE WHEN doc_no ~ '^[A-Za-z0-9]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq'))
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where('payment_date', '>=', startOfDay)
       .executeTakeFirst();

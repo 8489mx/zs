@@ -512,7 +512,7 @@ export class InventoryTransferService {
 
     const lastDoc = await trx
       .selectFrom('stock_transfers')
-      .select(sql<number>`MAX(CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER))`.as('last_seq'))
+      .select(sql<number>`COALESCE(MAX(CASE WHEN doc_no ~ '^[A-Za-z0-9]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(doc_no, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq'))
       .where(this.tenantPredicate(auth))
       .where('created_at', '>=', startOfDay)
       .executeTakeFirst();
