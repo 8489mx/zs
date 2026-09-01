@@ -11,8 +11,13 @@ export function MobileBottomNav() {
   const lastScrollY = useRef(0);
 
   useEffect(() => {
+    const getContentScrollY = () => {
+      const contentWrap = document.querySelector('.content-wrap');
+      return window.scrollY || document.documentElement.scrollTop || contentWrap?.scrollTop || 0;
+    };
+
     const handleScroll = () => {
-      const currentScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const currentScrollY = getContentScrollY();
       const diff = currentScrollY - lastScrollY.current;
 
       // Always show near the top of the page
@@ -23,8 +28,9 @@ export function MobileBottomNav() {
       }
 
       // Check if near bottom of document
+      const contentWrap = document.querySelector('.content-wrap');
       const windowHeight = window.innerHeight;
-      const docHeight = document.documentElement.scrollHeight;
+      const docHeight = contentWrap?.scrollHeight || document.documentElement.scrollHeight;
       if (currentScrollY + windowHeight >= docHeight - 40) {
         setIsHidden(false);
         lastScrollY.current = currentScrollY;
@@ -32,7 +38,7 @@ export function MobileBottomNav() {
       }
 
       // Scroll Down -> Hide
-      if (diff > 10) {
+      if (diff > 12) {
         setIsHidden(true);
       } 
       // Scroll Up -> Show
@@ -43,11 +49,15 @@ export function MobileBottomNav() {
       lastScrollY.current = currentScrollY;
     };
 
+    const contentWrap = document.querySelector('.content-wrap');
     window.addEventListener('scroll', handleScroll, { passive: true });
+    contentWrap?.addEventListener('scroll', handleScroll, { passive: true });
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      contentWrap?.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [location.pathname]);
 
   // When location changes or quick action opens, make sure nav is visible
   useEffect(() => {

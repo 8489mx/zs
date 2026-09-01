@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { FormSection } from '@/shared/components/form-section';
@@ -8,6 +8,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { SearchToolbar } from '@/shared/components/search-toolbar';
 import { StatsGrid } from '@/shared/components/stats-grid';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import { formatDate } from '@/lib/format';
 import { useAuthStore } from '@/stores/auth-store';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
@@ -29,12 +30,182 @@ function statusLabel(status: SaasTenantStatus): string {
   return String(status || 'غير معروف');
 }
 
-function statusClass(status: SaasTenantStatus): string {
-  if (status === 'active') return 'pill success';
-  if (status === 'trial') return 'pill warning';
-  if (status === 'suspended') return 'pill danger';
-  if (status === 'expired') return 'pill muted';
-  return 'pill';
+function statusBadgeClass(status: SaasTenantStatus): string {
+  if (status === 'active') return 'tenant-status-pill active';
+  if (status === 'trial') return 'tenant-status-pill trial';
+  if (status === 'suspended') return 'tenant-status-pill suspended';
+  if (status === 'expired') return 'tenant-status-pill expired';
+  return 'tenant-status-pill';
+}
+
+interface TenantActionsMenuProps {
+  row: SaasTenantRow;
+  platformTenantId: string;
+  onImpersonate: (id: string, name: string) => void;
+  isImpersonating: boolean;
+  onUpgrade: (row: SaasTenantRow) => void;
+  onUpdatePlan: (row: SaasTenantRow) => void;
+  onRenew: (row: SaasTenantRow) => void;
+  onRecordPayment: (row: SaasTenantRow) => void;
+  onExtendTrial: (id: string) => void;
+  onResetPassword: (row: SaasTenantRow) => void;
+  onUnlockOwner: (id: string) => void;
+  onSuspend: (id: string) => void;
+  onExpire: (id: string) => void;
+  onDelete: (id: string, name: string) => void;
+}
+
+function TenantActionsMenu({
+  row,
+  platformTenantId,
+  onImpersonate,
+  isImpersonating,
+  onUpgrade,
+  onUpdatePlan,
+  onRenew,
+  onRecordPayment,
+  onExtendTrial,
+  onResetPassword,
+  onUnlockOwner,
+  onSuspend,
+  onExpire,
+  onDelete,
+}: TenantActionsMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const isPlatform = String(row.id || '').trim() === platformTenantId;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  if (isPlatform) {
+    return <span className="muted small">نسخة المنصة الرئيسية</span>;
+  }
+
+  return (
+    <div className="tenant-actions-cell" ref={menuRef}>
+      <button
+        type="button"
+        className="tenant-browse-btn"
+        onClick={() => onImpersonate(row.id, row.businessName || row.slug)}
+        disabled={isImpersonating}
+        title="تسجيل الدخول وتصفح النسخة كمالك"
+      >
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        </svg>
+        <span>{isImpersonating ? 'جاري الدخول...' : 'تصفح'}</span>
+      </button>
+
+      <button
+        type="button"
+        className={`tenant-more-btn ${isOpen ? 'is-active' : ''}`}
+        onClick={() => setIsOpen((prev) => !prev)}
+        title="خيارات وإجراءات إضافية"
+        aria-label="خيارات إضافية"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="1"></circle>
+          <circle cx="19" cy="12" r="1"></circle>
+          <circle cx="5" cy="12" r="1"></circle>
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="tenant-actions-dropdown">
+          <div className="tenant-actions-group-title">الاشتراك والفوترة</div>
+          <button
+            type="button"
+            className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onUpgrade(row); }}
+          >
+            <span>⚡ تفعيل / ترقية الخطة</span>
+          </button>
+          <button
+            type="button"
+            className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onUpdatePlan(row); }}
+          >
+            <span>📦 تعديل الباقة والميزات</span>
+          </button>
+          <button
+            type="button"
+            className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onRenew(row); }}
+          >
+            <span>🔄 تجديد الاشتراك</span>
+          </button>
+          <button
+            type="button"
+            className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onRecordPayment(row); }}
+          >
+            <span>💵 تسجيل دفعة مالية</span>
+          </button>
+
+          <div className="tenant-actions-divider" />
+          <div className="tenant-actions-group-title">إدارة الحساب والتجربة</div>
+          {row.status === 'trial' && (
+            <button
+              type="button"
+              className="tenant-action-item"
+              onClick={() => { setIsOpen(false); onExtendTrial(row.id); }}
+            >
+              <span>⏳ تمديد التجربة (+7 أيام)</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onResetPassword(row); }}
+          >
+            <span>🔑 إعادة تعيين كلمة المرور</span>
+          </button>
+          <button
+            type="button"
+            className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onUnlockOwner(row.id); }}
+          >
+            <span>🔓 فك قفل حساب المالك</span>
+          </button>
+          {row.status === 'active' || row.status === 'trial' ? (
+            <button
+              type="button"
+              className="tenant-action-item"
+              onClick={() => { setIsOpen(false); onSuspend(row.id); }}
+            >
+              <span>⏸️ إيقاف النسخة مؤقتاً</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="tenant-action-item"
+              onClick={() => { setIsOpen(false); onExpire(row.id); }}
+            >
+              <span>⏹️ إنهاء الصلاحية</span>
+            </button>
+          )}
+
+          <div className="tenant-actions-divider" />
+          <button
+            type="button"
+            className="tenant-action-item danger"
+            onClick={() => { setIsOpen(false); onDelete(row.id, row.businessName || row.slug); }}
+          >
+            <span>🗑️ حذف نهائي للنسخة</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function SaasTenantsPage() {
@@ -49,13 +220,13 @@ export function SaasTenantsPage() {
   const [status, setStatus] = useState<'all' | 'trial' | 'active' | 'expired' | 'suspended'>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [createResult, setCreateResult] = useState<{ username: string; temporaryPassword: string; trialEndsAt: string } | null>(null);
+  const [createResult, setCreateResult] = useState<{ username: string; temporaryPassword: string; trialEndsAt: string; tenantSlug?: string; businessName?: string } | null>(null);
   const [ownerResetResult, setOwnerResetResult] = useState<{ tenantName: string; username: string; temporaryPassword: string } | null>(null);
   
   const [resetTenant, setResetTenant] = useState<{ id: string; name: string } | null>(null);
   const [resetPassword, setResetPassword] = useState('');
   
-  const [upgradeTenant, setUpgradeTenant] = useState<{ id: string } | null>(null);
+  const [upgradeTenant, setUpgradeTenant] = useState<{ id: string; name?: string } | null>(null);
   const [upgradeDuration, setUpgradeDuration] = useState<number>(1);
   const [upgradePlanId, setUpgradePlanId] = useState<number | ''>('');
   const [upgradePaymentAmount, setUpgradePaymentAmount] = useState<number | ''>('');
@@ -63,13 +234,13 @@ export function SaasTenantsPage() {
 
   const [updatePlanTenant, setUpdatePlanTenant] = useState<SaasTenantRow | null>(null);
 
-  const [renewTenant, setRenewTenant] = useState<{ id: string } | null>(null);
+  const [renewTenant, setRenewTenant] = useState<{ id: string; name?: string } | null>(null);
   const [renewDuration, setRenewDuration] = useState<number>(1);
   const [renewPlanId, setRenewPlanId] = useState<number | ''>('');
   const [renewPaymentAmount, setRenewPaymentAmount] = useState<number | ''>('');
   const [renewPaymentMethod, setRenewPaymentMethod] = useState('cash');
 
-  const [recordPaymentTenant, setRecordPaymentTenant] = useState<{ id: string } | null>(null);
+  const [recordPaymentTenant, setRecordPaymentTenant] = useState<{ id: string; name?: string } | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number | ''>('');
   const [paymentCurrency, setPaymentCurrency] = useState('EGP');
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -98,28 +269,6 @@ export function SaasTenantsPage() {
     campaign: '',
     notes: '',
   });
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (
-        (isCreateOpen || resetTenant || createResult || ownerResetResult || upgradeTenant || updatePlanTenant || renewTenant || recordPaymentTenant || detailsTenantId) &&
-        (event.key === 'Escape' || event.key === 'Esc')
-      ) {
-        event.preventDefault();
-        setIsCreateOpen(false);
-        setResetTenant(null);
-        setCreateResult(null);
-        setOwnerResetResult(null);
-        setUpgradeTenant(null);
-        setUpdatePlanTenant(null);
-        setRenewTenant(null);
-        setRecordPaymentTenant(null);
-        setDetailsTenantId(null);
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCreateOpen, resetTenant, createResult, ownerResetResult, upgradeTenant, updatePlanTenant, renewTenant, recordPaymentTenant, detailsTenantId]);
 
   const tenantsQuery = useQuery<SaasTenantsResponse>({
     queryKey: ['saas-admin-tenants', status, search],
@@ -216,13 +365,13 @@ export function SaasTenantsPage() {
 
   const createTrialMutation = useMutation({
     mutationFn: () => saasAdminApi.createTrialTenant({
-      slug: createForm.slug,
-      businessName: createForm.businessName,
-      ownerName: createForm.ownerName,
-      ownerPhone: createForm.ownerPhone,
-      ownerEmail: createForm.ownerEmail || undefined,
-      activityType: createForm.activityType || undefined,
-      username: createForm.username,
+      slug: createForm.slug.trim(),
+      businessName: createForm.businessName.trim(),
+      ownerName: createForm.ownerName.trim(),
+      ownerPhone: createForm.ownerPhone.trim(),
+      ownerEmail: createForm.ownerEmail?.trim() || undefined,
+      activityType: createForm.activityType?.trim() || undefined,
+      username: createForm.username.trim() || 'admin',
       password: createForm.password || undefined,
       days: Number(createForm.days || 14),
       source: createForm.source || undefined,
@@ -234,6 +383,8 @@ export function SaasTenantsPage() {
         username: payload.owner.username,
         temporaryPassword: payload.owner.temporaryPassword,
         trialEndsAt: payload.tenant.trialEndsAt || '',
+        tenantSlug: payload.tenant.slug,
+        businessName: payload.tenant.businessName,
       });
       setFeedback('تم إنشاء النسخة التجريبية بنجاح.');
       setCreateForm({
@@ -269,38 +420,88 @@ export function SaasTenantsPage() {
     onError: (error) => setFeedback(getFriendlyApiErrorMessage(error, 'تعذر الدخول كمالك للنسخة.')),
   });
 
+  const copyToClipboard = (text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setFeedback('تم نسخ النص إلى الحافظة بنجاح.');
+    }
+  };
+
   if (!canAccess) return <Navigate to="/" replace />;
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell saas-tenants-page">
       <PageHeader
-        title="إدارة نسخ العملاء"
-        description="إنشاء ومتابعة النسخ التجريبية والفعالة."
-        badge={<span className="nav-pill">SaaS Admin</span>}
-        actions={<button type="button" className="button" onClick={() => { setIsCreateOpen(true); setCreateResult(null); }}>إنشاء نسخة تجريبية</button>}
+        title="إدارة النسخ والمستأجرين"
+        description="لوحة التحكم المركزية لإنشاء ومتابعة واشتراكات نسخ العملاء السحابية."
+        badge={<span className="nav-pill" style={{ background: '#ede9fe', color: '#6d28d9', borderColor: '#c4b5fd' }}>SaaS Admin</span>}
+        actions={
+          <button 
+            type="button" 
+            className="button"
+            style={{
+              background: 'linear-gradient(135deg, #170c5c 0%, #312e81 100%)',
+              color: '#ffffff',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              fontWeight: 800,
+            }}
+            onClick={() => { setIsCreateOpen(true); setCreateResult(null); }}
+          >
+            <span>+</span>
+            <span>إنشاء نسخة تجريبية</span>
+          </button>
+        }
       />
 
       {feedback ? <div className={isForbiddenByApi ? 'warning-box' : 'success-box'}>{feedback}</div> : null}
       {isForbiddenByApi ? <div className="warning-box">هذه الصفحة مخصّصة لإدارة المنصة فقط.</div> : null}
+
       {ownerResetResult ? (
-        <div className="warning-box">
-          <div><strong>تم إعادة كلمة مرور مالك النسخة</strong></div>
-          <div>النسخة: <strong>{ownerResetResult.tenantName}</strong></div>
-          <div>اسم المستخدم: <strong>{ownerResetResult.username}</strong></div>
-          <div>كلمة المرور المؤقتة: <strong>{ownerResetResult.temporaryPassword}</strong></div>
-          <div className="muted small">تظهر كلمة المرور مرة واحدة فقط. انسخها الآن.</div>
+        <div className="saas-credentials-card" style={{ background: 'linear-gradient(135deg, #451a03 0%, #78350f 100%)' }}>
+          <div className="saas-credentials-header">
+            <span className="saas-credentials-title" style={{ color: '#fde68a' }}>
+              🔑 تم إعادة تعيين كلمة مرور المالك بنجاح
+            </span>
+            <button type="button" className="saas-copy-btn" onClick={() => setOwnerResetResult(null)}>
+              إغلاق
+            </button>
+          </div>
+          <div className="saas-credential-row">
+            <span className="saas-credential-label">النشاط / النسخة:</span>
+            <span className="saas-credential-val" style={{ color: '#fde68a' }}>{ownerResetResult.tenantName}</span>
+          </div>
+          <div className="saas-credential-row">
+            <span className="saas-credential-label">اسم المستخدم:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="saas-credential-val">{ownerResetResult.username}</span>
+              <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(ownerResetResult.username)}>نسخ</button>
+            </div>
+          </div>
+          <div className="saas-credential-row">
+            <span className="saas-credential-label">كلمة المرور المؤقتة:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="saas-credential-val" style={{ color: '#a7f3d0' }}>{ownerResetResult.temporaryPassword}</span>
+              <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(ownerResetResult.temporaryPassword)}>نسخ</button>
+            </div>
+          </div>
+          <div style={{ fontSize: '11px', color: '#fef08a', marginTop: '6px' }}>
+            ⚠️ تنبيه: كلمة المرور تظهر هنا لمرة واحدة فقط. يرجى نسخها وتسليمها للعميل.
+          </div>
         </div>
       ) : null}
 
-      <FormSection title="نسخ العملاء">
-        <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالاسم أو slug أو المالك أو الهاتف">
-          <Field label="الحالة">
+      <FormSection title="نسخ العملاء المسجلة">
+        <SearchToolbar search={search} onSearchChange={setSearch} searchPlaceholder="ابحث بالاسم أو slug أو المالك أو رقم الهاتف...">
+          <Field label="فلترة حسب الحالة">
             <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}>
-              <option value="all">الكل</option>
-              <option value="trial">تجريبية</option>
-              <option value="active">مفعلة</option>
-              <option value="expired">منتهية</option>
-              <option value="suspended">موقوفة</option>
+              <option value="all">جميع الحالات (الكل)</option>
+              <option value="trial">تجريبية (Trial)</option>
+              <option value="active">مفعلة (Active)</option>
+              <option value="expired">منتهية (Expired)</option>
+              <option value="suspended">موقوفة (Suspended)</option>
             </select>
           </Field>
         </SearchToolbar>
@@ -312,10 +513,10 @@ export function SaasTenantsPage() {
           isError={tenantsQuery.isError}
           error={tenantsQuery.error}
           isEmpty={!tenants.length}
-          loadingText="جاري تحميل النسخ..."
+          loadingText="جاري تحميل قائمة النسخ والمستأجرين..."
           errorTitle={isForbiddenByApi ? 'غير مسموح' : 'تعذر تحميل نسخ العملاء'}
           emptyTitle="لا توجد نسخ مطابقة"
-          emptyHint="جرّب تعديل الفلتر أو أنشئ نسخة تجريبية جديدة."
+          emptyHint="جرّب تعديل معايير البحث أو أنشئ نسخة تجريبية جديدة."
         >
           <DataTable<SaasTenantRow>
             data={tenants}
@@ -324,50 +525,65 @@ export function SaasTenantsPage() {
             columns={[
               {
                 id: 'business',
-                header: 'النشاط',
+                header: 'النشاط والمعرف',
                 sortable: true,
-                sortValue: (row) => row.businessName,
+                sortValue: (row) => row.businessName || row.slug,
                 render: (row) => (
-                  <button type="button" className="text-blue-600 hover:underline font-bold" onClick={() => setDetailsTenantId(row.id)}>
-                    {row.businessName || row.slug}
-                  </button>
+                  <div style={{ minWidth: '150px' }}>
+                    <button 
+                      type="button" 
+                      className="tenant-name-btn"
+                      onClick={() => setDetailsTenantId(row.id)}
+                      title="عرض تفاصيل وسجل النشاط"
+                    >
+                      {row.businessName || row.slug}
+                    </button>
+                    <div className="tenant-slug-badge">
+                      <span>slug:</span>
+                      <strong>{row.slug}</strong>
+                    </div>
+                  </div>
                 ),
               },
               {
                 id: 'owner',
-                header: 'المالك',
+                header: 'المالك والمستخدم',
                 sortable: true,
                 sortValue: (row) => row.ownerName,
-                render: (row) => <span>{row.ownerName}</span>,
-              },
-              {
-                id: 'username',
-                header: 'المستخدم',
-                sortable: true,
-                sortValue: (row) => row.ownerUsername,
-                render: (row) => <span>{row.ownerUsername}</span>,
+                render: (row) => (
+                  <div style={{ minWidth: '120px' }}>
+                    <strong style={{ fontSize: '13px', color: '#0f172a' }}>{row.ownerName}</strong>
+                    <div className="muted small">@{row.ownerUsername}</div>
+                  </div>
+                ),
               },
               {
                 id: 'phone',
-                header: 'الموبايل',
+                header: 'بيانات الاتصال',
                 sortable: true,
                 sortValue: (row) => row.ownerPhone,
-                render: (row) => <span>{row.ownerPhone}</span>,
-              },
-              {
-                id: 'email',
-                header: 'البريد الإلكتروني',
-                sortable: true,
-                sortValue: (row) => row.ownerEmail,
-                render: (row) => <span>{row.ownerEmail || '-'}</span>,
+                render: (row) => (
+                  <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155', direction: 'ltr', textAlign: 'right' }}>
+                      {row.ownerPhone || '-'}
+                    </span>
+                    {row.ownerEmail && (
+                      <span className="muted small" style={{ direction: 'ltr', textAlign: 'right', fontSize: '11px' }}>
+                        {row.ownerEmail}
+                      </span>
+                    )}
+                  </div>
+                ),
               },
               {
                 id: 'billing',
-                header: 'الاشتراك الحالي',
+                header: 'الاشتراك والباقة',
                 render: (row) => (
-                  <div className="stack gap-4">
-                    <strong>{row.planName || 'بدون خطة'}</strong>
-                    <span className="muted small">{row.subscriptionStatus === 'active' ? 'مفعل' : row.subscriptionStatus === 'past_due' ? 'فترة سماح' : row.subscriptionStatus || '-'}</span>
+                  <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span className="tenant-plan-badge">{row.planName || 'بدون باقة'}</span>
+                    <span className="muted small" style={{ fontSize: '11px' }}>
+                      {row.subscriptionStatus === 'active' ? '● اشتراك نشط' : row.subscriptionStatus === 'past_due' ? '● فترة سماح' : row.subscriptionStatus || '-'}
+                    </span>
                   </div>
                 ),
               },
@@ -375,9 +591,15 @@ export function SaasTenantsPage() {
                 id: 'dates',
                 header: 'صلاحية الاشتراك',
                 render: (row) => (
-                  <div className="stack gap-4">
-                    <span className="small">{row.subscriptionEndDate ? `ينتهي: ${formatDate(row.subscriptionEndDate)}` : '-'}</span>
-                    <span className="muted small">{row.graceEndDate ? `سماح لغاية: ${formatDate(row.graceEndDate)}` : ''}</span>
+                  <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600 }}>
+                      {row.subscriptionEndDate ? `ينتهي: ${formatDate(row.subscriptionEndDate)}` : '-'}
+                    </span>
+                    {row.graceEndDate && (
+                      <span className="muted small" style={{ color: '#d97706', fontSize: '11px' }}>
+                        سماح لغاية: {formatDate(row.graceEndDate)}
+                      </span>
+                    )}
                   </div>
                 ),
               },
@@ -386,168 +608,453 @@ export function SaasTenantsPage() {
                 header: 'الحالة',
                 sortable: true,
                 sortValue: (row) => row.status,
-                render: (row) => <span className={statusClass(row.status)}>{statusLabel(row.status)}</span>,
+                render: (row) => (
+                  <span className={statusBadgeClass(row.status)}>
+                    {statusLabel(row.status)}
+                  </span>
+                ),
               },
               {
                 id: 'trial',
                 header: 'انتهاء التجربة',
                 sortable: true,
                 sortValue: (row) => row.trialEndsAt || '',
-                render: (row) => (
-                  <div className="stack gap-4">
-                    <span>{row.trialEndsAt ? formatDate(row.trialEndsAt) : '-'}</span>
-                    <span className="muted small">{row.trialDaysRemaining == null ? '-' : `${row.trialDaysRemaining} يوم`}</span>
-                  </div>
-                ),
-              },
-              {
-                id: 'actions',
-                header: 'إجراءات',
                 render: (row) => {
-                  const isPlatformTenantRow = String(row.id || '').trim() === platformTenantId;
-                  if (isPlatformTenantRow) {
-                    return <span className="muted small">نسخة المنصة</span>;
-                  }
+                  const days = row.trialDaysRemaining;
+                  const isTrial = row.status === 'trial';
                   return (
-                    <div className="actions compact-actions">
-                      <button
-                        type="button"
-                        className="button"
-                        style={{
-                          background: 'linear-gradient(135deg, #3730a3 0%, #4338ca 100%)',
-                          color: '#ffffff',
-                          border: '1px solid #6366f1',
-                          fontWeight: 700,
-                        }}
-                        onClick={() => {
-                          if (window.confirm(`هل تريد تسجيل الدخول وتصفح نسخة (${row.businessName || row.slug}) كمالك؟`)) {
-                            impersonateMutation.mutate(row.id);
-                          }
-                        }}
-                        disabled={impersonateMutation.isPending}
-                        title="تسجيل الدخول كمالك وتصفح النسخة"
-                      >
-                        {impersonateMutation.isPending ? 'جاري الدخول...' : 'تصفح النسخة ↗'}
-                      </button>
-                      <button type="button" className="button button-secondary" onClick={() => setUpgradeTenant({ id: row.id })}>تفعيل / ترقية</button>
-                      <button type="button" className="button button-secondary" onClick={() => setUpdatePlanTenant(row)}>تعديل الباقة والميزات</button>
-                      <button type="button" className="button button-secondary" onClick={() => setRenewTenant({ id: row.id })}>تجديد الاشتراك</button>
-                      <button type="button" className="button button-secondary" onClick={() => setRecordPaymentTenant({ id: row.id })}>تسجيل دفعة</button>
-                      <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'suspend', tenantId: row.id })}>إيقاف</button>
-                      <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'expire', tenantId: row.id })}>إنهاء</button>
-                      <button type="button" className="button button-secondary" onClick={() => extendTrialMutation.mutate({ tenantId: row.id, days: 7 })}>+7 أيام</button>
-                      <button type="button" className="button button-secondary" onClick={() => tenantActionMutation.mutate({ action: 'unlockOwner', tenantId: row.id })}>فك قفل المالك</button>
-                      <button type="button" className="button button-secondary" onClick={() => {
-                        setResetTenant({ id: row.id, name: row.businessName });
-                        setResetPassword('');
-                      }}>إعادة كلمة المرور</button>
-                      <button type="button" className="button button-danger" onClick={() => {
-                        if (window.confirm('هل أنت متأكد من حذف هذا العميل بجميع بياناته بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء وسيتم مسح كل شيء!')) {
-                          tenantActionMutation.mutate({ action: 'delete', tenantId: row.id });
-                        }
-                      }}>حذف نهائي</button>
+                    <div style={{ minWidth: '110px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <span style={{ fontSize: '12px' }}>{row.trialEndsAt ? formatDate(row.trialEndsAt) : '-'}</span>
+                      {isTrial && days != null && (
+                        <span className={`tenant-trial-badge ${days > 5 ? 'healthy' : days > 0 ? 'warning' : 'danger'}`}>
+                          {days > 0 ? `باقي ${days} يوم` : 'منتهية'}
+                        </span>
+                      )}
                     </div>
                   );
                 },
+              },
+              {
+                id: 'actions',
+                header: 'الإجراءات',
+                render: (row) => (
+                  <TenantActionsMenu
+                    row={row}
+                    platformTenantId={platformTenantId}
+                    isImpersonating={impersonateMutation.isPending}
+                    onImpersonate={(id, name) => {
+                      if (window.confirm(`هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`)) {
+                        impersonateMutation.mutate(id);
+                      }
+                    }}
+                    onUpgrade={(r) => {
+                      setUpgradeTenant({ id: r.id, name: r.businessName || r.slug });
+                      setUpgradePlanId('');
+                      setUpgradePaymentAmount('');
+                    }}
+                    onUpdatePlan={(r) => setUpdatePlanTenant(r)}
+                    onRenew={(r) => {
+                      setRenewTenant({ id: r.id, name: r.businessName || r.slug });
+                      setRenewPlanId('');
+                      setRenewPaymentAmount('');
+                    }}
+                    onRecordPayment={(r) => {
+                      setRecordPaymentTenant({ id: r.id, name: r.businessName || r.slug });
+                      setPaymentAmount('');
+                      setPaymentReference('');
+                    }}
+                    onExtendTrial={(id) => extendTrialMutation.mutate({ tenantId: id, days: 7 })}
+                    onResetPassword={(r) => {
+                      setResetTenant({ id: r.id, name: r.businessName || r.slug });
+                      setResetPassword('');
+                    }}
+                    onUnlockOwner={(id) => tenantActionMutation.mutate({ action: 'unlockOwner', tenantId: id })}
+                    onSuspend={(id) => {
+                      if (window.confirm('هل تريد إيقاف هذه النسخة مؤقتاً؟ لن يتمكن المستخدمون من الدخول حتى إعادة التفعيل.')) {
+                        tenantActionMutation.mutate({ action: 'suspend', tenantId: id });
+                      }
+                    }}
+                    onExpire={(id) => tenantActionMutation.mutate({ action: 'expire', tenantId: id })}
+                    onDelete={(id, name) => {
+                      if (window.confirm(`هل أنت متأكد تماماً من حذف نسخة (${name}) بجميع قواعد بياناتها وسجلاتها؟\nلا يمكن التراجع عن هذا الإجراء!`)) {
+                        tenantActionMutation.mutate({ action: 'delete', tenantId: id });
+                      }
+                    }}
+                  />
+                ),
               },
             ]}
           />
         </QueryFeedback>
       </FormSection>
 
-      {isCreateOpen ? (
-        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setIsCreateOpen(false); }}>
-          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إنشاء نسخة تجريبية">
-            <FormSection title="إنشاء نسخة تجريبية" actions={<button type="button" className="button button-secondary" onClick={() => setIsCreateOpen(false)}>إغلاق</button>}>
-              <div className="grid-2">
-                <Field label="المعرف (Slug - إنجليزي فقط)"><input value={createForm.slug} onChange={(event) => setCreateForm((s) => ({ ...s, slug: event.target.value }))} placeholder="أحرف إنجليزية وأرقام" dir="ltr" /></Field>
-                <Field label="اسم النشاط"><input value={createForm.businessName} onChange={(event) => setCreateForm((s) => ({ ...s, businessName: event.target.value }))} /></Field>
-                <Field label="اسم المالك"><input value={createForm.ownerName} onChange={(event) => setCreateForm((s) => ({ ...s, ownerName: event.target.value }))} /></Field>
-                <Field label="هاتف المالك"><input value={createForm.ownerPhone} onChange={(event) => setCreateForm((s) => ({ ...s, ownerPhone: event.target.value }))} /></Field>
-                <Field label="البريد الإلكتروني"><input value={createForm.ownerEmail} onChange={(event) => setCreateForm((s) => ({ ...s, ownerEmail: event.target.value }))} /></Field>
-                <Field label="نوع النشاط"><input value={createForm.activityType} onChange={(event) => setCreateForm((s) => ({ ...s, activityType: event.target.value }))} /></Field>
-                <Field label="اسم المستخدم"><input value={createForm.username} onChange={(event) => setCreateForm((s) => ({ ...s, username: event.target.value }))} /></Field>
-                <Field label="كلمة المرور (اختياري)"><input value={createForm.password} onChange={(event) => setCreateForm((s) => ({ ...s, password: event.target.value }))} /></Field>
-                <Field label="أيام التجربة"><input type="number" min={1} max={365} value={createForm.days} onChange={(event) => setCreateForm((s) => ({ ...s, days: event.target.value }))} /></Field>
-                <Field label="المصدر"><input value={createForm.source} onChange={(event) => setCreateForm((s) => ({ ...s, source: event.target.value }))} /></Field>
-                <Field label="الحملة"><input value={createForm.campaign} onChange={(event) => setCreateForm((s) => ({ ...s, campaign: event.target.value }))} /></Field>
-                <Field label="ملاحظات"><input value={createForm.notes} onChange={(event) => setCreateForm((s) => ({ ...s, notes: event.target.value }))} /></Field>
+      {/* ========================================================
+          CREATE TRIAL TENANT MODAL (معاد تصميمه بشكل احترافي)
+          ======================================================== */}
+      {isCreateOpen && (
+        <DialogShell
+          open={isCreateOpen}
+          onClose={() => { setIsCreateOpen(false); setCreateResult(null); }}
+          width="760px"
+          ariaLabel="إنشاء نسخة تجريبية جديدة"
+        >
+          <div className="dialog-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                  🏢 إنشاء نسخة تجريبية جديدة
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                  أدخل بيانات المنشأة والمالك لتوليد نسخة سحابية فورية بحساب كامل الصلاحيات.
+                </p>
               </div>
-              <div className="actions">
-                <button type="button" className="button" onClick={() => createTrialMutation.mutate()} disabled={createTrialMutation.isPending}>
-                  {createTrialMutation.isPending ? 'جارٍ الإنشاء...' : 'إنشاء النسخة'}
-                </button>
-              </div>
-              {createResult ? (
-                <div className="warning-box">
-                  <div><strong>تم إنشاء النسخة بنجاح</strong></div>
-                  <div>اسم المستخدم: <strong>{createResult.username}</strong></div>
-                  <div>كلمة المرور المؤقتة: <strong>{createResult.temporaryPassword}</strong></div>
-                  <div>تنتهي التجربة: <strong>{formatDate(createResult.trialEndsAt)}</strong></div>
-                  <div className="muted small">تظهر كلمة المرور مرة واحدة فقط. انسخها الآن.</div>
+              <button
+                type="button"
+                className="dialog-shell-close-btn"
+                onClick={() => { setIsCreateOpen(false); setCreateResult(null); }}
+                title="إغلاق"
+              >
+                ✕
+              </button>
+            </div>
+
+            {createResult ? (
+              <div className="saas-credentials-card">
+                <div className="saas-credentials-header">
+                  <span className="saas-credentials-title">
+                    🎉 تم إنشاء النسخة السحابية بنجاح!
+                  </span>
                 </div>
-              ) : null}
-            </FormSection>
-          </div>
-        </div>
-      ) : null}
-      {resetTenant ? (
-        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setResetTenant(null); }}>
-          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="إعادة كلمة المرور">
-            <FormSection title={`إعادة كلمة المرور لنسخة: ${resetTenant.name}`} actions={<button type="button" className="button button-secondary" onClick={() => setResetTenant(null)}>إغلاق</button>}>
-              <div className="stack gap-12">
-                <p>اترك الحقل فارغاً لتوليد كلمة مرور عشوائية قوية، أو أدخل كلمة مرور مخصصة.</p>
-                <Field label="كلمة المرور الجديدة (اختياري)">
-                  <input type="text" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} dir="ltr" />
-                </Field>
-                <div className="actions">
-                  <button type="button" className="button" onClick={() => {
-                    resetOwnerPasswordMutation.mutate({ tenantId: resetTenant.id, tenantName: resetTenant.name, newPassword: resetPassword });
-                    setResetTenant(null);
-                  }} disabled={resetOwnerPasswordMutation.isPending}>
-                    تأكيد وإعادة التعيين
+                <div className="saas-credential-row">
+                  <span className="saas-credential-label">اسم المنشأة:</span>
+                  <strong className="saas-credential-val" style={{ color: '#fef08a' }}>{createResult.businessName || createResult.tenantSlug}</strong>
+                </div>
+                <div className="saas-credential-row">
+                  <span className="saas-credential-label">المعرف السحابي (Slug):</span>
+                  <span className="saas-credential-val">{createResult.tenantSlug}</span>
+                </div>
+                <div className="saas-credential-row">
+                  <span className="saas-credential-label">اسم المستخدم للمالك:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="saas-credential-val">{createResult.username}</span>
+                    <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(createResult.username)}>نسخ</button>
+                  </div>
+                </div>
+                <div className="saas-credential-row">
+                  <span className="saas-credential-label">كلمة المرور المؤقتة:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="saas-credential-val" style={{ color: '#34d399' }}>{createResult.temporaryPassword}</span>
+                    <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(createResult.temporaryPassword)}>نسخ</button>
+                  </div>
+                </div>
+                <div className="saas-credential-row">
+                  <span className="saas-credential-label">تاريخ انتهاء التجربة:</span>
+                  <span className="saas-credential-val">{formatDate(createResult.trialEndsAt)}</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                  <button
+                    type="button"
+                    className="button"
+                    style={{
+                      flex: 1,
+                      background: '#10b981',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      setIsCreateOpen(false);
+                      setCreateResult(null);
+                    }}
+                  >
+                    تم ونسخ البيانات ✓
                   </button>
                 </div>
               </div>
-            </FormSection>
-          </div>
-        </div>
-      ) : null}
+            ) : (
+              <form onSubmit={(e) => { e.preventDefault(); createTrialMutation.mutate(); }}>
+                {/* 1. النشاط التجاري */}
+                <div className="saas-modal-card">
+                  <div className="saas-modal-card-title">
+                    <span>🏬 1. بيانات النشاط التجاري</span>
+                  </div>
+                  <div className="saas-modal-grid-2">
+                    <Field label="اسم النشاط / المحل *">
+                      <input
+                        type="text"
+                        required
+                        value={createForm.businessName}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, businessName: e.target.value }))}
+                        placeholder="مثال: سوبر ماركت النور"
+                      />
+                    </Field>
+                    <Field label="المعرف السحابي (Slug - إنجليزي فقط) *">
+                      <input
+                        type="text"
+                        required
+                        value={createForm.slug}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') }))}
+                        placeholder="مثال: al-nour-market"
+                        dir="ltr"
+                      />
+                    </Field>
+                  </div>
+                  <div style={{ marginTop: '10px' }}>
+                    <Field label="نوع النشاط / المجال">
+                      <input
+                        type="text"
+                        value={createForm.activityType}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, activityType: e.target.value }))}
+                        placeholder="مثال: بقالة، صيدلية، محل ملابس، مطعم، إلكترونيات..."
+                      />
+                    </Field>
+                  </div>
+                </div>
 
-      {upgradeTenant ? (
-        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setUpgradeTenant(null); }}>
-          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="ترقية النسخة">
-            <FormSection title="تفعيل / ترقية النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إغلاق</button>}>
-              <div className="stack gap-12">
-                <Field label="الخطة">
-                  <select value={upgradePlanId} onChange={(e) => setUpgradePlanId(e.target.value ? Number(e.target.value) : '')}>
-                    <option value="">-- اختر الخطة --</option>
-                    {plans.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="مدة الاشتراك">
-                  <select value={upgradeDuration} onChange={(e) => setUpgradeDuration(Number(e.target.value))}>
-                    <option value={1}>شهر واحد</option>
-                    <option value={3}>3 أشهر</option>
-                    <option value={6}>6 أشهر</option>
-                    <option value={12}>سنة واحدة</option>
-                    <option value={60}>5 سنوات (مدى الحياة)</option>
-                  </select>
-                </Field>
+                {/* 2. بيانات المالك والدخول */}
+                <div className="saas-modal-card">
+                  <div className="saas-modal-card-title">
+                    <span>👤 2. بيانات المالك وحساب الإدارة</span>
+                  </div>
+                  <div className="saas-modal-grid-2">
+                    <Field label="اسم المالك *">
+                      <input
+                        type="text"
+                        required
+                        value={createForm.ownerName}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, ownerName: e.target.value }))}
+                        placeholder="مثال: أحمد محمود"
+                      />
+                    </Field>
+                    <Field label="رقم هاتف المالك *">
+                      <input
+                        type="text"
+                        required
+                        value={createForm.ownerPhone}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, ownerPhone: e.target.value }))}
+                        placeholder="مثال: 01012345678"
+                        dir="ltr"
+                      />
+                    </Field>
+                  </div>
+                  <div className="saas-modal-grid-3" style={{ marginTop: '10px' }}>
+                    <Field label="البريد الإلكتروني (اختياري)">
+                      <input
+                        type="email"
+                        value={createForm.ownerEmail}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, ownerEmail: e.target.value }))}
+                        placeholder="owner@example.com"
+                        dir="ltr"
+                      />
+                    </Field>
+                    <Field label="اسم المستخدم">
+                      <input
+                        type="text"
+                        value={createForm.username}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, username: e.target.value }))}
+                        placeholder="افتراضي: admin"
+                        dir="ltr"
+                      />
+                    </Field>
+                    <Field label="كلمة المرور">
+                      <input
+                        type="text"
+                        value={createForm.password}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, password: e.target.value }))}
+                        placeholder="فارغ = توليد تلقائي"
+                        dir="ltr"
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* 3. إعدادات التجربة والمتابعة */}
+                <div className="saas-modal-card">
+                  <div className="saas-modal-card-title">
+                    <span>⏱️ 3. إعدادات التجربة والمتابعة</span>
+                  </div>
+                  <div className="saas-modal-grid-3">
+                    <Field label="مدة التجربة (أيام)">
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={createForm.days}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, days: e.target.value }))}
+                      />
+                    </Field>
+                    <Field label="المصدر / القناة">
+                      <input
+                        type="text"
+                        value={createForm.source}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, source: e.target.value }))}
+                        placeholder="مثال: فيسبوك، إحالة عميل..."
+                      />
+                    </Field>
+                    <Field label="اسم الحملة الإعلانية">
+                      <input
+                        type="text"
+                        value={createForm.campaign}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, campaign: e.target.value }))}
+                        placeholder="اختياري"
+                      />
+                    </Field>
+                  </div>
+                  <div style={{ marginTop: '10px' }}>
+                    <Field label="ملاحظات إضافية">
+                      <input
+                        type="text"
+                        value={createForm.notes}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, notes: e.target.value }))}
+                        placeholder="أي ملاحظات خاصة بالتسجيل أو المتابعة"
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => setIsCreateOpen(false)}
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    className="button"
+                    style={{
+                      background: 'linear-gradient(135deg, #170c5c 0%, #312e81 100%)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      padding: '10px 24px',
+                    }}
+                    disabled={createTrialMutation.isPending || !createForm.businessName || !createForm.slug || !createForm.ownerPhone}
+                  >
+                    {createTrialMutation.isPending ? 'جاري إنشاء النسخة...' : '🚀 إنشاء النسخة التجريبية'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </DialogShell>
+      )}
+
+      {/* ========================================================
+          RESET OWNER PASSWORD MODAL
+          ======================================================== */}
+      {resetTenant && (
+        <DialogShell
+          open={Boolean(resetTenant)}
+          onClose={() => setResetTenant(null)}
+          width="480px"
+          ariaLabel="إعادة تعيين كلمة مرور المالك"
+        >
+          <div className="dialog-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                🔑 إعادة كلمة مرور مالك النسخة
+              </h3>
+              <button type="button" className="dialog-shell-close-btn" onClick={() => setResetTenant(null)}>✕</button>
+            </div>
+            <p className="muted small" style={{ marginBottom: '14px' }}>
+              النسخة المستهدفة: <strong>{resetTenant.name}</strong>
+            </p>
+            <div className="stack gap-12">
+              <Field label="كلمة المرور الجديدة (اختياري)">
+                <input
+                  type="text"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  placeholder="اترك فارغاً لتوليد كلمة مرور عشوائية قوية"
+                  dir="ltr"
+                />
+              </Field>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                <button type="button" className="button button-secondary" onClick={() => setResetTenant(null)}>إلغاء</button>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => {
+                    resetOwnerPasswordMutation.mutate({ tenantId: resetTenant.id, tenantName: resetTenant.name, newPassword: resetPassword });
+                    setResetTenant(null);
+                  }}
+                  disabled={resetOwnerPasswordMutation.isPending}
+                >
+                  تأكيد وإعادة التعيين
+                </button>
+              </div>
+            </div>
+          </div>
+        </DialogShell>
+      )}
+
+      {/* ========================================================
+          UPGRADE / ACTIVATE TENANT MODAL
+          ======================================================== */}
+      {upgradeTenant && (
+        <DialogShell
+          open={Boolean(upgradeTenant)}
+          onClose={() => setUpgradeTenant(null)}
+          width="500px"
+          ariaLabel="تفعيل أو ترقية الخطة"
+        >
+          <div className="dialog-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                ⚡ تفعيل / ترقية الاشتراك
+              </h3>
+              <button type="button" className="dialog-shell-close-btn" onClick={() => setUpgradeTenant(null)}>✕</button>
+            </div>
+            <p className="muted small" style={{ marginBottom: '14px' }}>
+              النسخة: <strong>{upgradeTenant.name}</strong>
+            </p>
+            <div className="stack gap-12">
+              <Field label="الخطة / الباقة المستهدفة *">
+                <select value={upgradePlanId} onChange={(e) => setUpgradePlanId(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">-- اختر الباقة --</option>
+                  {plans.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="مدة الاشتراك">
+                <select value={upgradeDuration} onChange={(e) => setUpgradeDuration(Number(e.target.value))}>
+                  <option value={1}>شهر واحد</option>
+                  <option value={3}>3 أشهر</option>
+                  <option value={6}>6 أشهر</option>
+                  <option value={12}>سنة واحدة</option>
+                  <option value={60}>5 سنوات (شامل / مدى الحياة)</option>
+                </select>
+              </Field>
+              <div className="saas-modal-grid-2">
                 <Field label="المبلغ المدفوع (اختياري)">
-                  <input type="number" min="0" value={upgradePaymentAmount} onChange={(e) => setUpgradePaymentAmount(Number(e.target.value))} />
+                  <input
+                    type="number"
+                    min="0"
+                    value={upgradePaymentAmount}
+                    onChange={(e) => setUpgradePaymentAmount(Number(e.target.value))}
+                    placeholder="المبلغ المحصل"
+                  />
                 </Field>
                 <Field label="طريقة الدفع">
                   <select value={upgradePaymentMethod} onChange={(e) => setUpgradePaymentMethod(e.target.value)}>
-                    <option value="cash">نقدي</option>
-                    <option value="transfer">تحويل بنكي</option>
-                    <option value="card">بطاقة</option>
+                    <option value="cash">نقدي (Cash)</option>
+                    <option value="transfer">تحويل بنكي / فودافون كاش</option>
+                    <option value="card">بطاقة دفع (Card)</option>
                   </select>
                 </Field>
-                <div className="actions">
-                  <button type="button" className="button" onClick={() => {
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                <button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إلغاء</button>
+                <button
+                  type="button"
+                  className="button"
+                  style={{ background: '#10b981', color: '#ffffff', border: 'none' }}
+                  onClick={() => {
                     tenantActionMutation.mutate({ 
                       action: 'activate', 
                       tenantId: upgradeTenant.id, 
@@ -557,49 +1064,78 @@ export function SaasTenantsPage() {
                       paymentMethod: upgradePaymentMethod,
                     });
                     setUpgradeTenant(null);
-                  }} disabled={tenantActionMutation.isPending || !upgradePlanId}>
-                    تأكيد التفعيل
-                  </button>
-                </div>
+                  }}
+                  disabled={tenantActionMutation.isPending || !upgradePlanId}
+                >
+                  تأكيد التفعيل والترقية
+                </button>
               </div>
-            </FormSection>
+            </div>
           </div>
-        </div>
-      ) : null}
+        </DialogShell>
+      )}
 
-      {renewTenant ? (
-        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setRenewTenant(null); }}>
-          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="تجديد الاشتراك">
-            <FormSection title="تجديد اشتراك النسخة" actions={<button type="button" className="button button-secondary" onClick={() => setRenewTenant(null)}>إغلاق</button>}>
-              <div className="stack gap-12">
-                <Field label="الخطة">
-                  <select value={renewPlanId} onChange={(e) => setRenewPlanId(e.target.value ? Number(e.target.value) : '')}>
-                    <option value="">-- اختر الخطة --</option>
-                    {plans.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="مدة التجديد (أشهر)">
-                  <select value={renewDuration} onChange={(e) => setRenewDuration(Number(e.target.value))}>
-                    <option value={1}>شهر واحد</option>
-                    <option value={3}>3 أشهر</option>
-                    <option value={6}>6 أشهر</option>
-                    <option value={12}>سنة واحدة</option>
-                  </select>
-                </Field>
+      {/* ========================================================
+          RENEW SUBSCRIPTION MODAL
+          ======================================================== */}
+      {renewTenant && (
+        <DialogShell
+          open={Boolean(renewTenant)}
+          onClose={() => setRenewTenant(null)}
+          width="500px"
+          ariaLabel="تجديد الاشتراك"
+        >
+          <div className="dialog-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                🔄 تجديد اشتراك النسخة
+              </h3>
+              <button type="button" className="dialog-shell-close-btn" onClick={() => setRenewTenant(null)}>✕</button>
+            </div>
+            <p className="muted small" style={{ marginBottom: '14px' }}>
+              النسخة: <strong>{renewTenant.name}</strong>
+            </p>
+            <div className="stack gap-12">
+              <Field label="الخطة / الباقة *">
+                <select value={renewPlanId} onChange={(e) => setRenewPlanId(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">-- اختر الباقة للتجديد --</option>
+                  {plans.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="مدة التجديد (أشهر)">
+                <select value={renewDuration} onChange={(e) => setRenewDuration(Number(e.target.value))}>
+                  <option value={1}>شهر واحد</option>
+                  <option value={3}>3 أشهر</option>
+                  <option value={6}>6 أشهر</option>
+                  <option value={12}>سنة واحدة</option>
+                </select>
+              </Field>
+              <div className="saas-modal-grid-2">
                 <Field label="المبلغ المدفوع (اختياري)">
-                  <input type="number" min="0" value={renewPaymentAmount} onChange={(e) => setRenewPaymentAmount(Number(e.target.value))} />
+                  <input
+                    type="number"
+                    min="0"
+                    value={renewPaymentAmount}
+                    onChange={(e) => setRenewPaymentAmount(Number(e.target.value))}
+                  />
                 </Field>
                 <Field label="طريقة الدفع">
                   <select value={renewPaymentMethod} onChange={(e) => setRenewPaymentMethod(e.target.value)}>
                     <option value="cash">نقدي</option>
-                    <option value="transfer">تحويل بنكي</option>
+                    <option value="transfer">تحويل بنكي / محفظة</option>
                     <option value="card">بطاقة</option>
                   </select>
                 </Field>
-                <div className="actions">
-                  <button type="button" className="button" onClick={() => {
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                <button type="button" className="button button-secondary" onClick={() => setRenewTenant(null)}>إلغاء</button>
+                <button
+                  type="button"
+                  className="button"
+                  style={{ background: '#2563eb', color: '#ffffff' }}
+                  onClick={() => {
                     renewMutation.mutate({ 
                       tenantId: renewTenant.id, 
                       durationMonths: renewDuration,
@@ -608,43 +1144,79 @@ export function SaasTenantsPage() {
                       paymentMethod: renewPaymentMethod,
                     });
                     setRenewTenant(null);
-                  }} disabled={renewMutation.isPending || !renewPlanId}>
-                    تأكيد التجديد
-                  </button>
-                </div>
+                  }}
+                  disabled={renewMutation.isPending || !renewPlanId}
+                >
+                  تأكيد التجديد
+                </button>
               </div>
-            </FormSection>
+            </div>
           </div>
-        </div>
-      ) : null}
+        </DialogShell>
+      )}
 
-      {recordPaymentTenant ? (
-        <div className="dialog-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setRecordPaymentTenant(null); }}>
-          <div className="dialog-shell" role="dialog" aria-modal="true" aria-label="تسجيل دفعة">
-            <FormSection title="تسجيل دفعة يدوية" actions={<button type="button" className="button button-secondary" onClick={() => setRecordPaymentTenant(null)}>إغلاق</button>}>
-              <div className="stack gap-12">
-                <Field label="المبلغ">
-                  <input type="number" min="0" value={paymentAmount} onChange={(e) => setPaymentAmount(Number(e.target.value))} />
+      {/* ========================================================
+          RECORD MANUAL PAYMENT MODAL
+          ======================================================== */}
+      {recordPaymentTenant && (
+        <DialogShell
+          open={Boolean(recordPaymentTenant)}
+          onClose={() => setRecordPaymentTenant(null)}
+          width="500px"
+          ariaLabel="تسجيل دفعة يدوية"
+        >
+          <div className="dialog-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                💵 تسجيل دفعة مالية يدوية
+              </h3>
+              <button type="button" className="dialog-shell-close-btn" onClick={() => setRecordPaymentTenant(null)}>✕</button>
+            </div>
+            <p className="muted small" style={{ marginBottom: '14px' }}>
+              النسخة: <strong>{recordPaymentTenant.name}</strong>
+            </p>
+            <div className="stack gap-12">
+              <div className="saas-modal-grid-2">
+                <Field label="المبلغ *">
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                    placeholder="0.00"
+                  />
                 </Field>
                 <Field label="العملة">
                   <select value={paymentCurrency} onChange={(e) => setPaymentCurrency(e.target.value)}>
-                    <option value="EGP">EGP</option>
-                    <option value="USD">USD</option>
-                    <option value="SAR">SAR</option>
+                    <option value="EGP">EGP (جنيه)</option>
+                    <option value="USD">USD (دولار)</option>
+                    <option value="SAR">SAR (ريال)</option>
                   </select>
                 </Field>
-                <Field label="طريقة الدفع">
-                  <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                    <option value="cash">نقدي</option>
-                    <option value="transfer">تحويل بنكي</option>
-                    <option value="card">بطاقة</option>
-                  </select>
-                </Field>
-                <Field label="رقم المرجع (اختياري)">
-                  <input value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} />
-                </Field>
-                <div className="actions">
-                  <button type="button" className="button" onClick={() => {
+              </div>
+              <Field label="طريقة الدفع">
+                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                  <option value="cash">نقدي (Cash)</option>
+                  <option value="transfer">تحويل بنكي / محفظة إلكترونية</option>
+                  <option value="card">بطاقة ائتمان (Card)</option>
+                </select>
+              </Field>
+              <Field label="رقم المرجع / الإيصال (اختياري)">
+                <input
+                  type="text"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder="رقم الحوالة أو الإيصال"
+                />
+              </Field>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                <button type="button" className="button button-secondary" onClick={() => setRecordPaymentTenant(null)}>إلغاء</button>
+                <button
+                  type="button"
+                  className="button"
+                  style={{ background: '#059669', color: '#ffffff' }}
+                  onClick={() => {
                     recordPaymentMutation.mutate({ 
                       tenantId: recordPaymentTenant.id, 
                       amount: Number(paymentAmount),
@@ -652,26 +1224,26 @@ export function SaasTenantsPage() {
                       method: paymentMethod,
                       reference: paymentReference,
                     });
-                  }} disabled={recordPaymentMutation.isPending || !paymentAmount}>
-                    تسجيل الدفعة
-                  </button>
-                </div>
+                  }}
+                  disabled={recordPaymentMutation.isPending || !paymentAmount}
+                >
+                  حفظ الدفعة
+                </button>
               </div>
-            </FormSection>
+            </div>
           </div>
-        </div>
-      ) : null}
+        </DialogShell>
+      )}
 
-      {detailsTenantId ? <TenantDetailsModal tenantId={detailsTenantId} onClose={() => setDetailsTenantId(null)} /> : null}
+      {detailsTenantId && <TenantDetailsModal tenantId={detailsTenantId} onClose={() => setDetailsTenantId(null)} />}
 
-      {updatePlanTenant ? (
+      {updatePlanTenant && (
         <UpdateTenantPlanModal 
           tenant={updatePlanTenant} 
           onClose={() => setUpdatePlanTenant(null)} 
           onSuccess={(msg) => { setFeedback(msg); setUpdatePlanTenant(null); }} 
         />
-      ) : null}
-
+      )}
     </div>
   );
 }

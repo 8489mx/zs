@@ -1,0 +1,354 @@
+/* SaaS Admin & Tenant Management Styles */
+
+.saas-tenants-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tenant Table Styling */
+.tenant-name-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #1d4ed8;
+  cursor: pointer;
+  text-align: right;
+  display: block;
+  transition: color 0.15s ease;
+}
+
+.tenant-name-btn:hover {
+  color: #1e40af;
+  text-decoration: underline;
+}
+
+.tenant-slug-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #475569;
+  direction: ltr;
+  margin-top: 3px;
+}
+
+.tenant-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%);
+  border: 1px solid #c7d2fe;
+  color: #4338ca;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tenant-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tenant-status-pill.active {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #15803d;
+}
+
+.tenant-status-pill.trial {
+  background: #fef3c7;
+  border: 1px solid #fde047;
+  color: #a16207;
+}
+
+.tenant-status-pill.suspended {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+
+.tenant-status-pill.expired {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+}
+
+.tenant-trial-badge {
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.tenant-trial-badge.healthy {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.tenant-trial-badge.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.tenant-trial-badge.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Actions Menu & Trigger */
+.tenant-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  position: relative;
+}
+
+.tenant-browse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #170c5c 0%, #312e81 100%);
+  color: #ffffff;
+  border: 1px solid #4338ca;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(23, 12, 92, 0.2);
+}
+
+.tenant-browse-btn:hover {
+  background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(23, 12, 92, 0.3);
+}
+
+.tenant-more-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 7px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tenant-more-btn:hover,
+.tenant-more-btn.is-active {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* Actions Popover Dropdown */
+.tenant-actions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  width: 220px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  padding: 6px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: dropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tenant-actions-group-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #94a3b8;
+  padding: 4px 8px 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tenant-action-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  text-align: right;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-sizing: border-box;
+}
+
+.tenant-action-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.tenant-action-item.danger {
+  color: #dc2626;
+}
+
+.tenant-action-item.danger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.tenant-actions-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 3px 0;
+}
+
+/* Create Modal Section Cards */
+.saas-modal-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.saas-modal-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.saas-modal-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.saas-modal-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+@media (max-width: 600px) {
+  .saas-modal-grid-2,
+  .saas-modal-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Success Result / Credentials Card */
+.saas-credentials-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-top: 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.saas-credentials-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.saas-credentials-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #34d399;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saas-credential-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.saas-credential-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.saas-credential-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  direction: ltr;
+  user-select: all;
+}
+
+.saas-copy-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.saas-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
