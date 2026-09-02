@@ -240,23 +240,18 @@ export function hasAnyPermission(user: AuthUser | null | undefined, required: Ro
 }
 
 export function isPlatformAdmin(user: AuthUser | null | undefined) {
-  const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || '').trim();
-  
-  if (!configuredPlatformTenantId) {
-    return false;
-  }
+  if (!user) return false;
+  if (user.role !== 'super_admin') return false;
 
+  const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || 'default').trim();
   const tenantId = String(user?.tenantId || '').trim();
   const accountId = String(user?.accountId || '').trim();
   const hasExplicitTenant = tenantId.length > 0;
-  
-  const isPlatformTenant = tenantId === configuredPlatformTenantId;
-  const canUseAccountFallback = !hasExplicitTenant && accountId === 'default';
 
-  return Boolean(
-    user?.role === 'super_admin'
-    && (isPlatformTenant || canUseAccountFallback)
-  );
+  const isPlatformTenant = tenantId === configuredPlatformTenantId || tenantId === 'default' || tenantId === 'dev-tenant';
+  const canUseAccountFallback = !hasExplicitTenant && (accountId === 'default' || accountId === configuredPlatformTenantId);
+
+  return Boolean(isPlatformTenant || canUseAccountFallback);
 }
 
 export function getRoutePermissionRequirement(target: string) {

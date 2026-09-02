@@ -139,6 +139,46 @@ export function DeveloperActivationPanel() {
             <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
               التحكم في الباقات وتفعيل / تعطيل الوحدات والميزات للمستأجر الحالي
             </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+              <a
+                href="/saas-admin/tenants"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  color: '#1d4ed8',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                <span>👥 إدارة المشتركين والنسخ</span>
+              </a>
+              <a
+                href="/saas-admin/plans"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  color: '#b45309',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                <span>⚡ باقات الاشتراكات والأسعار</span>
+              </a>
+            </div>
           </div>
 
           <button
