@@ -296,7 +296,48 @@ export class TrialTenantProvisioningService {
         } as any)
         .execute();
 
+      // 1. Create Default Primary Branch
+      const branch = await trx
+        .insertInto('branches')
+        .values({
+          tenant_id: tenantId,
+          account_id: accountId,
+          name: 'الفرع الرئيسي',
+          code: 'MAIN',
+          sales_stock_mode: 'single_location',
+          allow_external_sales_stock: false,
+          is_active: true,
+        } as any)
+        .returning(['id'])
+        .executeTakeFirstOrThrow();
+
+      const branchId = Number(branch.id);
+
+      // 2. Create Default Primary Stock Location
+      const location = await trx
+        .insertInto('stock_locations')
+        .values({
+          tenant_id: tenantId,
+          account_id: accountId,
+          branch_id: branchId,
+          name: 'المستودع الرئيسي',
+          code: 'WH-MAIN',
+          location_type: 'branch_stock',
+          is_active: true,
+        } as any)
+        .returning(['id'])
+        .executeTakeFirstOrThrow();
+
+      const locationId = Number(location.id);
+
       await trx
+        .updateTable('branches')
+        .set({ default_stock_location_id: locationId })
+        .where('id', '=', branchId)
+        .execute();
+
+      // 3. Create Super Admin User with default branch
+      const user = await trx
         .insertInto('users')
         .values({
           username,
@@ -305,7 +346,7 @@ export class TrialTenantProvisioningService {
           role: 'super_admin',
           is_active: true,
           permissions_json: JSON.stringify(this.defaultPermissions()),
-          default_branch_id: null,
+          default_branch_id: branchId,
           display_name: ownerName,
           failed_login_count: 0,
           locked_until: null,
@@ -314,7 +355,53 @@ export class TrialTenantProvisioningService {
           tenant_id: tenantId,
           account_id: accountId,
         } as any)
+        .returning(['id'])
+        .executeTakeFirstOrThrow();
+
+      // 4. Link user to primary branch
+      await trx
+        .insertInto('user_branches')
+        .values({
+          tenant_id: tenantId,
+          account_id: accountId,
+          user_id: Number(user.id),
+          branch_id: branchId,
+        } as any)
+        .onConflict((oc) => oc.columns(['user_id', 'branch_id'] as never).doNothing())
         .execute();
+
+      // 5. Seed Default Business and Store Settings
+      const defaultSettings = [
+        { key: 'storeName', value: businessName },
+        { key: 'companyName', value: businessName },
+        { key: 'business_name', value: businessName },
+        { key: 'store_name', value: businessName },
+        { key: 'phone', value: ownerPhone },
+        { key: 'ownerName', value: ownerName },
+        { key: 'email', value: ownerEmail || '' },
+        { key: 'activityType', value: activityType || 'تجارة عامة ومتنوعة (افتراضي)' },
+        { key: 'currency', value: 'EGP' },
+        { key: 'uiLanguage', value: 'ar' },
+        { key: 'language', value: 'ar' },
+        { key: 'timezone', value: 'Africa/Cairo' },
+        { key: 'dateFormat', value: 'dd/MM/yyyy' },
+        { key: 'timeFormat', value: '12h' },
+        { key: 'paperSize', value: 'receipt' },
+        { key: 'defaultPosMode', value: 'touch' },
+        { key: 'theme', value: 'light' },
+        { key: 'primaryBranchId', value: String(branchId) },
+        { key: 'primaryLocationId', value: String(locationId) },
+        { key: 'defaultStockLocationId', value: String(locationId) },
+      ];
+
+      for (const s of defaultSettings) {
+        await sql`
+          INSERT INTO settings (key, value, tenant_id, account_id)
+          VALUES (${s.key}, ${JSON.stringify(s.value)}, ${tenantId}, ${accountId})
+          ON CONFLICT (tenant_id, key)
+          DO UPDATE SET value = EXCLUDED.value, account_id = EXCLUDED.account_id
+        `.execute(trx);
+      }
 
       return {
         tenantId,

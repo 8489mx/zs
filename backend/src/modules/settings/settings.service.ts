@@ -48,6 +48,20 @@ export class SettingsService {
       try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
       return acc;
     }, {});
+
+    // If core business details are missing in settings, fallback to tenant profile
+    if (!settings.storeName || !settings.companyName || !settings.phone) {
+      const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', scope.tenantId).executeTakeFirst();
+      if (tenant) {
+        if (!settings.storeName && tenant.business_name) settings.storeName = tenant.business_name;
+        if (!settings.companyName && tenant.business_name) settings.companyName = tenant.business_name;
+        if (!settings.phone && tenant.owner_phone) settings.phone = tenant.owner_phone;
+        if (!settings.ownerName && tenant.owner_name) settings.ownerName = tenant.owner_name;
+        if (!settings.email && tenant.owner_email) settings.email = tenant.owner_email;
+        if (!settings.activityType && tenant.activity_type) settings.activityType = tenant.activity_type;
+      }
+    }
+
     return { ...settings, scope };
   }
 

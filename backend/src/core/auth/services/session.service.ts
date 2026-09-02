@@ -328,6 +328,51 @@ export class SessionService {
     const taxSettings = await this.db.selectFrom('tenant_tax_settings').select(['is_active']).where('tenant_id', '=', tenantId).where('provider', '=', 'ETA_EGYPT').executeTakeFirst();
     const isEtaActive = taxSettings ? Boolean(taxSettings.is_active) : false;
 
-    return { user: { id: profile.id, username: profile.username, role: profile.role, permissions: profile.permissions, displayName: profile.displayName, branchIds: profile.branchIds, defaultBranchId: profile.defaultBranchId, tenantId: profile.tenantId, accountId: profile.accountId }, tenant, settings: { storeName: settingsMap.get('storeName') || 'Z Systems', theme: settingsMap.get('theme') || 'light', isEtaActive }, security: { mustChangePassword: profile.mustChangePassword, usingDefaultAdminPassword } };
+    const tenantBusinessName = typeof tenant?.businessName === 'string' ? tenant.businessName : undefined;
+    let storeName: string = tenantBusinessName || 'Z Systems';
+    const rawStoreName = settingsMap.get('storeName');
+    if (rawStoreName) {
+      try {
+        const parsed = JSON.parse(rawStoreName);
+        if (parsed && typeof parsed === 'string' && parsed.trim()) storeName = parsed.trim();
+      } catch {
+        if (rawStoreName.trim()) storeName = rawStoreName.trim();
+      }
+    }
+
+    let theme = 'light';
+    const rawTheme = settingsMap.get('theme');
+    if (rawTheme) {
+      try {
+        const parsed = JSON.parse(rawTheme);
+        if (parsed && typeof parsed === 'string') theme = parsed;
+      } catch {
+        theme = rawTheme;
+      }
+    }
+
+    return {
+      user: {
+        id: profile.id,
+        username: profile.username,
+        role: profile.role,
+        permissions: profile.permissions,
+        displayName: profile.displayName,
+        branchIds: profile.branchIds,
+        defaultBranchId: profile.defaultBranchId,
+        tenantId: profile.tenantId,
+        accountId: profile.accountId,
+      },
+      tenant,
+      settings: {
+        storeName,
+        theme,
+        isEtaActive,
+      },
+      security: {
+        mustChangePassword: profile.mustChangePassword,
+        usingDefaultAdminPassword,
+      },
+    };
   }
 }
