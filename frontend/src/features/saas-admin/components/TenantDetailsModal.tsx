@@ -16,6 +16,12 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
   const [error, setError] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  const isPlatform =
+    tenant?.isPlatform === true ||
+    tenant?.id === 'default' ||
+    tenant?.slug === 'default' ||
+    tenantId === 'default';
+
   useEffect(() => {
     if (!tenantId) return;
     let mounted = true;
@@ -87,14 +93,18 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
                   {tenant?.businessName || tenant?.slug || 'تفاصيل النسخة'}
                 </h3>
-                {tenant && (
+                {isPlatform ? (
+                  <span style={{ fontSize: '11px', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '2px 10px', borderRadius: '9999px', fontWeight: 800 }}>
+                    النسخة الأم المركزية (محمية)
+                  </span>
+                ) : tenant ? (
                   <span className={`tenant-status-pill ${tenant.status === 'active' ? 'active' : tenant.status === 'trial' ? 'trial' : 'suspended'}`} style={{ fontSize: '11px' }}>
                     {tenant.status === 'active' ? 'مفعلة' : tenant.status === 'trial' ? 'تجريبية' : tenant.status}
                   </span>
-                )}
+                ) : null}
               </div>
               <p style={{ margin: '3px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                مراجعة بيانات المنشأة والمالك وتاريخ الاشتراكات والعمليات.
+                {isPlatform ? 'مراجعة بيانات نسخة النظام الأساسي وسجل العمليات والأحداث المركزية.' : 'مراجعة بيانات المنشأة والمالك وتاريخ الاشتراكات والعمليات.'}
               </p>
             </div>
           </div>
@@ -200,33 +210,53 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
               </div>
 
               {/* كارت 2: تفاصيل الاشتراك والتشغيل */}
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0', marginBottom: '12px' }}>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#059669" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <div style={{ background: isPlatform ? '#faf5ff' : '#f8fafc', border: `1px solid ${isPlatform ? '#e9d5ff' : '#e2e8f0'}`, borderRadius: '12px', padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '10px', borderBottom: `1px solid ${isPlatform ? '#e9d5ff' : '#e2e8f0'}`, marginBottom: '12px' }}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={isPlatform ? '#7c3aed' : '#059669'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="5" width="20" height="14" rx="2"/>
                     <line x1="2" y1="10" x2="22" y2="10"/>
                   </svg>
-                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>الاشتراك وحالة التشغيل</strong>
+                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                    {isPlatform ? 'ترخيص المنظومة وحالة التشغيل' : 'الاشتراك وحالة التشغيل'}
+                  </strong>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#64748b' }}>الباقة الحالية:</span>
-                    <span className="tenant-plan-badge" style={{ margin: 0 }}>{tenant.planName || 'بدون باقة'}</span>
+                    {isPlatform ? (
+                      <span className="tenant-plan-badge" style={{ margin: 0, background: '#ede9fe', color: '#5b21b6', border: '1px solid #c4b5fd', fontWeight: 800, fontSize: '11.5px' }}>
+                        مالك المنظومة (كامل الصلاحيات والأنظمة)
+                      </span>
+                    ) : (
+                      <span className="tenant-plan-badge" style={{ margin: 0 }}>{tenant.planName || 'بدون باقة'}</span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#64748b' }}>نهاية الصلاحية:</span>
-                    <strong style={{ color: '#0f172a' }}>
-                      {tenant.subscriptionEndDate ? formatDate(tenant.subscriptionEndDate) : tenant.trialEndsAt ? formatDate(tenant.trialEndsAt) : '-'}
-                    </strong>
+                    {isPlatform ? (
+                      <strong style={{ color: '#059669', fontWeight: 800, fontSize: '12.5px' }}>
+                        دائمة مدى الحياة (Lifetime ♾️)
+                      </strong>
+                    ) : (
+                      <strong style={{ color: '#0f172a' }}>
+                        {tenant.subscriptionEndDate ? formatDate(tenant.subscriptionEndDate) : tenant.trialEndsAt ? formatDate(tenant.trialEndsAt) : '-'}
+                      </strong>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#64748b' }}>الأيام المتبقية:</span>
-                    <span style={{ fontWeight: 700, color: (tenant.trialDaysRemaining ?? 0) > 0 ? '#15803d' : '#b91c1c' }}>
-                      {tenant.trialDaysRemaining != null ? `${tenant.trialDaysRemaining} يوم` : '-'}
-                    </span>
+                    {isPlatform ? (
+                      <span style={{ fontWeight: 800, color: '#059669', fontSize: '12.5px' }}>
+                        غير محدودة بأجل ♾️
+                      </span>
+                    ) : (
+                      <span style={{ fontWeight: 700, color: (tenant.trialDaysRemaining ?? 0) > 0 ? '#15803d' : '#b91c1c' }}>
+                        {tenant.trialDaysRemaining != null ? `${tenant.trialDaysRemaining} يوم` : '-'}
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -244,7 +274,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#64748b' }}>حالة الحساب:</span>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: tenant.ownerLocked ? '#b91c1c' : '#15803d' }}>
-                      {tenant.ownerLocked ? 'مقفل (محاولات خاطئة)' : 'طبيعي'}
+                      {tenant.ownerLocked ? 'مقفل (محاولات خاطئة)' : 'طبيعي (نشط)'}
                     </span>
                   </div>
                 </div>

@@ -118,7 +118,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
       username: bootstrapSuperAdminUsername,
       password: bootstrapSuperAdminPassword,
       role: 'super_admin',
-      displayName: 'Bootstrap Administrator',
+      displayName: 'محمود زكريا',
       permissions: SUPER_ADMIN_PERMISSIONS,
     });
 

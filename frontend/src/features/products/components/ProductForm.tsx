@@ -201,7 +201,7 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
       return;
     }
     setFashionVariantRows((current) => buildFashionVariantDrafts(colorTokens, sizeTokens, current, watchedVariantStock));
-  }, [usesVariantBuilder, colorTokens, sizeTokens, watchedVariantStock, form, fashionVariantRows.length, variantBarcodePrefix]);
+  }, [usesVariantBuilder, colorTokens, sizeTokens, watchedVariantStock]);
 
   const categoryMutation = useMutation<{ id?: string | number; category?: { id?: string | number }; data?: { id?: string | number } }, Error, void>({
     mutationFn: async () => {

@@ -208,32 +208,37 @@ export class SaasAdminService {
     const tenants = rows.map((row) => {
       const owner = ownerByTenant.get(String(row.id || ''));
       const sub = subByTenant.get(String(row.id || ''));
+      const isPlatform =
+        String(row.id || '') === 'default' ||
+        String(row.id || '') === this.getPlatformTenantId() ||
+        String(row.slug || '').toLowerCase() === 'default';
       return {
-      id: row.id,
-      slug: row.slug,
-      businessName: row.business_name,
-      ownerName: row.owner_name,
-      ownerPhone: row.owner_phone,
-      ownerEmail: row.owner_email || '',
-      activityType: row.activity_type || '',
-      status: row.status,
-      trialStartsAt: row.trial_starts_at ? new Date(row.trial_starts_at).toISOString() : null,
-      trialEndsAt: row.trial_ends_at ? new Date(row.trial_ends_at).toISOString() : null,
-      activatedAt: row.activated_at ? new Date(row.activated_at).toISOString() : null,
-      createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-      updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
-      trialDaysRemaining: this.trialDaysRemaining(row.trial_ends_at ? new Date(row.trial_ends_at) : null),
-      usersCount: Number(row.users_count || 0),
-      activeUsersCount: Number(row.active_users_count || 0),
-      ownerLocked: Boolean(owner?.locked),
-      ownerIsActive: owner ? Boolean(owner.isActive) : false,
-      ownerUsername: owner?.username || '',
-      planName: sub?.plan_name || null,
-      planId: row.plan_id || null,
-      extraFeatures: Array.isArray(row.extra_features) ? row.extra_features : typeof row.extra_features === 'string' ? JSON.parse(row.extra_features) : [],
-      subscriptionStatus: sub?.sub_status || null,
-      subscriptionEndDate: sub?.ends_at ? new Date(sub.ends_at).toISOString() : null,
-      graceEndDate: sub?.grace_ends_at ? new Date(sub.grace_ends_at).toISOString() : null,
+        id: row.id,
+        slug: row.slug,
+        businessName: isPlatform && (!row.business_name || row.business_name === 'النظام الأساسي') ? 'Z-Systems' : row.business_name,
+        ownerName: isPlatform && (!row.owner_name || row.owner_name === 'المسؤول') ? 'محمود زكريا' : row.owner_name,
+        ownerPhone: isPlatform && (!row.owner_phone || row.owner_phone === '0000000000') ? '01018017523' : row.owner_phone,
+        ownerEmail: isPlatform && !row.owner_email ? '8489mz@gmail.com' : (row.owner_email || ''),
+        activityType: row.activity_type || '',
+        status: isPlatform ? 'active' : row.status,
+        trialStartsAt: isPlatform ? null : (row.trial_starts_at ? new Date(row.trial_starts_at).toISOString() : null),
+        trialEndsAt: isPlatform ? null : (row.trial_ends_at ? new Date(row.trial_ends_at).toISOString() : null),
+        activatedAt: row.activated_at ? new Date(row.activated_at).toISOString() : null,
+        createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+        updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+        trialDaysRemaining: isPlatform ? null : this.trialDaysRemaining(row.trial_ends_at ? new Date(row.trial_ends_at) : null),
+        usersCount: Number(row.users_count || 0),
+        activeUsersCount: Number(row.active_users_count || 0),
+        ownerLocked: Boolean(owner?.locked),
+        ownerIsActive: owner ? Boolean(owner.isActive) : false,
+        ownerUsername: owner?.username || '',
+        planName: isPlatform ? 'مالك المنظومة (غير مقيد)' : (sub?.plan_name || null),
+        planId: row.plan_id || null,
+        extraFeatures: Array.isArray(row.extra_features) ? row.extra_features : typeof row.extra_features === 'string' ? JSON.parse(row.extra_features) : [],
+        subscriptionStatus: isPlatform ? 'active' : (sub?.sub_status || null),
+        subscriptionEndDate: isPlatform ? null : (sub?.ends_at ? new Date(sub.ends_at).toISOString() : null),
+        graceEndDate: isPlatform ? null : (sub?.grace_ends_at ? new Date(sub.grace_ends_at).toISOString() : null),
+        isPlatform,
       };
     });
 
@@ -280,27 +285,34 @@ export class SaasAdminService {
       }
     }
 
+    const isPlatform =
+      String(tenant.id || '') === 'default' ||
+      String(tenant.id || '') === this.getPlatformTenantId() ||
+      String(tenant.slug || '').toLowerCase() === 'default';
+
     return {
       tenant: {
         id: tenant.id,
         slug: tenant.slug,
-        businessName: tenant.business_name,
-        ownerName: tenant.owner_name,
-        ownerPhone: tenant.owner_phone,
-        ownerEmail: tenant.owner_email || '',
+        businessName: isPlatform && (!tenant.business_name || tenant.business_name === 'النظام الأساسي') ? 'Z-Systems' : tenant.business_name,
+        ownerName: isPlatform && (!tenant.owner_name || tenant.owner_name === 'المسؤول') ? 'محمود زكريا' : tenant.owner_name,
+        ownerPhone: isPlatform && (!tenant.owner_phone || tenant.owner_phone === '0000000000') ? '01018017523' : tenant.owner_phone,
+        ownerEmail: isPlatform && !tenant.owner_email ? '8489mz@gmail.com' : (tenant.owner_email || ''),
         activityType: tenant.activity_type || '',
-        status: tenant.status,
-        trialStartsAt: tenant.trial_starts_at ? new Date(tenant.trial_starts_at).toISOString() : null,
-        trialEndsAt: tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toISOString() : null,
+        status: isPlatform ? 'active' : tenant.status,
+        trialStartsAt: isPlatform ? null : (tenant.trial_starts_at ? new Date(tenant.trial_starts_at).toISOString() : null),
+        trialEndsAt: isPlatform ? null : (tenant.trial_ends_at ? new Date(tenant.trial_ends_at).toISOString() : null),
         activatedAt: tenant.activated_at ? new Date(tenant.activated_at).toISOString() : null,
         createdAt: tenant.created_at ? new Date(tenant.created_at).toISOString() : null,
         updatedAt: tenant.updated_at ? new Date(tenant.updated_at).toISOString() : null,
-        trialDaysRemaining: this.trialDaysRemaining(tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null),
+        trialDaysRemaining: isPlatform ? null : this.trialDaysRemaining(tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null),
         usersCount: Number(usersSummary?.users_count || 0),
         activeUsersCount: Number(usersSummary?.active_users_count || 0),
         lastLoginAt: owner?.last_login_at ? new Date(owner.last_login_at).toISOString() : null,
         lastSeenAt: lastSeenAt,
         planId: tenant.plan_id || null,
+        planName: isPlatform ? 'مالك المنظومة (كامل الصلاحيات والأنظمة)' : null,
+        isPlatform,
         extraFeatures: Array.isArray(tenant.extra_features) ? tenant.extra_features : typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [],
       },
     };
@@ -834,12 +846,13 @@ export class SaasAdminService {
       await this.db.insertInto('tenants').values({
         id: 'default',
         slug: 'default',
-        business_name: 'النظام الأساسي',
-        owner_name: 'المسؤول',
-        owner_phone: '0000000000',
+        business_name: 'Z-Systems',
+        owner_name: 'محمود زكريا',
+        owner_phone: '01018017523',
+        owner_email: '8489mz@gmail.com',
         status: 'active',
         trial_starts_at: now,
-        trial_ends_at: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+        trial_ends_at: new Date(now.getTime() + 3650 * 24 * 60 * 60 * 1000)
       } as any).execute();
       tenant = { id: 'default', slug: 'default' };
     }

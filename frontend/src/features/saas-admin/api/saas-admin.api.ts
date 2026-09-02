@@ -30,6 +30,7 @@ export type SaasTenantRow = {
   graceEndDate: string | null;
   lastLoginAt?: string | null;
   lastSeenAt?: string | null;
+  isPlatform?: boolean;
 };
 
 export type TenantTimelineEvent = {

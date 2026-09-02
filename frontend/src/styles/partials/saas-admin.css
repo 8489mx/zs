@@ -382,42 +382,98 @@
   margin: 3px 0;
 }
 
-/* Create Modal Section Cards */
+/* Create Modal Section Cards - Ultra-Compact Single-Screen Layout */
+.dialog-shell.saas-create-modal-shell {
+  width: min(840px, calc(100vw - 32px)) !important;
+}
+
+.saas-compact-dialog-card {
+  padding: 14px 18px !important;
+}
+
 .saas-modal-card {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 7px;
 }
 
 .saas-modal-card-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 11.5px;
   font-weight: 800;
   color: #0f172a;
-  margin: 0 0 10px 0;
-  padding-bottom: 6px;
+  margin: 0 0 6px 0;
+  padding-bottom: 4px;
   border-bottom: 1px solid #e2e8f0;
+}
+
+.saas-modal-card .field {
+  margin-bottom: 0;
+  gap: 3px;
+}
+
+.saas-modal-card .field > span,
+.saas-modal-card .field > label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.saas-modal-card input:not([type="checkbox"]):not([type="radio"]),
+.saas-modal-card select {
+  min-height: 33px;
+  height: 33px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+}
+
+/* Lighten and soften placeholder style so it looks like a subtle example watermark */
+.saas-modal-card input::placeholder,
+.saas-modal-card select::placeholder,
+.saas-modal-card textarea::placeholder,
+.saas-compact-dialog-card input::placeholder,
+.saas-compact-dialog-card textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.75 !important;
+  font-weight: 400 !important;
+  font-size: 11.5px !important;
 }
 
 .saas-modal-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
+  gap: 6px 12px;
 }
 
 .saas-modal-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px 14px;
+  gap: 6px 12px;
 }
 
-@media (max-width: 600px) {
+.saas-modal-dual-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.saas-modal-dual-cards .saas-modal-card {
+  margin-bottom: 0;
+  height: 100%;
+}
+
+@media (max-width: 680px) {
   .saas-modal-grid-2,
-  .saas-modal-grid-3 {
+  .saas-modal-grid-3,
+  .saas-modal-dual-cards {
     grid-template-columns: 1fr;
   }
 }

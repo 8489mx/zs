@@ -37,7 +37,9 @@ ${temporaryPassword ? `- كلمة المرور المؤقتة: *${temporaryPassw
 - حالة النسخة: *${tenant.status === 'active' ? 'مفعلة' : 'نسخة تجريبية'}*
 ${tenant.subscriptionEndDate ? `- تاريخ انتهاء الاشتراك: *${formatDate(tenant.subscriptionEndDate)}*` : ''}
 
-لأي استفسارات أو دعم فني، يسعدنا تواصلكم معنا دائماً.`;
+لأي استفسارات أو دعم فني، يسعدنا تواصلكم معنا دائماً:
+- إدارة المنظومة: *محمود زكريا*
+- هاتف / واتساب: *01018017523*`;
 
   const handleCopy = async () => {
     try {

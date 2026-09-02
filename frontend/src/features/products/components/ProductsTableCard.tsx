@@ -397,7 +397,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 </th>
                 <th>الصنف</th>
                 <th>الباركود</th>
-                <th>{props.clothingEnabled ? 'اللون / المقاس' : 'الفرعي'}</th>
+                <th>المتغيرات</th>
                 <th>القسم / المورد / المخزن</th>
                 <th>الأسعار</th>
                 <th>المخزون</th>

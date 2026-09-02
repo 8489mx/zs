@@ -83,7 +83,7 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
         <thead>
           <tr>
             <th style={{ backgroundColor: 'var(--bg-body)', position: 'sticky', right: 0, zIndex: 1, borderInlineEnd: '1px solid var(--border-color)' }}>
-              اللون / المقاس
+              المتغيرات
             </th>
             {sizes.map((s) => (
               <th key={s} style={{ textAlign: 'center', backgroundColor: 'var(--bg-body)' }}>{s}</th>

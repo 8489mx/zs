@@ -11,6 +11,7 @@ export interface FashionVariantDraft {
   wholesalePrice?: number;
   minStock?: number;
   sku?: string;
+  isManual?: boolean;
 }
 
 function makeVariantKey(color: string, size: string) {
@@ -53,17 +54,23 @@ export function buildFashionVariantDrafts(
         const key = makeVariantKey(color, size);
         const existing = existingMap.get(key);
         const id = existing?.id || `v-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-        nextRows.push(existing ? { ...existing, color, size } : { id, color, size, barcode: '', stock: Number(defaultStock || 0) });
+        nextRows.push(
+          existing
+            ? { ...existing, color, size }
+            : { id, color, size, barcode: '', stock: Number(defaultStock || 0), isManual: false }
+        );
       }
     }
   }
 
-  // Preserve any manually added rows that might have custom color/size or empty rows in progress
+  // Preserve only rows that were added manually by the user or are empty rows in progress
   for (const row of existingRows) {
-    const key = makeVariantKey(row.color, row.size);
-    if (!nextRows.some((nr) => makeVariantKey(nr.color, nr.size) === key)) {
-      const id = row.id || `v-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      nextRows.push({ ...row, id });
+    if (row.isManual || (!String(row.color || '').trim() && !String(row.size || '').trim())) {
+      const key = makeVariantKey(row.color, row.size);
+      if (!nextRows.some((nr) => makeVariantKey(nr.color, nr.size) === key)) {
+        const id = row.id || `v-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        nextRows.push({ ...row, id, isManual: true });
+      }
     }
   }
 

@@ -93,6 +93,20 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, te
   outline: none;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
+input::placeholder, select::placeholder, textarea::placeholder {
+  color: #94a3b8;
+  opacity: 0.75;
+  font-weight: 400;
+}
+::selection {
+  background-color: rgba(99, 102, 241, 0.22) !important;
+  color: inherit !important;
+}
+input::selection,
+textarea::selection {
+  background-color: rgba(99, 102, 241, 0.22) !important;
+  color: #0f172a !important;
+}
 input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):focus, select:focus, textarea:focus {
   border-color: #93c5fd;
   box-shadow: 0 0 0 4px rgba(23, 12, 92,.08);

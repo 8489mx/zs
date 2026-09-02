@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { normalizeArabicInput } from '@/lib/arabic-normalization';
+import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 
 import { mergeFashionTokens, splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 
@@ -179,6 +179,28 @@ export function FashionVariantsBuilder({
     }
   }, [activeTemplate, customPrimaryLabel, customSecondaryLabel]);
 
+  function togglePrimaryPreset(val: string) {
+    const key = normalizeArabicSearchKey(val);
+    const existing = colors.some((c) => normalizeArabicSearchKey(c) === key);
+    if (existing) {
+      const remaining = colors.filter((c) => normalizeArabicSearchKey(c) !== key);
+      onColorsChange(remaining.join(' - '));
+    } else {
+      onColorsChange(mergeFashionTokens(colorsValue, [val]));
+    }
+  }
+
+  function toggleSecondaryPreset(vals: string[]) {
+    const normVals = new Set(vals.map((v) => normalizeArabicSearchKey(v)));
+    const allSelected = vals.length > 0 && vals.every((v) => sizes.some((s) => normalizeArabicSearchKey(s) === normalizeArabicSearchKey(v)));
+    if (allSelected) {
+      const remaining = sizes.filter((s) => !normVals.has(normalizeArabicSearchKey(s)));
+      onSizesChange(remaining.join(' - '));
+    } else {
+      onSizesChange(mergeFashionTokens(sizesValue, vals));
+    }
+  }
+
   function addEmptyRow() {
     const id = `v-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     onRowsChange([
@@ -192,12 +214,13 @@ export function FashionVariantsBuilder({
         retailPrice: parentRetailPrice !== undefined && parentRetailPrice > 0 ? parentRetailPrice : undefined,
         costPrice: parentCostPrice !== undefined && parentCostPrice > 0 ? parentCostPrice : undefined,
         wholesalePrice: _parentWholesalePrice !== undefined && _parentWholesalePrice > 0 ? _parentWholesalePrice : undefined,
+        isManual: true,
       },
     ]);
   }
 
   function updateRow(index: number, patch: Partial<FashionVariantDraft>) {
-    onRowsChange(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
+    onRowsChange(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch, isManual: row.isManual || 'color' in patch || 'size' in patch } : row)));
   }
 
   function deleteRow(index: number) {
@@ -378,7 +401,7 @@ export function FashionVariantsBuilder({
                 type="text"
                 className="purchase-prototype-field-input"
                 value={colorsValue}
-                onChange={(event) => onColorsChange(normalizeArabicInput(event.target.value))}
+                onChange={(event) => onColorsChange(event.target.value)}
                 disabled={disabled}
                 placeholder={templateConfig.primaryPlaceholder}
                 style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
@@ -386,29 +409,20 @@ export function FashionVariantsBuilder({
             </Field>
             {templateConfig.primaryPresets.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
-                {templateConfig.primaryPresets.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => onColorsChange(mergeFashionTokens(colorsValue, [val]))}
-                    style={{
-                      background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '4px',
-                      padding: '1px 6px',
-                      fontSize: '0.72rem',
-                      color: '#334155',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                      lineHeight: 1.3,
-                      transition: 'all 0.1s ease',
-                    }}
-                  >
-                    + {val}
-                  </button>
-                ))}
+                {templateConfig.primaryPresets.map((val) => {
+                  const isSelected = colors.some((c) => normalizeArabicSearchKey(c) === normalizeArabicSearchKey(val));
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => togglePrimaryPreset(val)}
+                      className={`variant-preset-chip ${isSelected ? 'is-active' : ''}`.trim()}
+                    >
+                      {isSelected ? '✓ ' : '+ '}{val}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -420,7 +434,7 @@ export function FashionVariantsBuilder({
                 type="text"
                 className="purchase-prototype-field-input"
                 value={sizesValue}
-                onChange={(event) => onSizesChange(normalizeArabicInput(event.target.value))}
+                onChange={(event) => onSizesChange(event.target.value)}
                 disabled={disabled}
                 placeholder={templateConfig.secondaryPlaceholder}
                 style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
@@ -430,85 +444,58 @@ export function FashionVariantsBuilder({
             {/* Presets for Secondary */}
             {activeTemplate === 'fashion' && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
-                {FASHION_SIZE_PRESETS.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => onSizesChange(mergeFashionTokens(sizesValue, preset.values))}
-                    style={{
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '4px',
-                      padding: '1px 7px',
-                      fontSize: '0.72rem',
-                      color: 'var(--primary, #1e1b4b)',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                      lineHeight: 1.3,
-                      transition: 'all 0.1s ease',
-                    }}
-                  >
-                    + {preset.label}
-                  </button>
-                ))}
+                {FASHION_SIZE_PRESETS.map((preset) => {
+                  const isSelected = preset.values.length > 0 && preset.values.every((v) => sizes.some((s) => normalizeArabicSearchKey(s) === normalizeArabicSearchKey(v)));
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => toggleSecondaryPreset(preset.values)}
+                      className={`variant-preset-chip ${isSelected ? 'is-active' : ''}`.trim()}
+                    >
+                      {isSelected ? '✓ ' : '+ '}{preset.label}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
             {activeTemplate === 'scents' && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
-                {SCENT_SIZE_PRESETS.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => onSizesChange(mergeFashionTokens(sizesValue, [val]))}
-                    style={{
-                      background: '#f0fdf4',
-                      border: '1px solid #bbf7d0',
-                      borderRadius: '4px',
-                      padding: '1px 6px',
-                      fontSize: '0.72rem',
-                      color: '#166534',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                      lineHeight: 1.3,
-                      transition: 'all 0.1s ease',
-                    }}
-                  >
-                    + {val}
-                  </button>
-                ))}
+                {SCENT_SIZE_PRESETS.map((val) => {
+                  const isSelected = sizes.some((s) => normalizeArabicSearchKey(s) === normalizeArabicSearchKey(val));
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => toggleSecondaryPreset([val])}
+                      className={`variant-preset-chip ${isSelected ? 'is-active' : ''}`.trim()}
+                    >
+                      {isSelected ? '✓ ' : '+ '}{val}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
             {activeTemplate === 'sizes' && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
-                {PACKAGING_PRESETS.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => onSizesChange(mergeFashionTokens(sizesValue, [val]))}
-                    style={{
-                      background: '#fefce8',
-                      border: '1px solid #fde047',
-                      borderRadius: '4px',
-                      padding: '1px 6px',
-                      fontSize: '0.72rem',
-                      color: '#854d0e',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                      lineHeight: 1.3,
-                      transition: 'all 0.1s ease',
-                    }}
-                  >
-                    + {val}
-                  </button>
-                ))}
+                {PACKAGING_PRESETS.map((val) => {
+                  const isSelected = sizes.some((s) => normalizeArabicSearchKey(s) === normalizeArabicSearchKey(val));
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => toggleSecondaryPreset([val])}
+                      className={`variant-preset-chip ${isSelected ? 'is-active' : ''}`.trim()}
+                    >
+                      {isSelected ? '✓ ' : '+ '}{val}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -670,7 +657,7 @@ export function FashionVariantsBuilder({
                       <input
                         className="purchase-prototype-field-input"
                         value={row.color || ''}
-                        onChange={(event) => updateRow(index, { color: normalizeArabicInput(event.target.value) })}
+                        onChange={(event) => updateRow(index, { color: event.target.value })}
                         disabled={disabled}
                         placeholder={templateConfig.primarySingleLabel}
                         style={{ height: '30px', fontSize: '0.78rem', fontWeight: 700, padding: '4px 8px', width: '100%' }}
@@ -680,7 +667,7 @@ export function FashionVariantsBuilder({
                       <input
                         className="purchase-prototype-field-input"
                         value={row.size || ''}
-                        onChange={(event) => updateRow(index, { size: normalizeArabicInput(event.target.value) })}
+                        onChange={(event) => updateRow(index, { size: event.target.value })}
                         disabled={disabled}
                         placeholder={templateConfig.secondarySingleLabel}
                         style={{ height: '30px', fontSize: '0.78rem', fontWeight: 600, padding: '4px 8px', width: '100%' }}

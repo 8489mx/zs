@@ -790,22 +790,37 @@ export function SaasTenantsPage() {
         <DialogShell
           open={isCreateOpen}
           onClose={() => { setIsCreateOpen(false); setCreateResult(null); }}
-          width="760px"
+          width="840px"
+          shellClassName="saas-create-modal-shell"
           ariaLabel="إنشاء نسخة تجريبية جديدة"
         >
-          <div className="dialog-card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div className="dialog-card saas-compact-dialog-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
                   إنشاء نسخة تجريبية جديدة
                 </h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#64748b' }}>
                   إدخال بيانات المنشأة والمالك لتوليد نسخة سحابية فورية بحساب كامل الصلاحيات.
                 </p>
               </div>
               <button
                 type="button"
-                className="dialog-shell-close-btn"
+                style={{
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  color: '#64748b',
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  lineHeight: 1,
+                }}
                 onClick={() => { setIsCreateOpen(false); setCreateResult(null); }}
                 title="إغلاق"
               >
@@ -931,7 +946,7 @@ export function SaasTenantsPage() {
                   <div className="saas-modal-card-title">
                     <span>1. بيانات النشاط التجاري</span>
                   </div>
-                  <div className="saas-modal-grid-2">
+                  <div className="saas-modal-grid-3">
                     <Field label="اسم النشاط / المحل *">
                       <input
                         type="text"
@@ -951,14 +966,12 @@ export function SaasTenantsPage() {
                         dir="ltr"
                       />
                     </Field>
-                  </div>
-                  <div style={{ marginTop: '10px' }}>
                     <Field label="نوع النشاط / المجال">
                       <input
                         type="text"
                         value={createForm.activityType}
                         onChange={(e) => setCreateForm((s) => ({ ...s, activityType: e.target.value }))}
-                        placeholder="مثال: بقالة، صيدلية، محل ملابس، مطعم، إلكترونيات..."
+                        placeholder="مثال: سوبر ماركت، صيدلية، مطعم..."
                       />
                     </Field>
                   </div>
@@ -969,14 +982,14 @@ export function SaasTenantsPage() {
                   <div className="saas-modal-card-title">
                     <span>2. بيانات المالك وحساب الإدارة</span>
                   </div>
-                  <div className="saas-modal-grid-2">
+                  <div className="saas-modal-grid-3">
                     <Field label="اسم المالك *">
                       <input
                         type="text"
                         required
                         value={createForm.ownerName}
                         onChange={(e) => setCreateForm((s) => ({ ...s, ownerName: e.target.value }))}
-                        placeholder="مثال: أحمد محمود"
+                        placeholder="مثال: محمود زكريا"
                       />
                     </Field>
                     <Field label="رقم هاتف المالك *">
@@ -985,12 +998,10 @@ export function SaasTenantsPage() {
                         required
                         value={createForm.ownerPhone}
                         onChange={(e) => setCreateForm((s) => ({ ...s, ownerPhone: e.target.value }))}
-                        placeholder="مثال: 01012345678"
-                        dir="ltr"
+                        placeholder="مثال: 01018017523"
+                        dir="auto"
                       />
                     </Field>
-                  </div>
-                  <div className="saas-modal-grid-3" style={{ marginTop: '10px' }}>
                     <Field label="البريد الإلكتروني (اختياري)">
                       <input
                         type="email"
@@ -1000,6 +1011,8 @@ export function SaasTenantsPage() {
                         dir="ltr"
                       />
                     </Field>
+                  </div>
+                  <div className="saas-modal-grid-2" style={{ marginTop: '6px' }}>
                     <Field label="اسم المستخدم">
                       <input
                         type="text"
@@ -1021,82 +1034,82 @@ export function SaasTenantsPage() {
                   </div>
                 </div>
 
-                {/* 3. باقة التجربة ومستوى الميزات */}
-                <div className="saas-modal-card">
-                  <div className="saas-modal-card-title">
-                    <span>3. باقة التجربة ومستوى الميزات المفعلة</span>
+                {/* 3 & 4. باقة التجربة والمتابعة */}
+                <div className="saas-modal-dual-cards">
+                  <div className="saas-modal-card">
+                    <div className="saas-modal-card-title">
+                      <span>3. باقة التجربة والميزات</span>
+                    </div>
+                    <Field label="خطة الميزات المفعلة للنسخة *">
+                      <select
+                        value={createForm.featurePlanId}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, featurePlanId: e.target.value }))}
+                        style={{ fontWeight: 700, width: '100%' }}
+                      >
+                        <option value="plan_ultimate">المتكاملة (الباقة الشاملة - كافة الميزات)</option>
+                        <option value="plan_pro">الاحترافية (المبيعات، المخازن، الحسابات)</option>
+                        <option value="plan_basic">الأساسية (نقطة البيع، الكاشير، المخزون)</option>
+                        {featurePlans
+                          .filter((p: any) => !['plan_ultimate', 'plan_pro', 'plan_basic'].includes(p.id))
+                          .map((p: any) => (
+                            <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                          ))}
+                      </select>
+                    </Field>
+                    <div style={{ marginTop: '6px' }}>
+                      <Field label="مدة التجربة (أيام)">
+                        <input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={createForm.days}
+                          onChange={(e) => setCreateForm((s) => ({ ...s, days: e.target.value }))}
+                        />
+                      </Field>
+                    </div>
                   </div>
-                  <Field label="خطة الميزات المفعلة للنسخة *">
-                    <select
-                      value={createForm.featurePlanId}
-                      onChange={(e) => setCreateForm((s) => ({ ...s, featurePlanId: e.target.value }))}
-                      style={{ fontWeight: 700, width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                    >
-                      <option value="plan_ultimate">المتكاملة (الباقة الشاملة - كافة الميزات والأنظمة)</option>
-                      <option value="plan_pro">الاحترافية (المبيعات، المخازن، الحسابات العامة، شؤون الموظفين)</option>
-                      <option value="plan_basic">الأساسية (نقطة البيع، الكاشير، المخزون الأساسي)</option>
-                      {featurePlans
-                        .filter((p: any) => !['plan_ultimate', 'plan_pro', 'plan_basic'].includes(p.id))
-                        .map((p: any) => (
-                          <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-                        ))}
-                    </select>
-                  </Field>
-                  <p style={{ margin: '6px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                    يتم افتراضياً تفعيل <strong>الباقة المتكاملة الشاملة</strong> لتمكين العميل من تجربة كافة أقسام وشاشات المنظومة فوراً.
-                  </p>
+
+                  <div className="saas-modal-card">
+                    <div className="saas-modal-card-title">
+                      <span>4. إعدادات التجربة والمتابعة</span>
+                    </div>
+                    <div className="saas-modal-grid-2">
+                      <Field label="المصدر / القناة">
+                        <input
+                          type="text"
+                          value={createForm.source}
+                          onChange={(e) => setCreateForm((s) => ({ ...s, source: e.target.value }))}
+                          placeholder="مثال: فيسبوك، إحالة عميل..."
+                        />
+                      </Field>
+                      <Field label="اسم الحملة الإعلانية">
+                        <input
+                          type="text"
+                          value={createForm.campaign}
+                          onChange={(e) => setCreateForm((s) => ({ ...s, campaign: e.target.value }))}
+                          placeholder="اختياري"
+                        />
+                      </Field>
+                    </div>
+                    <div style={{ marginTop: '6px' }}>
+                      <Field label="ملاحظات إضافية">
+                        <input
+                          type="text"
+                          value={createForm.notes}
+                          onChange={(e) => setCreateForm((s) => ({ ...s, notes: e.target.value }))}
+                          placeholder="أي ملاحظات خاصة بالتسجيل أو المتابعة"
+                        />
+                      </Field>
+                    </div>
+                  </div>
                 </div>
 
-                {/* 4. إعدادات التجربة والمتابعة */}
-                <div className="saas-modal-card">
-                  <div className="saas-modal-card-title">
-                    <span>4. إعدادات التجربة والمتابعة</span>
-                  </div>
-                  <div className="saas-modal-grid-3">
-                    <Field label="مدة التجربة (أيام)">
-                      <input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={createForm.days}
-                        onChange={(e) => setCreateForm((s) => ({ ...s, days: e.target.value }))}
-                      />
-                    </Field>
-                    <Field label="المصدر / القناة">
-                      <input
-                        type="text"
-                        value={createForm.source}
-                        onChange={(e) => setCreateForm((s) => ({ ...s, source: e.target.value }))}
-                        placeholder="مثال: فيسبوك، إحالة عميل..."
-                      />
-                    </Field>
-                    <Field label="اسم الحملة الإعلانية">
-                      <input
-                        type="text"
-                        value={createForm.campaign}
-                        onChange={(e) => setCreateForm((s) => ({ ...s, campaign: e.target.value }))}
-                        placeholder="اختياري"
-                      />
-                    </Field>
-                  </div>
-                  <div style={{ marginTop: '10px' }}>
-                    <Field label="ملاحظات إضافية">
-                      <input
-                        type="text"
-                        value={createForm.notes}
-                        onChange={(e) => setCreateForm((s) => ({ ...s, notes: e.target.value }))}
-                        placeholder="أي ملاحظات خاصة بالتسجيل أو المتابعة"
-                      />
-                    </Field>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                   <button
                     type="button"
                     className="button button-secondary"
                     onClick={() => setIsCreateOpen(false)}
-                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700 }}
+                    style={{ padding: '7px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '13px' }}
                   >
                     إلغاء
                   </button>
@@ -1107,10 +1120,11 @@ export function SaasTenantsPage() {
                       background: '#0f172a',
                       color: '#ffffff',
                       fontWeight: 800,
-                      padding: '9px 24px',
+                      padding: '8px 24px',
                       borderRadius: '8px',
                       border: 'none',
                       cursor: 'pointer',
+                      fontSize: '13px',
                     }}
                     disabled={createTrialMutation.isPending || !createForm.businessName || !createForm.slug || !createForm.ownerPhone}
                   >
