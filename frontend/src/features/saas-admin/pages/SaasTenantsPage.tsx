@@ -19,6 +19,8 @@ import { resetAuthenticatedClient } from '@/lib/query-client-session';
 import { saasAdminApi, SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
 import { UpdateTenantPlanModal } from '../components/UpdateTenantPlanModal';
 import { TenantDetailsModal } from '../components/TenantDetailsModal';
+import { TenantSubscriptionsModal } from '../components/TenantSubscriptionsModal';
+import { TenantWelcomeShareModal } from '../components/TenantWelcomeShareModal';
 
 type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner' | 'delete';
 type SaasTenantsResponse = { tenants: SaasTenantRow[] };
@@ -58,6 +60,8 @@ interface TenantActionsMenuProps {
   onImpersonate: (id: string, name: string) => void;
   isImpersonating: boolean;
   onShowDetails: (id: string) => void;
+  onShowSubscriptions: (row: SaasTenantRow) => void;
+  onShareWelcome: (row: SaasTenantRow) => void;
   onUpgrade: (row: SaasTenantRow) => void;
   onUpdatePlan: (row: SaasTenantRow) => void;
   onRenew: (row: SaasTenantRow) => void;
@@ -77,6 +81,8 @@ function TenantActionsMenu({
   onImpersonate,
   isImpersonating,
   onShowDetails,
+  onShowSubscriptions,
+  onShareWelcome,
   onUpgrade,
   onUpdatePlan,
   onRenew,
@@ -166,7 +172,7 @@ function TenantActionsMenu({
   }
 
   return (
-    <div className="tenant-actions-cell">
+    <div className="tenant-actions-cell" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
       {/* 1. تصفح النسخة كمالك */}
       <button
         type="button"
@@ -181,39 +187,37 @@ function TenantActionsMenu({
         <span>{isImpersonating ? 'جاري الدخول...' : 'تصفح'}</span>
       </button>
 
-      {/* 2. سجل النشاط والتفاصيل */}
+      {/* 2. تجديد الاشتراك السريع */}
       <button
         type="button"
-        className="button button-secondary"
-        style={{ padding: '5px 9px', fontSize: '12px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-        onClick={() => onShowDetails(row.id)}
-        title="سجل النشاط وتفاصيل النسخة الكاملة"
+        className="tenant-renew-btn"
+        onClick={() => onRenew(row)}
+        title="تجديد أو ترقية اشتراك النسخة"
       >
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-        </svg>
-        <span>سجل النشاط</span>
+        <span>🔄 تجديد</span>
       </button>
 
-      {/* 3. إعادة تعيين كلمة المرور */}
+      {/* 3. سجل الاشتراكات والمدفوعات */}
       <button
         type="button"
-        className="button button-secondary"
-        style={{ padding: '5px 9px', fontSize: '12px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-        onClick={() => onResetPassword(row)}
-        title="إعادة تعيين كلمة مرور المالك"
+        className="tenant-subscriptions-btn"
+        onClick={() => onShowSubscriptions(row)}
+        title="عرض سجل فترات الاشتراك وطباعة الإيصالات"
       >
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-        </svg>
-        <span>كلمة المرور</span>
+        <span>📜 الاشتراكات</span>
       </button>
 
-      {/* 4. قائمة الإجراءات الإضافية (Portal Dropdown) */}
+      {/* 4. مشاركة بيانات الدخول عبر واتساب */}
+      <button
+        type="button"
+        className="tenant-whatsapp-btn"
+        onClick={() => onShareWelcome(row)}
+        title="مشاركة بيانات الدخول والاشتراك مع العميل عبر واتساب"
+      >
+        <span>💬 واتساب</span>
+      </button>
+
+      {/* 5. قائمة الإجراءات الإضافية (Portal Dropdown) */}
       <button
         ref={buttonRef}
         type="button"
@@ -246,30 +250,44 @@ function TenantActionsMenu({
           <button
             type="button"
             className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onRenew(row); }}
+          >
+            <span>🔄 تجديد الاشتراك</span>
+          </button>
+          <button
+            type="button"
+            className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onShowSubscriptions(row); }}
+          >
+            <span>📜 سجل الاشتراكات والمدفوعات</span>
+          </button>
+          <button
+            type="button"
+            className="tenant-action-item"
             onClick={() => { setIsOpen(false); onUpgrade(row); }}
           >
-            <span>تفعيل / ترقية الخطة</span>
+            <span>⚡ تفعيل / ترقية الخطة</span>
           </button>
           <button
             type="button"
             className="tenant-action-item"
             onClick={() => { setIsOpen(false); onUpdatePlan(row); }}
           >
-            <span>تعديل الباقة والميزات</span>
-          </button>
-          <button
-            type="button"
-            className="tenant-action-item"
-            onClick={() => { setIsOpen(false); onRenew(row); }}
-          >
-            <span>تجديد الاشتراك</span>
+            <span>⚙️ تعديل الباقة والميزات</span>
           </button>
           <button
             type="button"
             className="tenant-action-item"
             onClick={() => { setIsOpen(false); onRecordPayment(row); }}
           >
-            <span>تسجيل دفعة مالية</span>
+            <span>💳 تسجيل دفعة مالية</span>
+          </button>
+          <button
+            type="button"
+            className="tenant-action-item"
+            onClick={() => { setIsOpen(false); onShareWelcome(row); }}
+          >
+            <span>💬 مشاركة بيانات الدخول (واتساب)</span>
           </button>
 
           <div className="tenant-actions-divider" />
@@ -279,14 +297,14 @@ function TenantActionsMenu({
             className="tenant-action-item"
             onClick={() => { setIsOpen(false); onShowDetails(row.id); }}
           >
-            <span>سجل النشاط والتفاصيل الكاملة</span>
+            <span>📋 سجل النشاط والتفاصيل الكاملة</span>
           </button>
           <button
             type="button"
             className="tenant-action-item"
             onClick={() => { setIsOpen(false); onResetPassword(row); }}
           >
-            <span>إعادة تعيين كلمة المرور</span>
+            <span>🔑 إعادة تعيين كلمة المرور</span>
           </button>
           {row.status === 'trial' && (
             <button
@@ -294,7 +312,7 @@ function TenantActionsMenu({
               className="tenant-action-item"
               onClick={() => { setIsOpen(false); onExtendTrial(row.id); }}
             >
-              <span>تمديد التجربة (+7 أيام)</span>
+              <span>⏳ تمديد التجربة (+7 أيام)</span>
             </button>
           )}
           <button
@@ -302,7 +320,7 @@ function TenantActionsMenu({
             className="tenant-action-item"
             onClick={() => { setIsOpen(false); onUnlockOwner(row.id); }}
           >
-            <span>فك قفل حساب المالك</span>
+            <span>🔓 فك قفل حساب المالك</span>
           </button>
           {row.status === 'active' || row.status === 'trial' ? (
             <button
@@ -310,7 +328,7 @@ function TenantActionsMenu({
               className="tenant-action-item"
               onClick={() => { setIsOpen(false); onSuspend(row.id); }}
             >
-              <span>إيقاف النسخة مؤقتاً</span>
+              <span>⏸️ إيقاف النسخة مؤقتاً</span>
             </button>
           ) : (
             <button
@@ -318,7 +336,7 @@ function TenantActionsMenu({
               className="tenant-action-item"
               onClick={() => { setIsOpen(false); onExpire(row.id); }}
             >
-              <span>إنهاء الصلاحية</span>
+              <span>⏹️ إنهاء الصلاحية</span>
             </button>
           )}
 
@@ -328,7 +346,7 @@ function TenantActionsMenu({
             className="tenant-action-item danger"
             onClick={() => { setIsOpen(false); onDelete(row.id, row.businessName || row.slug); }}
           >
-            <span>حذف نهائي للنسخة</span>
+            <span>🗑️ حذف نهائي للنسخة</span>
           </button>
         </div>,
         document.body
@@ -347,9 +365,10 @@ export function SaasTenantsPage() {
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'trial' | 'active' | 'expired' | 'suspended'>('all');
+  const [tabFilter, setTabFilter] = useState<'all' | 'active' | 'trial' | 'expiring_soon' | 'blocked'>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [createResult, setCreateResult] = useState<{ username: string; temporaryPassword: string; trialEndsAt: string; tenantSlug?: string; businessName?: string } | null>(null);
+  const [createResult, setCreateResult] = useState<{ username: string; temporaryPassword: string; trialEndsAt: string; tenantSlug?: string; businessName?: string; fullTenant?: SaasTenantRow } | null>(null);
   const [ownerResetResult, setOwnerResetResult] = useState<{ tenantName: string; username: string; temporaryPassword: string } | null>(null);
   
   const [resetTenant, setResetTenant] = useState<{ id: string; name: string } | null>(null);
@@ -362,6 +381,8 @@ export function SaasTenantsPage() {
   const [upgradePaymentMethod, setUpgradePaymentMethod] = useState('cash');
 
   const [updatePlanTenant, setUpdatePlanTenant] = useState<SaasTenantRow | null>(null);
+  const [subscriptionsTenant, setSubscriptionsTenant] = useState<SaasTenantRow | null>(null);
+  const [welcomeShareTenant, setWelcomeShareTenant] = useState<{ tenant: SaasTenantRow; temporaryPassword?: string } | null>(null);
 
   const [renewTenant, setRenewTenant] = useState<{ id: string; name?: string } | null>(null);
   const [renewDuration, setRenewDuration] = useState<number>(1);
@@ -408,21 +429,52 @@ export function SaasTenantsPage() {
     enabled: canAccess,
   });
 
-  const tenants: SaasTenantRow[] = tenantsQuery.data?.tenants ?? [];
+  const allTenants: SaasTenantRow[] = tenantsQuery.data?.tenants ?? [];
   const isForbiddenByApi = tenantsQuery.error instanceof ApiError && tenantsQuery.error.status === 403;
 
+  const now = new Date();
+
+  const getDaysRemaining = (endDateStr: string | null) => {
+    if (!endDateStr) return null;
+    const diff = new Date(endDateStr).getTime() - now.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const isExpiringSoon = (row: SaasTenantRow) => {
+    if (row.status !== 'active' || !row.subscriptionEndDate) return false;
+    const days = getDaysRemaining(row.subscriptionEndDate);
+    return days !== null && days >= 0 && days <= 7;
+  };
+
+  const isExpiredSub = (row: SaasTenantRow) => {
+    if (!row.subscriptionEndDate) return false;
+    const days = getDaysRemaining(row.subscriptionEndDate);
+    return days !== null && days < 0;
+  };
+
+  const filteredTenants = useMemo(() => {
+    if (tabFilter === 'all') return allTenants;
+    if (tabFilter === 'active') return allTenants.filter((r) => r.status === 'active');
+    if (tabFilter === 'trial') return allTenants.filter((r) => r.status === 'trial');
+    if (tabFilter === 'expiring_soon') return allTenants.filter((r) => isExpiringSoon(r));
+    if (tabFilter === 'blocked') return allTenants.filter((r) => r.status === 'expired' || r.status === 'suspended' || isExpiredSub(r));
+    return allTenants;
+  }, [allTenants, tabFilter]);
+
   const stats = useMemo(() => {
-    const total = tenants.length;
-    const trial = tenants.filter((row) => row.status === 'trial').length;
-    const active = tenants.filter((row) => row.status === 'active').length;
-    const blocked = tenants.filter((row) => row.status === 'expired' || row.status === 'suspended').length;
+    const total = allTenants.length;
+    const trial = allTenants.filter((row) => row.status === 'trial').length;
+    const active = allTenants.filter((row) => row.status === 'active').length;
+    const expiringSoonCount = allTenants.filter((row) => isExpiringSoon(row)).length;
+    const blocked = allTenants.filter((row) => row.status === 'expired' || row.status === 'suspended' || isExpiredSub(row)).length;
     return [
       { key: 'total', label: 'إجمالي النسخ', value: total },
+      { key: 'active', label: 'مفعلة (نشطة)', value: active },
       { key: 'trial', label: 'تجريبية', value: trial },
-      { key: 'active', label: 'مفعلة', value: active },
-      { key: 'blocked', label: 'منتهية/موقوفة', value: blocked },
+      { key: 'expiring', label: 'تنتهي قريباً (≤ 7 أيام)', value: expiringSoonCount },
+      { key: 'blocked', label: 'منتهية / موقوفة', value: blocked },
     ];
-  }, [tenants]);
+  }, [allTenants]);
 
   const invalidateTenants = () => queryClient.invalidateQueries({ queryKey: ['saas-admin-tenants'] });
 
@@ -516,6 +568,7 @@ export function SaasTenantsPage() {
         trialEndsAt: payload.tenant.trialEndsAt || '',
         tenantSlug: payload.tenant.slug,
         businessName: payload.tenant.businessName,
+        fullTenant: payload.tenant,
       });
       setFeedback('تم إنشاء النسخة التجريبية بنجاح.');
       setCreateForm({
@@ -636,18 +689,67 @@ export function SaasTenantsPage() {
 
         <StatsGrid items={stats} />
 
+        {/* Quick Filter Tabs */}
+        <div className="saas-filter-tabs">
+          <button
+            type="button"
+            className={`saas-filter-tab-btn ${tabFilter === 'all' ? 'is-active' : ''}`}
+            onClick={() => setTabFilter('all')}
+          >
+            <span>جميع النسخ</span>
+            <span className="saas-filter-badge">{allTenants.length}</span>
+          </button>
+          <button
+            type="button"
+            className={`saas-filter-tab-btn ${tabFilter === 'active' ? 'is-active' : ''}`}
+            onClick={() => setTabFilter('active')}
+          >
+            <span>مفعلة (نشطة)</span>
+            <span className="saas-filter-badge">{allTenants.filter((r) => r.status === 'active').length}</span>
+          </button>
+          <button
+            type="button"
+            className={`saas-filter-tab-btn ${tabFilter === 'trial' ? 'is-active' : ''}`}
+            onClick={() => setTabFilter('trial')}
+          >
+            <span>تجريبية</span>
+            <span className="saas-filter-badge">{allTenants.filter((r) => r.status === 'trial').length}</span>
+          </button>
+          <button
+            type="button"
+            className={`saas-filter-tab-btn ${tabFilter === 'expiring_soon' ? 'is-active' : ''}`}
+            onClick={() => setTabFilter('expiring_soon')}
+            style={tabFilter !== 'expiring_soon' ? { borderColor: '#fed7aa', color: '#c2410c' } : {}}
+          >
+            <span>⚠️ تنتهي قريباً (≤ 7 أيام)</span>
+            <span className="saas-filter-badge" style={{ background: '#ffedd5', color: '#9a3412' }}>
+              {allTenants.filter((r) => isExpiringSoon(r)).length}
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`saas-filter-tab-btn ${tabFilter === 'blocked' ? 'is-active' : ''}`}
+            onClick={() => setTabFilter('blocked')}
+          >
+            <span>منتهية / موقوفة</span>
+            <span className="saas-filter-badge">
+              {allTenants.filter((r) => r.status === 'expired' || r.status === 'suspended' || isExpiredSub(r)).length}
+            </span>
+          </button>
+        </div>
+
         <QueryFeedback
           isLoading={tenantsQuery.isLoading}
           isError={tenantsQuery.isError}
           error={tenantsQuery.error}
-          isEmpty={!tenants.length}
+          isEmpty={!filteredTenants.length}
           loadingText="جاري تحميل قائمة النسخ والمستأجرين..."
           errorTitle={isForbiddenByApi ? 'غير مسموح' : 'تعذر تحميل نسخ العملاء'}
           emptyTitle="لا توجد نسخ مطابقة"
           emptyHint="جرّب تعديل معايير البحث أو أنشئ نسخة تجريبية جديدة."
         >
           <DataTable<SaasTenantRow>
-            data={tenants}
+            data={filteredTenants}
             getRowKey={(row) => row.id}
             defaultSort={{ columnId: 'createdAt', direction: 'desc' }}
             columns={[
@@ -757,14 +859,33 @@ export function SaasTenantsPage() {
                       </div>
                     );
                   }
+                  const days = getDaysRemaining(row.subscriptionEndDate);
+                  const expiring = isExpiringSoon(row);
+                  const expired = isExpiredSub(row);
+
                   return (
-                    <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ minWidth: '140px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                       <span style={{ fontSize: '12px', fontWeight: 600 }}>
-                        {row.subscriptionEndDate ? `ينتهي: ${formatDate(row.subscriptionEndDate)}` : '-'}
+                        {row.subscriptionEndDate ? (
+                          <bdi dir="ltr">{formatDate(row.subscriptionEndDate)}</bdi>
+                        ) : '-'}
                       </span>
+                      {expired ? (
+                        <span className="tenant-status-pill expired" style={{ fontSize: '10.5px' }}>
+                          ❌ منتهي الصلاحية
+                        </span>
+                      ) : expiring ? (
+                        <span className="tenant-status-pill expiring-soon" style={{ fontSize: '10.5px' }}>
+                          ⚠️ ينتهي خلال {days} أيام
+                        </span>
+                      ) : days !== null && days > 7 ? (
+                        <span className="muted small" style={{ color: '#15803d', fontSize: '11px' }}>
+                          ● متبقي {days} يوم
+                        </span>
+                      ) : null}
                       {row.graceEndDate && (
                         <span className="muted small" style={{ color: '#d97706', fontSize: '11px' }}>
-                          سماح لغاية: {formatDate(row.graceEndDate)}
+                          سماح لغاية: <bdi dir="ltr">{formatDate(row.graceEndDate)}</bdi>
                         </span>
                       )}
                     </div>
@@ -806,7 +927,7 @@ export function SaasTenantsPage() {
                   const isTrial = row.status === 'trial';
                   return (
                     <div style={{ minWidth: '110px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      <span style={{ fontSize: '12px' }}>{row.trialEndsAt ? formatDate(row.trialEndsAt) : '-'}</span>
+                      <span style={{ fontSize: '12px' }}>{row.trialEndsAt ? <bdi dir="ltr">{formatDate(row.trialEndsAt)}</bdi> : '-'}</span>
                       {isTrial && days != null && (
                         <span className={`tenant-trial-badge ${days > 5 ? 'healthy' : days > 0 ? 'warning' : 'danger'}`}>
                           {days > 0 ? `باقي ${days} يوم` : 'منتهية'}
@@ -831,6 +952,8 @@ export function SaasTenantsPage() {
                       }
                     }}
                     onShowDetails={(id) => setDetailsTenantId(id)}
+                    onShowSubscriptions={(r) => setSubscriptionsTenant(r)}
+                    onShareWelcome={(r) => setWelcomeShareTenant({ tenant: r })}
                     onUpgrade={(r) => {
                       setUpgradeTenant({ id: r.id, name: r.businessName || r.slug });
                       setUpgradePlanId('');
@@ -936,18 +1059,45 @@ export function SaasTenantsPage() {
                   <span className="saas-credential-val">{formatDate(createResult.trialEndsAt)}</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+                  {createResult.fullTenant && (
+                    <button
+                      type="button"
+                      className="button"
+                      style={{
+                        flex: 1,
+                        background: '#22c55e',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '10px 16px',
+                        fontWeight: 800,
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => {
+                        setWelcomeShareTenant({
+                          tenant: createResult.fullTenant!,
+                          temporaryPassword: createResult.temporaryPassword,
+                        });
+                        setIsCreateOpen(false);
+                        setCreateResult(null);
+                      }}
+                    >
+                      <span>💬 إرسال رسالة ترحيب عبر واتساب للعميل</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    className="button"
+                    className="button button-secondary"
                     style={{
-                      flex: 1,
-                      background: '#10b981',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '10px',
+                      padding: '10px 18px',
                       fontWeight: 800,
-                      cursor: 'pointer'
+                      cursor: 'pointer',
                     }}
                     onClick={() => {
                       setIsCreateOpen(false);
@@ -1426,6 +1576,33 @@ export function SaasTenantsPage() {
           tenant={updatePlanTenant} 
           onClose={() => setUpdatePlanTenant(null)} 
           onSuccess={(msg) => { setFeedback(msg); setUpdatePlanTenant(null); }} 
+        />
+      )}
+
+      {subscriptionsTenant && (
+        <TenantSubscriptionsModal
+          tenant={subscriptionsTenant}
+          onClose={() => setSubscriptionsTenant(null)}
+          onRenew={(r) => {
+            setSubscriptionsTenant(null);
+            setRenewTenant({ id: r.id, name: r.businessName || r.slug });
+            setRenewPlanId('');
+            setRenewPaymentAmount('');
+          }}
+          onRecordPayment={(r) => {
+            setSubscriptionsTenant(null);
+            setRecordPaymentTenant({ id: r.id, name: r.businessName || r.slug });
+            setPaymentAmount('');
+            setPaymentReference('');
+          }}
+        />
+      )}
+
+      {welcomeShareTenant && (
+        <TenantWelcomeShareModal
+          tenant={welcomeShareTenant.tenant}
+          temporaryPassword={welcomeShareTenant.temporaryPassword}
+          onClose={() => setWelcomeShareTenant(null)}
         />
       )}
     </div>

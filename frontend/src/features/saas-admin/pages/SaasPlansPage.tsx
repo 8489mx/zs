@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/components/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
 import { saasAdminApi, SaasPlan } from '../api/saas-admin.api';
@@ -95,8 +96,38 @@ export function SaasPlansPage() {
 
   const plans = plansQuery.data || [];
 
+  const stats = useMemo(() => {
+    const total = plans.length;
+    const active = plans.filter((p) => p.is_active).length;
+    const annual = plans.filter((p) => p.billing_period_months === 12).length;
+    const monthly = plans.filter((p) => p.billing_period_months === 1).length;
+    return [
+      { key: 'total', label: 'إجمالي الباقات', value: total },
+      { key: 'active', label: 'باقات مفعلة', value: active },
+      { key: 'annual', label: 'باقات سنوية (12 شهر)', value: annual },
+      { key: 'monthly', label: 'باقات شهرية', value: monthly },
+    ];
+  }, [plans]);
+
+  const togglePlanActive = (plan: SaasPlan) => {
+    updateMutation.mutate({
+      id: plan.id,
+      data: {
+        code: plan.code,
+        name: plan.name,
+        price: plan.price,
+        currency: plan.currency,
+        billingPeriodMonths: plan.billing_period_months,
+        maxUsers: plan.max_users,
+        maxBranches: plan.max_branches,
+        featurePlanId: plan.feature_plan_id,
+        isActive: !plan.is_active,
+      }
+    });
+  };
+
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell" dir="rtl">
       <PageHeader 
         title="خطط وباقات الاشتراك (SaaS Plans)" 
         description="إدارة باقات وأسعار الاشتراكات وحدود الفروع والمستخدمين المتاحة للعملاء."
@@ -127,6 +158,9 @@ export function SaasPlansPage() {
           {feedback}
         </div>
       )}
+
+      {/* KPI Stats Grid */}
+      <StatsGrid items={stats} />
 
       <FormSection title="الخطط والباقات المتاحة">
         <QueryFeedback
@@ -199,14 +233,30 @@ export function SaasPlansPage() {
                 id: 'actions',
                 header: 'الإجراءات',
                 render: (row) => (
-                  <button 
-                    type="button" 
-                    className="button button-secondary"
-                    style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 700 }}
-                    onClick={() => setEditingPlan(row)}
-                  >
-                    تعديل
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button 
+                      type="button" 
+                      className="button button-secondary"
+                      style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 700 }}
+                      onClick={() => setEditingPlan(row)}
+                    >
+                      تعديل
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: row.is_active ? '#b91c1c' : '#15803d',
+                      }}
+                      onClick={() => togglePlanActive(row)}
+                      title={row.is_active ? 'تعطيل الباقة' : 'تفعيل الباقة'}
+                    >
+                      {row.is_active ? 'تعطيل' : 'تفعيل'}
+                    </button>
+                  </div>
                 ),
               },
             ]}
