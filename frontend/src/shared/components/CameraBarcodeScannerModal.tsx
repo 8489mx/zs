@@ -537,9 +537,14 @@ export function CameraBarcodeScannerModal({
                 variant="secondary"
                 onClick={switchCamera}
                 title="تبديل الكاميرا"
-                style={{ padding: '4px 8px', fontSize: '0.8rem', minHeight: '30px' }}
+                style={{ padding: '4px 8px', fontSize: '0.8rem', minHeight: '30px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
-                🔄 تبديل
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <polyline points="1 20 1 14 7 14"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                <span>تبديل</span>
               </Button>
             )}
 
@@ -549,9 +554,12 @@ export function CameraBarcodeScannerModal({
                 variant={isTorchOn ? 'primary' : 'secondary'}
                 onClick={toggleTorch}
                 title={isTorchOn ? 'إطفاء الفلاش' : 'تشغيل الفلاش'}
-                style={{ padding: '4px 8px', fontSize: '0.8rem', minHeight: '30px' }}
+                style={{ padding: '4px 8px', fontSize: '0.8rem', minHeight: '30px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
               >
-                💡 {isTorchOn ? 'إطفاء' : 'فلاش'}
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <span>{isTorchOn ? 'إطفاء' : 'فلاش'}</span>
               </Button>
             )}
 
@@ -588,7 +596,13 @@ export function CameraBarcodeScannerModal({
           {/* Clean Light Error View */}
           {errorMsg && (
             <div className="z-scanner-error-card">
-              <div style={{ fontSize: '2rem', marginBottom: '4px' }}>📷</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px', color: '#dc2626' }}>
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </div>
               <strong style={{ fontSize: '0.92rem', color: '#991b1b', marginBottom: '4px' }}>تعذر الوصول إلى الكاميرا</strong>
               <p style={{ fontSize: '0.78rem', color: '#7f1d1d', margin: '0 0 12px 0', lineHeight: 1.5 }}>{errorMsg}</p>
               

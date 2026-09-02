@@ -66,7 +66,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
   }, [clearInlineManagerApproval, stableOnClose]);
   const handleConfirmSale = useCallback(() => {
     if (pos.orderType === 'delivery' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0)) {
-      pos.setSubmitMessage('⚠️ يرجى اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل التحصيل عليه.');
+      pos.setSubmitMessage('يرجى اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل التحصيل عليه.');
       return;
     }
     const managerPin = approvedManagerPinRef.current || undefined;
@@ -282,7 +282,11 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
 
           {pos.orderType === 'delivery' && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0) && (
             <div className="error-box" style={{ margin: '12px 0 0', background: '#fef2f2', border: '1.5px solid #f87171', color: '#b91c1c', padding: '10px 14px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⚠️</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
               <span>يجب اختيار مندوب التوصيل لإتمام فاتورة الدليفري وتسجيل عهدة التحصيل عليه.</span>
             </div>
           )}

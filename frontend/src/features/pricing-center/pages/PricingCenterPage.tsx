@@ -350,7 +350,7 @@ export function PricingCenterPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '0.82rem', color: '#64748b' }}>{formatCurrency(invBefore)}</span>
-                      <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>➔</span>
+                      <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>←</span>
                       <strong style={{ fontSize: '0.94rem', color: '#0f172a', fontWeight: 700 }}>{formatCurrency(invAfter)}</strong>
                     </div>
                     {invDiff !== 0 && (
@@ -367,7 +367,7 @@ export function PricingCenterPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '0.82rem', color: '#64748b' }}>{formatCurrency(marginBefore)}</span>
-                      <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>➔</span>
+                      <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>←</span>
                       <strong style={{ fontSize: '0.94rem', color: '#0f172a', fontWeight: 700 }}>{formatCurrency(marginAfter)}</strong>
                     </div>
                     {marginDiff !== 0 && (
@@ -492,11 +492,11 @@ export function PricingCenterPage() {
               },
               {
                 key: 'retail',
-                header: 'قطاعي (قبل ➔ بعد)',
+                header: 'قطاعي (قبل ← بعد)',
                 cell: (row) => (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
                     <span style={{ color: '#64748b' }}>{formatCurrency(row.retailPriceBefore)}</span>
-                    <span style={{ color: '#94a3b8' }}>➔</span>
+                    <span style={{ color: '#94a3b8' }}>←</span>
                     <strong style={{ color: row.retailPriceAfter !== row.retailPriceBefore ? '#2563eb' : '#0f172a', fontWeight: 800 }}>
                       {formatCurrency(row.retailPriceAfter)}
                     </strong>
@@ -505,11 +505,11 @@ export function PricingCenterPage() {
               },
               {
                 key: 'wholesale',
-                header: 'جملة (قبل ➔ بعد)',
+                header: 'جملة (قبل ← بعد)',
                 cell: (row) => (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
                     <span style={{ color: '#64748b' }}>{formatCurrency(row.wholesalePriceBefore)}</span>
-                    <span style={{ color: '#94a3b8' }}>➔</span>
+                    <span style={{ color: '#94a3b8' }}>←</span>
                     <strong style={{ color: row.wholesalePriceAfter !== row.wholesalePriceBefore ? '#2563eb' : '#0f172a', fontWeight: 800 }}>
                       {formatCurrency(row.wholesalePriceAfter)}
                     </strong>

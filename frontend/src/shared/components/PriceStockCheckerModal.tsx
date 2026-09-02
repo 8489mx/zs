@@ -229,8 +229,11 @@ export function PriceStockCheckerModal({
                     <h4 className="price-checker-prod-name">{selectedProduct.name}</h4>
                     <div className="price-checker-badges-row">
                       {selectedProduct.barcode && (
-                        <span className="price-checker-badge barcode">
-                          📋 {selectedProduct.barcode}
+                        <span className="price-checker-badge barcode" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"/>
+                          </svg>
+                          <span>{selectedProduct.barcode}</span>
                         </span>
                       )}
                       {selectedProduct.sku && (
@@ -402,7 +405,12 @@ export function PriceStockCheckerModal({
             {/* 3. Empty State / Not Found */}
             {!selectedProduct && searchResults.length === 0 && hasSearched && !isLoading && (
               <div className="price-checker-empty-state">
-                <div className="empty-icon">🔍</div>
+                <div className="empty-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px', color: '#94a3b8' }}>
+                  <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </div>
                 <h4>لم يتم العثور على أي صنف</h4>
                 <p>تأكد من كتابة الاسم أو الباركود بشكل صحيح، أو اضغط على الكاميرا للمسح المباشر.</p>
               </div>
