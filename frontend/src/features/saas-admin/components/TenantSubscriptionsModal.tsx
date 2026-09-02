@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -70,16 +70,23 @@ export function TenantSubscriptionsModal({
             <Button
               variant="secondary"
               onClick={() => onRecordPayment(tenant)}
-              style={{ fontSize: '12px', padding: '6px 12px' }}
+              style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
             >
-              + تسجيل دفعة
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span>تسجيل دفعة</span>
             </Button>
             <Button
               variant="primary"
               onClick={() => onRenew(tenant)}
-              style={{ fontSize: '12px', padding: '6px 12px', background: '#2563eb' }}
+              style={{ fontSize: '12px', padding: '6px 12px', background: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
             >
-              🔄 تجديد الاشتراك
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+              </svg>
+              <span>تجديد الاشتراك</span>
             </Button>
           </div>
         </div>
@@ -196,14 +203,22 @@ export function TenantSubscriptionsModal({
                                 border: '1px solid #cbd5e1',
                                 background: '#ffffff',
                                 color: '#1e293b',
-                                padding: '3px 8px',
-                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                borderRadius: '5px',
                                 fontSize: '11.5px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
                               }}
                             >
-                              🖨️ إيصال اشتراك
+                              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 6 2 18 2 18 9"/>
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                                <rect x="6" y="14" width="12" height="8"/>
+                              </svg>
+                              <span>إيصال اشتراك</span>
                             </button>
                           </td>
                         </tr>
@@ -255,14 +270,22 @@ export function TenantSubscriptionsModal({
                               border: '1px solid #cbd5e1',
                               background: '#ffffff',
                               color: '#1e293b',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
+                              padding: '4px 10px',
+                              borderRadius: '5px',
                               fontSize: '11.5px',
                               fontWeight: 600,
                               cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
                             }}
                           >
-                            🖨️ طباعة إيصال سداد
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="6 9 6 2 18 2 18 9"/>
+                              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                              <rect x="6" y="14" width="12" height="8"/>
+                            </svg>
+                            <span>طباعة إيصال سداد</span>
                           </button>
                         </td>
                       </tr>
@@ -364,9 +387,12 @@ export function TenantSubscriptionsModal({
             type="button"
             className="button button-secondary"
             onClick={() => refetch()}
-            style={{ fontSize: '12px' }}
+            style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
           >
-            🔄 تحديث البيانات
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            </svg>
+            <span>تحديث البيانات</span>
           </button>
           <Button variant="secondary" onClick={onClose}>
             إغلاق
