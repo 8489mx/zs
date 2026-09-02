@@ -49,7 +49,8 @@ function isPlatformTenantRow(row: SaasTenantRow, platformTenantId: string, curre
     rowId === platformTenantId ||
     (Boolean(currentTenantId) && rowId === currentTenantId) ||
     rowSlug === 'default' ||
-    rowSlug === 'karimzakaria-demo'
+    rowSlug === 'zsystems' ||
+    rowSlug === 'platform'
   );
 }
 
@@ -1006,7 +1007,7 @@ export function SaasTenantsPage() {
                         required
                         value={createForm.ownerName}
                         onChange={(e) => setCreateForm((s) => ({ ...s, ownerName: e.target.value }))}
-                        placeholder="مثال: محمود زكريا"
+                        placeholder="مثال: محمد أحمد"
                       />
                     </Field>
                     <Field label="رقم هاتف المالك *">

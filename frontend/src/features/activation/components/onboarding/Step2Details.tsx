@@ -20,7 +20,7 @@ export function Step2Details({ form, updateField, onNext, onBack }: Step2Props) 
           <input 
             value={form.adminDisplayName} 
             onChange={(e) => updateField('adminDisplayName', e.target.value)} 
-            placeholder="مثال: محمود زكريا" 
+            placeholder="مثال: محمد أحمد" 
           />
         </Field>
       </div>

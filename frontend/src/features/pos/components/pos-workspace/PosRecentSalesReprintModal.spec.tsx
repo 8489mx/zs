@@ -27,7 +27,7 @@ const mockRecentSales: Sale[] = [
     paidAmount: 120,
     paymentType: 'cash',
     paymentChannel: 'wallet',
-    customerName: 'كريم زكريا',
+    customerName: 'عميل المحل المميز',
     items: [],
     payments: [],
   } as unknown as Sale,
@@ -67,7 +67,7 @@ describe('PosRecentSalesReprintModal', () => {
     expect(screen.getByText('محمود حسن')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText('كريم زكريا')).toBeInTheDocument();
+      expect(screen.getByText('عميل المحل المميز')).toBeInTheDocument();
       expect(screen.getByText('بسيسي')).toBeInTheDocument();
     });
   });
@@ -122,7 +122,7 @@ describe('PosRecentSalesReprintModal', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('كريم زكريا')).toBeInTheDocument();
+      expect(screen.getByText('عميل المحل المميز')).toBeInTheDocument();
     });
 
     const printButtons = screen.getAllByRole('button', { name: /طباعة ريسيت/ });

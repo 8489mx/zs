@@ -51,8 +51,8 @@ async function dropSingleColumnUniqueConstraints(db: Kysely<unknown>, table: str
 export const migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     if (await tableExists(db, 'settings')) {
-      if (!(await columnExists(db, 'settings', 'tenant_id'))) await sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT 'karimzakaria-demo'`.execute(db).catch(() => undefined);
-      if (!(await columnExists(db, 'settings', 'account_id'))) await sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS account_id TEXT NOT NULL DEFAULT 'karimzakaria-demo'`.execute(db).catch(() => undefined);
+      if (!(await columnExists(db, 'settings', 'tenant_id'))) await sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT 'default'`.execute(db).catch(() => undefined);
+      if (!(await columnExists(db, 'settings', 'account_id'))) await sql`ALTER TABLE settings ADD COLUMN IF NOT EXISTS account_id TEXT NOT NULL DEFAULT 'default'`.execute(db).catch(() => undefined);
       await dropSingleColumnUniqueConstraints(db, 'settings', 'key');
       await sql`CREATE UNIQUE INDEX IF NOT EXISTS settings_tenant_key_uidx ON settings (tenant_id, key)`.execute(db).catch(() => undefined);
     }
@@ -73,8 +73,8 @@ export const migration = {
     }
 
     if (await tableExists(db, 'product_units')) {
-      if (!(await columnExists(db, 'product_units', 'tenant_id'))) await sql`ALTER TABLE product_units ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT 'karimzakaria-demo'`.execute(db).catch(() => undefined);
-      if (!(await columnExists(db, 'product_units', 'account_id'))) await sql`ALTER TABLE product_units ADD COLUMN IF NOT EXISTS account_id TEXT NOT NULL DEFAULT 'karimzakaria-demo'`.execute(db).catch(() => undefined);
+      if (!(await columnExists(db, 'product_units', 'tenant_id'))) await sql`ALTER TABLE product_units ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT 'default'`.execute(db).catch(() => undefined);
+      if (!(await columnExists(db, 'product_units', 'account_id'))) await sql`ALTER TABLE product_units ADD COLUMN IF NOT EXISTS account_id TEXT NOT NULL DEFAULT 'default'`.execute(db).catch(() => undefined);
       await dropSingleColumnUniqueConstraints(db, 'product_units', 'barcode');
       await sql`CREATE UNIQUE INDEX IF NOT EXISTS product_units_tenant_barcode_uidx ON product_units (tenant_id, lower(barcode)) WHERE barcode IS NOT NULL AND barcode <> ''`.execute(db).catch(() => undefined);
     }

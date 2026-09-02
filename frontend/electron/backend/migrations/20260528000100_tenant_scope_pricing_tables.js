@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.migration = void 0;
 const kysely_1 = require("kysely");
-const DEFAULT_TENANT = process.env.TENANT_ID || 'karimzakaria-demo';
-const DEFAULT_ACCOUNT = process.env.ACCOUNT_ID || process.env.TENANT_ID || 'karimzakaria-demo';
+const DEFAULT_TENANT = process.env.TENANT_ID || 'default';
+const DEFAULT_ACCOUNT = process.env.ACCOUNT_ID || process.env.TENANT_ID || 'default';
 exports.migration = {
     up: async (db) => {
         for (const table of ['product_pricing_profiles', 'price_change_runs', 'price_change_items', 'pricing_rules']) {

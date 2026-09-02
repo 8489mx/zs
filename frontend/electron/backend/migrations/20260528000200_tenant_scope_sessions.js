@@ -3,10 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.migration = void 0;
 const kysely_1 = require("kysely");
 function demoTenantId() {
-    return String(process.env.TENANT_ID || 'karimzakaria-demo').trim() || 'karimzakaria-demo';
+    return String(process.env.TENANT_ID || 'default').trim() || 'default';
 }
 function demoAccountId() {
-    return String(process.env.ACCOUNT_ID || process.env.TENANT_ID || 'karimzakaria-demo').trim() || 'karimzakaria-demo';
+    return String(process.env.ACCOUNT_ID || process.env.TENANT_ID || 'default').trim() || 'default';
 }
 async function tableExists(db, table) {
     const result = await (0, kysely_1.sql) `

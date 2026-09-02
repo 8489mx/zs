@@ -1,7 +1,7 @@
 import { sql, type Kysely } from 'kysely';
 
 function demoTenantId(): string {
-  return String(process.env.TENANT_ID || 'karimzakaria-demo').trim() || 'karimzakaria-demo';
+  return String(process.env.TENANT_ID || 'default').trim() || 'default';
 }
 
 function demoAccountId(): string {

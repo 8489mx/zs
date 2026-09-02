@@ -899,12 +899,14 @@ export function AppShell({ children }: PropsWithChildren) {
       <div className="main-col">
         {!isPosRoute && <GlobalAppToolbar />}
         <div className={`content-wrap ${isPosRoute && isPosChromeHidden ? 'content-wrap-pos-focus' : ''}`.trim()}>
-          <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
-            <ImpersonationBanner />
-            <BootstrapAdminBanner />
-            <TrialStatusBanner />
-            <SystemStatusBanner />
-          </div>
+          {!isPosRoute && (
+            <div className="stack gap-12" style={{ padding: '12px 16px 0' }}>
+              <ImpersonationBanner />
+              <BootstrapAdminBanner />
+              <TrialStatusBanner />
+              <SystemStatusBanner />
+            </div>
+          )}
           <main className={`page-stack ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>
       </div>

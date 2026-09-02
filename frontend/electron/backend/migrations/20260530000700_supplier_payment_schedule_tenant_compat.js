@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.migration = void 0;
 const kysely_1 = require("kysely");
 function demoTenantId() {
-    return String(process.env.TENANT_ID || 'karimzakaria-demo').trim() || 'karimzakaria-demo';
+    return String(process.env.TENANT_ID || 'default').trim() || 'default';
 }
 function demoAccountId() {
     return String(process.env.ACCOUNT_ID || demoTenantId()).trim() || demoTenantId();

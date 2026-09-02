@@ -14,7 +14,7 @@ Do not deploy production from older working branches such as `sale-readiness-wor
 
 ## Backend deployment
 
-The Hostinger Node.js application for `api.karimzakaria.com` must be connected to GitHub branch `main`.
+The Hostinger Node.js application for `api.zsystems.io` must be connected to GitHub branch `main`.
 
 Current problem to fix in Hostinger UI:
 
@@ -41,12 +41,12 @@ Then restart the backend runtime.
 
 ## Frontend deployment
 
-The frontend for `app.karimzakaria.com` must no longer be uploaded manually through Hostinger File Manager.
+The frontend for `app.zsystems.io` must no longer be uploaded manually through Hostinger File Manager.
 
 Required direction:
 
 ```text
-GitHub main -> build frontend -> upload frontend/dist to app.karimzakaria.com public_html
+GitHub main -> build frontend -> upload frontend/dist to app.zsystems.io public_html
 ```
 
 Manual upload is allowed only as an emergency fallback, and only the contents of `frontend/dist` should be uploaded.
@@ -76,8 +76,8 @@ Never commit real production credentials to GitHub.
 The production frontend build must use:
 
 ```env
-VITE_API_BASE_URL=https://api.karimzakaria.com
-VITE_PLATFORM_TENANT_ID=karimzakaria-demo
+VITE_API_BASE_URL=https://api.zsystems.io
+VITE_PLATFORM_TENANT_ID=zsystems
 ```
 
 ## Backend production env highlights
@@ -87,8 +87,8 @@ The backend SaaS production environment must include:
 ```env
 NODE_ENV=production
 APP_MODE=CLOUD_SAAS
-PLATFORM_TENANT_ID=karimzakaria-demo
-APP_LOGIN_URL=https://app.karimzakaria.com/login
+PLATFORM_TENANT_ID=zsystems
+APP_LOGIN_URL=https://app.zsystems.io/login
 MAIL_DELIVERY_MODE=smtp
 PUBLIC_TRIAL_DEBUG_CREDENTIALS=false
 ```
@@ -100,9 +100,9 @@ Email delivery must use the configured Hostinger mailbox SMTP settings. Never co
 After every production deploy, verify:
 
 ```text
-https://api.karimzakaria.com/api/health
-https://app.karimzakaria.com/login
-https://app.karimzakaria.com/trial
+https://api.zsystems.io/api/health
+https://app.zsystems.io/login
+https://app.zsystems.io/trial
 ```
 
 Manual checks:
@@ -121,5 +121,5 @@ If GitHub Actions deployment is unavailable:
 
 1. Build locally from `main`.
 2. Run `npm run build` inside `frontend`.
-3. Upload only the contents of `frontend/dist` to the Hostinger `public_html` directory for `app.karimzakaria.com`.
+3. Upload only the contents of `frontend/dist` to the Hostinger `public_html` directory for `app.zsystems.io`.
 4. Do not upload source files manually as the normal deployment process.

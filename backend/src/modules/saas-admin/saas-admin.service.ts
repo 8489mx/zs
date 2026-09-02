@@ -211,13 +211,16 @@ export class SaasAdminService {
       const isPlatform =
         String(row.id || '') === 'default' ||
         String(row.id || '') === this.getPlatformTenantId() ||
-        String(row.slug || '').toLowerCase() === 'default';
+        String(row.slug || '').toLowerCase() === 'default' ||
+        String(row.slug || '').toLowerCase() === 'zsystems' ||
+        String(row.slug || '').toLowerCase() === 'karimzakaria-demo';
+      const cleanSlug = row.slug === 'karimzakaria-demo' ? 'zsystems' : row.slug;
       return {
         id: row.id,
-        slug: row.slug,
+        slug: cleanSlug,
         businessName: isPlatform && (!row.business_name || row.business_name === 'النظام الأساسي') ? 'Z-Systems' : row.business_name,
-        ownerName: isPlatform && (!row.owner_name || row.owner_name === 'المسؤول') ? 'محمود زكريا' : row.owner_name,
-        ownerPhone: isPlatform && (!row.owner_phone || row.owner_phone === '0000000000') ? '01018017523' : row.owner_phone,
+        ownerName: isPlatform && (!row.owner_name || row.owner_name === 'المسؤول') ? 'Z-Systems' : row.owner_name,
+        ownerPhone: isPlatform && (!row.owner_phone || row.owner_phone === '0000000000' || row.owner_phone === '01000000000') ? '01018017523' : row.owner_phone,
         ownerEmail: isPlatform && !row.owner_email ? '8489mz@gmail.com' : (row.owner_email || ''),
         activityType: row.activity_type || '',
         status: isPlatform ? 'active' : row.status,
@@ -288,15 +291,19 @@ export class SaasAdminService {
     const isPlatform =
       String(tenant.id || '') === 'default' ||
       String(tenant.id || '') === this.getPlatformTenantId() ||
-      String(tenant.slug || '').toLowerCase() === 'default';
+      String(tenant.slug || '').toLowerCase() === 'default' ||
+      String(tenant.slug || '').toLowerCase() === 'zsystems' ||
+      String(tenant.slug || '').toLowerCase() === 'karimzakaria-demo';
+
+    const cleanSlug = tenant.slug === 'karimzakaria-demo' ? 'zsystems' : tenant.slug;
 
     return {
       tenant: {
         id: tenant.id,
-        slug: tenant.slug,
+        slug: cleanSlug,
         businessName: isPlatform && (!tenant.business_name || tenant.business_name === 'النظام الأساسي') ? 'Z-Systems' : tenant.business_name,
-        ownerName: isPlatform && (!tenant.owner_name || tenant.owner_name === 'المسؤول') ? 'محمود زكريا' : tenant.owner_name,
-        ownerPhone: isPlatform && (!tenant.owner_phone || tenant.owner_phone === '0000000000') ? '01018017523' : tenant.owner_phone,
+        ownerName: isPlatform && (!tenant.owner_name || tenant.owner_name === 'المسؤول') ? 'Z-Systems' : tenant.owner_name,
+        ownerPhone: isPlatform && (!tenant.owner_phone || tenant.owner_phone === '0000000000' || tenant.owner_phone === '01000000000') ? '01018017523' : tenant.owner_phone,
         ownerEmail: isPlatform && !tenant.owner_email ? '8489mz@gmail.com' : (tenant.owner_email || ''),
         activityType: tenant.activity_type || '',
         status: isPlatform ? 'active' : tenant.status,
@@ -848,7 +855,7 @@ export class SaasAdminService {
         id: 'default',
         slug: 'default',
         business_name: 'Z-Systems',
-        owner_name: 'محمود زكريا',
+        owner_name: 'Z-Systems',
         owner_phone: '01018017523',
         owner_email: '8489mz@gmail.com',
         status: 'active',

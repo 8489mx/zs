@@ -38,7 +38,7 @@ ${temporaryPassword ? `- كلمة المرور المؤقتة: *${temporaryPassw
 ${tenant.subscriptionEndDate ? `- تاريخ انتهاء الاشتراك: *${formatDate(tenant.subscriptionEndDate)}*` : ''}
 
 لأي استفسارات أو دعم فني، يسعدنا تواصلكم معنا دائماً:
-- إدارة المنظومة: *محمود زكريا*
+- الدعم الفني: *Z-Systems*
 - هاتف / واتساب: *01018017523*`;
 
   const handleCopy = async () => {

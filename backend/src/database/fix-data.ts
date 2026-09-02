@@ -10,10 +10,10 @@ const pool = new Pool({
 });
 
 async function run() {
-  await pool.query(`UPDATE hr_employees SET tenant_id = 'karimzakaria-demo', account_id = 'karimzakaria-demo' WHERE tenant_id = ''`);
-  await pool.query(`UPDATE hr_departments SET tenant_id = 'karimzakaria-demo', account_id = 'karimzakaria-demo' WHERE tenant_id = ''`);
-  await pool.query(`UPDATE hr_job_titles SET tenant_id = 'karimzakaria-demo', account_id = 'karimzakaria-demo' WHERE tenant_id = ''`);
-  await pool.query(`UPDATE hr_positions SET tenant_id = 'karimzakaria-demo', account_id = 'karimzakaria-demo' WHERE tenant_id = ''`);
+  await pool.query(`UPDATE hr_employees SET tenant_id = 'default', account_id = 'default' WHERE tenant_id = ''`);
+  await pool.query(`UPDATE hr_departments SET tenant_id = 'default', account_id = 'default' WHERE tenant_id = ''`);
+  await pool.query(`UPDATE hr_job_titles SET tenant_id = 'default', account_id = 'default' WHERE tenant_id = ''`);
+  await pool.query(`UPDATE hr_positions SET tenant_id = 'default', account_id = 'default' WHERE tenant_id = ''`);
   console.log('Fixed orphaned data.');
   pool.end();
 }

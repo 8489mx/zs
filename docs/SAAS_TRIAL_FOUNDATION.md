@@ -1,4 +1,4 @@
-﻿# Z Systems SaaS Trial + Tenant Lifecycle Foundation
+# Z Systems SaaS Trial + Tenant Lifecycle Foundation
 
 This document records the current SaaS trial, tenant isolation, and tenant lifecycle admin foundation for Z Systems.
 
@@ -81,7 +81,7 @@ Blocked actions for the platform tenant:
 - Expire
 - Extend trial
 
-The UI should show a passive label such as `ظ†ط³ط®ط© ط§ظ„ظ…ظ†طµط©` for the platform tenant row instead of lifecycle buttons.
+The UI should show a passive label such as `?�?�?�?� ?�?�?�?�?�?�` for the platform tenant row instead of lifecycle buttons.
 
 ## SaaS Tenant Lifecycle Admin UI
 
@@ -94,7 +94,7 @@ Route:
 Sidebar label:
 
 ```text
-ط¥ط¯ط§ط±ط© ط§ظ„ظ†ط³ط®
+?�?�?�?�?� ?�?�?�?�?�
 ```
 
 Access:
@@ -118,10 +118,10 @@ Main capabilities:
 
 Recommended fields:
 
-- `slug` / `ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ†ط³ط®ط©`
-- `businessName` / ط§ط³ظ… ط§ظ„ظ†ط´ط§ط·
-- `ownerName` / ط§ط³ظ… ط§ظ„ظ…ط§ظ„ظƒ
-- `ownerPhone` / ظ‡ط§طھظپ ط§ظ„ظ…ط§ظ„ظƒ
+- `slug` / `?�?�?�?�?? ?�?�?�?�?�?�`
+- `businessName` / ?�?�?� ?�?�?�?�?�?�
+- `ownerName` / ?�?�?� ?�?�?�?�?�?�
+- `ownerPhone` / ?�?�???? ?�?�?�?�?�?�
 - `ownerEmail` optional
 - `activityType` optional
 - `username`
@@ -273,7 +273,7 @@ SESSION_COOKIE_DOMAIN=.YOUR_REAL_DOMAIN.com
 VITE_API_BASE_URL=https://api.YOUR_REAL_DOMAIN.com
 ```
 
-Do not hardcode the current temporary `karimzakaria.com` domain into source code.
+Do not hardcode the current temporary `zsystems.io` domain into source code.
 
 ## Why no automatic subdomains yet
 

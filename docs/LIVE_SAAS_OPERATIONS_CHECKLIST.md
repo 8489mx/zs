@@ -16,7 +16,7 @@ Before deploying or scaling the SaaS offering, verify the environment (`.env` or
 - [x] `ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION=false`: Prevents accidental or forced re-seeding of the root owner in production.
 - [x] `PUBLIC_TRIAL_DEBUG_CREDENTIALS=false`: Ensures temporary passwords are not returned in the API response payload.
 - [x] `SESSION_COOKIE_SECURE=true`: Only allows cookies over HTTPS.
-- [x] `SESSION_COOKIE_SAME_SITE=lax`: Given the Hostinger configuration (`api.karimzakaria.com` and `app.karimzakaria.com`), `lax` allows cookies to flow properly during top-level navigation while `strict` may block cross-subdomain top-level navigation. `lax` is secure if `SESSION_COOKIE_DOMAIN=karimzakaria.com` is configured correctly, and the CSRF token handles cross-site request forgery protection.
+- [x] `SESSION_COOKIE_SAME_SITE=lax`: Given the Hostinger configuration (`api.zsystems.io` and `app.zsystems.io`), `lax` allows cookies to flow properly during top-level navigation while `strict` may block cross-subdomain top-level navigation. `lax` is secure if `SESSION_COOKIE_DOMAIN=zsystems.io` is configured correctly, and the CSRF token handles cross-site request forgery protection.
 - [x] `DATABASE_SSL=true`: Required for secure communication with Supabase.
 
 ## 2. Supabase Connection and Operations Review

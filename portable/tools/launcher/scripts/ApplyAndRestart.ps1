@@ -193,8 +193,8 @@ if ((-not [string]::IsNullOrWhiteSpace($localPatchPath)) -and (Test-Path $localP
   $downloadSuccess = $false
 
   if (-not [string]::IsNullOrWhiteSpace($patchUrl)) {
-    if ($patchUrl -match 'karimzakaria/zn') {
-      $patchUrl = $patchUrl -replace 'karimzakaria/zn', '8489mx/zs'
+    if ($patchUrl -match '8489mx/zs') {
+      $patchUrl = $patchUrl -replace '8489mx/zs', '8489mx/zs'
       Write-Log "Auto-corrected repository URL to: $patchUrl"
     }
   } else {

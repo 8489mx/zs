@@ -315,7 +315,7 @@ export class SettingsDemoDataService {
         { name: 'أستاذ عمر الشريف عبد الرحمن', phone: '01112345676', address: 'المعادي - القاهرة', balance: 0, credit_limit: 10000 },
         { name: 'صيدلية الشفاء التخصصية', phone: '01112345677', address: 'شبرا - القاهرة', balance: 4100, credit_limit: 20000 },
         { name: 'فندق وكازينو رويال بلازا', phone: '01112345678', address: 'الزمالك - القاهرة', balance: 29000, credit_limit: 80000 },
-        { name: 'مهندس كريم زكريا أحمد', phone: '01112345679', address: 'التجمع الأول - القاهرة الجديدة', balance: 1200, credit_limit: 10000 },
+        { name: 'مهندس حسام أحمد محمود', phone: '01112345679', address: 'التجمع الأول - القاهرة الجديدة', balance: 1200, credit_limit: 10000 },
         { name: 'عميل نقدي مباشر', phone: '01110000000', address: 'صالة البيع', balance: 0, credit_limit: 0 },
       ];
 

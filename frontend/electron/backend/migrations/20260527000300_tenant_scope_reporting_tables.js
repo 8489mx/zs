@@ -10,7 +10,7 @@ const TABLES = [
     'services',
 ];
 function demoTenantId() {
-    return String(process.env.TENANT_ID || 'karimzakaria-demo').trim() || 'karimzakaria-demo';
+    return String(process.env.TENANT_ID || 'default').trim() || 'default';
 }
 function demoAccountId() {
     return String(process.env.ACCOUNT_ID || demoTenantId()).trim() || demoTenantId();

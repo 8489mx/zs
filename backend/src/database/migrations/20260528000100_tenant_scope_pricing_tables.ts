@@ -1,8 +1,8 @@
 import { Kysely, sql } from 'kysely';
 import { Database } from '../database.types';
 
-const DEFAULT_TENANT = process.env.TENANT_ID || 'karimzakaria-demo';
-const DEFAULT_ACCOUNT = process.env.ACCOUNT_ID || process.env.TENANT_ID || 'karimzakaria-demo';
+const DEFAULT_TENANT = process.env.TENANT_ID || 'default';
+const DEFAULT_ACCOUNT = process.env.ACCOUNT_ID || process.env.TENANT_ID || 'default';
 
 export const migration = {
   up: async (db: Kysely<Database>): Promise<void> => {

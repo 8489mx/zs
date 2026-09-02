@@ -1,6 +1,5 @@
 /**
  * Returns the base URL for the offline update API.
- * Defaults to https://api.karimzakaria.com to ensure we always hit the backend.
  * Do NOT use window.location.origin here.
  */
 export function getOfflineUpdateApiBaseUrl(): string {
