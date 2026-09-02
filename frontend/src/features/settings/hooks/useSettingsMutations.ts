@@ -40,7 +40,7 @@ export function useCreateBranchMutation(onSuccess?: (result: { branchId?: string
     mutationFn: (values: BranchFormValues) => settingsApi.createBranch(buildBranchPayload(values)),
     onSuccess: async (result, values) => {
       const createdBranchId = String(result?.branch?.id || result?.branchId || '').trim();
-      await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: false });
+      await invalidateSettingsReferenceDomain(queryClient, { includeSettings: false, includeBranches: true, includeLocations: true });
       const responseBranchId = String(result?.branchId || '').trim();
       const normalizedName = String(values?.name || '').trim().toLowerCase();
       const normalizedCode = String(values?.code || '').trim().toLowerCase();
@@ -67,7 +67,7 @@ export function useUpdateBranchMutation(onSuccess?: () => void) {
   return useMutation({
     mutationFn: ({ branchId, values }: { branchId: string; values: BranchFormValues }) => settingsApi.updateBranch(branchId, buildBranchPayload(values)),
     onSuccess: async () => {
-      await invalidateSettingsReferenceDomain(queryClient, { includeSettings: true, includeBranches: true, includeLocations: false });
+      await invalidateSettingsReferenceDomain(queryClient, { includeSettings: true, includeBranches: true, includeLocations: true });
       onSuccess?.();
     }
   });

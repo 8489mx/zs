@@ -100,7 +100,7 @@ export function buildFirstRunSetupFlowState({
   const secureBootstrapAccount = hasSecureBootstrapAccount(user);
   const hasBranchAndLocation = branches.length > 0 && branches.some(b => !!b.defaultStockLocationId);
   const hasLocaleSettings = hasValue(settings?.currency) && hasValue(settings?.timezone);
-  const hasInvoiceSettings = hasValue(settings?.paperSize) && hasValue(settings?.taxMode) && settings?.taxRate !== undefined && settings?.taxRate !== null;
+  const hasInvoiceSettings = true; // Tax defaults to disabled (0%), never blocks onboarding flow
 
   const steps: SetupFlowStep[] = [
     {

@@ -60,6 +60,7 @@ export interface SaasPlan {
 export type CreateTrialTenantPayload = {
   slug: string;
   businessName: string;
+  branchName?: string;
   ownerName: string;
   ownerPhone: string;
   ownerEmail?: string;

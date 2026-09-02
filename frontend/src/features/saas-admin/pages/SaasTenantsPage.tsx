@@ -212,6 +212,7 @@ export function SaasTenantsPage() {
   const [createForm, setCreateForm] = useState({
     slug: '',
     businessName: '',
+    branchName: '',
     ownerName: '',
     ownerPhone: '',
     ownerEmail: '',
@@ -355,6 +356,7 @@ export function SaasTenantsPage() {
     mutationFn: () => saasAdminApi.createTrialTenant({
       slug: createForm.slug.trim(),
       businessName: createForm.businessName.trim(),
+      branchName: createForm.branchName?.trim() || undefined,
       ownerName: createForm.ownerName.trim(),
       ownerPhone: createForm.ownerPhone.trim(),
       ownerEmail: createForm.ownerEmail?.trim() || undefined,
@@ -380,6 +382,7 @@ export function SaasTenantsPage() {
       setCreateForm({
         slug: '',
         businessName: '',
+        branchName: '',
         ownerName: '',
         ownerPhone: '',
         ownerEmail: '',
@@ -978,6 +981,14 @@ export function SaasTenantsPage() {
                         value={createForm.activityType}
                         onChange={(e) => setCreateForm((s) => ({ ...s, activityType: e.target.value }))}
                         placeholder="مثال: سوبر ماركت، صيدلية، مطعم..."
+                      />
+                    </Field>
+                    <Field label="اسم الفرع الأولي (اختياري)">
+                      <input
+                        type="text"
+                        value={createForm.branchName}
+                        onChange={(e) => setCreateForm((s) => ({ ...s, branchName: e.target.value }))}
+                        placeholder="مثال: فرع التعاونيات (افتراضي: الفرع الرئيسي)"
                       />
                     </Field>
                   </div>

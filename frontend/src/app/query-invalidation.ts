@@ -201,11 +201,11 @@ export async function invalidateSettingsReferenceDomain(
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.posSettings }));
   }
   if (includeBranches) {
-    tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.branches }));
+    tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.branches, refetchType: 'active' }));
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.posBranches }));
   }
   if (includeLocations) {
-    tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.locations }));
+    tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.locations, refetchType: 'active' }));
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.posLocations }));
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.settingsLocations }));
   }

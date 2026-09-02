@@ -18,6 +18,10 @@ export class CreateTrialTenantDto {
   @IsString()
   businessName!: string;
 
+  @IsOptional()
+  @IsString()
+  branchName?: string;
+
   @IsString()
   ownerName!: string;
 

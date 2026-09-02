@@ -358,6 +358,7 @@ export class SaasAdminService {
       {
         slug: this.normalizeRequired(payload.slug, 'اسم النسخة مطلوب.'),
         businessName: this.normalizeRequired(payload.businessName, 'اسم النشاط مطلوب.'),
+        branchName: this.normalizeOptional(payload.branchName),
         ownerName: this.normalizeRequired(payload.ownerName, 'اسم المالك مطلوب.'),
         ownerPhone: this.normalizeRequired(payload.ownerPhone, 'رقم الهاتف مطلوب.'),
         ownerEmail: this.normalizeOptional(payload.ownerEmail),

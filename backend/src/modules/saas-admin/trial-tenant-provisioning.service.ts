@@ -10,6 +10,7 @@ import { formatBranchStockLocationName } from '../../common/utils/branch-stock.u
 export type TrialTenantProvisioningInput = {
   slug?: string;
   businessName: string;
+  branchName?: string | null;
   ownerName: string;
   ownerPhone: string;
   ownerEmail?: string | null;
@@ -298,7 +299,7 @@ export class TrialTenantProvisioningService {
         .execute();
 
       // 1. Create Default Primary Branch
-      const branchName = 'الفرع الرئيسي';
+      const branchName = payload.branchName?.trim() || 'الفرع الرئيسي';
       const branch = await trx
         .insertInto('branches')
         .values({
@@ -396,6 +397,9 @@ export class TrialTenantProvisioningService {
         { key: 'primaryLocationId', value: String(locationId) },
         { key: 'defaultStockLocationId', value: String(locationId) },
         { key: 'currentLocationId', value: String(locationId) },
+        { key: 'taxRate', value: 0 },
+        { key: 'taxMode', value: 'exclusive' },
+        { key: 'taxNumber', value: '' },
       ];
 
       for (const s of defaultSettings) {

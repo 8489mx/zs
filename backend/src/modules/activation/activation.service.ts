@@ -376,6 +376,9 @@ export class ActivationService {
         await this.setSetting('currency', JSON.stringify('EGP'), trx);
         await this.setSetting('timezone', JSON.stringify('Africa/Cairo'), trx);
         await this.setSetting('defaultPosMode', JSON.stringify('touch'), trx);
+        await this.setSetting('taxRate', JSON.stringify(0), trx);
+        await this.setSetting('taxMode', JSON.stringify('exclusive'), trx);
+        await this.setSetting('taxNumber', JSON.stringify(''), trx);
       });
     } catch (error) {
       this.logger.error(
