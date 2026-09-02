@@ -47,7 +47,7 @@ export function SupplierForm({ onSuccess }: { onSuccess?: () => void } = {}) {
     <form className="form-grid supplier-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
       <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="بيانات المورد الجديدة لم تُحفظ بعد" hint="يمكنك الحفظ أو تفريغ الحقول قبل بدء مورد جديد." />
       
-      <Field label="اسم المورد *" error={form.formState.errors.name?.message}>
+      <Field label="اسم المورد *" error={form.formState.errors.name?.message} className="field-full-span">
         <input 
           {...form.register('name')} 
           disabled={mutation.isPending} 
@@ -65,14 +65,6 @@ export function SupplierForm({ onSuccess }: { onSuccess?: () => void } = {}) {
         />
       </Field>
 
-      <Field label="العنوان / المقر">
-        <input 
-          {...form.register('address')} 
-          disabled={mutation.isPending} 
-          placeholder="المدينة، المنطقة، العنوان التفصيلي..."
-        />
-      </Field>
-
       <Field 
         label="الرصيد الافتتاحي (ج.م)" 
         hint="المبلغ المستحق للمورد عند بداية التسجيل (إن وجد)"
@@ -87,9 +79,17 @@ export function SupplierForm({ onSuccess }: { onSuccess?: () => void } = {}) {
         />
       </Field>
 
+      <Field label="العنوان / المقر" className="field-full-span">
+        <input 
+          {...form.register('address')} 
+          disabled={mutation.isPending} 
+          placeholder="المدينة، المنطقة، العنوان التفصيلي..."
+        />
+      </Field>
+
       <Field 
         label="ملاحظات إضافية" 
-        className="field-full"
+        className="field-full-span"
         hint="ملاحظات اختيارية أو شروط سداد خاصة بالمورد"
       >
         <textarea 

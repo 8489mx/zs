@@ -9,6 +9,7 @@ import { SettingsSupportService } from './services/settings-support.service';
 import { SettingsSupportController } from './controllers/settings-support.controller';
 import { SettingsImportController } from './controllers/settings-import.controller';
 import { SettingsImportService } from './services/settings-import.service';
+import { SettingsDemoDataService } from './services/settings-demo-data.service';
 import { OfflineReleasesAdminController,
     OfflineUpdatesPublicController,
     OfflineUpdatesProtectedController } from './controllers/offline-releases.controller';
@@ -31,6 +32,7 @@ import { OfflineReleasesService } from './services/offline-releases.service';
     SettingsBackupService,
     SettingsSupportService,
     SettingsImportService,
+    SettingsDemoDataService,
     OfflineReleasesService,
   ],
 })

@@ -251,3 +251,35 @@
 .detail-note-panel .note-text {
   color: #78350f;
 }
+
+@media (max-width: 640px) {
+  .returns-detail-two-cols {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .detail-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: 7px 10px !important;
+    gap: 2px !important;
+    min-height: 48px !important;
+  }
+
+  .detail-item .item-label {
+    font-size: 11px !important;
+    margin-bottom: 1px !important;
+  }
+
+  .detail-item .item-value {
+    font-size: 12px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  .returns-detail-actions-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+}

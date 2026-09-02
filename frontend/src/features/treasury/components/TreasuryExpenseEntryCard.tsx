@@ -71,7 +71,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
 
   return (
     <FormSection title="تسجيل مصروف جديد">
-      <div className="form-grid">
+      <div className="form-grid expense-form-grid">
         <SearchableCombobox
           label="نوع / اسم المصروف"
           placeholder="اختر من القائمة أو اكتب مصروف جديد..."
@@ -140,7 +140,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
           </Field>
         )}
 
-        <Field label="التاريخ">
+        <Field label="التاريخ" className="field-full-span">
           <input
             type="datetime-local"
             value={expenseForm.date}
@@ -148,7 +148,7 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
           />
         </Field>
 
-        <Field label="ملاحظات">
+        <Field label="ملاحظات" className="field-full-span">
           <textarea
             rows={2}
             value={expenseForm.note}
@@ -156,14 +156,16 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
           />
         </Field>
 
-        <CameraCaptureUpload
-          label="إرفاق صورة إيصال / فاتورة المصروف"
-          previewUrl={receiptImage}
-          onFileSelect={(_file, preview) => {
-            setReceiptImage(preview || null);
-          }}
-          onRemove={() => setReceiptImage(null)}
-        />
+        <div className="field-full-span">
+          <CameraCaptureUpload
+            label="إرفاق صورة إيصال / فاتورة المصروف"
+            previewUrl={receiptImage}
+            onFileSelect={(_file, preview) => {
+              setReceiptImage(preview || null);
+            }}
+            onRemove={() => setReceiptImage(null)}
+          />
+        </div>
 
         <MutationFeedback
           isError={expenseMutation.isError}

@@ -25,8 +25,6 @@ import {
   type ComparisonRow,
   differenceLabel,
   formatCount,
-  formatDateOnly,
-  formatDuration,
   formatMoney,
   formatSignedCount,
   formatTimeOnly,
@@ -273,17 +271,18 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               borderBottom: '1px solid #f1f5f9',
               paddingBottom: compactView ? '6px' : '10px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '4px', height: compactView ? '16px' : '22px', background: '#0284c7', borderRadius: '2px' }} />
-                <h3 style={{ margin: 0, fontSize: compactView ? '1.02rem' : '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ width: '4px', height: compactView ? '16px' : '22px', background: '#0284c7', borderRadius: '2px', flexShrink: 0 }} />
+                <h3 style={{ margin: 0, fontSize: compactView ? '1.02rem' : '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                   مراجعة واعتماد إغلاق الوردية
                 </h3>
-                <span style={{ fontSize: compactView ? '0.78rem' : '0.86rem', color: '#64748b' }}>
-                  (كاشير: <strong style={{ color: '#0f172a' }}>{shift.openedByName || '—'}</strong> | وردية: <strong style={{ color: '#0284c7' }}>#{shift.id || shift.docNo}</strong> | {formatDateOnly(shift.createdAt)} - {formatDuration(shift.createdAt, shift.closedAt)})
-                </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
+                  كاشير: <strong style={{ color: '#0f172a' }}>{shift.openedByName || '—'}</strong> | وردية: <strong style={{ color: '#0284c7' }}>#{shift.id || shift.docNo}</strong>
+                </span>
+
                 <button
                   type="button"
                   onClick={() => setCompactView(!compactView)}
@@ -336,7 +335,6 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
             )}
 
             {/* 2. Discrepancy Verdict Banner */}
-            {/* 2. Discrepancy Alert Banner */}
             <div
               style={{
                 padding: compactView ? '6px 12px' : '10px 16px',
@@ -399,7 +397,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               <div style={{
                 padding: compactView ? '8px 10px' : '12px 14px',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
                 gap: compactView ? '6px' : '10px',
                 background: '#fbfcfd'
               }}>
@@ -425,21 +423,10 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: compactView ? '6px 10px' : '9px 12px' }}>
                   <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#64748b', fontWeight: 600 }}>[3] (+) إيداعات نقدية للدرج</div>
                   <div style={{ fontSize: compactView ? '0.98rem' : '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                    +{formatCurrency(manualCashIn)}
+                    +{formatCurrency(manualCashIn + deliveryCashIn)}
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>مبالغ مضافة أثناء الوردية</div>
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>إيداعات + تسوية مناديب</div>
                 </div>
-
-                {/* 3.1 (+) تحصيلات مناديب دليفري */}
-                {deliveryCashIn > 0 && (
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: compactView ? '6px 10px' : '9px 12px' }}>
-                    <div style={{ fontSize: compactView ? '0.72rem' : '0.76rem', color: '#64748b', fontWeight: 600 }}>[+] (+) تحصيلات مناديب دليفري</div>
-                    <div style={{ fontSize: compactView ? '0.98rem' : '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                      +{formatCurrency(deliveryCashIn)}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '1px' }}>تسوية نقدية مستلمة من الطيارين</div>
-                  </div>
-                )}
 
                 {/* 4. (-) منصرفات ومسحوبات */}
                 <div style={{ background: '#fffbfb', border: '1px solid #fecaca', borderRadius: '8px', padding: compactView ? '6px 10px' : '9px 12px' }}>
@@ -451,91 +438,68 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 </div>
               </div>
 
-              {/* Drawer Balance Summary Bar (Single-line Adaptive Bar) */}
+              {/* Drawer Balance Summary Panel (Adaptive Multi-Row Layout) */}
               <div style={{
                 borderTop: '1px solid #e2e8f0',
                 background: '#f8fafc',
-                padding: compactView ? '6px 10px' : '8px 14px',
+                padding: '10px 14px',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'nowrap',
-                gap: '8px 12px',
-                overflowX: 'auto'
+                flexDirection: 'column',
+                gap: '8px',
               }}>
+                {/* 1. Arithmetic Formula Ribbon */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  fontSize: 'clamp(0.7rem, 0.78vw, 0.8rem)',
-                  color: '#475569',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 1,
-                  minWidth: 0
+                  justifyContent: 'center',
+                  flexWrap: 'wrap',
+                  gap: '4px 6px',
+                  direction: 'rtl',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.76rem',
+                  lineHeight: '1.4'
                 }}>
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    direction: 'rtl',
-                    fontWeight: 700,
-                    color: '#1e293b',
-                    background: '#f1f5f9',
-                    border: '1px solid #e2e8f0',
-                    padding: '2px 6px',
-                    borderRadius: '5px',
-                    fontSize: 'clamp(0.66rem, 0.74vw, 0.76rem)',
-                    flexWrap: 'nowrap',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    <span>{formatMoney(shift.openingCash)}</span>
-                    <span style={{ color: '#94a3b8' }}>+</span>
-                    <span>{formatMoney(expected.rawCashSales)}</span>
-                    <span style={{ color: '#94a3b8' }}>+</span>
-                    <span>{formatMoney(manualCashIn)}</span>
-                    {deliveryCashIn > 0 && (
-                      <>
-                        <span style={{ color: '#94a3b8' }}>+</span>
-                        <span>{formatMoney(deliveryCashIn)}</span>
-                      </>
-                    )}
-                    <span style={{ color: '#dc2626' }}>-</span>
-                    <span style={{ color: '#dc2626' }}>{formatMoney(totalDeductions)}</span>
-                    <span style={{ color: '#475569' }}>=</span>
-                    <strong style={{ color: '#0f172a', background: '#ffffff', padding: '0 4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                      {formatMoney(dynamicExpectedCash)}
-                    </strong>
-                  </div>
+                  <span>العهدة ({formatMoney(shift.openingCash)})</span>
+                  <span style={{ color: '#94a3b8' }}>+</span>
+                  <span>مبيعات ({formatMoney(expected.rawCashSales)})</span>
+                  <span style={{ color: '#94a3b8' }}>+</span>
+                  <span>إيداعات ({formatMoney(manualCashIn + deliveryCashIn)})</span>
+                  <span style={{ color: '#dc2626' }}>-</span>
+                  <span style={{ color: '#dc2626' }}>منصرفات ({formatMoney(totalDeductions)})</span>
+                  <span style={{ color: '#475569' }}>=</span>
+                  <strong style={{ color: '#0f172a', background: '#ffffff', padding: '1px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+                    {formatMoney(dynamicExpectedCash)}
+                  </strong>
                 </div>
 
+                {/* 2. Three Result Metrics (Responsive Grid) */}
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: compactView ? '8px' : '12px',
-                  flexWrap: 'nowrap',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))',
+                  gap: '8px',
+                  textAlign: 'center',
                 }}>
-                  <div>
-                    <span style={{ fontSize: 'clamp(0.7rem, 0.76vw, 0.78rem)', color: '#64748b' }}>صافي المتوقع: </span>
-                    <strong style={{ fontSize: 'clamp(0.78rem, 0.84vw, 0.88rem)', color: '#0f172a' }}>{formatCurrency(dynamicExpectedCash)}</strong>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>صافي المتوقع</div>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block', marginTop: '2px' }}>{formatCurrency(dynamicExpectedCash)}</strong>
                   </div>
-                  <div style={{ borderInlineStart: '1px solid #cbd5e1', paddingInlineStart: compactView ? '6px' : '10px' }}>
-                    <span style={{ fontSize: 'clamp(0.7rem, 0.76vw, 0.78rem)', color: '#64748b' }}>المعدود الفعلي: </span>
-                    <strong style={{ fontSize: 'clamp(0.78rem, 0.84vw, 0.88rem)', color: '#0f172a' }}>{formatCurrency(declared.cash)}</strong>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>المعدود الفعلي</div>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block', marginTop: '2px' }}>{formatCurrency(declared.cash)}</strong>
                   </div>
-                  <div style={{ borderInlineStart: '1px solid #cbd5e1', paddingInlineStart: compactView ? '6px' : '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ fontSize: 'clamp(0.7rem, 0.76vw, 0.78rem)', color: '#64748b' }}>فارق نقدية الدرج: </span>
-                    <strong style={{
-                      fontSize: 'clamp(0.74rem, 0.8vw, 0.82rem)',
-                      color: dynamicVariance < 0 ? '#dc2626' : '#15803d',
-                      background: dynamicVariance < 0 ? '#fef2f2' : '#f0fdf4',
-                      padding: '1px 5px',
-                      borderRadius: '4px',
-                      border: `1px solid ${dynamicVariance < 0 ? '#fecaca' : '#bbf7d0'}`,
-                      display: 'inline-block',
-                      lineHeight: '1.3'
-                    }}>
+                  <div style={{
+                    background: dynamicVariance < 0 ? '#fef2f2' : '#f0fdf4',
+                    border: `1px solid ${dynamicVariance < 0 ? '#fecaca' : '#bbf7d0'}`,
+                    borderRadius: '6px',
+                    padding: '6px 8px',
+                  }}>
+                    <div style={{ fontSize: '0.72rem', color: dynamicVariance < 0 ? '#dc2626' : '#15803d', fontWeight: 700 }}>فارق نقدية الدرج</div>
+                    <strong style={{ fontSize: '0.88rem', color: dynamicVariance < 0 ? '#dc2626' : '#15803d', display: 'block', marginTop: '2px' }}>
                       {differenceLabel(dynamicVariance)}
                     </strong>
                   </div>
@@ -543,7 +507,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
               </div>
             </div>
 
-            {/* 4. SECTION 2: Electronic & Other Payment Channels (مطابقة قنوات الدفع الإلكتروني والآجل) */}
+            {/* 4. SECTION 2: Electronic Payments Matching (مطابقة قنوات الدفع الإلكتروني) */}
             <div style={{
               background: '#ffffff',
               border: '1px solid #e2e8f0',
@@ -572,8 +536,8 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                 </span>
               </div>
 
-              <div className="table-wrap" style={{ overflowX: 'visible', margin: 0 }}>
-                <table className="cash-drawer-review-table" style={{ width: '100%', fontSize: compactView ? '0.82rem' : '0.86rem' }}>
+              <div className="table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: 0 }}>
+                <table className="cash-drawer-review-table" style={{ width: '100%', minWidth: '650px', fontSize: compactView ? '0.82rem' : '0.86rem' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <th style={{ padding: compactView ? '5px 8px' : '8px 12px', textAlign: 'right' }}>طريقة الدفع / القناة</th>

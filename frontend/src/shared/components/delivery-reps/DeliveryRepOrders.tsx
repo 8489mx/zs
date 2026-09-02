@@ -103,21 +103,21 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           </div>
         </div>
 
-        <div style={{ background: '#fef2f2', padding: '12px 16px', borderRadius: '10px', border: '1px solid #fecaca', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ background: '#fef2f2', padding: '12px 16px', borderRadius: '10px', border: '1px solid #fecaca', display: 'flex', flexDirection: 'column', gap: '6px', flex: '1 1 300px' }}>
           <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#991b1b' }}>تسوية سريعة لكل الطلبات المعلقة</h4>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <input 
               type="number" 
               placeholder="المبلغ المستلم من المندوب"
               value={expectedAmountInput}
               onChange={(e) => setExpectedAmountInput(e.target.value)}
-              style={{ padding: '6px 12px', border: '1px solid #fca5a5', borderRadius: '8px', width: '230px', minHeight: '36px', background: '#ffffff', fontSize: '13px' }}
+              style={{ padding: '6px 12px', border: '1px solid #fca5a5', borderRadius: '8px', flex: '1 1 160px', minHeight: '36px', background: '#ffffff', fontSize: '13px' }}
             />
             <Button 
               variant="primary"
               onClick={() => settleAllMutation.mutate({ id: repId, amount: Number(expectedAmountInput) })}
               disabled={!expectedAmountInput || settleAllMutation.isPending || !summaryQuery.data?.pendingAmount}
-              style={{ minHeight: '36px', padding: '0 16px', fontSize: '13px', fontWeight: 700 }}
+              style={{ minHeight: '36px', padding: '0 16px', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}
             >
               {settleAllMutation.isPending ? 'جاري التسوية...' : 'تسوية الكل'}
             </Button>
@@ -130,7 +130,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
         style={{ 
           display: 'flex', 
           flexDirection: 'row',
-          flexWrap: 'nowrap',
+          flexWrap: 'wrap',
           alignItems: 'center', 
           gap: '8px', 
           background: '#f8fafc', 
@@ -138,7 +138,6 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           borderRadius: '8px', 
           border: '1px solid #e2e8f0',
           width: '100%',
-          overflowX: 'auto',
         }}
       >
         <span style={{ fontWeight: 700, color: '#475569', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -171,7 +170,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
           <option value="unsettled">معلق (لم يسدد)</option>
         </select>
 
-        <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '6px', flexShrink: 0 }}>
+        <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '6px', flexWrap: 'wrap', flexShrink: 0 }}>
           <Button 
             variant="secondary" 
             onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterStatus('unsettled'); }}
@@ -216,8 +215,8 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
       </div>
 
       {/* Orders Table */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-        <table className="table" style={{ width: '100%', margin: 0, fontSize: '13px' }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table className="table" style={{ width: '100%', minWidth: '700px', margin: 0, fontSize: '13px' }}>
           <thead style={{ background: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>رقم الطلب</th>
@@ -328,7 +327,7 @@ export function DeliveryRepOrders({ repId }: { repId: number | null }) {
                     }}
                     style={{ fontSize: '12px', padding: '4px 12px' }}
                   >
-                    🖨️ طباعة الفاتورة
+                    طباعة الفاتورة
                   </Button>
                 )}
                 <Button variant="secondary" onClick={() => setViewingSaleId(null)} style={{ fontSize: '12px', padding: '4px 12px' }}>

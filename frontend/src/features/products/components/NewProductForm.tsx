@@ -403,7 +403,15 @@ export function NewProductForm({
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
               <h3 className="product-compact-card-title">بيانات الصنف والأسعار</h3>
               {clothingModuleEnabled && (
-                <div style={{ display: 'inline-flex', gap: '2px', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '2px',
+                  background: '#f1f5f9',
+                  padding: '2px',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0',
+                  boxSizing: 'border-box',
+                }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -415,16 +423,17 @@ export function NewProductForm({
                       border: 'none',
                       borderRadius: '4px',
                       padding: '3px 10px',
-                      fontSize: '0.75rem',
+                      fontSize: '0.72rem',
                       fontWeight: !usesVariantBuilder ? 800 : 600,
                       background: !usesVariantBuilder ? 'var(--primary, #1e1b4b)' : 'transparent',
                       color: !usesVariantBuilder ? '#ffffff' : '#64748b',
                       cursor: 'pointer',
                       boxShadow: !usesVariantBuilder ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    صنف عادي (بسيط)
+                    صنف عادي
                   </button>
                   <button
                     type="button"
@@ -437,16 +446,17 @@ export function NewProductForm({
                       border: 'none',
                       borderRadius: '4px',
                       padding: '3px 10px',
-                      fontSize: '0.75rem',
+                      fontSize: '0.72rem',
                       fontWeight: usesVariantBuilder ? 800 : 600,
                       background: usesVariantBuilder ? 'var(--primary, #1e1b4b)' : 'transparent',
                       color: usesVariantBuilder ? '#ffffff' : '#64748b',
                       cursor: 'pointer',
                       boxShadow: usesVariantBuilder ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    صنف بمتغيرات (أحجام / روائح / مقاسات)
+                    صنف بمتغيرات
                   </button>
                 </div>
               )}
@@ -487,17 +497,8 @@ export function NewProductForm({
             </div>
           </div>
 
-          <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
-            <Field label="نوع الصنف">
-              <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
-                <option value="product">منتج تام للبيع (مخزني)</option>
-                <option value="service">خدمة / مصنعية (بدون مخزون)</option>
-                {manufacturingModuleEnabled ? (
-                  <option value="raw_material">مادة خام / مكون تصنيع</option>
-                ) : null}
-              </select>
-            </Field>
-
+          {/* Row 1: Full-Width Product Name */}
+          <div style={{ marginBottom: '0.85rem' }}>
             <ProductNameField
               label={usesVariantBuilder ? 'اسم الصنف الأساسي' : 'اسم الصنف'}
               value={watchedName || ''}
@@ -521,14 +522,31 @@ export function NewProductForm({
                 />
               }
             />
+          </div>
+
+          {/* Row 2: Item Type & Barcode (2 balanced columns) */}
+          <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
+            <Field label="نوع الصنف">
+              <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
+                <option value="product">منتج تام للبيع (مخزني)</option>
+                <option value="service">خدمة / مصنعية (بدون مخزون)</option>
+                {manufacturingModuleEnabled ? (
+                  <option value="raw_material">مادة خام / مكون تصنيع</option>
+                ) : null}
+              </select>
+            </Field>
 
             {usesVariantBuilder ? (
-              <Field label="كود الصنف الأساسي / الموديل">
+              <div className="field">
+                <label>
+                  <span className="hidden md:inline">كود الصنف الأساسي / الموديل</span>
+                  <span className="md:hidden">كود الموديل</span>
+                </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input className="purchase-prototype-field-input" {...form.register('styleCode')} disabled={isFormDisabled || isGeneratingStyleCode} inputMode="numeric" placeholder="101" style={{ flex: 1 }} />
                   <Button type="button" variant="secondary" onClick={() => void handleGenerateStyleCode()} disabled={isFormDisabled || isGeneratingStyleCode}>{isGeneratingStyleCode ? '...' : 'توليد كود'}</Button>
                 </div>
-              </Field>
+              </div>
             ) : (
               <Field label="الباركود">
                 <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
@@ -549,11 +567,18 @@ export function NewProductForm({
 
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
             <div className="product-form-grid-3">
-              <Field label="سعر الشراء (التكلفة)">
+              <div className="field">
+                <label>
+                  <span className="hidden md:inline">سعر الشراء (التكلفة)</span>
+                  <span className="md:hidden">سعر التكلفة</span>
+                </label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} />
-              </Field>
+              </div>
               <div className="field product-retail-price-field">
-                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>سعر البيع (قطاعي)</label>
+                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>
+                  <span className="hidden md:inline">سعر البيع (قطاعي)</span>
+                  <span className="md:hidden">سعر البيع</span>
+                </label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} />
               </div>
               <Field label="سعر الجملة">

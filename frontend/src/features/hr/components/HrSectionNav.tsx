@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState, MouseEvent as ReactMouseEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const HR_SECTIONS = [
@@ -15,27 +16,180 @@ const HR_SECTIONS = [
 
 export function HrSectionNav() {
   const location = useLocation();
+  const navRef = useRef<HTMLDivElement | null>(null);
+  const activeLinkRef = useRef<HTMLAnchorElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftPos = useRef(0);
+
+  function checkScroll() {
+    const el = navRef.current;
+    if (!el) return;
+    const hasOverflow = el.scrollWidth > el.clientWidth + 2;
+    if (!hasOverflow) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const currentScroll = Math.abs(el.scrollLeft);
+    setCanScrollRight(currentScroll > 4);
+    setCanScrollLeft(currentScroll < maxScroll - 4);
+  }
+
+  useEffect(() => {
+    checkScroll();
+    const handleResize = () => checkScroll();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (activeLinkRef.current) {
+      try {
+        activeLinkRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      } catch {}
+    }
+    const t = setTimeout(checkScroll, 100);
+    return () => clearTimeout(t);
+  }, [location.pathname]);
+
+  const scrollByAmount = (offset: number) => {
+    if (navRef.current) {
+      navRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+      setTimeout(checkScroll, 250);
+    }
+  };
+
+  const handleMouseDown = (e: ReactMouseEvent) => {
+    if (!navRef.current) return;
+    isDragging.current = true;
+    startX.current = e.pageX - navRef.current.offsetLeft;
+    scrollLeftPos.current = navRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e: ReactMouseEvent) => {
+    if (!isDragging.current || !navRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - navRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.5;
+    navRef.current.scrollLeft = scrollLeftPos.current - walk;
+    checkScroll();
+  };
+
+  const handleMouseUpOrLeave = () => {
+    isDragging.current = false;
+  };
 
   return (
-    <nav
-      className="hr-section-nav"
-      aria-label="تنقل الموارد البشرية"
-      dir="rtl"
-    >
-      {HR_SECTIONS.map((section) => {
-        const isActive = section.match(location.pathname);
-        return (
-          <Link
-            key={section.to}
-            to={section.to}
-            className={`hr-section-nav-link ${isActive ? 'is-active' : ''}`}
-            title={section.label}
-          >
-            <span className="hr-nav-text-full">{section.label}</span>
-            <span className="hr-nav-text-short">{section.shortLabel}</span>
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="hr-nav-wrapper" style={{ position: 'relative', width: '100%', minWidth: 0, display: 'flex', alignItems: 'center' }} dir="rtl">
+      {/* Scroll Right Button (in RTL: moves toward beginning) */}
+      {canScrollRight && (
+        <button
+          type="button"
+          className="hr-nav-arrow-btn hr-nav-arrow-right"
+          onClick={() => scrollByAmount(160)}
+          aria-label="تمرير لليمين"
+          style={{
+            position: 'absolute',
+            right: '-4px',
+            zIndex: 10,
+            width: '26px',
+            height: '26px',
+            borderRadius: '50%',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#1e293b',
+            fontSize: '12px',
+            fontWeight: 800,
+          }}
+        >
+          &#x276F;
+        </button>
+      )}
+
+      <nav
+        ref={navRef}
+        className="hr-section-nav"
+        aria-label="تنقل الموارد البشرية"
+        onScroll={checkScroll}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUpOrLeave}
+        onMouseLeave={handleMouseUpOrLeave}
+        style={{
+          display: 'flex',
+          flexWrap: 'nowrap',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-x',
+          gap: '6px',
+          width: '100%',
+          minWidth: 0,
+          padding: '2px 4px 6px 4px',
+          scrollbarWidth: 'none',
+          userSelect: 'none',
+        }}
+      >
+        {HR_SECTIONS.map((section) => {
+          const isActive = section.match(location.pathname);
+          return (
+            <Link
+              key={section.to}
+              to={section.to}
+              ref={isActive ? activeLinkRef : null}
+              className={`hr-section-nav-link ${isActive ? 'is-active' : ''}`}
+              title={section.label}
+              style={{
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+                textDecoration: 'none',
+              }}
+            >
+              <span className="hr-nav-text-full">{section.label}</span>
+              <span className="hr-nav-text-short">{section.shortLabel}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Scroll Left Button (in RTL: moves toward end) */}
+      {canScrollLeft && (
+        <button
+          type="button"
+          className="hr-nav-arrow-btn hr-nav-arrow-left"
+          onClick={() => scrollByAmount(-160)}
+          aria-label="تمرير لليسار"
+          style={{
+            position: 'absolute',
+            left: '-4px',
+            zIndex: 10,
+            width: '26px',
+            height: '26px',
+            borderRadius: '50%',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.14)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#1e293b',
+            fontSize: '12px',
+            fontWeight: 800,
+          }}
+        >
+          &#x276E;
+        </button>
+      )}
+    </div>
   );
 }

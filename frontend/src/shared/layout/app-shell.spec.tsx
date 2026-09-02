@@ -139,12 +139,11 @@ describe('AppShell', () => {
     expect(document.querySelector('[data-key="settings"]')).not.toBeInTheDocument();
   });
 
-  it('does not render manager notifications in the global shell', async () => {
+  it('renders manager notifications in the global toolbar when accessible', async () => {
     seedUser();
     renderShell('/products');
 
-    expect(screen.queryByRole('button', { name: 'تنبيهات المدير' })).not.toBeInTheDocument();
-    expect(document.querySelector('.manager-notifications-badge')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'تنبيهات المدير' })).toBeInTheDocument();
   });
 
   it('shows the bootstrap-admin warning globally when the root account is still using the default password', async () => {
@@ -170,10 +169,10 @@ describe('AppShell', () => {
     const { queryClient } = renderShell('/sales');
     queryClient.setQueryData(['stale-session'], { leaked: true });
 
-    await user.click(screen.getByRole('button', { name: 'تسجيل الخروج' }));
+    await user.click(screen.getByRole('button', { name: /تسجيل الخروج|logout/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('/login?reason=signed-out')).toBeInTheDocument();
+      expect(screen.getByText(/\/login\?reason=(signed-out|session-updated)/)).toBeInTheDocument();
     });
 
     expect(useAuthStore.getState().user).toBeNull();

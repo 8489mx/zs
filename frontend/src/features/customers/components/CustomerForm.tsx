@@ -48,7 +48,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
     <form className="form-grid customer-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
       <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="بيانات العميل الجديدة لم تُحفظ بعد" hint="يمكنك الحفظ الآن أو تفريغ النموذج قبل الانتقال لعميل آخر." />
       
-      <Field label="اسم العميل *" error={form.formState.errors.name?.message}>
+      <Field label="اسم العميل *" error={form.formState.errors.name?.message} className="field-full-span">
         <input 
           {...form.register('name')} 
           disabled={mutation.isPending} 
@@ -86,7 +86,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void } = {}) {
         />
       </Field>
 
-      <Field label="العنوان / المنطقة">
+      <Field label="العنوان / المنطقة" className="field-full-span">
         <input 
           {...form.register('address')} 
           disabled={mutation.isPending} 

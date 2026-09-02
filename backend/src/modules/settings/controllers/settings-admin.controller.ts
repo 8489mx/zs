@@ -1,13 +1,18 @@
-import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { AdminRoleGuard } from '../../../core/auth/guards/admin-role.guard';
+import { SuperAdminRoleGuard } from '../../../core/auth/guards/super-admin-role.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { SettingsAdminService } from '../services/settings-admin.service';
+import { SettingsDemoDataService } from '../services/settings-demo-data.service';
 
 @Controller('api/admin')
 @UseGuards(SessionAuthGuard, AdminRoleGuard)
 export class SettingsAdminController {
-  constructor(private readonly adminService: SettingsAdminService) {}
+  constructor(
+    private readonly adminService: SettingsAdminService,
+    private readonly demoDataService: SettingsDemoDataService,
+  ) {}
 
   @Get('diagnostics')
   getDiagnostics(@Req() req: RequestWithAuth) {
@@ -58,4 +63,21 @@ export class SettingsAdminController {
   reconcileSuppliers(@Req() req: RequestWithAuth) {
     return this.adminService.reconcileSuppliers(req.authContext!);
   }
+
+  @Get('demo-data/status')
+  getDemoDataStatus(@Req() req: RequestWithAuth) {
+    return this.demoDataService.getDemoDataStatus(req.authContext!);
+  }
+
+  @Post('demo-data/seed')
+  seedDemoData(@Body() body: { password?: string }, @Req() req: RequestWithAuth) {
+    return this.demoDataService.seedComprehensiveDemoData(body?.password || '', req.authContext!);
+  }
+
+  @Post('demo-data/wipe')
+  @UseGuards(SuperAdminRoleGuard)
+  wipeDemoData(@Body() body: { password?: string }, @Req() req: RequestWithAuth) {
+    return this.demoDataService.wipeAllData(body?.password || '', req.authContext!);
+  }
 }
+

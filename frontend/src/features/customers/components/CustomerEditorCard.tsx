@@ -44,7 +44,7 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
     <form className="form-grid customer-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
       <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تعديلات العميل الحالية غير محفوظة" hint="احفظ التغييرات أو أعد تعيين القيم قبل الانتقال إلى عميل آخر." />
       
-      <Field label="اسم العميل *" error={form.formState.errors.name?.message}>
+      <Field label="اسم العميل *" error={form.formState.errors.name?.message} className="field-full-span">
         <input 
           {...form.register('name')} 
           disabled={mutation.isPending} 
@@ -81,7 +81,7 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
         />
       </Field>
 
-      <Field label="العنوان / المنطقة">
+      <Field label="العنوان / المنطقة" className="field-full-span">
         <input 
           {...form.register('address')} 
           disabled={mutation.isPending} 
@@ -142,9 +142,9 @@ export function CustomerEditorCard({ customer, onSaved }: { customer?: Customer;
         </fieldset>
       )}
       <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} errorFallback="تعذر تحديث العميل" successText="تم تحديث العميل بنجاح." />
-      <div className="actions sticky-form-actions">
-        <Button type="button" variant="secondary" onClick={() => form.reset()} disabled={mutation.isPending}>إعادة القيم</Button>
-        <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ التعديل" pendingText="جارٍ الحفظ..." />
+      <div className="actions sticky-form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '16px', flexWrap: 'wrap' }}>
+        <Button type="button" variant="secondary" onClick={() => form.reset()} disabled={mutation.isPending} style={{ flex: '1 1 120px' }}>إعادة القيم</Button>
+        <SubmitButton type="submit" isPending={mutation.isPending} idleText="حفظ التعديل" pendingText="جارٍ الحفظ..." style={{ flex: '2 1 180px' }} />
       </div>
     </form>
   );

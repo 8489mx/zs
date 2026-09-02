@@ -200,7 +200,7 @@ body,
     border-radius: 10px;
   }
 
-  :where(.panel-grid, .three-column-grid, .two-column-grid, .form-grid, .inline-create-grid, .grid.two-columns, .grid.three-columns):not(.pos-workspace *) {
+  :where(.panel-grid, .three-column-grid, .two-column-grid, .inline-create-grid, .grid.two-columns, .grid.three-columns):not(.pos-workspace *, .product-compact-card *, [class*="product-form-grid-"] *) {
     grid-template-columns: 1fr !important;
   }
 

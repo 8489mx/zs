@@ -116,7 +116,7 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
       ) : null}
 
       {canCreateSchedule ? (
-        <div className="form-grid" style={{ marginTop: 12 }}>
+        <div className="form-grid schedule-form-grid" style={{ marginTop: 12 }}>
           <Field label="طريقة التقسيم">
             <select value={mode} onChange={(event) => setMode(event.target.value as 'count' | 'amount')}>
               <option value="count">حسب عدد الدفعات</option>
@@ -133,10 +133,14 @@ export function PurchasePaymentScheduleCard({ purchase }: PurchasePaymentSchedul
             </Field>
           )}
           <Field label="تاريخ أول دفعة"><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></Field>
-          <Field label="تكرار الاستحقاق كل كام يوم"><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
+          <Field label="تكرار الاستحقاق (أيام)"><input type="number" min="1" value={intervalDays} onChange={(event) => setIntervalDays(event.target.value)} /></Field>
           <Field label="تقريب الدفعات لأقرب"><input type="number" min="1" value={roundingStep} onChange={(event) => setRoundingStep(event.target.value)} /></Field>
           <Field label="ملاحظة"><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="مثال: اتفاق دفع مع المورد" /></Field>
-          <div className="field"><span>إنشاء الجدول</span><Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>{rows.length ? 'إعادة جدولة الدفعات' : 'جدولة الدفعات'}</Button></div>
+          <div className="field field-full-span" style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
+            <Button type="button" onClick={() => createMutation.mutate()} disabled={createMutation.isPending} style={{ width: '100%', justifyContent: 'center' }}>
+              {rows.length ? 'إعادة جدولة الدفعات' : 'جدولة الدفعات'}
+            </Button>
+          </div>
         </div>
       ) : null}
 

@@ -37,21 +37,7 @@
 }
 
 .dialog-shell-close-btn {
-  position: absolute;
-  top: 18px;
-  inset-inline-end: 18px;
-  z-index: 30;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  color: #64748b;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  cursor: pointer;
+  display: none !important;
 }
 
 .dialog-shell-close-btn:hover {
@@ -76,14 +62,15 @@
   line-height: 1.8;
 }
 
-/* Ensure headers inside dialogs never collide with the close button */
+/* Ensure modal content spreads 100% across the full width */
 .dialog-shell .document-prototype-section-header,
-.dialog-shell .dialog-card > div:first-child:not(.form-grid):not(.page-stack) {
-  padding-inline-end: 44px;
+.dialog-shell .dialog-card > div:first-child {
+  padding-inline-end: 0 !important;
+  width: 100% !important;
 }
 
 .dialog-shell .document-prototype-section-actions {
-  margin-inline-end: 38px;
+  margin-inline-end: 0 !important;
 }
 
 /* Signature vertical colored bar on ALL modal dialog titles */
@@ -138,14 +125,17 @@
 @media (max-width: 640px) {
   .dialog-overlay {
     align-items: flex-start;
-    padding: 12px 8px;
+    padding-top: max(env(safe-area-inset-top, 0px) + 28px, 48px) !important;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px) + 24px, 24px) !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   .dialog-shell {
-    width: calc(100vw - 16px);
-    max-width: calc(100vw - 16px);
-    max-height: calc(100vh - 20px);
-    border-radius: 10px;
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - max(env(safe-area-inset-top, 0px) + 60px, 80px));
+    border-radius: 16px;
   }
 
   .dialog-card {

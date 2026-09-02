@@ -71,6 +71,9 @@ export function PageHeader({
           className="page-header-navigation"
           style={{
             width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            overflow: 'visible',
             borderTop: '1px solid rgba(226, 232, 240, 0.8)',
             paddingTop: '8px',
             marginTop: '2px',

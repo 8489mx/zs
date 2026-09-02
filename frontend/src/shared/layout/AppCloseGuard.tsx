@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
-import { useAuthStore } from '@/stores/auth-store';
 
 export function AppCloseGuard() {
   const [isOpen, setIsOpen] = useState(false);
-  const isAuthenticated = useAuthStore((state) => Boolean(state.user));
 
   useEffect(() => {
-    // 1. Electron Desktop App Guard
-    const electronRuntime = (window as any).electronRuntime;
+    // Electron Desktop App Guard
+    const electronRuntime = typeof window !== 'undefined' ? (window as any).electronRuntime : null;
     if (electronRuntime && typeof electronRuntime.onShowCustomCloseDialog === 'function') {
       const unsubscribe = electronRuntime.onShowCustomCloseDialog(() => {
         setIsOpen(true);
@@ -17,25 +15,11 @@ export function AppCloseGuard() {
         unsubscribe();
       };
     }
-
-    // 2. Web Browser & PWA Tab / Window Close Guard
-    if (isAuthenticated) {
-      const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-        event.preventDefault();
-        event.returnValue = '';
-        return '';
-      };
-
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-      };
-    }
-  }, [isAuthenticated]);
+  }, []);
 
   const handleConfirmClose = () => {
     setIsOpen(false);
-    const electronRuntime = (window as any).electronRuntime;
+    const electronRuntime = typeof window !== 'undefined' ? (window as any).electronRuntime : null;
     if (electronRuntime && typeof electronRuntime.forceCloseApp === 'function') {
       electronRuntime.forceCloseApp();
     }
@@ -48,10 +32,10 @@ export function AppCloseGuard() {
   return (
     <ActionConfirmDialog
       open={isOpen}
-      title="تأكيد الإغلاق"
-      description="توجد بيانات قيد التعديل ولم تُحفظ (مثل فاتورة قيد الإنشاء). هل أنت متأكد من رغبتك في إغلاق البرنامج؟ ستفقد أي تعديلات لم تقم بحفظها."
-      confirmLabel="مغادرة وإغلاق البرنامج"
-      cancelLabel="البقاء"
+      title="تأكيد إغلاق المنظومة"
+      description="هل أنت متأكد من رغبتك في إغلاق البرنامج ومغادرة الجلسة؟ قد تفقد أي بيانات أو فواتير قيد التعديل لم تقم بحفظها."
+      confirmLabel="إغلاق البرنامج ومغادرة"
+      cancelLabel="البقاء في البرنامج"
       confirmVariant="danger"
       onConfirm={handleConfirmClose}
       onCancel={handleCancelClose}

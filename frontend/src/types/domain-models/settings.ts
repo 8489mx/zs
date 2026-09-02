@@ -58,6 +58,7 @@ export interface AppSettings {
   clothingModuleEnabled?: boolean;
   enableMobileStoreFeatures?: boolean;
   enablePharmacyModule?: boolean;
+  servicesModuleEnabled?: boolean;
   maintenanceProfile?: string;
   enableEnterpriseFeatures?: boolean;
   technicianCommissionRate?: number;

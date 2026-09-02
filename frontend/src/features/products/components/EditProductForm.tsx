@@ -308,18 +308,39 @@ export function EditProductForm({
         )}
 
         {hasDraftChanges && !mutation.isPending && (
-          <div className="document-prototype-section" style={{ backgroundColor: '#fffbeb', borderColor: '#fcd34d' }}>
-            <div style={{ color: '#92400e' }}>تعديلات الصنف الحالية غير محفوظة. احفظ الصنف أو أعد القيم الأصلية.</div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: '6px',
+            padding: '3px 8px',
+            marginBottom: '6px',
+            fontSize: '0.74rem',
+            color: '#92400e',
+            fontWeight: 700,
+          }}>
+            <span>تعديلات غير محفوظة</span>
           </div>
         )}
 
         {/* 1. Core Info & Pricing */}
         <div className="product-compact-card">
-          <div className="product-compact-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div className="product-compact-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between' }}>
               <h3 className="product-compact-card-title" style={{ margin: 0 }}>بيانات الصنف والأسعار</h3>
               {clothingModuleEnabled && (
-                <div style={{ display: 'inline-flex', gap: '2px', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '2px',
+                  background: '#f1f5f9',
+                  padding: '2px',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0',
+                  boxSizing: 'border-box',
+                }}>
                   <button
                     type="button"
                     onClick={() => form.setValue('itemKind', 'standard', { shouldDirty: true, shouldValidate: true })}
@@ -328,16 +349,17 @@ export function EditProductForm({
                       border: 'none',
                       borderRadius: '4px',
                       padding: '3px 10px',
-                      fontSize: '0.75rem',
+                      fontSize: '0.72rem',
                       fontWeight: watchedItemKind === 'standard' ? 800 : 600,
                       background: watchedItemKind === 'standard' ? 'var(--primary, #1e1b4b)' : 'transparent',
                       color: watchedItemKind === 'standard' ? '#ffffff' : '#64748b',
                       cursor: 'pointer',
                       boxShadow: watchedItemKind === 'standard' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    صنف عادي (بسيط)
+                    صنف عادي
                   </button>
                   <button
                     type="button"
@@ -347,24 +369,53 @@ export function EditProductForm({
                       border: 'none',
                       borderRadius: '4px',
                       padding: '3px 10px',
-                      fontSize: '0.75rem',
+                      fontSize: '0.72rem',
                       fontWeight: watchedItemKind === 'fashion' ? 800 : 600,
                       background: watchedItemKind === 'fashion' ? 'var(--primary, #1e1b4b)' : 'transparent',
                       color: watchedItemKind === 'fashion' ? '#ffffff' : '#64748b',
                       cursor: 'pointer',
                       boxShadow: watchedItemKind === 'fashion' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    صنف بمتغيرات (أحجام / روائح / مقاسات)
+                    صنف بمتغيرات
                   </button>
                 </div>
               )}
             </div>
-            <span className="muted small">المعلومات الأساسية وقائمة الأسعار</span>
           </div>
 
-          <div className="product-form-grid-3" style={{ marginBottom: '0.85rem' }}>
+          {/* Row 1: Full-Width Product Name */}
+          <div className="field" style={{ marginBottom: '0.85rem' }}>
+            <label>{watchedItemKind === 'fashion' ? 'اسم الصنف الأساسي' : 'اسم الصنف'}</label>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <ProductIconPicker
+                value={form.watch('icon')}
+                onChange={(iconId) => form.setValue('icon', iconId, { shouldDirty: true })}
+                industry={settingsQuery.data?.businessIndustry}
+                disabled={isFormDisabled}
+              />
+              <input
+                className="purchase-prototype-field-input"
+                {...form.register('name')}
+                onChange={(e) => {
+                  form.setValue('name', e.target.value, { shouldDirty: true, shouldValidate: true });
+                  const guessed = guessProductIcon(e.target.value, undefined, settingsQuery.data?.businessIndustry);
+                  if (guessed) {
+                    form.setValue('icon', guessed, { shouldDirty: true });
+                  }
+                }}
+                disabled={isFormDisabled}
+                style={{ flex: 1, fontWeight: 600 }}
+                placeholder={watchedItemKind === 'fashion' ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}
+              />
+            </div>
+            {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
+          </div>
+
+          {/* Row 2: Item Type & Barcode (2 balanced columns) */}
+          <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
             <Field label="نوع الصنف">
               <select className="purchase-prototype-field-input" {...form.register('itemType')} disabled={isFormDisabled}>
                 <option value="product">منتج تام للبيع (مخزني)</option>
@@ -375,37 +426,14 @@ export function EditProductForm({
               </select>
             </Field>
 
-            <div className="field">
-              <label>{watchedItemKind === 'fashion' ? 'اسم الصنف الأساسي' : 'اسم الصنف'}</label>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <ProductIconPicker
-                  value={form.watch('icon')}
-                  onChange={(iconId) => form.setValue('icon', iconId, { shouldDirty: true })}
-                  industry={settingsQuery.data?.businessIndustry}
-                  disabled={isFormDisabled}
-                />
-                <input
-                  className="purchase-prototype-field-input"
-                  {...form.register('name')}
-                  onChange={(e) => {
-                    form.setValue('name', e.target.value, { shouldDirty: true, shouldValidate: true });
-                    const guessed = guessProductIcon(e.target.value, undefined, settingsQuery.data?.businessIndustry);
-                    if (guessed) {
-                      form.setValue('icon', guessed, { shouldDirty: true });
-                    }
-                  }}
-                  disabled={isFormDisabled}
-                  style={{ flex: 1, fontWeight: 600 }}
-                  placeholder={watchedItemKind === 'fashion' ? 'مثال: مزيل عرق Nivea / تيشيرت Polo / شامبو L’Oréal' : 'اكتب اسم الصنف'}
-                />
-              </div>
-              {form.formState.errors.name && <small className="field-error">{form.formState.errors.name.message}</small>}
-            </div>
-
             {watchedItemKind === 'fashion' ? (
-              <Field label="كود الصنف الأساسي / الموديل">
+              <div className="field">
+                <label>
+                  <span className="hidden md:inline">كود الصنف الأساسي / الموديل</span>
+                  <span className="md:hidden">كود الموديل</span>
+                </label>
                 <input className="purchase-prototype-field-input" value={watchedStyleCode} onChange={(event) => form.setValue('styleCode', normalizeNumericStyleCode(event.target.value), { shouldDirty: true, shouldValidate: true })} disabled={isFormDisabled} inputMode="numeric" placeholder="101" />
-              </Field>
+              </div>
             ) : (
               <Field label="الباركود">
                 <input className="purchase-prototype-field-input" {...form.register('barcode')} disabled={isFormDisabled} placeholder="اختياري أو امسحه بالماسح" />
@@ -415,11 +443,18 @@ export function EditProductForm({
 
           <div style={{ paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
             <div className="product-form-grid-3">
-              <Field label="سعر الشراء (التكلفة)">
+              <div className="field">
+                <label>
+                  <span className="hidden md:inline">سعر الشراء (التكلفة)</span>
+                  <span className="md:hidden">سعر التكلفة</span>
+                </label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('costPrice')} disabled={isFormDisabled} />
-              </Field>
+              </div>
               <div className="field product-retail-price-field">
-                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>سعر البيع (قطاعي)</label>
+                <label style={{ color: '#1e3a8a', fontWeight: 700 }}>
+                  <span className="hidden md:inline">سعر البيع (قطاعي)</span>
+                  <span className="md:hidden">سعر البيع</span>
+                </label>
                 <input className="purchase-prototype-field-input" type="number" step="0.01" {...form.register('retailPrice')} disabled={isFormDisabled} />
               </div>
               <Field label="سعر الجملة">

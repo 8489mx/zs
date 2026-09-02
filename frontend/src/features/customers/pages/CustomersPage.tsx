@@ -48,7 +48,6 @@ export function CustomersPage() {
           onClose={() => setIsCreateOpen(false)}
           width="min(680px, 95vw)"
           ariaLabel="إضافة عميل جديد"
-          showCloseButton={true}
         >
           <div className="dialog-card">
             <div className="mb-4 border-b pb-3">
@@ -65,21 +64,36 @@ export function CustomersPage() {
           onClose={() => controller.setSelectedCustomer(null)}
           width="min(680px, 95vw)"
           ariaLabel="تعديل العميل"
-          showCloseButton={true}
         >
-          <div className="dialog-card">
-            <div className="flex items-center justify-between mb-4 border-b pb-3">
-              <div>
-                <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">
+          <div className="dialog-card" dir="rtl">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              marginBottom: '16px',
+              paddingBottom: '12px',
+              borderBottom: '1px solid #e2e8f0',
+            }}>
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
                   تعديل: {controller.selectedCustomer?.name}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">تحديث بيانات العميل أو ضبط الرصيد وحد الائتمان.</p>
+                <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                  تحديث بيانات العميل أو ضبط الرصيد وحد الائتمان.
+                </p>
               </div>
               {controller.selectedCustomer && (
                 <Button
                   variant="danger"
                   onClick={() => controller.setCustomerToDelete(controller.selectedCustomer)}
                   disabled={!controller.canDelete}
+                  style={{
+                    fontSize: '0.82rem',
+                    padding: '6px 14px',
+                    flexShrink: 0,
+                    fontWeight: 700,
+                  }}
                 >
                   حذف العميل
                 </Button>

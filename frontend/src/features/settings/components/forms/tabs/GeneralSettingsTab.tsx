@@ -45,6 +45,7 @@ function applyIndustryAutomation(
       setValue('defaultPosMode', 'scanner', { shouldDirty: true });
       setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
       setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
       break;
 
@@ -56,6 +57,7 @@ function applyIndustryAutomation(
       setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
       setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
       setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
       break;
 
@@ -67,6 +69,7 @@ function applyIndustryAutomation(
       setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
       setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
       setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
       break;
 
@@ -78,6 +81,7 @@ function applyIndustryAutomation(
       setValue('weightedBarcodeEnabled', false, { shouldDirty: true });
       setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
       setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
       break;
 
@@ -88,11 +92,13 @@ function applyIndustryAutomation(
       setValue('clothingModuleEnabled', false, { shouldDirty: true });
       setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
       setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
+      setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('restaurantModuleEnabled', false, { shouldDirty: true });
       break;
 
     case 'electronics':
       setValue('enableMobileStoreFeatures', true, { shouldDirty: true });
+      setValue('servicesModuleEnabled', true, { shouldDirty: true });
       setValue('defaultPosMode', 'scanner', { shouldDirty: true });
       setValue('defaultProductKind', 'standard', { shouldDirty: true });
       setValue('clothingModuleEnabled', false, { shouldDirty: true });
@@ -109,6 +115,7 @@ function applyIndustryAutomation(
       setValue('clothingModuleEnabled', false, { shouldDirty: true });
       setValue('enableMobileStoreFeatures', false, { shouldDirty: true });
       setValue('enablePharmacyModule', false, { shouldDirty: true });
+      setValue('servicesModuleEnabled', false, { shouldDirty: true });
       setValue('manufacturingModuleEnabled', false, { shouldDirty: true });
       break;
 

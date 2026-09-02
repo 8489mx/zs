@@ -123,6 +123,7 @@ const createLoadingWindow = () => {
 let isBackendReady = false;
 let isMainWindowRendered = false;
 let hasRevealedApp = false;
+let isForceClosing = false;
 
 function toggleFullScreen(win = mainWindow) {
   if (!win || win.isDestroyed()) return false;
@@ -202,7 +203,20 @@ const createMainWindow = (customLoadHandler) => {
   });
 
   mainWindow.webContents.on('will-prevent-unload', (event) => {
-    mainWindow.webContents.send('show-custom-close-dialog');
+    event.preventDefault();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('show-custom-close-dialog');
+    }
+  });
+
+  mainWindow.on('close', (event) => {
+    if (isForceClosing) {
+      return;
+    }
+    event.preventDefault();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('show-custom-close-dialog');
+    }
   });
 
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -503,7 +517,11 @@ app.whenReady().then(async () => {
 
   // Handle IPC for LAN Modes
   ipcMain.handle('get-runtime-config', () => currentConfig);
-  ipcMain.on('force-close-app', () => {
+  ipcMain.on('force-close-app', async () => {
+    isForceClosing = true;
+    try {
+      await cleanShutdown();
+    } catch (e) {}
     app.exit(0);
   });
 

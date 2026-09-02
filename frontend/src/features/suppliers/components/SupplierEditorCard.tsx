@@ -42,7 +42,7 @@ export function SupplierEditorCard({ supplier, onSaved }: { supplier?: Supplier;
     <form className="form-grid supplier-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
       <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تعديلات المورد الحالية غير محفوظة" hint="احفظ التغييرات أو أعد تعيين القيم قبل الانتقال إلى مورد آخر." />
       
-      <Field label="اسم المورد *" error={form.formState.errors.name?.message}>
+      <Field label="اسم المورد *" error={form.formState.errors.name?.message} className="field-full-span">
         <input 
           {...form.register('name')} 
           disabled={mutation.isPending} 
@@ -56,14 +56,6 @@ export function SupplierEditorCard({ supplier, onSaved }: { supplier?: Supplier;
           {...form.register('phone')} 
           disabled={mutation.isPending} 
           placeholder="مثال: 010xxxxxxxx"
-        />
-      </Field>
-
-      <Field label="العنوان / المقر">
-        <input 
-          {...form.register('address')} 
-          disabled={mutation.isPending} 
-          placeholder="المدينة، المنطقة، العنوان التفصيلي..."
         />
       </Field>
 
@@ -81,9 +73,17 @@ export function SupplierEditorCard({ supplier, onSaved }: { supplier?: Supplier;
         />
       </Field>
 
+      <Field label="العنوان / المقر" className="field-full-span">
+        <input 
+          {...form.register('address')} 
+          disabled={mutation.isPending} 
+          placeholder="المدينة، المنطقة، العنوان التفصيلي..."
+        />
+      </Field>
+
       <Field 
         label="ملاحظات إضافية" 
-        className="field-full"
+        className="field-full-span"
         hint="ملاحظات اختيارية أو شروط سداد خاصة بالمورد"
       >
         <textarea 

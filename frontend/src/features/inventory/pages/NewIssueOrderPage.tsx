@@ -588,68 +588,81 @@ export function NewIssueOrderPage() {
             </div>
           </div>
         )}
-        <section className="document-prototype-section">
-          <h3 className="document-prototype-section-title">المعلومات الأساسية</h3>
-          <div className="document-prototype-grid compact-grid-3">
-            <SearchableCombobox
-              label="من مخزن (مخزن الصرف)"
-              placeholder="اختر المخزن..."
-              value={fromLocationQuery}
-              onChange={(q) => {
-                setFromLocationQuery(q);
-                if (!q) setFromLocationId('');
-              }}
-              onSelect={(l) => setFromLocationId(l.id)}
-              options={locationOptions}
-              search={(l, q) => l.searchTerms.includes(q.toLowerCase())}
-              getLabel={(l) => l.name}
-              createLabel={(q) => `إضافة "${q}"`}
-              inputClassName="purchase-prototype-field-input"
-            />
+        <section className="document-prototype-section" style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #cbd5e1', padding: '14px 16px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ width: '3.5px', height: '14px', background: '#2563eb', borderRadius: '2px' }} />
+            <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>المعلومات الأساسية</h3>
+          </div>
 
-            <SearchableCombobox
-              label="إلى فرع / محل (المستلم)"
-              placeholder="اختر الفرع..."
-              value={toLocationQuery}
-              onChange={(q) => {
-                setToLocationQuery(q);
-                if (!q) setToLocationId('');
-              }}
-              onSelect={(l) => setToLocationId(l.id)}
-              options={branchOptions}
-              search={(l, q) => l.searchTerms.includes(q.toLowerCase())}
-              getLabel={(l) => l.name}
-              createLabel={(q) => `إضافة "${q}"`}
-              inputClassName="purchase-prototype-field-input"
-            />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Row 1: Source Warehouse & Destination Branch (2 columns) */}
+            <div className="product-form-grid-2">
+              <SearchableCombobox
+                label="من مخزن (مخزن الصرف)"
+                placeholder="اختر المخزن..."
+                value={fromLocationQuery}
+                onChange={(q) => {
+                  setFromLocationQuery(q);
+                  if (!q) setFromLocationId('');
+                }}
+                onSelect={(l) => setFromLocationId(l.id)}
+                options={locationOptions}
+                search={(l, q) => l.searchTerms.includes(q.toLowerCase())}
+                getLabel={(l) => l.name}
+                createLabel={(q) => `إضافة "${q}"`}
+                inputClassName="purchase-prototype-field-input"
+              />
 
+              <SearchableCombobox
+                label="إلى فرع / محل (المستلم)"
+                placeholder="اختر الفرع..."
+                value={toLocationQuery}
+                onChange={(q) => {
+                  setToLocationQuery(q);
+                  if (!q) setToLocationId('');
+                }}
+                onSelect={(l) => setToLocationId(l.id)}
+                options={branchOptions}
+                search={(l, q) => l.searchTerms.includes(q.toLowerCase())}
+                getLabel={(l) => l.name}
+                createLabel={(q) => `إضافة "${q}"`}
+                inputClassName="purchase-prototype-field-input"
+              />
+            </div>
+
+            {/* Row 2: Issue Mode (Full Width) */}
             <div className="field">
-              <label>وضع الصرف</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>وضع الصرف</label>
               <select className="purchase-prototype-field-input" value={issueMode} onChange={(e) => setIssueMode(e.target.value as any)}>
                 <option value="final_issue">صرف نهائي (يتم خصم الرصيد فوراً)</option>
                 <option value="transfer_to_branch_stock">تحويل إلى رصيد فرع (يبقى في الطريق حتى يتم استلامه)</option>
               </select>
             </div>
 
-            <Field label="مسئول الصرف">
-              <input
-                type="text"
-                className="purchase-prototype-field-input purchase-prototype-readonly-input"
-                value={user?.displayName || user?.username || ''}
-                readOnly
-                disabled
-              />
-            </Field>
+            {/* Row 3: Dispatcher & Recipient (2 columns) */}
+            <div className="product-form-grid-2">
+              <div className="field">
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>مسئول الصرف</label>
+                <input
+                  type="text"
+                  className="purchase-prototype-field-input purchase-prototype-readonly-input"
+                  value={user?.displayName || user?.username || ''}
+                  readOnly
+                  disabled
+                />
+              </div>
 
-            <Field label="اسم المستلم / السائق">
-              <input
-                type="text"
-                className="purchase-prototype-field-input"
-                value={recipientName}
-                onChange={e => setRecipientName(e.target.value)}
-                placeholder="اكتب اسم المستلم هنا..."
-              />
-            </Field>
+              <div className="field">
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>اسم المستلم / السائق</label>
+                <input
+                  type="text"
+                  className="purchase-prototype-field-input"
+                  value={recipientName}
+                  onChange={e => setRecipientName(e.target.value)}
+                  placeholder="اكتب اسم المستلم هنا..."
+                />
+              </div>
+            </div>
           </div>
         </section>
 

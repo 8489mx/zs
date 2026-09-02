@@ -46,6 +46,7 @@ export const settingsFormSchema = z.object({
   clothingModuleEnabled: z.boolean().default(false),
   enableMobileStoreFeatures: z.boolean().default(false),
   enablePharmacyModule: z.boolean().default(false),
+  servicesModuleEnabled: z.boolean().default(false),
   maintenanceProfile: z.string().optional().default('mobile'),
   enableEnterpriseFeatures: z.boolean().default(false),
   technicianCommissionRate: z.coerce.number().min(0).max(100).default(30),

@@ -147,6 +147,372 @@ function DatabaseOptimizationCard({ canManage }: { canManage: boolean }) {
   );
 }
 
+function DemoDataSandboxCard() {
+  const isSuperAdmin = useAuthStore((s) => s.user?.role === 'super_admin');
+  const [modalMode, setModalMode] = useState<'seed' | 'wipe' | null>(null);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+
+  const statusQuery = useQuery({
+    queryKey: ['demo-data', 'status'],
+    queryFn: () => http<{ isEmpty: boolean; productCount: number; saleCount: number; isSuperAdmin: boolean }>('/api/admin/demo-data/status'),
+    staleTime: 30_000,
+  });
+
+  const isEmpty = Boolean(statusQuery.data?.isEmpty);
+
+  const mutation = useMutation({
+    mutationFn: async ({ mode, pass }: { mode: 'seed' | 'wipe'; pass: string }) => {
+      const endpoint = mode === 'seed' ? '/api/admin/demo-data/seed' : '/api/admin/demo-data/wipe';
+      return http<{ ok: boolean; message: string }>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ password: pass }),
+      });
+    },
+    onSuccess: (data, vars) => {
+      setFeedback({
+        kind: 'success',
+        message: data.message || (vars.mode === 'seed' ? 'تم ملء النظام بالبيانات التجريبية بنجاح!' : 'تم تصفير البيانات بنجاح!'),
+      });
+      setModalMode(null);
+      setPassword('');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    },
+    onError: (err: any) => {
+      setFeedback({
+        kind: 'error',
+        message: err?.message || 'فشل تنفيذ العملية. تأكد من كلمة مرور السوبر أدمن.',
+      });
+    },
+  });
+
+  if (!isSuperAdmin && !isEmpty) return null;
+
+  return (
+    <>
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid #fed7aa',
+        borderRadius: '12px',
+        padding: '18px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        boxShadow: '0 2px 6px rgba(249, 115, 22, 0.05)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: '#ea580c',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '1rem',
+              flexShrink: 0
+            }}>
+              Z
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: '0.98rem', color: '#7c2d12', fontWeight: 800 }}>
+                  بيئة العرض التجريبية الشاملة وتصفير البيانات
+                </strong>
+                {isEmpty ? (
+                  <span style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #a7f3d0' }}>
+                    متجر جديد وفارغ (ملء فوري بنقرة واحدة)
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.72rem', background: '#ffedd5', color: '#c2410c', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #fed7aa' }}>
+                    سوبر أدمن فقط
+                  </span>
+                )}
+                <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+                  نسخ احتياطي تلقائي إجباري
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#9a3412', lineHeight: 1.5 }}>
+                أداة فورية لملء النظام بكافة بيانات المتجر الواقعية لاختبار الكاشير والتقارير والمناديب والمخازن على مدار 6 أشهر، أو تصفير النظام تماماً لتسليمه للعميل.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Button
+              type="button"
+              disabled={mutation.isPending}
+              onClick={() => {
+                setFeedback(null);
+                if (isEmpty) {
+                  mutation.mutate({ mode: 'seed', pass: '' });
+                } else {
+                  setPassword('');
+                  setModalMode('seed');
+                }
+              }}
+              style={{
+                fontSize: '0.85rem',
+                padding: '9px 18px',
+                background: '#ea580c',
+                color: '#ffffff',
+                fontWeight: 800,
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 4px rgba(234, 88, 12, 0.25)',
+              }}
+            >
+              {mutation.isPending && isEmpty ? 'جاري السكب...' : 'ملء النظام ببيانات تجريبية كاملة'}
+            </Button>
+
+            {isSuperAdmin && (
+              <Button
+                type="button"
+                disabled={mutation.isPending}
+                onClick={() => {
+                  setFeedback(null);
+                  setPassword('');
+                  setModalMode('wipe');
+                }}
+                style={{
+                  fontSize: '0.85rem',
+                  padding: '9px 18px',
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
+                }}
+              >
+                تصفير ومسح كافة البيانات
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div style={{
+          background: '#fffaf5',
+          border: '1px dashed #fdba74',
+          borderRadius: '8px',
+          padding: '10px 14px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '10px',
+          fontSize: '0.78rem',
+          color: '#7c2d12',
+        }}>
+          <div>
+            <strong>الأصناف والأسعار:</strong> 50 صنفاً تجارياً، نواقص شراء، وأصناف نفدت.
+          </div>
+          <div>
+            <strong>الشركاء والموظفون:</strong> 10 عملاء، 8 موردين، 6 مناديب، 20 موظفاً (HR).
+          </div>
+          <div>
+            <strong>الفواتير والتقارير:</strong> مبيعات ومشتريات موزعة على 6 أشهر كاملة.
+          </div>
+          <div>
+            <strong>حسابات سريعة:</strong> كاشير1 (1)، كاشير2 (1)، admin (1).
+          </div>
+        </div>
+
+        {feedback && (
+          <div style={{
+            padding: '10px 14px',
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            background: feedback.kind === 'success' ? '#ecfdf5' : '#fef2f2',
+            color: feedback.kind === 'success' ? '#047857' : '#b91c1c',
+            border: feedback.kind === 'success' ? '1px solid #a7f3d0' : '1px solid #fca5a5',
+          }}>
+            {feedback.message}
+          </div>
+        )}
+      </div>
+
+      {modalMode && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: modalMode === 'wipe' ? '2px solid #ef4444' : '2px solid #f97316',
+            direction: 'rtl',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: modalMode === 'wipe' ? '#fef2f2' : '#fff7ed',
+                border: modalMode === 'wipe' ? '1px solid #fca5a5' : '1px solid #fdba74',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1rem',
+                fontWeight: 800,
+                color: modalMode === 'wipe' ? '#dc2626' : '#ea580c',
+              }}>
+                !
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: modalMode === 'wipe' ? '#991b1b' : '#9a3412' }}>
+                  {modalMode === 'wipe' ? 'تأكيد تصفير ومسح كافة البيانات' : 'تأكيد ملء النظام بالبيانات التجريبية'}
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                  {modalMode === 'wipe' ? 'سيتم مسح كل الحركات والبيانات وإعادة النظام لضبط المصنع' : 'سيتم إضافة أصناف وعملاء وموظفين وفواتير 6 أشهر'}
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '16px',
+              fontSize: '0.82rem',
+              color: '#334155',
+              lineHeight: 1.6,
+            }}>
+              <div style={{ fontWeight: 700, color: '#047857', marginBottom: '4px' }}>
+                🛡️ أمان إضافي مؤكد:
+              </div>
+              سيقوم السستم تلقائياً بأخذ لقطة احتياطية كاملة (Backup) من قاعدة البيانات الحالية وحفظها في المجلد السحابي والمحلي قبل الشروع في التنفيذ لحماية بياناتك تماماً.
+            </div>
+
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+                كلمة مرور السوبر أدمن (مطلوبة للتنفيذ)
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="أدخل كلمة مرور السوبر أدمن الحالية..."
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && password && !mutation.isPending) {
+                      mutation.mutate({ mode: modalMode, pass: password });
+                    }
+                  }}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    paddingLeft: '40px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    color: '#64748b',
+                  }}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+            </div>
+
+            {feedback?.kind === 'error' && (
+              <div style={{
+                marginBottom: '16px',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                background: '#fef2f2',
+                color: '#b91c1c',
+                border: '1px solid #fca5a5',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+              }}>
+                {feedback.message}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
+              <Button
+                type="button"
+                disabled={mutation.isPending}
+                onClick={() => {
+                  setModalMode(null);
+                  setPassword('');
+                  setFeedback(null);
+                }}
+                style={{
+                  padding: '8px 18px',
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                }}
+              >
+                إلغاء
+              </Button>
+
+              <Button
+                type="button"
+                disabled={!password || mutation.isPending}
+                onClick={() => mutation.mutate({ mode: modalMode, pass: password })}
+                style={{
+                  padding: '8px 22px',
+                  background: modalMode === 'wipe' ? '#dc2626' : '#ea580c',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  boxShadow: modalMode === 'wipe' ? '0 2px 6px rgba(220, 38, 38, 0.3)' : '0 2px 6px rgba(234, 88, 12, 0.3)',
+                }}
+              >
+                {mutation.isPending ? 'جاري التنفيذ وأخذ النسخة...' : modalMode === 'wipe' ? 'تأكيد المسح والتصفير' : 'تأكيد ملء البيانات التجريبية'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
 function formatSummaryPairs(result: unknown): Array<{ label: string; value: string }> {
   if (!result || typeof result !== 'object') return [];
   const payload = result as Record<string, unknown>;
@@ -465,6 +831,9 @@ export function SettingsBackupImportSection({
           )}
         </div>
       </QueryCard>
+
+      {/* Demo Data Engine & Factory Reset Card (Super Admin only) */}
+      <DemoDataSandboxCard />
 
       {/* Database Maintenance Strip */}
       <DatabaseOptimizationCard canManage={canManageBackups} />

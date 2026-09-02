@@ -754,38 +754,142 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               -moz-appearance: textfield !important;
               appearance: textfield !important;
             }
+            .close-shift-modal-header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              margin-bottom: 20px;
+              padding-bottom: 14px;
+              border-bottom: 1px solid #f1f5f9;
+            }
+            .close-shift-modal-title-col {
+              flex: 1;
+              min-width: 0;
+            }
+            .close-shift-modal-title {
+              margin: 0;
+              font-size: 1.25rem;
+              color: #0f172a;
+              font-weight: 800;
+            }
+            .close-shift-modal-subtitle {
+              font-size: 0.8rem;
+              color: #64748b;
+              margin-top: 2px;
+            }
+            .close-shift-modal-badge-chip {
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              padding: 6px 12px;
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              font-size: 0.85rem;
+              font-weight: 700;
+              color: #0f172a;
+              white-space: nowrap;
+              flex-shrink: 0;
+            }
+            .close-shift-financial-card {
+              grid-column: 1 / -1;
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 10px;
+              padding: 12px;
+            }
+            .close-shift-financial-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+              gap: 8px;
+            }
+            .close-shift-fin-item {
+              display: flex;
+              flex-direction: column;
+              padding: 6px 8px;
+              background: #ffffff;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              gap: 2px;
+            }
+            .close-shift-fin-item.close-shift-fin-highlight {
+              background: #f1f5f9;
+              border-color: #cbd5e1;
+            }
+            .close-shift-fin-label {
+              font-size: 0.72rem;
+              color: #64748b;
+              font-weight: 600;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .close-shift-fin-value {
+              font-size: 0.88rem;
+              font-weight: 800;
+              color: #0f172a;
+            }
+            .close-shift-fin-value.tone-green { color: #16a34a; }
+            .close-shift-fin-value.tone-blue { color: #2563eb; }
+            .close-shift-fin-value.tone-red { color: #dc2626; }
+            .close-shift-fin-value.tone-primary { color: #170c5c; }
+            .close-shift-fin-footnote {
+              font-size: 0.72rem;
+              color: #94a3b8;
+              margin-top: 8px;
+              line-height: 1.4;
+              border-top: 1px dashed #e2e8f0;
+              padding-top: 6px;
+            }
+            .close-shift-auth-row {
+              grid-column: 1 / -1;
+              display: flex;
+              flex-direction: row;
+              align-items: flex-start;
+              gap: 12px;
+              width: 100%;
+            }
+            .close-shift-note-col {
+              flex: 1;
+              min-width: 0;
+            }
+            .close-shift-pin-col {
+              width: 260px;
+              flex-shrink: 0;
+            }
+            @media (max-width: 640px) {
+              .close-shift-modal-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+              }
+              .close-shift-modal-badge-chip {
+                width: 100%;
+                justify-content: space-between;
+                box-sizing: border-box;
+              }
+              .close-shift-auth-row {
+                flex-direction: column;
+                gap: 10px;
+              }
+              .close-shift-pin-col {
+                width: 100%;
+              }
+              .close-shift-financial-grid {
+                grid-template-columns: repeat(2, 1fr);
+              }
+            }
           `}</style>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '20px',
-              paddingBottom: '14px',
-              borderBottom: '1px solid #f1f5f9',
-            }}
-          >
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>إغلاق وردية نقطة البيع</h2>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+          <div className="close-shift-modal-header">
+            <div className="close-shift-modal-title-col">
+              <h2 className="close-shift-modal-title">إغلاق وردية نقطة البيع</h2>
+              <div className="close-shift-modal-subtitle">
                 تسجيل إقرار مبيعات النقدية والمدفوعات الإلكترونية ومطابقة بونات الدفع
               </div>
             </div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                color: '#0f172a',
-              }}
-            >
+            <div className="close-shift-modal-badge-chip">
               <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || 'الوردية الحالية'}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
               <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>وردية نشطة</span>
             </div>
@@ -952,18 +1056,9 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                   </div>
                 </div>
 
-                {/* 3. Password & Optional Notes in One Unified Single Row */}
-                <div
-                  style={{
-                    gridColumn: '1 / -1',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    width: '100%',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                {/* 3. Password & Optional Notes in Responsive Row */}
+                <div className="close-shift-auth-row">
+                  <div className="close-shift-note-col">
                     <Field label="ملاحظات الإغلاق (اختياري)">
                       <input
                         type="text"
@@ -975,7 +1070,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                     </Field>
                   </div>
 
-                  <div style={{ width: '260px', flexShrink: 0 }}>
+                  <div className="close-shift-pin-col">
                     <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
                       <input
                         type="text"
@@ -1005,39 +1100,86 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               <>
                 <Field label="النقدية المتوقعة"><input value={formatCurrency(props.closeExpectedCash)} disabled readOnly /></Field>
                 {selectedCloseShift ? (
-                  <div className="muted small" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
-                    <span>مبيعات نقدي: <strong>{formatCurrency(closeCashSalesTotal)}</strong></span>
-                    <span>مبيعات فيزا: <strong>{formatCurrency(closeCardSalesTotal)}</strong></span>
-                    {closeDeliverySalesTotal > 0 ? <span>مبيعات دليفري: <strong>{formatCurrency(closeDeliverySalesTotal)}</strong></span> : null}
-                    {closeServiceCashTotal > 0 ? <span>خدمات نقدي: <strong>{formatCurrency(closeServiceCashTotal)}</strong></span> : null}
-                    {closeCreditSalesTotal > 0 ? <span>مبيعات آجل: <strong>{formatCurrency(closeCreditSalesTotal)}</strong></span> : null}
-                    {closeSaleReturnCashRefundTotal > 0 ? <span>مرتجعات نقدي: <strong>{formatCurrency(closeSaleReturnCashRefundTotal)}</strong></span> : null}
-                    {closeCashDrawerMovementTotal !== 0 ? <span>حركات درج النقدية: <strong>{formatCurrency(closeCashDrawerMovementTotal)}</strong></span> : null}
-                    {closeExpensesTotal > 0 ? <span>مصروفات مسجلة: <strong>{formatCurrency(closeExpensesTotal)}</strong></span> : null}
-                    {closeSupplierPaymentsTotal > 0 ? <span>دفعات موردين: <strong>{formatCurrency(closeSupplierPaymentsTotal)}</strong></span> : null}
-                    <span>إجمالي مبيعات الفواتير: <strong>{formatCurrency(closeShiftSalesTotal)}</strong></span>
-                    {Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0) > 0 ? (
-                      <>
-                        <span>(-) رسوم طيارين: <strong style={{ color: '#dc2626' }}>-{formatCurrency(selectedCloseShift.freelanceDeliveryFeeTotal || 0)}</strong></span>
-                        <span>صافي مبيعات المتجر: <strong style={{ color: '#16a34a' }}>{formatCurrency(closeShiftSalesTotal - Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0))}</strong></span>
-                      </>
-                    ) : null}
-                    <span style={{ gridColumn: '1 / -1' }}>النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.</span>
+                  <div className="close-shift-financial-card">
+                    <div className="close-shift-financial-grid">
+                      <div className="close-shift-fin-item">
+                        <span className="close-shift-fin-label">مبيعات نقدي</span>
+                        <strong className="close-shift-fin-value tone-green">{formatCurrency(closeCashSalesTotal)}</strong>
+                      </div>
+                      <div className="close-shift-fin-item">
+                        <span className="close-shift-fin-label">مبيعات فيزا</span>
+                        <strong className="close-shift-fin-value tone-blue">{formatCurrency(closeCardSalesTotal)}</strong>
+                      </div>
+                      {closeDeliverySalesTotal > 0 ? (
+                        <div className="close-shift-fin-item">
+                          <span className="close-shift-fin-label">مبيعات دليفري</span>
+                          <strong className="close-shift-fin-value">{formatCurrency(closeDeliverySalesTotal)}</strong>
+                        </div>
+                      ) : null}
+                      {closeServiceCashTotal > 0 ? (
+                        <div className="close-shift-fin-item">
+                          <span className="close-shift-fin-label">خدمات نقدي</span>
+                          <strong className="close-shift-fin-value">{formatCurrency(closeServiceCashTotal)}</strong>
+                        </div>
+                      ) : null}
+                      {closeCreditSalesTotal > 0 ? (
+                        <div className="close-shift-fin-item">
+                          <span className="close-shift-fin-label">مبيعات آجل</span>
+                          <strong className="close-shift-fin-value">{formatCurrency(closeCreditSalesTotal)}</strong>
+                        </div>
+                      ) : null}
+                      {closeSaleReturnCashRefundTotal > 0 ? (
+                        <div className="close-shift-fin-item">
+                          <span className="close-shift-fin-label">مرتجعات نقدي</span>
+                          <strong className="close-shift-fin-value tone-red">-{formatCurrency(closeSaleReturnCashRefundTotal)}</strong>
+                        </div>
+                      ) : null}
+                      {closeCashDrawerMovementTotal !== 0 ? (
+                        <div className="close-shift-fin-item">
+                          <span className="close-shift-fin-label">حركات درج النقدية</span>
+                          <strong className={`close-shift-fin-value ${closeCashDrawerMovementTotal < 0 ? 'tone-red' : 'tone-green'}`}>
+                            {formatCurrency(closeCashDrawerMovementTotal)}
+                          </strong>
+                        </div>
+                      ) : null}
+                      {closeExpensesTotal > 0 ? (
+                        <div className="close-shift-fin-item">
+                          <span className="close-shift-fin-label">مصروفات مسجلة</span>
+                          <strong className="close-shift-fin-value tone-red">-{formatCurrency(closeExpensesTotal)}</strong>
+                        </div>
+                      ) : null}
+                      {closeSupplierPaymentsTotal > 0 ? (
+                        <div className="close-shift-fin-item">
+                          <span className="close-shift-fin-label">دفعات موردين</span>
+                          <strong className="close-shift-fin-value tone-red">-{formatCurrency(closeSupplierPaymentsTotal)}</strong>
+                        </div>
+                      ) : null}
+                      <div className="close-shift-fin-item close-shift-fin-highlight">
+                        <span className="close-shift-fin-label">إجمالي مبيعات الفواتير</span>
+                        <strong className="close-shift-fin-value tone-primary">{formatCurrency(closeShiftSalesTotal)}</strong>
+                      </div>
+                      {Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0) > 0 ? (
+                        <>
+                          <div className="close-shift-fin-item">
+                            <span className="close-shift-fin-label">(-) رسوم طيارين</span>
+                            <strong className="close-shift-fin-value tone-red">-{formatCurrency(selectedCloseShift.freelanceDeliveryFeeTotal || 0)}</strong>
+                          </div>
+                          <div className="close-shift-fin-item close-shift-fin-highlight">
+                            <span className="close-shift-fin-label">صافي مبيعات المتجر</span>
+                            <strong className="close-shift-fin-value tone-green">{formatCurrency(closeShiftSalesTotal - Number(selectedCloseShift.freelanceDeliveryFeeTotal || 0))}</strong>
+                          </div>
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="close-shift-fin-footnote">
+                      النقدية المتوقعة = رصيد الفتح + مبيعات وخدمات النقدي - مرتجعات النقدي + حركات الدرج - المصروفات - دفعات الموردين.
+                    </div>
                   </div>
                 ) : null}
                 <Field label="المبلغ المعدود"><input type="number" min="0" step="0.01" {...props.closeForm.register('countedCash', { valueAsNumber: true })} disabled={props.closeMutation.isPending} /></Field>
                 
-                <div
-                  style={{
-                    gridColumn: '1 / -1',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    width: '100%',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="close-shift-auth-row">
+                  <div className="close-shift-note-col">
                     <Field label="ملاحظة الإغلاق">
                       <input
                         type="text"
@@ -1049,7 +1191,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                     </Field>
                   </div>
 
-                  <div style={{ width: '260px', flexShrink: 0 }}>
+                  <div className="close-shift-pin-col">
                     <Field label="كلمة مرور المستخدم الحالي (تأكيد الإغلاق)">
                       <input
                         type="text"

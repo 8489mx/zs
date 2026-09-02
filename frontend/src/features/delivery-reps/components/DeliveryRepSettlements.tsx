@@ -77,7 +77,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
 
       {/* Filters Bar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold', marginLeft: '6px' }}>فلترة التوريدات:</span>
           <Button 
             variant={filterDateFrom === getLocalDateStr() && filterDateTo === getLocalDateStr() ? 'primary' : 'secondary'} 
@@ -102,7 +102,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
           </Button>
         </div>
 
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input 
             type="date" 
             value={filterDateFrom} 
@@ -120,8 +120,8 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
       </div>
 
       {/* Settlements Table */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-        <table className="table" style={{ width: '100%', margin: 0, fontSize: '13px' }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table className="table" style={{ width: '100%', minWidth: '680px', margin: 0, fontSize: '13px' }}>
           <thead style={{ background: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '8px 4px', whiteSpace: 'nowrap' }}>الطلب</th>
@@ -221,7 +221,7 @@ export function DeliveryRepSettlements({ repId }: { repId: number | null }) {
                     }}
                     style={{ fontSize: '12px', padding: '4px 12px' }}
                   >
-                    🖨️ طباعة الفاتورة
+                    طباعة الفاتورة
                   </Button>
                 )}
                 <Button variant="secondary" onClick={() => setViewingSaleId(null)} style={{ fontSize: '12px', padding: '4px 12px' }}>

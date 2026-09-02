@@ -3,6 +3,7 @@ import { FormSection } from '@/shared/components/form-section';
 import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
+import { SmartDemoOnboardingBanner } from '@/shared/system/SmartDemoOnboardingBanner';
 import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
@@ -60,6 +61,7 @@ export function DashboardPage() {
         />
 
         <FirstRunSetupChecklist />
+        <SmartDemoOnboardingBanner />
 
         {/* 1. البانر التنفيذي الفاخر والمخطط الانسيابي المتدرج المدمج */}
         <DashboardExecutiveHero

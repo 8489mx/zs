@@ -451,6 +451,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && settings?.enableMobileStoreFeatures !== true) return false;
         if (item.key?.startsWith('pharmacy-') && settings?.enablePharmacyModule !== true) return false;
         if (item.key?.startsWith('manufacturing-') && settings?.manufacturingModuleEnabled !== true) return false;
+        if (item.key === 'services' && settings?.servicesModuleEnabled !== true) return false;
         return true;
       })
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
@@ -459,7 +460,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled]);
+  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);

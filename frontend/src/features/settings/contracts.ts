@@ -39,6 +39,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     clothingModuleEnabled,
     enableMobileStoreFeatures: values.enableMobileStoreFeatures === true,
     enablePharmacyModule: values.enablePharmacyModule === true,
+    servicesModuleEnabled: values.servicesModuleEnabled === true,
     maintenanceProfile: values.maintenanceProfile || 'mobile',
     enableEnterpriseFeatures: values.enableEnterpriseFeatures === true,
     technicianCommissionRate: Number(values.technicianCommissionRate ?? 30),

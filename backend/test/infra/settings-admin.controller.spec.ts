@@ -24,7 +24,7 @@ import { AdminRoleGuard } from '../../src/core/auth/guards/admin-role.guard';
     reconcileSuppliers() { serviceCalls.push('reconcileSuppliers'); return { ok: true }; },
   };
 
-  const controller = new SettingsAdminController(service as any);
+  const controller = new SettingsAdminController(service as any, {} as any);
   controller.getDiagnostics({} as any);
   controller.getMaintenanceReport({} as any);
   controller.getLaunchReadiness({} as any);

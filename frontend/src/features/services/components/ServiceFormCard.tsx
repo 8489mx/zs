@@ -112,14 +112,14 @@ export function ServiceFormCard({
   }
 
   return (
-    <form className="form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+    <form className="form-grid service-form-grid" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
       <DraftStateNotice
         visible={form.formState.isDirty && !mutation.isPending}
         title={service ? 'تعديلات الخدمة الحالية غير محفوظة' : 'بيانات الخدمة الجديدة لم تُحفظ بعد'}
         hint={service ? 'يمكنك حفظ التعديل أو إعادة القيم الأصلية قبل تغيير التحديد.' : 'يمكنك تفريغ النموذج سريعًا قبل إدخال خدمة جديدة أخرى.'}
       />
 
-      <Field label="اسم الخدمة">
+      <Field label="اسم الخدمة" className="field-full-span">
         <div ref={wrapperRef} style={{ position: 'relative' }}>
           <input
             {...form.register('name', { required: true })}
@@ -197,12 +197,12 @@ export function ServiceFormCard({
         </select>
       </Field>
 
-      <Field label="التاريخ">
+      <Field label="التاريخ" className="field-full-span">
         <input type="datetime-local" {...form.register('date')} disabled={mutation.isPending} />
       </Field>
 
-      <Field label="ملاحظات">
-        <textarea rows={4} {...form.register('notes')} disabled={mutation.isPending} />
+      <Field label="ملاحظات" className="field-full-span">
+        <textarea rows={3} {...form.register('notes')} disabled={mutation.isPending} />
       </Field>
 
       <MutationFeedback

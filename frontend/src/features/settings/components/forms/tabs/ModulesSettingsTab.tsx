@@ -102,6 +102,14 @@ function ScaleIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function WrenchServiceIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  );
+}
+
 function EnterpriseIcon({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -257,6 +265,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const isMaintenanceActive = form.watch('enableMobileStoreFeatures');
   const enableMaintenance = isMaintenanceActive;
   const isPharmacyActive = form.watch('enablePharmacyModule');
+  const isServicesActive = form.watch('servicesModuleEnabled');
   const isClothingActive = form.watch('clothingModuleEnabled');
   const clothingModuleEnabled = isClothingActive;
   const isWeightedActive = form.watch('weightedBarcodeEnabled');
@@ -520,6 +529,20 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('clothingModuleEnabled')} disabled={disabled} />
+          </label>
+
+          {/* موديول الخدمات والمصنعيات */}
+          <label style={getCardStyle(Boolean(isServicesActive), true)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isServicesActive))}>
+                <WrenchServiceIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الخدمات والمصنعيات</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تابة إدارة الخدمات السريعة، المصنعيات، والخدمات غير المخزنية</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('servicesModuleEnabled')} disabled={disabled} />
           </label>
 
           {/* باركود الميزان */}

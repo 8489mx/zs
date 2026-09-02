@@ -58,6 +58,7 @@ const baseSettingsMutationValues = {
   clothingModuleEnabled: false,
   enableMobileStoreFeatures: false,
   enablePharmacyModule: false,
+  servicesModuleEnabled: false,
   maintenanceProfile: 'mobile',
   enableEnterpriseFeatures: false,
   technicianCommissionRate: 30,

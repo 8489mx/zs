@@ -70,6 +70,7 @@ export function PosWorkspaceMainContent({
 }: PosWorkspaceMainContentProps) {
   const user = useAuthStore((state) => state.user);
   const [mobileActiveTab, setMobileActiveTab] = useState<'products' | 'cart'>('products');
+  const [isFloatingCartExpanded, setIsFloatingCartExpanded] = useState(false);
   const defaultLeft = posMode === 'scanner' ? 75 : 65;
   const { leftRatio, rightRatio, startDrag } = useSplitter(`pos_split_${posMode}_${user?.id || 'default'}`, defaultLeft);
 
@@ -276,33 +277,130 @@ export function PosWorkspaceMainContent({
 
         {/* Mobile Sticky Floating Cart Bar (visible when on products tab and cart has items) */}
         {mobileActiveTab === 'products' && cartItemsCount > 0 && (
-          <div className="pos-mobile-floating-cart-bar">
-            <div className="pos-mobile-floating-cart-info" onClick={() => setMobileActiveTab('cart')} role="button" tabIndex={0}>
-              <div className="pos-mobile-floating-cart-badge">{cartItemsCount}</div>
-              <div className="pos-mobile-floating-cart-text">
-                <strong className="pos-mobile-floating-cart-total">{formatCurrency(pos.totals.total)}</strong>
-                <span className="pos-mobile-floating-cart-sub">{cartItemsCount} صنف بالسلة • اضغط للعرض</span>
-              </div>
-            </div>
-            <div className="pos-mobile-floating-cart-actions">
+          <div className={`pos-mobile-floating-cart-bar ${isFloatingCartExpanded ? 'is-expanded' : ''}`}>
+            {/* Header / Drawer Handle with Toggle Button */}
+            <div className="pos-mobile-floating-cart-header">
               <button
                 type="button"
-                className="pos-mobile-floating-checkout-btn"
-                onClick={() => {
-                  if (pos.canOpenCheckout) {
-                    onRequestCheckout();
-                  } else {
-                    setMobileActiveTab('cart');
-                  }
-                }}
+                className="pos-mobile-floating-cart-toggle-btn"
+                onClick={() => setIsFloatingCartExpanded((prev) => !prev)}
+                aria-label={isFloatingCartExpanded ? 'تصغير قائمة الأصناف' : 'عرض أصناف السلة'}
+                title={isFloatingCartExpanded ? 'تصغير' : 'عرض الأصناف'}
               >
-                <span>الدفع (F10)</span>
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
+                <div className="pos-mobile-floating-cart-badge">{cartItemsCount}</div>
+                <div className="pos-mobile-floating-cart-text">
+                  <div className="pos-mobile-floating-cart-text-row">
+                    <strong className="pos-mobile-floating-cart-total">{formatCurrency(pos.totals.total)}</strong>
+                    <span className="pos-mobile-floating-cart-unit">ج.م</span>
+                  </div>
+                  <span className="pos-mobile-floating-cart-sub">
+                    {isFloatingCartExpanded ? 'أصناف السلة (انقر للإغلاق)' : `${cartItemsCount} صنف بالسلة • اضغط لمعاينة الأصناف`}
+                  </span>
+                </div>
+                <span className="pos-mobile-floating-cart-chevron">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      transform: isFloatingCartExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.22s ease',
+                    }}
+                  >
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                </span>
               </button>
+
+              <div className="pos-mobile-floating-cart-actions">
+                <button
+                  type="button"
+                  className="pos-mobile-floating-checkout-btn"
+                  onClick={() => {
+                    if (pos.canOpenCheckout) {
+                      onRequestCheckout();
+                    } else {
+                      setMobileActiveTab('cart');
+                    }
+                  }}
+                >
+                  <span>الدفع (F10)</span>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+              </div>
             </div>
+
+            {/* Expanded Compact Items Preview */}
+            {isFloatingCartExpanded && (
+              <div className="pos-mobile-floating-cart-items-drawer">
+                <div className="pos-mobile-floating-cart-items-list">
+                  {pos.cart.map((item, idx) => {
+                    const modifiersTotal = (item.modifiers || []).reduce((sum, mod) => sum + Number(mod.price || 0), 0);
+                    const lineTotal = Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal);
+                    return (
+                      <div key={item.lineKey || idx} className="pos-mobile-floating-cart-item-row">
+                        <div className="pos-mobile-floating-cart-item-name-col">
+                          <strong className="pos-mobile-floating-cart-item-name">{item.name}</strong>
+                          <span className="pos-mobile-floating-cart-item-price-each">{formatCurrency(item.price)} ج.م / للوحدة</span>
+                        </div>
+
+                        <div className="pos-mobile-floating-cart-item-qty-col">
+                          <button
+                            type="button"
+                            className="pos-mobile-floating-qty-btn"
+                            onClick={() => pos.changeLineQtyByDelta(item.lineKey, -1)}
+                            aria-label="تقليل الكمية"
+                          >
+                            -
+                          </button>
+                          <span className="pos-mobile-floating-qty-val">{item.qty}</span>
+                          <button
+                            type="button"
+                            className="pos-mobile-floating-qty-btn"
+                            onClick={() => pos.changeLineQtyByDelta(item.lineKey, 1)}
+                            aria-label="زيادة الكمية"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div className="pos-mobile-floating-cart-item-total-col">
+                          <strong>{formatCurrency(lineTotal)}</strong>
+                          <span className="pos-mobile-floating-cart-unit-small">ج.م</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="pos-mobile-floating-item-delete-btn"
+                          onClick={() => onRequestLineDelete(item.lineKey)}
+                          title="حذف الصنف"
+                          aria-label="حذف"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="pos-mobile-floating-cart-drawer-footer">
+                  <button
+                    type="button"
+                    className="pos-mobile-floating-view-full-cart-link"
+                    onClick={() => setMobileActiveTab('cart')}
+                  >
+                    عرض صفحة السلة الكاملة والملاحظات ←
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
