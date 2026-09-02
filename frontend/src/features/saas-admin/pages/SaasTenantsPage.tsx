@@ -12,7 +12,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { formatDate } from '@/lib/format';
 import { useAuthStore } from '@/stores/auth-store';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
-import { ApiError } from '@/lib/http';
+import { ApiError, setLocalSessionFallback } from '@/lib/http';
 import { isPlatformAdmin } from '@/app/router/access';
 import { resetAuthenticatedClient } from '@/lib/query-client-session';
 import { saasAdminApi, SaasTenantRow, SaasTenantStatus } from '@/features/saas-admin/api/saas-admin.api';
@@ -179,7 +179,7 @@ export function SaasTenantsPage() {
 
   const [updatePlanTenant, setUpdatePlanTenant] = useState<SaasTenantRow | null>(null);
   const [subscriptionsTenant, setSubscriptionsTenant] = useState<SaasTenantRow | null>(null);
-  const [welcomeShareTenant, setWelcomeShareTenant] = useState<{ tenant: SaasTenantRow; temporaryPassword?: string } | null>(null);
+  const [welcomeShareTenant, setWelcomeShareTenant] = useState<{ tenant: SaasTenantRow; temporaryPassword?: string; username?: string } | null>(null);
 
   const [renewTenant, setRenewTenant] = useState<{ id: string; name?: string } | null>(null);
   const [renewDuration, setRenewDuration] = useState<number>(1);
@@ -371,13 +371,18 @@ export function SaasTenantsPage() {
       featurePlanId: createForm.featurePlanId || 'plan_ultimate',
     }),
     onSuccess: async (payload) => {
+      const fullTenantWithDetails: SaasTenantRow = {
+        ...payload.tenant,
+        ownerUsername: payload.owner.username,
+        planName: payload.tenant.planName || (createForm.featurePlanId === 'plan_ultimate' ? 'المتكاملة' : createForm.featurePlanId === 'plan_pro' ? 'المتقدمة' : 'الأساسية'),
+      } as any;
       setCreateResult({
         username: payload.owner.username,
         temporaryPassword: payload.owner.temporaryPassword,
         trialEndsAt: payload.tenant.trialEndsAt || '',
         tenantSlug: payload.tenant.slug,
         businessName: payload.tenant.businessName,
-        fullTenant: payload.tenant,
+        fullTenant: fullTenantWithDetails,
       });
       setFeedback('تم إنشاء النسخة التجريبية بنجاح.');
       setCreateForm({
@@ -408,6 +413,9 @@ export function SaasTenantsPage() {
     onSuccess: async (res) => {
       if (res?.originalSessionId) {
         window.localStorage.setItem('zs.impersonationOriginalSession', res.originalSessionId);
+      }
+      if (res?.sessionId) {
+        setLocalSessionFallback(res.sessionId);
       }
       await resetAuthenticatedClient(queryClient, clearSession);
       window.location.href = '/';
@@ -906,8 +914,12 @@ export function SaasTenantsPage() {
                       className="saas-whatsapp-action-btn"
                       onClick={() => {
                         setWelcomeShareTenant({
-                          tenant: createResult.fullTenant!,
+                          tenant: {
+                            ...createResult.fullTenant!,
+                            ownerUsername: createResult.username,
+                          },
                           temporaryPassword: createResult.temporaryPassword,
+                          username: createResult.username,
                         });
                         setIsCreateOpen(false);
                         setCreateResult(null);
@@ -1530,6 +1542,7 @@ export function SaasTenantsPage() {
         <TenantWelcomeShareModal
           tenant={welcomeShareTenant.tenant}
           temporaryPassword={welcomeShareTenant.temporaryPassword}
+          username={welcomeShareTenant.username}
           onClose={() => setWelcomeShareTenant(null)}
         />
       )}

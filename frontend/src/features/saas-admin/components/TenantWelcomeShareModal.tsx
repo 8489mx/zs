@@ -7,17 +7,36 @@ import { SaasTenantRow } from '../api/saas-admin.api';
 interface TenantWelcomeShareModalProps {
   tenant: SaasTenantRow;
   temporaryPassword?: string;
+  username?: string;
   onClose: () => void;
 }
 
 export function TenantWelcomeShareModal({
   tenant,
   temporaryPassword,
+  username,
   onClose,
 }: TenantWelcomeShareModalProps) {
   const [copied, setCopied] = useState(false);
   const originUrl = typeof window !== 'undefined' ? window.location.origin : 'https://app.z-systems.io';
   const loginUrl = `${originUrl}/login?tenant=${tenant.slug}`;
+
+  const resolvedUsername = (username || tenant.ownerUsername || '').trim() || 'admin';
+
+  const resolvePlanName = (t: SaasTenantRow): string => {
+    if (t.planName && t.planName !== 'الافتراضية') return t.planName;
+    if (t.planId === 'plan_starter') return 'الأساسية';
+    if (t.planId === 'plan_pro') return 'المتقدمة';
+    if (t.planId === 'plan_ultimate' || !t.planId) return 'المتكاملة';
+    return 'المتكاملة';
+  };
+  const planDisplayName = resolvePlanName(tenant);
+
+  const isTrial = tenant.status !== 'active';
+  const expiryDate = isTrial 
+    ? (tenant.trialEndsAt || tenant.subscriptionEndDate) 
+    : (tenant.subscriptionEndDate || tenant.trialEndsAt);
+  const remainingDays = tenant.trialDaysRemaining ?? (isTrial ? 14 : undefined);
 
   const messageText = `مرحباً بك في منظومة Z-Systems السحابية لإدارة الأعمال
 
@@ -29,13 +48,14 @@ export function TenantWelcomeShareModal({
 ${loginUrl}
 
 - المعرف السحابي (Slug): *${tenant.slug}*
-- اسم المستخدم: *${tenant.ownerUsername || tenant.ownerPhone || 'admin'}*
+- اسم المستخدم: *${resolvedUsername}*
 ${temporaryPassword ? `- كلمة المرور المؤقتة: *${temporaryPassword}*` : `- كلمة المرور: تم تعيينها لحسابكم`}
 
 تفاصيل الاشتراك:
-- الباقة: *${tenant.planName || 'الافتراضية'}*
-- حالة النسخة: *${tenant.status === 'active' ? 'مفعلة' : 'نسخة تجريبية'}*
-${tenant.subscriptionEndDate ? `- تاريخ انتهاء الاشتراك: *${formatDate(tenant.subscriptionEndDate)}*` : ''}
+- الباقة: *${planDisplayName}*
+- حالة النسخة: *${isTrial ? 'نسخة تجريبية' : 'نسخة مفعلة (اشتراك رسمي)'}*
+${expiryDate ? `- ${isTrial ? 'تاريخ انتهاء التجربة' : 'تاريخ انتهاء الاشتراك'}: *${formatDate(expiryDate)}*` : ''}
+${isTrial && remainingDays !== undefined ? `- الأيام المتبقية في التجربة: *${remainingDays} يوم*` : ''}
 
 لأي استفسارات أو دعم فني، يسعدنا تواصلكم معنا دائماً:
 - الدعم الفني: *Z-Systems*

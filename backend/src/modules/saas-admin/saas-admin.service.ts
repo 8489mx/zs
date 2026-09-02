@@ -81,9 +81,9 @@ export class SaasAdminService {
   private async getOwnerUserForTenant(tenantId: string) {
     const owner = await this.db
       .selectFrom('users')
-      .select(['id', 'username', 'tenant_id', 'is_active', 'must_change_password', 'failed_login_count', 'locked_until'])
+      .select(['id', 'username', 'tenant_id', 'account_id', 'is_active', 'must_change_password', 'failed_login_count', 'locked_until'])
       .where('tenant_id', '=', tenantId)
-      .where('role', '=', 'super_admin')
+      .where('role', 'in', ['super_admin', 'admin'])
       .orderBy('created_at', 'asc')
       .orderBy('id', 'asc')
       .executeTakeFirst();
@@ -162,7 +162,7 @@ export class SaasAdminService {
           .selectFrom('users')
           .select(['tenant_id', 'username', 'is_active', 'failed_login_count', 'locked_until'])
           .where('tenant_id', 'in', tenantIds)
-          .where('role', '=', 'super_admin')
+          .where('role', 'in', ['super_admin', 'admin'])
           .orderBy('created_at', 'asc')
           .orderBy('id', 'asc')
           .execute()
@@ -235,7 +235,7 @@ export class SaasAdminService {
         ownerLocked: Boolean(owner?.locked),
         ownerIsActive: owner ? Boolean(owner.isActive) : false,
         ownerUsername: owner?.username || '',
-        planName: isPlatform ? 'مالك المنظومة (غير مقيد)' : (sub?.plan_name || null),
+        planName: isPlatform ? 'مالك المنظومة (غير مقيد)' : (sub?.plan_name || (row.plan_id === 'plan_ultimate' ? 'المتكاملة' : row.plan_id === 'plan_pro' ? 'المتقدمة' : row.plan_id === 'plan_starter' ? 'الأساسية' : 'المتكاملة')),
         planId: row.plan_id || null,
         extraFeatures: Array.isArray(row.extra_features) ? row.extra_features : typeof row.extra_features === 'string' ? JSON.parse(row.extra_features) : [],
         subscriptionStatus: isPlatform ? 'active' : (sub?.sub_status || null),
@@ -316,9 +316,9 @@ export class SaasAdminService {
         usersCount: Number(usersSummary?.users_count || 0),
         activeUsersCount: Number(usersSummary?.active_users_count || 0),
         lastLoginAt: owner?.last_login_at ? new Date(owner.last_login_at).toISOString() : null,
-        lastSeenAt: lastSeenAt,
+        ownerUsername: owner?.username || '',
         planId: tenant.plan_id || null,
-        planName: isPlatform ? 'مالك المنظومة (كامل الصلاحيات والأنظمة)' : null,
+        planName: isPlatform ? 'مالك المنظومة (كامل الصلاحيات والأنظمة)' : (tenant.plan_id === 'plan_ultimate' ? 'المتكاملة' : tenant.plan_id === 'plan_pro' ? 'المتقدمة' : tenant.plan_id === 'plan_starter' ? 'الأساسية' : 'المتكاملة'),
         isPlatform,
         extraFeatures: Array.isArray(tenant.extra_features) ? tenant.extra_features : typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [],
       },
@@ -952,7 +952,7 @@ export class SaasAdminService {
         id: sessionId,
         user_id: owner.id,
         tenant_id: tenant.id,
-        account_id: tenant.id,
+        account_id: owner.account_id || `${tenant.id}:main`,
         expires_at: expiresAt,
         last_seen_at: now,
         ip_address: meta?.ipAddress?.slice(0, 255) || '',

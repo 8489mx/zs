@@ -120,6 +120,7 @@ export class SaasAdminController {
     this.service.setAuthCookies(res, result.sessionId, result.expiresAt);
     return {
       ok: true,
+      sessionId: result.sessionId,
       originalSessionId: result.originalSessionId,
       loginPayload: await this.service.buildLoginPayload(result.auth),
     };
@@ -135,6 +136,7 @@ export class SaasAdminController {
     this.service.setAuthCookies(res, result.sessionId, result.expiresAt);
     return {
       ok: true,
+      sessionId: result.sessionId,
       loginPayload: await this.service.buildLoginPayload(result.auth),
     };
   }

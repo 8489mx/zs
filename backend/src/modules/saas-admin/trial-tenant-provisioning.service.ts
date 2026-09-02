@@ -41,6 +41,9 @@ export type TrialTenantProvisioningResult = {
     createdAt: string;
     updatedAt: string;
     trialDaysRemaining: number;
+    ownerUsername?: string;
+    planName?: string;
+    planId?: string | null;
   };
   owner: {
     username: string;
@@ -411,11 +414,15 @@ export class TrialTenantProvisioningService {
         `.execute(trx);
       }
 
+      const resolvedPlanName = saasPlan?.name || (featurePlanId === 'plan_ultimate' ? 'المتكاملة' : featurePlanId === 'plan_pro' ? 'المتقدمة' : featurePlanId === 'plan_starter' ? 'الأساسية' : 'المتكاملة');
+
       return {
         tenantId,
         slug,
         username,
         temporaryPassword,
+        featurePlanId,
+        planName: resolvedPlanName,
       };
     });
 
@@ -435,6 +442,9 @@ export class TrialTenantProvisioningService {
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
         trialDaysRemaining: this.trialDaysRemaining(expiresAt),
+        ownerUsername: result.username,
+        planName: result.planName,
+        planId: result.featurePlanId,
       },
       owner: {
         username: result.username,
