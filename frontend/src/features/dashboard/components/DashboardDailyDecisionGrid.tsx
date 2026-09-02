@@ -234,9 +234,9 @@ export function DashboardDailyDecisionGrid({
         </div>
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content with smooth anti-jitter transition */}
       {activeTab === 'buying' && (
-        <div className="page-stack" style={{ gap: '12px' }}>
+        <div key="tab-buying" className="page-stack decision-grid-tab-content" style={{ gap: '12px' }}>
           <div className="manager-overview-mini-metrics">
             <MetricTile label="أصناف نفدت تماماً" value={formatNumber(data.buying.outOfStockTotal)} />
             <MetricTile label="أصناف وصلت للحد الأدنى" value={formatNumber(data.buying.lowStockTotal)} />
@@ -247,7 +247,7 @@ export function DashboardDailyDecisionGrid({
       )}
 
       {activeTab === 'stagnant' && (
-        <div className="page-stack" style={{ gap: '12px' }}>
+        <div key="tab-stagnant" className="page-stack decision-grid-tab-content" style={{ gap: '12px' }}>
           <div className="manager-overview-mini-metrics">
             <MetricTile label={`راكد (حد المتجر: ${data.stagnant.thresholdDays || 30} يوم)`} value={formatNumber(data.stagnant.daysConfigured ?? data.stagnant.days30)} />
             <MetricTile label="راكد أكثر من 90 يوم" value={formatNumber(data.stagnant.days90)} />
@@ -258,7 +258,7 @@ export function DashboardDailyDecisionGrid({
       )}
 
       {activeTab === 'profit' && (
-        <div className="page-stack" style={{ gap: '12px' }}>
+        <div key="tab-profit" className="page-stack decision-grid-tab-content" style={{ gap: '12px' }}>
           <div className="manager-overview-mini-metrics">
             <MetricTile label="أعلى ربح محقق" value={data.profitSources.topProducts[0] ? formatCurrency(data.profitSources.topProducts[0].grossProfit) : 'غير متاح'} />
             <MetricTile label="هامش أعلى صنف" value={data.profitSources.topProducts[0] ? formatPercent(data.profitSources.topProducts[0].marginPercent) : 'غير متاح'} />
@@ -278,7 +278,7 @@ export function DashboardDailyDecisionGrid({
       )}
 
       {activeTab === 'collection' && (
-        <div className="page-stack" style={{ gap: '12px' }}>
+        <div key="tab-collection" className="page-stack decision-grid-tab-content" style={{ gap: '12px' }}>
           <div className="manager-overview-mini-metrics">
             <MetricTile label="أعلى أرصدة مستحقة" value={formatNumber(data.collection.topDebts.length)} />
             <MetricTile label="عملاء تجاوزوا الحد" value={formatNumber(data.collection.aboveCreditLimit.length)} />
@@ -289,7 +289,7 @@ export function DashboardDailyDecisionGrid({
       )}
 
       {activeTab === 'payables' && (
-        <div className="page-stack" style={{ gap: '12px' }}>
+        <div key="tab-payables" className="page-stack decision-grid-tab-content" style={{ gap: '12px' }}>
           <div className="manager-overview-mini-metrics">
             <MetricTile label="إجمالي ديون الموردين" value={formatCurrency(totalSupplierDebt)} />
             <MetricTile label="أعلى مورد مستحق" value={topSuppliers[0] ? formatCurrency(topSuppliers[0].total) : '0 ج.م'} />

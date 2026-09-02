@@ -44,8 +44,13 @@ export function DashboardExecutiveHero({
   const [activeMetric, setActiveMetric] = useState<'sales' | 'both'>('sales');
   const [timeframe, setTimeframe] = useState<'7d' | '30d'>('7d');
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>(getInitialTheme);
+  const [activeKpi, setActiveKpi] = useState<'sales' | 'invoices' | 'treasury' | 'alerts' | null>(null);
 
   const user = useAuthStore((state) => state.user);
+
+  const toggleKpi = (key: 'sales' | 'invoices' | 'treasury' | 'alerts') => {
+    setActiveKpi((prev) => (prev === key ? null : key));
+  };
 
   const handleToggleTheme = () => {
     setThemeMode((prev) => {
@@ -78,29 +83,28 @@ export function DashboardExecutiveHero({
     if (hour >= 5 && hour < 12) {
       return {
         text: `صباح الرزق والبركة${userGreetingPart}`,
-        sub: 'يا فتاح يا عليم.. يوم موفق وتجارة رابحة بإذن الله',
+        sub: 'يوم موفق وتجارة رابحة',
       };
     }
     if (hour >= 12 && hour < 17) {
       return {
         text: `طاب يومك ورزقك${userGreetingPart}`,
-        sub: 'متابعة حية ومباشرة لحركة البيع والشغل على مدار اليوم',
+        sub: 'متابعة حية للمبيعات',
       };
     }
     return {
       text: `مساء الخير والخيرات${userGreetingPart}`,
-      sub: 'ملخص حسابات وأرباح اليوم والنتائج المحققة',
+      sub: 'ملخص أرباح ونشاط اليوم',
     };
   }, [userGreetingPart]);
 
-  // Formatted date
+  // Formatted date (concise: day & month)
   const todayFormatted = useMemo(() => {
     try {
       return new Intl.DateTimeFormat('ar-EG', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
-        year: 'numeric',
       }).format(new Date());
     } catch {
       return new Date().toLocaleDateString('ar-EG');
@@ -279,9 +283,13 @@ export function DashboardExecutiveHero({
                 background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
                 border: isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #cbd5e1',
                 color: isDark ? '#f59e0b' : '#475569',
-                width: '32px',
-                height: '32px',
-                minWidth: '32px',
+                width: '28px',
+                height: '28px',
+                minWidth: '28px',
+                minHeight: '28px',
+                maxWidth: '28px',
+                maxHeight: '28px',
+                aspectRatio: '1 / 1',
                 borderRadius: '50%',
                 cursor: 'pointer',
                 display: 'inline-flex',
@@ -291,11 +299,12 @@ export function DashboardExecutiveHero({
                 transition: 'all 0.2s ease',
                 padding: 0,
                 flexShrink: 0,
+                boxSizing: 'border-box',
               }}
             >
               {isDark ? (
                 // Sun Icon for Dark Mode (switch to light)
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="4" fill="#fbbf24" fillOpacity="0.25" />
                   <line x1="12" y1="2" x2="12" y2="4" />
                   <line x1="12" y1="20" x2="12" y2="22" />
@@ -308,7 +317,7 @@ export function DashboardExecutiveHero({
                 </svg>
               ) : (
                 // Moon Icon for Light Mode (switch to dark)
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#475569" fillOpacity="0.15" />
                 </svg>
               )}
@@ -334,7 +343,12 @@ export function DashboardExecutiveHero({
         <div className="dashboard-hero-kpi-grid" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {/* Card 1: Sales */}
           <div
-            className="dashboard-hero-kpi-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => toggleKpi('sales')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleKpi('sales'); }}
+            className={`dashboard-hero-kpi-card ${activeKpi === 'sales' ? 'is-expanded' : ''}`.trim()}
+            title="انقر للتكبير والتفاصيل"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -362,7 +376,12 @@ export function DashboardExecutiveHero({
 
           {/* Card 2: Invoices */}
           <div
-            className="dashboard-hero-kpi-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => toggleKpi('invoices')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleKpi('invoices'); }}
+            className={`dashboard-hero-kpi-card ${activeKpi === 'invoices' ? 'is-expanded' : ''}`.trim()}
+            title="انقر للتكبير والتفاصيل"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -390,7 +409,12 @@ export function DashboardExecutiveHero({
 
           {/* Card 3: Treasury */}
           <div
-            className="dashboard-hero-kpi-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => toggleKpi('treasury')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleKpi('treasury'); }}
+            className={`dashboard-hero-kpi-card ${activeKpi === 'treasury' ? 'is-expanded' : ''}`.trim()}
+            title="انقر للتكبير والتفاصيل"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
@@ -408,19 +432,7 @@ export function DashboardExecutiveHero({
             <div className="dashboard-hero-kpi-title" style={{ fontSize: '0.73rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600, marginBottom: '3px' }}>
               صافي الخزينة
             </div>
-            <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '3px', justifyContent: 'center', direction: 'rtl' }}>
-              {treasuryNet < 0 && (
-                <span
-                  style={{
-                    fontSize: '1.05rem',
-                    color: isDark ? '#f87171' : '#dc2626',
-                    fontWeight: 800,
-                    lineHeight: 1,
-                  }}
-                >
-                  -
-                </span>
-              )}
+            <div className="dashboard-hero-kpi-value-row" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '2px', justifyContent: 'center' }}>
               <strong
                 className="dashboard-hero-kpi-value"
                 style={{
@@ -432,7 +444,7 @@ export function DashboardExecutiveHero({
                   lineHeight: 1,
                 }}
               >
-                {formatCurrency(Math.abs(treasuryNet))}
+                {treasuryNet < 0 ? `-${formatCurrency(Math.abs(treasuryNet))}` : formatCurrency(treasuryNet)}
               </strong>
               <span className="dashboard-hero-kpi-unit" style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>ج.م</span>
             </div>
@@ -440,7 +452,12 @@ export function DashboardExecutiveHero({
 
           {/* Card 4: Inventory Alerts */}
           <div
-            className="dashboard-hero-kpi-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => toggleKpi('alerts')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleKpi('alerts'); }}
+            className={`dashboard-hero-kpi-card ${activeKpi === 'alerts' ? 'is-expanded' : ''}`.trim()}
+            title="انقر للتكبير والتفاصيل"
             style={{
               background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #cbd5e1',
