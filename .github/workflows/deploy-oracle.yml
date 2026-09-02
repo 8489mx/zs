@@ -10,6 +10,9 @@ concurrency:
   group: deploy-oracle-saas
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy to Oracle Cloud VPS
@@ -50,12 +53,14 @@ jobs:
             if [ ! -d ".git" ]; then
               echo "⚙️ Initializing git repository..."
               git init
-              git remote add origin https://github.com/8489mx/zs.git 2>/dev/null || git remote set-url origin https://github.com/8489mx/zs.git
             fi
 
             echo "📥 Fetching latest code from origin/main..."
+            git remote remove origin 2>/dev/null || true
+            git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/8489mx/zs.git
             git fetch origin main
             git reset --hard origin/main
+            git remote set-url origin https://github.com/8489mx/zs.git
 
             if [ -f "./update.sh" ]; then
               chmod +x ./update.sh
