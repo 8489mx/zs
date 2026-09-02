@@ -102,19 +102,19 @@ function TenantActionsMenu({
   const toggleDropdown = () => {
     if (!isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const dropdownWidth = 230;
+      const dropdownWidth = 240;
       const spaceBelow = window.innerHeight - rect.bottom - 16;
       const spaceAbove = rect.top - 16;
       
       let top: number;
       let maxHeight: number;
 
-      if (spaceBelow < 280 && spaceAbove > spaceBelow) {
-        maxHeight = Math.min(340, Math.max(160, spaceAbove));
+      if (spaceBelow < 320 && spaceAbove > spaceBelow) {
+        maxHeight = Math.min(420, Math.max(200, spaceAbove));
         top = Math.max(10, rect.top - maxHeight - 6);
       } else {
         top = rect.bottom + 6;
-        maxHeight = Math.min(340, Math.max(160, spaceBelow));
+        maxHeight = Math.min(420, Math.max(200, spaceBelow));
       }
       
       let left = rect.left;
@@ -132,17 +132,28 @@ function TenantActionsMenu({
 
   useEffect(() => {
     if (!isOpen) return;
+
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
       if (buttonRef.current && buttonRef.current.contains(target)) return;
-      if (target.closest('.tenant-actions-portal-dropdown')) return;
+      if (target.closest && target.closest('.tenant-actions-portal-dropdown')) return;
       setIsOpen(false);
     }
+
+    function handleScroll(event: Event) {
+      const target = event.target as HTMLElement | null;
+      // Do not close if the user is scrolling or dragging scrollbar inside the dropdown itself
+      if (target && target.closest && target.closest('.tenant-actions-portal-dropdown')) {
+        return;
+      }
+      setIsOpen(false);
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('scroll', () => setIsOpen(false), true);
+    window.addEventListener('scroll', handleScroll, true);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', () => setIsOpen(false), true);
+      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [isOpen]);
 
