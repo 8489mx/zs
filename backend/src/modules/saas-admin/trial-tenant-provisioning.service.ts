@@ -5,6 +5,7 @@ import { Database } from '../../database/database.types';
 import { KYSELY_DB } from '../../database/database.constants';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { DEFAULT_TRIAL_DAYS } from './trial.constants';
+import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
 
 export type TrialTenantProvisioningInput = {
   slug?: string;
@@ -297,12 +298,13 @@ export class TrialTenantProvisioningService {
         .execute();
 
       // 1. Create Default Primary Branch
+      const branchName = 'الفرع الرئيسي';
       const branch = await trx
         .insertInto('branches')
         .values({
           tenant_id: tenantId,
           account_id: accountId,
-          name: 'الفرع الرئيسي',
+          name: branchName,
           code: 'MAIN',
           sales_stock_mode: 'single_location',
           allow_external_sales_stock: false,
@@ -313,14 +315,15 @@ export class TrialTenantProvisioningService {
 
       const branchId = Number(branch.id);
 
-      // 2. Create Default Primary Stock Location
+      // 2. Create Default Primary Stock Location (e.g. "رصيد الفرع الرئيسي")
+      const locationName = formatBranchStockLocationName(branchName);
       const location = await trx
         .insertInto('stock_locations')
         .values({
           tenant_id: tenantId,
           account_id: accountId,
           branch_id: branchId,
-          name: 'المستودع الرئيسي',
+          name: locationName,
           code: 'WH-MAIN',
           location_type: 'branch_stock',
           is_active: true,
@@ -392,6 +395,7 @@ export class TrialTenantProvisioningService {
         { key: 'primaryBranchId', value: String(branchId) },
         { key: 'primaryLocationId', value: String(locationId) },
         { key: 'defaultStockLocationId', value: String(locationId) },
+        { key: 'currentLocationId', value: String(locationId) },
       ];
 
       for (const s of defaultSettings) {

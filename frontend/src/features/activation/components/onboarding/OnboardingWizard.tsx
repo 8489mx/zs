@@ -37,8 +37,10 @@ export function OnboardingWizard() {
     const syntheticEvent = { preventDefault: () => {} } as React.FormEvent<HTMLFormElement>;
     
     // Fill in default required backend fields if not asked in UI
-    if (!form.branchName) updateField('branchName', 'الفرع الرئيسي');
-    if (!form.locationName) updateField('locationName', 'المخزن الرئيسي');
+    const branchName = form.branchName?.trim() || 'الفرع الرئيسي';
+    const locName = form.locationName?.trim() || (branchName.startsWith('فرع ') ? `رصيد ${branchName}` : `رصيد فرع ${branchName}`);
+    if (!form.branchName) updateField('branchName', branchName);
+    if (!form.locationName) updateField('locationName', locName);
     
     // We let the loading screen show for a few seconds before actually submitting
     // because the user requested an animation.

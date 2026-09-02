@@ -131,6 +131,10 @@ export async function invalidatePurchasesDomain(
     queryClient.invalidateQueries({ queryKey: queryKeys.stockMovements, refetchType: 'none' }),
     queryClient.invalidateQueries({ queryKey: ['location-stocks'], refetchType: 'none' }),
     queryClient.invalidateQueries({ queryKey: queryKeys.treasury, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['reports-summary'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['accounting-journals'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['accounting-trial-balance'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['pricing-preview'], refetchType: 'none' }),
   ];
 
   if (includeDashboard) {

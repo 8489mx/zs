@@ -6,6 +6,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
 
 @Injectable()
 export class SettingsService {
@@ -182,13 +183,8 @@ export class SettingsService {
       // 1. Insert Branch
       const newBranch = await trx.insertInto('branches').values({ name, code, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId, sales_stock_mode: 'single_location', allow_external_sales_stock: false }).returning(['id', 'name', 'code']).executeTakeFirstOrThrow();
 
-      // 2. Generate location name
-      let locationName = newBranch.name.trim();
-      if (locationName.startsWith('فرع')) {
-        locationName = `مخزون ${locationName}`;
-      } else {
-        locationName = `مخزون فرع ${locationName}`;
-      }
+      // 2. Generate location name using standard helper (e.g. "رصيد فرع التعاونيات")
+      const locationName = formatBranchStockLocationName(newBranch.name);
 
       // 3. Create default stock location
       const newLocation = await trx.insertInto('stock_locations').values({
@@ -268,13 +264,10 @@ export class SettingsService {
 
       // Check if we need to auto-rename the default location
       if (branch.default_stock_location_id && name !== branch.name) {
-        const defaultLocation = await trx.selectFrom('stock_locations').select(['id', 'name']).where('id', '=', branch.default_stock_location_id).where(this.tenantPredicate(actor)).executeTakeFirst();
+        const defaultLocation = await trx.selectFrom('stock_locations').select(['id', 'name', 'location_type']).where('id', '=', branch.default_stock_location_id).where(this.tenantPredicate(actor)).executeTakeFirst();
         if (defaultLocation) {
-          const expectedOldName = branch.name.startsWith('فرع') ? `مخزون ${branch.name.trim()}` : `مخزون فرع ${branch.name.trim()}`;
-          if (defaultLocation.name === expectedOldName) {
-            const expectedNewName = name.startsWith('فرع') ? `مخزون ${name.trim()}` : `مخزون فرع ${name.trim()}`;
-            await trx.updateTable('stock_locations').set({ name: expectedNewName }).where('id', '=', defaultLocation.id).execute();
-          }
+          const expectedNewName = formatBranchStockLocationName(name);
+          await trx.updateTable('stock_locations').set({ name: expectedNewName }).where('id', '=', defaultLocation.id).execute();
         }
       }
     });

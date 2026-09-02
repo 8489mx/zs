@@ -11,6 +11,7 @@ import { InitializeAppDto } from './dto/initialize-app.dto';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { assertStrongPassword } from '../../core/auth/utils/password-policy';
 import { SUPER_ADMIN_PERMISSIONS } from '../../core/auth/constants/super-admin-permissions';
+import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
 
 interface LicensePayload {
   machineId: string;
@@ -272,9 +273,12 @@ export class ActivationService {
 
         const branchesScoped = await this.columnExists('branches', 'tenant_id', trx);
         const branchesHaveAccountId = branchesScoped && await this.columnExists('branches', 'account_id', trx);
+        const branchName = dto.branchName?.trim() || 'الفرع الرئيسي';
         const branchValues: Record<string, unknown> = {
-          name: dto.branchName.trim(),
+          name: branchName,
           code: dto.branchCode?.trim() || '',
+          sales_stock_mode: 'single_location',
+          allow_external_sales_stock: false,
           is_active: true,
           created_at: now,
           updated_at: now,
@@ -288,15 +292,19 @@ export class ActivationService {
           .returning(['id'])
           .executeTakeFirstOrThrow();
 
+        const rawLocName = dto.locationName?.trim();
+        const locationName = (!rawLocName || rawLocName === 'المخزن الرئيسي' || rawLocName === 'المستودع الرئيسي')
+          ? formatBranchStockLocationName(branchName)
+          : rawLocName;
+
         const locationsScoped = await this.columnExists('stock_locations', 'tenant_id', trx);
         const locationsHaveAccountId = locationsScoped && await this.columnExists('stock_locations', 'account_id', trx);
         const locationValues: Record<string, unknown> = {
           branch_id: Number(branch.id),
-          name: dto.locationName.trim(),
+          name: locationName,
           code: dto.locationCode?.trim() || '',
+          location_type: 'branch_stock',
           is_active: true,
-          created_at: now,
-          updated_at: now,
         };
         if (locationsScoped) locationValues.tenant_id = scope.tenantId;
         if (locationsHaveAccountId) locationValues.account_id = scope.accountId;
@@ -356,6 +364,10 @@ export class ActivationService {
         await this.setSetting('activation.initializedAt', now.toISOString(), trx);
         await this.setSetting('activation.primaryBranchId', String(branch.id), trx);
         await this.setSetting('activation.primaryLocationId', String(location.id), trx);
+        await this.setSetting('primaryBranchId', JSON.stringify(String(branch.id)), trx);
+        await this.setSetting('primaryLocationId', JSON.stringify(String(location.id)), trx);
+        await this.setSetting('defaultStockLocationId', JSON.stringify(String(location.id)), trx);
+        await this.setSetting('currentLocationId', JSON.stringify(String(location.id)), trx);
 
         // Seed default application settings
         await this.setSetting('paperSize', JSON.stringify('receipt'), trx);

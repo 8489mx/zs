@@ -41,8 +41,11 @@ export function useFirstRunSetupPageController() {
     setError(null);
     try {
       const payload = { ...form, theme: 'light' };
-      if (!payload.branchName) payload.branchName = 'الفرع الرئيسي';
-      if (!payload.locationName) payload.locationName = 'المخزن الرئيسي';
+      const branchClean = payload.branchName?.trim() || 'الفرع الرئيسي';
+      payload.branchName = branchClean;
+      if (!payload.locationName?.trim()) {
+        payload.locationName = branchClean.startsWith('فرع ') ? `رصيد ${branchClean}` : `رصيد فرع ${branchClean}`;
+      }
       await activationApi.initialize(payload as any);
       setAppGate('login');
       navigate('/login?setup=done', { replace: true });
