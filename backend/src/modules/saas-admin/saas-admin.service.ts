@@ -356,6 +356,8 @@ export class SaasAdminService {
         source: this.normalizeOptional(payload.source),
         campaign: this.normalizeOptional(payload.campaign),
         notes: this.normalizeOptional(payload.notes),
+        featurePlanId: this.normalizeOptional(payload.featurePlanId),
+        saasPlanId: payload.saasPlanId,
       },
       {
         enforceStrongProvidedPassword: true,

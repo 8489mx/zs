@@ -9,6 +9,7 @@ import {
   type SharedSettingsSectionProps,
 } from '@/features/settings/pages/settings-section-content/render-section';
 import { SystemUpdatesSection } from '@/features/settings/components/workspace-sections/SystemUpdatesSection';
+import { TenantSubscriptionPage } from '@/features/settings/pages/TenantSubscriptionPage';
 
 type QueryState = { isLoading: boolean; isError: boolean; error?: unknown; isSuccess?: boolean; data?: unknown };
 
@@ -44,6 +45,7 @@ interface SettingsSectionContentProps extends SharedSettingsSectionProps {
 
 export function SettingsSectionContent({ section, ...props }: SettingsSectionContentProps) {
   if (section === 'core') return renderCoreSection(props);
+  if (section === 'subscription') return <TenantSubscriptionPage />;
   if (section === 'reference') return renderReferenceSection(props);
   if (section === 'backup') return renderBackupSection(props);
   if (section === 'users') return renderUsersSection(props);

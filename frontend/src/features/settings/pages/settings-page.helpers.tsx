@@ -26,6 +26,7 @@ interface SettingsGuidanceInput {
 
 export function getSettingsSectionDescription(section: string) {
   if (section === 'core') return 'عدّل بيانات النشاط ثم احفظ.';
+  if (section === 'subscription') return 'تابع تفاصيل باقتك السحابية، استهلاك الموارد، الترقية، وإيصالات السداد.';
   if (section === 'reference') return 'نظّم الفروع والمخازن من نفس الصفحة.';
   if (section === 'users') return 'أدر المستخدمين والصلاحيات من مكان واحد.';
   return 'خذ نسخة احتياطية أو استورد البيانات من نفس الشاشة.';

@@ -69,6 +69,8 @@ export type CreateTrialTenantPayload = {
   source?: string;
   campaign?: string;
   notes?: string;
+  featurePlanId?: string;
+  saasPlanId?: number;
 };
 
 export type RecordPaymentPayload = {

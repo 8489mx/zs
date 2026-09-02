@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useMemo, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { PaginationControls } from '@/shared/components/pagination-controls';
 import type { DataTableColumn, DataTableSortState, SharedDataTableProps } from './DataTable.types';
 
@@ -7,9 +7,9 @@ function shouldIgnoreKeyboardSelection(target: EventTarget | null) {
 }
 
 function alignStyle(align?: 'start' | 'center' | 'end'): CSSProperties {
-  if (align === 'center') return { textAlign: 'center' };
-  if (align === 'end') return { textAlign: 'end' };
-  return { textAlign: 'start' };
+  if (align === 'center') return { textAlign: 'center', verticalAlign: 'middle' };
+  if (align === 'end') return { textAlign: 'end', verticalAlign: 'middle' };
+  return { textAlign: 'start', verticalAlign: 'middle' };
 }
 
 function normalizeSortValue(value: unknown): string | number {

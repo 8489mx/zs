@@ -1,12 +1,12 @@
-﻿import type { Sale } from '@/types/domain';
+import type { Sale } from '@/types/domain';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { triggerHaptic } from '@/shared/utils/haptics';
 
 export function buildSaleWhatsAppMessage(sale: Sale, storeName?: string): string {
-  const storeHeader = storeName ? `🏪 *${storeName}*\n` : '🏪 *فاتورة مبيعات*\n';
-  const invoiceInfo = `🧾 *فاتورة رقم:* #${sale.docNo || sale.id}\n📅 *التاريخ:* ${formatDate(sale.date)}\n👤 *العميل:* ${sale.customerName || 'عميل نقدي'}\n`;
+  const storeHeader = storeName ? `*${storeName}*\n` : '*فاتورة مبيعات*\n';
+  const invoiceInfo = `فاتورة رقم: #${sale.docNo || sale.id}\nالتاريخ: ${formatDate(sale.date)}\nالعميل: ${sale.customerName || 'عميل نقدي'}\n`;
   
-  let itemsText = '\n📦 *تفاصيل الأصناف:*\n';
+  let itemsText = '\nتفاصيل الأصناف:\n';
   if (sale.items && sale.items.length > 0) {
     sale.items.forEach((item, index) => {
       const unit = item.unitName ? ` (${item.unitName})` : '';
@@ -14,12 +14,12 @@ export function buildSaleWhatsAppMessage(sale: Sale, storeName?: string): string
     });
   }
 
-  const totalsText = `\n💰 *الإجمالي:* ${formatCurrency(sale.total)}`;
-  const paidText = sale.paidAmount !== undefined ? `\n💵 *المدفوع:* ${formatCurrency(sale.paidAmount)}` : '';
+  const totalsText = `\nالإجمالي: ${formatCurrency(sale.total)}`;
+  const paidText = sale.paidAmount !== undefined ? `\nالمدفوع: ${formatCurrency(sale.paidAmount)}` : '';
   const remaining = Math.max(0, Number(sale.total || 0) - Number(sale.paidAmount || 0));
-  const remainingText = remaining > 0 ? `\n⚠️ *المتبقي:* ${formatCurrency(remaining)}` : '';
+  const remainingText = remaining > 0 ? `\nالمتبقي: ${formatCurrency(remaining)}` : '';
   
-  const footer = '\n\n✨ شكراً لتعاملكم معنا!';
+  const footer = '\n\nشكراً لتعاملكم معنا!';
 
   return `${storeHeader}${invoiceInfo}${itemsText}${totalsText}${paidText}${remainingText}${footer}`.trim();
 }

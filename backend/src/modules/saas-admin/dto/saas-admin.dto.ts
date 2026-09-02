@@ -57,6 +57,15 @@ export class CreateTrialTenantDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  featurePlanId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  saasPlanId?: number;
 }
 
 export class ExtendTrialDto {
@@ -201,6 +210,7 @@ export class UpdateTenantPlanDto {
   @IsString({ each: true })
   extraFeatures?: string[];
 }
+
 export class UpdateSaasPlanDto {
   @IsOptional()
   @IsString()
@@ -243,4 +253,3 @@ export class UpdateSaasPlanDto {
   @IsString()
   featurePlanId?: string;
 }
-

@@ -19,6 +19,8 @@ export type TrialTenantProvisioningInput = {
   source?: string | null;
   campaign?: string | null;
   notes?: string | null;
+  featurePlanId?: string | null;
+  saasPlanId?: number | null;
 };
 
 export type TrialTenantProvisioningResult = {
@@ -220,6 +222,18 @@ export class TrialTenantProvisioningService {
       const accountId = `${tenantId}:main`;
       const passwordRecord = await createPasswordRecord(temporaryPassword);
 
+      // Resolve feature plan id: if provided use it, otherwise default to 'plan_ultimate' (the comprehensive plan with all features)
+      let featurePlanId = this.normalizeOptional(payload.featurePlanId);
+      if (!featurePlanId) {
+        const ultimatePlan = await trx.selectFrom('plans').select('id').where('id', '=', 'plan_ultimate').executeTakeFirst();
+        if (ultimatePlan) {
+          featurePlanId = ultimatePlan.id;
+        } else {
+          const firstPlan = await trx.selectFrom('plans').select('id').orderBy('created_at', 'desc').executeTakeFirst();
+          featurePlanId = firstPlan?.id || null;
+        }
+      }
+
       await trx
         .insertInto('tenants')
         .values({
@@ -231,12 +245,42 @@ export class TrialTenantProvisioningService {
           owner_email: ownerEmail,
           activity_type: activityType,
           status: 'trial',
+          plan_id: featurePlanId,
           trial_starts_at: now,
           trial_ends_at: expiresAt,
           created_at: now,
           updated_at: now,
         } as any)
         .execute();
+
+      // Create trial subscription record
+      let saasPlan = payload.saasPlanId 
+        ? await trx.selectFrom('saas_plans').selectAll().where('id', '=', payload.saasPlanId).executeTakeFirst()
+        : null;
+
+      if (!saasPlan && featurePlanId) {
+        saasPlan = await trx.selectFrom('saas_plans').selectAll().where('feature_plan_id', '=', featurePlanId).executeTakeFirst();
+      }
+      if (!saasPlan) {
+        saasPlan = await trx.selectFrom('saas_plans').selectAll().where('is_active', '=', true).orderBy('price', 'desc').executeTakeFirst();
+      }
+
+      if (saasPlan) {
+        await trx
+          .insertInto('tenant_subscriptions')
+          .values({
+            tenant_id: tenantId,
+            plan_id: saasPlan.id,
+            status: 'trial',
+            starts_at: now,
+            ends_at: expiresAt,
+            grace_ends_at: null,
+            auto_renew: false,
+            created_at: now,
+            updated_at: now,
+          } as any)
+          .execute();
+      }
 
       await trx
         .insertInto('trial_signups')

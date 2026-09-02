@@ -39,6 +39,7 @@ import { ImportSalesModule } from './modules/import-sales/import-sales.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { TradeInModule } from './modules/tradein/tradein.module';
 import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
+import { TenantSubscriptionModule } from './modules/tenant-subscription/tenant-subscription.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
     ManagerActionsModule,
     AccountingModule,
     SaasAdminModule,
+    TenantSubscriptionModule,
     PublicModule,
     ManufacturingModule,
     DeliveryRepsModule,

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { Button } from '@/shared/ui/button';
 import { formatDate } from '@/lib/format';
 import { saasAdminApi, SaasTenantRow } from '../api/saas-admin.api';
 
@@ -43,10 +42,10 @@ export function TenantSubscriptionsModal({
     <DialogShell
       open={true}
       onClose={onClose}
-      width="860px"
+      width="820px"
       ariaLabel="سجل الاشتراكات والمدفوعات"
     >
-      <div className="dialog-card" dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>
         {/* Header */}
         <div style={{
           display: 'flex',
@@ -54,47 +53,77 @@ export function TenantSubscriptionsModal({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          paddingBottom: '12px',
-          borderBottom: '1px solid #e2e8f0',
+          paddingBottom: '16px',
+          borderBottom: '1px solid #f1f5f9',
+          marginBottom: '16px',
         }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-              سجل الاشتراكات والمدفوعات
-            </h3>
-            <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>
-              المنشأة: <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug}) — المالك: {tenant.ownerName}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 10px rgba(30, 27, 75, 0.2)',
+            }}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                <line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                سجل الاشتراكات والمدفوعات
+              </h3>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                المنشأة: <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> • المعرف: <span className="tenant-slug-badge" style={{ margin: 0 }}>{tenant.slug}</span>
+              </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Button
-              variant="secondary"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="button button-secondary"
               onClick={() => onRecordPayment(tenant)}
-              style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700 }}
             >
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
               <span>تسجيل دفعة</span>
-            </Button>
-            <Button
-              variant="primary"
+            </button>
+            <button
+              type="button"
+              className="button"
               onClick={() => onRenew(tenant)}
-              style={{ fontSize: '12px', padding: '6px 12px', background: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              style={{ fontSize: '12px', padding: '6px 14px', background: '#0f172a', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800 }}
             >
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
               </svg>
               <span>تجديد الاشتراك</span>
-            </Button>
+            </button>
+            <button
+              type="button"
+              className="dialog-shell-close-btn"
+              onClick={onClose}
+              title="إغلاق"
+              style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', fontSize: '16px' }}
+            >
+              ✕
+            </button>
           </div>
         </div>
 
         {/* Navigation Tabs */}
         <div style={{
           display: 'flex',
-          gap: '8px',
+          gap: '6px',
           background: '#f1f5f9',
           padding: '4px',
           borderRadius: '8px',
@@ -140,14 +169,32 @@ export function TenantSubscriptionsModal({
 
         {/* Content Body */}
         {isLoading ? (
-          <div style={{ padding: '36px', textAlign: 'center', color: '#64748b', fontSize: '13.5px' }}>
-            جاري تحميل سجل الاشتراكات والمدفوعات...
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b', fontSize: '13.5px' }}>
+            <div style={{ display: 'inline-block', width: '26px', height: '26px', border: '3px solid #e2e8f0', borderTopColor: '#312e81', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '10px' }} />
+            <div>جاري تحميل سجل الاشتراكات والمدفوعات...</div>
           </div>
         ) : activeTab === 'subscriptions' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {subscriptions.length === 0 ? (
-              <div style={{ padding: '30px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', color: '#64748b', border: '1px solid #e2e8f0', fontSize: '13px' }}>
-                لا توجد اشتراكات مسجلة لهذه النسخة بعد. يمكنك تفعيل أو تجديد الاشتراك الآن.
+              <div style={{ padding: '36px 20px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center', color: '#64748b', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <line x1="2" y1="10" x2="22" y2="10"/>
+                  </svg>
+                </div>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '14px', color: '#334155', marginBottom: '4px' }}>لا توجد اشتراكات مسجلة بعد</strong>
+                  <span style={{ fontSize: '12px' }}>يمكنك تفعيل أول اشتراك أو تجديد النسخة مباشرة من الزر بالأسفل.</span>
+                </div>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => onRenew(tenant)}
+                  style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px' }}
+                >
+                  + تفعيل أو تجديد الاشتراك الآن
+                </button>
               </div>
             ) : (
               <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
@@ -232,8 +279,25 @@ export function TenantSubscriptionsModal({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {payments.length === 0 ? (
-              <div style={{ padding: '30px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', color: '#64748b', border: '1px solid #e2e8f0', fontSize: '13px' }}>
-                لا توجد مدفوعات مسجلة لهذه النسخة حتى الآن.
+              <div style={{ padding: '36px 20px', background: '#f8fafc', borderRadius: '10px', textAlign: 'center', color: '#64748b', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </div>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '14px', color: '#334155', marginBottom: '4px' }}>لا توجد مدفوعات مسجلة حتى الآن</strong>
+                  <span style={{ fontSize: '12px' }}>يمكنك تسجيل دفعة سداد جديدة لهذه النسخة في أي وقت.</span>
+                </div>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => onRecordPayment(tenant)}
+                  style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px' }}
+                >
+                  + تسجيل دفعة جديدة
+                </button>
               </div>
             ) : (
               <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
@@ -382,7 +446,7 @@ export function TenantSubscriptionsModal({
         )}
 
         {/* Footer Close */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
           <button
             type="button"
             className="button button-secondary"
@@ -394,9 +458,14 @@ export function TenantSubscriptionsModal({
             </svg>
             <span>تحديث البيانات</span>
           </button>
-          <Button variant="secondary" onClick={onClose}>
+          <button
+            type="button"
+            className="button"
+            style={{ background: '#0f172a', color: '#ffffff', padding: '6px 18px', fontWeight: 700, borderRadius: '7px' }}
+            onClick={onClose}
+          >
             إغلاق
-          </Button>
+          </button>
         </div>
       </div>
     </DialogShell>

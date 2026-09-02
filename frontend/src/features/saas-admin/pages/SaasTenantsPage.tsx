@@ -72,9 +72,7 @@ function TenantActionsMenu({
   currentTenantId,
   onImpersonate,
   isImpersonating,
-  onShowDetails,
   onShowSubscriptions,
-  onShareWelcome,
   onRenew,
   onOpenActionHub,
 }: TenantActionsMenuProps) {
@@ -83,22 +81,7 @@ function TenantActionsMenu({
   if (isPlatform) {
     return (
       <div className="tenant-actions-cell">
-        <button
-          type="button"
-          className="button button-secondary"
-          style={{ padding: '5px 9px', fontSize: '12px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-          onClick={() => onShowDetails(row.id)}
-          title="سجل النشاط وتفاصيل النسخة الرئيسية"
-        >
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-          </svg>
-          <span>سجل النشاط</span>
-        </button>
-        <span style={{ fontSize: '11px', color: '#5b21b6', fontWeight: 800, padding: '3px 8px', background: '#f5f3ff', borderRadius: '6px', border: '1px solid #ddd6fe', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, padding: '3px 8px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>
           نسخة المنصة (محمية)
         </span>
       </div>
@@ -150,20 +133,7 @@ function TenantActionsMenu({
         <span>الاشتراكات</span>
       </button>
 
-      {/* 4. مشاركة بيانات الدخول عبر واتساب */}
-      <button
-        type="button"
-        className="tenant-whatsapp-btn"
-        onClick={() => onShareWelcome(row)}
-        title="مشاركة بيانات الدخول والاشتراك مع العميل عبر واتساب"
-      >
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
-          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-        </svg>
-        <span>واتساب</span>
-      </button>
-
-      {/* 5. زر فتح مركز الإجراءات الكامل (Action Hub Modal) */}
+      {/* 4. زر فتح مركز الإجراءات الكامل (Action Hub Modal) */}
       <button
         type="button"
         className="tenant-more-btn"
@@ -231,6 +201,13 @@ export function SaasTenantsPage() {
     enabled: canAccess,
   });
   const plans = plansQuery.data || [];
+
+  const featurePlansQuery = useQuery({
+    queryKey: ['saas-feature-plans'],
+    queryFn: () => saasAdminApi.listFeaturePlans(),
+    enabled: canAccess,
+  });
+  const featurePlans = featurePlansQuery.data || [];
   
   const [createForm, setCreateForm] = useState({
     slug: '',
@@ -245,6 +222,7 @@ export function SaasTenantsPage() {
     source: '',
     campaign: '',
     notes: '',
+    featurePlanId: 'plan_ultimate',
   });
 
   const tenantsQuery = useQuery<SaasTenantsResponse>({
@@ -387,6 +365,7 @@ export function SaasTenantsPage() {
       source: createForm.source || undefined,
       campaign: createForm.campaign || undefined,
       notes: createForm.notes || undefined,
+      featurePlanId: createForm.featurePlanId || 'plan_ultimate',
     }),
     onSuccess: async (payload) => {
       setCreateResult({
@@ -411,6 +390,7 @@ export function SaasTenantsPage() {
         source: '',
         campaign: '',
         notes: '',
+        featurePlanId: 'plan_ultimate',
       });
       await invalidateTenants();
     },
@@ -441,10 +421,11 @@ export function SaasTenantsPage() {
   if (!canAccess) return <Navigate to="/" replace />;
 
   return (
-    <div className="page-stack page-shell saas-tenants-page">
-      <PageHeader
-        title="إدارة النسخ والمستأجرين"
-        description="لوحة التحكم المركزية لإنشاء ومتابعة واشتراكات نسخ العملاء السحابية."
+    <div className="page-stack page-shell saas-tenants-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+        <PageHeader
+          title="إدارة النسخ والمستأجرين"
+          description="لوحة التحكم المركزية لإنشاء ومتابعة واشتراكات نسخ العملاء السحابية."
         badge={<span className="nav-pill" style={{ background: '#ede9fe', color: '#6d28d9', borderColor: '#c4b5fd' }}>SaaS Admin</span>}
         actions={
           <button 
@@ -471,31 +452,46 @@ export function SaasTenantsPage() {
       {isForbiddenByApi ? <div className="warning-box">هذه الصفحة مخصّصة لإدارة المنصة فقط.</div> : null}
 
       {ownerResetResult ? (
-        <div className="saas-credentials-card">
-          <div className="saas-credentials-header">
-            <span className="saas-credentials-title">
-              تم إعادة تعيين كلمة مرور المالك بنجاح
-            </span>
-            <button type="button" className="saas-copy-btn" onClick={() => setOwnerResetResult(null)}>
-              إغلاق
-            </button>
-          </div>
-          <div className="saas-credential-row">
-            <span className="saas-credential-label">النشاط / النسخة:</span>
-            <span className="saas-credential-val">{ownerResetResult.tenantName}</span>
-          </div>
-          <div className="saas-credential-row">
-            <span className="saas-credential-label">اسم المستخدم:</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="saas-credential-val">{ownerResetResult.username}</span>
-              <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(ownerResetResult.username)}>نسخ</button>
+        <div className="saas-credentials-luxury-card">
+          <div className="saas-credentials-hero">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="saas-credentials-icon-box">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>
+                    تم إعادة تعيين كلمة مرور المالك بنجاح
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>
+                    المنشأة: <strong style={{ color: '#0f172a' }}>{ownerResetResult.tenantName}</strong>
+                  </div>
+                </div>
+              </div>
+              <button type="button" className="saas-close-action-btn" onClick={() => setOwnerResetResult(null)}>
+                إغلاق ✕
+              </button>
             </div>
           </div>
-          <div className="saas-credential-row">
-            <span className="saas-credential-label">كلمة المرور الجديدة:</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="saas-credential-val">{ownerResetResult.temporaryPassword}</span>
-              <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(ownerResetResult.temporaryPassword)}>نسخ</button>
+
+          <div className="saas-credentials-grid">
+            <div className="saas-credential-box">
+              <span className="saas-credential-label">اسم المستخدم</span>
+              <div className="saas-credential-content">
+                <code className="saas-credential-code">{ownerResetResult.username}</code>
+                <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(ownerResetResult.username)}>نسخ</button>
+              </div>
+            </div>
+
+            <div className="saas-credential-box">
+              <span className="saas-credential-label">كلمة المرور الجديدة</span>
+              <div className="saas-credential-content">
+                <code className="saas-credential-code password-highlight">{ownerResetResult.temporaryPassword}</code>
+                <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(ownerResetResult.temporaryPassword)}>نسخ كلمة المرور</button>
+              </div>
             </div>
           </div>
         </div>
@@ -514,7 +510,7 @@ export function SaasTenantsPage() {
           </Field>
         </SearchToolbar>
 
-        <StatsGrid items={stats} />
+        <StatsGrid items={stats} className="stats-grid compact-grid saas-stats-grid-5" />
 
         {/* Quick Filter Tabs */}
         <div className="saas-filter-tabs">
@@ -588,13 +584,14 @@ export function SaasTenantsPage() {
               {
                 id: 'business',
                 header: 'النشاط والمعرف',
+                align: 'center',
                 sortable: true,
                 sortValue: (row) => row.businessName || row.slug,
                 render: (row) => {
                   const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
                   return (
-                    <div style={{ minWidth: '150px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                         <button 
                           type="button" 
                           className="tenant-name-btn"
@@ -604,12 +601,12 @@ export function SaasTenantsPage() {
                           {row.businessName || row.slug}
                         </button>
                         {isPlatform && (
-                          <span style={{ fontSize: '10.5px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                            المنصة الرئيسية
+                          <span style={{ fontSize: '10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 5px', borderRadius: '4px', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                            المنصة
                           </span>
                         )}
                       </div>
-                      <div className="tenant-slug-badge">
+                      <div className="tenant-slug-badge" style={{ marginTop: '2px' }}>
                         <span>slug:</span>
                         <strong>{row.slug}</strong>
                       </div>
@@ -619,116 +616,108 @@ export function SaasTenantsPage() {
               },
               {
                 id: 'owner',
-                header: 'المالك والمستخدم',
+                header: 'المالك والاتصال',
+                align: 'center',
                 sortable: true,
                 sortValue: (row) => row.ownerName,
-                render: (row) => {
-                  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
-                  return (
-                    <div style={{ minWidth: '120px' }}>
-                      <strong style={{ fontSize: '13px', color: '#0f172a' }}>{row.ownerName || 'المسؤول'}</strong>
-                      <div className="muted small">{isPlatform ? 'حساب المالك الرئيسي' : `@${row.ownerUsername || 'admin'}`}</div>
-                    </div>
-                  );
-                },
-              },
-              {
-                id: 'phone',
-                header: 'بيانات الاتصال',
-                sortable: true,
-                sortValue: (row) => row.ownerPhone,
                 render: (row) => (
-                  <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155', direction: 'ltr', textAlign: 'right' }}>
-                      {row.ownerPhone || '-'}
-                    </span>
-                    {row.ownerEmail && (
-                      <span className="muted small" style={{ direction: 'ltr', textAlign: 'right', fontSize: '11px' }}>
-                        {row.ownerEmail}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                    <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>
+                      {row.ownerName || 'المسؤول'}
+                    </strong>
+                    {row.ownerPhone ? (
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', direction: 'ltr', display: 'inline-block', marginTop: '1px' }}>
+                        {row.ownerPhone}
                       </span>
+                    ) : (
+                      <span className="muted small">-</span>
                     )}
                   </div>
                 ),
               },
               {
                 id: 'billing',
-                header: 'الاشتراك والباقة',
+                header: 'الباقة',
+                align: 'center',
                 render: (row) => {
                   const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
                   if (isPlatform) {
                     return (
-                      <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="tenant-plan-badge" style={{ background: '#f5f3ff', color: '#6b21a8', border: '1px solid #ddd6fe', fontWeight: 800 }}>
-                          حساب المؤسس (وصول شامل)
-                        </span>
-                        <span className="muted small" style={{ color: '#059669', fontSize: '11px', fontWeight: 700 }}>
-                          ● نسخة المالك غير خاضعة لباقات
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <span className="tenant-plan-badge" style={{ background: '#f5f3ff', color: '#6b21a8', border: '1px solid #ddd6fe', fontWeight: 800, fontSize: '11px' }}>
+                          حساب المؤسس
                         </span>
                       </div>
                     );
                   }
                   return (
-                    <div style={{ minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span className="tenant-plan-badge">{row.planName || 'بدون باقة'}</span>
-                      <span className="muted small" style={{ fontSize: '11px' }}>
-                        {row.subscriptionStatus === 'active' ? '● اشتراك نشط' : row.subscriptionStatus === 'past_due' ? '● فترة سماح' : row.subscriptionStatus || '-'}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <span className="tenant-plan-badge">
+                        {row.planName || 'بدون باقة'}
                       </span>
                     </div>
                   );
                 },
               },
               {
-                id: 'dates',
-                header: 'صلاحية الاشتراك',
+                id: 'validity',
+                header: 'الصلاحية',
+                align: 'center',
+                sortable: true,
+                sortValue: (row) => row.subscriptionEndDate || row.trialEndsAt || '',
                 render: (row) => {
                   const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
                   if (isPlatform) {
                     return (
-                      <div style={{ minWidth: '130px' }}>
-                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#059669' }}>
-                          مدى الحياة (دائم) ∞
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>
+                          دائم ∞
                         </span>
                       </div>
                     );
                   }
+                  
+                  const isTrial = row.status === 'trial';
+                  if (isTrial) {
+                    const days = row.trialDaysRemaining;
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '11.5px', color: '#475569' }}>
+                          {row.trialEndsAt ? <bdi dir="ltr">{formatDate(row.trialEndsAt)}</bdi> : '-'}
+                        </span>
+                        {days != null && (
+                          <span className={`tenant-trial-badge ${days > 5 ? 'healthy' : days > 0 ? 'warning' : 'danger'}`}>
+                            {days > 0 ? `باقي ${days} يوم` : 'منتهية'}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+
                   const days = getDaysRemaining(row.subscriptionEndDate);
                   const expiring = isExpiringSoon(row);
                   const expired = isExpiredSub(row);
 
                   return (
-                    <div style={{ minWidth: '140px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '11.5px', color: '#475569', fontWeight: 600 }}>
                         {row.subscriptionEndDate ? (
                           <bdi dir="ltr">{formatDate(row.subscriptionEndDate)}</bdi>
                         ) : '-'}
                       </span>
                       {expired ? (
-                        <span className="tenant-status-pill expired" style={{ fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"/>
-                            <line x1="6" y1="6" x2="18" y2="18"/>
-                          </svg>
-                          <span>منتهي الصلاحية</span>
+                        <span className="tenant-status-pill expired" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                          منتهي الصلاحية
                         </span>
                       ) : expiring ? (
-                        <span className="tenant-status-pill expiring-soon" style={{ fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                            <line x1="12" y1="9" x2="12" y2="13"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                          </svg>
-                          <span>ينتهي خلال {days} أيام</span>
+                        <span className="tenant-status-pill expiring-soon" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                          ينتهي خلال {days} أيام
                         </span>
                       ) : days !== null && days > 7 ? (
-                        <span className="muted small" style={{ color: '#15803d', fontSize: '11px' }}>
+                        <span className="muted small" style={{ color: '#15803d', fontSize: '10.5px' }}>
                           ● متبقي {days} يوم
                         </span>
                       ) : null}
-                      {row.graceEndDate && (
-                        <span className="muted small" style={{ color: '#d97706', fontSize: '11px' }}>
-                          سماح لغاية: <bdi dir="ltr">{formatDate(row.graceEndDate)}</bdi>
-                        </span>
-                      )}
                     </div>
                   );
                 },
@@ -736,44 +725,25 @@ export function SaasTenantsPage() {
               {
                 id: 'status',
                 header: 'الحالة',
+                align: 'center',
                 sortable: true,
                 sortValue: (row) => row.status,
                 render: (row) => {
                   const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
                   if (isPlatform) {
                     return (
-                      <span className="tenant-status-pill active" style={{ background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#6d28d9', fontWeight: 800 }}>
-                        النسخة الرئيسية
-                      </span>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <span className="tenant-status-pill active" style={{ background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#6d28d9', fontWeight: 800 }}>
+                          الرئيسية
+                        </span>
+                      </div>
                     );
                   }
                   return (
-                    <span className={statusBadgeClass(row.status)}>
-                      {statusLabel(row.status)}
-                    </span>
-                  );
-                },
-              },
-              {
-                id: 'trial',
-                header: 'انتهاء التجربة',
-                sortable: true,
-                sortValue: (row) => row.trialEndsAt || '',
-                render: (row) => {
-                  const isPlatform = isPlatformTenantRow(row, platformTenantId, currentTenantId);
-                  if (isPlatform) {
-                    return <span className="muted small">-</span>;
-                  }
-                  const days = row.trialDaysRemaining;
-                  const isTrial = row.status === 'trial';
-                  return (
-                    <div style={{ minWidth: '110px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      <span style={{ fontSize: '12px' }}>{row.trialEndsAt ? <bdi dir="ltr">{formatDate(row.trialEndsAt)}</bdi> : '-'}</span>
-                      {isTrial && days != null && (
-                        <span className={`tenant-trial-badge ${days > 5 ? 'healthy' : days > 0 ? 'warning' : 'danger'}`}>
-                          {days > 0 ? `باقي ${days} يوم` : 'منتهية'}
-                        </span>
-                      )}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <span className={statusBadgeClass(row.status)}>
+                        {statusLabel(row.status)}
+                      </span>
                     </div>
                   );
                 },
@@ -781,33 +751,37 @@ export function SaasTenantsPage() {
               {
                 id: 'actions',
                 header: 'الإجراءات',
+                align: 'center',
                 render: (row) => (
-                  <TenantActionsMenu
-                    row={row}
-                    platformTenantId={platformTenantId}
-                    currentTenantId={currentTenantId}
-                    isImpersonating={impersonateMutation.isPending}
-                    onImpersonate={(id, name) => {
-                      if (window.confirm(`هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`)) {
-                        impersonateMutation.mutate(id);
-                      }
-                    }}
-                    onShowDetails={(id) => setDetailsTenantId(id)}
-                    onShowSubscriptions={(r) => setSubscriptionsTenant(r)}
-                    onShareWelcome={(r) => setWelcomeShareTenant({ tenant: r })}
-                    onRenew={(r) => {
-                      setRenewTenant({ id: r.id, name: r.businessName || r.slug });
-                      setRenewPlanId('');
-                      setRenewPaymentAmount('');
-                    }}
-                    onOpenActionHub={(r) => setActionHubTenant(r)}
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <TenantActionsMenu
+                      row={row}
+                      platformTenantId={platformTenantId}
+                      currentTenantId={currentTenantId}
+                      isImpersonating={impersonateMutation.isPending}
+                      onImpersonate={(id, name) => {
+                        if (window.confirm(`هل تريد تسجيل الدخول وتصفح نسخة (${name}) كمالك؟`)) {
+                          impersonateMutation.mutate(id);
+                        }
+                      }}
+                      onShowDetails={(id) => setDetailsTenantId(id)}
+                      onShowSubscriptions={(r) => setSubscriptionsTenant(r)}
+                      onShareWelcome={(r) => setWelcomeShareTenant({ tenant: r })}
+                      onRenew={(r) => {
+                        setRenewTenant({ id: r.id, name: r.businessName || r.slug });
+                        setRenewPlanId('');
+                        setRenewPaymentAmount('');
+                      }}
+                      onOpenActionHub={(r) => setActionHubTenant(r)}
+                    />
+                  </div>
                 ),
               },
             ]}
           />
         </QueryFeedback>
       </FormSection>
+      </main>
 
       {/* ========================================================
           CREATE TRIAL TENANT MODAL
@@ -840,58 +814,77 @@ export function SaasTenantsPage() {
             </div>
 
             {createResult ? (
-              <div className="saas-credentials-card">
-                <div className="saas-credentials-header">
-                  <span className="saas-credentials-title">
-                    تم إنشاء النسخة السحابية بنجاح
-                  </span>
-                </div>
-                <div className="saas-credential-row">
-                  <span className="saas-credential-label">اسم المنشأة:</span>
-                  <strong className="saas-credential-val">{createResult.businessName || createResult.tenantSlug}</strong>
-                </div>
-                <div className="saas-credential-row">
-                  <span className="saas-credential-label">المعرف السحابي (Slug):</span>
-                  <span className="saas-credential-val">{createResult.tenantSlug}</span>
-                </div>
-                <div className="saas-credential-row">
-                  <span className="saas-credential-label">اسم المستخدم للمالك:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="saas-credential-val">{createResult.username}</span>
-                    <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(createResult.username)}>نسخ</button>
+              <div className="saas-credentials-luxury-card">
+                {/* 1. Header with Success Badge and Business Title */}
+                <div className="saas-credentials-hero">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div className="saas-credentials-icon-box">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>
+                          تم تجهيز النسخة السحابية بنجاح
+                        </div>
+                        <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>
+                          المنشأة: <strong style={{ color: '#0f172a' }}>{createResult.businessName || createResult.tenantSlug}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="tenant-status-pill trial" style={{ fontSize: '11px', padding: '3px 10px', fontWeight: 800 }}>
+                      تجريبي • 14 يوماً
+                    </span>
                   </div>
-                </div>
-                <div className="saas-credential-row">
-                  <span className="saas-credential-label">كلمة المرور المؤقتة:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="saas-credential-val">{createResult.temporaryPassword}</span>
-                    <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(createResult.temporaryPassword)}>نسخ</button>
-                  </div>
-                </div>
-                <div className="saas-credential-row">
-                  <span className="saas-credential-label">تاريخ انتهاء التجربة:</span>
-                  <span className="saas-credential-val">{formatDate(createResult.trialEndsAt)}</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+                {/* 2. Credentials Grid */}
+                <div className="saas-credentials-grid">
+                  {/* Slug */}
+                  <div className="saas-credential-box">
+                    <span className="saas-credential-label">المعرف السحابي (Slug)</span>
+                    <div className="saas-credential-content">
+                      <code className="saas-credential-code">{createResult.tenantSlug}</code>
+                      <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(createResult.tenantSlug || '')}>نسخ</button>
+                    </div>
+                  </div>
+
+                  {/* Username */}
+                  <div className="saas-credential-box">
+                    <span className="saas-credential-label">اسم مستخدم المالك (Super Admin)</span>
+                    <div className="saas-credential-content">
+                      <code className="saas-credential-code">{createResult.username}</code>
+                      <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(createResult.username || '')}>نسخ</button>
+                    </div>
+                  </div>
+
+                  {/* Temporary Password */}
+                  <div className="saas-credential-box" style={{ gridColumn: 'span 2' }}>
+                    <span className="saas-credential-label">كلمة المرور المؤقتة (Temporary Password)</span>
+                    <div className="saas-credential-content">
+                      <code className="saas-credential-code password-highlight">{createResult.temporaryPassword}</code>
+                      <button type="button" className="saas-copy-btn" onClick={() => copyToClipboard(createResult.temporaryPassword || '')}>نسخ كلمة المرور</button>
+                    </div>
+                  </div>
+
+                  {/* Expiry Date */}
+                  <div className="saas-credential-box" style={{ gridColumn: 'span 2' }}>
+                    <span className="saas-credential-label">تاريخ انتهاء الفترة التجريبية</span>
+                    <div className="saas-credential-content">
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>
+                        {formatDate(createResult.trialEndsAt)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Action Bar */}
+                <div className="saas-credentials-actions">
                   {createResult.fullTenant && (
                     <button
                       type="button"
-                      className="button"
-                      style={{
-                        flex: 1,
-                        background: '#22c55e',
-                        color: '#ffffff',
-                        border: 'none',
-                        padding: '10px 16px',
-                        fontWeight: 800,
-                        fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        cursor: 'pointer',
-                      }}
+                      className="saas-whatsapp-action-btn"
                       onClick={() => {
                         setWelcomeShareTenant({
                           tenant: createResult.fullTenant!,
@@ -901,27 +894,33 @@ export function SaasTenantsPage() {
                         setCreateResult(null);
                       }}
                     >
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                       </svg>
-                      <span>إرسال رسالة تترحيب عبر واتساب للعميل</span>
+                      <span>مشاركة رسالة الترحيب عبر واتساب</span>
                     </button>
                   )}
 
                   <button
                     type="button"
-                    className="button button-secondary"
-                    style={{
-                      padding: '10px 18px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
+                    className="saas-copy-all-btn"
+                    onClick={() => {
+                      const allText = `بيانات الدخول للنسخة السحابية:\nاسم المنشأة: ${createResult.businessName || createResult.tenantSlug}\nالمعرف: ${createResult.tenantSlug}\nاسم المستخدم: ${createResult.username}\nكلمة المرور المؤقتة: ${createResult.temporaryPassword}\nصلاحية التجربة حتى: ${formatDate(createResult.trialEndsAt)}`;
+                      copyToClipboard(allText);
                     }}
+                  >
+                    <span>📋 نسخ كامل البيانات</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="saas-close-action-btn"
                     onClick={() => {
                       setIsCreateOpen(false);
                       setCreateResult(null);
                     }}
                   >
-                    تم ونسخ البيانات ✓
+                    إغلاق
                   </button>
                 </div>
               </div>
@@ -1022,10 +1021,36 @@ export function SaasTenantsPage() {
                   </div>
                 </div>
 
-                {/* 3. إعدادات التجربة والمتابعة */}
+                {/* 3. باقة التجربة ومستوى الميزات */}
                 <div className="saas-modal-card">
                   <div className="saas-modal-card-title">
-                    <span>3. إعدادات التجربة والمتابعة</span>
+                    <span>3. باقة التجربة ومستوى الميزات المفعلة</span>
+                  </div>
+                  <Field label="خطة الميزات المفعلة للنسخة *">
+                    <select
+                      value={createForm.featurePlanId}
+                      onChange={(e) => setCreateForm((s) => ({ ...s, featurePlanId: e.target.value }))}
+                      style={{ fontWeight: 700, width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    >
+                      <option value="plan_ultimate">المتكاملة (الباقة الشاملة - كافة الميزات والأنظمة)</option>
+                      <option value="plan_pro">الاحترافية (المبيعات، المخازن، الحسابات العامة، شؤون الموظفين)</option>
+                      <option value="plan_basic">الأساسية (نقطة البيع، الكاشير، المخزون الأساسي)</option>
+                      {featurePlans
+                        .filter((p: any) => !['plan_ultimate', 'plan_pro', 'plan_basic'].includes(p.id))
+                        .map((p: any) => (
+                          <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                        ))}
+                    </select>
+                  </Field>
+                  <p style={{ margin: '6px 0 0', fontSize: '11.5px', color: '#64748b' }}>
+                    يتم افتراضياً تفعيل <strong>الباقة المتكاملة الشاملة</strong> لتمكين العميل من تجربة كافة أقسام وشاشات المنظومة فوراً.
+                  </p>
+                </div>
+
+                {/* 4. إعدادات التجربة والمتابعة */}
+                <div className="saas-modal-card">
+                  <div className="saas-modal-card-title">
+                    <span>4. إعدادات التجربة والمتابعة</span>
                   </div>
                   <div className="saas-modal-grid-3">
                     <Field label="مدة التجربة (أيام)">
@@ -1071,6 +1096,7 @@ export function SaasTenantsPage() {
                     type="button"
                     className="button button-secondary"
                     onClick={() => setIsCreateOpen(false)}
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700 }}
                   >
                     إلغاء
                   </button>
@@ -1078,10 +1104,13 @@ export function SaasTenantsPage() {
                     type="submit"
                     className="button"
                     style={{
-                      background: 'linear-gradient(135deg, #170c5c 0%, #312e81 100%)',
+                      background: '#0f172a',
                       color: '#ffffff',
                       fontWeight: 800,
-                      padding: '10px 24px',
+                      padding: '9px 24px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
                     }}
                     disabled={createTrialMutation.isPending || !createForm.businessName || !createForm.slug || !createForm.ownerPhone}
                   >
@@ -1150,19 +1179,35 @@ export function SaasTenantsPage() {
         <DialogShell
           open={Boolean(upgradeTenant)}
           onClose={() => setUpgradeTenant(null)}
-          width="500px"
+          width="520px"
           ariaLabel="تفعيل أو ترقية الخطة"
         >
-          <div className="dialog-card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                تفعيل / ترقية الاشتراك
-              </h3>
-              <button type="button" className="dialog-shell-close-btn" onClick={() => setUpgradeTenant(null)}>✕</button>
+          <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                    تفعيل / ترقية الاشتراك
+                  </h3>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                    النسخة: <strong style={{ color: '#0f172a' }}>{upgradeTenant.name}</strong>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="dialog-shell-close-btn"
+                onClick={() => setUpgradeTenant(null)}
+                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
             </div>
-            <p className="muted small" style={{ marginBottom: '14px' }}>
-              النسخة: <strong>{upgradeTenant.name}</strong>
-            </p>
             <div className="stack gap-12">
               <Field label="الخطة / الباقة المستهدفة *">
                 <select value={upgradePlanId} onChange={(e) => setUpgradePlanId(e.target.value ? Number(e.target.value) : '')}>
@@ -1199,12 +1244,12 @@ export function SaasTenantsPage() {
                   </select>
                 </Field>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
                 <button type="button" className="button button-secondary" onClick={() => setUpgradeTenant(null)}>إلغاء</button>
                 <button
                   type="button"
                   className="button"
-                  style={{ background: '#10b981', color: '#ffffff', border: 'none' }}
+                  style={{ background: '#0f172a', color: '#ffffff', fontWeight: 800 }}
                   onClick={() => {
                     tenantActionMutation.mutate({ 
                       action: 'activate', 
@@ -1233,19 +1278,35 @@ export function SaasTenantsPage() {
         <DialogShell
           open={Boolean(renewTenant)}
           onClose={() => setRenewTenant(null)}
-          width="500px"
+          width="520px"
           ariaLabel="تجديد الاشتراك"
         >
-          <div className="dialog-card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                تجديد اشتراك النسخة
-              </h3>
-              <button type="button" className="dialog-shell-close-btn" onClick={() => setRenewTenant(null)}>✕</button>
+          <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                    تجديد اشتراك النسخة
+                  </h3>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                    المنشأة: <strong style={{ color: '#0f172a' }}>{renewTenant.name}</strong>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="dialog-shell-close-btn"
+                onClick={() => setRenewTenant(null)}
+                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
             </div>
-            <p className="muted small" style={{ marginBottom: '14px' }}>
-              النسخة: <strong>{renewTenant.name}</strong>
-            </p>
             <div className="stack gap-12">
               <Field label="الخطة / الباقة *">
                 <select value={renewPlanId} onChange={(e) => setRenewPlanId(e.target.value ? Number(e.target.value) : '')}>
@@ -1270,6 +1331,7 @@ export function SaasTenantsPage() {
                     min="0"
                     value={renewPaymentAmount}
                     onChange={(e) => setRenewPaymentAmount(Number(e.target.value))}
+                    placeholder="0.00"
                   />
                 </Field>
                 <Field label="طريقة الدفع">
@@ -1280,12 +1342,12 @@ export function SaasTenantsPage() {
                   </select>
                 </Field>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
                 <button type="button" className="button button-secondary" onClick={() => setRenewTenant(null)}>إلغاء</button>
                 <button
                   type="button"
                   className="button"
-                  style={{ background: '#2563eb', color: '#ffffff' }}
+                  style={{ background: '#0f172a', color: '#ffffff', fontWeight: 800 }}
                   onClick={() => {
                     renewMutation.mutate({ 
                       tenantId: renewTenant.id, 
@@ -1313,19 +1375,36 @@ export function SaasTenantsPage() {
         <DialogShell
           open={Boolean(recordPaymentTenant)}
           onClose={() => setRecordPaymentTenant(null)}
-          width="500px"
+          width="520px"
           ariaLabel="تسجيل دفعة يدوية"
         >
-          <div className="dialog-card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                تسجيل دفعة مالية يدوية
-              </h3>
-              <button type="button" className="dialog-shell-close-btn" onClick={() => setRecordPaymentTenant(null)}>✕</button>
+          <div className="dialog-card" dir="rtl" style={{ padding: '22px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                    تسجيل دفعة مالية يدوية
+                  </h3>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                    النسخة: <strong style={{ color: '#0f172a' }}>{recordPaymentTenant.name}</strong>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="dialog-shell-close-btn"
+                onClick={() => setRecordPaymentTenant(null)}
+                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
             </div>
-            <p className="muted small" style={{ marginBottom: '14px' }}>
-              النسخة: <strong>{recordPaymentTenant.name}</strong>
-            </p>
             <div className="stack gap-12">
               <div className="saas-modal-grid-2">
                 <Field label="المبلغ *">
@@ -1361,12 +1440,12 @@ export function SaasTenantsPage() {
                   placeholder="رقم الحوالة أو الإيصال"
                 />
               </Field>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
                 <button type="button" className="button button-secondary" onClick={() => setRecordPaymentTenant(null)}>إلغاء</button>
                 <button
                   type="button"
                   className="button"
-                  style={{ background: '#059669', color: '#ffffff' }}
+                  style={{ background: '#0f172a', color: '#ffffff', fontWeight: 800 }}
                   onClick={() => {
                     recordPaymentMutation.mutate({ 
                       tenantId: recordPaymentTenant.id, 
