@@ -32,8 +32,39 @@ export const storefrontApi = {
       body: JSON.stringify({ status }),
     }),
 
-  convertToSale: (id: number) =>
-    http<{ ok: boolean; saleId: number; message?: string }>(`/api/storefront/admin/orders/${id}/convert-to-sale`, {
+  convertToSale: (id: number, deliveryRepId?: number) =>
+    http<{ ok: boolean; saleId: number; message?: string; customerName?: string; isNewCustomer?: boolean; deliveryRepName?: string }>(
+      `/api/storefront/admin/orders/${id}/convert-to-sale`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ deliveryRepId }),
+      }
+    ),
+
+  preparePos: (id: number) =>
+    http<{
+      ok: boolean;
+      orderId: number;
+      orderNumber: string;
+      customerId: number | null;
+      customerName: string;
+      customerPhone: string;
+      customerAddress: string;
+      deliveryFee: number;
+      totalAmount: number;
+      items: Array<{
+        productId: number;
+        name: string;
+        price: number;
+        costPrice: number;
+        qty: number;
+        stockQty: number;
+        unitName: string;
+      }>;
+      customerNotes?: string;
+      paymentMethod?: string;
+      isNewCustomer: boolean;
+    }>(`/api/storefront/admin/orders/${id}/prepare-pos`, {
       method: 'POST',
     }),
 
@@ -48,6 +79,15 @@ export const storefrontApi = {
   updateProductImage: (productId: number, imageUrl: string) =>
     http<{ success: boolean; productId: number; imageUrl: string }>(
       `/api/storefront/admin/products/${productId}/image`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ imageUrl }),
+      }
+    ),
+
+  updateCategoryImage: (categoryId: number, imageUrl: string) =>
+    http<{ success: boolean; categoryId: number; imageUrl: string }>(
+      `/api/storefront/admin/categories/${categoryId}/image`,
       {
         method: 'PATCH',
         body: JSON.stringify({ imageUrl }),

@@ -37,6 +37,10 @@ export function usePosWorkspaceEffects({
   lastSale,
   lastAddedLineKey,
   setLastAddedLineKey,
+  quickCustomerName,
+  quickCustomerPhone,
+  quickCustomerAddress,
+
   selectedLineKey,
   setSelectedLineKey,
   discountApprovalSecret,
@@ -45,6 +49,9 @@ export function usePosWorkspaceEffects({
 }: {
   cart: PosItem[];
   customerId: string;
+  quickCustomerName?: string;
+  quickCustomerPhone?: string;
+  quickCustomerAddress?: string;
   discount: number;
   paidAmount: number;
   cashAmount: number;
@@ -97,10 +104,30 @@ export function usePosWorkspaceEffects({
     // Debounce persistence to avoid synchronous localStorage writes on every keystroke
     // (especially during barcode scanner rapid input).
     const timer = window.setTimeout(() => {
-      persistDraftSnapshot(buildDraftState({ cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType, branchId: '', locationId: '' }));
+      persistDraftSnapshot(buildDraftState({
+        cart,
+        customerId,
+        quickCustomerName,
+        quickCustomerPhone,
+        quickCustomerAddress,
+        discount,
+        paidAmount,
+        cashAmount,
+        cardAmount,
+        transferAmount,
+        paymentType,
+        paymentChannel,
+        note,
+        search,
+        priceType,
+        tableNumber,
+        orderType,
+        branchId: '',
+        locationId: '',
+      }));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [cart, customerId, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType]);
+  }, [cart, customerId, quickCustomerName, quickCustomerPhone, quickCustomerAddress, discount, paidAmount, cashAmount, cardAmount, transferAmount, paymentType, paymentChannel, note, search, priceType, tableNumber, orderType]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

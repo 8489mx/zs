@@ -440,18 +440,182 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
   {
     id: 'cat_drinks_fallback',
     nameAr: 'قسم مشروبات وعصائر ومياه (عام)',
-    keywords: ['مشروبات وعصائر ومياه', 'مشروبات', 'عصائر ومياه'],
+    keywords: ['مشروبات وعصائر ومياه', 'مشروبات وعصائر', 'عصائر ومياه'],
     imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Pepsi_355_ml%2C_Canada_%28obverse%29%2C_2026-03-05.jpg/500px-Pepsi_355_ml%2C_Canada_%28obverse%29%2C_2026-03-05.jpg',
     weight: 30,
   },
+
+  // -------------------------------------------------------------
+  // 9. COMPUTERS, ELECTRONICS & ACCESSORIES (كمبيوتر وإلكترونيات)
+  // -------------------------------------------------------------
   {
-    id: 'cat_grocery_fallback',
-    nameAr: 'قسم بقالة ومواد غذائية (عام)',
-    keywords: ['بقالة ومواد غذائية', 'بقالة', 'غذائية', 'تموين'],
-    imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=300&q=50&fm=webp',
-    weight: 30,
+    id: 'ram_memory',
+    nameAr: 'رامات وذاكرة عشوائية للكمبيوتر',
+    keywords: ['رامات', 'رام', 'ddr4', 'ddr3', 'ddr5', 'ذاكره عشوائيه', 'رام لابتوب', 'ram'],
+    imageUrl: 'https://images.unsplash.com/photo-1562976540-1502c2145186?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'cables_converters',
+    nameAr: 'كابلات وكونفرت ووصلات وOTG',
+    keywords: ['كابلات', 'كابل', 'كونفرت', 'وصله', 'وصلات', 'otg', 'hdmi', 'vga', 'display to hd', 'aux', 'كابل باور'],
+    imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'sound_cards_audio',
+    nameAr: 'كروت صوت ومحولات صوتية',
+    keywords: ['كارت صوت', 'كرت صوت', 'صوت usb', 'sound card', 'اوديو', 'محول صوت'],
+    imageUrl: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'cctv_dvr',
+    nameAr: 'كاميرات مراقبة وأجهزة تسجيل DVR',
+    keywords: ['dvr', 'كاميرات', 'كاميرا مراقبه', 'مراقبه', 'كاميرات مراقبة', 'مستلزمات سيستم كاميرات', 'dvr 4ch', 'dvr 8ch', 'dvr 16ch'],
+    imageUrl: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'keyboard_mouse',
+    nameAr: 'لوحات مفاتيح وفأرة وماوس',
+    keywords: ['ماوس', 'كيبورد', 'لوحه مفاتيح', 'فاره', 'mouse', 'keyboard', 'ماوس باد'],
+    imageUrl: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 92,
+  },
+  {
+    id: 'hard_drives_ssd',
+    nameAr: 'هارد ديسك وذاكرة تخزين وSSD',
+    keywords: ['هارد', 'قرص صلب', 'ssd', 'hdd', 'هارد ديسك', 'تخزين'],
+    imageUrl: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 92,
+  },
+  {
+    id: 'monitors_screens',
+    nameAr: 'شاشات كمبيوتر',
+    keywords: ['شاشه', 'شاشات', 'monitor', 'شاشه كمبيوتر', 'شاشات كمبيوتر'],
+    imageUrl: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 92,
+  },
+  {
+    id: 'chargers_adapters',
+    nameAr: 'شواحن وادابتور وباور',
+    keywords: ['شاحن', 'شواحن', 'ادابتور', 'باور', 'شاحن لابتوب', 'باور سبلاي', 'راس شاحن'],
+    imageUrl: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 90,
+  },
+  {
+    id: 'flash_memory_sd',
+    nameAr: 'فلاشات وكروت ميموري USB',
+    keywords: ['فلاشه', 'فلاش ميموري', 'usb flash', 'كارت ميموري', 'ميموري'],
+    imageUrl: 'https://images.unsplash.com/photo-1618410320928-25228d811631?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 90,
+  },
+  {
+    id: 'headphones_audio',
+    nameAr: 'سماعات وهيدفون وايربودز',
+    keywords: ['سماعه', 'سماعات', 'هيدفون', 'ايربودز', 'صب', 'مكبر صوت', 'headphone', 'earbuds'],
+    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 90,
   },
 ];
+
+/**
+ * Generates an ultra-premium, lightweight vector SVG data URI placeholder
+ * for products and categories without dedicated photographs.
+ */
+export function generatePremiumProductSvg(productName: string, categoryName?: string): string {
+  const cleanTitle = (productName || '').trim();
+  const cleanCat = (categoryName || '').trim();
+  const combined = `${cleanTitle} ${cleanCat}`.toLowerCase();
+
+  let accentColor = '#170e5e'; // Deep Royal Navy
+  let badgeText = cleanCat || 'منتج أصلي معتمد';
+  let iconMarkup = '';
+
+  const isTech = /رام|ram|كابل|cable|كونفرت|وصل|صوت|usb|كمبيوتر|لابتوب|هارد|ماوس|كيبورد|شاش|الكترون|موبايل|شاحن|dvr|كامير|هيدفون|سماع|audio|hdmi|vga|otg/.test(combined);
+  const isSupermarket = /جبن|لبن|حليب|زبادي|شاي|سكر|تون|فول|زيت|ارز|مكرون|بسكويت|شوكولات|منظف|صابون|عصير|مياه/.test(combined);
+  const isFashion = /قميص|بنطلون|فستان|تيشيرت|حذاء|شنط|ملابس|كوتشي|جاكيت/.test(combined);
+
+  if (isTech) {
+    accentColor = '#0284c7';
+    if (!cleanCat) badgeText = 'إلكترونيات وكمبيوتر';
+    iconMarkup = `
+      <rect x="42" y="30" width="116" height="74" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5" />
+      <circle cx="100" cy="67" r="16" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="4 3" />
+      <circle cx="100" cy="67" r="6" fill="#38bdf8" />
+      <path d="M65 30V20M85 30V20M115 30V20M135 30V20" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+      <path d="M65 104v10M85 104v10M115 104v10M135 104v10" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+      <path d="M42 52H32M42 82H32M158 52h10M158 82h10" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+    `;
+  } else if (isSupermarket) {
+    accentColor = '#047857';
+    if (!cleanCat) badgeText = 'أغذية ومواد تموينية';
+    iconMarkup = `
+      <rect x="45" y="32" width="110" height="72" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2.5" />
+      <path d="M65 50h70l-8 36H73l-8-36z" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linejoin="round" />
+      <circle cx="82" cy="96" r="5" fill="#34d399" />
+      <circle cx="118" cy="96" r="5" fill="#34d399" />
+      <path d="M85 50c0-8 6-14 15-14s15 6 15 14" fill="none" stroke="#a7f3d0" stroke-width="2.5" stroke-linecap="round" />
+    `;
+  } else if (isFashion) {
+    accentColor = '#7c3aed';
+    if (!cleanCat) badgeText = 'أزياء وملابس';
+    iconMarkup = `
+      <rect x="45" y="32" width="110" height="72" rx="14" fill="#3b0764" stroke="#c084fc" stroke-width="2.5" />
+      <path d="M80 42l20 10 20-10 14 12-8 10-6-4v36H80V60l-6 4-8-10 14-12z" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linejoin="round" />
+    `;
+  } else {
+    accentColor = '#170e5e';
+    if (!cleanCat) badgeText = 'منتج معتمد';
+    iconMarkup = `
+      <rect x="45" y="32" width="110" height="72" rx="14" fill="#170e5e" stroke="#818cf8" stroke-width="2.5" />
+      <path d="M45 58h110" stroke="#818cf8" stroke-width="2" stroke-dasharray="4 3" />
+      <path d="M100 32v72" stroke="#818cf8" stroke-width="2" />
+      <circle cx="100" cy="32" r="12" fill="#3730a3" stroke="#c7d2fe" stroke-width="2" />
+      <path d="M96 32l3 3 6-6" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    `;
+  }
+
+  if (badgeText.length > 20) badgeText = badgeText.slice(0, 19) + '...';
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 155" width="100%" height="100%">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f8fafc" />
+          <stop offset="100%" stop-color="#f1f5f9" />
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08" />
+        </filter>
+      </defs>
+      
+      <!-- Backdrop Card -->
+      <rect width="200" height="155" fill="url(#bg)" />
+      
+      <!-- Subtle Decorative Grid Elements -->
+      <circle cx="20" cy="20" r="2" fill="#cbd5e1" />
+      <circle cx="180" cy="20" r="2" fill="#cbd5e1" />
+      <circle cx="20" cy="135" r="2" fill="#cbd5e1" />
+      <circle cx="180" cy="135" r="2" fill="#cbd5e1" />
+
+      <!-- Center Icon Group -->
+      <g filter="url(#glow)">
+        ${iconMarkup}
+      </g>
+      
+      <!-- Bottom Badge -->
+      <rect x="25" y="122" width="150" height="22" rx="11" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" />
+      <circle cx="40" cy="133" r="3.5" fill="${accentColor}" />
+      <text x="100" y="137" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="800" fill="${accentColor}" text-anchor="middle" direction="rtl">
+        ${badgeText}
+      </text>
+    </svg>
+  `.trim().replace(/\s+/g, ' ');
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
 
 const photoCache = new Map<string, string>();
 
@@ -506,10 +670,11 @@ export function getAutoProductPhoto(productName: string, categoryName?: string):
     }
   }
 
-  // Guaranteed fallback to clean organized supermarket display
-  const result = bestRule 
+  // Only accept a photo match if confidence score is solid (>= 40).
+  // Otherwise, fall back to the clean, enterprise SVG vector placeholder (NEVER vegetables!).
+  const result = (bestRule && highestScore >= 40)
     ? bestRule.imageUrl 
-    : 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=300&q=50&fm=webp';
+    : generatePremiumProductSvg(productName, categoryName);
 
   photoCache.set(cacheKey, result);
   return result;

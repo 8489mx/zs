@@ -22,6 +22,12 @@ export type PosProductFilter = 'all' | 'offers' | 'priced' | 'low' | 'recent' | 
 export interface PosDraftSnapshot {
   cart: PosItem[];
   customerId: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  quickCustomerName?: string;
+  quickCustomerPhone?: string;
+  quickCustomerAddress?: string;
   discount: number;
   deliveryFee: number;
   paidAmount: number;
@@ -131,6 +137,9 @@ export function usePosWorkspace() {
     orderType: state.orderType,
     deliveryRepId: state.deliveryRepId,
     collectionStatus: state.collectionStatus,
+    quickCustomerName: state.quickCustomerName,
+    quickCustomerPhone: state.quickCustomerPhone,
+    quickCustomerAddress: state.quickCustomerAddress,
     products: catalogProducts,
     setCart: state.setCart,
     submitMessage: state.submitMessage,

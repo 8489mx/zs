@@ -644,6 +644,27 @@ export function SaasTenantsPage() {
                     ) : (
                       <span className="muted small">-</span>
                     )}
+                    {row.ownerUsername ? (
+                      <div
+                        style={{
+                          marginTop: '3px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '4px',
+                          padding: '1px 6px',
+                          fontSize: '11px',
+                          color: '#170e5e',
+                          fontWeight: 700,
+                        }}
+                        title="اسم المستخدم لتسجيل الدخول"
+                      >
+                        <span style={{ color: '#64748b', fontSize: '10px' }}>يوزر:</span>
+                        <code style={{ fontFamily: 'monospace', direction: 'ltr' }}>{row.ownerUsername}</code>
+                      </div>
+                    ) : null}
                   </div>
                 ),
               },

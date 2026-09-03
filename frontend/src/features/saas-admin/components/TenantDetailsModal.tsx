@@ -167,6 +167,24 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#64748b' }}>اسم الدخول (Username):</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <code style={{ fontFamily: 'monospace', color: '#170e5e', fontWeight: 800, background: '#f1f5f9', padding: '2px 8px', borderRadius: '5px', border: '1px solid #e2e8f0', direction: 'ltr' }}>
+                        {tenant.ownerUsername || '-'}
+                      </code>
+                      {tenant.ownerUsername && (
+                        <button
+                          type="button"
+                          onClick={() => copyText('username', tenant.ownerUsername || '')}
+                          style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '11px', padding: '1px 4px', fontWeight: 700 }}
+                        >
+                          {copiedKey === 'username' ? '✓ تم' : 'نسخ'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#64748b' }}>رقم الهاتف:</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <strong style={{ direction: 'ltr', color: '#0f172a' }}>{tenant.ownerPhone || '-'}</strong>

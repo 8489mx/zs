@@ -1,8 +1,9 @@
 import { CSSProperties, PropsWithChildren, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
+import { storefrontApi } from '@/features/storefront/api/storefront.api';
 import { AppCloseGuard } from './AppCloseGuard';
 import { Button } from '@/shared/ui/button';
 import { authApi } from '@/shared/api/auth';
@@ -56,6 +57,7 @@ const iconToneMap: Record<string, IconTone> = {
   sales: { bg: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', border: '#93c5fd', fg: '#1d4ed8', glow: 'rgba(37, 99, 235, 0.22)' },
   'delivery-reps': { bg: 'linear-gradient(135deg, #fef3c7, #fef08a)', border: '#fde047', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.22)' },
   pos: { bg: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)', border: '#d8b4fe', fg: '#7e22ce', glow: 'rgba(168, 85, 247, 0.22)' },
+  'online-orders': { bg: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', border: '#6ee7b7', fg: '#059669', glow: 'rgba(16, 185, 129, 0.22)' },
   'cash-drawer': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#a16207', glow: 'rgba(245, 158, 11, 0.24)' },
   purchases: { bg: 'linear-gradient(135deg, #cffafe, #a5f3fc)', border: '#67e8f9', fg: '#0f766e', glow: 'rgba(6, 182, 212, 0.22)' },
   'purchases-new': { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#065f46', glow: 'rgba(16, 185, 129, 0.22)' },
@@ -124,6 +126,7 @@ const iconPathMap: Record<string, string> = {
   'pharmacy-clinical': 'M22 12h-4l-3 9L9 3l-3 9H2',
   dashboard: 'M4 11h16M6 9l6-5 6 5v10H6V9z',
   pos: 'M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4',
+  'online-orders': 'M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6M9 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   'cash-drawer': 'M3 10h18v10H3V10zm3-6h12v4H6V4zm6 9v2m-4 0h8',
   sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
   purchases: 'M1 3h3l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L22 6H6M10 21a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm10 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z',
@@ -213,6 +216,22 @@ export function AppShell({ children }: PropsWithChildren) {
   const clearSession = useAuthStore((state) => state.clearSession);
   const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
   const { data: updateInfo } = useOfflineUpdateCheck(deploymentMode);
+
+  const pendingOrdersCountQuery = useQuery({
+    queryKey: ['storefront-admin-orders-count'],
+    queryFn: async () => {
+      try {
+        const res = await storefrontApi.listOrders('pending');
+        return res.orders?.length || 0;
+      } catch {
+        return 0;
+      }
+    },
+    refetchInterval: 15 * 1000,
+    staleTime: 10 * 1000,
+  });
+  const pendingOrdersCount = pendingOrdersCountQuery.data || 0;
+
   const displayName = user?.displayName || user?.username || 'المستخدم';
   const workspaceName = storeName || DEFAULT_STORE_NAME;
   const isPosRoute = location.pathname.startsWith('/pos');
@@ -311,6 +330,7 @@ export function AppShell({ children }: PropsWithChildren) {
       // Quick primary actions
       'dashboard',
       'pos',
+      'online-orders',
       'cash-drawer',
 
       // 1. Sales & Customers
@@ -391,6 +411,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'cash-drawer': t('sidebar.cash-drawer', 'الوردية والدرج النقدي'),
       pos: t('sidebar.pos', 'نقطة البيع'),
       sales: 'سجل الفواتير',
+      'online-orders': 'طلبات الأونلاين',
       returns: 'مرتجعات المبيعات',
       customers: t('sidebar.customers', 'العملاء'),
       'delivery-reps': 'إدارة المناديب',
@@ -463,7 +484,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
-  const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'cash-drawer'], []);
+  const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'online-orders', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     return [
@@ -719,6 +740,22 @@ export function AppShell({ children }: PropsWithChildren) {
       >
         <span className="sidebar-icon"><AppNavIcon itemKey={item.key} /></span>
         <span className="sidebar-label">{item.label}</span>
+        {item.key === 'online-orders' && pendingOrdersCount > 0 && (
+          <span
+            style={{
+              background: '#ef4444',
+              color: '#ffffff',
+              borderRadius: '999px',
+              padding: '1px 7px',
+              fontSize: '11px',
+              fontWeight: 800,
+              marginInlineStart: 'auto',
+              boxShadow: '0 1px 4px rgba(239, 68, 68, 0.4)',
+            }}
+          >
+            {pendingOrdersCount}
+          </span>
+        )}
         <span className="sidebar-link-chevron-spacer" aria-hidden="true" />
       </NavLink>
     );

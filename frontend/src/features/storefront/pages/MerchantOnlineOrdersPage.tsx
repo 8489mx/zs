@@ -1,13 +1,19 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord } from '../types/storefront.types';
+import { ConvertDeliveryModal } from '../components/ConvertDeliveryModal';
+import { loadOnlineOrderIntoPosCart } from '../lib/storefront-pos-loader';
 import { Button } from '@/shared/ui/button';
 
 export function MerchantOnlineOrdersPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrderRecord | null>(null);
+  const [deliveryModalOrder, setDeliveryModalOrder] = useState<OnlineOrderRecord | null>(null);
+  const [loadingPosOrderId, setLoadingPosOrderId] = useState<number | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
   // Queries
@@ -34,18 +40,6 @@ export function MerchantOnlineOrdersPage() {
     },
   });
 
-  const convertToSaleMutation = useMutation({
-    mutationFn: (id: number) => storefrontApi.convertToSale(id),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
-      alert(`تم تحويل الطلب بنجاح إلى فاتورة مبيعات رقم #${data.saleId} وخصم المخزون!`);
-      setSelectedOrder(null);
-    },
-    onError: (err: any) => {
-      alert(`تعذر تحويل الطلب: ${err.message || 'خطأ غير متوقع'}`);
-    },
-  });
-
   const orders = ordersQuery.data?.orders || [];
   const settings = settingsQuery.data;
 
@@ -56,6 +50,16 @@ export function MerchantOnlineOrdersPage() {
     navigator.clipboard.writeText(storeUrl);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  const handleLoadToPos = async (orderId: number) => {
+    setLoadingPosOrderId(orderId);
+    try {
+      await loadOnlineOrderIntoPosCart(orderId, navigate);
+    } catch (err: any) {
+      setLoadingPosOrderId(null);
+      alert(`تعذر تحميل الطلب في السلة: ${err.message || 'خطأ غير متوقع'}`);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -309,13 +313,79 @@ export function MerchantOnlineOrdersPage() {
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          {order.saleId ? (
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                background: '#dcfce7',
+                                color: '#166534',
+                                border: '1px solid #bbf7d0',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              ✓ دليفري #{order.saleId}
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleLoadToPos(order.id)}
+                                disabled={loadingPosOrderId === order.id}
+                                title="فتح شاشة الكاشير وتنزيل الأصناف والعميل في السلة لتعديلها وإتمام البيع"
+                                style={{
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  padding: '6px 10px',
+                                  borderRadius: '6px',
+                                  background: '#047857',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  cursor: loadingPosOrderId === order.id ? 'wait' : 'pointer',
+                                  whiteSpace: 'nowrap',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <span>🛒</span>
+                                <span>{loadingPosOrderId === order.id ? 'جاري النقل...' : 'بالسلة (POS)'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeliveryModalOrder(order)}
+                                title="تحويل فوري لدليفري واختيار مندوب التوصيل"
+                                style={{
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  padding: '6px 10px',
+                                  borderRadius: '6px',
+                                  background: '#170e5e',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <span>⚡</span>
+                                <span>تحويل لدليفري</span>
+                              </button>
+                            </>
+                          )}
+
                           <Button
                             type="button"
                             variant="secondary"
                             onClick={() => setSelectedOrder(order)}
                             style={{ fontSize: '12px', padding: '6px 10px' }}
                           >
-                            تفاصيل الطلب
+                            تفاصيل
                           </Button>
                           {waPhone && (
                             <a
@@ -449,14 +519,47 @@ export function MerchantOnlineOrdersPage() {
                     {selectedOrder.customerAddress || 'غير محدد'}
                   </span>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>طريقة الدفع:</span>
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: selectedOrder.paymentMethod === 'instapay_wallet' ? '#ede9fe' : '#f1f5f9',
+                      color: selectedOrder.paymentMethod === 'instapay_wallet' ? '#6d28d9' : '#0f172a',
+                    }}
+                  >
+                    {selectedOrder.paymentMethod === 'instapay_wallet' ? '📱 إنستاباي / محفظة (تحويل مسبق)' : '💵 دفع عند الاستلام (كاش)'}
+                  </span>
+                </div>
                 {selectedOrder.customerNotes && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>ملاحظات:</span>
-                    <span style={{ fontSize: '12px', color: '#d97706', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '12px', color: '#92400e', fontWeight: 800 }}>📝 ملاحظات العميل وتجهيز الأصناف:</span>
+                    <span style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 600, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
                       {selectedOrder.customerNotes}
                     </span>
                   </div>
                 )}
+
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '11.5px',
+                    color: '#166534',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginTop: '4px',
+                  }}
+                >
+                  <span>⚡</span>
+                  <span>أوتوميشن فوري: عند التحويل يتم تسجيل هذا العميل تلقائياً، وإصدار فاتورة دليفري، وخصم المخزون.</span>
+                </div>
               </div>
 
               {/* Items List */}
@@ -586,31 +689,89 @@ export function MerchantOnlineOrdersPage() {
                     fontSize: '13px',
                   }}
                 >
-                  ✓ محول لفاتورة مبيعات رقم #{selectedOrder.saleId}
+                  ✓ تم إصدار فاتورة دليفري رقم #{selectedOrder.saleId}
                 </div>
               ) : (
-                <Button
-                  type="button"
-                  onClick={() => convertToSaleMutation.mutate(selectedOrder.id)}
-                  disabled={convertToSaleMutation.isPending}
-                  style={{
-                    flex: 1,
-                    background: '#0f172a',
-                    color: '#ffffff',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                    padding: '11px',
-                  }}
-                >
-                  {convertToSaleMutation.isPending
-                    ? 'جاري التحويل وخصم المخزن...'
-                    : 'تحويل لفاتورة مبيعات وخصم المخزن'}
-                </Button>
+                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = selectedOrder.id;
+                      setSelectedOrder(null);
+                      handleLoadToPos(id);
+                    }}
+                    disabled={loadingPosOrderId === selectedOrder.id}
+                    style={{
+                      flex: 1,
+                      background: '#047857',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: loadingPosOrderId === selectedOrder.id ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>🛒</span>
+                    <span>
+                      {loadingPosOrderId === selectedOrder.id ? 'جاري النقل...' : 'تنزيل في السلة (POS)'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ord = selectedOrder;
+                      setSelectedOrder(null);
+                      setDeliveryModalOrder(ord);
+                    }}
+                    style={{
+                      flex: 1,
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>⚡</span>
+                    <span>تحويل لدليفري واختيار المندوب</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Delivery Representative & Quick Convert Modal */}
+      <ConvertDeliveryModal
+        order={deliveryModalOrder}
+        isOpen={Boolean(deliveryModalOrder)}
+        onClose={() => setDeliveryModalOrder(null)}
+        onSuccess={(data) => {
+          queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
+          const custMsg = data.isNewCustomer
+            ? `\n🎉 تم تسجيل (${data.customerName}) كعميل جديد في النظام تلقائياً!`
+            : `\n👤 العميل: ${data.customerName}`;
+          const repMsg = data.deliveryRepName ? `\n🛵 المندوب: ${data.deliveryRepName}` : '';
+          alert(`✅ تم تحويل الطلب بنجاح إلى فاتورة مبيعات دليفري رقم #${data.saleId} وتخصيم المخزون!${custMsg}${repMsg}`);
+          setSelectedOrder(null);
+        }}
+        onLoadToPos={handleLoadToPos}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
-import { getAutoProductPhoto } from '../lib/storefront-photo-matcher';
+import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconCheckCircle, IconTag, IconStar, IconShoppingCart } from './StorefrontIcons';
 
 interface StorefrontProductCardProps {
@@ -74,7 +74,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             loading="lazy"
             decoding="async"
             onError={(e) => {
-              e.currentTarget.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=260&q=45&fm=webp';
+              e.currentTarget.src = generatePremiumProductSvg(product.name, product.categoryName);
             }}
             style={{
               width: '100%',

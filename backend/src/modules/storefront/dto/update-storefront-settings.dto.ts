@@ -34,4 +34,12 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsString()
   whatsappPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  bannerFit?: 'contain' | 'cover';
+
+  @IsOptional()
+  @IsString()
+  bannerPosition?: 'top' | 'center' | 'bottom';
 }

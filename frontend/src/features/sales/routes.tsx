@@ -9,7 +9,7 @@ export const salesRouteModule: FeatureRouteModule = {
   ],
   navigation: [
     { key: 'sales', label: 'المبيعات', to: '/sales' },
-    { key: 'online-orders', label: 'طلبات المتجر الإلكتروني', to: '/online-orders' },
+    { key: 'online-orders', label: 'طلبات الأونلاين', to: '/online-orders' },
     { key: 'tax-dispatcher', label: 'الضرائب (ETA)', to: '/tax-dispatcher' }
   ]
 };

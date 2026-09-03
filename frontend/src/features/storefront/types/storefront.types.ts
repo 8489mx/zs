@@ -7,6 +7,8 @@ export interface StorefrontInfo {
   bio: string;
   announcement: string;
   bannerUrl: string;
+  bannerFit?: 'contain' | 'cover';
+  bannerPosition?: 'top' | 'center' | 'bottom';
   deliveryFee: number;
   minOrder: number;
   whatsappPhone: string;
@@ -16,6 +18,7 @@ export interface StorefrontInfo {
 export interface StorefrontCategory {
   id: number;
   name: string;
+  imageUrl?: string;
 }
 
 export interface StorefrontProduct {
@@ -102,6 +105,8 @@ export interface StorefrontSettingsPayload {
   bio?: string;
   announcement?: string;
   bannerUrl?: string;
+  bannerFit?: 'contain' | 'cover';
+  bannerPosition?: 'top' | 'center' | 'bottom';
   deliveryFee?: number;
   minOrder?: number;
   whatsappPhone?: string;

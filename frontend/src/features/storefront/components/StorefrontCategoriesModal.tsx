@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
-import { getAutoProductPhoto } from '../lib/storefront-photo-matcher';
+import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconFolder, IconClose, IconSearch, IconShoppingBag } from './StorefrontIcons';
 
 interface StorefrontCategoriesModalProps {
@@ -196,7 +196,7 @@ export function StorefrontCategoriesModal({
           {filteredCategories.map((cat) => {
             const count = categoryCounts.get(cat.id) || 0;
             const isSelected = selectedCategoryId === cat.id;
-            const photoUrl = getAutoProductPhoto(cat.name, cat.name);
+            const photoUrl = cat.imageUrl || getAutoProductPhoto(cat.name, cat.name);
 
             return (
               <div
@@ -245,6 +245,9 @@ export function StorefrontCategoriesModal({
                     alt={cat.name}
                     loading="lazy"
                     decoding="async"
+                    onError={(e) => {
+                      e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
+                    }}
                     style={{
                       width: '100%',
                       height: '100%',

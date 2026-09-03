@@ -192,12 +192,12 @@ export function PosCheckoutCustomerSection({
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
             <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, flexShrink: 0 }}>العميل:</span>
             <strong style={{ fontSize: '14px', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {selectedCustomer?.name || selectedCustomerName}
+              {selectedCustomer?.name || pos.quickCustomerName || (selectedCustomerName !== 'عميل نقدي' ? selectedCustomerName : '') || 'عميل نقدي'}
             </strong>
           </div>
           <div style={{ minWidth: 0 }}>
             <input
-              value={pos.quickCustomerPhone}
+              value={pos.quickCustomerPhone || selectedCustomer?.phone || ''}
               onChange={(event) => pos.setQuickCustomerPhone(event.target.value)}
               placeholder="رقم الهاتف"
               style={{ width: '100%', padding: '6px 10px', fontSize: '13px', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
@@ -205,7 +205,7 @@ export function PosCheckoutCustomerSection({
           </div>
           <div style={{ minWidth: 0, position: 'relative' }}>
             <input
-              value={pos.quickCustomerAddress}
+              value={pos.quickCustomerAddress || selectedCustomer?.address || ''}
               onChange={(event) => pos.setQuickCustomerAddress(event.target.value)}
               onFocus={() => setAddressDropdownOpen(true)}
               onBlur={() => setTimeout(() => setAddressDropdownOpen(false), 200)}

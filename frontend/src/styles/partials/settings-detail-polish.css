@@ -1,3 +1,9 @@
+.settings-page-shell .document-prototype-column {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
 .settings-page-shell .page-header {
   padding-block: 14px;
 }

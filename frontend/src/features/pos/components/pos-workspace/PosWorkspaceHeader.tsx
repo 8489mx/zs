@@ -1,7 +1,10 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
+import { storefrontApi } from '@/features/storefront/api/storefront.api';
+import { PosOnlineOrdersModal } from './PosOnlineOrdersModal';
 
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
@@ -25,9 +28,27 @@ interface PosWorkspaceHeaderProps {
 
 function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenNewProduct, onOpenQuickService, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
+  const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
+
+  const pendingOrdersQuery = useQuery({
+    queryKey: ['pos-pending-orders-count'],
+    queryFn: async () => {
+      try {
+        const res = await storefrontApi.listOrders('pending');
+        return res.orders?.length || 0;
+      } catch {
+        return 0;
+      }
+    },
+    refetchInterval: 15 * 1000,
+    staleTime: 10 * 1000,
+  });
+
+  const pendingCount = pendingOrdersQuery.data || 0;
 
   return (
-    <PageHeader
+    <>
+      <PageHeader
       title="نقطة البيع"
       badge={(
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', direction: 'ltr', color: '#0f172a' }} aria-label="Z ERP">
@@ -58,6 +79,37 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <Button type="button" variant="secondary" onClick={onOpenNewProduct} style={{ fontWeight: 700, color: '#1e3a8a' }}>+ صنف جديد</Button>
           <Button type="button" variant="secondary" onClick={onOpenQuickService}>خدمة سريعة F8</Button>
           <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale}>F9 إعادة طباعة الفواتير</Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsOnlineOrdersOpen(true)}
+            style={{
+              fontWeight: 700,
+              background: pendingCount > 0 ? '#10b981' : undefined,
+              color: pendingCount > 0 ? '#ffffff' : '#0f172a',
+              border: pendingCount > 0 ? '1px solid #059669' : undefined,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>طلبات الأونلاين</span>
+            {pendingCount > 0 && (
+              <span
+                style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  borderRadius: '999px',
+                  padding: '1px 6px',
+                  lineHeight: '1.2',
+                }}
+              >
+                {pendingCount}
+              </span>
+            )}
+          </Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
           {pos.ownOpenShift ? (
@@ -76,6 +128,11 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
         </div>
       )}
     />
+    <PosOnlineOrdersModal
+      isOpen={isOnlineOrdersOpen}
+      onClose={() => setIsOnlineOrdersOpen(false)}
+    />
+    </>
   );
 }
 

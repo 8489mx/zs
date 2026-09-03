@@ -29,8 +29,17 @@ export class StorefrontMerchantController {
   }
 
   @Post('orders/:id/convert-to-sale')
-  convertToSale(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
-    return this.service.convertToSale(id, req.authContext!);
+  convertToSale(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('deliveryRepId') deliveryRepId: number | undefined,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.convertToSale(id, req.authContext!, deliveryRepId);
+  }
+
+  @Post('orders/:id/prepare-pos')
+  prepareOrderForPos(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.service.prepareOrderForPos(id, req.authContext!);
   }
 
   @Get('settings')
@@ -50,5 +59,14 @@ export class StorefrontMerchantController {
     @Req() req: RequestWithAuth,
   ) {
     return this.service.updateProductImage(id, imageUrl || '', req.authContext!);
+  }
+
+  @Patch('categories/:id/image')
+  updateCategoryImage(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('imageUrl') imageUrl: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.updateCategoryImage(id, imageUrl || '', req.authContext!);
   }
 }

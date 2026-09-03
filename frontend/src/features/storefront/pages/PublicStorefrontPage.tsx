@@ -105,19 +105,20 @@ export function PublicStorefrontPage() {
   // Automatically purges ghost items from other tenants, old sessions, or deleted products
   useEffect(() => {
     if (!catalogQuery.data?.products || catalogQuery.data.products.length === 0) return;
-    const activeProductMap = new Map<number, StorefrontProduct>(
-      catalogQuery.data.products.map((p: StorefrontProduct) => [p.id, p])
-    );
+    const activeProductMap = new Map<string, StorefrontProduct>();
+    for (const p of catalogQuery.data.products as StorefrontProduct[]) {
+      activeProductMap.set(String(p.id), p);
+    }
     setCartItems((prev) => {
       let changed = false;
       const updated = prev
         .filter((item) => {
-          const exists = activeProductMap.has(item.product.id);
+          const exists = activeProductMap.has(String(item.product.id));
           if (!exists) changed = true;
           return exists;
         })
         .map((item) => {
-          const fresh = activeProductMap.get(item.product.id)!;
+          const fresh = activeProductMap.get(String(item.product.id))!;
           if (fresh.price !== item.product.price || fresh.name !== item.product.name) {
             changed = true;
             return { ...item, product: fresh };
@@ -377,6 +378,48 @@ export function PublicStorefrontPage() {
         onOpenCart={() => setIsCartOpen(true)}
       />
 
+      {/* Top Promotional Billboard Banner (Before Navigation & Categories) */}
+      {!searchTerm && info.bannerUrl && (
+        <div
+          style={{
+            maxWidth: '1280px',
+            width: '100%',
+            margin: '16px auto 8px',
+            padding: '0 20px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              boxShadow: '0 4px 16px rgba(15, 23, 42, 0.05)',
+              border: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              maxHeight: (info.bannerFit || 'contain') === 'cover' ? '320px' : 'none',
+            }}
+          >
+            <img
+              src={info.bannerUrl}
+              alt={info.title || info.businessName || 'بانر العروض الترويجية'}
+              style={{
+                width: '100%',
+                height: 'auto',
+                maxHeight: (info.bannerFit || 'contain') === 'cover' ? '320px' : 'none',
+                objectFit: (info.bannerFit || 'contain') as any,
+                objectPosition: (info.bannerPosition || 'center') as any,
+                display: 'block',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Sub-Header Utility Navigation Bar (Amazon Quick Bar) */}
       <StorefrontSubNav
         categories={categories}
@@ -417,36 +460,6 @@ export function PublicStorefrontPage() {
           padding: '20px 20px 80px',
         }}
       >
-        {/* Amazon / Noon Style Promotional Billboard Banner */}
-        {!searchTerm && info.bannerUrl && (
-          <div
-            style={{
-              width: '100%',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              boxShadow: '0 4px 16px rgba(15, 23, 42, 0.05)',
-              border: '1px solid #e2e8f0',
-              background: '#ffffff',
-              marginBottom: '24px',
-              position: 'relative',
-              maxHeight: '260px',
-            }}
-          >
-            <img
-              src={info.bannerUrl}
-              alt={info.title || info.businessName || 'بانر العروض الترويجية'}
-              style={{
-                width: '100%',
-                height: 'auto',
-                maxHeight: '260px',
-                minHeight: '120px',
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
-          </div>
-        )}
-
         {/* CASE 1: Curated Multi-Row Homepage (Ultra-Fast: 36 Cards Max) */}
         {isHomepageMultiRow ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>

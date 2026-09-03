@@ -1,5 +1,5 @@
 import { StorefrontCategory } from '../types/storefront.types';
-import { getAutoProductPhoto } from '../lib/storefront-photo-matcher';
+import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconShoppingBag, IconFolder } from './StorefrontIcons';
 
 interface StorefrontCategoryShowcaseProps {
@@ -94,7 +94,7 @@ export function StorefrontCategoryShowcase({
         {/* Top 10 Curated Category Circles */}
         {topCategories.map((cat) => {
           const isSelected = selectedCategoryId === cat.id;
-          const photoUrl = getAutoProductPhoto(cat.name, cat.name);
+          const photoUrl = cat.imageUrl || getAutoProductPhoto(cat.name, cat.name);
           const count = categoryCounts.get(cat.id) || 0;
 
           return (
@@ -131,6 +131,9 @@ export function StorefrontCategoryShowcase({
                   alt={cat.name}
                   loading="lazy"
                   decoding="async"
+                  onError={(e) => {
+                    e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
+                  }}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>

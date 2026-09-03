@@ -70,9 +70,19 @@ export function TenantActionHubModal({
                 {tenant.status === 'active' ? 'مفعلة' : tenant.status === 'trial' ? 'تجريبية' : tenant.status === 'expired' ? 'منتهية' : 'موقوفة'}
               </span>
             </div>
-            <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              المعرف السحابي: <strong style={{ color: '#0f172a' }}>{tenant.slug}</strong> • المالك: {tenant.ownerName} ({tenant.ownerPhone || '-'})
-            </p>
+            <div style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span>المعرف: <strong style={{ color: '#0f172a' }}>{tenant.slug}</strong></span>
+              <span>•</span>
+              <span>المالك: <strong style={{ color: '#0f172a' }}>{tenant.ownerName}</strong> ({tenant.ownerPhone || '-'})</span>
+              {tenant.ownerUsername && (
+                <>
+                  <span>•</span>
+                  <span style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '1px 8px', borderRadius: '6px', color: '#170e5e', fontWeight: 800 }}>
+                    اسم الدخول: <code style={{ fontFamily: 'monospace' }}>{tenant.ownerUsername}</code>
+                  </span>
+                </>
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -276,7 +286,9 @@ export function TenantActionHubModal({
               </div>
               <div className="saas-action-card-info">
                 <strong className="saas-action-card-title">إعادة تعيين كلمة المرور</strong>
-                <span className="saas-action-card-sub">توليد كلمة سر جديدة لحساب مالك النسخة</span>
+                <span className="saas-action-card-sub">
+                  توليد كلمة سر جديدة للحساب {tenant.ownerUsername ? `(${tenant.ownerUsername})` : ''}
+                </span>
               </div>
             </button>
 
@@ -314,7 +326,9 @@ export function TenantActionHubModal({
               </div>
               <div className="saas-action-card-info">
                 <strong className="saas-action-card-title">فك قفل حساب المالك</strong>
-                <span className="saas-action-card-sub">إلغاء الحظر الأمني بعد محاولات الدخول الخاطئة</span>
+                <span className="saas-action-card-sub">
+                  إلغاء الحظر الأمني للمستخدم {tenant.ownerUsername ? `(${tenant.ownerUsername})` : ''}
+                </span>
               </div>
             </button>
 

@@ -259,8 +259,8 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
             ) : (
               <button type="button" className="pos-customer-trigger" onClick={openSearchInline}>
                 <span className="pos-customer-trigger-label">اختيار عميل</span>
-                <strong>{selectedCustomer?.name || 'عميل نقدي'}</strong>
-                <small>{selectedCustomer?.phone || 'ابحث بالاسم أو الهاتف'}</small>
+                <strong>{selectedCustomer?.name || props.quickCustomerName || 'عميل نقدي'}</strong>
+                <small>{selectedCustomer?.phone || props.quickCustomerPhone || 'ابحث بالاسم أو الهاتف'}</small>
               </button>
             )}
           </div>

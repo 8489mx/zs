@@ -51,9 +51,19 @@ function isFresh(savedAt: string, maxAgeMs: number) {
 }
 
 export function buildDraftState(initial?: Partial<PosDraftSnapshot>): PosDraftSnapshot {
+  const cName = (initial as any)?.customerName || (initial as any)?.quickCustomerName || '';
+  const cPhone = (initial as any)?.customerPhone || (initial as any)?.quickCustomerPhone || '';
+  const cAddress = (initial as any)?.customerAddress || (initial as any)?.quickCustomerAddress || '';
+
   return {
     cart: initial?.cart || [],
     customerId: initial?.customerId || '',
+    customerName: cName,
+    customerPhone: cPhone,
+    customerAddress: cAddress,
+    quickCustomerName: cName,
+    quickCustomerPhone: cPhone,
+    quickCustomerAddress: cAddress,
     discount: Number(initial?.discount || 0),
     deliveryFee: Number(initial?.deliveryFee || 0),
     paidAmount: Number(initial?.paidAmount || 0),

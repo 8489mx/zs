@@ -23,6 +23,8 @@ export function StorefrontSettingsTab() {
     bio: '',
     announcement: '',
     bannerUrl: '',
+    bannerFit: 'contain' as 'contain' | 'cover',
+    bannerPosition: 'center' as 'top' | 'center' | 'bottom',
     deliveryFee: 0,
     minOrder: 0,
     whatsappPhone: '',
@@ -36,6 +38,8 @@ export function StorefrontSettingsTab() {
         bio: settingsQuery.data.bio || '',
         announcement: settingsQuery.data.announcement || '',
         bannerUrl: settingsQuery.data.bannerUrl || '',
+        bannerFit: (settingsQuery.data.bannerFit || 'contain') as 'contain' | 'cover',
+        bannerPosition: (settingsQuery.data.bannerPosition || 'center') as 'top' | 'center' | 'bottom',
         deliveryFee: settingsQuery.data.deliveryFee || 0,
         minOrder: settingsQuery.data.minOrder || 0,
         whatsappPhone: settingsQuery.data.whatsappPhone || '',
@@ -492,14 +496,131 @@ export function StorefrontSettingsTab() {
                 </div>
 
                 {formState.bannerUrl && (
-                  <div style={{ borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', maxHeight: '80px' }}>
+                  <div style={{
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    marginBottom: '10px',
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    maxHeight: '150px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
                     <img
                       src={formState.bannerUrl}
                       alt="بنر المتجر"
-                      style={{ width: '100%', maxHeight: '80px', objectFit: 'cover', display: 'block' }}
+                      style={{
+                        width: '100%',
+                        maxHeight: '150px',
+                        objectFit: formState.bannerFit || 'contain',
+                        objectPosition: formState.bannerPosition || 'center',
+                        display: 'block',
+                      }}
                     />
                   </div>
                 )}
+
+                {/* Banner Fit & Position Controls */}
+                {formState.bannerUrl && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    marginBottom: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>طريقة العرض في المتجر:</span>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setFormState(prev => ({ ...prev, bannerFit: 'contain' }))}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            borderRadius: '5px',
+                            border: formState.bannerFit === 'contain' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                            background: formState.bannerFit === 'contain' ? '#eff6ff' : '#ffffff',
+                            color: formState.bannerFit === 'contain' ? '#170e5e' : '#64748b',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          احتواء كامل (بدون قص) ✨
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormState(prev => ({ ...prev, bannerFit: 'cover' }))}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            borderRadius: '5px',
+                            border: formState.bannerFit === 'cover' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                            background: formState.bannerFit === 'cover' ? '#eff6ff' : '#ffffff',
+                            color: formState.bannerFit === 'cover' ? '#170e5e' : '#64748b',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ملء كامل الإطار (Cover)
+                        </button>
+                      </div>
+                    </div>
+
+                    {formState.bannerFit === 'cover' && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '6px', borderTop: '1px dashed #e2e8f0' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>محاذاة التركيز الرأسي:</span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {(['top', 'center', 'bottom'] as const).map(pos => (
+                            <button
+                              key={pos}
+                              type="button"
+                              onClick={() => setFormState(prev => ({ ...prev, bannerPosition: pos }))}
+                              style={{
+                                padding: '3px 8px',
+                                fontSize: '10.5px',
+                                fontWeight: 700,
+                                borderRadius: '4px',
+                                border: formState.bannerPosition === pos ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                                background: formState.bannerPosition === pos ? '#eff6ff' : '#ffffff',
+                                color: formState.bannerPosition === pos ? '#170e5e' : '#64748b',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {pos === 'top' ? 'أعلى ⬆️' : pos === 'bottom' ? 'أسفل ⬇️' : 'وسط ⏺️'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* AI Design Guidelines Helper Box */}
+                <div style={{
+                  background: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  marginBottom: '10px',
+                  fontSize: '11px',
+                  color: '#0369a1',
+                  lineHeight: '1.5',
+                }}>
+                  <div style={{ fontWeight: 800, marginBottom: '2px' }}>
+                    📐 المقاس الموصى به لتصميم البنر بالذكاء الاصطناعي (AI):
+                  </div>
+                  <div>
+                    • النسبة الذهبية: <strong>4:1 أو 16:5</strong> (المقاس: <strong>1280 × 320 بكسل</strong> أو <strong>1600 × 400</strong>).
+                  </div>
+                  <div>
+                    • نصيحة: اطلب من الـ AI ترك هامش أمان 15% حول الحواف لضمان ظهور النصوص والشعار كاملة.
+                  </div>
+                </div>
 
                 {bannerCompressFeedback && (
                   <div
@@ -510,7 +631,7 @@ export function StorefrontSettingsTab() {
                       background: '#ecfdf5',
                       padding: '4px 8px',
                       borderRadius: '4px',
-                      marginBottom: '6px',
+                      marginBottom: '8px',
                     }}
                   >
                     {bannerCompressFeedback}
@@ -522,12 +643,12 @@ export function StorefrontSettingsTab() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '5px 12px',
+                    padding: '6px 14px',
                     borderRadius: '6px',
                     background: '#ffffff',
                     border: '1px solid #cbd5e1',
                     color: '#0f172a',
-                    fontSize: '11.5px',
+                    fontSize: '12px',
                     fontWeight: 700,
                     cursor: isCompressingBanner ? 'wait' : 'pointer',
                   }}

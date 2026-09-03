@@ -36,9 +36,15 @@ export function usePosWorkspaceState() {
   const [productFilter, setProductFilter] = useState<PosProductFilter>('all');
   const [submitMessage, setSubmitMessage] = useState('');
   const [recentProductIds, setRecentProductIds] = useState<string[]>(persistedState.recentProductIds);
-  const [quickCustomerName, setQuickCustomerName] = useState('');
-  const [quickCustomerPhone, setQuickCustomerPhone] = useState('');
-  const [quickCustomerAddress, setQuickCustomerAddress] = useState('');
+  const [quickCustomerName, setQuickCustomerName] = useState(
+    storedDraft?.quickCustomerName || storedDraft?.customerName || ''
+  );
+  const [quickCustomerPhone, setQuickCustomerPhone] = useState(
+    storedDraft?.quickCustomerPhone || storedDraft?.customerPhone || ''
+  );
+  const [quickCustomerAddress, setQuickCustomerAddress] = useState(
+    storedDraft?.quickCustomerAddress || storedDraft?.customerAddress || ''
+  );
   const [lastSale, setLastSale] = useState<Sale | null>(persistedState.lastSale);
   const [quickAddCode, setQuickAddCode] = useState('');
   const [scannerMessage, setScannerMessage] = useState('');
