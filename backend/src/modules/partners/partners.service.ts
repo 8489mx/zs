@@ -573,8 +573,8 @@ export class PartnersService {
       await trx
         .insertInto('customer_loyalty_logs')
         .values({
-          tenant_id: actor.tenantId,
-          account_id: actor.accountId,
+          tenant_id: this.tenantId(actor),
+          account_id: this.accountId(actor),
           customer_id: id,
           points_change: pointsChange,
           balance_after: newBalance,

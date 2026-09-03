@@ -286,15 +286,17 @@ export class QuotationsService {
 
     const totalAmount = Number(quotation.total_amount);
 
-    // Create sale with customer credit (آجل) or pending
     const salePayload: any = {
       branchId,
       customerId: quotation.customer_id ? Number(quotation.customer_id) : undefined,
       customerName: quotation.customer_name,
       customerPhone: quotation.customer_phone || undefined,
-      notes: `تم إنشاؤها تحويلاً من عرض السعر #${quotation.quotation_number}${quotation.notes ? ` - ${quotation.notes}` : ''}`,
+      note: `تم إنشاؤها تحويلاً من عرض السعر #${quotation.quotation_number}${quotation.notes ? ` - ${quotation.notes}` : ''}`,
       items: saleItems,
-      discountAmount: Number(quotation.discount_amount || 0),
+      discount: Number(quotation.discount_amount || 0),
+      paymentType: 'cash',
+      paymentChannel: 'cash',
+      source: 'dashboard',
       payments: [
         {
           paymentChannel: 'cash',
