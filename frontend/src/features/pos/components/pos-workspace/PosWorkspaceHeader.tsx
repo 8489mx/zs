@@ -5,6 +5,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { storefrontApi } from '@/features/storefront/api/storefront.api';
 import { PosOnlineOrdersModal } from './PosOnlineOrdersModal';
+import { PosTablesFloorPlanDialog } from './PosTablesFloorPlanDialog';
 
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
@@ -29,6 +30,7 @@ interface PosWorkspaceHeaderProps {
 function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenNewProduct, onOpenQuickService, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
   const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
+  const [isTablesOpen, setIsTablesOpen] = useState(false);
 
   const pendingOrdersQuery = useQuery({
     queryKey: ['pos-pending-orders-count'],
@@ -77,6 +79,19 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           )}
            <Button type="button" variant="secondary" onClick={onFocusSearch}>البحث F6</Button>
           <Button type="button" variant="secondary" onClick={onOpenNewProduct} style={{ fontWeight: 700, color: '#1e3a8a' }}>+ صنف جديد</Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsTablesOpen(true)}
+            style={{
+              fontWeight: 700,
+              color: pos.tableNumber ? '#166534' : undefined,
+              background: pos.tableNumber ? '#f0fdf4' : undefined,
+              border: pos.tableNumber ? '1px solid #bbf7d0' : undefined,
+            }}
+          >
+            {pos.tableNumber ? `🍽️ طاولة: ${pos.tableNumber}` : '🍽️ الطاولات'}
+          </Button>
           <Button type="button" variant="secondary" onClick={onOpenQuickService}>خدمة سريعة F8</Button>
           <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale}>F9 إعادة طباعة الفواتير</Button>
           <Button
@@ -131,6 +146,23 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
     <PosOnlineOrdersModal
       isOpen={isOnlineOrdersOpen}
       onClose={() => setIsOnlineOrdersOpen(false)}
+    />
+    <PosTablesFloorPlanDialog
+      open={isTablesOpen}
+      onClose={() => setIsTablesOpen(false)}
+      currentTableNumber={pos.tableNumber}
+      heldDrafts={pos.heldDraftSummaries || []}
+      onSelectTable={(tableNum) => {
+        pos.setOrderType('dine_in');
+        pos.setTableNumber(tableNum);
+      }}
+      onRecallDraft={async (draftId) => {
+        await pos.recallDraft(draftId);
+      }}
+      onTransferTable={(from, to) => {
+        pos.setTableNumber(to);
+        alert(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}!`);
+      }}
     />
     </>
   );

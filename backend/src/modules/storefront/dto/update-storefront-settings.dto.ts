@@ -47,4 +47,8 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsString()
   bannerPosition?: 'top' | 'center' | 'bottom';
+
+  @IsOptional()
+  @IsString()
+  customDomain?: string;
 }

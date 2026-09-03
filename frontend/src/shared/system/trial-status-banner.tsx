@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
 
 function formatTrialText(days: number | null | undefined): string {
@@ -79,7 +79,32 @@ export function TrialStatusBanner() {
         </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <Link
+          to="/settings/subscription"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '3px 10px',
+            borderRadius: '6px',
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            background: isEndingSoon ? '#ea580c' : '#16a34a',
+            color: '#ffffff',
+            textDecoration: 'none',
+            transition: 'opacity 0.15s ease',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+          <span>تجديد الاشتراك أونلاين</span>
+        </Link>
         <a
           href={supportUrl}
           target="_blank"
@@ -87,19 +112,21 @@ export function TrialStatusBanner() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            padding: '3px 10px',
+            gap: '4px',
+            padding: '3px 8px',
             borderRadius: '6px',
             fontSize: '0.75rem',
             fontWeight: 700,
-            background: isEndingSoon ? '#ea580c' : '#16a34a',
-            color: '#ffffff',
+            background: 'transparent',
+            border: `1px solid ${isEndingSoon ? '#fdba74' : '#86efac'}`,
+            color: isEndingSoon ? '#9a3412' : '#166534',
             textDecoration: 'none',
-            transition: 'opacity 0.15s ease',
+            transition: 'background 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = isEndingSoon ? '#ffedd5' : '#dcfce7')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
-          تواصل للتفعيل
+          <span>تواصل للتفعيل</span>
         </a>
         <button
           type="button"

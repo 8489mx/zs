@@ -690,6 +690,38 @@ export function SettingsBackupImportSection({
                     حفظ
                   </Button>
                 </div>
+
+                {/* Cloud & Drive Quick Presets */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>سحابة / اختصارات سريعة:</span>
+                  {[
+                    { label: 'Google Drive', path: 'C:\\Users\\Public\\Google Drive\\ZS Backups' },
+                    { label: 'OneDrive', path: 'C:\\Users\\Public\\OneDrive\\ZS Backups' },
+                    { label: 'Dropbox', path: 'C:\\Users\\Public\\Dropbox\\ZS Backups' },
+                    { label: 'قرص D:', path: 'D:\\ZS Backups' },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => setBackupFolderPathDraft(p.path)}
+                      style={{
+                        background: backupFolderPathDraft === p.path ? '#e0f2fe' : '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: backupFolderPathDraft === p.path ? '#0369a1' : '#334155',
+                        borderRadius: '4px',
+                        padding: '2px 7px',
+                        fontSize: '0.70rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      📁 {p.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+                  💡 عند اختيار مجلد مزامنة سحابية لـ (Google Drive أو OneDrive أو Dropbox)، تُرفع النسخ للسحابة تلقائياً لحظة إنشائها لحماية بياناتك من أي عطل بالهارد ديسك.
+                </div>
               </div>
 
               {/* Automation Schedule Grid */}

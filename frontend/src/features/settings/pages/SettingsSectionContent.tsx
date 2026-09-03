@@ -11,6 +11,7 @@ import {
 import { SystemUpdatesSection } from '@/features/settings/components/workspace-sections/SystemUpdatesSection';
 import { TenantSubscriptionPage } from '@/features/settings/pages/TenantSubscriptionPage';
 import { StorefrontSettingsTab } from '@/features/storefront/components/StorefrontSettingsTab';
+import { SettingsWhatsAppGatewaySection } from '@/features/settings/components/workspace-sections/SettingsWhatsAppGatewaySection';
 
 type QueryState = { isLoading: boolean; isError: boolean; error?: unknown; isSuccess?: boolean; data?: unknown };
 
@@ -48,6 +49,7 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
   if (section === 'core') return renderCoreSection(props);
   if (section === 'subscription') return <TenantSubscriptionPage />;
   if (section === 'storefront') return <StorefrontSettingsTab />;
+  if (section === 'whatsapp') return <SettingsWhatsAppGatewaySection />;
   if (section === 'reference') return renderReferenceSection(props);
   if (section === 'backup') return renderBackupSection(props);
   if (section === 'users') return renderUsersSection(props);

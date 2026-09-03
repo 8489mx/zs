@@ -7,7 +7,7 @@ import { StorefrontMerchantController } from './storefront-merchant.controller';
 
 @Module({
   imports: [DatabaseModule, SalesModule],
-  controllers: [StorefrontPublicController, StorefrontMerchantController],
+  controllers: [StorefrontMerchantController, StorefrontPublicController],
   providers: [StorefrontService],
   exports: [StorefrontService],
 })

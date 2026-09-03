@@ -39,5 +39,25 @@ export const customersApi = {
   remove: (id: string) => http<{ ok: boolean }>(`/api/customers/${id}`, { method: 'DELETE' }),
   balances: async () => unwrapArray<Customer>(await http<Customer[] | { customers: Customer[] }>('/api/reports/customer-balances'), 'customers'),
   ledger: (id: string) => http<CustomerLedger>(`/api/reports/customers/${id}/ledger`),
-  addresses: (id: string) => http<string[]>(`/api/customers/${id}/addresses`)
+  addresses: (id: string) => http<string[]>(`/api/customers/${id}/addresses`),
+  getLoyaltyHistory: (id: string | number) => http<{ ok: boolean; logs: any[] }>(`/api/customers/${id}/loyalty/history`),
+  adjustLoyaltyPoints: (id: string | number, pointsChange: number, notes?: string) =>
+    http<{ ok: boolean; balance: number }>(`/api/customers/${id}/loyalty/adjust`, {
+      method: 'POST',
+      body: JSON.stringify({ pointsChange, notes }),
+    }),
+  getInactiveMarketing: (days = 30) =>
+    http<{
+      ok: boolean;
+      count: number;
+      customers: Array<{
+        id: string;
+        name: string;
+        phone: string;
+        balance: number;
+        loyaltyPoints: number;
+        lastSaleAt: string | null;
+        totalSalesCount: number;
+      }>;
+    }>(`/api/customers/marketing/inactive?days=${days}`),
 };

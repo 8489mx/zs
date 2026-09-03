@@ -9,10 +9,15 @@ import { CustomerForm } from '@/features/customers/components/CustomerForm';
 import { CustomerEditorCard } from '@/features/customers/components/CustomerEditorCard';
 import { CustomersRegisterCard } from '@/features/customers/pages/customers-page/CustomersRegisterCard';
 import { useCustomersPageController } from '@/features/customers/pages/customers-page/useCustomersPageController';
+import { WhatsAppMarketingModal } from '@/features/customers/components/WhatsAppMarketingModal';
+import { CustomerLoyaltyModal } from '@/features/customers/components/CustomerLoyaltyModal';
+import type { Customer } from '@/types/domain';
 
 export function CustomersPage() {
   const controller = useCustomersPageController();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isMarketingOpen, setIsMarketingOpen] = useState(false);
+  const [loyaltyCustomer, setLoyaltyCustomer] = useState<Customer | null>(null);
 
   const stats = [
     { key: 'customers', label: 'عدد العملاء', value: controller.summary?.totalCustomers || 0 },
@@ -31,6 +36,7 @@ export function CustomersPage() {
           actions={
             <div className="actions compact-actions">
               <Button variant="primary" onClick={() => setIsCreateOpen(true)}>+ عميل جديد</Button>
+              <Button variant="secondary" onClick={() => setIsMarketingOpen(true)} style={{ color: '#166534', borderColor: '#bbf7d0', background: '#f0fdf4', fontWeight: 800 }}>📢 حملة واتساب</Button>
               <Button variant="secondary" onClick={controller.resetCustomersView}>إعادة ضبط</Button>
               <Button variant="secondary" onClick={controller.exportCustomersCsv} disabled={!controller.summary?.totalCustomers}>تصدير</Button>
               <Button variant="secondary" onClick={() => void controller.copyCustomersSummary()} disabled={!controller.summary?.totalCustomers}>نسخ</Button>
@@ -40,7 +46,7 @@ export function CustomersPage() {
         />
         <StatsGrid items={stats} />
 
-        <CustomersRegisterCard {...controller} onOpenCreate={() => setIsCreateOpen(true)} />
+        <CustomersRegisterCard {...controller} onOpenCreate={() => setIsCreateOpen(true)} onOpenLoyalty={(c) => setLoyaltyCustomer(c)} />
 
         {/* Modal for Creating Customer */}
         <DialogShell
@@ -134,6 +140,16 @@ export function CustomersPage() {
             if (!controller.selectedIds.length) return;
             await controller.bulkDeleteMutation.mutateAsync(controller.selectedIds);
           }}
+        />
+
+        <WhatsAppMarketingModal
+          open={isMarketingOpen}
+          onClose={() => setIsMarketingOpen(false)}
+        />
+
+        <CustomerLoyaltyModal
+          customer={loyaltyCustomer}
+          onClose={() => setLoyaltyCustomer(null)}
         />
       </main>
     </div>

@@ -41,6 +41,7 @@ import { TradeInModule } from './modules/tradein/tradein.module';
 import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 import { TenantSubscriptionModule } from './modules/tenant-subscription/tenant-subscription.module';
 import { StorefrontModule } from './modules/storefront/storefront.module';
+import { AiCopilotModule } from './modules/ai-copilot/ai-copilot.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { StorefrontModule } from './modules/storefront/storefront.module';
     TradeInModule,
     PharmacyModule,
     StorefrontModule,
+    AiCopilotModule,
   ],
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })

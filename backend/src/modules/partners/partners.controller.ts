@@ -26,6 +26,36 @@ export class PartnersController {
     return this.partnersService.createCustomer(payload, req.authContext!);
   }
 
+  @Get('customers/marketing/inactive')
+  @RequirePermissions('customers')
+  getInactiveCustomersMarketing(
+    @Query('days') days: string,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    const daysInactive = days ? Math.max(1, Number(days)) : 30;
+    return this.partnersService.getInactiveCustomersMarketing(daysInactive, req.authContext!);
+  }
+
+  @Get('customers/:id/loyalty/history')
+  @RequirePermissions('customers')
+  getCustomerLoyaltyHistory(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.partnersService.getCustomerLoyaltyHistory(id, req.authContext!);
+  }
+
+  @Post('customers/:id/loyalty/adjust')
+  @RequirePermissions('customers')
+  adjustCustomerLoyaltyPoints(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: { pointsChange: number; actionType?: 'earn' | 'redeem' | 'manual_adjust'; notes?: string },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    const action = payload.actionType || (payload.pointsChange >= 0 ? 'earn' : 'redeem');
+    return this.partnersService.adjustCustomerLoyaltyPoints(id, Number(payload.pointsChange), action, payload.notes, req.authContext!);
+  }
+
   @Get('customers/:id/pos-summary')
   @RequirePermissions('customers')
   getCustomerPosSummary(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

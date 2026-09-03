@@ -65,6 +65,7 @@ export interface TenantTable {
   trial_ends_at: Date;
   activated_at: Date | null;
   plan_id: string | null;
+  custom_domain: string | null;
   extra_features: any; // JSONB
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
@@ -267,6 +268,7 @@ export interface CustomerTable {
   tax_number: string;
   is_active: boolean;
   metadata: any | null;
+  loyalty_points: ColumnType<number, number | undefined, number | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -1924,6 +1926,9 @@ export interface Database {
   pharmacy_shortages: PharmacyShortageTable;
   pharmacy_clinical_services: PharmacyClinicalServiceTable;
   online_orders: OnlineOrderTable;
+  quotations: QuotationTable;
+  quotation_items: QuotationItemTable;
+  customer_loyalty_logs: CustomerLoyaltyLogTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -2107,4 +2112,59 @@ export interface OnlineOrderTable {
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
+
+export interface QuotationTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  quotation_number: string;
+  customer_id: number | null;
+  customer_name: string;
+  customer_phone: string | null;
+  customer_address: string | null;
+  branch_id: number | null;
+  subtotal: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  discount_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  tax_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  valid_until: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted';
+  sale_id: number | null;
+  notes: string | null;
+  terms_conditions: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface QuotationItemTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  quotation_id: number;
+  product_id: number;
+  product_name: string;
+  unit_name: string | null;
+  quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  unit_price: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  discount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface CustomerLoyaltyLogTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  customer_id: number;
+  points_change: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  balance_after: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  action_type: 'earn' | 'redeem' | 'manual_adjust';
+  sale_id: number | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+
 

@@ -17,13 +17,21 @@ export class StorefrontService {
 
   private async getTenantBySlug(slug: string) {
     const cleanSlug = String(slug || '').trim().toLowerCase();
-    if (!cleanSlug) throw new NotFoundException('المتجر غير موجود');
+    if (!cleanSlug || cleanSlug === 'admin') throw new NotFoundException('المتجر غير موجود');
 
-    const tenant = await this.db
+    let tenant = await this.db
       .selectFrom('tenants')
       .selectAll()
       .where('slug', '=', cleanSlug)
       .executeTakeFirst();
+
+    if (!tenant && cleanSlug.includes('.')) {
+      tenant = await this.db
+        .selectFrom('tenants')
+        .selectAll()
+        .where('custom_domain', '=', cleanSlug)
+        .executeTakeFirst();
+    }
 
     if (!tenant) throw new NotFoundException('المتجر غير موجود');
     return tenant;
@@ -944,7 +952,7 @@ export class StorefrontService {
     const { tenantId } = requireTenantScope(actor);
     const tenant = await this.db
       .selectFrom('tenants')
-      .select(['slug', 'business_name', 'owner_phone'])
+      .select(['slug', 'business_name', 'owner_phone', 'custom_domain'])
       .where('id', '=', tenantId)
       .executeTakeFirst();
 
@@ -964,6 +972,7 @@ export class StorefrontService {
 
     return {
       slug: tenant?.slug || '',
+      customDomain: tenant?.custom_domain || null,
       enabled: settings.get('storefront_enabled') !== 'false',
       title: settings.get('storefront_title') || settings.get('storeName') || tenant?.business_name || '',
       bio: settings.get('storefront_bio') || '',
@@ -981,6 +990,17 @@ export class StorefrontService {
 
   async updateStorefrontSettings(payload: UpdateStorefrontSettingsDto, actor: AuthContext) {
     const { tenantId, accountId } = requireTenantScope(actor);
+
+    if (payload.customDomain !== undefined) {
+      const cleanDomain = payload.customDomain?.trim()
+        ? payload.customDomain.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0]
+        : null;
+      await this.db
+        .updateTable('tenants')
+        .set({ custom_domain: cleanDomain, updated_at: new Date() })
+        .where('id', '=', tenantId)
+        .execute();
+    }
 
     const entries: Array<{ key: string; value: any }> = [];
     if (payload.enabled !== undefined) entries.push({ key: 'storefront_enabled', value: payload.enabled });

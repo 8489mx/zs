@@ -29,6 +29,7 @@ interface CustomersRegisterCardProps {
   setSelectedCustomer: (customer: Customer | null) => void;
   setCustomerToDelete: (customer: Customer | null) => void;
   onOpenCreate?: () => void;
+  onOpenLoyalty?: (customer: Customer) => void;
 }
 
 export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
@@ -75,7 +76,7 @@ export function CustomersRegisterCard(props: CustomersRegisterCardProps) {
           if (customer.type === 'credit') return <span style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', fontSize: '12px', display: 'inline-block' }}>آجل</span>;
           if (customer.type === 'wholesale') return <span style={{ background: '#dcfce7', color: '#166534', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', fontSize: '12px', display: 'inline-block' }}>جملة</span>;
           return <span style={{ background: '#f1f5f9', color: '#475569', fontWeight: 500, padding: '2px 8px', borderRadius: '6px', fontSize: '12px', display: 'inline-block' }}>عادي</span>;
-        } }, { key: 'balance', header: 'الرصيد', cell: (customer) => formatCurrency(customer.balance || 0) }, { key: 'creditLimit', header: 'حد الائتمان', cell: (customer) => formatCurrency(customer.creditLimit || 0) }, { key: 'actions', header: 'إجراءات', cell: (customer) => <div className="actions" style={{ flexWrap: 'nowrap' }}><Button variant="secondary" onClick={(event) => { event.stopPropagation(); props.setSelectedCustomer(customer); }}>تعديل</Button><Button variant="danger" onClick={(event) => { event.stopPropagation(); props.setCustomerToDelete(customer); }} disabled={!props.canDelete}>حذف</Button></div> }]} />
+        } }, { key: 'balance', header: 'الرصيد', cell: (customer) => formatCurrency(customer.balance || 0) }, { key: 'creditLimit', header: 'حد الائتمان', cell: (customer) => formatCurrency(customer.creditLimit || 0) }, { key: 'loyaltyPoints', header: 'نقاط الولاء', cell: (customer) => <span style={{ background: '#fdf2f8', color: '#be185d', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', fontSize: '12px' }}>⭐ {Number((customer as any).loyaltyPoints || 0)}</span> }, { key: 'actions', header: 'إجراءات', cell: (customer) => <div className="actions" style={{ flexWrap: 'nowrap' }}><Button variant="secondary" onClick={(event) => { event.stopPropagation(); props.onOpenLoyalty?.(customer); }} style={{ color: '#be185d', borderColor: '#fbcfe8', background: '#fdf2f8' }}>⭐ نقاط</Button><Button variant="secondary" onClick={(event) => { event.stopPropagation(); props.setSelectedCustomer(customer); }}>تعديل</Button><Button variant="danger" onClick={(event) => { event.stopPropagation(); props.setCustomerToDelete(customer); }} disabled={!props.canDelete}>حذف</Button></div> }]} />
       </QueryFeedback>
     </section>
   );

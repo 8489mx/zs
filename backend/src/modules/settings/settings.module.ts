@@ -15,6 +15,9 @@ import { OfflineReleasesAdminController,
     OfflineUpdatesProtectedController } from './controllers/offline-releases.controller';
 import { OfflineReleasesService } from './services/offline-releases.service';
 
+import { WhatsAppGatewayController } from './controllers/whatsapp-gateway.controller';
+import { WhatsAppGatewayService } from './services/whatsapp-gateway.service';
+
 @Module({
   controllers: [
     SettingsController,
@@ -22,6 +25,7 @@ import { OfflineReleasesService } from './services/offline-releases.service';
     SettingsBackupController,
     SettingsSupportController,
     SettingsImportController,
+    WhatsAppGatewayController,
     OfflineReleasesAdminController,
     OfflineUpdatesPublicController,
     OfflineUpdatesProtectedController,
@@ -34,6 +38,7 @@ import { OfflineReleasesService } from './services/offline-releases.service';
     SettingsImportService,
     SettingsDemoDataService,
     OfflineReleasesService,
+    WhatsAppGatewayService,
   ],
 })
 export class SettingsModule {}

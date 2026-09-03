@@ -9,11 +9,21 @@ import { SalesAuthorizationService } from './services/sales-authorization.servic
 import { SalesFinanceService } from './services/sales-finance.service';
 import { SalesQueryService } from './services/sales-query.service';
 import { SalesWriteService } from './services/sales-write.service';
+import { QuotationsController } from './controllers/quotations.controller';
+import { QuotationsService } from './services/quotations.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule],
-  controllers: [SalesController],
-  providers: [SalesService, SalesAuthorizationService, SalesFinanceService, SalesQueryService, SalesWriteService],
-  exports: [SalesService, SalesFinanceService],
+  controllers: [SalesController, QuotationsController],
+  providers: [
+    SalesService,
+    SalesAuthorizationService,
+    SalesFinanceService,
+    SalesQueryService,
+    SalesWriteService,
+    QuotationsService,
+  ],
+  exports: [SalesService, SalesFinanceService, QuotationsService],
 })
 export class SalesModule {}
+

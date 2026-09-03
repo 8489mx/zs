@@ -1,15 +1,17 @@
+import { useState, Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AppAccountMenu } from '@/shared/layout/app-account-menu';
 import { useToolbarStore } from '@/stores/toolbar-store';
-import { Fragment } from 'react';
 import { ManagerNotificationsBell } from '@/features/dashboard/components/ManagerNotificationsBell';
 import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
 import { FullScreenToggleButton } from '@/shared/components/FullScreenToggleButton';
+import { AiBusinessCopilotModal } from '@/features/ai-copilot/components/AiBusinessCopilotModal';
 
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isAiCopilotOpen, setIsAiCopilotOpen] = useState(false);
   const { breadcrumbs, toggleMobileSidebar, setGlobalSearchOpen } = useToolbarStore();
   const { data: updateInfo } = useOfflineUpdateCheck('desktop');
 
@@ -104,10 +106,34 @@ export function GlobalAppToolbar() {
           <div className="desktop-only-toolbar-item">
             <FullScreenToggleButton />
           </div>
+          <button
+            type="button"
+            onClick={() => setIsAiCopilotOpen(true)}
+            title="المستشار الذكي (زاد AI)"
+            style={{
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0 10px',
+              backgroundColor: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              color: '#1e40af',
+              borderRadius: 8,
+              cursor: 'pointer',
+              flexShrink: 0,
+              fontSize: '12px',
+              fontWeight: 800,
+            }}
+          >
+            <span>🤖</span>
+            <span className="desktop-only-toolbar-item">زاد AI</span>
+          </button>
           <ManagerNotificationsBell />
           <AppAccountMenu />
         </div>
       </div>
+      <AiBusinessCopilotModal open={isAiCopilotOpen} onClose={() => setIsAiCopilotOpen(false)} />
     </div>
   );
 }

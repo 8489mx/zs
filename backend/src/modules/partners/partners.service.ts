@@ -177,7 +177,7 @@ export class PartnersService {
   async getCustomerPosSummary(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
     const customer = await this.db
       .selectFrom('customers')
-      .select(['id', 'balance', 'credit_limit', 'store_credit_balance', 'customer_type'])
+      .select(['id', 'balance', 'credit_limit', 'store_credit_balance', 'customer_type', 'loyalty_points'])
       .where('id', '=', id)
       .where('is_active', '=', true)
       .where(this.tenantPredicate(actor))
@@ -218,6 +218,7 @@ export class PartnersService {
       creditLimit,
       remainingCredit: creditLimit > 0 ? Number((creditLimit - balance).toFixed(2)) : null,
       storeCreditBalance: Number(customer.store_credit_balance || 0),
+      loyaltyPoints: Number(customer.loyalty_points || 0),
       customerType: customer.customer_type || 'cash',
       lastSaleAt: salesSummary?.last_sale_at || null,
       totalSalesAmount: Number(salesSummary?.total_sales_amount || 0),
@@ -538,5 +539,119 @@ export class PartnersService {
       .execute();
       
     return this.listAddresses(partnerType, partnerId, actor);
+  }
+
+  async adjustCustomerLoyaltyPoints(
+    id: number,
+    pointsChange: number,
+    actionType: 'earn' | 'redeem' | 'manual_adjust',
+    notes: string | undefined,
+    actor: AuthContext,
+  ): Promise<Record<string, unknown>> {
+    const customer = await this.db
+      .selectFrom('customers')
+      .select(['id', 'name', 'loyalty_points'])
+      .where('id', '=', id)
+      .where('is_active', '=', true)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+
+    if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
+
+    const currentPoints = Number(customer.loyalty_points || 0);
+    const newBalance = Math.max(0, Number((currentPoints + pointsChange).toFixed(2)));
+
+    const now = new Date();
+    await this.db.transaction().execute(async (trx) => {
+      await trx
+        .updateTable('customers')
+        .set({ loyalty_points: newBalance, updated_at: now } as any)
+        .where('id', '=', id)
+        .where(this.tenantPredicate(actor))
+        .execute();
+
+      await trx
+        .insertInto('customer_loyalty_logs')
+        .values({
+          tenant_id: actor.tenantId,
+          account_id: actor.accountId,
+          customer_id: id,
+          points_change: pointsChange,
+          balance_after: newBalance,
+          action_type: actionType,
+          sale_id: null,
+          notes: notes?.trim() || null,
+          created_at: now,
+        } as any)
+        .execute();
+    });
+
+    await this.audit.log(
+      'تعديل نقاط الولاء',
+      `تم تعديل نقاط العميل ${customer.name} بمقدار (${pointsChange > 0 ? `+${pointsChange}` : pointsChange}) ليصبح الرصيد ${newBalance} بواسطة ${actor.username}`,
+      actor,
+    );
+
+    return { ok: true, customerId: id, previousBalance: currentPoints, balance: newBalance };
+  }
+
+  async getCustomerLoyaltyHistory(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const logs = await this.db
+      .selectFrom('customer_loyalty_logs')
+      .selectAll()
+      .where('customer_id', '=', id)
+      .where(this.tenantPredicate(actor))
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .execute();
+
+    return { ok: true, logs };
+  }
+
+  async getInactiveCustomersMarketing(daysInactive = 30, actor: AuthContext): Promise<Record<string, unknown>> {
+    const thresholdDate = new Date();
+    thresholdDate.setDate(thresholdDate.getDate() - daysInactive);
+
+    const customers = await this.db
+      .selectFrom('customers as c')
+      .leftJoin('sales as s', (join) =>
+        join.onRef('s.customer_id', '=', 'c.id').on('s.status', '=', 'posted'),
+      )
+      .select([
+        'c.id',
+        'c.name',
+        'c.phone',
+        'c.balance',
+        'c.loyalty_points',
+        sql<Date>`max(s.created_at)`.as('last_sale_at'),
+        sql<number>`count(s.id)`.as('total_sales_count'),
+      ])
+      .where('c.is_active', '=', true)
+      .where(this.tenantPredicate(actor, 'c'))
+      .groupBy(['c.id', 'c.name', 'c.phone', 'c.balance', 'c.loyalty_points'])
+      .having((eb) =>
+        eb.or([
+          sql<boolean>`max(s.created_at) is null`,
+          sql<boolean>`max(s.created_at) < ${thresholdDate}`,
+        ]),
+      )
+      .orderBy(sql`max(s.created_at) asc nulls first`)
+      .limit(150)
+      .execute();
+
+    return {
+      ok: true,
+      count: customers.length,
+      daysInactive,
+      customers: customers.map((c) => ({
+        id: String(c.id),
+        name: c.name,
+        phone: c.phone || '',
+        balance: Number(c.balance || 0),
+        loyaltyPoints: Number(c.loyalty_points || 0),
+        lastSaleAt: c.last_sale_at || null,
+        totalSalesCount: Number(c.total_sales_count || 0),
+      })),
+    };
   }
 }

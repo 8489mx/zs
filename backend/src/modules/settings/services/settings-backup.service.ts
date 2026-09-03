@@ -38,7 +38,8 @@ const BACKUP_TABLES: BackupTableName[] = [
   'hr_payroll_run_items', 'hr_payroll_item_adjustments', 'hr_hr_settings',
   'price_change_runs', 'price_change_items', 'partner_contacts', 'partner_addresses',
   'cost_centers', 'projects', 'manufacturing_boms', 'manufacturing_bom_lines',
-  'manufacturing_work_orders', 'manufacturing_wo_consumptions', 'purchase_attachments'
+  'manufacturing_work_orders', 'manufacturing_wo_consumptions', 'purchase_attachments',
+  'online_orders', 'quotations', 'quotation_items', 'customer_loyalty_logs'
 ];
 const CLEAR_ORDER: (BackupTableName | 'services')[] = ['services', ...[...BACKUP_TABLES].reverse()];
 const RESTORE_CONFIRMATION_TEXT = 'RESTORE BACKUP';

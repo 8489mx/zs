@@ -29,6 +29,7 @@ export function StorefrontSettingsTab() {
     deliveryFee: 0,
     minOrder: 0,
     whatsappPhone: '',
+    customDomain: '',
   });
 
   const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
@@ -60,6 +61,7 @@ export function StorefrontSettingsTab() {
         deliveryFee: settingsQuery.data.deliveryFee || 0,
         minOrder: settingsQuery.data.minOrder || 0,
         whatsappPhone: settingsQuery.data.whatsappPhone || '',
+        customDomain: (settingsQuery.data as any).customDomain || '',
       });
     }
   }, [settingsQuery.data]);
@@ -419,6 +421,43 @@ export function StorefrontSettingsTab() {
                     textAlign: 'right',
                   }}
                 />
+              </div>
+
+              {/* Custom Domain Section */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                    🌐 الدومين المخصص لمتجرك (Custom Domain):
+                  </label>
+                  <span style={{ fontSize: '10.5px', background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                    ميزة متقدمة
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={formState.customDomain}
+                  onChange={(e) => setFormState({ ...formState, customDomain: e.target.value })}
+                  placeholder="مثال: store.mybrand.com"
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '12.5px',
+                    background: '#ffffff',
+                    fontFamily: 'monospace',
+                    direction: 'ltr',
+                    textAlign: 'left',
+                    boxSizing: 'border-box',
+                    marginBottom: '8px',
+                  }}
+                />
+                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
+                  لربط دومينك الخاص، أضف سجل <strong>CNAME</strong> في لوحة تحكم نطاقك يوجه إلى:
+                  <code style={{ background: '#e2e8f0', padding: '2px 5px', borderRadius: '4px', margin: '0 4px', color: '#0f172a' }}>
+                    92-5-178-54.sslip.io
+                  </code>
+                </div>
               </div>
             </div>
 

@@ -112,4 +112,5 @@ export interface StorefrontSettingsPayload {
   deliveryFee?: number;
   minOrder?: number;
   whatsappPhone?: string;
+  customDomain?: string;
 }

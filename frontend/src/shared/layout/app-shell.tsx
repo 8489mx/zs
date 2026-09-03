@@ -17,6 +17,8 @@ import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
 import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
 import { ImpersonationBanner } from '@/shared/system/impersonation-banner';
+import { LiveOrderNotificationBanner } from '@/features/storefront/components/LiveOrderNotificationBanner';
+import { PwaInstallBanner } from '@/shared/components/PwaInstallBanner';
 import { DeveloperActivationPanel } from '@/shared/system/DeveloperActivationPanel';
 import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
 import {
@@ -950,6 +952,8 @@ export function AppShell({ children }: PropsWithChildren) {
       {(isMobileScreen || !isPosChromeHidden) && <MobileBottomNav />}
       <AppCloseGuard />
       <PasswordRotationGate />
+      <LiveOrderNotificationBanner />
+      <PwaInstallBanner />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
       <GlobalSearchModal />
       <DeveloperActivationPanel />
