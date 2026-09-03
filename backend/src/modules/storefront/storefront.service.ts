@@ -40,7 +40,8 @@ export class StorefrontService {
     for (const row of rows) {
       try {
         const parsed = JSON.parse(row.value);
-        map.set(row.key, typeof parsed === 'string' ? parsed : String(parsed));
+        // Keep strings as-is; re-serialize arrays/objects so downstream JSON.parse works
+        map.set(row.key, typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
       } catch {
         map.set(row.key, row.value);
       }
