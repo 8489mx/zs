@@ -1,11 +1,12 @@
 import { Controller, Get, Post, Body, Param, ParseIntPipe, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
+import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { WhatsAppGatewayService, WhatsAppConfig } from '../services/whatsapp-gateway.service';
 
 @Controller('api/settings/whatsapp')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
 export class WhatsAppGatewayController {
   constructor(private readonly whatsappService: WhatsAppGatewayService) {}
 
