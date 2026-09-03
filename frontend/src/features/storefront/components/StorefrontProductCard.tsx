@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
-import { IconCheckCircle, IconTag, IconStar, IconShoppingCart } from './StorefrontIcons';
+import { IconCheckCircle, IconStar, IconShoppingCart } from './StorefrontIcons';
 
 interface StorefrontProductCardProps {
   product: StorefrontProduct;
@@ -21,6 +21,24 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   const isOutOfStock = !product.inStock || product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(() => {
+    try {
+      return localStorage.getItem(`zs_fav_${product.id}`) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFavorite((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(`zs_fav_${product.id}`, String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Priority: 1. Merchant Uploaded Photo -> 2. Auto-Assigned Photographic Library
   const displayPhotoUrl = product.imageUrl || getAutoProductPhoto(product.name, product.categoryName);
@@ -28,12 +46,15 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   // Fake slight discount for visual psychological appeal on active products
   const fakeOldPrice = !isZeroPrice ? Math.round(product.price * 1.15) : 0;
   const hasDiscount = fakeOldPrice > product.price;
+  const discountPercent = hasDiscount && fakeOldPrice > 0
+    ? Math.round(((fakeOldPrice - product.price) / fakeOldPrice) * 100)
+    : 0;
 
   return (
     <div
       style={{
         background: '#ffffff',
-        borderRadius: '18px',
+        borderRadius: '16px',
         border: '1px solid #e2e8f0',
         padding: '12px',
         display: 'flex',
@@ -55,16 +76,20 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
       }}
     >
       <div>
-        {/* Real Product Photo Showcase Box */}
+        {/* Real Product Photo Showcase Box (Square 1:1 Aspect Ratio) */}
         <div
           style={{
             width: '100%',
-            height: '175px',
-            borderRadius: '14px',
-            background: '#f1f5f9',
+            aspectRatio: '1 / 1',
+            borderRadius: '12px',
+            background: '#f8fafc',
             position: 'relative',
             overflow: 'hidden',
-            marginBottom: '12px',
+            marginBottom: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid #f1f5f9',
           }}
         >
           {/* Main Photo */}
@@ -86,14 +111,14 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             }}
             onLoad={() => setImageLoaded(true)}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.06)';
+              e.currentTarget.style.transform = 'scale(1.08)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)';
             }}
           />
 
-          {/* Top Right: Stock Status */}
+          {/* Top Right: Stock Status & Deal Badges */}
           <div
             style={{
               position: 'absolute',
@@ -121,50 +146,129 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 غير متوفر
               </span>
             ) : (
-              <span
-                style={{
-                  fontSize: '10.5px',
-                  fontWeight: 800,
-                  background: 'rgba(240, 253, 244, 0.95)',
-                  color: '#166534',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid #bbf7d0',
-                  backdropFilter: 'blur(4px)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <IconCheckCircle size={11} strokeWidth={2.2} color="#16a34a" />
-                <span>متوفر</span>
-              </span>
+              <>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 800,
+                    background: 'rgba(240, 253, 244, 0.95)',
+                    color: '#166534',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #bbf7d0',
+                    backdropFilter: 'blur(4px)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <IconCheckCircle size={11} strokeWidth={2.2} color="#16a34a" />
+                  <span>متوفر</span>
+                </span>
+                {hasDiscount && (
+                  <span
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      padding: '2px 7px',
+                      borderRadius: '6px',
+                      boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                    }}
+                  >
+                    <span>خصم {discountPercent}%</span>
+                  </span>
+                )}
+              </>
             )}
           </div>
 
-          {/* Top Left: Special Deal Tag */}
-          {hasDiscount && !isOutOfStock && (
-            <div
+          {/* Top Left: Interactive Wishlist Heart Button */}
+          <button
+            type="button"
+            onClick={toggleFavorite}
+            aria-label="إضافة للمفضلة"
+            title={isFavorite ? 'محفوظ في المفضلة' : 'إضافة إلى المفضلة'}
+            style={{
+              position: 'absolute',
+              top: '8px',
+              left: '8px',
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 3,
+              color: isFavorite ? '#ef4444' : '#64748b',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill={isFavorite ? '#ef4444' : 'none'}
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          </button>
+
+          {/* Bottom Left: Quick Add Float Button (Noon Style) */}
+          {!isOutOfStock && !isZeroPrice && cartQuantity === 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddToCart(product);
+              }}
+              title="إضافة سريعة للسلة"
               style={{
                 position: 'absolute',
-                top: '8px',
+                bottom: '8px',
                 left: '8px',
-                background: '#ef4444',
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
+                background: '#170e5e',
                 color: '#ffffff',
-                fontSize: '10.5px',
+                border: 'none',
+                fontSize: '18px',
                 fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: '6px',
-                boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)',
-                zIndex: 2,
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: '3px',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 3px 8px rgba(23, 14, 94, 0.3)',
+                zIndex: 3,
+                transition: 'transform 0.15s ease, background 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.12)';
+                e.currentTarget.style.background = '#24168f';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = '#170e5e';
               }}
             >
-              <IconTag size={11} strokeWidth={2.2} />
-              <span>عرض خاص</span>
-            </div>
+              +
+            </button>
           )}
         </div>
 
@@ -226,10 +330,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             </span>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '10px', minHeight: '30px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '6px', marginBottom: '10px', minHeight: '30px' }}>
             <span
               style={{
-                fontSize: '20px',
+                fontSize: '21px',
                 fontWeight: 900,
                 color: '#0f172a',
                 letterSpacing: '-0.4px',
@@ -239,16 +343,31 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             </span>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>ج.م</span>
             {hasDiscount && (
-              <span
-                style={{
-                  fontSize: '12px',
-                  color: '#94a3b8',
-                  textDecoration: 'line-through',
-                  marginRight: '4px',
-                }}
-              >
-                {fakeOldPrice} ج
-              </span>
+              <>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: '#94a3b8',
+                    textDecoration: 'line-through',
+                    marginRight: '4px',
+                  }}
+                >
+                  {fakeOldPrice} ج
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#16a34a',
+                    background: '#f0fdf4',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    marginRight: '2px',
+                  }}
+                >
+                  وفر {fakeOldPrice - product.price} ج
+                </span>
+              </>
             )}
           </div>
         )}
@@ -306,10 +425,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#0f172a',
+              background: '#170e5e',
               borderRadius: '10px',
               padding: '3px',
-              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
+              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.22)',
             }}
           >
             <button
@@ -319,7 +438,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.18)',
                 color: '#ffffff',
                 border: 'none',
                 fontSize: '16px',
@@ -350,7 +469,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.18)',
                 color: '#ffffff',
                 border: 'none',
                 fontSize: '16px',
@@ -373,7 +492,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               padding: '10px 14px',
               borderRadius: '10px',
               border: 'none',
-              background: '#0f172a',
+              background: '#170e5e',
               color: '#ffffff',
               fontSize: '13px',
               fontWeight: 800,
@@ -382,14 +501,14 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.22)',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#1e293b';
+              e.currentTarget.style.background = '#24168f';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#0f172a';
+              e.currentTarget.style.background = '#170e5e';
             }}
           >
             <IconShoppingCart size={15} strokeWidth={2.2} />

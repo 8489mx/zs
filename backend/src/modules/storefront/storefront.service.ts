@@ -69,6 +69,18 @@ export class StorefrontService {
     const bio = settings.get('storefront_bio') || '';
     const announcement = settings.get('storefront_announcement') || '';
     const bannerUrl = settings.get('storefront_banner_url') || '';
+    const rawBannerUrls = settings.get('storefront_banner_urls');
+    let bannerUrls: string[] = [];
+    if (rawBannerUrls) {
+      try {
+        const parsed = JSON.parse(rawBannerUrls);
+        if (Array.isArray(parsed)) bannerUrls = parsed.filter(Boolean);
+      } catch {}
+    }
+    if (bannerUrls.length === 0 && bannerUrl) {
+      bannerUrls = [bannerUrl];
+    }
+
     const deliveryFee = Number(settings.get('storefront_delivery_fee') || 0);
     const minOrder = Number(settings.get('storefront_min_order') || 0);
     const whatsappPhone = settings.get('storefront_whatsapp') || settings.get('phone') || tenant.owner_phone || '';
@@ -85,7 +97,8 @@ export class StorefrontService {
       title,
       bio,
       announcement,
-      bannerUrl,
+      bannerUrl: bannerUrls[0] || bannerUrl,
+      bannerUrls,
       bannerFit,
       bannerPosition,
       deliveryFee,
@@ -708,6 +721,18 @@ export class StorefrontService {
       .executeTakeFirst();
 
     const settings = await this.getTenantSettingsMap(tenantId);
+    const bannerUrl = settings.get('storefront_banner_url') || '';
+    const rawBannerUrls = settings.get('storefront_banner_urls');
+    let bannerUrls: string[] = [];
+    if (rawBannerUrls) {
+      try {
+        const parsed = JSON.parse(rawBannerUrls);
+        if (Array.isArray(parsed)) bannerUrls = parsed.filter(Boolean);
+      } catch {}
+    }
+    if (bannerUrls.length === 0 && bannerUrl) {
+      bannerUrls = [bannerUrl];
+    }
 
     return {
       slug: tenant?.slug || '',
@@ -715,7 +740,8 @@ export class StorefrontService {
       title: settings.get('storefront_title') || settings.get('storeName') || tenant?.business_name || '',
       bio: settings.get('storefront_bio') || '',
       announcement: settings.get('storefront_announcement') || '',
-      bannerUrl: settings.get('storefront_banner_url') || '',
+      bannerUrl: bannerUrls[0] || bannerUrl,
+      bannerUrls,
       bannerFit: settings.get('storefront_banner_fit') || 'contain',
       bannerPosition: settings.get('storefront_banner_position') || 'center',
       deliveryFee: Number(settings.get('storefront_delivery_fee') || 0),
@@ -734,6 +760,14 @@ export class StorefrontService {
     if (payload.bio !== undefined) entries.push({ key: 'storefront_bio', value: payload.bio });
     if (payload.announcement !== undefined) entries.push({ key: 'storefront_announcement', value: payload.announcement });
     if (payload.bannerUrl !== undefined) entries.push({ key: 'storefront_banner_url', value: payload.bannerUrl });
+    if (payload.bannerUrls !== undefined) {
+      entries.push({ key: 'storefront_banner_urls', value: payload.bannerUrls });
+      if (payload.bannerUrls.length > 0 && payload.bannerUrl === undefined) {
+        entries.push({ key: 'storefront_banner_url', value: payload.bannerUrls[0] });
+      } else if (payload.bannerUrls.length === 0 && payload.bannerUrl === undefined) {
+        entries.push({ key: 'storefront_banner_url', value: '' });
+      }
+    }
     if (payload.bannerFit !== undefined) entries.push({ key: 'storefront_banner_fit', value: payload.bannerFit });
     if (payload.bannerPosition !== undefined) entries.push({ key: 'storefront_banner_position', value: payload.bannerPosition });
     if (payload.deliveryFee !== undefined) entries.push({ key: 'storefront_delivery_fee', value: payload.deliveryFee });

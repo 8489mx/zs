@@ -121,7 +121,7 @@ export function StorefrontHeader({
         <div
           style={{
             flex: 1,
-            maxWidth: '540px',
+            maxWidth: '640px',
             margin: '0 16px',
             display: 'flex',
             alignItems: 'center',
@@ -134,17 +134,17 @@ export function StorefrontHeader({
               alignItems: 'center',
               background: '#f8fafc',
               borderRadius: '10px',
-              padding: '3px 4px 3px 14px',
-              border: '1.5px solid #e2e8f0',
+              padding: '4px 6px 4px 14px',
+              border: '1.5px solid #cbd5e1',
               transition: 'all 0.2s ease',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              boxShadow: '0 1px 4px rgba(15, 23, 42, 0.04)',
             }}
           >
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="ابحث عن أي صنف، كود، أو تصنيف..."
+              placeholder="ابحث عن أي منتج، كود، أو تصنيف (مثل: أرز، زيت، نسكافيه)..."
               style={{
                 flex: 1,
                 border: 'none',
@@ -153,7 +153,7 @@ export function StorefrontHeader({
                 fontWeight: 600,
                 color: '#0f172a',
                 background: 'transparent',
-                padding: '7px 4px',
+                padding: '7px 6px',
                 fontFamily: 'inherit',
               }}
             />

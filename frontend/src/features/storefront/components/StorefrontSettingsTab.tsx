@@ -23,6 +23,7 @@ export function StorefrontSettingsTab() {
     bio: '',
     announcement: '',
     bannerUrl: '',
+    bannerUrls: [] as string[],
     bannerFit: 'contain' as 'contain' | 'cover',
     bannerPosition: 'center' as 'top' | 'center' | 'bottom',
     deliveryFee: 0,
@@ -30,14 +31,30 @@ export function StorefrontSettingsTab() {
     whatsappPhone: '',
   });
 
+  const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
+
+  // Auto-cycle the settings preview carousel every 3.2 seconds
+  useEffect(() => {
+    if (formState.bannerUrls.length <= 1) return;
+    const interval = setInterval(() => {
+      setPreviewSlideIndex((prev) => (prev + 1) % formState.bannerUrls.length);
+    }, 3200);
+    return () => clearInterval(interval);
+  }, [formState.bannerUrls.length]);
+
   useEffect(() => {
     if (settingsQuery.data) {
+      const urls = settingsQuery.data.bannerUrls && settingsQuery.data.bannerUrls.length > 0
+        ? settingsQuery.data.bannerUrls
+        : (settingsQuery.data.bannerUrl ? [settingsQuery.data.bannerUrl] : []);
+
       setFormState({
         enabled: settingsQuery.data.enabled,
         title: settingsQuery.data.title || '',
         bio: settingsQuery.data.bio || '',
         announcement: settingsQuery.data.announcement || '',
-        bannerUrl: settingsQuery.data.bannerUrl || '',
+        bannerUrl: urls[0] || settingsQuery.data.bannerUrl || '',
+        bannerUrls: urls,
         bannerFit: (settingsQuery.data.bannerFit || 'contain') as 'contain' | 'cover',
         bannerPosition: (settingsQuery.data.bannerPosition || 'center') as 'top' | 'center' | 'bottom',
         deliveryFee: settingsQuery.data.deliveryFee || 0,
@@ -71,7 +88,7 @@ export function StorefrontSettingsTab() {
 
     try {
       setIsCompressingBanner(true);
-      setBannerCompressFeedback('جاري ضغط بنر المتجر بتقنية WebP...');
+      setBannerCompressFeedback('جاري ضغط بنر المتجر بتقنية WebP السريعة...');
 
       const res = await compressImage(file, {
         maxWidth: 1280,
@@ -80,15 +97,51 @@ export function StorefrontSettingsTab() {
         maxSizeKb: 45,
       });
 
-      setFormState((prev) => ({ ...prev, bannerUrl: res.dataUrl }));
+      setFormState((prev) => {
+        const nextUrls = [...prev.bannerUrls, res.dataUrl];
+        return {
+          ...prev,
+          bannerUrls: nextUrls,
+          bannerUrl: nextUrls[0] || '',
+        };
+      });
+
       setBannerCompressFeedback(
-        `✓ تم ضغط البنر (${res.originalSizeKb}KB → ${res.compressedSizeKb}KB، وفر ${res.compressionRatio}%)`
+        `✓ تم إضافة البنر بنجاح (${res.originalSizeKb}KB → ${res.compressedSizeKb}KB، وفر ${res.compressionRatio}%)`
       );
       setIsCompressingBanner(false);
+      e.target.value = '';
     } catch (err: any) {
       alert(`فشل ضغط البنر: ${err.message || 'خطأ غير متوقع'}`);
       setIsCompressingBanner(false);
     }
+  };
+
+  const handleRemoveBanner = (index: number) => {
+    setFormState((prev) => {
+      const nextUrls = prev.bannerUrls.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        bannerUrls: nextUrls,
+        bannerUrl: nextUrls[0] || '',
+      };
+    });
+  };
+
+  const handleMoveBanner = (index: number, direction: 'up' | 'down') => {
+    setFormState((prev) => {
+      const nextUrls = [...prev.bannerUrls];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= nextUrls.length) return prev;
+      const temp = nextUrls[index];
+      nextUrls[index] = nextUrls[targetIndex];
+      nextUrls[targetIndex] = temp;
+      return {
+        ...prev,
+        bannerUrls: nextUrls,
+        bannerUrl: nextUrls[0] || '',
+      };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -464,23 +517,28 @@ export function StorefrontSettingsTab() {
                 </div>
               </div>
 
-              {/* Banner Upload Box - Compact */}
+              {/* Multi-Banner Carousel Manager (Slider / GIF-like Auto Rotation) */}
               <div
                 style={{
                   border: '1.5px dashed #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
                   background: '#f8fafc',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0f172a' }}>
-                    صورة بنر واجهة المتجر:
-                  </span>
-                  {formState.bannerUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block' }}>
+                      سلايدر بنرات العروض (متحرك تلقائياً):
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                      أضف صورة أو أكثر لتقلب تلقائياً كـ GIF في واجهة المتجر
+                    </span>
+                  </div>
+                  {formState.bannerUrls.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => setFormState((prev) => ({ ...prev, bannerUrl: '' }))}
+                      onClick={() => setFormState((prev) => ({ ...prev, bannerUrls: [], bannerUrl: '' }))}
                       style={{
                         background: 'none',
                         border: 'none',
@@ -488,41 +546,170 @@ export function StorefrontSettingsTab() {
                         fontSize: '11px',
                         fontWeight: 700,
                         cursor: 'pointer',
+                        padding: '2px 6px',
                       }}
                     >
-                      حذف البنر ✕
+                      حذف الكل ✕
                     </button>
                   )}
                 </div>
 
-                {formState.bannerUrl && (
-                  <div style={{
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    marginBottom: '10px',
-                    border: '1px solid #e2e8f0',
-                    background: '#f8fafc',
-                    maxHeight: '150px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <img
-                      src={formState.bannerUrl}
-                      alt="بنر المتجر"
+                {/* Live Mini Preview of Rotating Carousel */}
+                {formState.bannerUrls.length > 0 && (
+                  <div
+                    style={{
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      marginBottom: '10px',
+                      border: '1px solid #e2e8f0',
+                      background: '#ffffff',
+                      position: 'relative',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    <div
                       style={{
-                        width: '100%',
-                        maxHeight: '150px',
-                        objectFit: formState.bannerFit || 'contain',
-                        objectPosition: formState.bannerPosition || 'center',
-                        display: 'block',
+                        height: '140px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#f8fafc',
                       }}
-                    />
+                    >
+                      <img
+                        src={formState.bannerUrls[previewSlideIndex] || formState.bannerUrls[0]}
+                        alt="معاينة حية للبنر"
+                        style={{
+                          width: '100%',
+                          maxHeight: '140px',
+                          objectFit: formState.bannerFit || 'contain',
+                          objectPosition: formState.bannerPosition || 'center',
+                          display: 'block',
+                          transition: 'opacity 0.3s ease',
+                        }}
+                      />
+                    </div>
+
+                    {/* Live Preview Indicator Badge */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        background: 'rgba(15, 23, 42, 0.75)',
+                        color: '#ffffff',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        backdropFilter: 'blur(4px)',
+                      }}
+                    >
+                      {formState.bannerUrls.length > 1
+                        ? `معاينة حية للسلايدر (${previewSlideIndex + 1} من ${formState.bannerUrls.length}) 🔄`
+                        : 'بانر فردي ثابت'}
+                    </div>
+                  </div>
+                )}
+
+                {/* List of Configured Slides */}
+                {formState.bannerUrls.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>
+                      الشرائح المضافة ({formState.bannerUrls.length}):
+                    </span>
+                    {formState.bannerUrls.map((url, idx) => (
+                      <div
+                        key={`${url}-${idx}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          padding: '6px 10px',
+                          gap: '10px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img
+                            src={url}
+                            alt={`شريحة ${idx + 1}`}
+                            style={{
+                              width: '50px',
+                              height: '28px',
+                              objectFit: 'cover',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                            }}
+                          />
+                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0f172a' }}>
+                            شريحة #{idx + 1} {idx === 0 ? '(الرئيسية الأولى)' : ''}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleMoveBanner(idx, 'up')}
+                              title="نقل للأعلى"
+                              style={{
+                                padding: '2px 6px',
+                                fontSize: '11px',
+                                borderRadius: '4px',
+                                border: '1px solid #cbd5e1',
+                                background: '#f8fafc',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ▲
+                            </button>
+                          )}
+                          {idx < formState.bannerUrls.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleMoveBanner(idx, 'down')}
+                              title="نقل للأسفل"
+                              style={{
+                                padding: '2px 6px',
+                                fontSize: '11px',
+                                borderRadius: '4px',
+                                border: '1px solid #cbd5e1',
+                                background: '#f8fafc',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ▼
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBanner(idx)}
+                            title="حذف هذه الشريحة"
+                            style={{
+                              padding: '2px 6px',
+                              fontSize: '11px',
+                              borderRadius: '4px',
+                              border: '1px solid #fecaca',
+                              background: '#fef2f2',
+                              color: '#b91c1c',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              marginInlineStart: '4px',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
                 {/* Banner Fit & Position Controls */}
-                {formState.bannerUrl && (
+                {formState.bannerUrls.length > 0 && (
                   <div style={{
                     background: '#f8fafc',
                     border: '1px solid #e2e8f0',
@@ -638,19 +825,21 @@ export function StorefrontSettingsTab() {
                   </div>
                 )}
 
+                {/* Add New Banner Button */}
                 <label
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    padding: '6px 14px',
+                    gap: '6px',
+                    padding: '7px 16px',
                     borderRadius: '6px',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
+                    background: '#170e5e',
+                    border: '1px solid #170e5e',
+                    color: '#ffffff',
                     fontSize: '12px',
                     fontWeight: 700,
                     cursor: isCompressingBanner ? 'wait' : 'pointer',
+                    boxShadow: '0 1px 3px rgba(23, 14, 94, 0.2)',
                   }}
                 >
                   <input
@@ -660,7 +849,13 @@ export function StorefrontSettingsTab() {
                     disabled={isCompressingBanner}
                     onChange={handleBannerFileChange}
                   />
-                  <span>{isCompressingBanner ? 'جاري الضغط...' : formState.bannerUrl ? 'تغيير صورة البنر' : 'رفع صورة بنر جديدة'}</span>
+                  <span>
+                    {isCompressingBanner
+                      ? 'جاري الضغط والمعالجة...'
+                      : formState.bannerUrls.length > 0
+                      ? 'إضافة صورة شريحة أخرى +'
+                      : 'رفع صورة بنر أولى +'}
+                  </span>
                 </label>
               </div>
             </div>

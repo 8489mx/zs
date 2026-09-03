@@ -7,6 +7,7 @@ export interface StorefrontInfo {
   bio: string;
   announcement: string;
   bannerUrl: string;
+  bannerUrls?: string[];
   bannerFit?: 'contain' | 'cover';
   bannerPosition?: 'top' | 'center' | 'bottom';
   deliveryFee: number;
@@ -105,6 +106,7 @@ export interface StorefrontSettingsPayload {
   bio?: string;
   announcement?: string;
   bannerUrl?: string;
+  bannerUrls?: string[];
   bannerFit?: 'contain' | 'cover';
   bannerPosition?: 'top' | 'center' | 'bottom';
   deliveryFee?: number;

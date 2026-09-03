@@ -55,35 +55,36 @@ export function StorefrontCategoryShowcase({
             flexDirection: 'column',
             alignItems: 'center',
             cursor: 'pointer',
-            minWidth: '70px',
+            minWidth: '76px',
             flexShrink: 0,
             transition: 'transform 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
           onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
           <div
             style={{
-              width: '56px',
-              height: '56px',
+              width: '66px',
+              height: '66px',
               borderRadius: '50%',
-              background: selectedCategoryId === 'all' ? '#170e5e' : '#f1f5f9',
+              background: selectedCategoryId === 'all' ? '#170e5e' : '#f8fafc',
               color: selectedCategoryId === 'all' ? '#ffffff' : '#170e5e',
               border: selectedCategoryId === 'all' ? '2.5px solid #170e5e' : '1.5px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '4px',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+              marginBottom: '6px',
+              boxShadow: selectedCategoryId === 'all' ? '0 4px 12px rgba(23, 14, 94, 0.2)' : '0 2px 6px rgba(0,0,0,0.03)',
+              transition: 'all 0.2s ease',
             }}
           >
-            <IconShoppingBag size={22} color={selectedCategoryId === 'all' ? '#ffffff' : '#170e5e'} strokeWidth={2} />
+            <IconShoppingBag size={24} color={selectedCategoryId === 'all' ? '#ffffff' : '#170e5e'} strokeWidth={2} />
           </div>
           <span
             style={{
-              fontSize: '11.5px',
+              fontSize: '12px',
               fontWeight: 800,
-              color: selectedCategoryId === 'all' ? '#170e5e' : '#475569',
+              color: selectedCategoryId === 'all' ? '#170e5e' : '#334155',
               textAlign: 'center',
             }}
           >
@@ -106,24 +107,26 @@ export function StorefrontCategoryShowcase({
                 flexDirection: 'column',
                 alignItems: 'center',
                 cursor: 'pointer',
-                minWidth: '70px',
-                maxWidth: '85px',
+                minWidth: '76px',
+                maxWidth: '92px',
                 flexShrink: 0,
                 transition: 'transform 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
             >
               <div
                 style={{
-                  width: '56px',
-                  height: '56px',
+                  width: '66px',
+                  height: '66px',
                   borderRadius: '50%',
                   overflow: 'hidden',
-                  border: isSelected ? '2.5px solid #170e5e' : '1.5px solid #cbd5e1',
-                  marginBottom: '4px',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                  border: isSelected ? '2.5px solid #170e5e' : '1.5px solid #e2e8f0',
+                  marginBottom: '6px',
+                  boxShadow: isSelected ? '0 4px 12px rgba(23, 14, 94, 0.2)' : '0 2px 6px rgba(0,0,0,0.03)',
                   position: 'relative',
+                  background: '#f8fafc',
+                  transition: 'all 0.2s ease',
                 }}
               >
                 <img
@@ -134,12 +137,19 @@ export function StorefrontCategoryShowcase({
                   onError={(e) => {
                     e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
                   }}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    transition: 'transform 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                 />
               </div>
               <span
                 style={{
-                  fontSize: '11px',
+                  fontSize: '11.5px',
                   fontWeight: isSelected ? 800 : 700,
                   color: isSelected ? '#170e5e' : '#1e293b',
                   textAlign: 'center',
@@ -152,7 +162,7 @@ export function StorefrontCategoryShowcase({
               >
                 {cat.name}
               </span>
-              <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+              <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>
                 {count} صنف
               </span>
             </div>
@@ -168,17 +178,17 @@ export function StorefrontCategoryShowcase({
               flexDirection: 'column',
               alignItems: 'center',
               cursor: 'pointer',
-              minWidth: '70px',
+              minWidth: '76px',
               flexShrink: 0,
               transition: 'transform 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
           >
             <div
               style={{
-                width: '56px',
-                height: '56px',
+                width: '66px',
+                height: '66px',
                 borderRadius: '50%',
                 background: '#f8fafc',
                 color: '#170e5e',
@@ -186,15 +196,16 @@ export function StorefrontCategoryShowcase({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '4px',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                marginBottom: '6px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                transition: 'all 0.2s ease',
               }}
             >
-              <IconFolder size={20} color="#170e5e" strokeWidth={1.8} />
+              <IconFolder size={22} color="#170e5e" strokeWidth={1.8} />
             </div>
             <span
               style={{
-                fontSize: '11px',
+                fontSize: '11.5px',
                 fontWeight: 800,
                 color: '#170e5e',
                 textAlign: 'center',
@@ -202,7 +213,7 @@ export function StorefrontCategoryShowcase({
             >
               باقي الأقسام
             </span>
-            <span style={{ fontSize: '10px', color: '#64748b' }}>
+            <span style={{ fontSize: '10.5px', color: '#64748b' }}>
               +{remainingCount} قسم
             </span>
           </div>

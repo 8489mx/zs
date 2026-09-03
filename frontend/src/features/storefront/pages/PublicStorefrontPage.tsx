@@ -12,6 +12,7 @@ import { StorefrontHorizontalCarousel } from '../components/StorefrontHorizontal
 import { StorefrontCartDrawer } from '../components/StorefrontCartDrawer';
 import { StorefrontCheckoutModal } from '../components/StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from '../components/StorefrontSuccessModal';
+import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel';
 import { IconFlame, IconFolder, IconSearch, IconArrowLeft, IconArrowUpRight } from '../components/StorefrontIcons';
 
 const ITEMS_PER_PAGE = 24;
@@ -378,46 +379,15 @@ export function PublicStorefrontPage() {
         onOpenCart={() => setIsCartOpen(true)}
       />
 
-      {/* Top Promotional Billboard Banner (Before Navigation & Categories) */}
-      {!searchTerm && info.bannerUrl && (
-        <div
-          style={{
-            maxWidth: '1280px',
-            width: '100%',
-            margin: '16px auto 8px',
-            padding: '0 20px',
-            boxSizing: 'border-box',
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              boxShadow: '0 4px 16px rgba(15, 23, 42, 0.05)',
-              border: '1px solid #e2e8f0',
-              background: '#f8fafc',
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              maxHeight: (info.bannerFit || 'contain') === 'cover' ? '320px' : 'none',
-            }}
-          >
-            <img
-              src={info.bannerUrl}
-              alt={info.title || info.businessName || 'بانر العروض الترويجية'}
-              style={{
-                width: '100%',
-                height: 'auto',
-                maxHeight: (info.bannerFit || 'contain') === 'cover' ? '320px' : 'none',
-                objectFit: (info.bannerFit || 'contain') as any,
-                objectPosition: (info.bannerPosition || 'center') as any,
-                display: 'block',
-              }}
-            />
-          </div>
-        </div>
+      {/* Top Promotional Billboard Banner Carousel (Multi-image auto-sliding slideshow) */}
+      {!searchTerm && ((info.bannerUrls && info.bannerUrls.length > 0) || info.bannerUrl) && (
+        <StorefrontBannerCarousel
+          banners={info.bannerUrls && info.bannerUrls.length > 0 ? info.bannerUrls : (info.bannerUrl ? [info.bannerUrl] : [])}
+          title={info.title || info.businessName}
+          bannerFit={info.bannerFit || 'contain'}
+          bannerPosition={info.bannerPosition || 'center'}
+          autoPlayIntervalMs={3800}
+        />
       )}
 
       {/* Sub-Header Utility Navigation Bar (Amazon Quick Bar) */}

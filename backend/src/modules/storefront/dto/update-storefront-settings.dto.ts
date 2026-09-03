@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdateStorefrontSettingsDto {
   @IsOptional()
@@ -20,6 +20,11 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsString()
   bannerUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  bannerUrls?: string[];
 
   @IsOptional()
   @IsNumber()
