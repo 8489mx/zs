@@ -11,6 +11,8 @@ interface StorefrontCheckoutModalProps {
   info?: StorefrontInfo;
   deliveryFee?: number;
   tenantSlug?: string;
+  editingOrderNumber?: string;
+  onEditSuccess?: (orderNumber: string) => void;
   onOrderSuccess?: (orderData: CreateOnlineOrderResponse) => void;
   onSubmitOrder?: (formData: {
     customerName: string;
@@ -28,6 +30,8 @@ export function StorefrontCheckoutModal({
   info,
   deliveryFee: deliveryFeeProp,
   tenantSlug,
+  editingOrderNumber,
+  onEditSuccess,
   onOrderSuccess,
   onSubmitOrder,
 }: StorefrontCheckoutModalProps) {
@@ -124,7 +128,29 @@ export function StorefrontCheckoutModal({
         } catch {}
       }
 
-      if (onSubmitOrder) {
+      if (editingOrderNumber && tenantSlug) {
+        const payload = {
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          customerAddress: customerAddress.trim(),
+          customerNotes: customerNotes.trim(),
+          paymentMethod,
+          items: cartItems.map((item) => ({
+            productId: Number(item.product.id),
+            quantity: Number(item.quantity) || 1,
+          })),
+        };
+        await storefrontApi.updateCustomerOrder(tenantSlug, editingOrderNumber, payload);
+        try {
+          localStorage.setItem(`zs_customer_phone_${tenantSlug}`, customerPhone.trim());
+        } catch {}
+        if (onEditSuccess) {
+          onEditSuccess(editingOrderNumber);
+        } else {
+          alert('✅ تم تحديث طلبك بنجاح!');
+          onClose();
+        }
+      } else if (onSubmitOrder) {
         await onSubmitOrder({
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
@@ -145,6 +171,15 @@ export function StorefrontCheckoutModal({
           })),
         };
         const res = await storefrontApi.createOrder(tenantSlug, payload);
+        try {
+          const key = `zs_customer_orders_${tenantSlug}`;
+          const existing = JSON.parse(localStorage.getItem(key) || '[]');
+          if (!existing.includes(res.orderNumber)) {
+            existing.unshift(res.orderNumber);
+            localStorage.setItem(key, JSON.stringify(existing.slice(0, 30)));
+          }
+          localStorage.setItem(`zs_customer_phone_${tenantSlug}`, customerPhone.trim());
+        } catch {}
         onOrderSuccess(res);
       }
     } catch (err: any) {
@@ -194,10 +229,10 @@ export function StorefrontCheckoutModal({
         >
           <div>
             <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-              إتمام وتأكيد الطلب
+              {editingOrderNumber ? `تعديل الطلب #${editingOrderNumber}` : 'إتمام وتأكيد الطلب'}
             </h2>
             <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
-              الدفع نقداً عند استلام الطلب
+              {editingOrderNumber ? 'تعديل بيانات وأصناف طلبك قبل اعتماده من المتجر' : 'الدفع نقداً عند استلام الطلب'}
             </p>
           </div>
           <button
@@ -603,7 +638,7 @@ export function StorefrontCheckoutModal({
                 transition: 'all 0.15s ease',
               }}
             >
-              {loading ? 'جاري تأكيد الطلب...' : 'إرسال وتأكيد الطلب الآن'}
+              {loading ? 'جاري الحفظ...' : editingOrderNumber ? 'حفظ تعديلات الطلب' : 'إرسال وتأكيد الطلب الآن'}
             </button>
             <button
               type="button"

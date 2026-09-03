@@ -23,9 +23,10 @@ export class StorefrontMerchantController {
   updateOrderStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body('status') status: string,
+    @Body('saleId') saleId: number | undefined,
     @Req() req: RequestWithAuth,
   ) {
-    return this.service.updateOrderStatus(id, status, req.authContext!);
+    return this.service.updateOrderStatus(id, status, req.authContext!, saleId ? Number(saleId) : undefined);
   }
 
   @Post('orders/:id/convert-to-sale')

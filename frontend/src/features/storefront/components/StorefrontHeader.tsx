@@ -8,6 +8,7 @@ interface StorefrontHeaderProps {
   cartCount: number;
   cartTotal: number;
   onOpenCart: () => void;
+  onOpenOrders?: () => void;
 }
 
 export function StorefrontHeader({
@@ -17,6 +18,7 @@ export function StorefrontHeader({
   cartCount,
   cartTotal,
   onOpenCart,
+  onOpenOrders,
 }: StorefrontHeaderProps) {
   const whatsappNumber = info.whatsappPhone.replace(/[^0-9]/g, '');
   const cleanPhone = whatsappNumber.startsWith('01') ? `2${whatsappNumber}` : whatsappNumber;
@@ -233,6 +235,41 @@ export function StorefrontHeader({
               </svg>
               <span>خدمة العملاء</span>
             </a>
+          )}
+
+          {/* My Orders Trigger */}
+          {onOpenOrders && (
+            <button
+              type="button"
+              onClick={onOpenOrders}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                color: '#1e293b',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#170e5e';
+                e.currentTarget.style.color = '#170e5e';
+                e.currentTarget.style.background = '#f0f3ff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e2e8f0';
+                e.currentTarget.style.color = '#1e293b';
+                e.currentTarget.style.background = '#f8fafc';
+              }}
+            >
+              <span>📦</span>
+              <span>طلباتي</span>
+            </button>
           )}
 
           {/* Cart Trigger */}

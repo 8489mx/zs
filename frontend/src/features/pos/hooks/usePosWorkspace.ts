@@ -45,6 +45,7 @@ export interface PosDraftSnapshot {
   orderType: string;
   deliveryRepId?: string;
   collectionStatus?: string;
+  onlineOrderId?: number;
 }
 
 export interface HeldPosDraft extends PosDraftSnapshot {

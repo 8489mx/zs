@@ -5,6 +5,9 @@ import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord } from '../types/storefront.types';
 import { ConvertDeliveryModal } from '../components/ConvertDeliveryModal';
 import { loadOnlineOrderIntoPosCart } from '../lib/storefront-pos-loader';
+import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
+import { printPostedSaleReceipt } from '@/lib/pos-printing';
+import type { Sale } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
 
 export function MerchantOnlineOrdersPage() {
@@ -15,6 +18,8 @@ export function MerchantOnlineOrdersPage() {
   const [deliveryModalOrder, setDeliveryModalOrder] = useState<OnlineOrderRecord | null>(null);
   const [loadingPosOrderId, setLoadingPosOrderId] = useState<number | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   // Queries
   const settingsQuery = useQuery({
@@ -53,6 +58,16 @@ export function MerchantOnlineOrdersPage() {
   };
 
   const handleLoadToPos = async (orderId: number) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (targetOrder?.status === 'cancelled') {
+      alert('⚠️ هذا الطلب تم إلغاؤه من قبل العميل ولا يمكن تنزيله في السلة.');
+      return;
+    }
+    if (targetOrder?.saleId) {
+      alert(`⚠️ هذا الطلب تم تحويله لفاتورة مسبقاً (فاتورة #${targetOrder.saleId}).`);
+      return;
+    }
+
     setLoadingPosOrderId(orderId);
     try {
       await loadOnlineOrderIntoPosCart(orderId, navigate);
@@ -313,7 +328,22 @@ export function MerchantOnlineOrdersPage() {
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          {order.saleId ? (
+                          {order.status === 'cancelled' ? (
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                border: '1px solid #fecaca',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              ملغي من العميل
+                            </span>
+                          ) : order.saleId ? (
                             <span
                               style={{
                                 fontSize: '11px',
@@ -326,7 +356,7 @@ export function MerchantOnlineOrdersPage() {
                                 whiteSpace: 'nowrap',
                               }}
                             >
-                              ✓ دليفري #{order.saleId}
+                              ✓ فاتورة #{order.saleId}
                             </span>
                           ) : (
                             <>
@@ -676,7 +706,22 @@ export function MerchantOnlineOrdersPage() {
                 gap: '10px',
               }}
             >
-              {selectedOrder.saleId ? (
+              {selectedOrder.status === 'cancelled' ? (
+                <div
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    padding: '10px',
+                    background: '#fee2e2',
+                    color: '#991b1b',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                  }}
+                >
+                  ⚠️ هذا الطلب تم إلغاؤه من قبل العميل
+                </div>
+              ) : selectedOrder.saleId ? (
                 <div
                   style={{
                     flex: 1,
@@ -763,14 +808,40 @@ export function MerchantOnlineOrdersPage() {
         onClose={() => setDeliveryModalOrder(null)}
         onSuccess={(data) => {
           queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
-          const custMsg = data.isNewCustomer
-            ? `\n🎉 تم تسجيل (${data.customerName}) كعميل جديد في النظام تلقائياً!`
-            : `\n👤 العميل: ${data.customerName}`;
-          const repMsg = data.deliveryRepName ? `\n🛵 المندوب: ${data.deliveryRepName}` : '';
-          alert(`✅ تم تحويل الطلب بنجاح إلى فاتورة مبيعات دليفري رقم #${data.saleId} وتخصيم المخزون!${custMsg}${repMsg}`);
           setSelectedOrder(null);
+          setDeliveryModalOrder(null);
+          if (data?.sale) {
+            setCompletedSale(data.sale);
+            setIsSuccessModalOpen(true);
+          }
         }}
         onLoadToPos={handleLoadToPos}
+      />
+
+      {/* POS Success & Receipt Printing Dialog */}
+      <PosSaleSuccessDialog
+        open={isSuccessModalOpen && Boolean(completedSale)}
+        sale={completedSale}
+        customer={(completedSale as any)?.customer ? (completedSale as any).customer : { name: completedSale?.customerName || '', phone: (completedSale as any)?.customerPhone || '' } as any}
+        settings={settings as any}
+        onClose={() => {
+          setIsSuccessModalOpen(false);
+          setCompletedSale(null);
+        }}
+        onNewSale={() => {
+          setIsSuccessModalOpen(false);
+          setCompletedSale(null);
+        }}
+        onPrintReceipt={() => {
+          if (completedSale) {
+            printPostedSaleReceipt(completedSale, { pageSize: 'receipt', settings: settings as any });
+          }
+        }}
+        onPrintA4={() => {
+          if (completedSale) {
+            printPostedSaleReceipt(completedSale, { pageSize: 'a4', settings: settings as any });
+          }
+        }}
       />
     </div>
   );

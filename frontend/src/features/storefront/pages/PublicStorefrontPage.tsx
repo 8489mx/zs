@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
-import { CartItem, CreateOnlineOrderResponse, StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
+import { CartItem, CreateOnlineOrderResponse, StorefrontProduct, StorefrontCategory, StorefrontInfo, OnlineOrderRecord } from '../types/storefront.types';
 import { StorefrontHeader } from '../components/StorefrontHeader';
 import { StorefrontSubNav } from '../components/StorefrontSubNav';
 import { StorefrontCategoryShowcase } from '../components/StorefrontCategoryShowcase';
@@ -13,6 +13,7 @@ import { StorefrontCartDrawer } from '../components/StorefrontCartDrawer';
 import { StorefrontCheckoutModal } from '../components/StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from '../components/StorefrontSuccessModal';
 import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel';
+import { StorefrontMyOrdersModal } from '../components/StorefrontMyOrdersModal';
 import { IconFlame, IconFolder, IconSearch, IconArrowLeft, IconArrowUpRight } from '../components/StorefrontIcons';
 
 const ITEMS_PER_PAGE = 24;
@@ -78,6 +79,8 @@ export function PublicStorefrontPage() {
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
+  const [editingOrderNumber, setEditingOrderNumber] = useState<string | undefined>(undefined);
   const [confirmedOrder, setConfirmedOrder] = useState<CreateOnlineOrderResponse | null>(null);
 
   // Reset pagination when category or search changes
@@ -169,6 +172,33 @@ export function PublicStorefrontPage() {
   const handleClearCart = useCallback(() => {
     setCartItems([]);
   }, []);
+
+  const handleEditOrder = useCallback((order: OnlineOrderRecord) => {
+    const rawProds: StorefrontProduct[] = catalogQuery.data?.products || [];
+    const newCart: CartItem[] = [];
+    for (const item of order.items) {
+      const prod = rawProds.find((p) => Number(p.id) === Number(item.productId));
+      if (prod) {
+        newCart.push({ product: prod, quantity: item.quantity });
+      } else {
+        newCart.push({
+          product: {
+            id: item.productId,
+            name: item.name,
+            price: item.unitPrice,
+            costPrice: 0,
+            stockQty: 999,
+            unitName: 'قطعة',
+            inStock: true,
+          } as any,
+          quantity: item.quantity,
+        });
+      }
+    }
+    setCartItems(newCart);
+    setEditingOrderNumber(order.orderNumber);
+    setIsCartOpen(true);
+  }, [catalogQuery.data?.products]);
 
   // Raw Products
   const rawProducts: StorefrontProduct[] = catalogQuery.data?.products || [];
@@ -377,6 +407,7 @@ export function PublicStorefrontPage() {
         cartCount={cartCount}
         cartTotal={cartSubtotal}
         onOpenCart={() => setIsCartOpen(true)}
+        onOpenOrders={() => setIsMyOrdersOpen(true)}
       />
 
       {/* Top Promotional Billboard Banner Carousel (Multi-image auto-sliding slideshow) */}
@@ -880,14 +911,25 @@ export function PublicStorefrontPage() {
       {/* Checkout Modal */}
       <StorefrontCheckoutModal
         isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
+        onClose={() => {
+          setIsCheckoutOpen(false);
+          setEditingOrderNumber(undefined);
+        }}
         cartItems={cartItems}
         info={info}
         deliveryFee={info.deliveryFee}
         tenantSlug={cleanSlug}
+        editingOrderNumber={editingOrderNumber}
+        onEditSuccess={() => {
+          setIsCheckoutOpen(false);
+          setEditingOrderNumber(undefined);
+          handleClearCart();
+          setIsMyOrdersOpen(true);
+        }}
         onOrderSuccess={(orderData: CreateOnlineOrderResponse) => {
           setConfirmedOrder(orderData);
           setIsCheckoutOpen(false);
+          setEditingOrderNumber(undefined);
           handleClearCart();
         }}
       />
@@ -898,6 +940,15 @@ export function PublicStorefrontPage() {
         orderData={confirmedOrder}
         whatsappPhone={info.whatsappPhone}
         onClose={() => setConfirmedOrder(null)}
+      />
+
+      {/* Customer My Orders Modal */}
+      <StorefrontMyOrdersModal
+        isOpen={isMyOrdersOpen}
+        onClose={() => setIsMyOrdersOpen(false)}
+        slug={cleanSlug}
+        info={info}
+        onEditOrder={handleEditOrder}
       />
     </div>
   );

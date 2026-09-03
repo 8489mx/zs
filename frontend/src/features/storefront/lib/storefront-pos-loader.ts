@@ -50,7 +50,13 @@ export async function loadOnlineOrderIntoPosCart(orderId: number, navigate: (to:
     branchId: '',
     locationId: '',
     deliveryRepId: '',
-  });
+    onlineOrderId: data.orderId,
+  } as any);
+
+  try {
+    localStorage.setItem('zs_pos_online_order_id', String(data.orderId));
+    localStorage.setItem('zs_pos_online_order_number', String(data.orderNumber));
+  } catch {}
 
   navigate('/pos');
   return data;

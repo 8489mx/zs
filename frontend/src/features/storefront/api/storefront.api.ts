@@ -20,20 +20,44 @@ export const storefrontApi = {
       body: JSON.stringify(payload),
     }),
 
+  getCustomerOrders: (slug: string, phone?: string, orderNumbers?: string[]) => {
+    const params = new URLSearchParams();
+    if (phone) params.set('phone', phone);
+    if (orderNumbers && orderNumbers.length > 0) params.set('orderNumbers', orderNumbers.join(','));
+    return http<{ ok: boolean; orders: OnlineOrderRecord[] }>(
+      `/api/storefront/${encodeURIComponent(slug)}/orders?${params.toString()}`
+    );
+  },
+
+  cancelCustomerOrder: (slug: string, orderNumber: string) =>
+    http<{ ok: boolean; message: string }>(
+      `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/cancel`,
+      { method: 'POST' }
+    ),
+
+  updateCustomerOrder: (slug: string, orderNumber: string, payload: CreateOnlineOrderPayload) =>
+    http<{ ok: boolean; orderNumber: string; totalAmount: number; message: string }>(
+      `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }
+    ),
+
   // Merchant Admin APIs (Requires Session Auth)
   listOrders: (status?: string) =>
     http<{ orders: OnlineOrderRecord[] }>(`/api/storefront/admin/orders${status ? `?status=${status}` : ''}`),
 
   getOrder: (id: number) => http<OnlineOrderRecord>(`/api/storefront/admin/orders/${id}`),
 
-  updateOrderStatus: (id: number, status: string) =>
-    http<{ ok: boolean; status: string }>(`/api/storefront/admin/orders/${id}/status`, {
+  updateOrderStatus: (id: number, status: string, saleId?: number) =>
+    http<{ ok: boolean; status: string; saleId?: number }>(`/api/storefront/admin/orders/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, saleId }),
     }),
 
   convertToSale: (id: number, deliveryRepId?: number) =>
-    http<{ ok: boolean; saleId: number; message?: string; customerName?: string; isNewCustomer?: boolean; deliveryRepName?: string }>(
+    http<{ ok: boolean; saleId: number; sale: any; message?: string; customerName?: string; isNewCustomer?: boolean; deliveryRepName?: string }>(
       `/api/storefront/admin/orders/${id}/convert-to-sale`,
       {
         method: 'POST',

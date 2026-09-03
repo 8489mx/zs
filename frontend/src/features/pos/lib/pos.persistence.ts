@@ -79,6 +79,7 @@ export function buildDraftState(initial?: Partial<PosDraftSnapshot>): PosDraftSn
     locationId: initial?.locationId || '',
     tableNumber: initial?.tableNumber || '',
     orderType: initial?.orderType || 'takeaway',
+    onlineOrderId: (initial as any)?.onlineOrderId ? Number((initial as any).onlineOrderId) : undefined,
   };
 }
 
@@ -112,6 +113,8 @@ export function clearDraftSnapshot() {
   const storage = getStorage();
   if (!storage) return;
   storage.removeItem(POS_DRAFT_STORAGE_KEY);
+  storage.removeItem('zs_pos_online_order_id');
+  storage.removeItem('zs_pos_online_order_number');
 }
 
 export function persistHeldDrafts(heldDrafts: HeldPosDraft[]) {

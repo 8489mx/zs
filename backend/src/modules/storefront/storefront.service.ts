@@ -366,6 +366,209 @@ export class StorefrontService {
     };
   }
 
+  async listCustomerOrders(slug: string, phone?: string, orderNumbers?: string[]) {
+    const tenant = await this.getTenantBySlug(slug);
+    const cleanPhone = String(phone || '').trim().replace(/\D/g, '');
+    const validOrderNumbers = (orderNumbers || []).filter(Boolean);
+
+    if (!cleanPhone && validOrderNumbers.length === 0) {
+      return { ok: true, orders: [] };
+    }
+
+    let qb = this.db
+      .selectFrom('online_orders')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenant.id}`);
+
+    qb = qb.where((eb) => {
+      const conditions: any[] = [];
+      if (cleanPhone) {
+        conditions.push(eb('customer_phone', 'like', `%${cleanPhone.slice(-9)}%`));
+      }
+      if (validOrderNumbers.length > 0) {
+        conditions.push(eb('order_number', 'in', validOrderNumbers));
+      }
+      return eb.or(conditions);
+    });
+
+    const rows = await qb.orderBy('created_at', 'desc').limit(20).execute();
+
+    return {
+      ok: true,
+      orders: rows.map((r) => {
+        let items: any[] = [];
+        try {
+          items = typeof r.items_json === 'string' ? JSON.parse(r.items_json) : r.items_json;
+        } catch {}
+
+        return {
+          id: r.id,
+          orderNumber: r.order_number,
+          customerName: r.customer_name,
+          customerPhone: r.customer_phone,
+          customerAddress: r.customer_address,
+          customerNotes: r.customer_notes,
+          subtotal: Number(r.subtotal),
+          deliveryFee: Number(r.delivery_fee),
+          totalAmount: Number(r.total_amount),
+          status: r.status,
+          paymentMethod: r.payment_method,
+          saleId: r.sale_id,
+          createdAt: r.created_at,
+          items,
+        };
+      }),
+    };
+  }
+
+  async cancelCustomerOrder(slug: string, orderNumber: string) {
+    const tenant = await this.getTenantBySlug(slug);
+    const cleanOrderNumber = String(orderNumber || '').trim();
+
+    const order = await this.db
+      .selectFrom('online_orders')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('order_number', '=', cleanOrderNumber)
+      .executeTakeFirst();
+
+    if (!order) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+
+    if (order.status !== 'pending') {
+      throw new BadRequestException('لا يمكن إلغاء الطلب لأنه قيد التجهيز أو تم اعتماده بالفعل من المتجر');
+    }
+
+    if (order.sale_id) {
+      throw new BadRequestException('لا يمكن إلغاء الطلب لأنه تم إصدار فاتورة له');
+    }
+
+    await this.db
+      .updateTable('online_orders')
+      .set({
+        status: 'cancelled',
+        updated_at: new Date(),
+      })
+      .where('id', '=', order.id)
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .execute();
+
+    return { ok: true, message: 'تم إلغاء الطلب بنجاح' };
+  }
+
+  async updateCustomerOrder(slug: string, orderNumber: string, dto: CreateOnlineOrderDto) {
+    const tenant = await this.getTenantBySlug(slug);
+    const cleanOrderNumber = String(orderNumber || '').trim();
+
+    const order = await this.db
+      .selectFrom('online_orders')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('order_number', '=', cleanOrderNumber)
+      .executeTakeFirst();
+
+    if (!order) {
+      throw new NotFoundException('الطلب غير موجود');
+    }
+
+    if (order.status !== 'pending') {
+      throw new BadRequestException('لا يمكن تعديل الطلب لأنه قيد التجهيز أو تم اعتماده من المتجر');
+    }
+
+    if (order.sale_id) {
+      throw new BadRequestException('لا يمكن تعديل الطلب لأنه تم إصدار فاتورة له');
+    }
+
+    const settings = await this.getTenantSettingsMap(tenant.id);
+    const isEnabled = settings.get('storefront_enabled') !== 'false';
+    if (!isEnabled) throw new BadRequestException('المتجر الإلكتروني متوقف حالياً');
+
+    const deliveryFee = Number(settings.get('storefront_delivery_fee') || 0);
+    const minOrder = Number(settings.get('storefront_min_order') || 0);
+
+    const rawProductIds = dto.items.map((i) => Number(i.productId)).filter(Boolean);
+    if (rawProductIds.length === 0) {
+      throw new BadRequestException('يجب إضافة أصناف في السلة');
+    }
+
+    const catalogProducts = await this.db
+      .selectFrom('products')
+      .select(['id', 'name', 'retail_price', 'stock_qty'])
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('id', 'in', rawProductIds)
+      .execute();
+
+    const productMap = new Map(catalogProducts.map((p) => [Number(p.id), p]));
+
+    let subtotal = 0;
+    const validatedItems: Array<{
+      productId: number;
+      name: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+      notes?: string;
+    }> = [];
+
+    for (const item of dto.items) {
+      const p = productMap.get(Number(item.productId));
+      if (!p) continue;
+
+      const qty = Math.max(1, Number(item.quantity || 1));
+      const price = Number(p.retail_price || 0);
+      const lineTotal = price * qty;
+
+      subtotal += lineTotal;
+      validatedItems.push({
+        productId: Number(p.id),
+        name: p.name,
+        quantity: qty,
+        unitPrice: price,
+        total: lineTotal,
+        notes: item.notes ? String(item.notes).trim() : undefined,
+      });
+    }
+
+    if (validatedItems.length === 0) {
+      throw new BadRequestException('الأصناف المطلوبة غير متوفرة حالياً');
+    }
+
+    if (minOrder > 0 && subtotal < minOrder) {
+      throw new BadRequestException(`الحد الأدنى للطلب هو ${minOrder} ج`);
+    }
+
+    const totalAmount = subtotal + deliveryFee;
+
+    await this.db
+      .updateTable('online_orders')
+      .set({
+        items_json: JSON.stringify(validatedItems),
+        subtotal,
+        delivery_fee: deliveryFee,
+        total_amount: totalAmount,
+        customer_name: (dto.customerName || order.customer_name).trim(),
+        customer_phone: (dto.customerPhone || order.customer_phone).trim(),
+        customer_address: dto.customerAddress ? dto.customerAddress.trim() : order.customer_address,
+        customer_notes: dto.customerNotes ? dto.customerNotes.trim() : order.customer_notes,
+        payment_method: dto.paymentMethod || order.payment_method,
+        updated_at: new Date(),
+      })
+      .where('id', '=', order.id)
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .execute();
+
+    return {
+      ok: true,
+      orderNumber: order.order_number,
+      totalAmount,
+      subtotal,
+      deliveryFee,
+      items: validatedItems,
+      message: 'تم تحديث طلبك بنجاح!',
+    };
+  }
+
   // --- Merchant Admin Methods ---
 
   async listOrders(query: Record<string, unknown>, actor: AuthContext) {
@@ -435,24 +638,29 @@ export class StorefrontService {
     };
   }
 
-  async updateOrderStatus(id: number, status: string, actor: AuthContext) {
+  async updateOrderStatus(id: number, status: string, actor: AuthContext, saleId?: number) {
     const { tenantId } = requireTenantScope(actor);
     const allowed = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
     if (!allowed.includes(status)) {
       throw new BadRequestException('حالة الطلب غير صالحة');
     }
 
+    const updatePayload: any = {
+      status: status as any,
+      updated_at: new Date(),
+    };
+    if (saleId !== undefined && saleId > 0) {
+      updatePayload.sale_id = saleId;
+    }
+
     await this.db
       .updateTable('online_orders')
-      .set({
-        status: status as any,
-        updated_at: new Date(),
-      })
+      .set(updatePayload)
       .where('id', '=', id)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
 
-    return { ok: true, status };
+    return { ok: true, status, saleId };
   }
 
   async convertToSale(id: number, actor: AuthContext, explicitRepId?: number) {
@@ -460,7 +668,12 @@ export class StorefrontService {
     const order = await this.getOrder(id, actor);
 
     if (order.sale_id) {
-      return { ok: true, saleId: order.sale_id, message: 'تم تحويل الطلب لفاتورة مسبقاً' };
+      const fullSale = await this.salesService.getSaleById(order.sale_id, actor);
+      return { ok: true, saleId: order.sale_id, sale: fullSale, message: 'تم تحويل الطلب لفاتورة مسبقاً' };
+    }
+
+    if (order.status === 'cancelled') {
+      throw new BadRequestException('لا يمكن تحويل طلب ملغي إلى فاتورة');
     }
 
     // 1. Auto-Register / Find Customer in Customers Directory
@@ -562,52 +775,59 @@ export class StorefrontService {
     }
 
     // 3. Call SalesService to create formal sale delivery invoice
+    // For COD (Cash on Delivery): paidAmount is 0 and collectionStatus is 'cod' (custody on delivery rep)
+    // For Instapay: paidAmount is total and collectionStatus is 'collected'
+    const isInstapay = order.payment_method === 'instapay_wallet';
     const salePayload: any = {
       customerId: customer ? Number(customer.id) : undefined,
       customerName: customer ? customer.name : order.customer_name,
       customerPhone: cleanCustomerPhone,
       customerAddress: order.customer_address,
       paymentType: 'cash',
-      paymentChannel: 'cash',
+      paymentChannel: isInstapay ? 'instapay' : 'cash',
       orderType: 'delivery',
       deliveryRepId: repId,
       deliveryStatus: 'pending',
-      collectionStatus: 'pending',
+      collectionStatus: isInstapay ? 'collected' : 'cod',
       deliveryFeeMode: 'store_fleet',
       branchId,
       locationId,
       deliveryFee: Number(order.deliveryFee || 0),
       items: lines,
       note: `طلب متجر إلكتروني #${order.order_number}`,
-      paidAmount: order.totalAmount,
-      tenderedAmount: order.totalAmount,
-      payments: [
-        {
-          paymentChannel: 'cash',
-          amount: order.totalAmount,
-        },
-      ],
+      paidAmount: isInstapay ? order.totalAmount : 0,
+      tenderedAmount: isInstapay ? order.totalAmount : 0,
+      payments: isInstapay
+        ? [
+            {
+              paymentChannel: 'instapay',
+              amount: order.totalAmount,
+            },
+          ]
+        : [],
     };
 
     const saleResult = await this.salesService.createSale(salePayload, actor);
-    const saleId = Number((saleResult as any)?.id || (saleResult as any)?.sale?.id || 0);
+    const saleId = Number((saleResult as any)?.id || (saleResult as any)?.sale?.id || (typeof saleResult === 'number' ? saleResult : 0));
 
-    // Update order with saleId and status 'processing' (or delivered)
+    // Update order with saleId and status 'shipped' (خرجت للتوصيل مع المندوب)
     await this.db
       .updateTable('online_orders')
       .set({
         sale_id: saleId > 0 ? saleId : null,
-        status: 'processing',
+        status: 'shipped',
         updated_at: new Date(),
       })
       .where('id', '=', id)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .execute();
 
+    const fullSale = saleId > 0 ? await this.salesService.getSaleById(saleId, actor) : null;
+
     return {
       ok: true,
       saleId,
-      sale: saleResult,
+      sale: fullSale || saleResult,
       customerName: customer?.name || order.customer_name,
       isNewCustomer,
       customerId: customer?.id,
@@ -618,6 +838,13 @@ export class StorefrontService {
   async prepareOrderForPos(id: number, actor: AuthContext) {
     const { tenantId, accountId } = requireTenantScope(actor);
     const order = await this.getOrder(id, actor);
+
+    if (order.status === 'cancelled') {
+      throw new BadRequestException('هذا الطلب تم إلغاؤه من قبل العميل ولا يمكن تنزيله في السلة');
+    }
+    if (order.sale_id) {
+      throw new BadRequestException(`هذا الطلب تم تحويله لفاتورة مسبقاً برقم #${order.sale_id}`);
+    }
 
     // 1. Ensure Customer Exists
     const rawPhone = (order.customer_phone || '').trim();

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { StorefrontService } from './storefront.service';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 
@@ -20,4 +20,32 @@ export class StorefrontPublicController {
   createOrder(@Param('slug') slug: string, @Body() body: CreateOnlineOrderDto) {
     return this.service.createOnlineOrder(slug, body);
   }
+
+  @Get(':slug/orders')
+  getCustomerOrders(
+    @Param('slug') slug: string,
+    @Query('phone') phone?: string,
+    @Query('orderNumbers') orderNumbers?: string,
+  ) {
+    const list = orderNumbers ? orderNumbers.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    return this.service.listCustomerOrders(slug, phone, list);
+  }
+
+  @Post(':slug/orders/:orderNumber/cancel')
+  cancelCustomerOrder(
+    @Param('slug') slug: string,
+    @Param('orderNumber') orderNumber: string,
+  ) {
+    return this.service.cancelCustomerOrder(slug, orderNumber);
+  }
+
+  @Put(':slug/orders/:orderNumber')
+  updateCustomerOrder(
+    @Param('slug') slug: string,
+    @Param('orderNumber') orderNumber: string,
+    @Body() body: CreateOnlineOrderDto,
+  ) {
+    return this.service.updateCustomerOrder(slug, orderNumber, body);
+  }
 }
+

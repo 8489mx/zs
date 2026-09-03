@@ -6,6 +6,7 @@ import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
 import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorkspaceActionGroups';
 import type { createPosWorkspaceBaseActions } from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
+import { storefrontApi } from '@/features/storefront/api/storefront.api';
 
 function getSaleKey(sale: Sale | null) {
   if (!sale) return '';
@@ -256,6 +257,21 @@ export function createPosWorkspaceAsyncActions(
       };
       params.setLastSale(hydratedSale);
       const createdSaleKey = getSaleKey(hydratedSale);
+
+      // Link online order if this sale originated from an online store order
+      try {
+        const rawOnlineId = localStorage.getItem('zs_pos_online_order_id');
+        const activeOnlineOrderId = rawOnlineId ? Number(rawOnlineId) : 0;
+        const saleId = Number((createdSale as any)?.id || (createdSale as any)?.sale?.id || (typeof createdSale === 'number' ? createdSale : 0));
+        if (activeOnlineOrderId > 0 && saleId > 0) {
+          void storefrontApi.updateOrderStatus(activeOnlineOrderId, 'delivered', saleId);
+          localStorage.removeItem('zs_pos_online_order_id');
+          localStorage.removeItem('zs_pos_online_order_number');
+        }
+      } catch (err) {
+        console.warn('Failed to link online order to POS sale:', err);
+      }
+
       base.resetPosDraft();
       params.setPostSaleSaleKey(createdSaleKey);
       const postSalePrintMode = getPostSalePrintMode(params.settings || null);
