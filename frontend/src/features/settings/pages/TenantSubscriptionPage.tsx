@@ -157,7 +157,7 @@ export function TenantSubscriptionPage() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1100px', margin: '0 auto', paddingBottom: '40px' }} dir="rtl">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', paddingBottom: '40px' }} dir="rtl">
       
       {/* 1. Request Success Notification Banner */}
       {requestSuccessMessage && (
@@ -180,150 +180,203 @@ export function TenantSubscriptionPage() {
         </div>
       )}
 
-      {/* 2. Hero Card: Current Subscription Status */}
-      <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderRadius: '16px', padding: '28px', color: '#ffffff', boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.25)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-20px', left: '-20px', width: '160px', height: '160px', background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-        
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '20px', position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '12px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)', padding: '3px 10px', borderRadius: '20px', fontWeight: 700, letterSpacing: '0.5px' }}>
-                {isTrial ? 'فترة تجريبية نشطة' : 'اشتراك رسمي مفعّل'}
-              </span>
-              <span style={{ fontSize: '12px', background: '#3b82f6', color: '#ffffff', padding: '3px 10px', borderRadius: '20px', fontWeight: 800 }}>
-                نسخة سحابية
-              </span>
-            </div>
-
-            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 900, color: '#ffffff' }}>
-              {planName}
-            </h2>
-            
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '13px' }}>
-              المنشأة: <strong style={{ color: '#f8fafc' }}>{tenant.businessName}</strong> ({tenant.slug})
-            </p>
+      {/* 2. Hero Card: Current Subscription Status (Compact Enterprise White Card) */}
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: '10px',
+          border: '1px solid #e2e8f0',
+          padding: '12px 18px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span
+              style={{
+                fontSize: '11px',
+                background: '#f0f3ff',
+                color: '#170e5e',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                fontWeight: 700,
+                border: '1px solid #d8e0fc',
+              }}
+            >
+              {isTrial ? 'فترة تجريبية نشطة' : 'اشتراك رسمي مفعّل'}
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                background: '#f8fafc',
+                color: '#475569',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                fontWeight: 700,
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              نسخة سحابية
+            </span>
           </div>
 
-          {/* Countdown & Action */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', padding: '16px 24px', borderRadius: '12px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '28px', fontWeight: 900, color: daysLeft > 5 ? '#34d399' : daysLeft > 0 ? '#fbbf24' : '#f87171', lineHeight: 1 }}>
-                {daysLeft}
-              </div>
-              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', fontWeight: 600 }}>
-                {daysLeft > 0 ? 'يوم متبقي' : 'منتهي'}
-              </div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
+              {planName}
+            </h2>
+            <span style={{ color: '#64748b', fontSize: '12px' }}>
+              المنشأة: <strong style={{ color: '#0f172a' }}>{tenant.businessName}</strong> ({tenant.slug})
+            </span>
+          </div>
+        </div>
 
-            <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.15)' }} />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ fontSize: '12px', color: '#cbd5e1' }}>
-                تاريخ التجديد: <strong>{subscription?.endsAt ? new Date(subscription.endsAt).toLocaleDateString('ar-EG') : tenant.trialEndsAt ? new Date(tenant.trialEndsAt).toLocaleDateString('ar-EG') : 'غير محدد'}</strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const targetPlan = availablePlans[0] || { id: 1, name: 'الباقة الاحترافية', price: 7500, currency: 'EGP' };
-                  setSelectedPlanForUpgrade(targetPlan);
-                }}
-                style={{ background: '#3b82f6', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#2563eb')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '#3b82f6')}
-              >
-                <span>تجديد / ترقية الباقة</span>
-              </button>
+        {/* Countdown & Action */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              textAlign: 'center',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              padding: '6px 14px',
+              borderRadius: '8px',
+            }}
+          >
+            <div style={{ fontSize: '20px', fontWeight: 900, color: '#170e5e', lineHeight: 1 }}>
+              {daysLeft}
             </div>
+            <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', fontWeight: 700 }}>
+              {daysLeft > 0 ? 'يوم متبقي' : 'منتهي'}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+              تاريخ التجديد:{' '}
+              <strong style={{ color: '#0f172a' }}>
+                {subscription?.endsAt
+                  ? new Date(subscription.endsAt).toLocaleDateString('ar-EG')
+                  : tenant.trialEndsAt
+                  ? new Date(tenant.trialEndsAt).toLocaleDateString('ar-EG')
+                  : 'غير محدد'}
+              </strong>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const targetPlan = availablePlans[0] || { id: 1, name: 'الباقة الاحترافية', price: 7500, currency: 'EGP' };
+                setSelectedPlanForUpgrade(targetPlan);
+              }}
+              style={{
+                background: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '6px 14px',
+                fontWeight: 700,
+                fontSize: '12px',
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#110a47')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#170e5e')}
+            >
+              تجديد / ترقية الباقة
+            </button>
           </div>
         </div>
       </div>
 
-      {/* 3. Resource Usage & Quotas */}
+      {/* 3. Resource Usage & Quotas - Compact */}
       <div>
-        <h3 style={{ margin: '0 0 14px', fontSize: '16px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span>استهلاك الموارد والمحددات لباقاتك</span>
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
           {/* Users Quota */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>المستخدمين النشطين</span>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>المستخدمين النشطين</span>
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-              {usage.users.current} <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>/ {usersLimit ? `${usersLimit} مسموح` : 'غير محدود'}</span>
+            <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
+              {usage.users.current} <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>/ {usersLimit ? `${usersLimit} مسموح` : 'غير محدود'}</span>
             </div>
             {usersPercent !== null && (
-              <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${usersPercent}%`, height: '100%', background: usersPercent > 85 ? '#ef4444' : '#3b82f6', transition: 'width 0.3s' }} />
+              <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${usersPercent}%`, height: '100%', background: usersPercent > 85 ? '#ef4444' : '#170e5e', transition: 'width 0.3s' }} />
               </div>
             )}
           </div>
 
           {/* Branches Quota */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>الفروع المفتوحة</span>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>الفروع المفتوحة</span>
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-              {usage.branches.current} <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>/ {branchesLimit ? `${branchesLimit} مسموح` : 'غير محدود'}</span>
+            <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
+              {usage.branches.current} <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>/ {branchesLimit ? `${branchesLimit} مسموح` : 'غير محدود'}</span>
             </div>
             {branchesPercent !== null && (
-              <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${branchesPercent}%`, height: '100%', background: branchesPercent > 85 ? '#ef4444' : '#10b981', transition: 'width 0.3s' }} />
+              <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${branchesPercent}%`, height: '100%', background: branchesPercent > 85 ? '#ef4444' : '#170e5e', transition: 'width 0.3s' }} />
               </div>
             )}
           </div>
 
           {/* Warehouses Count */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>المخازن ومواقع التخزين</span>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>المخازن ومواقع التخزين</span>
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-              {usage.locations.current} <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>موقع تخزين</span>
+            <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
+              {usage.locations.current} <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>موقع تخزين</span>
             </div>
           </div>
 
           {/* Total Invoices */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>إجمالي الفواتير الصادرة</span>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>إجمالي الفواتير الصادرة</span>
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-              {usage.sales.current.toLocaleString('ar-EG')} <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600 }}>فاتورة</span>
+            <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
+              {usage.sales.current.toLocaleString('ar-EG')} <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>فاتورة</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4. Upgrade / Available Plans Section */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '28px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+      {/* 4. Upgrade / Available Plans Section - Compact */}
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px 20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <div>
-            <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>
+            <h3 style={{ margin: '0 0 2px', fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>
               باقات الاشتراك والترقية السحابية
             </h3>
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
               اختر الخطة المناسبة لحجم نشاطك وتمتع بتحديثات سحابية مستمرة ودعم فني متواصل
             </p>
           </div>
 
           {/* Monthly / Annual Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px' }}>
             <button
               type="button"
               onClick={() => setIsAnnual(false)}
               style={{
                 border: 'none',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '12.5px',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '11.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 background: !isAnnual ? '#ffffff' : 'transparent',
                 color: !isAnnual ? '#0f172a' : '#64748b',
-                boxShadow: !isAnnual ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                boxShadow: !isAnnual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
@@ -334,22 +387,22 @@ export function TenantSubscriptionPage() {
               onClick={() => setIsAnnual(true)}
               style={{
                 border: 'none',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '12.5px',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '11.5px',
                 fontWeight: 800,
                 cursor: 'pointer',
                 background: isAnnual ? '#0f172a' : 'transparent',
                 color: isAnnual ? '#ffffff' : '#64748b',
-                boxShadow: isAnnual ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                boxShadow: isAnnual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '4px',
               }}
             >
               <span>دفع سنوي</span>
-              <span style={{ fontSize: '10px', background: '#10b981', color: '#ffffff', padding: '1px 6px', borderRadius: '10px' }}>
+              <span style={{ fontSize: '9.5px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
                 وفّر شهرين
               </span>
             </button>
@@ -357,18 +410,18 @@ export function TenantSubscriptionPage() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
           
           {/* 1. Starter Plan */}
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fafafa', position: 'relative' }}>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fafafa', position: 'relative' }}>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>الباقة الأساسية</div>
-              <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', margin: '8px 0 4px' }}>
-                {isAnnual ? '3,500' : '350'} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>الباقة الأساسية</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
+                {isAnnual ? '3,500' : '350'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px' }}>مناسبة للمحلات الفردية والأنشطة الصغيرة</p>
+              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>مناسبة للمحلات الفردية والأنشطة الصغيرة</p>
               
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px', color: '#334155' }}>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
                 <div>✓ نقطة بيع وكاشير سريع (POS)</div>
                 <div>✓ حتى <strong>فرع واحد</strong> و <strong>2 مستخدمين</strong></div>
                 <div>✓ إدارة المخزون والمشتريات</div>
@@ -379,26 +432,26 @@ export function TenantSubscriptionPage() {
             <button
               type="button"
               onClick={() => setSelectedPlanForUpgrade({ id: 1, name: 'الباقة الأساسية', price: isAnnual ? 3500 : 350, currency: 'EGP' })}
-              style={{ marginTop: '20px', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 800, fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s' }}
+              style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               اختيار الأساسية
             </button>
           </div>
 
           {/* 2. Professional Plan (Featured) */}
-          <div style={{ border: '2px solid #3b82f6', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#ffffff', position: 'relative', boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.1)' }}>
-            <div style={{ position: 'absolute', top: '-12px', right: '20px', background: '#3b82f6', color: '#ffffff', fontSize: '11px', fontWeight: 900, padding: '2px 10px', borderRadius: '20px' }}>
+          <div style={{ border: '1.5px solid #170e5e', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#ffffff', position: 'relative', boxShadow: '0 4px 12px rgba(23, 14, 94, 0.08)' }}>
+            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: '#170e5e', color: '#ffffff', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '12px' }}>
               الأكثر طلباً
             </div>
 
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>الباقة الاحترافية (Pro)</div>
-              <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', margin: '8px 0 4px' }}>
-                {isAnnual ? '7,500' : '750'} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', textTransform: 'uppercase' }}>الباقة الاحترافية (Pro)</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
+                {isAnnual ? '7,500' : '750'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px' }}>للشركات المتوسطة وسلاسل الفروع وتجار الجملة</p>
+              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للشركات المتوسطة وسلاسل الفروع وتجار الجملة</p>
               
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px', color: '#334155' }}>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
                 <div>✓ <strong>كل ميزات الأساسية</strong></div>
                 <div>✓ حتى <strong>3 فروع</strong> و <strong>10 مستخدمين</strong></div>
                 <div>✓ الحسابات العامة وقيود اليومية وشجرة الحسابات</div>
@@ -410,14 +463,14 @@ export function TenantSubscriptionPage() {
             <button
               type="button"
               onClick={() => setSelectedPlanForUpgrade({ id: 2, name: 'الباقة الاحترافية', price: isAnnual ? 7500 : 750, currency: 'EGP' })}
-              style={{ marginTop: '20px', padding: '10px', borderRadius: '8px', border: 'none', background: '#0f172a', color: '#ffffff', fontWeight: 800, fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s' }}
+              style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               ترقية للاحترافية الآن
             </button>
           </div>
 
           {/* 3. Enterprise Plan */}
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '14px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fafafa', position: 'relative' }}>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fafafa', position: 'relative' }}>
             <div>
               <div style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>باقة المؤسسات والتصنيع</div>
               <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', margin: '8px 0 4px' }}>

@@ -135,6 +135,49 @@ export class SettingsDemoDataService {
       await trx.deleteFrom('stock_movements').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await trx.deleteFrom('product_location_stock').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
+      // Manufacturing & Work Orders (must be deleted before products/stock)
+      await trx.deleteFrom('manufacturing_wo_consumptions')
+        .where(
+          'work_order_id',
+          'in',
+          trx.selectFrom('manufacturing_work_orders').select('id').where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        )
+        .execute();
+      await trx.deleteFrom('manufacturing_work_orders').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+      await trx.deleteFrom('manufacturing_bom_lines')
+        .where(
+          'bom_id',
+          'in',
+          trx.selectFrom('manufacturing_boms').select('id').where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        )
+        .execute();
+      await trx.deleteFrom('manufacturing_boms').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+      // Import & Export Shipments (must be deleted before products/suppliers)
+      await (trx as any).deleteFrom('import_sale_partner_shares').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('import_sales_and_profit').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('import_shipment_items').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('import_shipments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('import_partners').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+
+      // Maintenance & Trade-in & Online Orders & Pharmacy
+      await trx.deleteFrom('maintenance_ticket_parts').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('maintenance_tickets').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('trade_in_transactions').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('online_orders').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+
+      await trx.deleteFrom('pharmacy_clinical_services').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('pharmacy_shortages').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('pharmacy_prescriptions').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('pharmacy_batches').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('pharmacy_drugs').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+
+      // Price change runs & allocations
+      await trx.deleteFrom('sale_line_stock_allocations').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('price_change_items').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('price_change_runs').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+
       await trx.deleteFrom('product_offers').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await trx.deleteFrom('product_units').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await trx.deleteFrom('product_customer_prices').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
@@ -167,6 +210,28 @@ export class SettingsDemoDataService {
       // 3. Accounting & Journals
       await trx.deleteFrom('journal_entry_lines').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await trx.deleteFrom('journal_entries').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+      // Services (must be deleted before users)
+      await trx.deleteFrom('services').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+
+      // Unlink any audit logs or subscription payments created by users being deleted
+      await trx.updateTable('audit_logs')
+        .set({ created_by: null })
+        .where(
+          'created_by',
+          'in',
+          trx.selectFrom('users').select('id').where('id', '<>', actor.userId).where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        )
+        .execute();
+
+      await (trx as any).updateTable('tenant_subscription_payments')
+        .set({ created_by: null })
+        .where(
+          'created_by',
+          'in',
+          trx.selectFrom('users').select('id').where('id', '<>', actor.userId).where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        )
+        .execute().catch(() => undefined);
 
       // 4. Delete demo users (keep current user)
       await trx.deleteFrom('users')

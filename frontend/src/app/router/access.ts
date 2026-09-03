@@ -12,6 +12,8 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/products': 'products',
   sales: 'sales',
   '/sales': 'sales',
+  'online-orders': 'sales',
+  '/online-orders': 'sales',
   pos: 'sales',
   '/pos': 'sales',
   'cash-drawer': ['cashDrawer', 'treasury'],

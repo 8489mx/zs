@@ -40,6 +40,7 @@ import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { TradeInModule } from './modules/tradein/tradein.module';
 import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 import { TenantSubscriptionModule } from './modules/tenant-subscription/tenant-subscription.module';
+import { StorefrontModule } from './modules/storefront/storefront.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { TenantSubscriptionModule } from './modules/tenant-subscription/tenant-s
     MaintenanceModule,
     TradeInModule,
     PharmacyModule,
+    StorefrontModule,
   ],
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })

@@ -195,56 +195,57 @@ function DemoDataSandboxCard() {
     <>
       <div style={{
         background: '#ffffff',
-        border: '1px solid #fed7aa',
-        borderRadius: '12px',
-        padding: '18px 20px',
+        border: '1px solid #e2e8f0',
+        borderRadius: '14px',
+        padding: '20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px',
-        boxShadow: '0 2px 6px rgba(249, 115, 22, 0.05)',
+        gap: '16px',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
             <div style={{
-              width: '36px',
-              height: '36px',
+              width: '40px',
+              height: '40px',
               borderRadius: '10px',
-              background: '#ea580c',
+              background: '#170e5e',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
               fontWeight: 800,
-              fontSize: '1rem',
-              flexShrink: 0
+              fontSize: '1.05rem',
+              flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(23, 14, 94, 0.18)',
             }}>
               Z
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: '0.98rem', color: '#7c2d12', fontWeight: 800 }}>
-                  بيئة العرض التجريبية الشاملة وتصفير البيانات
+                <strong style={{ fontSize: '0.98rem', color: '#0f172a', fontWeight: 800 }}>
+                  بيئة العرض التجريبية وتصفير النظام
                 </strong>
                 {isEmpty ? (
                   <span style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #a7f3d0' }}>
-                    متجر جديد وفارغ (ملء فوري بنقرة واحدة)
+                    متجر جديد وفارغ (جاهز للملء)
                   </span>
                 ) : (
-                  <span style={{ fontSize: '0.72rem', background: '#ffedd5', color: '#c2410c', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #fed7aa' }}>
+                  <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#334155', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
                     سوبر أدمن فقط
                   </span>
                 )}
-                <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#64748b', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
                   نسخ احتياطي تلقائي إجباري
                 </span>
               </div>
-              <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#9a3412', lineHeight: 1.5 }}>
-                أداة فورية لملء النظام بكافة بيانات المتجر الواقعية لاختبار الكاشير والتقارير والمناديب والمخازن على مدار 6 أشهر، أو تصفير النظام تماماً لتسليمه للعميل.
+              <p style={{ margin: '5px 0 0', fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
+                أداة فورية لملء النظام بكافة بيانات المتجر الواقعية لاختبار الكاشير والتقارير والمناديب والمخازن على مدار 6 أشهر، أو تصفير النظام تماماً للبدء الفعلي.
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <Button
               type="button"
               disabled={mutation.isPending}
@@ -260,13 +261,14 @@ function DemoDataSandboxCard() {
               style={{
                 fontSize: '0.85rem',
                 padding: '9px 18px',
-                background: '#ea580c',
+                background: '#170e5e',
                 color: '#ffffff',
-                fontWeight: 800,
+                fontWeight: 700,
                 borderRadius: '8px',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(234, 88, 12, 0.25)',
+                boxShadow: '0 2px 5px rgba(23, 14, 94, 0.22)',
+                transition: 'all 0.15s ease',
               }}
             >
               {mutation.isPending && isEmpty ? 'جاري السكب...' : 'ملء النظام ببيانات تجريبية كاملة'}
@@ -283,14 +285,14 @@ function DemoDataSandboxCard() {
                 }}
                 style={{
                   fontSize: '0.85rem',
-                  padding: '9px 18px',
-                  background: '#dc2626',
-                  color: '#ffffff',
-                  fontWeight: 800,
+                  padding: '9px 16px',
+                  background: '#fff1f2',
+                  color: '#be123c',
+                  fontWeight: 700,
                   borderRadius: '8px',
-                  border: 'none',
+                  border: '1px solid #fecdd3',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 تصفير ومسح كافة البيانات
@@ -300,27 +302,27 @@ function DemoDataSandboxCard() {
         </div>
 
         <div style={{
-          background: '#fffaf5',
-          border: '1px dashed #fdba74',
-          borderRadius: '8px',
-          padding: '10px 14px',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          padding: '12px 16px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '10px',
-          fontSize: '0.78rem',
-          color: '#7c2d12',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '12px',
+          fontSize: '0.8rem',
+          color: '#334155',
         }}>
           <div>
-            <strong>الأصناف والأسعار:</strong> 50 صنفاً تجارياً، نواقص شراء، وأصناف نفدت.
+            <strong style={{ color: '#0f172a' }}>الأصناف والأسعار:</strong> 50 صنفاً تجارياً، نواقص شراء، وأصناف نفدت.
           </div>
           <div>
-            <strong>الشركاء والموظفون:</strong> 10 عملاء، 8 موردين، 6 مناديب، 20 موظفاً (HR).
+            <strong style={{ color: '#0f172a' }}>الشركاء والموظفون:</strong> 10 عملاء، 8 موردين، 6 مناديب، 20 موظفاً (HR).
           </div>
           <div>
-            <strong>الفواتير والتقارير:</strong> مبيعات ومشتريات موزعة على 6 أشهر كاملة.
+            <strong style={{ color: '#0f172a' }}>الفواتير والتقارير:</strong> مبيعات ومشتريات موزعة على 6 أشهر كاملة.
           </div>
           <div>
-            <strong>حسابات سريعة:</strong> كاشير1 (1)، كاشير2 (1)، admin (1).
+            <strong style={{ color: '#0f172a' }}>حسابات سريعة:</strong> كاشير1 (1)، كاشير2 (1)، admin (1).
           </div>
         </div>
 
@@ -358,7 +360,7 @@ function DemoDataSandboxCard() {
             maxWidth: '480px',
             width: '100%',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: modalMode === 'wipe' ? '2px solid #ef4444' : '2px solid #f97316',
+            border: modalMode === 'wipe' ? '1px solid #fecdd3' : '1px solid #e2e8f0',
             direction: 'rtl',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
@@ -366,19 +368,19 @@ function DemoDataSandboxCard() {
                 width: '44px',
                 height: '44px',
                 borderRadius: '12px',
-                background: modalMode === 'wipe' ? '#fef2f2' : '#fff7ed',
-                border: modalMode === 'wipe' ? '1px solid #fca5a5' : '1px solid #fdba74',
+                background: modalMode === 'wipe' ? '#fef2f2' : '#f0f4ff',
+                border: modalMode === 'wipe' ? '1px solid #fca5a5' : '1px solid #c7d2fe',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '1rem',
                 fontWeight: 800,
-                color: modalMode === 'wipe' ? '#dc2626' : '#ea580c',
+                color: modalMode === 'wipe' ? '#dc2626' : '#170e5e',
               }}>
                 !
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: modalMode === 'wipe' ? '#991b1b' : '#9a3412' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: modalMode === 'wipe' ? '#991b1b' : '#0f172a' }}>
                   {modalMode === 'wipe' ? 'تأكيد تصفير ومسح كافة البيانات' : 'تأكيد ملء النظام بالبيانات التجريبية'}
                 </h3>
                 <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
@@ -509,13 +511,13 @@ function DemoDataSandboxCard() {
                 onClick={() => mutation.mutate({ mode: modalMode, pass: password })}
                 style={{
                   padding: '8px 22px',
-                  background: modalMode === 'wipe' ? '#dc2626' : '#ea580c',
+                  background: modalMode === 'wipe' ? '#dc2626' : '#170e5e',
                   color: '#ffffff',
                   borderRadius: '8px',
                   border: 'none',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   fontSize: '0.85rem',
-                  boxShadow: modalMode === 'wipe' ? '0 2px 6px rgba(220, 38, 38, 0.3)' : '0 2px 6px rgba(234, 88, 12, 0.3)',
+                  boxShadow: modalMode === 'wipe' ? '0 2px 6px rgba(220, 38, 38, 0.3)' : '0 2px 6px rgba(23, 14, 94, 0.25)',
                 }}
               >
                 {mutation.isPending ? 'جاري التنفيذ وأخذ النسخة...' : modalMode === 'wipe' ? 'تأكيد المسح والتصفير' : 'تأكيد ملء البيانات التجريبية'}

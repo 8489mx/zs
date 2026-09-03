@@ -1923,6 +1923,7 @@ export interface Database {
   pharmacy_prescriptions: PharmacyPrescriptionTable;
   pharmacy_shortages: PharmacyShortageTable;
   pharmacy_clinical_services: PharmacyClinicalServiceTable;
+  online_orders: OnlineOrderTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -2085,3 +2086,25 @@ export interface PharmacyClinicalServiceTable {
   fee: number | string;
   created_at: ColumnType<Date, string | undefined, string | undefined>;
 }
+
+export interface OnlineOrderTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  order_number: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string | null;
+  customer_notes: string | null;
+  items_json: ColumnType<string, string | undefined, string | undefined>;
+  subtotal: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  delivery_fee: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  payment_method: string;
+  branch_id: number | null;
+  sale_id: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
