@@ -58,6 +58,7 @@ const STATIC_ROUTE_RULES: RouteBreadcrumbRule[] = [
   { prefix: '/accounting/inventory-value', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المالية والمحاسبة', to: '/treasury' }, { label: 'تقييم المخزون' }] },
   { prefix: '/accounting/cash-movement', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المالية والمحاسبة', to: '/treasury' }, { label: 'حركة النقدية' }] },
   { prefix: '/accounting/settings', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المالية والمحاسبة', to: '/treasury' }, { label: 'إعدادات الحسابات' }] },
+  { prefix: '/accounting/fixed-assets', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المالية والمحاسبة', to: '/treasury' }, { label: 'الأصول الثابتة والإهلاك' }] },
   { prefix: '/accounting', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المالية والمحاسبة', to: '/treasury' }, { label: 'المحاسبة العامة' }] },
 
   // Pharmacy
