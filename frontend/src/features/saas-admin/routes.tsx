@@ -15,6 +15,10 @@ export const saasAdminRouteModule: FeatureRouteModule = {
       path: 'saas-admin/plans',
       element: createLazyRoute(() => import('@/features/saas-admin/pages/SaasPlansPage').then((module) => ({ default: module.SaasPlansPage }))),
     },
+    {
+      path: 'saas-admin/diagnostics',
+      element: createLazyRoute(() => import('@/features/saas-admin/pages/SaasDiagnosticsPage').then((module) => ({ default: module.SaasDiagnosticsPage }))),
+    },
   ],
   navigation: [
     {
@@ -33,6 +37,12 @@ export const saasAdminRouteModule: FeatureRouteModule = {
       key: 'saas-admin-offline-releases',
       label: 'إدارة الإصدارات',
       to: '/saas-admin/offline-releases',
+      platformOnly: true,
+    },
+    {
+      key: 'saas-admin-diagnostics',
+      label: 'سجلات التشخيص',
+      to: '/saas-admin/diagnostics',
       platformOnly: true,
     },
   ],

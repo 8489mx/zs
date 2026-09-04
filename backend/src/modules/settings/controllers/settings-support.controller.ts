@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UseGuards, StreamableFile } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res, UseGuards, StreamableFile } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { AdminRoleGuard } from '../../../core/auth/guards/admin-role.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
@@ -22,5 +22,10 @@ export class SettingsSupportController {
     });
     
     return new StreamableFile(zipBuffer);
+  }
+
+  @Post('support-bundle/send-to-server')
+  async sendSupportBundleToServer(@Req() req: RequestWithAuth) {
+    return this.supportService.uploadSupportBundleToServer(req.authContext!);
   }
 }

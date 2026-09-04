@@ -38,6 +38,7 @@ export function StorefrontSettingsTab() {
     enabled: true,
     slug: '',
     title: '',
+    address: '',
     bio: '',
     announcement: '',
     bannerUrl: '',
@@ -75,10 +76,19 @@ export function StorefrontSettingsTab() {
         ? settingsQuery.data.bannerUrls
         : (settingsQuery.data.bannerUrl ? [settingsQuery.data.bannerUrl] : []);
 
+      let initialTitle = settingsQuery.data.title || '';
+      let initialAddress = settingsQuery.data.address || '';
+      const bName = (settingsQuery.data as any).businessName || '';
+      if (!initialAddress && bName && initialTitle.startsWith(bName) && initialTitle.length > bName.length) {
+        initialAddress = initialTitle.slice(bName.length).trim().replace(/^[-–—:]\s*/, '');
+        initialTitle = bName;
+      }
+
       setFormState({
         enabled: settingsQuery.data.enabled,
         slug: settingsQuery.data.slug || '',
-        title: settingsQuery.data.title || '',
+        title: initialTitle,
+        address: initialAddress,
         bio: settingsQuery.data.bio || '',
         announcement: settingsQuery.data.announcement || '',
         bannerUrl: urls[0] || settingsQuery.data.bannerUrl || '',
@@ -462,16 +472,42 @@ export function StorefrontSettingsTab() {
                 </span>
               </div>
 
-              {/* Store Title */}
+              {/* Store Title (Brand Name) */}
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  اسم وعنوان المتجر:
+                  اسم المتجر (البراند التجاري):
                 </label>
                 <input
                   type="text"
                   value={formState.title}
                   onChange={(e) => setFormState({ ...formState, title: e.target.value })}
-                  placeholder="مثال: رجب العطار للأعشاب والزيوت"
+                  placeholder="مثال: المهندس"
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '12.5px',
+                    background: '#ffffff',
+                    fontFamily: 'inherit',
+                    fontWeight: 700,
+                  }}
+                />
+              </div>
+
+              {/* Store Address / Location Subtitle */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
+                    عنوان أو مقر المتجر:
+                  </label>
+                  <span style={{ fontSize: '10.5px', color: '#64748b' }}>📍 يظهر كسطر فرعي بالهيدر</span>
+                </div>
+                <input
+                  type="text"
+                  value={formState.address}
+                  onChange={(e) => setFormState({ ...formState, address: e.target.value })}
+                  placeholder="مثال: تعاونيات الزهور - عمارة الفسطاط"
                   style={{
                     width: '100%',
                     padding: '6px 10px',

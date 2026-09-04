@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { StorefrontService } from './storefront.service';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
+import { CreateProductReviewDto } from './dto/create-product-review.dto';
 
 @Controller('api/storefront')
 export class StorefrontPublicController {
@@ -14,6 +15,23 @@ export class StorefrontPublicController {
   @Get(':slug/catalog')
   getCatalog(@Param('slug') slug: string) {
     return this.service.getStorefrontCatalog(slug);
+  }
+
+  @Post(':slug/products/:productId/reviews')
+  submitProductReview(
+    @Param('slug') slug: string,
+    @Param('productId') productId: string,
+    @Body() body: CreateProductReviewDto,
+  ) {
+    return this.service.submitProductReview(slug, Number(productId), body);
+  }
+
+  @Get(':slug/products/:productId/reviews')
+  getProductReviews(
+    @Param('slug') slug: string,
+    @Param('productId') productId: string,
+  ) {
+    return this.service.getProductReviews(slug, Number(productId));
   }
 
   @Post(':slug/orders')
@@ -48,4 +66,5 @@ export class StorefrontPublicController {
     return this.service.updateCustomerOrder(slug, orderNumber, body);
   }
 }
+
 

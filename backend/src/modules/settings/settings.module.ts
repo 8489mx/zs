@@ -18,6 +18,7 @@ import { OfflineReleasesService } from './services/offline-releases.service';
 import { WhatsAppGatewayController } from './controllers/whatsapp-gateway.controller';
 import { WhatsAppGatewayService } from './services/whatsapp-gateway.service';
 import { CloudBackupService } from './services/cloud-backup.service';
+import { DiagnosticsSchedulerService } from './services/diagnostics-scheduler.service';
 
 @Module({
   controllers: [
@@ -37,12 +38,13 @@ import { CloudBackupService } from './services/cloud-backup.service';
     SettingsBackupService,
     CloudBackupService,
     SettingsSupportService,
+    DiagnosticsSchedulerService,
     SettingsImportService,
     SettingsDemoDataService,
     OfflineReleasesService,
     WhatsAppGatewayService,
   ],
-  exports: [SettingsService, WhatsAppGatewayService, CloudBackupService],
+  exports: [SettingsService, WhatsAppGatewayService, CloudBackupService, SettingsSupportService],
 })
 export class SettingsModule {}
 

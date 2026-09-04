@@ -790,20 +790,15 @@ export function useNewPurchaseOrderController() {
     if (result.kind === 'product') {
       try {
         const payload: any = await sharedProductsApi.create({
-          name: result.name,
+          name: result.name.trim(),
           itemType: 'product',
           itemKind: 'standard',
-          costPrice: result.price ?? 0,
-          retailPrice: result.price ?? 0,
-          wholesalePrice: result.price ?? 0,
+          costPrice: Number(result.price ?? 0),
+          retailPrice: Number(result.price ?? 0),
+          wholesalePrice: Number(result.price ?? 0),
           stock: 0,
           minStock: 0,
-          variantStock: 0,
-          categoryId: '',
-          supplierId: '',
-          warehouseId: '',
-          isCombo: false,
-          comboComponents: []
+          units: [{ name: 'قطعة', multiplier: 1, barcode: '', isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true }]
         });
         await invalidateCatalogDomain(queryClient, { includeProducts: true });
 

@@ -1937,6 +1937,8 @@ export interface Database {
   currency_exchange_rates: CurrencyExchangeRateTable;
   customer_installment_plans: CustomerInstallmentPlanTable;
   customer_installments: CustomerInstallmentTable;
+  saas_client_diagnostics: SaasClientDiagnosticTable;
+  product_reviews: ProductReviewTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -2261,4 +2263,31 @@ export interface CustomerInstallmentTable {
   notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface SaasClientDiagnosticTable {
+  id: Generated<number>;
+  client_name: string;
+  client_identifier: string;
+  app_version: ColumnType<string, string | undefined, string | undefined>;
+  log_period: ColumnType<string, string | undefined, string | undefined>;
+  error_count_500: ColumnType<number, number | undefined, number | undefined>;
+  error_summary: ColumnType<Record<string, any> | null, string | Record<string, any> | null | undefined, string | Record<string, any> | null | undefined>;
+  file_path: string;
+  file_size_bytes: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  uploaded_at: ColumnType<Date, string | undefined, never>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface ProductReviewTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  product_id: number;
+  rating: number;
+  customer_name: string | null;
+  customer_phone: string | null;
+  comment: string | null;
+  is_approved: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
 }

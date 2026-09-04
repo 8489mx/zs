@@ -6,6 +6,7 @@ import {
   CreateOnlineOrderResponse,
   OnlineOrderRecord,
   StorefrontSettingsPayload,
+  StorefrontReview,
 } from '../types/storefront.types';
 
 export const storefrontApi = {
@@ -58,6 +59,24 @@ export const storefrontApi = {
         method: 'PUT',
         body: JSON.stringify(payload),
       }
+    ),
+
+  submitReview: (
+    slug: string,
+    productId: number,
+    payload: { rating: number; customerName?: string; customerPhone?: string; comment?: string }
+  ) =>
+    http<{ ok: boolean; avgRating: number; reviewCount: number; message: string }>(
+      `/api/storefront/${encodeURIComponent(slug)}/products/${productId}/reviews`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    ),
+
+  getProductReviews: (slug: string, productId: number) =>
+    http<{ ok: boolean; productId: number; reviews: StorefrontReview[] }>(
+      `/api/storefront/${encodeURIComponent(slug)}/products/${productId}/reviews`
     ),
 
   // Merchant Admin APIs (Requires Session Auth)

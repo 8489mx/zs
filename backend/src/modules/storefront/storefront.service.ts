@@ -5,6 +5,7 @@ import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
+import { CreateProductReviewDto } from './dto/create-product-review.dto';
 import { UpdateStorefrontSettingsDto } from './dto/update-storefront-settings.dto';
 import { SalesService } from '../sales/sales.service';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
@@ -110,6 +111,7 @@ export class StorefrontService {
 
     const isEnabled = settings.get('storefront_enabled') !== 'false';
     const title = settings.get('storefront_title') || settings.get('storeName') || tenant.business_name;
+    const address = settings.get('storefront_address') || settings.get('address') || '';
     const bio = settings.get('storefront_bio') || '';
     const announcement = settings.get('storefront_announcement') || '';
     const bannerUrl = settings.get('storefront_banner_url') || '';
@@ -149,6 +151,7 @@ export class StorefrontService {
       businessName: tenant.business_name,
       enabled: isEnabled,
       title,
+      address,
       bio,
       announcement,
       bannerUrl: bannerUrls[0] || bannerUrl,
@@ -231,6 +234,27 @@ export class StorefrontService {
       .orderBy('name', 'asc')
       .execute();
 
+    // 3. Fetch Real Product Reviews / Ratings Summary
+    const reviewsSummary = await this.db
+      .selectFrom('product_reviews')
+      .select([
+        'product_id',
+        sql<number>`ROUND(AVG(rating)::numeric, 1)`.as('avg_rating'),
+        sql<number>`COUNT(*)::int`.as('review_count'),
+      ])
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('is_approved', '=', true)
+      .groupBy('product_id')
+      .execute();
+
+    const ratingMap = new Map<number, { avgRating: number; reviewCount: number }>();
+    for (const r of reviewsSummary) {
+      ratingMap.set(Number(r.product_id), {
+        avgRating: Number(r.avg_rating) || 0,
+        reviewCount: Number(r.review_count) || 0,
+      });
+    }
+
     const formattedProducts = products.map((p) => {
       let meta: Record<string, any> = {};
       if (p.metadata) {
@@ -241,6 +265,7 @@ export class StorefrontService {
 
       const stockQty = Number(p.stock_qty ?? 0);
       const retailPrice = Number(p.retail_price ?? 0);
+      const reviewStats = ratingMap.get(Number(p.id)) || { avgRating: 0, reviewCount: 0 };
 
       return {
         id: Number(p.id) || p.id,
@@ -254,6 +279,8 @@ export class StorefrontService {
         icon: meta.icon || '',
         imageUrl: meta.imageUrl || meta.image || '',
         description: p.notes || meta.description || '',
+        rating: reviewStats.avgRating,
+        reviewCount: reviewStats.reviewCount,
       };
     });
 
@@ -1107,6 +1134,7 @@ export class StorefrontService {
       customDomain: tenant?.custom_domain || null,
       enabled: settings.get('storefront_enabled') !== 'false',
       title: settings.get('storefront_title') || settings.get('storeName') || tenant?.business_name || '',
+      address: settings.get('storefront_address') || settings.get('address') || '',
       bio: settings.get('storefront_bio') || '',
       announcement: settings.get('storefront_announcement') || '',
       bannerUrl: bannerUrls[0] || bannerUrl,
@@ -1180,6 +1208,7 @@ export class StorefrontService {
     }
     if (payload.enabled !== undefined) entries.push({ key: 'storefront_enabled', value: payload.enabled });
     if (payload.title !== undefined) entries.push({ key: 'storefront_title', value: payload.title });
+    if (payload.address !== undefined) entries.push({ key: 'storefront_address', value: payload.address });
     if (payload.bio !== undefined) entries.push({ key: 'storefront_bio', value: payload.bio });
     if (payload.announcement !== undefined) entries.push({ key: 'storefront_announcement', value: payload.announcement });
     if (payload.bannerUrl !== undefined) entries.push({ key: 'storefront_banner_url', value: payload.bannerUrl });
@@ -1280,5 +1309,89 @@ export class StorefrontService {
     this.invalidateCatalogCache();
 
     return { success: true, categoryId, imageUrl };
+  }
+
+  async submitProductReview(slug: string, productId: number, dto: CreateProductReviewDto) {
+    const tenant = await this.getTenantBySlug(slug);
+
+    // Verify product exists for this tenant
+    const product = await this.db
+      .selectFrom('products')
+      .select(['id', 'name'])
+      .where('id', '=', productId)
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .executeTakeFirst();
+
+    if (!product) {
+      throw new NotFoundException('المنتج غير موجود');
+    }
+
+    const rating = Math.max(1, Math.min(5, Math.round(Number(dto.rating) || 5)));
+    const customerName = (dto.customerName || '').trim() || 'عميل المتجر';
+    const customerPhone = (dto.customerPhone || '').trim();
+    const comment = (dto.comment || '').trim();
+
+    await this.db
+      .insertInto('product_reviews')
+      .values({
+        tenant_id: tenant.id,
+        account_id: tenant.id,
+        product_id: productId,
+        rating,
+        customer_name: customerName,
+        customer_phone: customerPhone || null,
+        comment: comment || null,
+        is_approved: true,
+      })
+      .execute();
+
+    // Invalidate cache immediately so new rating is live!
+    this.invalidateCatalogCache(slug);
+
+    // Calculate new summary for this product
+    const stats = await this.db
+      .selectFrom('product_reviews')
+      .select([
+        sql<number>`ROUND(AVG(rating)::numeric, 1)`.as('avg_rating'),
+        sql<number>`COUNT(*)::int`.as('review_count'),
+      ])
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('product_id', '=', productId)
+      .where('is_approved', '=', true)
+      .executeTakeFirst();
+
+    return {
+      ok: true,
+      productId,
+      avgRating: Number(stats?.avg_rating) || rating,
+      reviewCount: Number(stats?.review_count) || 1,
+      message: 'شكراً لك! تم تسجيل تقييمك بنجاح.',
+    };
+  }
+
+  async getProductReviews(slug: string, productId: number) {
+    const tenant = await this.getTenantBySlug(slug);
+
+    const reviews = await this.db
+      .selectFrom('product_reviews')
+      .select(['id', 'rating', 'customer_name', 'comment', 'created_at'])
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('product_id', '=', productId)
+      .where('is_approved', '=', true)
+      .orderBy('created_at', 'desc')
+      .limit(30)
+      .execute();
+
+    return {
+      ok: true,
+      productId,
+      reviews: reviews.map((r) => ({
+        id: r.id,
+        rating: Number(r.rating),
+        customerName: r.customer_name || 'عميل المتجر',
+        comment: r.comment || '',
+        createdAt: r.created_at,
+      })),
+    };
   }
 }

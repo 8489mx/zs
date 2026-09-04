@@ -47,6 +47,19 @@ export function SettingsDiagnosticsSection({
 }: SettingsDiagnosticsSectionProps) {
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [isDownloadingBundle, setIsDownloadingBundle] = useState(false);
+  const [isSendingBundle, setIsSendingBundle] = useState(false);
+
+  const handleSendSupportBundle = async () => {
+    setIsSendingBundle(true);
+    try {
+      const res = await settingsApi.sendSupportBundleToServer();
+      systemAlert(res?.message || 'تم إرسال تقرير الدعم الفني إلى الإدارة بنجاح.');
+    } catch (err: any) {
+      systemAlert(err?.message || 'تعذر الاتصال بالسيرفر المركزي. تم حفظ التقرير محلياً وسيتم رفعه تلقائياً فور توفر الإنترنت.');
+    } finally {
+      setIsSendingBundle(false);
+    }
+  };
 
   const handleDownloadSupportBundle = async () => {
     setIsDownloadingBundle(true);
@@ -146,6 +159,14 @@ export function SettingsDiagnosticsSection({
             <Button onClick={onReconcileAll} disabled={reconcileAllPending || !canManageMaintenance}>مطابقة كل الأرصدة</Button>
             <Button variant="primary" onClick={handleDownloadSupportBundle} disabled={!canManageMaintenance || isDownloadingBundle}>
               {isDownloadingBundle ? 'جاري التنزيل...' : 'تنزيل حزمة الدعم'}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleSendSupportBundle}
+              disabled={!canManageMaintenance || isSendingBundle}
+              style={{ borderColor: 'var(--color-primary, #170e5e)', color: 'var(--color-primary, #170e5e)' }}
+            >
+              {isSendingBundle ? 'جاري الإرسال للسيرفر...' : 'إرسال تقرير الدعم الفني للإدارة'}
             </Button>
             <Button variant="secondary" onClick={handleClearCache} disabled={isClearingCache || !canManageMaintenance} style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>صيانة وتحسين أداء (مسح الكاش)</Button>
           </div>

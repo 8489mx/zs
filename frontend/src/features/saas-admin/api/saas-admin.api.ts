@@ -1,4 +1,29 @@
-import { http } from '@/lib/http';
+import { http, resolveRequestUrl } from '@/lib/http';
+
+export interface SaasDiagnosticRow {
+  id: number;
+  clientName: string;
+  clientIdentifier: string;
+  appVersion: string;
+  logPeriod: string;
+  errorCount500: number;
+  errorSummary?: {
+    totalDetected?: number;
+    samples?: string[];
+  };
+  fileSizeBytes: number;
+  uploadedAt: string;
+}
+
+export interface SaasDiagnosticsListResponse {
+  data: SaasDiagnosticRow[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 export type SaasTenantStatus = 'trial' | 'active' | 'expired' | 'suspended' | string;
 
@@ -133,5 +158,20 @@ export const saasAdminApi = {
   getTenantTimeline: (id: string) => http<{ events: TenantTimelineEvent[] }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/timeline`),
   impersonateTenant: (id: string) => http<{ ok: boolean; sessionId?: string; originalSessionId: string; loginPayload: Record<string, unknown> }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/impersonate`, { method: 'POST' }),
   exitImpersonation: (originalSessionId: string) => http<{ ok: boolean; sessionId?: string; loginPayload: Record<string, unknown> }>('/api/saas-admin/exit-impersonation', { method: 'POST', body: JSON.stringify({ originalSessionId }) }),
+
+  // ─── Client Diagnostics ──────────────────────────────────────────────────
+  listDiagnostics: (params?: { page?: number; limit?: number; search?: string }) => {
+    const sp = new URLSearchParams();
+    if (params?.page) sp.set('page', String(params.page));
+    if (params?.limit) sp.set('limit', String(params.limit));
+    if (params?.search) sp.set('search', params.search);
+    const qs = sp.toString();
+    return http<SaasDiagnosticsListResponse>(`/api/saas-admin/diagnostics${qs ? `?${qs}` : ''}`);
+  },
+  downloadDiagnosticUrl: (id: number) => resolveRequestUrl(`/api/saas-admin/diagnostics/${id}/download`),
+  deleteDiagnostic: (id: number) =>
+    http<{ success: boolean; message: string }>(`/api/saas-admin/diagnostics/${id}`, {
+      method: 'DELETE',
+    }),
 };
 

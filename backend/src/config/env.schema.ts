@@ -52,6 +52,8 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().default(''),
   ERROR_TRACKING_ENABLED: booleanString,
   SUPPORT_BUNDLE_LOG_TAIL_LINES: z.coerce.number().int().min(100).max(10000).default(2000),
+  TELEGRAM_BOT_TOKEN: z.string().default(''),
+  TELEGRAM_CHAT_ID: z.string().default(''),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -131,6 +133,8 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
     SENTRY_DSN: config.SENTRY_DSN ?? '',
     ERROR_TRACKING_ENABLED: config.ERROR_TRACKING_ENABLED ?? 'false',
     SUPPORT_BUNDLE_LOG_TAIL_LINES: config.SUPPORT_BUNDLE_LOG_TAIL_LINES ?? 2000,
+    TELEGRAM_BOT_TOKEN: config.TELEGRAM_BOT_TOKEN ?? '',
+    TELEGRAM_CHAT_ID: config.TELEGRAM_CHAT_ID ?? '',
   };
 
   const parsed = envSchema.parse(raw);

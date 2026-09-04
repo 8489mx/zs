@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -159,19 +159,19 @@ export class UpsertProductDto {
   trackSerials?: boolean;
 
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }) => (value == null || value === '' ? undefined : Number(value)))
   @IsInt()
   @Min(1)
   categoryId?: number;
 
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }) => (value == null || value === '' ? undefined : Number(value)))
   @IsInt()
   @Min(1)
   supplierId?: number;
 
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }) => (value == null || value === '' ? undefined : Number(value)))
   @IsInt()
   @Min(1)
   warehouseId?: number;
@@ -243,6 +243,20 @@ export class UpsertProductDto {
 
   @IsOptional()
   metadata?: Record<string, any>;
+
+  @IsOptional()
+  @Transform(({ value }) => (value == null || value === '' ? undefined : Number(value)))
+  @IsNumber()
+  variantStock?: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isCombo?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  comboComponents?: any[];
 }
 
 export type NormalizedProductUnit = {

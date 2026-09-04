@@ -13,6 +13,35 @@ interface StorefrontHeaderProps {
   onGoHome?: () => void;
 }
 
+export function resolveStorefrontBrand(info: { title?: string; businessName?: string; address?: string }) {
+  const business = String(info.businessName || '').trim();
+  const rawTitle = String(info.title || '').trim();
+  const rawAddress = String(info.address || '').trim();
+
+  if (rawAddress) {
+    return {
+      title: rawTitle || business || 'المتجر',
+      address: rawAddress,
+    };
+  }
+
+  // Auto-separate if title begins with businessName and includes address
+  if (business && rawTitle.startsWith(business) && rawTitle.length > business.length) {
+    const remainder = rawTitle.slice(business.length).trim().replace(/^[-–—:]\s*/, '');
+    if (remainder.length >= 3) {
+      return {
+        title: business,
+        address: remainder,
+      };
+    }
+  }
+
+  return {
+    title: rawTitle || business || 'المتجر',
+    address: '',
+  };
+}
+
 export function StorefrontHeader({
   info,
   searchTerm,
@@ -23,6 +52,7 @@ export function StorefrontHeader({
   onOpenOrders,
   onGoHome,
 }: StorefrontHeaderProps) {
+  const brand = resolveStorefrontBrand(info);
   const whatsappNumber = info.whatsappPhone.replace(/[^0-9]/g, '');
   const cleanPhone = whatsappNumber.startsWith('01') ? `2${whatsappNumber}` : whatsappNumber;
 
@@ -194,8 +224,8 @@ export function StorefrontHeader({
               }}
             />
           ) : null}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
               <span
                 className="storefront-brand-title"
                 style={{
@@ -204,9 +234,10 @@ export function StorefrontHeader({
                   color: '#0f172a',
                   letterSpacing: '-0.3px',
                   transition: 'color 0.15s ease',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                {info.title || info.businessName}
+                {brand.title}
               </span>
               <span
                 className="storefront-brand-verified"
@@ -221,15 +252,73 @@ export function StorefrontHeader({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
                 <IconCheckCircle size={12} color="#170e5e" strokeWidth={2.2} />
                 <span>متجر معتمد</span>
               </span>
             </div>
-            <span className="storefront-brand-subtitle" style={{ fontSize: '11.5px', color: '#64748b' }}>
-              تسوق أونلاين والدفع عند الاستلام
-            </span>
+            {brand.address ? (
+              <div
+                className="storefront-brand-address"
+                style={{
+                  fontSize: '11.5px',
+                  color: '#64748b',
+                  fontWeight: 600,
+                  marginTop: '1.5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  lineHeight: '1.25',
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#64748b"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
+                >
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {brand.address}
+                </span>
+              </div>
+            ) : info.bio ? (
+              <span
+                className="storefront-brand-subtitle"
+                style={{
+                  fontSize: '11.5px',
+                  color: '#64748b',
+                  marginTop: '1.5px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {info.bio}
+              </span>
+            ) : (
+              <span
+                className="storefront-brand-subtitle"
+                style={{
+                  fontSize: '11.5px',
+                  color: '#64748b',
+                  marginTop: '1.5px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                تسوق أونلاين والدفع عند الاستلام
+              </span>
+            )}
           </div>
         </div>
 
@@ -346,15 +435,25 @@ export function StorefrontHeader({
                 e.currentTarget.style.borderColor = '#10b981';
                 e.currentTarget.style.color = '#047857';
                 e.currentTarget.style.background = '#f0fdf4';
+                const svg = e.currentTarget.querySelector('svg');
+                if (svg) svg.style.fill = '#10b981';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#e2e8f0';
                 e.currentTarget.style.color = '#1e293b';
                 e.currentTarget.style.background = '#f8fafc';
+                const svg = e.currentTarget.querySelector('svg');
+                if (svg) svg.style.fill = '#1e293b';
               }}
             >
-              <svg width="16" height="16" fill="#10b981" viewBox="0 0 24 24">
-                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.181-.076.355.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.072.043.419-.101.824z" />
+              <svg
+                width="19"
+                height="19"
+                fill="#1e293b"
+                viewBox="0 0 24 24"
+                style={{ transition: 'fill 0.15s ease' }}
+              >
+                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
               </svg>
               <span className="storefront-action-label">خدمة العملاء</span>
             </a>
@@ -391,7 +490,7 @@ export function StorefrontHeader({
                 e.currentTarget.style.background = '#f8fafc';
               }}
             >
-              <PackageIcon size={16} />
+              <PackageIcon size={19} />
               <span className="storefront-action-label">طلباتي</span>
             </button>
           )}
@@ -420,7 +519,7 @@ export function StorefrontHeader({
             onMouseEnter={(e) => (e.currentTarget.style.background = '#1e293b')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#0f172a')}
           >
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -432,14 +531,15 @@ export function StorefrontHeader({
             {cartCount > 0 && (
               <span
                 style={{
-                  background: '#10b981',
-                  color: '#ffffff',
+                  background: '#ffffff',
+                  color: '#0f172a',
                   fontSize: '11px',
-                  fontWeight: 800,
+                  fontWeight: 900,
                   padding: '2px 7px',
                   borderRadius: '999px',
                   minWidth: '20px',
                   textAlign: 'center',
+                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.25)',
                 }}
               >
                 {cartCount}

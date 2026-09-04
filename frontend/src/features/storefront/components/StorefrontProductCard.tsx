@@ -10,6 +10,7 @@ interface StorefrontProductCardProps {
   onAddToCart: (product: StorefrontProduct) => void;
   onUpdateQuantity: (productId: number, newQty: number) => void;
   isSmartDeal?: boolean;
+  onOpenReviewModal?: (product: StorefrontProduct) => void;
 }
 
 export const StorefrontProductCard = React.memo(function StorefrontProductCard({
@@ -19,6 +20,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   onAddToCart,
   onUpdateQuantity,
   isSmartDeal,
+  onOpenReviewModal,
 }: StorefrontProductCardProps) {
   const isOutOfStock = !product.inStock || product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
@@ -269,7 +271,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             )}
           </div>
 
-          {/* Top Left: Interactive Wishlist Heart Button */}
+          {/* Top Left: Interactive Wishlist Heart Button (Transparent outline heart, glows red on click) */}
           <button
             className="storefront-product-fav-btn"
             type="button"
@@ -280,39 +282,43 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               position: 'absolute',
               top: '8px',
               left: '8px',
-              width: '30px',
-              height: '30px',
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.9)',
-              backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(226, 232, 240, 0.8)',
+              width: '28px',
+              height: '28px',
+              padding: 0,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               zIndex: 3,
-              color: isFavorite ? '#ef4444' : '#64748b',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
-              transition: 'all 0.15s ease',
+              transition: 'transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.2)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
             <svg
-              width="15"
-              height="15"
+              width="22"
+              height="22"
               viewBox="0 0 24 24"
               fill={isFavorite ? '#ef4444' : 'none'}
-              stroke="currentColor"
+              stroke={isFavorite ? '#ef4444' : '#475569'}
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              style={{
+                filter: isFavorite
+                  ? 'drop-shadow(0 2px 6px rgba(239, 68, 68, 0.45))'
+                  : 'drop-shadow(0 1px 2px rgba(255, 255, 255, 0.95)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25))',
+                transition: 'all 0.2s ease',
+              }}
             >
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
 
-          {/* Bottom Left: Quick Add Float Button (Noon Style) */}
+          {/* Bottom Left: Quick Add Float Button (Compact & Sleek) */}
           {!isOutOfStock && !isZeroPrice && cartQuantity === 0 && (
             <button
               className="storefront-product-quick-add"
@@ -326,24 +332,22 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 position: 'absolute',
                 bottom: '8px',
                 left: '8px',
-                width: '30px',
-                height: '30px',
+                width: '24px',
+                height: '24px',
                 borderRadius: '50%',
                 background: '#170e5e',
                 color: '#ffffff',
                 border: 'none',
-                fontSize: '18px',
-                fontWeight: 800,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '0 3px 8px rgba(23, 14, 94, 0.3)',
+                boxShadow: '0 2px 6px rgba(23, 14, 94, 0.25)',
                 zIndex: 3,
                 transition: 'transform 0.15s ease, background 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.12)';
+                e.currentTarget.style.transform = 'scale(1.15)';
                 e.currentTarget.style.background = '#24168f';
               }}
               onMouseLeave={(e) => {
@@ -351,7 +355,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 e.currentTarget.style.background = '#170e5e';
               }}
             >
-              +
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
           )}
         </div>
@@ -371,10 +378,50 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           >
             {product.categoryName || 'عام'}
           </span>
-          <div className="storefront-product-rating" style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11.5px', color: '#f59e0b' }}>
+          <button
+            type="button"
+            className="storefront-product-rating"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenReviewModal?.(product);
+            }}
+            title="عرض وكتابة تقييم للمنتج"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontSize: '11.5px',
+              color: '#f59e0b',
+              background: 'transparent',
+              border: 'none',
+              padding: '2px 5px',
+              borderRadius: '6px',
+              cursor: onOpenReviewModal ? 'pointer' : 'default',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (onOpenReviewModal) {
+                e.currentTarget.style.background = '#fefce8';
+                e.currentTarget.style.transform = 'scale(1.04)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (onOpenReviewModal) {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'scale(1)';
+              }
+            }}
+          >
             <IconStar size={12} fill="#f59e0b" color="#f59e0b" />
-            <span style={{ color: '#475569', fontWeight: 700 }}>4.9</span>
-          </div>
+            {product.reviewCount && product.reviewCount > 0 ? (
+              <>
+                <span style={{ color: '#334155', fontWeight: 800 }}>{Number(product.rating || 5).toFixed(1)}</span>
+                <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700 }}>({product.reviewCount})</span>
+              </>
+            ) : (
+              <span style={{ color: '#64748b', fontSize: '10.5px', fontWeight: 700 }}>جديد (قيم)</span>
+            )}
+          </button>
         </div>
 
         {/* Product Title */}

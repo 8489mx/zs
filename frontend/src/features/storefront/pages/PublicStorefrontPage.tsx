@@ -14,6 +14,7 @@ import { StorefrontCheckoutModal } from '../components/StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from '../components/StorefrontSuccessModal';
 import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel';
 import { StorefrontMyOrdersModal } from '../components/StorefrontMyOrdersModal';
+import { StorefrontReviewModal } from '../components/StorefrontReviewModal';
 import { IconFlame, IconFolder, IconSearch, IconArrowUpRight, IconStore } from '../components/StorefrontIcons';
 
 const ITEMS_PER_PAGE = 24;
@@ -82,6 +83,17 @@ export function PublicStorefrontPage() {
   const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
   const [editingOrderNumber, setEditingOrderNumber] = useState<string | undefined>(undefined);
   const [confirmedOrder, setConfirmedOrder] = useState<CreateOnlineOrderResponse | null>(null);
+  const [reviewProduct, setReviewProduct] = useState<StorefrontProduct | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
+  const handleOpenReviewModal = useCallback((product: StorefrontProduct) => {
+    setReviewProduct(product);
+    setIsReviewModalOpen(true);
+  }, []);
+
+  const handleReviewSubmitted = useCallback(() => {
+    catalogQuery.refetch();
+  }, [catalogQuery]);
 
   // Reset pagination when category or search changes
   useEffect(() => {
@@ -616,6 +628,7 @@ export function PublicStorefrontPage() {
                       onAddToCart={handleAddToCart}
                       onUpdateQuantity={handleUpdateQuantity}
                       isSmartDeal={true}
+                      onOpenReviewModal={handleOpenReviewModal}
                     />
                   ))}
                 </div>
@@ -636,6 +649,7 @@ export function PublicStorefrontPage() {
                     whatsappPhone={info.whatsappPhone}
                     onAddToCart={handleAddToCart}
                     onUpdateQuantity={handleUpdateQuantity}
+                    onOpenReviewModal={handleOpenReviewModal}
                     onViewAll={() => {
                       setSelectedCategory(section.categoryId);
                       window.scrollTo({ top: 120, behavior: 'smooth' });
@@ -717,6 +731,7 @@ export function PublicStorefrontPage() {
                           whatsappPhone={info.whatsappPhone}
                           onAddToCart={handleAddToCart}
                           onUpdateQuantity={handleUpdateQuantity}
+                          onOpenReviewModal={handleOpenReviewModal}
                         />
                       ))}
                     </div>
@@ -1018,6 +1033,7 @@ export function PublicStorefrontPage() {
                       onAddToCart={handleAddToCart}
                       onUpdateQuantity={handleUpdateQuantity}
                       isSmartDeal={smartDealProductIds.has(product.id)}
+                      onOpenReviewModal={handleOpenReviewModal}
                     />
                   ))}
                 </div>
@@ -1122,6 +1138,18 @@ export function PublicStorefrontPage() {
         slug={cleanSlug}
         info={info}
         onEditOrder={handleEditOrder}
+      />
+
+      {/* Customer Product Review Modal */}
+      <StorefrontReviewModal
+        isOpen={isReviewModalOpen}
+        product={reviewProduct}
+        slug={cleanSlug}
+        onClose={() => {
+          setIsReviewModalOpen(false);
+          setReviewProduct(null);
+        }}
+        onReviewSubmitted={handleReviewSubmitted}
       />
     </div>
   );

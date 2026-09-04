@@ -211,6 +211,10 @@ export const settingsApi = {
   saveUsers: (users: ManagedUserRecord[]) => http<{ ok: boolean; users: ManagedUserRecord[] }>('/api/users', { method: 'PUT', body: JSON.stringify({ users: users.map(sanitizeUserPayload) }) }),
   backupDownloadUrl: () => resolveRequestUrl('/api/backup'),
   supportBundleDownloadUrl: () => resolveRequestUrl('/api/support-bundle/download'),
+  sendSupportBundleToServer: () =>
+    http<{ success: boolean; message: string }>('/api/support-bundle/send-to-server', {
+      method: 'POST',
+    }),
 
   // ─── Offline Releases ────────────────────────────────────────────────────
   offlineReleases: {

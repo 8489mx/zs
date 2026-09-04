@@ -11,6 +11,10 @@ export class UpdateStorefrontSettingsDto {
 
   @IsOptional()
   @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
   bio?: string;
 
   @IsOptional()

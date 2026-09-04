@@ -1,5 +1,6 @@
 import { StorefrontInfo } from '../types/storefront.types';
 import { IconSearch, IconTruck, IconShieldCheck, IconCreditCard, IconCheckCircle } from './StorefrontIcons';
+import { resolveStorefrontBrand } from './StorefrontHeader';
 
 interface StorefrontHeroProps {
   info: StorefrontInfo;
@@ -17,6 +18,7 @@ export function StorefrontHero({
   onSearchChange,
   onQuickSearch,
 }: StorefrontHeroProps) {
+  const brand = resolveStorefrontBrand(info);
   const quickTags = ['شاي', 'بن', 'أرز', 'زيت', 'أعشاب', 'عسل'];
 
   return (
@@ -96,8 +98,41 @@ export function StorefrontHero({
               lineHeight: '1.25',
             }}
           >
-            {info.title || info.businessName}
+            {brand.title}
           </h1>
+
+          {brand.address && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '12.5px',
+                color: 'rgba(255, 255, 255, 0.92)',
+                background: 'rgba(255, 255, 255, 0.12)',
+                padding: '3px 12px',
+                borderRadius: '999px',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                fontWeight: 600,
+              }}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0 }}
+              >
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <span>{brand.address}</span>
+            </div>
+          )}
 
           {/* Bio / Description */}
           <p

@@ -4,6 +4,7 @@ export interface StorefrontInfo {
   businessName: string;
   enabled: boolean;
   title: string;
+  address?: string;
   bio: string;
   announcement: string;
   bannerUrl: string;
@@ -39,6 +40,16 @@ export interface StorefrontProduct {
   icon: string;
   imageUrl: string;
   description: string;
+  rating?: number;
+  reviewCount?: number;
+}
+
+export interface StorefrontReview {
+  id: number;
+  rating: number;
+  customerName: string;
+  comment?: string;
+  createdAt: string;
 }
 
 export interface StorefrontCatalogResponse {
@@ -108,6 +119,7 @@ export interface OnlineOrderRecord {
 export interface StorefrontSettingsPayload {
   enabled?: boolean;
   title?: string;
+  address?: string;
   bio?: string;
   announcement?: string;
   bannerUrl?: string;

@@ -13,6 +13,7 @@ interface StorefrontHorizontalCarouselProps {
   onAddToCart: (product: StorefrontProduct) => void;
   onUpdateQuantity: (productId: number, newQty: number) => void;
   onViewAll: () => void;
+  onOpenReviewModal?: (product: StorefrontProduct) => void;
 }
 
 export const StorefrontHorizontalCarousel = React.memo(function StorefrontHorizontalCarousel({
@@ -25,6 +26,7 @@ export const StorefrontHorizontalCarousel = React.memo(function StorefrontHorizo
   onAddToCart,
   onUpdateQuantity,
   onViewAll,
+  onOpenReviewModal,
 }: StorefrontHorizontalCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -210,6 +212,7 @@ export const StorefrontHorizontalCarousel = React.memo(function StorefrontHorizo
               whatsappPhone={whatsappPhone}
               onAddToCart={onAddToCart}
               onUpdateQuantity={onUpdateQuantity}
+              onOpenReviewModal={onOpenReviewModal}
             />
           </div>
         ))}
