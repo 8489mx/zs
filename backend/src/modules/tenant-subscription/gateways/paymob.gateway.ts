@@ -106,12 +106,35 @@ export class PaymobGatewayService implements IPaymentGateway {
       }
     }
 
+    // Sandbox / Simulation Checkout when live API keys are not configured
+    let baseUrl = '';
+    if (input.redirectUrl) {
+      try {
+        const u = new URL(input.redirectUrl);
+        baseUrl = u.origin;
+      } catch {}
+    }
+    const query = new URLSearchParams({
+      gateway: 'paymob',
+      ref: transactionReference,
+      amount: String(input.amount),
+      currency: input.currency || 'EGP',
+      tenantId: input.tenantId,
+      planId: String(input.planId),
+      planName: input.planName,
+      duration: String(input.durationMonths),
+      businessName: input.businessName,
+      redirectUrl: input.redirectUrl || '',
+    }).toString();
+
+    const paymentUrl = `${baseUrl}/api/tenant-subscription/sandbox-checkout?${query}`;
+
     return {
       ok: true,
       gateway: 'paymob',
-      paymentUrl: `https://accept.paymob.com/standalone?ref=${transactionReference}&amount=${input.amount}&currency=${input.currency}`,
+      paymentUrl,
       transactionReference,
-      message: 'تم تجهيز أمر الدفع عبر Paymob (فيزا / ماستركارد / ميزة / فودافون كاش).',
+      message: 'تم تجهيز أمر الدفع الإلكتروني عبر بوابة Paymob (بيئة تجريبية Sandbox).',
     };
   }
 

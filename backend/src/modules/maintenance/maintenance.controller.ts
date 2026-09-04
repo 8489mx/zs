@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RequirePermissions, RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
+import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
@@ -22,6 +23,7 @@ import { MaintenanceService } from './maintenance.service';
 
 @Controller('api/maintenance/tickets')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('maintenance')
 export class MaintenanceController {
   constructor(private readonly maintenanceService: MaintenanceService) {}
 

@@ -3,6 +3,8 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import type { AppSettings } from '@/types/domain';
 import { FormSection } from '@/shared/components/form-section';
+import { Button } from '@/shared/ui/button';
+import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 
 const checkboxGridStyle: CSSProperties = {
   display: 'grid',
@@ -419,6 +421,161 @@ export function PrintingSettingsTab({
               </div>
             </div>
           )}
+        </div>
+      </FormSection>
+
+      {/* ===== 4. مصمم ومعاين الفاتورة البصري التفاعلي (Visual Receipt Designer & Live Mockup) ===== */}
+      <FormSection
+        title="مصمم ومعاين الفاتورة البصري التفاعلي (Visual Receipt Preview)"
+        description="معاينة حية ومباشرة لشكل الإيصال المطبوع مع إمكانية تجربة الطباعة الحية على طابعتك."
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', alignItems: 'start' }}>
+          {/* Mockup Card */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '12px',
+            padding: '24px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}>
+            <div style={{
+              width: (form.watch('paperSize') || 'receipt') === 'a4' ? '100%' : '300px',
+              maxWidth: '320px',
+              background: '#ffffff',
+              border: '1px dashed #94a3b8',
+              borderRadius: '4px',
+              padding: '16px 14px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+              fontFamily: 'monospace, sans-serif',
+              fontSize: '11px',
+              color: '#0f172a',
+              lineHeight: 1.4,
+              boxSizing: 'border-box',
+            }}>
+              {/* Header */}
+              <div style={{ textAlign: 'center', borderBottom: '1px dashed #cbd5e1', paddingBottom: '10px', marginBottom: '10px' }}>
+                <div style={{ fontSize: '15px', fontWeight: 900 }}>{settings?.storeName || 'متجر Z-Systems التجريبي'}</div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>الفرع الرئيسي • القاهرة</div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>س.ت: 123456 • ت.ض: 987654321</div>
+                <div style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700 }}>فاتورة ضريبية مبسطة</div>
+                <div style={{ fontSize: '10px', color: '#475569' }}>رقم: #Z-260818-0001 • {new Date().toLocaleDateString('ar-EG')}</div>
+              </div>
+
+              {/* Items Table */}
+              <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '4px' }}>
+                  <span>الصنف</span>
+                  <span>الكمية × السعر</span>
+                  <span>الإجمالي</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+                  <span>صنف تجريبي 1</span>
+                  <span>2 × 50.00</span>
+                  <span>100.00</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '3px 0' }}>
+                  <span>صنف تجريبي 2</span>
+                  <span>1 × 150.00</span>
+                  <span>150.00</span>
+                </div>
+              </div>
+
+              {/* Totals */}
+              <div style={{ borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>المجموع الفرعي:</span>
+                  <span>250.00 ج.م</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>ضريبة القيمة المضافة (14%):</span>
+                  <span>35.00 ج.م</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309' }}>
+                  <span>خصم نقاط الولاء:</span>
+                  <span>-20.00 ج.م</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 900, marginTop: '4px' }}>
+                  <span>الصافي النهائي:</span>
+                  <span>265.00 ج.م</span>
+                </div>
+              </div>
+
+              {/* QR & Footer */}
+              <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div style={{
+                  display: 'inline-block',
+                  padding: '6px',
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  marginBottom: '8px'
+                }}>
+                  <span style={{ fontSize: '9px', fontWeight: 700, color: '#475569' }}>[ رمز QR المشفر ]</span>
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>
+                  {form.watch('invoiceFooter') || 'شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً'}
+                </div>
+              </div>
+            </div>
+
+            {/* Test Print Action */}
+            <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  const footerText = form.getValues('invoiceFooter') || 'شكراً لتعاملكم معنا ونسعد بزيارتكم دائماً';
+                  const testHtml = `
+                    <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+                      <h2 style="margin: 0; font-size: 14px;">${settings?.storeName || 'Z-Systems Store'}</h2>
+                      <p style="margin: 2px 0; font-size: 10px;">فاتورة تجريبية لاختبار مقاس الطابعة</p>
+                      <p style="margin: 0; font-size: 10px;">#TEST-001 • ${new Date().toLocaleDateString('ar-EG')}</p>
+                    </div>
+                    <div style="font-size: 11px; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+                      <div style="display: flex; justify-content: space-between;"><span>صنف تجريبي A (x2)</span><span>100.00 ج.م</span></div>
+                      <div style="display: flex; justify-content: space-between;"><span>صنف تجريبي B (x1)</span><span>150.00 ج.م</span></div>
+                    </div>
+                    <div style="font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 6px;">
+                      <span>الإجمالي الصافي:</span><span>250.00 ج.م</span>
+                    </div>
+                    <div style="text-align: center; font-size: 10px; border-top: 1px dashed #000; padding-top: 6px;">
+                      ${footerText}
+                    </div>
+                  `;
+                  printSmallReceiptDocument(testHtml, { title: 'إيصال تجريبي', widthMm: (form.getValues('paperSize') === 'a4' ? 80 : 58) });
+                }}
+                style={{
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  padding: '8px 18px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                🖨️ طباعة تجريبية حية (Test Print)
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Guidance */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+              <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
+                💡 نصائح لضبط مقاس الطابعات الحرارية
+              </strong>
+              <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
+                <li>مقاس <b>80mm</b> هو المقاس القياسي لمعظم طابعات الكاشير المكتفية (Epson, Xprinter, Rongta).</li>
+                <li>مقاس <b>58mm</b> مناسب للطابعات المحمولة عبر البلوتوث وطابعات مناديب التوصيل.</li>
+                <li>تأكد من ضبط هوامش الورق في المتصفح على <b>"None" (بلا هوامش)</b> للحصول على أفضل محاذاة.</li>
+                <li>يمكنك معاينة التغييرات فورياً في النموذج المقابل وتجربة الطباعة المباشرة بضغطة زر.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </FormSection>
     </div>

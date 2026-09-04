@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
@@ -8,6 +9,7 @@ import { UpsertDeliveryRepDto } from './dto/upsert-delivery-rep.dto';
 
 @Controller('api/delivery-reps')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('deliveryReps')
 export class DeliveryRepsController {
   constructor(private readonly service: DeliveryRepsService) {}
 

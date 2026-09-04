@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useAppToolbar } from '@/stores/toolbar-store';
+import { FeatureGate } from '@/shared/components/feature-gate';
 import { tradeInApi, type UpsertTradeInPayload } from '../api/tradein.api';
 import { TradeInDisclaimerModal } from '../components/TradeInDisclaimerModal';
 import { BrandCombobox } from '@/shared/components/BrandCombobox';
@@ -226,7 +227,8 @@ export function TradeInPage() {
   };
 
   return (
-    <div className="page-stack page-shell" dir="rtl">
+    <FeatureGate feature="tradein" featureName="شراء واستبدال المستعمل">
+      <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title="شراء واستبدال الأجهزة (شراء من الأفراد)"
@@ -919,5 +921,6 @@ export function TradeInPage() {
         />
       </main>
     </div>
+    </FeatureGate>
   );
 }

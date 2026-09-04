@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Kysely, sql, type Transaction } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
@@ -21,6 +21,7 @@ import { SalesFinanceService } from './sales-finance.service';
 import { SalesQueryService } from './sales-query.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
+import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway.service';
 
 @Injectable()
 export class SalesWriteService {
@@ -35,6 +36,7 @@ export class SalesWriteService {
     private readonly query: SalesQueryService,
     private readonly accountingPosting: AccountingPostingService,
     private readonly idempotency: IdempotencyService,
+    @Optional() private readonly whatsappService?: WhatsAppGatewayService,
   ) {}
 
   private shouldLogCheckoutTimings(): boolean {
@@ -394,7 +396,7 @@ export class SalesWriteService {
       if (normalized.storeCreditUsed < 0) throw new AppError('Store credit cannot be negative', 'INVALID_STORE_CREDIT', 400);
 
       const customer = normalized.customerId
-        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
+        ? await trx.selectFrom('customers').select(['id', 'name', 'balance', 'credit_limit', 'store_credit_balance', 'loyalty_points']).where('id', '=', normalized.customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst()
         : null;
       if (normalized.customerId && !customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
       if (normalized.paymentType === 'credit' && !customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
@@ -583,9 +585,23 @@ export class SalesWriteService {
         }
       }
 
+      let effectiveDiscount = normalized.discount;
+      let loyaltyDiscount = 0;
+      let pointsAfterRedeem = Number((customer as any)?.loyalty_points || 0);
+
+      if (normalized.loyaltyPointsRedeemed > 0 && customer) {
+        const availablePoints = Number((customer as any)?.loyalty_points || 0);
+        if (normalized.loyaltyPointsRedeemed > availablePoints + 0.001) {
+          throw new AppError('رصيد نقاط الولاء غير كافٍ للاستبدال', 'INSUFFICIENT_LOYALTY_POINTS', 400);
+        }
+        loyaltyDiscount = Number(normalized.loyaltyPointsRedeemed.toFixed(2));
+        effectiveDiscount = Number((effectiveDiscount + loyaltyDiscount).toFixed(2));
+        pointsAfterRedeem = Math.max(0, Number((availablePoints - normalized.loyaltyPointsRedeemed).toFixed(2)));
+      }
+
       await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, normalized.managerPin);
-      if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
-      const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
+      if (effectiveDiscount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
+      const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
 
       const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
@@ -696,7 +712,7 @@ export class SalesWriteService {
           payment_type: effectivePaymentType,
           payment_channel: resolvePostedSalePaymentChannel(effectivePaymentType, payments),
           subtotal: Number(subtotal.toFixed(2)),
-          discount: normalized.discount,
+          discount: effectiveDiscount,
           delivery_fee: normalized.deliveryFee,
           delivery_fee_mode: resolvedDeliveryFeeMode,
           tax_rate: normalized.taxRate,
@@ -972,6 +988,61 @@ export class SalesWriteService {
           .execute();
       }
 
+      if (normalized.loyaltyPointsRedeemed > 0 && customer) {
+        await trx
+          .updateTable('customers')
+          .set({ loyalty_points: pointsAfterRedeem, updated_at: sql`NOW()` } as any)
+          .where('id', '=', customer.id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+
+        await trx
+          .insertInto('customer_loyalty_logs')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            customer_id: customer.id,
+            points_change: -normalized.loyaltyPointsRedeemed,
+            balance_after: pointsAfterRedeem,
+            action_type: 'redeem',
+            sale_id: id,
+            notes: `استبدال ${normalized.loyaltyPointsRedeemed} نقطة بخصم ${loyaltyDiscount} ج.م في الفاتورة S-${id}`,
+            created_at: sql`NOW()`,
+          } as any)
+          .execute();
+      }
+
+      // Automatically award loyalty points based on paid amount (1 point per 100 EGP)
+      if (customer && paidAmount > 0) {
+        const pointsEarned = Math.floor(paidAmount / 100);
+        if (pointsEarned > 0) {
+          const startingPoints = normalized.loyaltyPointsRedeemed > 0 ? pointsAfterRedeem : Number((customer as any)?.loyalty_points || 0);
+          const finalPoints = Number((startingPoints + pointsEarned).toFixed(2));
+
+          await trx
+            .updateTable('customers')
+            .set({ loyalty_points: finalPoints, updated_at: sql`NOW()` } as any)
+            .where('id', '=', customer.id)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .execute();
+
+          await trx
+            .insertInto('customer_loyalty_logs')
+            .values({
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              customer_id: customer.id,
+              points_change: pointsEarned,
+              balance_after: finalPoints,
+              action_type: 'earn',
+              sale_id: id,
+              notes: `اكتساب ${pointsEarned} نقطة من مشتريات الفاتورة S-${id}`,
+              created_at: sql`NOW()`,
+            } as any)
+            .execute();
+        }
+      }
+
       if (customer && remainingDebt > 0) {
         await this.finance.createCustomerLedgerEntry(
           trx,
@@ -1080,6 +1151,14 @@ export class SalesWriteService {
 
     const postReadsStartedAt = Date.now();
     await this.audit.log('إنشاء فاتورة بيع', `تم إنشاء الفاتورة S-${saleId} بواسطة ${auth.username}`, auth);
+
+    // Non-blocking auto WhatsApp invoice notification
+    if (this.whatsappService) {
+      void this.whatsappService.sendInvoiceNotification(saleId, auth, { autoOnly: true }).catch((err) => {
+        this.logger.warn(`WhatsApp auto-invoice notification failed for sale ${saleId}: ${err?.message || err}`);
+      });
+    }
+
     const sale = await this.query.getSaleById(saleId, auth);
     const postTransactionReadsDurationMs = Date.now() - postReadsStartedAt;
     const totalRequestDurationMs = Date.now() - requestStartedAt;

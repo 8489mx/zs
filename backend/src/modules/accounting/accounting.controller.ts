@@ -106,9 +106,57 @@ export class AccountingController {
     return this.accountingService.listCostCenters(req.authContext!);
   }
 
+  @Post('cost-centers')
+  createCostCenter(@Body() body: { code: string; name: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.createCostCenter(body, req.authContext!);
+  }
+
+  @Put('cost-centers/:id')
+  updateCostCenter(@Param('id', ParseIntPipe) id: number, @Body() body: { name?: string; isActive?: boolean }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.updateCostCenter(id, body, req.authContext!);
+  }
+
+  @Delete('cost-centers/:id')
+  deleteCostCenter(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.deleteCostCenter(id, req.authContext!);
+  }
+
   @Get('projects')
   listProjects(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.listProjects(req.authContext!);
   }
+
+  // --- Fixed Assets & Depreciation (الأصول الثابتة والإهلاك) ---
+  @Get('fixed-assets')
+  listFixedAssets(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.listFixedAssets(req.authContext!);
+  }
+
+  @Post('fixed-assets')
+  createFixedAsset(@Body() body: any, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.createFixedAsset(body, req.authContext!);
+  }
+
+  @Post('fixed-assets/:id/depreciate')
+  depreciateFixedAsset(@Param('id', ParseIntPipe) id: number, @Body() body: { months?: number; note?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.depreciateFixedAsset(id, body, req.authContext!);
+  }
+
+  // --- Multi-Currency (العملات المتعددة وأسعار الصرف) ---
+  @Get('currencies')
+  listCurrencies(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.listCurrencies(req.authContext!);
+  }
+
+  @Post('currencies')
+  upsertCurrency(@Body() body: { currencyCode: string; currencyName: string; exchangeRate: number; isBase?: boolean; symbol?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.upsertCurrency(body, req.authContext!);
+  }
+
+  @Post('currencies/convert')
+  convertCurrency(@Body() body: { amount: number; fromCurrency: string; toCurrency: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.convertCurrency(body, req.authContext!);
+  }
 }
+
 

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
@@ -7,12 +7,14 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 import { UpdateStorefrontSettingsDto } from './dto/update-storefront-settings.dto';
 import { SalesService } from '../sales/sales.service';
+import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
 @Injectable()
 export class StorefrontService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly salesService: SalesService,
+    @Optional() private readonly whatsappService?: WhatsAppGatewayService,
   ) {}
 
   private async getTenantBySlug(slug: string) {
@@ -335,6 +337,11 @@ export class StorefrontService {
       })
       .returning(['id', 'order_number', 'total_amount', 'created_at'])
       .executeTakeFirstOrThrow();
+
+    // Non-blocking auto WhatsApp notification via gateway if enabled
+    if (this.whatsappService) {
+      void this.whatsappService.sendOnlineOrderNotification(insertedOrder.id, tenant.id).catch(() => undefined);
+    }
 
     // Prepare WhatsApp Message Text
     const whatsappPhone = settings.get('storefront_whatsapp') || settings.get('phone') || tenant.owner_phone || '';

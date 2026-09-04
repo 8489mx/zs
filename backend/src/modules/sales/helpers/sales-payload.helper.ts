@@ -89,6 +89,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
     taxRate: Number(payload.taxRate || 0),
     pricesIncludeTax: Boolean(payload.pricesIncludeTax),
     storeCreditUsed: Number(payload.storeCreditUsed || 0),
+    loyaltyPointsRedeemed: Math.max(0, Number(payload.loyaltyPointsRedeemed || 0)),
     note: String(payload.note || '').trim(),
     managerPin: String(payload.managerPin || '').trim(),
     branchId: payload.branchId ? Number(payload.branchId) : null,

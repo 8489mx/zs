@@ -363,6 +363,11 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
               <span><b>حد الائتمان</b>{formatCurrency(creditLimit)}</span>
               {remainingCredit !== null ? <span><b>المتاح</b>{formatCurrency(remainingCredit)}</span> : null}
               {storeCreditBalance ? <span><b>رصيد المتجر</b>{formatCurrency(storeCreditBalance)}</span> : null}
+              {customerSummary?.loyaltyPoints ? (
+                <span style={{ color: '#b45309', fontWeight: 'bold' }}>
+                  <b>نقاط الولاء</b>⭐ {customerSummary.loyaltyPoints.toLocaleString()} نقطة
+                </span>
+              ) : null}
               {customerSummary ? (
                 <>
                   <span><b>آخر شراء</b>{customerSummary.lastSaleAt ? formatDate(customerSummary.lastSaleAt) : 'لا يوجد'}</span>

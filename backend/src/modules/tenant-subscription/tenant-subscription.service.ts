@@ -191,13 +191,38 @@ export class TenantSubscriptionService {
     };
   }
 
+  async resolvePlan(planId?: number) {
+    if (planId) {
+      const plan = await this.db.selectFrom('saas_plans').selectAll().where('id', '=', planId).executeTakeFirst();
+      if (plan) return plan;
+    }
+
+    const allPlans = await this.db.selectFrom('saas_plans').selectAll().execute();
+    if (allPlans.length > 0) {
+      return (planId ? allPlans.find((p) => p.id === planId) : null) || allPlans[0];
+    }
+
+    const now = new Date();
+    const seeded = await this.db
+      .insertInto('saas_plans')
+      .values([
+        { code: 'basic', name: 'الباقة الأساسية', price: 3500, currency: 'EGP', billing_period_months: 12, max_users: 2, max_branches: 1, is_active: true, created_at: now, updated_at: now },
+        { code: 'pro', name: 'الباقة الاحترافية', price: 7500, currency: 'EGP', billing_period_months: 12, max_users: 10, max_branches: 3, is_active: true, created_at: now, updated_at: now },
+        { code: 'enterprise', name: 'باقة المؤسسات والتصنيع', price: 15000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, is_active: true, created_at: now, updated_at: now },
+      ] as any)
+      .returningAll()
+      .execute();
+
+    return (planId ? seeded.find((p) => p.id === planId) : null) || seeded[1] || seeded[0];
+  }
+
   async requestRenewal(dto: RequestRenewalDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantId = String(auth.tenantId || '').trim();
     if (!tenantId) {
       throw new NotFoundException('المنشأة غير محددة.');
     }
 
-    const plan = await this.db.selectFrom('saas_plans').selectAll().where('id', '=', dto.planId).executeTakeFirst();
+    const plan = await this.resolvePlan(dto.planId);
     if (!plan) {
       throw new NotFoundException('الخطة غير موجودة.');
     }
@@ -234,7 +259,7 @@ export class TenantSubscriptionService {
     const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', tenantId).executeTakeFirst();
     if (!tenant) throw new NotFoundException('المنشأة غير موجودة.');
 
-    const plan = await this.db.selectFrom('saas_plans').selectAll().where('id', '=', dto.planId).executeTakeFirst();
+    const plan = await this.resolvePlan(dto.planId);
     if (!plan) throw new NotFoundException('الخطة غير موجودة.');
 
     const durationMonths = dto.billingPeriodMonths || plan.billing_period_months || 12;

@@ -120,6 +120,12 @@ export class UpsertSaleDto {
   @Min(0)
   storeCreditUsed?: number;
 
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  loyaltyPointsRedeemed?: number;
+
   @IsOptional()
   @IsString()
   note?: string;
@@ -203,6 +209,7 @@ export type NormalizedSalePayload = {
   taxRate: number;
   pricesIncludeTax: boolean;
   storeCreditUsed: number;
+  loyaltyPointsRedeemed: number;
   note: string;
   managerPin: string;
   branchId: number | null;

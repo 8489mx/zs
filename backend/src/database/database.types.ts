@@ -1043,6 +1043,8 @@ export interface PurchaseTable {
   cost_center_id: number | null;
   project_id: number | null;
   terms_template: ColumnType<string, string | undefined, string | undefined>;
+  lifecycle_status?: ColumnType<string, string | undefined, string | undefined>;
+  matched_status?: ColumnType<string, string | undefined, string | undefined>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -1061,6 +1063,7 @@ export interface PurchaseItemTable {
   line_total: number;
   unit_name: string;
   unit_multiplier: number;
+  received_qty?: ColumnType<number, number | undefined, number | undefined>;
   category_id: number | null;
   location_id: number | null;
   serials?: any;
@@ -1929,6 +1932,9 @@ export interface Database {
   quotations: QuotationTable;
   quotation_items: QuotationItemTable;
   customer_loyalty_logs: CustomerLoyaltyLogTable;
+  fixed_assets: FixedAssetTable;
+  asset_depreciation_logs: AssetDepreciationLogTable;
+  currency_exchange_rates: CurrencyExchangeRateTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -2165,6 +2171,52 @@ export interface CustomerLoyaltyLogTable {
   notes: string | null;
   created_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
+
+export interface FixedAssetTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  code: string;
+  name: string;
+  category: ColumnType<string, string | undefined, string | undefined>;
+  purchase_date: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  purchase_cost: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  salvage_value: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  useful_life_months: ColumnType<number, number | undefined, number | undefined>;
+  depreciation_method: ColumnType<string, string | undefined, string | undefined>;
+  accumulated_depreciation: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface AssetDepreciationLogTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  asset_id: number;
+  period_date: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  depreciation_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  accumulated_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  book_value: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  journal_entry_id: number | null;
+  note: ColumnType<string, string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface CurrencyExchangeRateTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  currency_code: string;
+  currency_name: string;
+  exchange_rate: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  is_base: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  symbol: ColumnType<string, string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 
 
 

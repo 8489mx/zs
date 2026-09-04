@@ -1568,4 +1568,317 @@ export class AccountingService {
       .execute();
     return { ok: true, projects: records };
   }
+
+  async createCostCenter(body: { code: string; name: string }, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
+    const code = String(body.code || '').trim();
+    const name = String(body.name || '').trim();
+    if (!code || !name) {
+      throw new BadRequestException('كود واسم مركز التكلفة مطلوبان.');
+    }
+    const inserted = await this.db
+      .insertInto('cost_centers')
+      .values({
+        code,
+        name,
+        is_active: true,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return { ok: true, costCenter: inserted };
+  }
+
+  async updateCostCenter(id: number, body: { name?: string; isActive?: boolean }, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
+    const updateData: any = {};
+    if (body.name !== undefined) updateData.name = String(body.name).trim();
+    if (body.isActive !== undefined) updateData.is_active = Boolean(body.isActive);
+    updateData.updated_at = sql`NOW()`;
+
+    const updated = await this.db
+      .updateTable('cost_centers')
+      .set(updateData)
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .returningAll()
+      .executeTakeFirst();
+    return { ok: true, costCenter: updated };
+  }
+
+  async deleteCostCenter(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
+    await this.db
+      .deleteFrom('cost_centers')
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
+    return { ok: true };
+  }
+
+  // --- Fixed Assets & Depreciation (الأصول الثابتة والإهلاك) ---
+  async listFixedAssets(actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
+    const assets = await this.db
+      .selectFrom('fixed_assets')
+      .selectAll()
+      .where('tenant_id', '=', scope.tenantId)
+      .orderBy('created_at', 'desc')
+      .execute();
+    return { ok: true, assets };
+  }
+
+  async createFixedAsset(body: {
+    code: string;
+    name: string;
+    category?: string;
+    purchaseCost: number;
+    salvageValue?: number;
+    usefulLifeMonths?: number;
+    purchaseDate?: string;
+  }, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
+    const code = String(body.code || '').trim();
+    const name = String(body.name || '').trim();
+    const purchaseCost = Number(body.purchaseCost || 0);
+    const salvageValue = Number(body.salvageValue || 0);
+    const usefulLifeMonths = Number(body.usefulLifeMonths || 60);
+
+    if (!code || !name || purchaseCost <= 0) {
+      throw new BadRequestException('بيانات الأصل غير مكتملة (الكود، الاسم، وتكلفة الشراء مطلوبة).');
+    }
+
+    const inserted = await this.db
+      .insertInto('fixed_assets')
+      .values({
+        code,
+        name,
+        category: body.category || 'general',
+        purchase_cost: purchaseCost,
+        salvage_value: salvageValue,
+        useful_life_months: usefulLifeMonths,
+        depreciation_method: 'straight_line',
+        accumulated_depreciation: 0,
+        status: 'active',
+        purchase_date: body.purchaseDate ? new Date(body.purchaseDate) : new Date(),
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return { ok: true, asset: inserted };
+  }
+
+  async depreciateFixedAsset(id: number, body: { months?: number; note?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
+    const asset = await this.db
+      .selectFrom('fixed_assets')
+      .selectAll()
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!asset) {
+      throw new BadRequestException('الأصل الثابت غير موجود.');
+    }
+
+    const cost = Number(asset.purchase_cost || 0);
+    const salvage = Number(asset.salvage_value || 0);
+    const usefulLife = Number(asset.useful_life_months || 60);
+    const currentAccumulated = Number(asset.accumulated_depreciation || 0);
+
+    const depreciableBase = Math.max(0, cost - salvage);
+    const monthlyRate = depreciableBase / usefulLife;
+    const months = Number(body.months || 1);
+    const depreciationAmount = Math.min(monthlyRate * months, Math.max(0, depreciableBase - currentAccumulated));
+
+    if (depreciationAmount <= 0) {
+      throw new BadRequestException('تم إهلاك هذا الأصل بالكامل بالفعل.');
+    }
+
+    const newAccumulated = currentAccumulated + depreciationAmount;
+    const newBookValue = cost - newAccumulated;
+    const isFullyDepreciated = newAccumulated >= depreciableBase;
+
+    await this.db
+      .updateTable('fixed_assets')
+      .set({
+        accumulated_depreciation: newAccumulated,
+        status: isFullyDepreciated ? 'fully_depreciated' : 'active',
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
+
+    const log = await this.db
+      .insertInto('asset_depreciation_logs')
+      .values({
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+        asset_id: id,
+        period_date: new Date(),
+        depreciation_amount: depreciationAmount,
+        accumulated_amount: newAccumulated,
+        book_value: newBookValue,
+        note: body.note || `إهلاك دوري لعدد ${months} شهر بطريقة القسط الثابت`,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return {
+      ok: true,
+      depreciationAmount,
+      accumulatedDepreciation: newAccumulated,
+      bookValue: newBookValue,
+      isFullyDepreciated,
+      log,
+    };
+  }
+
+  // --- Multi-Currency & Exchange Rates (العملات المتعددة وأسعار الصرف) ---
+  async listCurrencies(auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
+    let rows = await this.db
+      .selectFrom('currency_exchange_rates')
+      .selectAll()
+      .where('tenant_id', '=', scope.tenantId)
+      .orderBy('is_base', 'desc')
+      .orderBy('currency_code', 'asc')
+      .execute();
+
+    if (rows.length === 0) {
+      const defaultCurrencies = [
+        { code: 'EGP', name: 'الجنيه المصري', rate: 1.0, isBase: true, symbol: 'ج.م' },
+        { code: 'USD', name: 'الدولار الأمريكي', rate: 49.5, isBase: false, symbol: '$' },
+        { code: 'SAR', name: 'الريال السعودي', rate: 13.2, isBase: false, symbol: 'ر.س' },
+        { code: 'EUR', name: 'اليورو الأوروبي', rate: 53.8, isBase: false, symbol: '€' },
+        { code: 'AED', name: 'الدرهم الإماراتي', rate: 13.48, isBase: false, symbol: 'د.إ' },
+      ];
+
+      for (const c of defaultCurrencies) {
+        await this.db
+          .insertInto('currency_exchange_rates')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            currency_code: c.code,
+            currency_name: c.name,
+            exchange_rate: c.rate,
+            is_base: c.isBase,
+            symbol: c.symbol,
+          } as any)
+          .onConflict((oc) => oc.columns(['tenant_id', 'currency_code']).doNothing())
+          .execute();
+      }
+
+      rows = await this.db
+        .selectFrom('currency_exchange_rates')
+        .selectAll()
+        .where('tenant_id', '=', scope.tenantId)
+        .orderBy('is_base', 'desc')
+        .orderBy('currency_code', 'asc')
+        .execute();
+    }
+
+    return {
+      currencies: rows.map((r) => ({
+        id: String(r.id),
+        code: r.currency_code,
+        name: r.currency_name,
+        exchangeRate: Number(r.exchange_rate),
+        isBase: Boolean(r.is_base),
+        symbol: r.symbol,
+        updatedAt: r.updated_at,
+      })),
+    };
+  }
+
+  async upsertCurrency(
+    body: { currencyCode: string; currencyName: string; exchangeRate: number; isBase?: boolean; symbol?: string },
+    auth: AuthContext,
+  ): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
+    const code = String(body.currencyCode || '').trim().toUpperCase();
+    if (!code) throw new BadRequestException('رمز العملة مطلوب.');
+
+    const name = String(body.currencyName || code).trim();
+    const rate = Number(body.exchangeRate || 1);
+    const isBase = Boolean(body.isBase);
+    const symbol = String(body.symbol || '').trim();
+
+    if (isBase) {
+      await this.db
+        .updateTable('currency_exchange_rates')
+        .set({ is_base: false })
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+    }
+
+    const row = await this.db
+      .insertInto('currency_exchange_rates')
+      .values({
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+        currency_code: code,
+        currency_name: name,
+        exchange_rate: rate,
+        is_base: isBase,
+        symbol,
+      } as any)
+      .onConflict((oc) =>
+        oc.columns(['tenant_id', 'currency_code']).doUpdateSet({
+          currency_name: name,
+          exchange_rate: rate,
+          is_base: isBase,
+          symbol,
+          updated_at: sql`NOW()`,
+        })
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return { ok: true, currency: row };
+  }
+
+  async convertCurrency(
+    body: { amount: number; fromCurrency: string; toCurrency: string },
+    auth: AuthContext,
+  ): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
+    const fromCode = String(body.fromCurrency || '').trim().toUpperCase();
+    const toCode = String(body.toCurrency || '').trim().toUpperCase();
+    const amount = Number(body.amount || 0);
+
+    if (fromCode === toCode) {
+      return { convertedAmount: amount, rate: 1 };
+    }
+
+    const rates = await this.db
+      .selectFrom('currency_exchange_rates')
+      .select(['currency_code', 'exchange_rate', 'is_base'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('currency_code', 'in', [fromCode, toCode])
+      .execute();
+
+    const fromRow = rates.find((r) => r.currency_code === fromCode);
+    const toRow = rates.find((r) => r.currency_code === toCode);
+
+    const fromRate = fromRow ? Number(fromRow.exchange_rate) : 1;
+    const toRate = toRow ? Number(toRow.exchange_rate) : 1;
+
+    const amountInBase = fromRow?.is_base ? amount : amount * fromRate;
+    const convertedAmount = toRow?.is_base ? amountInBase : amountInBase / toRate;
+
+    return {
+      amount,
+      fromCurrency: fromCode,
+      toCurrency: toCode,
+      convertedAmount: Number(convertedAmount.toFixed(4)),
+      effectiveRate: toRate > 0 ? Number((fromRate / toRate).toFixed(6)) : 1,
+    };
+  }
 }
+

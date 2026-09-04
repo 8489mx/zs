@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
+import { FeatureGate } from '@/shared/components/feature-gate';
 
 interface BreadcrumbItem {
   label: string;
@@ -46,7 +47,9 @@ export function ManufacturingLayout({
             </>
           } 
         />
-        {children}
+        <FeatureGate feature="manufacturing" featureName="التصنيع">
+          {children}
+        </FeatureGate>
       </main>
     </div>
   );

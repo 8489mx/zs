@@ -46,6 +46,42 @@ export function SettingsDiagnosticsSection({
   onReconcileAll
 }: SettingsDiagnosticsSectionProps) {
   const [isClearingCache, setIsClearingCache] = useState(false);
+  const [isDownloadingBundle, setIsDownloadingBundle] = useState(false);
+
+  const handleDownloadSupportBundle = async () => {
+    setIsDownloadingBundle(true);
+    try {
+      const headers = new Headers();
+      const localSessionId = typeof window !== 'undefined'
+        ? window.localStorage.getItem('zs.localSessionId') || window.sessionStorage.getItem('zs.localSessionId')
+        : null;
+      if (localSessionId) headers.set('x-session-id', localSessionId);
+
+      const response = await fetch(settingsApi.supportBundleDownloadUrl(), {
+        credentials: 'include',
+        headers,
+      });
+      if (!response.ok) {
+        throw new Error('فشل تنزيل حزمة الدعم. تأكد من صلاحياتك وأنك مسجل الدخول كمسؤول.');
+      }
+      const blob = await response.blob();
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const fileName = `ZERP-support-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.zip`;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      systemAlert(err?.message || 'تعذر تنزيل حزمة الدعم');
+    } finally {
+      setIsDownloadingBundle(false);
+    }
+  };
 
   const handleClearCache = async () => {
     // @ts-ignore
@@ -108,7 +144,9 @@ export function SettingsDiagnosticsSection({
             <Button variant="secondary" onClick={onReconcileCustomers} disabled={reconcileCustomersPending || !canManageMaintenance}>مطابقة أرصدة العملاء</Button>
             <Button variant="secondary" onClick={onReconcileSuppliers} disabled={reconcileSuppliersPending || !canManageMaintenance}>مطابقة أرصدة الموردين</Button>
             <Button onClick={onReconcileAll} disabled={reconcileAllPending || !canManageMaintenance}>مطابقة كل الأرصدة</Button>
-            <Button variant="primary" onClick={() => window.open(settingsApi.supportBundleDownloadUrl(), '_blank')} disabled={!canManageMaintenance}>تنزيل حزمة الدعم</Button>
+            <Button variant="primary" onClick={handleDownloadSupportBundle} disabled={!canManageMaintenance || isDownloadingBundle}>
+              {isDownloadingBundle ? 'جاري التنزيل...' : 'تنزيل حزمة الدعم'}
+            </Button>
             <Button variant="secondary" onClick={handleClearCache} disabled={isClearingCache || !canManageMaintenance} style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>صيانة وتحسين أداء (مسح الكاش)</Button>
           </div>
         </QueryCard>

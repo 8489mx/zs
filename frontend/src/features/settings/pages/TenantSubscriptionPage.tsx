@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { tenantSubscriptionApi, TenantSubscriptionData } from '../api/tenant-subscription.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -15,6 +15,15 @@ export function TenantSubscriptionPage() {
     queryKey: ['tenant-my-subscription'],
     queryFn: () => tenantSubscriptionApi.getMySubscription(),
   });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('payment_success=1')) {
+      setRequestSuccessMessage('تم سداد الاشتراك وتفعيل الباقة بنجاح! شكراً لاشتراكك في Z-Systems.');
+      refetch();
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+  }, [refetch]);
 
   const requestMutation = useMutation({
     mutationFn: (payload: { planId: number; billingPeriodMonths: number; paymentMethod: string; notes: string }) =>
@@ -76,6 +85,10 @@ export function TenantSubscriptionPage() {
 
   const branchesLimit = usage.branches.max;
   const branchesPercent = branchesLimit ? Math.min(100, Math.round((usage.branches.current / branchesLimit) * 100)) : null;
+
+  const basicPlanObj = availablePlans.find((p: any) => p.code === 'basic') || availablePlans[0] || { id: 1, name: 'الباقة الأساسية', price: 3500, currency: 'EGP' };
+  const proPlanObj = availablePlans.find((p: any) => p.code === 'pro') || availablePlans[1] || availablePlans[0] || { id: 2, name: 'الباقة الاحترافية', price: 7500, currency: 'EGP' };
+  const enterprisePlanObj = availablePlans.find((p: any) => p.code === 'enterprise') || availablePlans[2] || proPlanObj || { id: 3, name: 'باقة المؤسسات والتصنيع', price: 15000, currency: 'EGP' };
 
   const handlePrintReceipt = (payment: TenantSubscriptionData['payments'][0]) => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -431,7 +444,7 @@ export function TenantSubscriptionPage() {
 
             <button
               type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: 1, name: 'الباقة الأساسية', price: isAnnual ? 3500 : 350, currency: 'EGP' })}
+              onClick={() => setSelectedPlanForUpgrade({ id: basicPlanObj.id, name: basicPlanObj.name, price: isAnnual ? Number(basicPlanObj.price) : Math.round(Number(basicPlanObj.price) / 10), currency: 'EGP' })}
               style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               اختيار الأساسية
@@ -462,7 +475,7 @@ export function TenantSubscriptionPage() {
 
             <button
               type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: 2, name: 'الباقة الاحترافية', price: isAnnual ? 7500 : 750, currency: 'EGP' })}
+              onClick={() => setSelectedPlanForUpgrade({ id: proPlanObj.id, name: proPlanObj.name, price: isAnnual ? Number(proPlanObj.price) : Math.round(Number(proPlanObj.price) / 10), currency: 'EGP' })}
               style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               ترقية للاحترافية الآن
@@ -488,7 +501,7 @@ export function TenantSubscriptionPage() {
 
             <button
               type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: 3, name: 'باقة المؤسسات', price: isAnnual ? 15000 : 1500, currency: 'EGP' })}
+              onClick={() => setSelectedPlanForUpgrade({ id: enterprisePlanObj.id, name: enterprisePlanObj.name, price: isAnnual ? Number(enterprisePlanObj.price) : Math.round(Number(enterprisePlanObj.price) / 10), currency: 'EGP' })}
               style={{ marginTop: '20px', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 800, fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               اختيار المؤسسات

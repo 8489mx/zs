@@ -46,7 +46,9 @@ function withRestoreConfirmation(payload: unknown): Record<string, unknown> {
 
 async function fetchBackupBlob() {
   const headers = new Headers();
-  const localSessionId = typeof window !== 'undefined' ? window.sessionStorage.getItem('zs.localSessionId') : null;
+  const localSessionId = typeof window !== 'undefined'
+    ? window.localStorage.getItem('zs.localSessionId') || window.sessionStorage.getItem('zs.localSessionId')
+    : null;
   if (localSessionId) headers.set('x-session-id', localSessionId);
 
   const response = await fetch(settingsApi.backupDownloadUrl(), { credentials: 'include', headers });
@@ -162,7 +164,9 @@ export function useSettingsAdminWorkspace(currentSection: AdminWorkspaceSection 
     setBackupMessageKind('success');
     try {
       const headers = new Headers();
-      const localSessionId = typeof window !== 'undefined' ? window.sessionStorage.getItem('zs.localSessionId') : null;
+      const localSessionId = typeof window !== 'undefined'
+        ? window.localStorage.getItem('zs.localSessionId') || window.sessionStorage.getItem('zs.localSessionId')
+        : null;
       if (localSessionId) headers.set('x-session-id', localSessionId);
 
       const response = await fetch(settingsApi.supportBundleDownloadUrl(), {

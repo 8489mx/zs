@@ -178,8 +178,16 @@ export class WhatsAppGatewayService {
     return this.sendRawMessage(tenantId, phone, testText);
   }
 
-  async sendInvoiceNotification(saleId: number, actor: AuthContext): Promise<{ success: boolean; message?: string }> {
+  async sendInvoiceNotification(saleId: number, actor: AuthContext, options?: { autoOnly?: boolean }): Promise<{ success: boolean; message?: string }> {
     const { tenantId } = requireTenantScope(actor);
+
+    const cfg = await this.getRawConfig(tenantId);
+    if (!cfg.whatsapp_gateway_enabled) {
+      return { success: false, message: 'بوابة الواتساب السحابية غير مفعلة' };
+    }
+    if (options?.autoOnly && !cfg.whatsapp_gateway_auto_invoice) {
+      return { success: false, message: 'الإرسال التلقائي للفواتير عبر الواتساب غير مفعل' };
+    }
 
     const sale = await this.db
       .selectFrom('sales')
@@ -205,7 +213,6 @@ export class WhatsAppGatewayService {
       .where('id', '=', tenantId)
       .executeTakeFirst();
 
-    const cfg = await this.getRawConfig(tenantId);
     let template = cfg.whatsapp_gateway_invoice_template ||
       'مرحباً بك يا {customerName} في {businessName}، يسعدنا تسوقك معنا! يمكنك استعراض فاتورتك رقم #{invoiceNo} بقيمة {totalAmount} ج.م عبر الرابط التالي: {invoiceLink}';
 
@@ -223,5 +230,47 @@ export class WhatsAppGatewayService {
       .replace(/{invoiceLink}/g, invoiceLink);
 
     return this.sendRawMessage(tenantId, phone, text);
+  }
+
+  async sendOnlineOrderNotification(orderId: number, tenantId: string): Promise<{ success: boolean; message?: string }> {
+    const cfg = await this.getRawConfig(tenantId);
+    if (!cfg.whatsapp_gateway_enabled || !cfg.whatsapp_gateway_auto_order) {
+      return { success: false, message: 'الإرسال التلقائي لطلبات المتجر عبر الواتساب غير مفعل' };
+    }
+
+    const order = await this.db
+      .selectFrom('online_orders')
+      .selectAll()
+      .where('id', '=', orderId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!order) return { success: false, message: 'الطلب غير موجود' };
+
+    const tenant = await this.db
+      .selectFrom('tenants')
+      .select(['business_name', 'owner_phone'])
+      .where('id', '=', tenantId)
+      .executeTakeFirst();
+
+    const businessName = tenant?.business_name || 'متجرنا';
+    const customerPhone = order.customer_phone;
+    const orderNo = order.order_number || String(order.id);
+    const total = Number(order.total_amount || 0).toLocaleString('ar-EG');
+
+    // Send confirmation to customer
+    if (customerPhone) {
+      const customerMsg = `مرحباً بك ${order.customer_name || 'عميلنا العزيز'}!\nتم استلام طلبك رقم #${orderNo} بنجاح من متجر ${businessName} بقيمة ${total} ج.م.\nسنقوم بتجهيزه وتأكيده في أقرب وقت. شكراً لتسوقك معنا!`;
+      void this.sendRawMessage(tenantId, customerPhone, customerMsg).catch(() => undefined);
+    }
+
+    // Send alert to store owner/merchant
+    const merchantPhone = tenant?.owner_phone;
+    if (merchantPhone) {
+      const merchantMsg = `🛒 طلب أونلاين جديد #${orderNo}!\nالعميل: ${order.customer_name} (${order.customer_phone})\nالإجمالي: ${total} ج.م\nالعنوان: ${order.customer_address || 'استلام من الفرع'}\nيرجى فتح لوحة التحكم لتأكيد الطلب.`;
+      void this.sendRawMessage(tenantId, merchantPhone, merchantMsg).catch(() => undefined);
+    }
+
+    return { success: true };
   }
 }

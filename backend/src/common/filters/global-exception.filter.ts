@@ -71,6 +71,26 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           Sentry.captureException(exception);
         });
       }
+
+      const alertWebhookUrl = process.env.CRITICAL_ALERT_WEBHOOK_URL || process.env.ALERT_WEBHOOK_URL;
+      if (alertWebhookUrl) {
+        try {
+          const alertMsg = exception instanceof Error ? exception.message : String(exception);
+          fetch(alertWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: `🚨 **Critical Server Error (500)**\n**Path:** \`${request.method} ${safePath}\`\n**Error:** \`${alertMsg}\`\n**RequestId:** \`${requestId}\`\n**Timestamp:** ${new Date().toISOString()}`,
+              path: safePath,
+              method: request.method,
+              requestId,
+              error: alertMsg,
+            }),
+          }).catch(() => undefined);
+        } catch {
+          // non-blocking
+        }
+      }
     } else {
       this.logger.warn(
         exception instanceof Error ? exception.message : 'Client error',

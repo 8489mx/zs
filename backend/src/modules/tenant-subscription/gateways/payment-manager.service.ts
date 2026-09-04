@@ -72,6 +72,26 @@ export class PaymentManagerService {
     }
 
     const durationMonths = result.durationMonths || plan.billing_period_months || 12;
+    return this.applySubscriptionPayment(
+      tenant,
+      plan,
+      durationMonths,
+      result.amount || plan.price,
+      result.currency || plan.currency,
+      gatewayName,
+      result.transactionReference,
+    );
+  }
+
+  private async applySubscriptionPayment(
+    tenant: any,
+    plan: any,
+    durationMonths: number,
+    amount: number,
+    currency: string,
+    gatewayName: string,
+    transactionReference: string,
+  ): Promise<Record<string, unknown>> {
     const now = new Date();
 
     const activeSub = await this.db
@@ -116,10 +136,10 @@ export class PaymentManagerService {
         .values({
           tenant_id: tenant.id,
           subscription_id: newSub.id,
-          amount: result.amount || plan.price,
-          currency: result.currency || plan.currency,
+          amount,
+          currency,
           method: `${gatewayName}_online`,
-          reference: result.transactionReference,
+          reference: transactionReference,
           paid_at: now,
           created_at: now,
         } as any)
@@ -135,7 +155,7 @@ export class PaymentManagerService {
 
     const mockAuth: any = {
       userId: 'system-gateway',
-      username: `${gatewayName}-webhook`,
+      username: `${gatewayName}-checkout`,
       role: 'super_admin',
       tenantId: tenant.id,
       accountId: `${tenant.id}:main`,
@@ -144,19 +164,56 @@ export class PaymentManagerService {
 
     await this.audit.log(
       'تجديد آلي للباقة (بوابة دفع)',
-      `تم تجديد وتفعيل باقة (${plan.name}) للنسخة ${tenant.slug} تلقائياً عبر بوابة ${gatewayName.toUpperCase()} بقيمة ${result.amount} ${result.currency} (مرجع: ${result.transactionReference})`,
+      `تم تجديد وتفعيل باقة (${plan.name}) للنسخة ${tenant.slug} تلقائياً عبر بوابة ${gatewayName.toUpperCase()} بقيمة ${amount} ${currency} (مرجع: ${transactionReference})`,
       mockAuth,
       { targetTenantId: tenant.id },
     );
 
-    this.logger.log(`Tenant ${tenant.slug} successfully auto-renewed via ${gatewayName} webhook!`);
+    this.logger.log(`Tenant ${tenant.slug} successfully auto-renewed via ${gatewayName}!`);
 
     return {
       ok: true,
       renewed: true,
       tenant: tenant.slug,
       plan: plan.name,
-      transactionReference: result.transactionReference,
+      transactionReference,
     };
+  }
+
+  async processDirectPayment(params: {
+    gatewayName: string;
+    tenantId: string;
+    planId?: number;
+    durationMonths?: number;
+    amount: number;
+    currency: string;
+    transactionReference: string;
+  }): Promise<Record<string, unknown>> {
+    const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', params.tenantId).executeTakeFirst();
+    if (!tenant) throw new NotFoundException('المنشأة غير موجودة.');
+
+    let plan = params.planId
+      ? await this.db.selectFrom('saas_plans').selectAll().where('id', '=', params.planId).executeTakeFirst()
+      : null;
+
+    if (!plan) {
+      plan = await this.db.selectFrom('saas_plans').selectAll().where('is_active', '=', true).orderBy('price', 'asc').executeTakeFirst();
+    }
+
+    if (!plan) throw new NotFoundException('لا توجد خطة مفعلة.');
+
+    const durationMonths = params.durationMonths || plan.billing_period_months || 12;
+    const amount = params.amount || plan.price;
+    const currency = params.currency || plan.currency || 'EGP';
+
+    return this.applySubscriptionPayment(
+      tenant,
+      plan,
+      durationMonths,
+      amount,
+      currency,
+      params.gatewayName,
+      params.transactionReference,
+    );
   }
 }

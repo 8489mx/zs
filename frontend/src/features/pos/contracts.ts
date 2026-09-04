@@ -20,6 +20,7 @@ export interface CreatePosSaleInput {
   note: string;
   paidAmount: number;
   tenderedAmount: number;
+  loyaltyPointsRedeemed?: number;
   payments: PosPaymentInput[];
   taxRate: number;
   pricesIncludeTax: boolean;
@@ -137,6 +138,7 @@ export function buildPosSalePayload(input: CreatePosSaleInput) {
     payments: normalizePaymentsCapped(input.payments || [], input.expectedTotal),
     tenderedAmount: Number(input.tenderedAmount || 0),
     storeCreditUsed: 0,
+    loyaltyPointsRedeemed: Number(input.loyaltyPointsRedeemed || 0),
     taxRate: normalizeMoney(Number(input.taxRate || 0)),
     ...(String(input.managerPin || '').trim() ? { managerPin: String(input.managerPin || '').trim() } : {}),
     pricesIncludeTax: Boolean(input.pricesIncludeTax),

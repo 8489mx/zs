@@ -56,6 +56,16 @@ export class PurchasesController {
     return this.purchasesService.cancelPurchase(id, String(body?.reason || ''), req.authContext!);
   }
 
+  @Post('purchases/:id/receive-goods')
+  @RequirePermissions('purchases')
+  receivePurchaseGoods(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { receivedItems: { itemId: number; receivedQty: number; serials?: any[] }[] },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.purchasesService.receivePurchaseGoods(id, body?.receivedItems || [], req.authContext!);
+  }
+
   @Get('purchases/:id/payment-schedule')
   @RequirePermissions('purchases')
   listPurchasePaymentSchedule(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

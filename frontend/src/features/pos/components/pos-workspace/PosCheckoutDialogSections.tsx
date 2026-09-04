@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent, type RefObject } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { customersApi } from '@/shared/api/customers.api';
+import { posApi } from '@/features/pos/api/pos.api';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
@@ -65,6 +66,14 @@ export function PosCheckoutCustomerSection({
     ...(selectedCustomer?.address ? [selectedCustomer.address] : []),
     ...(addressesQuery.data || [])
   ])).filter(Boolean);
+
+  const customerPosSummaryQuery = useQuery({
+    queryKey: ['posCustomerSummaryCheckout', pos.customerId],
+    queryFn: () => pos.customerId ? posApi.customerPosSummary(String(pos.customerId)) : Promise.resolve(null),
+    enabled: !!pos.customerId,
+    staleTime: 30_000,
+  });
+  const loyaltyPoints = Number(customerPosSummaryQuery.data?.loyaltyPoints || 0);
 
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
 
@@ -242,6 +251,46 @@ export function PosCheckoutCustomerSection({
           </Button>
         </div>
       )}
+
+      {pos.customerId && loyaltyPoints > 0 ? (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '6px 12px',
+          marginTop: '6px',
+          background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+          border: '1px solid #fcd34d',
+          borderRadius: '6px',
+          fontSize: '12px',
+          color: '#92400e'
+        }}>
+          <span>⭐ رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {loyaltyPoints.toLocaleString()} ج.م خصم)</span>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              const subTotal = Number(pos.totals?.subTotal || 0);
+              const pointsToRedeem = Math.min(loyaltyPoints, subTotal);
+              if (pointsToRedeem > 0) {
+                pos.setDiscount(pointsToRedeem);
+              }
+            }}
+            style={{
+              height: '28px',
+              padding: '0 10px',
+              fontSize: '11px',
+              fontWeight: 700,
+              background: '#b45309',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '4px'
+            }}
+          >
+            استبدال النقاط بخصم
+          </Button>
+        </div>
+      ) : null}
     </section>
   );
 }

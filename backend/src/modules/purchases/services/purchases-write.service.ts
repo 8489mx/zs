@@ -284,7 +284,9 @@ export class PurchasesWriteService {
           prices_include_tax: Boolean(payload.pricesIncludeTax),
           total,
           note: normalizeOptionalNote(payload.note),
-          status: 'posted',
+          status: payload.lifecycleStatus === 'purchase_order' ? 'draft' : 'posted',
+          lifecycle_status: payload.lifecycleStatus || 'posted',
+          matched_status: payload.lifecycleStatus === 'purchase_order' ? 'pending' : 'matched',
           branch_id: branchId,
           location_id: locationId,
           created_by: auth.userId,
@@ -321,13 +323,15 @@ export class PurchasesWriteService {
           unit_multiplier: item.unitMultiplier,
           category_id: item.categoryId ?? null,
           location_id: item.locationId ?? null,
+          received_qty: payload.lifecycleStatus === 'purchase_order' ? 0 : item.qty,
           serials: itemSerials.length > 0 ? JSON.stringify(itemSerials) : '[]',
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any).returning('id').executeTakeFirst();
 
         const itemLocationId = item.locationId!;
-        if (itemSerials.length > 0) {
+        const isPurchaseOrderOnly = payload.lifecycleStatus === 'purchase_order';
+        if (itemSerials.length > 0 && !isPurchaseOrderOnly) {
           const serialRows = itemSerials.map((s: any) => {
             const serialNumber = typeof s === 'string' ? s.trim() : (s?.serialNumber || s?.serial || '').trim();
             const imei2 = typeof s === 'object' ? s?.imei2 || null : null;
@@ -353,44 +357,46 @@ export class PurchasesWriteService {
           }
         }
 
-        const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
-        const stockChange = await applyStockDelta(trx, {
-          productId: item.productId,
-          delta: increasedQty,
-          branchId,
-          locationId: itemLocationId,
-          tenantId: scope.tenantId,
-          accountId: scope.accountId,
-        });
+        if (!isPurchaseOrderOnly) {
+          const { increasedQty } = calculatePurchaseStockIncrease(item.qty, item.unitMultiplier, 0);
+          const stockChange = await applyStockDelta(trx, {
+            productId: item.productId,
+            delta: increasedQty,
+            branchId,
+            locationId: itemLocationId,
+            tenantId: scope.tenantId,
+            accountId: scope.accountId,
+          });
 
-        const oldQty = Math.max(0, stockChange.globalBefore);
-        const oldCost = item.oldCostPrice;
-        const totalQty = oldQty + increasedQty;
-        const newCost = (increasedQty > 0 && totalQty > 0.00001) 
-          ? ((oldQty * oldCost) + (increasedQty * item.effectiveUnitCost)) / totalQty
-          : oldCost;
+          const oldQty = Math.max(0, stockChange.globalBefore);
+          const oldCost = item.oldCostPrice;
+          const totalQty = oldQty + increasedQty;
+          const newCost = (increasedQty > 0 && totalQty > 0.00001) 
+            ? ((oldQty * oldCost) + (increasedQty * item.effectiveUnitCost)) / totalQty
+            : oldCost;
 
-        await trx.updateTable('products')
-          .set({ cost_price: Number(newCost.toFixed(6)), updated_at: sql`NOW()` })
-          .where('id', '=', item.productId)
-          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-          .execute();
-        await trx.insertInto('stock_movements').values({
-          product_id: item.productId,
-          movement_type: 'purchase',
-          qty: increasedQty,
-          before_qty: stockChange.scopeBefore,
-          after_qty: stockChange.scopeAfter,
-          reason: 'purchase',
-          note: `فاتورة شراء PUR-${id}`,
-          reference_type: 'purchase',
-          reference_id: id,
-          branch_id: branchId,
-          location_id: itemLocationId,
-          created_by: auth.userId,
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-        }).execute();
+          await trx.updateTable('products')
+            .set({ cost_price: Number(newCost.toFixed(6)), updated_at: sql`NOW()` })
+            .where('id', '=', item.productId)
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .execute();
+          await trx.insertInto('stock_movements').values({
+            product_id: item.productId,
+            movement_type: 'purchase',
+            qty: increasedQty,
+            before_qty: stockChange.scopeBefore,
+            after_qty: stockChange.scopeAfter,
+            reason: 'purchase',
+            note: `فاتورة شراء PUR-${id}`,
+            reference_type: 'purchase',
+            reference_id: id,
+            branch_id: branchId,
+            location_id: itemLocationId,
+            created_by: auth.userId,
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          }).execute();
+        }
       }
 
       if (payload.attachments && payload.attachments.length > 0) {
@@ -410,13 +416,16 @@ export class PurchasesWriteService {
           .execute();
       }
 
-      if (paymentType === 'credit') {
-        await this.financeService.addSupplierLedgerEntry(trx, supplier.id, total, 'purchase_credit', `فاتورة شراء PUR-${id}`, 'purchase', id, auth, branchId, locationId);
-      } else {
-        await this.financeService.addTreasuryTransaction(trx, 'purchase', -total, `فاتورة شراء PUR-${id}`, 'purchase', id, auth, branchId, locationId);
-      }
+      const isPurchaseOrderOnly = payload.lifecycleStatus === 'purchase_order';
+      if (!isPurchaseOrderOnly) {
+        if (paymentType === 'credit') {
+          await this.financeService.addSupplierLedgerEntry(trx, supplier.id, total, 'purchase_credit', `فاتورة شراء PUR-${id}`, 'purchase', id, auth, branchId, locationId);
+        } else {
+          await this.financeService.addTreasuryTransaction(trx, 'purchase', -total, `فاتورة شراء PUR-${id}`, 'purchase', id, auth, branchId, locationId);
+        }
 
-      await this.accountingPosting.postPurchase(trx, id, auth);
+        await this.accountingPosting.postPurchase(trx, id, auth);
+      }
 
       const repricingInsights = this.buildPurchaseRepricingInsights(id, { id: Number(supplier.id), name: String(supplier.name || '') }, repricingCandidates);
 
@@ -941,5 +950,204 @@ export class PurchasesWriteService {
     const nextSeq = Number(lastDoc?.last_seq || 0) + 1;
     const seq = String(nextSeq).padStart(4, '0');
     return `ZPV-${datePrefix}-${seq}`;
+  }
+
+  async receivePurchaseGoods(
+    purchaseId: number,
+    receivedItems: { itemId: number; receivedQty: number; serials?: any[] }[],
+    auth: AuthContext,
+  ): Promise<{ purchaseId: number; lifecycleStatus: string; matchedStatus: string }> {
+    const scope = requireTenantScope(auth);
+
+    return this.db.transaction().execute(async (trx) => {
+      const purchase = await trx
+        .selectFrom('purchases')
+        .selectAll()
+        .where('id', '=', purchaseId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!purchase) {
+        throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
+      }
+
+      if (purchase.status === 'cancelled') {
+        throw new AppError('Cannot receive goods for a cancelled purchase', 'PURCHASE_CANCELLED', 400);
+      }
+
+      const existingItems = await trx
+        .selectFrom('purchase_items')
+        .selectAll()
+        .where('purchase_id', '=', purchaseId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+
+      const itemsMap = new Map<number, any>();
+      for (const it of existingItems) {
+        itemsMap.set(Number(it.id), it);
+      }
+
+      for (const rec of receivedItems) {
+        const item = itemsMap.get(rec.itemId);
+        if (!item) {
+          throw new AppError(`Purchase item ${rec.itemId} not found`, 'ITEM_NOT_FOUND', 404);
+        }
+
+        const qtyToReceive = Number(rec.receivedQty || 0);
+        if (qtyToReceive <= 0) continue;
+
+        const currentReceived = Number(item.received_qty || 0);
+        const newReceivedQty = currentReceived + qtyToReceive;
+
+        await trx
+          .updateTable('purchase_items')
+          .set({ received_qty: newReceivedQty } as any)
+          .where('id', '=', item.id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+
+        item.received_qty = newReceivedQty;
+
+        const itemSerials = Array.isArray(rec.serials) ? rec.serials : [];
+        if (itemSerials.length > 0) {
+          const serialRows = itemSerials.map((s: any) => {
+            const serialNumber = typeof s === 'string' ? s.trim() : (s?.serialNumber || s?.serial || '').trim();
+            const imei2 = typeof s === 'object' ? s?.imei2 || null : null;
+            return {
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              product_id: item.product_id,
+              serial_number: serialNumber,
+              imei2,
+              location_id: item.location_id ?? purchase.location_id,
+              status: 'available',
+              cost_price: Number(item.unit_cost || 0),
+              purchase_id: purchaseId,
+              purchase_item_id: item.id,
+              warranty_end_date: null,
+              notes: null,
+            };
+          }).filter((r) => r.serial_number);
+
+          if (serialRows.length > 0) {
+            await trx.insertInto('product_serials').values(serialRows as any).execute();
+          }
+        }
+
+        const unitMultiplier = Number(item.unit_multiplier || 1);
+        const { increasedQty } = calculatePurchaseStockIncrease(qtyToReceive, unitMultiplier, 0);
+        const itemLocationId = item.location_id ?? purchase.location_id;
+        const branchId = purchase.branch_id;
+
+        const stockChange = await applyStockDelta(trx, {
+          productId: Number(item.product_id),
+          delta: increasedQty,
+          branchId: branchId ? Number(branchId) : undefined,
+          locationId: itemLocationId ? Number(itemLocationId) : undefined,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+        });
+
+        const oldQty = Math.max(0, stockChange.globalBefore);
+        const oldCostProduct = await trx
+          .selectFrom('products')
+          .select(['cost_price'])
+          .where('id', '=', item.product_id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+        const oldCost = Number(oldCostProduct?.cost_price || 0);
+        const effectiveUnitCost = Number(item.unit_cost || 0);
+        const totalQty = oldQty + increasedQty;
+        const newCost = (increasedQty > 0 && totalQty > 0.00001)
+          ? ((oldQty * oldCost) + (increasedQty * effectiveUnitCost)) / totalQty
+          : oldCost;
+
+        await trx
+          .updateTable('products')
+          .set({ cost_price: Number(newCost.toFixed(6)), updated_at: sql`NOW()` })
+          .where('id', '=', item.product_id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .execute();
+
+        await trx.insertInto('stock_movements').values({
+          product_id: item.product_id,
+          movement_type: 'purchase_receipt',
+          qty: increasedQty,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: 'purchase_receipt',
+          note: `استلام بضاعة لأمر شراء PUR-${purchaseId}`,
+          reference_type: 'purchase',
+          reference_id: purchaseId,
+          branch_id: branchId ? Number(branchId) : undefined,
+          location_id: itemLocationId ? Number(itemLocationId) : undefined,
+          created_by: auth.userId,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
+      }
+
+      let totalOrdered = 0;
+      let totalReceived = 0;
+      for (const it of existingItems) {
+        totalOrdered += Number(it.qty || 0);
+        totalReceived += Number(it.received_qty || 0);
+      }
+
+      const isFullyReceived = totalReceived >= totalOrdered;
+      const lifecycleStatus = isFullyReceived ? 'posted' : 'grn_received';
+      const matchedStatus = isFullyReceived ? 'matched' : (totalReceived > 0 ? 'partial' : 'pending');
+
+      await trx
+        .updateTable('purchases')
+        .set({
+          lifecycle_status: lifecycleStatus,
+          matched_status: matchedStatus,
+          status: 'posted',
+          updated_at: sql`NOW()`,
+        } as any)
+        .where('id', '=', purchaseId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+
+      if (purchase.status === 'draft') {
+        const total = Number(purchase.total || 0);
+        const supplierId = Number(purchase.supplier_id);
+        const branchId = purchase.branch_id ? Number(purchase.branch_id) : null;
+        const locationId = purchase.location_id ? Number(purchase.location_id) : null;
+
+        if (purchase.payment_type === 'credit') {
+          await this.financeService.addSupplierLedgerEntry(
+            trx,
+            supplierId,
+            total,
+            'purchase_credit',
+            `فاتورة شراء PUR-${purchaseId}`,
+            'purchase',
+            purchaseId,
+            auth,
+            branchId,
+            locationId,
+          );
+        } else {
+          await this.financeService.addTreasuryTransaction(
+            trx,
+            'purchase',
+            -total,
+            `فاتورة شراء PUR-${purchaseId}`,
+            'purchase',
+            purchaseId,
+            auth,
+            branchId,
+            locationId,
+          );
+        }
+
+        await this.accountingPosting.postPurchase(trx, purchaseId, auth);
+      }
+
+      return { purchaseId, lifecycleStatus, matchedStatus };
+    });
   }
 }

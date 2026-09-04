@@ -72,6 +72,7 @@ export interface PurchaseItem {
   total: number;
   unitName: string;
   unitMultiplier: number;
+  receivedQty?: number;
 }
 
 export interface Purchase {
@@ -88,6 +89,8 @@ export interface Purchase {
   total: number;
   note: string;
   status: string;
+  lifecycleStatus?: string;
+  matchedStatus?: string;
   createdBy: string;
   branchId: string;
   branchName: string;

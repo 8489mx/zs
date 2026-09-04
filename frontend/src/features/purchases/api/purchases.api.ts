@@ -124,4 +124,10 @@ export const purchasesApi = {
       body: formData,
     });
   },
+  receiveGoods: async (purchaseId: string, receivedItems: { itemId: number; receivedQty: number; serials?: any[] }[]) => {
+    return http<{ purchaseId: number; lifecycleStatus: string; matchedStatus: string }>(`/api/purchases/${purchaseId}/receive-goods`, {
+      method: 'POST',
+      body: JSON.stringify({ receivedItems }),
+    });
+  },
 };

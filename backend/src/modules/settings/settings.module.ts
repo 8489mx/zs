@@ -40,6 +40,7 @@ import { WhatsAppGatewayService } from './services/whatsapp-gateway.service';
     OfflineReleasesService,
     WhatsAppGatewayService,
   ],
+  exports: [SettingsService, WhatsAppGatewayService],
 })
 export class SettingsModule {}
 

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { useAppToolbar } from '@/stores/toolbar-store';
+import { FeatureGate } from '@/shared/components/feature-gate';
 import { pharmacyApi } from '../api/pharmacy.api';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { GenericSubstitutesModal } from '../components/GenericSubstitutesModal';
@@ -72,8 +73,9 @@ export default function PharmacyDashboardPage() {
   };
 
   return (
-    <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+    <FeatureGate feature="pharmacy" featureName="الصيدلية والرعاية الدوائية">
+      <div className="page-stack page-shell" dir="rtl">
+        <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title="لوحة تحكم الصيدلية والرعاية الدوائية"
           description="إدارة دليل المواد الفعالة والبدائل، الروشتات والتأمين، كشكول النواقص اليومي، ورادار الصلاحيات"
@@ -444,5 +446,6 @@ export default function PharmacyDashboardPage() {
         />
       </main>
     </div>
+    </FeatureGate>
   );
 }

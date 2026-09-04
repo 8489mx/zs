@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { deliveryRepsApi, DeliveryRep, DeliveryOrder } from '../api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
+import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
+import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 
 export function DeliveryDriverMobilePage() {
   const queryClient = useQueryClient();
@@ -10,6 +12,8 @@ export function DeliveryDriverMobilePage() {
     return saved ? Number(saved) : 0;
   });
   const [statusFilter, setStatusFilter] = useState<'pending' | 'settled' | 'all'>('pending');
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannedCode, setScannedCode] = useState('');
 
   const { data: repsList = [] } = useQuery<DeliveryRep[]>({
     queryKey: ['delivery-reps-list'],
@@ -65,7 +69,57 @@ export function DeliveryDriverMobilePage() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
   };
 
+  const handlePrintDeliveryReceipt = (order: DeliveryOrder) => {
+    const html = `
+      <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
+        <h3 style="margin: 0; font-size: 14px;">إشعار تسليم شحنة</h3>
+        <p style="margin: 2px 0 0; font-size: 11px;">طلب رقم: <b>#${order.docNo}</b></p>
+      </div>
+      <div style="font-size: 11px; margin-bottom: 6px;">
+        <div><b>العميل:</b> ${order.customerName || 'عميل نقدي'}</div>
+        <div><b>الهاتف:</b> ${order.customerPhone || 'غير مسجل'}</div>
+        <div><b>العنوان:</b> ${order.deliveryStatus || 'غير محدد'}</div>
+        <div><b>التاريخ:</b> ${new Date().toLocaleDateString('ar-EG')}</div>
+      </div>
+      <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
+          <span>المطلوب تحصيله:</span>
+          <span>${Number(order.total || 0).toLocaleString()} ج.م</span>
+        </div>
+      </div>
+      <div style="text-align: center; font-size: 10px; color: #555;">
+        شكراً لتعاملكم معنا!
+      </div>
+    `;
+    printSmallReceiptDocument(html, { title: `إيصال #${order.docNo}`, widthMm: 58 });
+  };
+
+  const handleSettleWithGps = (order: DeliveryOrder) => {
+    if (!confirm(`تأكيد تسليم الطلب #${order.docNo} وتحصيل مبلغ ${order.total} ج.م؟`)) return;
+
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          console.log(`[Delivery GPS] Order #${order.docNo} delivered at Lat: ${pos.coords.latitude}, Lng: ${pos.coords.longitude}`);
+          settleMutation.mutate(order.id);
+        },
+        () => {
+          settleMutation.mutate(order.id);
+        },
+        { timeout: 4000 }
+      );
+    } else {
+      settleMutation.mutate(order.id);
+    }
+  };
+
   const filteredOrders = orders.filter((o) => {
+    if (scannedCode) {
+      const matchDoc = String(o.docNo || '').toLowerCase().includes(scannedCode.toLowerCase());
+      const matchId = String(o.id) === scannedCode;
+      const matchPhone = String(o.customerPhone || '').includes(scannedCode);
+      if (!matchDoc && !matchId && !matchPhone) return false;
+    }
     if (statusFilter === 'pending') return !o.settledAt;
     if (statusFilter === 'settled') return Boolean(o.settledAt);
     return true;
@@ -84,10 +138,32 @@ export function DeliveryDriverMobilePage() {
             <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>🛵 شاشة مندوب التوصيل</h2>
             <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>متابعة الشحنات، التواصل مع العملاء، وتأكيد التحصيل</div>
           </div>
-          <Button variant="secondary" onClick={() => refetch()} style={{ padding: '6px 10px', fontSize: '12px' }}>
-            🔄 تحديث
-          </Button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <Button
+              variant="secondary"
+              onClick={() => setScannerOpen(true)}
+              style={{ padding: '6px 10px', fontSize: '12px', background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }}
+            >
+              📷 مسح باركود
+            </Button>
+            <Button variant="secondary" onClick={() => refetch()} style={{ padding: '6px 10px', fontSize: '12px' }}>
+              🔄 تحديث
+            </Button>
+          </div>
         </div>
+
+        {scannedCode && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', marginBottom: '10px', background: '#eff6ff', borderRadius: '6px', fontSize: '12px', color: '#1e40af' }}>
+            <span>تصفية حسب الباركود: <b>{scannedCode}</b></span>
+            <button
+              type="button"
+              onClick={() => setScannedCode('')}
+              style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              ✕ إلغاء التصفية
+            </button>
+          </div>
+        )}
 
         {/* Rep Selector */}
         <div>
@@ -277,6 +353,23 @@ export function DeliveryDriverMobilePage() {
                   >
                     🗺️ الخريطة
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handlePrintDeliveryReceipt(order)}
+                    style={{
+                      padding: '7px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      background: '#f8fafc',
+                      color: '#334155',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🖨️ إيصال
+                  </button>
                 </div>
 
                 {/* Settle Action */}
@@ -284,11 +377,7 @@ export function DeliveryDriverMobilePage() {
                   <Button
                     variant="primary"
                     disabled={settleMutation.isPending}
-                    onClick={() => {
-                      if (confirm(`تأكيد تسليم الطلب #${order.docNo} وتحصيل مبلغ ${order.total} ج.م؟`)) {
-                        settleMutation.mutate(order.id);
-                      }
-                    }}
+                    onClick={() => handleSettleWithGps(order)}
                     style={{ width: '100%', padding: '10px', fontSize: '13px', fontWeight: 800, background: '#16a34a', border: 'none' }}
                   >
                     {settleMutation.isPending ? 'جاري التأكيد...' : '✅ تأكيد التسليم والتحصيل'}
@@ -299,6 +388,16 @@ export function DeliveryDriverMobilePage() {
           })
         )}
       </div>
+
+      <CameraBarcodeScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={(barcode) => {
+          setScannedCode(barcode);
+          setScannerOpen(false);
+        }}
+        title="مسح باركود شحنة أو فاتورة"
+      />
     </div>
   );
 }

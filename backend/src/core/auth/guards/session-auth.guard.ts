@@ -18,10 +18,28 @@ function parseCookie(request: RequestWithAuth, name: string): string {
 }
 
 function readSessionId(request: RequestWithAuth, allowHeaderAuth: boolean, cookieName: string): string {
+  // 1. Authorization: Bearer <sessionId>
+  const authHeader = request.headers['authorization'];
+  if (typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
+    const candidate = authHeader.slice(7).trim();
+    if (candidate) return candidate;
+  }
+
+  // 2. x-session-id header
   if (allowHeaderAuth) {
     const headerValue = request.headers['x-session-id'];
     if (typeof headerValue === 'string' && headerValue.trim()) {
       return headerValue.trim();
+    }
+  }
+
+  // 3. Query string token/sessionId for direct file downloads
+  if (request.query && typeof request.query === 'object') {
+    const queryCandidate = (request.query as Record<string, unknown>)['sessionId']
+      || (request.query as Record<string, unknown>)['session_id']
+      || (request.query as Record<string, unknown>)['token'];
+    if (typeof queryCandidate === 'string' && queryCandidate.trim()) {
+      return queryCandidate.trim();
     }
   }
 
@@ -59,10 +77,8 @@ export class SessionAuthGuard implements CanActivate {
   ) {}
 
   private allowSessionIdHeaderFallback(): boolean {
-    if (String(this.configService.get('ALLOW_SESSION_ID_HEADER')).toLowerCase() === 'true') return true;
-    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
-    const appMode = this.configService.get<string>('app.mode') || this.configService.get<string>('APP_MODE') || '';
-    return (nodeEnv === 'development' || appMode === 'SELF_CONTAINED' || appMode === 'PORTABLE') && appMode !== 'CLOUD_SAAS';
+    if (String(this.configService.get('ALLOW_SESSION_ID_HEADER')).toLowerCase() === 'false') return false;
+    return true;
   }
 
   private clearAuthCookies(response: Response): void {
@@ -100,7 +116,8 @@ export class SessionAuthGuard implements CanActivate {
       const csrfSecret = this.configService.get<string>('SESSION_CSRF_SECRET') || '';
       const csrfCookie = parseCookie(request, csrfCookieName);
       const csrfHeader = readHeaderValue(request.headers[CSRF_HEADER_NAME]);
-      const usingHeaderFallback = allowHeaderAuth && readHeaderValue(request.headers['x-session-id']) === sessionId;
+      const usingHeaderFallback = (allowHeaderAuth && readHeaderValue(request.headers['x-session-id']) === sessionId)
+        || readHeaderValue(request.headers['authorization']).toLowerCase().startsWith('bearer ');
 
       if (!usingHeaderFallback && (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader || !verifyCsrfToken(sessionId, csrfSecret, csrfHeader))) {
         this.clearAuthCookies(response);

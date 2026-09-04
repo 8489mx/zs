@@ -57,6 +57,7 @@ const iconToneMap: Record<string, IconTone> = {
   dashboard: { bg: 'linear-gradient(135deg, #ede9fe, #dbeafe)', border: '#c4b5fd', fg: '#5b21b6', glow: 'rgba(99, 102, 241, 0.22)' },
   products: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#166534', glow: 'rgba(34, 197, 94, 0.22)' },
   sales: { bg: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', border: '#93c5fd', fg: '#1d4ed8', glow: 'rgba(37, 99, 235, 0.22)' },
+  quotations: { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
   'delivery-reps': { bg: 'linear-gradient(135deg, #fef3c7, #fef08a)', border: '#fde047', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.22)' },
   pos: { bg: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)', border: '#d8b4fe', fg: '#7e22ce', glow: 'rgba(168, 85, 247, 0.22)' },
   'online-orders': { bg: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', border: '#6ee7b7', fg: '#059669', glow: 'rgba(16, 185, 129, 0.22)' },
@@ -131,6 +132,7 @@ const iconPathMap: Record<string, string> = {
   'online-orders': 'M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6M9 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   'cash-drawer': 'M3 10h18v10H3V10zm3-6h12v4H6V4zm6 9v2m-4 0h8',
   sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
+  quotations: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
   purchases: 'M1 3h3l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L22 6H6M10 21a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm10 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z',
   'purchases-new': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M12 18v-6M9 15h6',
   inventory: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
@@ -337,6 +339,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
       // 1. Sales & Customers
       'sales',
+      'quotations',
       'returns',
       'customers',
       'delivery-reps',
@@ -413,6 +416,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'cash-drawer': t('sidebar.cash-drawer', 'الوردية والدرج النقدي'),
       pos: t('sidebar.pos', 'نقطة البيع'),
       sales: 'سجل الفواتير',
+      quotations: 'عروض الأسعار',
       'online-orders': 'طلبات الأونلاين',
       returns: 'مرتجعات المبيعات',
       customers: t('sidebar.customers', 'العملاء'),
@@ -490,7 +494,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     return [
-      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher'], iconKey: 'sales' },
+      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'quotations', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
       { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'], iconKey: 'inventory' },
       { key: 'accounting-group', label: t('sidebar.accounting-group', 'المالية والمحاسبة'), itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings'], iconKey: 'treasury' },

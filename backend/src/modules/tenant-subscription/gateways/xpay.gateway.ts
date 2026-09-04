@@ -73,13 +73,35 @@ export class XPayGatewayService implements IPaymentGateway {
       }
     }
 
-    // Sandbox / Pre-configured Fallback Link
+    // Sandbox / Simulation Checkout when live API keys are not configured
+    let baseUrl = '';
+    if (input.redirectUrl) {
+      try {
+        const u = new URL(input.redirectUrl);
+        baseUrl = u.origin;
+      } catch {}
+    }
+    const query = new URLSearchParams({
+      gateway: 'xpay',
+      ref: transactionReference,
+      amount: String(input.amount),
+      currency: input.currency || 'EGP',
+      tenantId: input.tenantId,
+      planId: String(input.planId),
+      planName: input.planName,
+      duration: String(input.durationMonths),
+      businessName: input.businessName,
+      redirectUrl: input.redirectUrl || '',
+    }).toString();
+
+    const paymentUrl = `${baseUrl}/api/tenant-subscription/sandbox-checkout?${query}`;
+
     return {
       ok: true,
       gateway: 'xpay',
-      paymentUrl: `https://pay.xpay.app/checkout?ref=${transactionReference}&amount=${input.amount}&currency=${input.currency}&tenant=${input.tenantSlug}`,
+      paymentUrl,
       transactionReference,
-      message: 'تم تجهيز أمر الدفع الإلكتروني عبر بوابة XPay (فيزا / ماستركارد / ميزة / محافظ إلكترونية).',
+      message: 'تم تجهيز أمر الدفع الإلكتروني عبر بوابة XPay (بيئة تجريبية Sandbox).',
     };
   }
 

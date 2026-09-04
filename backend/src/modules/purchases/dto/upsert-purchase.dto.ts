@@ -41,6 +41,11 @@ class PurchaseItemDto {
   @IsNumber()
   locationId?: number;
 
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  receivedQty?: number;
+
   @IsOptional()
   @IsArray()
   serials?: string[];
@@ -131,6 +136,14 @@ export class UpsertPurchaseDto {
   @IsOptional()
   @IsString()
   termsTemplate?: string;
+
+  @IsOptional()
+  @IsString()
+  lifecycleStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  matchedStatus?: string;
 
   @IsArray()
   @ArrayMinSize(1)

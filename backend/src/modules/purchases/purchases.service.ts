@@ -47,4 +47,13 @@ export class PurchasesService {
   createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.writeService.createCustomerPayment(payload, auth);
   }
+
+  receivePurchaseGoods(
+    purchaseId: number,
+    receivedItems: { itemId: number; receivedQty: number; serials?: any[] }[],
+    auth: AuthContext,
+  ): Promise<Record<string, unknown>> {
+    return this.writeService.receivePurchaseGoods(purchaseId, receivedItems, auth);
+  }
 }
+

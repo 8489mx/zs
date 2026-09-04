@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
@@ -19,6 +20,7 @@ import { TradeInService } from './tradein.service';
 
 @Controller('api/tradein/transactions')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequireFeature('tradein')
 export class TradeInController {
   constructor(private readonly tradeInService: TradeInService) {}
 

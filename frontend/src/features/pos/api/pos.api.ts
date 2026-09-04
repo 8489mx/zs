@@ -19,6 +19,7 @@ export interface PosCustomerSummary {
   creditLimit: number;
   remainingCredit: number | null;
   storeCreditBalance: number;
+  loyaltyPoints?: number;
   customerType: string;
   lastSaleAt: string | null;
   totalSalesAmount: number;
