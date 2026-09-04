@@ -164,6 +164,10 @@ async function bootstrap(): Promise<void> {
   logger.log(`API bootstrap complete on ${host}:${port}`);
   // eslint-disable-next-line no-console
   console.log(`API bootstrap complete on ${host}:${port}`);
+
+  if (typeof process.send === 'function') {
+    process.send('ready');
+  }
 }
 
 bootstrap().catch((error: unknown) => {

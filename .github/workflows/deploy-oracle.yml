@@ -32,75 +32,36 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@92.5.178.54 'bash -s' > server-diag.txt 2>&1 << 'REMOTEEVERYTHING'
           echo "🚀 Connected to Oracle VPS successfully at $(date)"
           
-          TARGET_DIR=""
-          for dir in "/var/www/zsystems" "/var/www/zs" "/home/ubuntu/zsystems" "/home/ubuntu/zs"; do
-            if [ -d "$dir" ]; then
-              TARGET_DIR="$dir"
-              break
-            fi
-          done
-
-          if [ -z "$TARGET_DIR" ]; then
+          TARGET_DIR="/var/www/zsystems/app"
+          if [ ! -d "$TARGET_DIR" ]; then
             TARGET_DIR="/var/www/zsystems"
           fi
           echo "📂 TARGET_DIR is: $TARGET_DIR"
           cd "$TARGET_DIR"
 
-          echo "=== 1. Check update.sh content ==="
-          if [ -f "/var/www/zsystems/update.sh" ]; then
-            cat "/var/www/zsystems/update.sh"
-          elif [ -f "$TARGET_DIR/update.sh" ]; then
-            cat "$TARGET_DIR/update.sh"
-          else
-            echo "No update.sh file found"
-          fi
-
-          echo "=== 2. Nginx configuration ==="
-          cat /etc/nginx/sites-enabled/* 2>/dev/null || true
-
-          echo "=== 3. Nginx error log ==="
-          sudo tail -n 25 /var/log/nginx/error.log 2>/dev/null || true
-
-          echo "=== 4. PM2 status and logs ==="
-          pm2 list 2>/dev/null || true
-          pm2 logs --nostream --lines 30 2>/dev/null || true
-
-          echo "=== 5. Systemd services ==="
-          sudo systemctl list-units --type=service 2>/dev/null | grep -E 'zs|backend|node|app' || true
-
-          echo "=== 6. Listening ports before update ==="
-          sudo ss -tulpn 2>/dev/null || true
-
-          echo "=== 7. Git update ==="
+          echo "=== 1. Git update ==="
           git config --global --add safe.directory "$TARGET_DIR" 2>/dev/null || true
           git fetch origin main 2>&1
           git reset --hard origin/main 2>&1
 
-          echo "=== 8. Run update.sh if present ==="
-          if [ -f "/var/www/zsystems/update.sh" ]; then
-            chmod +x /var/www/zsystems/update.sh
-            /var/www/zsystems/update.sh 2>&1 || true
-          fi
+          echo "=== 2. Build backend ==="
+          cd "$TARGET_DIR/backend"
+          npm install --silent 2>&1 || true
+          npm run migration:run 2>&1 || true
+          npx nest build 2>&1 || true
 
-          echo "=== 9. Ensure backend is built & running ==="
-          if [ ! -f "$TARGET_DIR/backend/dist/main.js" ]; then
-            echo "Building backend..."
-            cd "$TARGET_DIR/backend"
-            npm install --include=dev --no-audit --no-fund 2>&1 || true
-            npx nest build 2>&1 || true
-            cd "$TARGET_DIR"
-          fi
+          echo "=== 3. Start PM2 in stable fork mode ==="
+          pm2 delete all 2>/dev/null || true
+          pm2 start dist/main.js --name zsystems-backend 2>&1
+          pm2 save 2>&1 || true
 
-          if command -v pm2 &>/dev/null; then
-            echo "Restarting PM2..."
-            pm2 restart all --update-env 2>&1 || pm2 start "$TARGET_DIR/hostinger-api-entry.cjs" --name zsystems 2>&1 || true
-            pm2 save 2>&1 || true
-          fi
+          echo "=== 4. Reload Nginx ==="
+          sudo systemctl reload nginx 2>/dev/null || true
 
-          echo "=== 10. Check port 3001 and local health ==="
+          echo "=== 5. Health Check on Port 3000 ==="
           sleep 4
-          sudo ss -tulpn 2>/dev/null | grep -E '3000|3001|5432|80|443' || true
-          curl -iv http://127.0.0.1:3001/health 2>&1 || true
+          sudo ss -tulpn | grep 3000 || true
+          curl -sv http://127.0.0.1:3000/api/activation/status 2>&1 || true
 
           echo "=== Execution completed at $(date) ==="
           REMOTEEVERYTHING
