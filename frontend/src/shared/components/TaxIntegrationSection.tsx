@@ -119,10 +119,25 @@ export function TaxIntegrationSection() {
           isLoading={isLoading}
         >
           <form onSubmit={form.handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} autoComplete="off">
+            {/* Provider Select */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
+                منظومة الفاتورة الإلكترونية المعتمدة
+              </label>
+              <select
+                {...form.register('provider')}
+                style={{ width: '100%', height: '36px', padding: '0 10px', fontSize: '0.82rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', boxSizing: 'border-box' }}
+              >
+                <option value="ETA_EGYPT">مصلحة الضرائب المصرية (ETA E-Invoicing - مصر)</option>
+                <option value="ZATCA_SAUDI">هيئة الزكاة والضريبة والجمارك (ZATCA Phase 2 - السعودية)</option>
+              </select>
+            </div>
+
             {/* Tax ID & Environment Row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '3px' }}>
+
                   الرقم الضريبي للشركة
                 </label>
                 <input
