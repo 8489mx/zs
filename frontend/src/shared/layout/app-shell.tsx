@@ -149,6 +149,7 @@ const iconPathMap: Record<string, string> = {
   accounts: 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
   'accounting-accounts': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
   'accounting-journal-entries': 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15zM9 7h6M9 11h6',
+  'accounting-fixed-assets': 'M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4',
   'accounting-settings': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
   mobile: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 17h2',
   maintenance: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
@@ -371,6 +372,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'accounts',
       'accounting-accounts',
       'accounting-journal-entries',
+      'accounting-fixed-assets',
       'accounting-settings',
 
       // 5. Mobile & Devices (Conditional)
@@ -445,6 +447,7 @@ export function AppShell({ children }: PropsWithChildren) {
       accounts: 'حسابات عملاء وموردين',
       'accounting-accounts': 'شجرة الحسابات',
       'accounting-journal-entries': 'القيود اليومية',
+      'accounting-fixed-assets': 'الأصول الثابتة والإهلاك',
       'accounting-settings': 'إعدادات الحسابات',
       maintenance: 'تذاكر الصيانة',
       'trade-in': 'شراء واستبدال الأجهزة',
