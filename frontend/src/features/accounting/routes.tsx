@@ -43,10 +43,16 @@ export const accountingRouteModule: FeatureRouteModule = {
       path: 'accounting/inventory-value',
       element: createLazyRoute(() => import('@/features/accounting/pages/AccountingInventoryValuePage').then((module) => ({ default: withAccountingGate(module.AccountingInventoryValuePage) }))),
     },
+    {
+      path: 'accounting/fixed-assets',
+      element: createLazyRoute(() => import('@/features/accounting/pages/AccountingFixedAssetsPage').then((module) => ({ default: withAccountingGate(module.AccountingFixedAssetsPage) }))),
+    },
   ],
   navigation: [
     { key: 'accounting-accounts', label: 'شجرة الحسابات', to: '/accounting/accounts' },
     { key: 'accounting-journal-entries', label: 'القيود اليومية', to: '/accounting/journal-entries' },
+    { key: 'accounting-fixed-assets', label: 'الأصول الثابتة والإهلاك', to: '/accounting/fixed-assets' },
     { key: 'accounting-settings', label: 'إعدادات الحسابات', to: '/accounting/settings' },
   ],
 };
+

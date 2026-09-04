@@ -16,17 +16,32 @@ interface AiBusinessCopilotModalProps {
   onClose: () => void;
 }
 
+const QUICK_SUGGESTIONS = [
+  { icon: '💵', text: 'كسبت كام النهاردة؟' },
+  { icon: '🏦', text: 'فلوس الخزينة والدرج الحالية' },
+  { icon: '📦', text: 'ايه نواقص المخزن الحرجة؟' },
+  { icon: '👥', text: 'مين أكتر عملاء عليهم فلوس؟' },
+  { icon: '🏭', text: 'مستحقات وفواتير الموردين' },
+  { icon: '💸', text: 'صرفنا كام مصاريف النهاردة؟' },
+  { icon: '🏆', text: 'أكتر 5 منتجات مبيعاً' },
+  { icon: '💡', text: 'ازاي أزود أرباحي النهاردة؟' },
+];
+
 export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModalProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       sender: 'ai',
-      text: 'أهلاً بك يا فندم! أنا **زاد AI**، مستشارك الذكي في المنظومة.\nيمكنك سؤالي عن مبيعاتك وأرباحك اليوم، النواقص في المخزن، ديون العملاء، أو طلب تحليلات فورية لأداء نشاطك!',
+      text: 'أهلاً بك يا فندم! أنا **زاد AI**، مستشارك الذكي في المنظومة.\nيمكنك سؤالي عن مبيعاتك وأرباحك اليوم، النواقص في المخزن، ديون العملاء، فواتير الموردين والمصاريف، أو طلب تحليلات فورية لأداء نشاطك!',
       suggestedQuestions: [
         'كسبت كام النهاردة؟',
+        'فلوس الخزينة والدرج الحالية',
         'مين أكتر عملاء عليهم فلوس؟',
         'ايه نواقص المخزن الحرجة؟',
+        'مستحقات وفواتير الموردين',
+        'صرفنا كام مصاريف النهاردة؟',
+        'ازاي أزود أرباحي النهاردة؟',
       ],
     },
   ]);
@@ -225,11 +240,50 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Quick Shortcut Chips Bar */}
+        <div
+          style={{
+            padding: '8px 16px',
+            background: '#f8fafc',
+            display: 'flex',
+            gap: '6px',
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            borderTop: '1px solid #e2e8f0',
+          }}
+        >
+          {QUICK_SUGGESTIONS.map((q, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSend(q.text)}
+              disabled={askMutation.isPending}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '16px',
+                padding: '4px 10px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#1e293b',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                flexShrink: 0,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>{q.icon}</span>
+              <span>{q.text}</span>
+            </button>
+          ))}
+        </div>
+
         {/* Input Bar */}
         <div
           style={{
-            padding: '12px 16px',
-            borderTop: '1px solid #e2e8f0',
+            padding: '10px 16px 14px 16px',
             background: '#f8fafc',
             display: 'flex',
             gap: '8px',

@@ -9,6 +9,8 @@
     "build": "node ./scripts/build-root.cjs",
     "build:all": "npm --prefix backend run build && npm --prefix frontend run build",
     "build:exe": "npm --prefix frontend run build:exe",
+    "mobile:sync": "node ./scripts/sync-capacitor-android.cjs",
+    "mobile:apk": "node ./scripts/build-apk.cjs",
     "build:new": "node ./scripts/bump-and-build.cjs",
     "build:up": "node ./scripts/build-update-patch.cjs",
     "release:patch": "node ./scripts/publish-ota-update.cjs",

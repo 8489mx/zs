@@ -1,0 +1,1 @@
+import{j as s}from"./vendor-react-C-CGkqRI.js";function n({items:a,className:t="stats-grid compact-grid",style:d}){return s.jsx("div",{className:t,style:d,children:a.map(r=>s.jsxs("div",{className:"stat-card",children:[s.jsx("span",{children:r.label}),s.jsx("strong",{children:r.value})]},r.key))})}export{n as S};

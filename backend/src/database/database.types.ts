@@ -1935,6 +1935,8 @@ export interface Database {
   fixed_assets: FixedAssetTable;
   asset_depreciation_logs: AssetDepreciationLogTable;
   currency_exchange_rates: CurrencyExchangeRateTable;
+  customer_installment_plans: CustomerInstallmentPlanTable;
+  customer_installments: CustomerInstallmentTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -2217,6 +2219,46 @@ export interface CurrencyExchangeRateTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface CustomerInstallmentPlanTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  plan_number: string;
+  sale_id: number | null;
+  customer_id: number;
+  total_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  down_payment: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  financed_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  interest_rate_percent: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  interest_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total_with_interest: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  installment_count: ColumnType<number, number | undefined, number | undefined>;
+  monthly_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  start_date: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  notes: ColumnType<string, string | undefined, string | undefined>;
+  branch_id: number | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
 
-
-
+export interface CustomerInstallmentTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  plan_id: number;
+  sale_id: number | null;
+  customer_id: number;
+  installment_number: number;
+  due_date: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  paid_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  paid_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  payment_method: ColumnType<string, string | undefined, string | undefined>;
+  receipt_no: string | null;
+  notes: ColumnType<string, string | undefined, string | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}

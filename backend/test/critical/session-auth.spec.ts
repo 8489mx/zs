@@ -102,12 +102,26 @@ class UsersSelectBuilder {
   where(column: string | unknown, _op?: string, value?: string | number) {
     if (column === 'username') this.username = String(value);
     if (column === 'id') this.id = Number(value);
+    if (typeof column === 'object' && column !== null) {
+      const params = (column as any).parameters || (column as any).sqlFragments;
+      if (Array.isArray(params) && params.length > 0) {
+        this.username = String(params[0]);
+      }
+    }
     return this;
   }
+  async execute() {
+    if (this.username != null) {
+      return this.db.users.filter((row) => row.username.toLowerCase() === this.username!.toLowerCase());
+    }
+    if (this.id != null) {
+      return this.db.users.filter((row) => row.id === this.id);
+    }
+    return this.db.users;
+  }
   async executeTakeFirst() {
-    if (this.username != null) return this.db.users.find((row) => row.username === this.username) ?? undefined;
-    if (this.id != null) return this.db.users.find((row) => row.id === this.id) ?? undefined;
-    return undefined;
+    const list = await this.execute();
+    return list[0] ?? undefined;
   }
 }
 

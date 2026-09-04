@@ -32,30 +32,46 @@ export class SessionsController {
     private readonly activationService: ActivationService,
   ) {}
 
-  private sharedCookieDomain(): string | undefined {
+  private sharedCookieDomain(req?: RequestWithAuth): string | undefined {
+    if (req) {
+      const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
+      if (['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host)) {
+        return undefined;
+      }
+    }
     const domain = this.configService.get<string>('SESSION_COOKIE_DOMAIN')?.trim();
     return domain || undefined;
   }
 
-  private cookieOptions(expiresAt?: Date) {
+  private cookieOptions(expiresAt?: Date, req?: RequestWithAuth) {
+    const host = String(req?.headers['x-forwarded-host'] || req?.headers?.host || '').split(':')[0].toLowerCase();
+    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
+    const domain = isLoopback ? undefined : this.sharedCookieDomain(req);
+    const secure = isLoopback ? false : this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true;
+
     return {
       httpOnly: true,
       sameSite: this.configService.get<'lax' | 'strict' | 'none'>('SESSION_COOKIE_SAME_SITE') ?? 'lax',
-      secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
+      secure,
       expires: expiresAt,
       path: '/',
-      ...(this.sharedCookieDomain() ? { domain: this.sharedCookieDomain() } : {}),
+      ...(domain ? { domain } : {}),
     };
   }
 
-  private csrfCookieOptions(expiresAt?: Date) {
+  private csrfCookieOptions(expiresAt?: Date, req?: RequestWithAuth) {
+    const host = String(req?.headers['x-forwarded-host'] || req?.headers?.host || '').split(':')[0].toLowerCase();
+    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
+    const domain = isLoopback ? undefined : this.sharedCookieDomain(req);
+    const secure = isLoopback ? false : this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true;
+
     return {
       httpOnly: false,
       sameSite: this.configService.get<'lax' | 'strict' | 'none'>('SESSION_COOKIE_SAME_SITE') ?? 'lax',
-      secure: this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true,
+      secure,
       expires: expiresAt,
       path: '/',
-      ...(this.sharedCookieDomain() ? { domain: this.sharedCookieDomain() } : {}),
+      ...(domain ? { domain } : {}),
     };
   }
 
@@ -68,17 +84,15 @@ export class SessionsController {
   }
 
   private allowLocalSessionHeaderFallback(): boolean {
-    if (String(this.configService.get('ALLOW_SESSION_ID_HEADER')).toLowerCase() === 'true') return true;
-    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
-    const appMode = this.configService.get<string>('app.mode') || this.configService.get<string>('APP_MODE') || '';
-    return (nodeEnv === 'development' || appMode === 'SELF_CONTAINED' || appMode === 'PORTABLE') && appMode !== 'CLOUD_SAAS';
+    if (String(this.configService.get('ALLOW_SESSION_ID_HEADER')).toLowerCase() === 'false') return false;
+    return true;
   }
 
-  private setAuthCookies(res: Response, sessionId: string, expiresAt: Date): void {
+  private setAuthCookies(res: Response, sessionId: string, expiresAt: Date, req?: RequestWithAuth): void {
     const csrfSecret = this.configService.get<string>('SESSION_CSRF_SECRET') || '';
     const csrfToken = createCsrfToken(sessionId, csrfSecret);
-    res.cookie(this.getSessionCookieName(), sessionId, this.cookieOptions(expiresAt));
-    res.cookie(this.getCsrfCookieName(), csrfToken, this.csrfCookieOptions(expiresAt));
+    res.cookie(this.getSessionCookieName(), sessionId, this.cookieOptions(expiresAt, req));
+    res.cookie(this.getCsrfCookieName(), csrfToken, this.csrfCookieOptions(expiresAt, req));
   }
 
   private clearAuthCookies(res: Response): void {
@@ -115,14 +129,14 @@ export class SessionsController {
       throw new UnauthorizedException('Invalid username or password');
     }
 
-    this.setAuthCookies(res, result.sessionId, result.expiresAt);
+    this.setAuthCookies(res, result.sessionId, result.expiresAt, req);
 
     await this.auditService.log('تسجيل دخول', `تم تسجيل دخول المستخدم ${result.auth.username}`, result.auth);
 
     return {
       ok: true,
       ...(await this.sessionService.buildLoginPayload(result.auth)),
-      ...(this.allowLocalSessionHeaderFallback() ? { sessionId: result.sessionId } : {}),
+      sessionId: result.sessionId,
       expiresAt: result.expiresAt.toISOString(),
     };
   }

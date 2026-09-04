@@ -1,0 +1,1 @@
+import{b as t,c as r}from"./vendor-query-CB33QBPw.js";import{aq as i,b6 as o}from"../index-C0PvB-77.js";function p(a){const n=t();return r({mutationFn:e=>o.create({name:e.name,phone:e.phone||"",address:e.address||"",balance:Number(e.balance||0),notes:e.notes||""}),onSuccess:async()=>{await i(n,{includeSuppliers:!0}),a?.()}})}export{p as u};

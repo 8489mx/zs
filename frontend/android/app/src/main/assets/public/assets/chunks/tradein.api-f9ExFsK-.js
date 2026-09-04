@@ -1,0 +1,1 @@
+import{h as a,aI as i}from"../index-C0PvB-77.js";const r={list:(t={})=>a(`/api/tradein/transactions${i(t)}`),get:t=>a(`/api/tradein/transactions/${t}`),create:t=>a("/api/tradein/transactions",{method:"POST",body:JSON.stringify(t)}),delete:t=>a(`/api/tradein/transactions/${t}`,{method:"DELETE"})};export{r as t};

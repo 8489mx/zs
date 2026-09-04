@@ -1,0 +1,1 @@
+import{h as t}from"../index-C0PvB-77.js";const a={list:async()=>(await t("/api/manufacturing/work-orders")).workOrders||[],create:async r=>t("/api/manufacturing/work-orders",{method:"POST",body:JSON.stringify(r)}),complete:async(r,e)=>t(`/api/manufacturing/work-orders/${r}/complete`,{method:"PATCH",body:JSON.stringify(e)})};export{a as w};

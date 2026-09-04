@@ -137,9 +137,29 @@ export class AccountingController {
     return this.accountingService.createFixedAsset(body, req.authContext!);
   }
 
+  @Delete('fixed-assets/:id')
+  deleteFixedAsset(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.deleteFixedAsset(id, req.authContext!);
+  }
+
+  @Post('fixed-assets/depreciate-all')
+  depreciateAllFixedAssets(@Body() body: { months?: number; note?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.depreciateAllFixedAssets(body, req.authContext!);
+  }
+
   @Post('fixed-assets/:id/depreciate')
   depreciateFixedAsset(@Param('id', ParseIntPipe) id: number, @Body() body: { months?: number; note?: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.depreciateFixedAsset(id, body, req.authContext!);
+  }
+
+  @Get('fixed-assets/logs')
+  listAllAssetDepreciationLogs(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.listAssetDepreciationLogs(undefined, req.authContext!);
+  }
+
+  @Get('fixed-assets/:id/logs')
+  listAssetDepreciationLogs(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.listAssetDepreciationLogs(id, req.authContext!);
   }
 
   // --- Multi-Currency (العملات المتعددة وأسعار الصرف) ---

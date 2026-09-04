@@ -1,0 +1,1 @@
+import{j as u}from"./vendor-react-C-CGkqRI.js";import{B as m}from"../index-C0PvB-77.js";function d({idleText:o,pendingText:n,disabled:i,isPending:r,children:s,...e}){const t=!!r;return u.jsx(m,{...e,disabled:i||t,children:s??(t?n:o)})}export{d as S};

@@ -8,22 +8,28 @@ import { TaxSettingsController } from './controllers/tax-settings/tax-settings.c
 import { EtaInvoicesController } from './controllers/eta-invoices/eta-invoices.controller';
 import { ZatcaController } from './controllers/zatca/zatca.controller';
 
+import { VatDeclarationService } from './services/vat-declaration/vat-declaration.service';
+import { VatDeclarationController } from './controllers/vat-declaration/vat-declaration.controller';
+
 @Module({
   providers: [
     EtaAuthService,
     EtaSerializerService,
     EtaSubmissionService,
     ZatcaPhase2Service,
-    TaxSettingsService
+    TaxSettingsService,
+    VatDeclarationService,
   ],
   controllers: [
     TaxSettingsController,
     EtaInvoicesController,
-    ZatcaController
+    ZatcaController,
+    VatDeclarationController,
   ],
   exports: [
     EtaSubmissionService,
-    ZatcaPhase2Service
+    ZatcaPhase2Service,
+    VatDeclarationService,
   ]
 })
 export class TaxIntegrationModule {}

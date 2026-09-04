@@ -272,5 +272,71 @@ export const accountingApi = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  listFixedAssets: () => http<{ ok: boolean; assets: FixedAsset[] }>('/api/accounting/fixed-assets'),
+  createFixedAsset: (body: CreateFixedAssetInput) =>
+    http<{ ok: boolean; asset: FixedAsset }>('/api/accounting/fixed-assets', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  deleteFixedAsset: (id: number) =>
+    http<{ ok: boolean; message?: string }>('/api/accounting/fixed-assets/' + id, {
+      method: 'DELETE',
+    }),
+  depreciateFixedAsset: (id: number, body?: { months?: number; note?: string }) =>
+    http<{ ok: boolean; depreciationAmount: number; accumulatedDepreciation: number; bookValue: number; isFullyDepreciated: boolean; entryNo: string; log: AssetDepreciationLog }>(`/api/accounting/fixed-assets/${id}/depreciate`, {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
+  depreciateAllFixedAssets: (body?: { months?: number; note?: string }) =>
+    http<{ ok: boolean; processedCount: number; totalDepreciation: number; results: any[] }>('/api/accounting/fixed-assets/depreciate-all', {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    }),
+  listAssetDepreciationLogs: (assetId?: number) => {
+    const url = assetId ? `/api/accounting/fixed-assets/${assetId}/logs` : '/api/accounting/fixed-assets/logs';
+    return http<{ ok: boolean; logs: AssetDepreciationLog[] }>(url);
+  },
 };
+
+export interface CreateFixedAssetInput {
+  code: string;
+  name: string;
+  category?: string;
+  purchaseCost: number;
+  salvageValue?: number;
+  usefulLifeMonths?: number;
+  depreciationMethod?: 'straight_line' | 'declining_balance';
+  purchaseDate?: string;
+}
+
+export interface FixedAsset {
+  id: number;
+  code: string;
+  name: string;
+  category: string;
+  purchase_date: string;
+  purchase_cost: number;
+  salvage_value: number;
+  useful_life_months: number;
+  depreciation_method: 'straight_line' | 'declining_balance';
+  accumulated_depreciation: number;
+  book_value: number;
+  status: 'active' | 'fully_depreciated' | 'retired';
+  created_at: string;
+}
+
+export interface AssetDepreciationLog {
+  id: number;
+  asset_id: number;
+  asset_name?: string;
+  asset_code?: string;
+  period_date: string;
+  depreciation_amount: number;
+  accumulated_amount: number;
+  book_value: number;
+  journal_entry_id: number | null;
+  journal_entry_no?: string;
+  note: string;
+  created_at: string;
+}
 

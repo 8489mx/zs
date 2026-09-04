@@ -15,9 +15,12 @@ import { QuotationsService } from './services/quotations.service';
 import { PosTerminalController } from './controllers/pos-terminal.controller';
 import { PosTerminalService } from './services/pos-terminal.service';
 
+import { CustomerInstallmentsController } from './controllers/customer-installments.controller';
+import { CustomerInstallmentsService } from './services/customer-installments.service';
+
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
-  controllers: [SalesController, QuotationsController, PosTerminalController],
+  controllers: [SalesController, QuotationsController, PosTerminalController, CustomerInstallmentsController],
   providers: [
     SalesService,
     SalesAuthorizationService,
@@ -26,8 +29,9 @@ import { PosTerminalService } from './services/pos-terminal.service';
     SalesWriteService,
     QuotationsService,
     PosTerminalService,
+    CustomerInstallmentsService,
   ],
-  exports: [SalesService, SalesFinanceService, QuotationsService, PosTerminalService],
+  exports: [SalesService, SalesFinanceService, QuotationsService, PosTerminalService, CustomerInstallmentsService],
 })
 export class SalesModule {}
 

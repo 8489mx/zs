@@ -86,6 +86,8 @@ const iconToneMap: Record<string, IconTone> = {
   settings: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
   admin: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
   'tax-dispatcher': { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#334155', glow: 'rgba(71, 85, 105, 0.18)' },
+  installments: { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
+  'vat-declaration': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
   'saas-admin-tenants': { bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', border: '#c4b5fd', fg: '#6d28d9', glow: 'rgba(124, 58, 237, 0.22)' },
   'saas-admin-plans': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
   'accounting-accounts': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
@@ -181,6 +183,8 @@ const iconPathMap: Record<string, string> = {
   suppliers: 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
   services: 'M6 4h12v16H6V4zM9 8h6M9 12h6M9 16h3',
   'tax-dispatcher': 'M12 2l8 4v6c0 5.5-3.6 10.7-8 12-4.4-1.3-8-6.5-8-12V6l8-4zM12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 11c-2.7 0-5 1.8-5 4v1h10v-1c0-2.2-2.3-4-5-4z',
+  installments: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  'vat-declaration': 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   'saas-admin-tenants': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   'saas-admin-plans': 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
   'accounting-financial-summary': 'M18 20V10M12 20V4M6 20v-6M3 20h18',
@@ -422,6 +426,8 @@ export function AppShell({ children }: PropsWithChildren) {
       customers: t('sidebar.customers', 'العملاء'),
       'delivery-reps': 'إدارة المناديب',
       'tax-dispatcher': 'الفاتورة الإلكترونية',
+      installments: 'البيع بالتقسيط للأفراد والشركات',
+      'vat-declaration': 'الإقرار الضريبي الرسمي (نموذج 10 و ZATCA)',
       'purchases-new': 'إنشاء فاتورة شراء',
       purchases: 'سجل فواتير المشتريات',
       'purchase-returns': 'مرتجعات المشتريات',
@@ -494,7 +500,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     return [
-      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'quotations', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher'], iconKey: 'sales' },
+      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'quotations', 'installments', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher', 'vat-declaration'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
       { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'], iconKey: 'inventory' },
       { key: 'accounting-group', label: t('sidebar.accounting-group', 'المالية والمحاسبة'), itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-settings'], iconKey: 'treasury' },

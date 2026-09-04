@@ -1617,15 +1617,131 @@ export class AccountingService {
     return { ok: true };
   }
 
-  // --- Fixed Assets & Depreciation (الأصول الثابتة والإهلاك) ---
+  // --- Fixed Assets & Depreciation (الأصول الثابتة والإهلاك المحاسبي) ---
+  private async ensureDepreciationAccounts(trx: any, tenantId: string, accountId: string): Promise<{ deprExpenseAccountId: number; accumDeprAccountId: number }> {
+    let accumRow = await trx
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code'])
+      .where('tenant_id', '=', tenantId)
+      .where('code', '=', '1290')
+      .executeTakeFirst();
+
+    let accumDeprAccountId: number;
+    if (accumRow) {
+      accumDeprAccountId = Number(accumRow.id);
+    } else {
+      const parentRow = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id'])
+        .where('tenant_id', '=', tenantId)
+        .where('code', 'in', ['1200', '1000'])
+        .orderBy('code', 'desc')
+        .executeTakeFirst();
+
+      const created = await trx
+        .insertInto('accounting_accounts')
+        .values({
+          code: '1290',
+          name_ar: 'مجمع الإهلاك',
+          name_en: 'Accumulated Depreciation',
+          account_type: 'contra_asset',
+          normal_balance: 'credit',
+          sort_order: 1290,
+          parent_id: parentRow ? Number(parentRow.id) : null,
+          account_group: 'fixed_assets',
+          allow_manual_entries: true,
+          is_control_account: false,
+          is_cash_bank: false,
+          is_receivable: false,
+          is_payable: false,
+          is_inventory: false,
+          is_tax: false,
+          is_active: true,
+          is_system: false,
+          tenant_id: tenantId,
+          description_ar: 'مجمع إهلاك الأصول الثابتة',
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+      accumDeprAccountId = Number(created.id);
+    }
+
+    let expenseRow = await trx
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code'])
+      .where('tenant_id', '=', tenantId)
+      .where((eb: any) => eb.or([
+        eb('code', '=', '6950'),
+        eb('name_ar', 'like', '%إهلاك%').and('account_type', '=', 'expense'),
+      ]))
+      .executeTakeFirst();
+
+    let deprExpenseAccountId: number;
+    if (expenseRow) {
+      deprExpenseAccountId = Number(expenseRow.id);
+    } else {
+      const parentRow = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id'])
+        .where('tenant_id', '=', tenantId)
+        .where('code', 'in', ['6000', '6900'])
+        .orderBy('code', 'asc')
+        .executeTakeFirst();
+
+      const created = await trx
+        .insertInto('accounting_accounts')
+        .values({
+          code: '6950',
+          name_ar: 'مصروف إهلاك الأصول الثابتة',
+          name_en: 'Depreciation Expense',
+          account_type: 'expense',
+          normal_balance: 'debit',
+          sort_order: 6950,
+          parent_id: parentRow ? Number(parentRow.id) : null,
+          account_group: 'operating_expenses',
+          allow_manual_entries: true,
+          is_control_account: false,
+          is_cash_bank: false,
+          is_receivable: false,
+          is_payable: false,
+          is_inventory: false,
+          is_tax: false,
+          is_active: true,
+          is_system: false,
+          tenant_id: tenantId,
+          description_ar: 'مصروف إهلاك الأصول الثابتة الدوري',
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+      deprExpenseAccountId = Number(created.id);
+    }
+
+    return { deprExpenseAccountId, accumDeprAccountId };
+  }
+
   async listFixedAssets(actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(actor);
-    const assets = await this.db
+    const rows = await this.db
       .selectFrom('fixed_assets')
       .selectAll()
       .where('tenant_id', '=', scope.tenantId)
       .orderBy('created_at', 'desc')
       .execute();
+
+    const assets = rows.map((a) => {
+      const cost = Number(a.purchase_cost || 0);
+      const accum = Number(a.accumulated_depreciation || 0);
+      const salvage = Number(a.salvage_value || 0);
+      const bookValue = Math.max(0, cost - accum);
+      return {
+        ...a,
+        purchase_cost: cost,
+        accumulated_depreciation: accum,
+        salvage_value: salvage,
+        book_value: bookValue,
+      };
+    });
+
     return { ok: true, assets };
   }
 
@@ -1636,6 +1752,7 @@ export class AccountingService {
     purchaseCost: number;
     salvageValue?: number;
     usefulLifeMonths?: number;
+    depreciationMethod?: 'straight_line' | 'declining_balance';
     purchaseDate?: string;
   }, actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(actor);
@@ -1644,6 +1761,7 @@ export class AccountingService {
     const purchaseCost = Number(body.purchaseCost || 0);
     const salvageValue = Number(body.salvageValue || 0);
     const usefulLifeMonths = Number(body.usefulLifeMonths || 60);
+    const depreciationMethod = body.depreciationMethod === 'declining_balance' ? 'declining_balance' : 'straight_line';
 
     if (!code || !name || purchaseCost <= 0) {
       throw new BadRequestException('بيانات الأصل غير مكتملة (الكود، الاسم، وتكلفة الشراء مطلوبة).');
@@ -1658,7 +1776,7 @@ export class AccountingService {
         purchase_cost: purchaseCost,
         salvage_value: salvageValue,
         useful_life_months: usefulLifeMonths,
-        depreciation_method: 'straight_line',
+        depreciation_method: depreciationMethod,
         accumulated_depreciation: 0,
         status: 'active',
         purchase_date: body.purchaseDate ? new Date(body.purchaseDate) : new Date(),
@@ -1673,69 +1791,262 @@ export class AccountingService {
 
   async depreciateFixedAsset(id: number, body: { months?: number; note?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(actor);
-    const asset = await this.db
+
+    return await this.db.transaction().execute(async (trx) => {
+      const asset = await trx
+        .selectFrom('fixed_assets')
+        .selectAll()
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+
+      if (!asset) {
+        throw new BadRequestException('الأصل الثابت غير موجود.');
+      }
+
+      if (asset.status === 'retired') {
+        throw new BadRequestException('هذا الأصل متقاعد أو مستبعد ولا يمكن إهلاكه.');
+      }
+
+      const cost = Number(asset.purchase_cost || 0);
+      const salvage = Number(asset.salvage_value || 0);
+      const usefulLife = Math.max(1, Number(asset.useful_life_months || 60));
+      const currentAccumulated = Number(asset.accumulated_depreciation || 0);
+      const method = asset.depreciation_method || 'straight_line';
+      const months = Math.max(1, Number(body.months || 1));
+
+      const depreciableBase = Math.max(0, cost - salvage);
+      let calculatedAmount = 0;
+
+      if (method === 'declining_balance') {
+        const currentBook = Math.max(0, cost - currentAccumulated);
+        const annualRate = 2 / (usefulLife / 12);
+        const monthlyRate = currentBook * (annualRate / 12);
+        const maxDepreciable = Math.max(0, depreciableBase - currentAccumulated);
+        calculatedAmount = Math.min(monthlyRate * months, maxDepreciable);
+      } else {
+        const monthlyRate = depreciableBase / usefulLife;
+        calculatedAmount = Math.min(monthlyRate * months, Math.max(0, depreciableBase - currentAccumulated));
+      }
+
+      const depreciationAmount = this.toMoney(calculatedAmount);
+
+      if (depreciationAmount <= 0) {
+        throw new BadRequestException('تم إهلاك هذا الأصل بالكامل بالفعل.');
+      }
+
+      const newAccumulated = this.toMoney(currentAccumulated + depreciationAmount);
+      const newBookValue = this.toMoney(Math.max(0, cost - newAccumulated));
+      const isFullyDepreciated = newAccumulated >= depreciableBase;
+
+      // 1. Resolve Accounts
+      const accounts = await this.ensureDepreciationAccounts(trx, scope.tenantId, scope.accountId);
+
+      // 2. Insert Balanced Journal Entry
+      const entryDate = new Date();
+      const tempEntryNo = `JE-TMP-depr-${scope.tenantId}-${Date.now()}`;
+      const entryDesc = body.note
+        ? `إهلاك الأصل ${asset.name} (${asset.code}): ${body.note}`
+        : `إهلاك الأصل ${asset.name} (${asset.code}) - ${method === 'declining_balance' ? 'قسط متناقص' : 'قسط ثابت'}`;
+
+      const insertedJe = await trx
+        .insertInto('journal_entries')
+        .values({
+          entry_no: tempEntryNo,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          entry_date: entryDate,
+          description: entryDesc,
+          source_type: 'depreciation',
+          source_id: id,
+          status: 'posted',
+          branch_id: null,
+          location_id: null,
+          created_by: actor.userId,
+          posted_by: actor.userId,
+          posted_at: sql`NOW()`,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      const journalEntryId = Number(insertedJe.id);
+      const finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
+      await trx
+        .updateTable('journal_entries')
+        .set({ entry_no: finalEntryNo, updated_at: sql`NOW()` } as any)
+        .where('id', '=', journalEntryId)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
+      // 3. Insert Journal Lines (Debit Expense, Credit Accumulated)
+      await trx
+        .insertInto('journal_entry_lines')
+        .values([
+          {
+            journal_entry_id: journalEntryId,
+            tenant_id: scope.tenantId,
+            account_id: accounts.deprExpenseAccountId,
+            description: `مصروف إهلاك الأصل - ${asset.name}`,
+            debit: depreciationAmount,
+            credit: 0,
+            partner_type: 'none',
+            partner_id: null,
+            branch_id: null,
+            location_id: null,
+          } as any,
+          {
+            journal_entry_id: journalEntryId,
+            tenant_id: scope.tenantId,
+            account_id: accounts.accumDeprAccountId,
+            description: `مجمع إهلاك الأصل - ${asset.name}`,
+            debit: 0,
+            credit: depreciationAmount,
+            partner_type: 'none',
+            partner_id: null,
+            branch_id: null,
+            location_id: null,
+          } as any,
+        ])
+        .execute();
+
+      // 4. Update Fixed Asset Record
+      await trx
+        .updateTable('fixed_assets')
+        .set({
+          accumulated_depreciation: newAccumulated,
+          status: isFullyDepreciated ? 'fully_depreciated' : 'active',
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
+      // 5. Insert Log with Journal Entry ID
+      const log = await trx
+        .insertInto('asset_depreciation_logs')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          asset_id: id,
+          period_date: entryDate,
+          depreciation_amount: depreciationAmount,
+          accumulated_amount: newAccumulated,
+          book_value: newBookValue,
+          journal_entry_id: journalEntryId,
+          note: body.note || (method === 'declining_balance' ? `إهلاك دوري لعدد ${months} شهر بطريقة القسط المتناقص` : `إهلاك دوري لعدد ${months} شهر بطريقة القسط الثابت`),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      return {
+        ok: true,
+        depreciationAmount,
+        accumulatedDepreciation: newAccumulated,
+        bookValue: newBookValue,
+        isFullyDepreciated,
+        journalEntryId,
+        entryNo: finalEntryNo,
+        log,
+      };
+    });
+  }
+
+  async depreciateAllFixedAssets(body: { months?: number; note?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
+    const activeAssets = await this.db
       .selectFrom('fixed_assets')
       .selectAll()
-      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .where('status', '=', 'active')
+      .execute();
+
+    let processedCount = 0;
+    let totalDepreciation = 0;
+    const results: any[] = [];
+
+    for (const asset of activeAssets) {
+      const cost = Number(asset.purchase_cost || 0);
+      const salvage = Number(asset.salvage_value || 0);
+      const currentAccum = Number(asset.accumulated_depreciation || 0);
+      if (currentAccum >= (cost - salvage)) {
+        continue;
+      }
+      try {
+        const res = await this.depreciateFixedAsset(Number(asset.id), body, actor);
+        processedCount++;
+        totalDepreciation = this.toMoney(totalDepreciation + Number(res.depreciationAmount || 0));
+        results.push({ id: asset.id, name: asset.name, code: asset.code, amount: res.depreciationAmount, entryNo: res.entryNo });
+      } catch (e: any) {
+        results.push({ id: asset.id, name: asset.name, code: asset.code, error: e?.message || 'Failed' });
+      }
+    }
+
+    return {
+      ok: true,
+      processedCount,
+      totalDepreciation,
+      results,
+    };
+  }
+
+  async listAssetDepreciationLogs(assetId?: number, actor?: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor!);
+    let query = this.db
+      .selectFrom('asset_depreciation_logs as l')
+      .leftJoin('journal_entries as j', 'j.id', 'l.journal_entry_id')
+      .leftJoin('fixed_assets as a', 'a.id', 'l.asset_id')
+      .select([
+        'l.id',
+        'l.asset_id',
+        'l.period_date',
+        'l.depreciation_amount',
+        'l.accumulated_amount',
+        'l.book_value',
+        'l.journal_entry_id',
+        'l.note',
+        'l.created_at',
+        'j.entry_no as journal_entry_no',
+        'a.name as asset_name',
+        'a.code as asset_code',
+      ])
+      .where('l.tenant_id', '=', scope.tenantId);
+
+    if (assetId && assetId > 0) {
+      query = query.where('l.asset_id', '=', assetId);
+    }
+
+    const logs = await query.orderBy('l.created_at', 'desc').execute();
+    return { ok: true, logs };
+  }
+
+  async deleteFixedAsset(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(actor);
+    const logsCountRow = await this.db
+      .selectFrom('asset_depreciation_logs')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('asset_id', '=', id)
       .where('tenant_id', '=', scope.tenantId)
       .executeTakeFirst();
 
-    if (!asset) {
-      throw new BadRequestException('الأصل الثابت غير موجود.');
+    const count = Number(logsCountRow?.count || 0);
+    if (count > 0) {
+      // Mark as retired instead of deleting historical financial audit logs
+      await this.db
+        .updateTable('fixed_assets')
+        .set({ status: 'retired', updated_at: sql`NOW()` })
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+      return { ok: true, retired: true, message: 'تم إحالة الأصل إلى التقاعد (الاستبعاد) للاحتفاظ بسجل القيود التاريخية.' };
     }
-
-    const cost = Number(asset.purchase_cost || 0);
-    const salvage = Number(asset.salvage_value || 0);
-    const usefulLife = Number(asset.useful_life_months || 60);
-    const currentAccumulated = Number(asset.accumulated_depreciation || 0);
-
-    const depreciableBase = Math.max(0, cost - salvage);
-    const monthlyRate = depreciableBase / usefulLife;
-    const months = Number(body.months || 1);
-    const depreciationAmount = Math.min(monthlyRate * months, Math.max(0, depreciableBase - currentAccumulated));
-
-    if (depreciationAmount <= 0) {
-      throw new BadRequestException('تم إهلاك هذا الأصل بالكامل بالفعل.');
-    }
-
-    const newAccumulated = currentAccumulated + depreciationAmount;
-    const newBookValue = cost - newAccumulated;
-    const isFullyDepreciated = newAccumulated >= depreciableBase;
 
     await this.db
-      .updateTable('fixed_assets')
-      .set({
-        accumulated_depreciation: newAccumulated,
-        status: isFullyDepreciated ? 'fully_depreciated' : 'active',
-        updated_at: sql`NOW()`,
-      })
+      .deleteFrom('fixed_assets')
       .where('id', '=', id)
       .where('tenant_id', '=', scope.tenantId)
       .execute();
 
-    const log = await this.db
-      .insertInto('asset_depreciation_logs')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-        asset_id: id,
-        period_date: new Date(),
-        depreciation_amount: depreciationAmount,
-        accumulated_amount: newAccumulated,
-        book_value: newBookValue,
-        note: body.note || `إهلاك دوري لعدد ${months} شهر بطريقة القسط الثابت`,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    return {
-      ok: true,
-      depreciationAmount,
-      accumulatedDepreciation: newAccumulated,
-      bookValue: newBookValue,
-      isFullyDepreciated,
-      log,
-    };
+    return { ok: true, deleted: true };
   }
 
   // --- Multi-Currency & Exchange Rates (العملات المتعددة وأسعار الصرف) ---

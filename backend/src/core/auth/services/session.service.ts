@@ -209,11 +209,25 @@ export class SessionService {
       }
       user = matchedByEmail[0];
     } else {
-      user = await this.db
+      const candidates = await this.db
         .selectFrom('users')
         .select(['id', 'username', 'password_hash', 'password_salt', 'role', 'permissions_json', 'is_active', 'locked_until', 'failed_login_count', 'tenant_id', 'account_id'])
-        .where('username', '=', normalized)
-        .executeTakeFirst();
+        .where(sql<boolean>`LOWER(username) = LOWER(${normalized})`)
+        .where('is_active', '=', true)
+        .execute();
+
+      if (candidates.length === 1) {
+        user = candidates[0];
+      } else if (candidates.length > 1) {
+        for (const candidate of candidates) {
+          const check = await verifyPassword(password, candidate.password_hash, candidate.password_salt);
+          if (check.valid) {
+            user = candidate;
+            break;
+          }
+        }
+        if (!user) user = candidates[0];
+      }
     }
 
     if (!user) return null;
