@@ -45,6 +45,23 @@ function getAppDisplayVersion() {
 
 const packageVersion = getAppDisplayVersion();
 
+function getLogsDir() {
+  const dataDir = app.isPackaged
+    ? path.join(path.dirname(process.execPath), 'runtime', 'data')
+    : path.join(process.cwd(), 'portable_data');
+  return path.resolve(dataDir, '../logs');
+}
+
+function logRenderer(msg) {
+  try {
+    const logsDir = getLogsDir();
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+    fs.appendFileSync(path.join(logsDir, 'renderer.log'), `[${new Date().toISOString()}] ${msg}\n`, 'utf8');
+  } catch (_) {}
+}
+
 function getLoadingHtmlPath() {
   const isDev = process.env.NODE_ENV === 'development';
   if (isDev) {
@@ -247,6 +264,20 @@ const createMainWindow = (customLoadHandler) => {
   mainWindow.webContents.once('did-finish-load', () => {
     isMainWindowRendered = true;
     tryRevealApp();
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    logRenderer(`[FAIL-LOAD] code=${errorCode} (${errorDescription}) URL=${validatedURL}`);
+  });
+
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    logRenderer(`[PROCESS GONE] reason=${details.reason}, exitCode=${details.exitCode}`);
+  });
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    if (level >= 2) {
+      logRenderer(`[CONSOLE-${level === 3 ? 'ERROR' : 'WARN'}] (${sourceId || 'inline'}:${line}) ${message}`);
+    }
   });
 
   if (customLoadHandler) {

@@ -1,7 +1,7 @@
 {
   "name": "zsystems-frontend",
   "private": true,
-  "version": "1.1.30",
+  "version": "1.1.31",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -14,7 +14,6 @@
     "mobile:sync": "node ../scripts/sync-capacitor-android.cjs",
     "mobile:apk": "node ../scripts/build-apk.cjs",
     "start:exe": "electron .",
-
     "preview": "vite preview",
     "qa:routes": "node scripts/route-qa.mjs",
     "qa:features": "node scripts/feature-structure-check.mjs && node scripts/feature-boundary-check.mjs",
