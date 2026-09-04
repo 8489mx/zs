@@ -17,7 +17,7 @@ jobs:
   deploy:
     name: Deploy to Oracle Cloud VPS
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: SSH and Update Server
@@ -28,7 +28,9 @@ jobs:
           key: ${{ secrets.ORACLE_SSH_KEY }}
           port: 22
           script_stop: true
+          command_timeout: 12m
           script: |
+            set -e
             echo "🚀 Starting automated deployment..."
             
             TARGET_DIR=""
@@ -62,12 +64,79 @@ jobs:
             git reset --hard origin/main
             git remote set-url origin https://github.com/8489mx/zs.git
 
+            # --- Run update.sh if it exists, otherwise do inline build & restart ---
             if [ -f "./update.sh" ]; then
+              echo "📜 Found update.sh, executing..."
               chmod +x ./update.sh
               ./update.sh
-            elif [ -f "/var/www/zsystems/update.sh" ]; then
-              chmod +x /var/www/zsystems/update.sh
-              /var/www/zsystems/update.sh
+            else
+              echo "📦 No update.sh found. Running inline build & restart..."
+
+              # Install backend dependencies
+              echo "📦 Installing backend dependencies..."
+              cd "$TARGET_DIR/backend"
+              npm install --include=dev --no-audit --no-fund 2>&1 || npm install --include=dev 2>&1
+              
+              # Build backend
+              echo "🔨 Building backend..."
+              npx nest build 2>&1
+              
+              # Verify build output
+              if [ ! -f "$TARGET_DIR/backend/dist/main.js" ]; then
+                echo "❌ Backend build failed — dist/main.js not found!"
+                exit 1
+              fi
+              echo "✅ Backend build successful."
+              
+              cd "$TARGET_DIR"
+
+              # Restart with PM2 or systemd
+              if command -v pm2 &>/dev/null; then
+                echo "🔄 Restarting via PM2..."
+                pm2 restart all --update-env 2>&1 || pm2 start "$TARGET_DIR/hostinger-api-entry.cjs" --name zsystems 2>&1
+                pm2 save 2>&1 || true
+              elif systemctl is-active --quiet zsystems 2>/dev/null; then
+                echo "🔄 Restarting via systemd..."
+                sudo systemctl restart zsystems
+              else
+                echo "⚠️ No PM2 or systemd service found. Attempting direct node restart..."
+                # Kill existing node process if any
+                pkill -f "hostinger-api-entry" 2>/dev/null || true
+                sleep 2
+                nohup node "$TARGET_DIR/hostinger-api-entry.cjs" > "$TARGET_DIR/backend.log" 2>&1 &
+                echo "Started node process with PID $!"
+              fi
             fi
 
-            echo "✅ Deployment finished successfully!"
+            # --- Health check ---
+            echo "🏥 Running health check..."
+            HEALTH_OK=false
+            for i in $(seq 1 15); do
+              sleep 3
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3001/health 2>/dev/null || echo "000")
+              echo "  Attempt $i: HTTP $HTTP_CODE"
+              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+                HEALTH_OK=true
+                break
+              fi
+            done
+
+            if [ "$HEALTH_OK" = true ]; then
+              echo "✅ Deployment finished successfully — backend is healthy!"
+            else
+              echo "⚠️ Backend health check failed after 15 attempts."
+              echo "--- Last 50 lines of backend log ---"
+              if [ -f "$TARGET_DIR/backend.log" ]; then
+                tail -50 "$TARGET_DIR/backend.log" 2>/dev/null || true
+              fi
+              if command -v pm2 &>/dev/null; then
+                echo "--- PM2 logs ---"
+                pm2 logs --nostream --lines 30 2>/dev/null || true
+              fi
+              if command -v journalctl &>/dev/null; then
+                echo "--- journalctl logs ---"
+                sudo journalctl -u zsystems --no-pager -n 30 2>/dev/null || true
+              fi
+              exit 1
+            fi
+
