@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -116,19 +116,55 @@ jobs:
               pm2 restart all --update-env >> "$DIAG_FILE" 2>&1 || true
             fi
 
+            # Check if port 3001 is listening
+            if ! sudo ss -tulpn | grep -q ":3001 "; then
+              echo "⚠️ Port 3001 is NOT listening! Attempting manual recovery..." >> "$DIAG_FILE"
+              # Ensure backend dist exists
+              if [ ! -f "$TARGET_DIR/backend/dist/main.js" ]; then
+                echo "🔨 Compiling backend..." >> "$DIAG_FILE"
+                cd "$TARGET_DIR/backend"
+                npm install --include=dev --no-audit --no-fund >> "$DIAG_FILE" 2>&1 || true
+                npx nest build >> "$DIAG_FILE" 2>&1 || true
+                cd "$TARGET_DIR"
+              fi
+
+              # Try PM2 restart or start
+              if command -v pm2 &>/dev/null; then
+                echo "Starting via PM2..." >> "$DIAG_FILE"
+                pm2 restart all --update-env >> "$DIAG_FILE" 2>&1 || pm2 start "$TARGET_DIR/hostinger-api-entry.cjs" --name zsystems >> "$DIAG_FILE" 2>&1 || true
+                pm2 save >> "$DIAG_FILE" 2>&1 || true
+              fi
+
+              # Check if still not listening, try direct node in background
+              sleep 5
+              if ! sudo ss -tulpn | grep -q ":3001 "; then
+                echo "Starting via direct node..." >> "$DIAG_FILE"
+                pkill -f "hostinger-api-entry" 2>/dev/null || true
+                sleep 1
+                nohup node "$TARGET_DIR/hostinger-api-entry.cjs" > "$TARGET_DIR/backend-direct.log" 2>&1 &
+                sleep 5
+                echo "--- Direct node log ---" >> "$DIAG_FILE"
+                head -n 50 "$TARGET_DIR/backend-direct.log" >> "$DIAG_FILE" 2>&1 || true
+              fi
+            fi
+
             echo "--- Final listening ports ---" >> "$DIAG_FILE"
             sudo ss -tulpn >> "$DIAG_FILE" 2>&1 || true
 
             echo "--- Final health check ---" >> "$DIAG_FILE"
             curl -sv http://127.0.0.1:3001/health >> "$DIAG_FILE" 2>&1 || true
 
-            # Publish diag.txt to web root so it can be fetched via browser / curl
-            for webdir in "$TARGET_DIR/frontend/dist" "/var/www/html" "/var/www/zsystems/frontend/dist"; do
-              if [ -d "$webdir" ]; then
-                sudo cp "$DIAG_FILE" "$webdir/diag.txt" || true
-                sudo chmod 644 "$webdir/diag.txt" || true
-              fi
-            done
+            # Push diagnostics to server-diag branch so it can be fetched and read locally
+            echo "--- Pushing diagnostics to branch server-diag ---"
+            cd "$TARGET_DIR"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout -B server-diag
+            cp "$DIAG_FILE" server-diag.txt
+            git add -f server-diag.txt
+            git commit -m "chore: server diagnostics [skip ci]" || true
+            git push -f origin server-diag || true
+            git checkout main || true
 
             cat "$DIAG_FILE"
             echo "✅ Deployment step finished."
