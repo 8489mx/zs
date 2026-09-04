@@ -20,152 +20,98 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: SSH and Update Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 92.5.178.54
-          username: ubuntu
-          key: ${{ secrets.ORACLE_SSH_KEY }}
-          port: 22
-          script_stop: true
-          command_timeout: 12m
-          script: |
-            echo "🚀 Starting automated deployment & diagnostics..."
-            
-            TARGET_DIR=""
-            for dir in "/var/www/zsystems" "/var/www/zs" "/home/ubuntu/zsystems" "/home/ubuntu/zs" "/home/ubuntu/z-systems"; do
-              if [ -d "$dir" ]; then
-                TARGET_DIR="$dir"
-                break
-              fi
-            done
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            if [ -z "$TARGET_DIR" ]; then
-              TARGET_DIR="/var/www/zsystems"
-              sudo mkdir -p "$TARGET_DIR"
-              sudo chown -R ubuntu:ubuntu "$TARGET_DIR"
+      - name: SSH and Deploy to Oracle Server
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@92.5.178.54 'bash -s' > server-diag.txt 2>&1 << 'REMOTEEVERYTHING'
+          echo "🚀 Connected to Oracle VPS successfully at $(date)"
+          
+          TARGET_DIR=""
+          for dir in "/var/www/zsystems" "/var/www/zs" "/home/ubuntu/zsystems" "/home/ubuntu/zs"; do
+            if [ -d "$dir" ]; then
+              TARGET_DIR="$dir"
+              break
             fi
+          done
 
-            echo "📂 Working directory: $TARGET_DIR"
+          if [ -z "$TARGET_DIR" ]; then
+            TARGET_DIR="/var/www/zsystems"
+          fi
+          echo "📂 TARGET_DIR is: $TARGET_DIR"
+          cd "$TARGET_DIR"
+
+          echo "=== 1. Check update.sh content ==="
+          if [ -f "/var/www/zsystems/update.sh" ]; then
+            cat "/var/www/zsystems/update.sh"
+          elif [ -f "$TARGET_DIR/update.sh" ]; then
+            cat "$TARGET_DIR/update.sh"
+          else
+            echo "No update.sh file found"
+          fi
+
+          echo "=== 2. Nginx configuration ==="
+          cat /etc/nginx/sites-enabled/* 2>/dev/null || true
+
+          echo "=== 3. Nginx error log ==="
+          sudo tail -n 25 /var/log/nginx/error.log 2>/dev/null || true
+
+          echo "=== 4. PM2 status and logs ==="
+          pm2 list 2>/dev/null || true
+          pm2 logs --nostream --lines 30 2>/dev/null || true
+
+          echo "=== 5. Systemd services ==="
+          sudo systemctl list-units --type=service 2>/dev/null | grep -E 'zs|backend|node|app' || true
+
+          echo "=== 6. Listening ports before update ==="
+          sudo ss -tulpn 2>/dev/null || true
+
+          echo "=== 7. Git update ==="
+          git config --global --add safe.directory "$TARGET_DIR" 2>/dev/null || true
+          git fetch origin main 2>&1
+          git reset --hard origin/main 2>&1
+
+          echo "=== 8. Run update.sh if present ==="
+          if [ -f "/var/www/zsystems/update.sh" ]; then
+            chmod +x /var/www/zsystems/update.sh
+            /var/www/zsystems/update.sh 2>&1 || true
+          fi
+
+          echo "=== 9. Ensure backend is built & running ==="
+          if [ ! -f "$TARGET_DIR/backend/dist/main.js" ]; then
+            echo "Building backend..."
+            cd "$TARGET_DIR/backend"
+            npm install --include=dev --no-audit --no-fund 2>&1 || true
+            npx nest build 2>&1 || true
             cd "$TARGET_DIR"
-            git config --global --add safe.directory "$TARGET_DIR" || true
+          fi
 
-            if [ ! -d ".git" ]; then
-              echo "⚙️ Initializing git repository..."
-              git init
-            fi
+          if command -v pm2 &>/dev/null; then
+            echo "Restarting PM2..."
+            pm2 restart all --update-env 2>&1 || pm2 start "$TARGET_DIR/hostinger-api-entry.cjs" --name zsystems 2>&1 || true
+            pm2 save 2>&1 || true
+          fi
 
-            echo "📥 Fetching latest code from origin/main..."
-            git remote remove origin 2>/dev/null || true
-            git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/8489mx/zs.git
-            git fetch origin main
-            git reset --hard origin/main
-            git remote set-url origin https://github.com/8489mx/zs.git
+          echo "=== 10. Check port 3001 and local health ==="
+          sleep 4
+          sudo ss -tulpn 2>/dev/null | grep -E '3000|3001|5432|80|443' || true
+          curl -iv http://127.0.0.1:3001/health 2>&1 || true
 
-            # --- DIAGNOSTICS START ---
-            DIAG_FILE="/tmp/diag.txt"
-            echo "=== SERVER DIAGNOSTICS $(date) ===" > "$DIAG_FILE"
-            echo "--- update.sh content ---" >> "$DIAG_FILE"
-            if [ -f "/var/www/zsystems/update.sh" ]; then
-              cat "/var/www/zsystems/update.sh" >> "$DIAG_FILE" 2>&1
-            elif [ -f "./update.sh" ]; then
-              cat "./update.sh" >> "$DIAG_FILE" 2>&1
-            else
-              echo "No update.sh file found" >> "$DIAG_FILE"
-            fi
+          echo "=== Execution completed at $(date) ==="
+          REMOTEEVERYTHING
 
-            echo "--- Nginx configuration ---" >> "$DIAG_FILE"
-            cat /etc/nginx/sites-enabled/* >> "$DIAG_FILE" 2>&1 || true
-
-            echo "--- Nginx error log (last 30) ---" >> "$DIAG_FILE"
-            sudo tail -n 30 /var/log/nginx/error.log >> "$DIAG_FILE" 2>&1 || true
-
-            echo "--- Listening ports ---" >> "$DIAG_FILE"
-            sudo ss -tulpn >> "$DIAG_FILE" 2>&1 || true
-
-            echo "--- PM2 status ---" >> "$DIAG_FILE"
-            pm2 list >> "$DIAG_FILE" 2>&1 || true
-
-            echo "--- PM2 logs (last 40) ---" >> "$DIAG_FILE"
-            pm2 logs --nostream --lines 40 >> "$DIAG_FILE" 2>&1 || true
-
-            echo "--- Running node processes ---" >> "$DIAG_FILE"
-            ps aux | grep node >> "$DIAG_FILE" 2>&1 || true
-
-            echo "--- Systemd services ---" >> "$DIAG_FILE"
-            sudo systemctl list-units --type=service | grep -E 'zs|backend|node|app' >> "$DIAG_FILE" 2>&1 || true
-
-            # Execute update.sh if present
-            if [ -f "/var/www/zsystems/update.sh" ]; then
-              echo "--- Executing /var/www/zsystems/update.sh ---" >> "$DIAG_FILE"
-              chmod +x /var/www/zsystems/update.sh
-              /var/www/zsystems/update.sh >> "$DIAG_FILE" 2>&1 || true
-            elif [ -f "./update.sh" ]; then
-              echo "--- Executing ./update.sh ---" >> "$DIAG_FILE"
-              chmod +x ./update.sh
-              ./update.sh >> "$DIAG_FILE" 2>&1 || true
-            fi
-
-            # Check if backend is alive after update.sh
-            echo "--- Health check after update.sh ---" >> "$DIAG_FILE"
-            curl -sv http://127.0.0.1:3001/health >> "$DIAG_FILE" 2>&1 || true
-
-            # If PM2 is managing the process, restart it now to pick up fresh dist
-            if command -v pm2 &>/dev/null; then
-              echo "--- Restarting via PM2 ---" >> "$DIAG_FILE"
-              pm2 restart all --update-env >> "$DIAG_FILE" 2>&1 || true
-            fi
-
-            # Check if port 3001 is listening
-            if ! sudo ss -tulpn | grep -q ":3001 "; then
-              echo "⚠️ Port 3001 is NOT listening! Attempting manual recovery..." >> "$DIAG_FILE"
-              # Ensure backend dist exists
-              if [ ! -f "$TARGET_DIR/backend/dist/main.js" ]; then
-                echo "🔨 Compiling backend..." >> "$DIAG_FILE"
-                cd "$TARGET_DIR/backend"
-                npm install --include=dev --no-audit --no-fund >> "$DIAG_FILE" 2>&1 || true
-                npx nest build >> "$DIAG_FILE" 2>&1 || true
-                cd "$TARGET_DIR"
-              fi
-
-              # Try PM2 restart or start
-              if command -v pm2 &>/dev/null; then
-                echo "Starting via PM2..." >> "$DIAG_FILE"
-                pm2 restart all --update-env >> "$DIAG_FILE" 2>&1 || pm2 start "$TARGET_DIR/hostinger-api-entry.cjs" --name zsystems >> "$DIAG_FILE" 2>&1 || true
-                pm2 save >> "$DIAG_FILE" 2>&1 || true
-              fi
-
-              # Check if still not listening, try direct node in background
-              sleep 5
-              if ! sudo ss -tulpn | grep -q ":3001 "; then
-                echo "Starting via direct node..." >> "$DIAG_FILE"
-                pkill -f "hostinger-api-entry" 2>/dev/null || true
-                sleep 1
-                nohup node "$TARGET_DIR/hostinger-api-entry.cjs" > "$TARGET_DIR/backend-direct.log" 2>&1 &
-                sleep 5
-                echo "--- Direct node log ---" >> "$DIAG_FILE"
-                head -n 50 "$TARGET_DIR/backend-direct.log" >> "$DIAG_FILE" 2>&1 || true
-              fi
-            fi
-
-            echo "--- Final listening ports ---" >> "$DIAG_FILE"
-            sudo ss -tulpn >> "$DIAG_FILE" 2>&1 || true
-
-            echo "--- Final health check ---" >> "$DIAG_FILE"
-            curl -sv http://127.0.0.1:3001/health >> "$DIAG_FILE" 2>&1 || true
-
-            # Push diagnostics to server-diag branch so it can be fetched and read locally
-            echo "--- Pushing diagnostics to branch server-diag ---"
-            cd "$TARGET_DIR"
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git checkout -B server-diag
-            cp "$DIAG_FILE" server-diag.txt
-            git add -f server-diag.txt
-            git commit -m "chore: server diagnostics [skip ci]" || true
-            git push -f origin server-diag || true
-            git checkout main || true
-
-            cat "$DIAG_FILE"
-            echo "✅ Deployment step finished."
+      - name: Push diagnostics to server-diag branch
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B server-diag
+          git add -f server-diag.txt
+          git commit -m "chore: server diagnostics $(date +'%Y-%m-%d %H:%M:%S') [skip ci]" || true
+          git push -f origin server-diag || true
 
