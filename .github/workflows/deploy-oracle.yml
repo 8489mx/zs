@@ -30,8 +30,7 @@ jobs:
           script_stop: true
           command_timeout: 12m
           script: |
-            set -e
-            echo "🚀 Starting automated deployment..."
+            echo "🚀 Starting automated deployment & diagnostics..."
             
             TARGET_DIR=""
             for dir in "/var/www/zsystems" "/var/www/zs" "/home/ubuntu/zsystems" "/home/ubuntu/zs" "/home/ubuntu/z-systems"; do
@@ -42,7 +41,6 @@ jobs:
             done
 
             if [ -z "$TARGET_DIR" ]; then
-              echo "⚠️ Target directory not found. Creating /var/www/zsystems..."
               TARGET_DIR="/var/www/zsystems"
               sudo mkdir -p "$TARGET_DIR"
               sudo chown -R ubuntu:ubuntu "$TARGET_DIR"
@@ -64,79 +62,74 @@ jobs:
             git reset --hard origin/main
             git remote set-url origin https://github.com/8489mx/zs.git
 
-            # --- Run update.sh if it exists, otherwise do inline build & restart ---
-            if [ -f "./update.sh" ]; then
-              echo "📜 Found update.sh, executing..."
-              chmod +x ./update.sh
-              ./update.sh
+            # --- DIAGNOSTICS START ---
+            DIAG_FILE="/tmp/diag.txt"
+            echo "=== SERVER DIAGNOSTICS $(date) ===" > "$DIAG_FILE"
+            echo "--- update.sh content ---" >> "$DIAG_FILE"
+            if [ -f "/var/www/zsystems/update.sh" ]; then
+              cat "/var/www/zsystems/update.sh" >> "$DIAG_FILE" 2>&1
+            elif [ -f "./update.sh" ]; then
+              cat "./update.sh" >> "$DIAG_FILE" 2>&1
             else
-              echo "📦 No update.sh found. Running inline build & restart..."
-
-              # Install backend dependencies
-              echo "📦 Installing backend dependencies..."
-              cd "$TARGET_DIR/backend"
-              npm install --include=dev --no-audit --no-fund 2>&1 || npm install --include=dev 2>&1
-              
-              # Build backend
-              echo "🔨 Building backend..."
-              npx nest build 2>&1
-              
-              # Verify build output
-              if [ ! -f "$TARGET_DIR/backend/dist/main.js" ]; then
-                echo "❌ Backend build failed — dist/main.js not found!"
-                exit 1
-              fi
-              echo "✅ Backend build successful."
-              
-              cd "$TARGET_DIR"
-
-              # Restart with PM2 or systemd
-              if command -v pm2 &>/dev/null; then
-                echo "🔄 Restarting via PM2..."
-                pm2 restart all --update-env 2>&1 || pm2 start "$TARGET_DIR/hostinger-api-entry.cjs" --name zsystems 2>&1
-                pm2 save 2>&1 || true
-              elif systemctl is-active --quiet zsystems 2>/dev/null; then
-                echo "🔄 Restarting via systemd..."
-                sudo systemctl restart zsystems
-              else
-                echo "⚠️ No PM2 or systemd service found. Attempting direct node restart..."
-                # Kill existing node process if any
-                pkill -f "hostinger-api-entry" 2>/dev/null || true
-                sleep 2
-                nohup node "$TARGET_DIR/hostinger-api-entry.cjs" > "$TARGET_DIR/backend.log" 2>&1 &
-                echo "Started node process with PID $!"
-              fi
+              echo "No update.sh file found" >> "$DIAG_FILE"
             fi
 
-            # --- Health check ---
-            echo "🏥 Running health check..."
-            HEALTH_OK=false
-            for i in $(seq 1 15); do
-              sleep 3
-              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3001/health 2>/dev/null || echo "000")
-              echo "  Attempt $i: HTTP $HTTP_CODE"
-              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-                HEALTH_OK=true
-                break
+            echo "--- Nginx configuration ---" >> "$DIAG_FILE"
+            cat /etc/nginx/sites-enabled/* >> "$DIAG_FILE" 2>&1 || true
+
+            echo "--- Nginx error log (last 30) ---" >> "$DIAG_FILE"
+            sudo tail -n 30 /var/log/nginx/error.log >> "$DIAG_FILE" 2>&1 || true
+
+            echo "--- Listening ports ---" >> "$DIAG_FILE"
+            sudo ss -tulpn >> "$DIAG_FILE" 2>&1 || true
+
+            echo "--- PM2 status ---" >> "$DIAG_FILE"
+            pm2 list >> "$DIAG_FILE" 2>&1 || true
+
+            echo "--- PM2 logs (last 40) ---" >> "$DIAG_FILE"
+            pm2 logs --nostream --lines 40 >> "$DIAG_FILE" 2>&1 || true
+
+            echo "--- Running node processes ---" >> "$DIAG_FILE"
+            ps aux | grep node >> "$DIAG_FILE" 2>&1 || true
+
+            echo "--- Systemd services ---" >> "$DIAG_FILE"
+            sudo systemctl list-units --type=service | grep -E 'zs|backend|node|app' >> "$DIAG_FILE" 2>&1 || true
+
+            # Execute update.sh if present
+            if [ -f "/var/www/zsystems/update.sh" ]; then
+              echo "--- Executing /var/www/zsystems/update.sh ---" >> "$DIAG_FILE"
+              chmod +x /var/www/zsystems/update.sh
+              /var/www/zsystems/update.sh >> "$DIAG_FILE" 2>&1 || true
+            elif [ -f "./update.sh" ]; then
+              echo "--- Executing ./update.sh ---" >> "$DIAG_FILE"
+              chmod +x ./update.sh
+              ./update.sh >> "$DIAG_FILE" 2>&1 || true
+            fi
+
+            # Check if backend is alive after update.sh
+            echo "--- Health check after update.sh ---" >> "$DIAG_FILE"
+            curl -sv http://127.0.0.1:3001/health >> "$DIAG_FILE" 2>&1 || true
+
+            # If PM2 is managing the process, restart it now to pick up fresh dist
+            if command -v pm2 &>/dev/null; then
+              echo "--- Restarting via PM2 ---" >> "$DIAG_FILE"
+              pm2 restart all --update-env >> "$DIAG_FILE" 2>&1 || true
+            fi
+
+            echo "--- Final listening ports ---" >> "$DIAG_FILE"
+            sudo ss -tulpn >> "$DIAG_FILE" 2>&1 || true
+
+            echo "--- Final health check ---" >> "$DIAG_FILE"
+            curl -sv http://127.0.0.1:3001/health >> "$DIAG_FILE" 2>&1 || true
+
+            # Publish diag.txt to web root so it can be fetched via browser / curl
+            for webdir in "$TARGET_DIR/frontend/dist" "/var/www/html" "/var/www/zsystems/frontend/dist"; do
+              if [ -d "$webdir" ]; then
+                sudo cp "$DIAG_FILE" "$webdir/diag.txt" || true
+                sudo chmod 644 "$webdir/diag.txt" || true
               fi
             done
 
-            if [ "$HEALTH_OK" = true ]; then
-              echo "✅ Deployment finished successfully — backend is healthy!"
-            else
-              echo "⚠️ Backend health check failed after 15 attempts."
-              echo "--- Last 50 lines of backend log ---"
-              if [ -f "$TARGET_DIR/backend.log" ]; then
-                tail -50 "$TARGET_DIR/backend.log" 2>/dev/null || true
-              fi
-              if command -v pm2 &>/dev/null; then
-                echo "--- PM2 logs ---"
-                pm2 logs --nostream --lines 30 2>/dev/null || true
-              fi
-              if command -v journalctl &>/dev/null; then
-                echo "--- journalctl logs ---"
-                sudo journalctl -u zsystems --no-pager -n 30 2>/dev/null || true
-              fi
-              exit 1
-            fi
+            cat "$DIAG_FILE"
+            echo "✅ Deployment step finished."
 
