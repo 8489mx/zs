@@ -275,7 +275,12 @@ export function createPosWorkspaceAsyncActions(
       base.resetPosDraft();
       params.setPostSaleSaleKey(createdSaleKey);
       const postSalePrintMode = getPostSalePrintMode(params.settings || null);
-      params.setSubmitMessage(`تم حفظ فاتورة البيع بنجاح${(createdSale as Sale)?.docNo ? `: ${(createdSale as Sale).docNo}` : ''}. ${getPostSalePrintHint(postSalePrintMode)}`);
+      const isOffline = Boolean((createdSale as any)?.offline);
+      const docNo = (createdSale as Sale)?.docNo || (createdSale as any)?.id || '';
+      const baseMsg = isOffline
+        ? `⚡ تم حفظ الفاتورة محلياً (بدون إنترنت): ${docNo}. ستُرحل تلقائياً فور عودة الاتصال.`
+        : `تم حفظ فاتورة البيع بنجاح${docNo ? `: ${docNo}` : ''}.`;
+      params.setSubmitMessage(`${baseMsg} ${getPostSalePrintHint(postSalePrintMode)}`);
       params.requestBarcodeFocus();
     } catch (error) {
       params.setSubmitMessage(getSubmitSaleErrorMessage(error));

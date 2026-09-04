@@ -4,12 +4,16 @@ import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { AdminRoleGuard } from '../../../core/auth/guards/admin-role.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { SettingsBackupService } from '../services/settings-backup.service';
+import { CloudBackupService, CloudBackupConfig } from '../services/cloud-backup.service';
 import { BackupEnvelopeDto } from '../dto/backup-envelope.dto';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, AdminRoleGuard)
 export class SettingsBackupController {
-  constructor(private readonly backupService: SettingsBackupService) {}
+  constructor(
+    private readonly backupService: SettingsBackupService,
+    private readonly cloudBackupService: CloudBackupService
+  ) {}
 
   
   @Get('backup')
@@ -50,6 +54,27 @@ export class SettingsBackupController {
   saveBackupToConfiguredFolder(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.backupService.saveBackupToConfiguredFolder(req.authContext!);
   }
+
+  @Get('backup/cloud/config')
+  getCloudConfig(@Req() req: RequestWithAuth): Promise<CloudBackupConfig> {
+    return this.cloudBackupService.getCloudConfig(req.authContext!);
+  }
+
+  @Post('backup/cloud/config')
+  saveCloudConfig(@Body() payload: Partial<CloudBackupConfig>, @Req() req: RequestWithAuth): Promise<CloudBackupConfig> {
+    return this.cloudBackupService.saveCloudConfig(payload, req.authContext!);
+  }
+
+  @Post('backup/cloud/test')
+  testCloudConnection(@Req() req: RequestWithAuth): Promise<{ success: boolean; message: string }> {
+    return this.cloudBackupService.testConnection(req.authContext!);
+  }
+
+  @Post('backup/cloud/trigger')
+  triggerCloudBackupNow(@Req() req: RequestWithAuth) {
+    return this.cloudBackupService.triggerCloudBackupNow(req.authContext!);
+  }
+
 
   
   @Post('backup/verify')

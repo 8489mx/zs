@@ -54,8 +54,10 @@ export function PurchasesWorkspace() {
               onPrint={controller.canPrint && selectedPurchase ? () => printPurchaseDocument(selectedPurchase, settingsQuery.data) : undefined}
               onEdit={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToEdit(selectedPurchase) : undefined}
               onCancel={canEditSelectedPurchase && selectedPurchase ? () => controller.setPurchaseToCancel(selectedPurchase) : undefined}
-              onRefresh={() => { controller.refetchPurchases(); controller.setSelectedPurchaseId(''); }}
+              onRefresh={() => { controller.purchasesQuery.purchasesQuery.refetch(); controller.setSelectedPurchaseId(''); }}
             />
+
+
           </div>
         </DialogShell>
 

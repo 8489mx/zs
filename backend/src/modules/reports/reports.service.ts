@@ -16,17 +16,21 @@ import { buildInventoryLocationHighlights, buildInventoryReportItems, buildInven
 import { buildReportListState } from './helpers/reports-query.helper';
 import { applyPartnerLedgerSearch, applySignedAmountFilter } from './helpers/reports-query-pipeline.helper';
 import { ReportsAdminService } from './services/reports-admin.service';
+import { ReportsSummaryService } from './services/reports-summary.service';
 
 @Injectable()
 export class ReportsService {
   private readonly reportsAdminService: ReportsAdminService;
+  private readonly reportsSummaryService: ReportsSummaryService;
 
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly configService?: ConfigService,
     reportsAdminService?: ReportsAdminService,
+    reportsSummaryService?: ReportsSummaryService,
   ) {
     this.reportsAdminService = reportsAdminService ?? new ReportsAdminService(this.db as never);
+    this.reportsSummaryService = reportsSummaryService ?? new ReportsSummaryService(this.db);
     setBusinessTimezoneResolver(() => this.configService?.get<string>('BUSINESS_TIMEZONE') ?? 'UTC');
   }
 
@@ -599,5 +603,13 @@ export class ReportsService {
 
   async auditLogs(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     return this.withScope(await this.reportsAdminService.auditLogs(query, auth), auth);
+  }
+
+  async debtAgingReport(auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.withScope(await this.reportsSummaryService.debtAgingReport(auth), auth);
+  }
+
+  async demandForecastingReport(auth: AuthContext): Promise<Record<string, unknown>> {
+    return this.withScope(await this.reportsSummaryService.demandForecastingReport(auth), auth);
   }
 }

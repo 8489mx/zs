@@ -99,5 +99,13 @@ export const posApi = {
   listHeldDrafts: async () => unwrapArray<HeldPosDraft>(await http<HeldPosDraft[] | { heldSales: HeldPosDraft[] }>('/api/held-sales'), 'heldSales'),
   saveHeldDraft: async (payload: unknown) => unwrapEntity<HeldPosDraft>(await http<HeldPosDraft | { draft: HeldPosDraft }>('/api/held-sales', { method: 'POST', body: JSON.stringify(payload) }), 'draft'),
   deleteHeldDraft: async (draftId: string) => http(`/api/held-sales/${draftId}`, { method: 'DELETE' }),
-  clearHeldDrafts: async () => http('/api/held-sales', { method: 'DELETE' })
+  clearHeldDrafts: async () => http('/api/held-sales', { method: 'DELETE' }),
+  listTerminals: async () => http<{ success: boolean; data: any[] }>('/api/sales/pos/terminals'),
+  initiateTerminalCharge: async (payload: { terminalId?: string; amount: number; currency?: string; invoiceReference?: string }) =>
+    http<{ success: boolean; data: any }>('/api/sales/pos/terminals/charge', { method: 'POST', body: JSON.stringify(payload) }),
+  checkTerminalStatus: async (transactionId: string) =>
+    http<{ success: boolean; data: any }>(`/api/sales/pos/terminals/status/${encodeURIComponent(transactionId)}`),
+  cancelTerminalCharge: async (transactionId: string) =>
+    http<{ success: boolean; data: any }>(`/api/sales/pos/terminals/cancel/${encodeURIComponent(transactionId)}`, { method: 'POST' })
 };
+

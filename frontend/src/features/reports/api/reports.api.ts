@@ -322,5 +322,60 @@ export const reportsApi = {
     };
     return http<EmployeeReportDetailsResponse>(`/api/reports/employees/${encodeURIComponent(userId)}/details${buildQueryString(query as Record<string, string | number | undefined | null>)}`);
   },
-  products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products'), 'products')
+  products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products'), 'products'),
+  debtAging: () => http<DebtAgingResponse>('/api/reports/debt-aging'),
+  demandForecasting: () => http<DemandForecastingResponse>('/api/reports/demand-forecasting'),
 };
+
+export interface DebtAgingBucketSummary {
+  total: number;
+  current: number;
+  days31To60: number;
+  days61To90: number;
+  over90: number;
+}
+
+export interface DebtAgingPartyRow {
+  id: string;
+  name: string;
+  phone: string;
+  totalBalance: number;
+  current: number;
+  days31To60: number;
+  days61To90: number;
+  over90: number;
+}
+
+export interface DebtAgingResponse {
+  receivablesSummary: DebtAgingBucketSummary;
+  payablesSummary: DebtAgingBucketSummary;
+  receivables: DebtAgingPartyRow[];
+  payables: DebtAgingPartyRow[];
+}
+
+export interface DemandForecastingItem {
+  productId: string;
+  name: string;
+  barcode: string;
+  sku: string;
+  stock: number;
+  minStock: number;
+  costPrice: number;
+  soldLast30Days: number;
+  dailyBurnRate: number;
+  runwayDays: number;
+  urgency: 'out_of_stock' | 'critical' | 'warning' | 'healthy' | 'overstocked';
+  suggestedReorderQty: number;
+}
+
+export interface DemandForecastingResponse {
+  summary: {
+    totalMonitoredProducts: number;
+    outOfStockCount: number;
+    criticalCount: number;
+    warningCount: number;
+    healthyCount: number;
+    overstockedCount: number;
+  };
+  items: DemandForecastingItem[];
+}

@@ -210,6 +210,8 @@ export function useReportsWorkspaceMetrics({
       balances: 'راجع العملاء والموردين الأعلى رصيدًا ثم اطبع أو صدّر الذمم للمراجعة.',
       treasury: 'ركز على صافي حركة النقدية وصافي الربح قبل اتخاذ أي قرار صرف.',
       employees: 'ابدأ بفلترة الموظف ثم راجع تفاصيل نشاطه وملخصاته قبل أي إجراء إداري.',
+      aging: 'راجع فئات تأخر السداد واتخذ إجراءات التحصيل للديون المتأخرة لأكثر من 60 يوماً.',
+      forecasting: 'راجع توقعات الطلب واقتراحات إعادة الطلب للأصناف المعرضة للنفاد.'
     };
     const attentionBySection: Record<ReportsSectionKey, string> = {
       overview: formatCurrency(financialCards?.netProfit ?? report?.commercial.netOperatingProfit ?? 0),
@@ -219,7 +221,10 @@ export function useReportsWorkspaceMetrics({
       balances: receivablesTotals ? formatCurrency(receivablesTotals.customerReceivables - receivablesTotals.supplierPayables) : `${balancesQuery.data?.summary?.overLimit || 0} فوق الحد`,
       treasury: formatCurrency(cashTotals?.netMovement ?? financialCards?.netCashMovement ?? report?.treasury.net ?? 0),
       employees: 'راجع سجل الموظفين بالتفصيل',
+      aging: 'متابعة الديون والتحصيل',
+      forecasting: 'تنبؤات حركة المخزون'
     };
+
     return [
       { key: 'section', label: 'القسم الحالي', value: sectionMeta.label },
       { key: 'next', label: 'الخطوة الأنسب الآن', value: nextStepBySection[currentSection] },

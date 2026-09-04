@@ -161,6 +161,11 @@ export const settingsApi = {
   saveBackupConfig: (payload: unknown) => http<BackupConfigResponse>('/api/backup/config', { method: 'POST', body: JSON.stringify(payload) }),
   testBackupFolder: (payload: unknown) => http<Record<string, unknown>>('/api/backup/folder/test', { method: 'POST', body: JSON.stringify(payload) }),
   saveBackupFileToFolder: () => http<Record<string, unknown>>('/api/backup/save-file', { method: 'POST' }),
+  cloudBackupConfig: () => http<any>('/api/backup/cloud/config'),
+  saveCloudBackupConfig: (payload: unknown) => http<any>('/api/backup/cloud/config', { method: 'POST', body: JSON.stringify(payload) }),
+  testCloudConnection: () => http<{ success: boolean; message: string }>('/api/backup/cloud/test', { method: 'POST' }),
+  triggerCloudBackupNow: () => http<{ success: boolean; fileName: string; cloudUrl: string }>('/api/backup/cloud/trigger', { method: 'POST' }),
+
   importProducts: (rows: unknown) => http<Record<string, unknown>>('/api/import/products', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),
   importCustomers: (rows: unknown) => http<Record<string, unknown>>('/api/import/customers', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),
   importSuppliers: (rows: unknown) => http<Record<string, unknown>>('/api/import/suppliers', { method: 'POST', body: JSON.stringify({ rows }), timeoutMs: CSV_IMPORT_TIMEOUT_MS }),

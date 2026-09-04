@@ -27,10 +27,13 @@ export interface DeliveryOrder {
   total: number;
   deliveryFee?: number;
   customerName: string;
+  customerPhone?: string | null;
+  customerAddress?: string | null;
   orderType: string;
   deliveryRepId: number | null;
   deliveryRepName?: string;
   deliveryStatus: string | null;
+
   collectionStatus: string | null;
   settledAt: string | null;
   settledByName?: string;

@@ -7,8 +7,31 @@ import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import type { Product } from '@/types/domain';
 
+const CATALOG_PERSIST_KEY = 'zsystems_pos_catalog_cache';
+
+function getStoredCatalog(): Product[] {
+  try {
+    const raw = localStorage.getItem(CATALOG_PERSIST_KEY);
+    return raw ? (JSON.parse(raw) as Product[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function storeCatalog(products: Product[]) {
+  try {
+    if (products && products.length > 0) {
+      const existing = getStoredCatalog();
+      const merged = mergeLookupProducts(products, existing).slice(0, 1000);
+      localStorage.setItem(CATALOG_PERSIST_KEY, JSON.stringify(merged));
+    }
+  } catch {
+    // storage limit fallback
+  }
+}
+
 export function usePosCatalog(search: string, branchId: string, locationId: string, productFilter: string = 'all') {
-  const [productCache, setProductCache] = useState<Product[]>([]);
+  const [productCache, setProductCache] = useState<Product[]>(() => getStoredCatalog());
   const parsedSearch = parseQuantityPrefixQuery(search);
   const trimmedSearch = parsedSearch.cleanQuery;
   const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
@@ -17,13 +40,36 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
   const lookupView = productFilter === 'offers' ? 'offers' : '';
   const productsQuery = useQuery({
     queryKey: ['products', 'pos', branchId || 'all', locationId || 'all', lookupMode, lookupTerm || '', lookupView || 'all', String(POS_PRODUCT_LOOKUP_LIMIT)] as const,
-    queryFn: () => posApi.lookupProducts({
-      ...(lookupMode === 'barcode' ? { barcode: lookupTerm } : lookupTerm ? { q: lookupTerm } : {}),
-      ...(lookupView ? { view: lookupView } : {}),
-      branchId,
-      locationId,
-      limit: POS_PRODUCT_LOOKUP_LIMIT,
-    }),
+    queryFn: async () => {
+      try {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          throw new Error('OFFLINE_MODE');
+        }
+        const res = await posApi.lookupProducts({
+          ...(lookupMode === 'barcode' ? { barcode: lookupTerm } : lookupTerm ? { q: lookupTerm } : {}),
+          ...(lookupView ? { view: lookupView } : {}),
+          branchId,
+          locationId,
+          limit: POS_PRODUCT_LOOKUP_LIMIT,
+        });
+        if (res && res.length > 0) {
+          storeCatalog(res);
+        }
+        return res;
+      } catch {
+        // Graceful offline fallback: filter from stored catalog
+        const stored = getStoredCatalog();
+        if (!lookupTerm) return stored.slice(0, POS_PRODUCT_LOOKUP_LIMIT);
+        const term = lookupTerm.toLowerCase();
+        return stored
+          .filter((p) =>
+            (p.name && p.name.toLowerCase().includes(term)) ||
+            (p.barcode && String(p.barcode).toLowerCase().includes(term)) ||
+            (p.sku && String(p.sku).toLowerCase().includes(term))
+          )
+          .slice(0, POS_PRODUCT_LOOKUP_LIMIT);
+      }
+    },
     placeholderData: (previousData) => previousData,
     staleTime: 60_000,
   });

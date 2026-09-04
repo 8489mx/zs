@@ -42,9 +42,11 @@ import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 import { TenantSubscriptionModule } from './modules/tenant-subscription/tenant-subscription.module';
 import { StorefrontModule } from './modules/storefront/storefront.module';
 import { AiCopilotModule } from './modules/ai-copilot/ai-copilot.module';
+import { JobQueueModule } from './common/queue/job-queue.module';
 
 @Module({
   imports: [
+    JobQueueModule,
     AppConfigModule,
     ConfigAccessModule,
     LoggingModule,
@@ -85,6 +87,7 @@ import { AiCopilotModule } from './modules/ai-copilot/ai-copilot.module';
     StorefrontModule,
     AiCopilotModule,
   ],
+
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],
 })
 export class AppModule implements NestModule {

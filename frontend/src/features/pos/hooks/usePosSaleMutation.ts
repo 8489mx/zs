@@ -18,13 +18,24 @@ export function usePosSaleMutation() {
         const legacyPayload = buildLegacyPosSalePayload(input);
         const minimalPayload = buildMinimalPosSalePayload(input);
         const idempotencyKey = crypto.randomUUID();
+
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          const offlineSale = enqueueOfflineSale(input, idempotencyKey);
+          return { id: offlineSale.id, docNo: offlineSale.id, offline: true, ...input };
+        }
         
         try {
           return await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': idempotencyKey });
         } catch (error: any) {
-          if (error?.message?.includes('fetch') || error?.message?.includes('Network Error') || error?.name === 'TypeError') {
+          if (
+            error?.message?.includes('fetch') ||
+            error?.message?.includes('Network') ||
+            error?.message?.includes('Failed to fetch') ||
+            error?.name === 'TypeError' ||
+            (typeof navigator !== 'undefined' && !navigator.onLine)
+          ) {
             const offlineSale = enqueueOfflineSale(input, idempotencyKey);
-            return { id: offlineSale.id, offline: true, ...input };
+            return { id: offlineSale.id, docNo: offlineSale.id, offline: true, ...input };
           }
           throw error;
         }

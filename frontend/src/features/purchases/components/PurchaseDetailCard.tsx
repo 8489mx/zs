@@ -69,8 +69,8 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
 
   const isMatched = purchase.matchedStatus === 'matched' || (!purchase.matchedStatus && purchase.status === 'posted');
   const isCancelled = purchase.status === 'cancelled';
-  const isOrder = purchase.lifecycleStatus === 'purchase_order';
   const isGrn = purchase.lifecycleStatus === 'grn_received';
+
 
   return (
     <div className="purchase-detail-card-shell" dir="rtl">

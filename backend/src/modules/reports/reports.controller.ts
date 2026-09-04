@@ -77,4 +77,16 @@ export class ReportsController {
   auditLogs(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.reportsService.auditLogs(query, req.authContext!);
   }
+
+  @Get('reports/debt-aging')
+  @RequireAnyPermission('reports', 'accounts')
+  debtAging(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.debtAgingReport(req.authContext!);
+  }
+
+  @Get('reports/demand-forecasting')
+  @RequireAnyPermission('reports', 'inventory')
+  demandForecasting(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.demandForecastingReport(req.authContext!);
+  }
 }

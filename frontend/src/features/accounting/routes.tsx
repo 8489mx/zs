@@ -2,8 +2,8 @@ import { createLazyRoute } from '@/app/router/lazy-route';
 import type { FeatureRouteModule } from '@/app/router/types';
 import { FeatureGate } from '@/shared/components/feature-gate';
 
-function withAccountingGate<P extends object>(Component: React.ComponentType<P>) {
-  return function AccountingGated(props: P) {
+function withAccountingGate<P = any>(Component: React.ComponentType<P>): React.ComponentType<any> {
+  return function AccountingGated(props: any) {
     return (
       <FeatureGate feature="accounting" featureName="الحسابات العامة وشجرة الحسابات">
         <Component {...props} />
@@ -11,6 +11,7 @@ function withAccountingGate<P extends object>(Component: React.ComponentType<P>)
     );
   };
 }
+
 
 export const accountingRouteModule: FeatureRouteModule = {
   routes: [

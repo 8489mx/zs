@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Param, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../../core/auth/guards/permissions.guard';
 import { RequirePermissions } from '../../../../core/auth/decorators/permissions.decorator';
@@ -26,4 +26,18 @@ export class EtaInvoicesController {
     const result = await this.etaSubmissionService.submitInvoices(String(req.authContext!.tenantId), body.invoiceIds);
     return result;
   }
+
+  @Get('status/:submissionId')
+  @RequirePermissions('sales')
+  async getSubmissionStatus(@Req() req: RequestWithAuth, @Param('submissionId') submissionId: string) {
+    return this.etaSubmissionService.checkSubmissionStatus(String(req.authContext!.tenantId), submissionId);
+  }
+
+  @Get('doc/:uuid')
+  @RequirePermissions('sales')
+  async getDocumentDetails(@Req() req: RequestWithAuth, @Param('uuid') uuid: string) {
+    return this.etaSubmissionService.getDocumentDetails(String(req.authContext!.tenantId), uuid);
+  }
 }
+
+

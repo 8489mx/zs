@@ -2,8 +2,8 @@ import { createLazyRoute } from '@/app/router/lazy-route';
 import type { FeatureRouteModule } from '@/app/router/types';
 import { FeatureGate } from '@/shared/components/feature-gate';
 
-function withHrGate<P extends object>(Component: React.ComponentType<P>) {
-  return function HrGated(props: P) {
+function withHrGate<P = any>(Component: React.ComponentType<P>): React.ComponentType<any> {
+  return function HrGated(props: any) {
     return (
       <FeatureGate feature="hr" featureName="الموارد البشرية وشؤون الموظفين">
         <Component {...props} />
@@ -11,6 +11,7 @@ function withHrGate<P extends object>(Component: React.ComponentType<P>) {
     );
   };
 }
+
 
 export const hrRouteModule: FeatureRouteModule = {
   routes: [

@@ -345,6 +345,69 @@ export function PosCheckoutPaymentSection({
     }
   }, [pos.discount, pos.totals.subTotal, isPercentFocused]);
 
+  const [terminalSession, setTerminalSession] = useState<{
+    status: 'idle' | 'initiating' | 'waiting' | 'approved' | 'declined' | 'cancelled';
+    transactionId?: string;
+    message?: string;
+    approvalCode?: string;
+  }>({ status: 'idle' });
+
+  useEffect(() => {
+    let timer: any;
+    if (terminalSession.status === 'waiting' && terminalSession.transactionId) {
+      timer = setInterval(async () => {
+        try {
+          const res = await posApi.checkTerminalStatus(terminalSession.transactionId!);
+          if (res.data?.status === 'approved') {
+            setTerminalSession({
+              status: 'approved',
+              transactionId: terminalSession.transactionId,
+              message: `تمت الموافقة بنجاح (تفويض: ${res.data.approvalCode || 'AUTH'})`,
+              approvalCode: res.data.approvalCode
+            });
+            pos.setPaymentChannel('card');
+            pos.setCardAmount(res.data.amount);
+            pos.setCashAmount(0);
+          } else if (res.data?.status === 'declined' || res.data?.status === 'cancelled') {
+            setTerminalSession({
+              status: res.data.status,
+              message: res.data.message || 'تم إلغاء أو رفض العملية من الجهاز'
+            });
+          }
+        } catch {
+          // ignore network poll jitter
+        }
+      }, 1500);
+    }
+    return () => clearInterval(timer);
+  }, [terminalSession.status, terminalSession.transactionId]);
+
+  const handleDispatchTerminal = async () => {
+    const amount = Number(pos.cardAmount > 0 ? pos.cardAmount : (pos.totals.total || 0));
+    if (amount <= 0) return;
+
+    setTerminalSession({ status: 'initiating', message: 'جاري الاتصال بجهاز الدفع...' });
+    try {
+      const res = await posApi.initiateTerminalCharge({ amount });
+      setTerminalSession({
+        status: 'waiting',
+        transactionId: res.data.transactionId,
+        message: 'في انتظار تمرير أو إدخال البطاقة على جهاز الدفع (POS Terminal)...'
+      });
+    } catch (err: any) {
+      setTerminalSession({ status: 'declined', message: err?.message || 'تعذر الاتصال بجهاز نقاط البيع' });
+    }
+  };
+
+  const handleCancelTerminal = async () => {
+    if (terminalSession.transactionId) {
+      try {
+        await posApi.cancelTerminalCharge(terminalSession.transactionId);
+      } catch {}
+    }
+    setTerminalSession({ status: 'idle' });
+  };
+
   return (
     <div style={{
       display: 'grid',
@@ -445,6 +508,80 @@ export function PosCheckoutPaymentSection({
         <Button type="button" variant={isPaymentActive('credit') ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset('credit')} style={{ minHeight: '38px', fontSize: '13px', fontWeight: 700 }}>آجل</Button>
         <Button type="button" variant={transferSelected ? 'primary' : 'secondary'} onClick={() => onSelectPaymentPreset(pos.paymentChannel === 'instapay' ? 'instapay' : 'wallet')} style={{ minHeight: '38px', fontSize: '13px', fontWeight: 700 }}>تحويلات</Button>
       </div>
+
+      {/* EDC POS Terminal Direct Dispatch Banner */}
+      {(isPaymentActive('card') || pos.cardAmount > 0) && (
+        <div style={{
+          padding: '8px 12px',
+          background: '#f8fafc',
+          borderRadius: '6px',
+          border: '1px dashed #cbd5e1',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>💳</span>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+                  جهاز نقاط البيع (EDC / مدى / فيزا)
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>
+                  إرسال {formatCurrency(pos.cardAmount > 0 ? pos.cardAmount : pos.totals.total)} إلى شاشة الجهاز آلياً
+                </div>
+              </div>
+            </div>
+            {terminalSession.status === 'idle' || terminalSession.status === 'declined' || terminalSession.status === 'cancelled' ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleDispatchTerminal}
+                style={{ minHeight: '32px', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}
+              >
+                إرسال للجهاز ➔
+              </Button>
+            ) : terminalSession.status === 'approved' ? (
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>
+                ✓ معتمد ({terminalSession.approvalCode})
+              </span>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleCancelTerminal}
+                style={{ minHeight: '30px', fontSize: '11px', color: '#dc2626' }}
+              >
+                إلغاء
+              </Button>
+            )}
+          </div>
+
+          {(terminalSession.status === 'initiating' || terminalSession.status === 'waiting') && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 10px',
+              background: '#eff6ff',
+              borderRadius: '4px',
+              border: '1px solid #bfdbfe',
+              fontSize: '12px',
+              color: '#1d4ed8'
+            }}>
+              <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }}></span>
+              <span>{terminalSession.message}</span>
+            </div>
+          )}
+
+          {terminalSession.status === 'declined' && (
+            <div style={{ padding: '6px 10px', background: '#fef2f2', borderRadius: '4px', border: '1px solid #fecaca', fontSize: '12px', color: '#b91c1c' }}>
+              {terminalSession.message}
+            </div>
+          )}
+        </div>
+      )}
+
 
       {transferSelected ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', padding: '6px', background: '#f1f0fa', borderRadius: '6px' }}>
