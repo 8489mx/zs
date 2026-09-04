@@ -7,23 +7,6 @@ interface StorefrontCategoryPillsProps {
   categoryCounts: Map<number | 'all', number>;
 }
 
-function getCategoryIcon(name: string): string {
-  const n = name.toLowerCase();
-  if (n.includes('شاي')) return '🍵';
-  if (n.includes('بن') || n.includes('قهو')) return '☕';
-  if (n.includes('عطارة') || n.includes('اعشاب') || n.includes('توابل')) return '🌿';
-  if (n.includes('بقاله') || n.includes('تموين')) return '🛒';
-  if (n.includes('البان') || n.includes('جبن')) return '🧀';
-  if (n.includes('ازياء') || n.includes('ملابس')) return '👕';
-  if (n.includes('موبايل') || n.includes('الكتروني')) return '📱';
-  if (n.includes('عطور')) return '✨';
-  if (n.includes('عصافير') || n.includes('طيور')) return '🦜';
-  if (n.includes('ميزان')) return '⚖️';
-  if (n.includes('حلويات') || n.includes('شوكولاته')) return '🍫';
-  if (n.includes('مخبوزات') || n.includes('عيش')) return '🥐';
-  return '📦';
-}
-
 export function StorefrontCategoryPills({
   categories,
   selectedCategoryId,
@@ -80,7 +63,6 @@ export function StorefrontCategoryPills({
             boxShadow: selectedCategoryId === 'all' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
           }}
         >
-          <span>🏷️</span>
           <span>جميع الأصناف</span>
           <span
             style={{
@@ -100,7 +82,6 @@ export function StorefrontCategoryPills({
         {categories.map((cat) => {
           const isSelected = selectedCategoryId === cat.id;
           const count = categoryCounts.get(cat.id) || 0;
-          const icon = getCategoryIcon(cat.name);
 
           return (
             <button
@@ -137,7 +118,6 @@ export function StorefrontCategoryPills({
                 }
               }}
             >
-              <span>{icon}</span>
               <span>{cat.name}</span>
               {count > 0 && (
                 <span

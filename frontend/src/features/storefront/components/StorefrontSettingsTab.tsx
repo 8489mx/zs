@@ -427,7 +427,7 @@ export function StorefrontSettingsTab() {
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                    🌐 الدومين المخصص لمتجرك (Custom Domain):
+                    الدومين المخصص لمتجرك (Custom Domain):
                   </label>
                   <span style={{ fontSize: '10.5px', background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
                     ميزة متقدمة
@@ -645,7 +645,7 @@ export function StorefrontSettingsTab() {
                       }}
                     >
                       {formState.bannerUrls.length > 1
-                        ? `معاينة حية للسلايدر (${previewSlideIndex + 1} من ${formState.bannerUrls.length}) 🔄`
+                        ? `معاينة حية للسلايدر (${previewSlideIndex + 1} من ${formState.bannerUrls.length})`
                         : 'بانر فردي ثابت'}
                     </div>
                   </div>
@@ -776,7 +776,7 @@ export function StorefrontSettingsTab() {
                             cursor: 'pointer',
                           }}
                         >
-                          احتواء كامل (بدون قص) ✨
+                          احتواء كامل (بدون قص)
                         </button>
                         <button
                           type="button"
@@ -817,7 +817,7 @@ export function StorefrontSettingsTab() {
                                 cursor: 'pointer',
                               }}
                             >
-                              {pos === 'top' ? 'أعلى ⬆️' : pos === 'bottom' ? 'أسفل ⬇️' : 'وسط ⏺️'}
+                              {pos === 'top' ? 'أعلى' : pos === 'bottom' ? 'أسفل' : 'وسط'}
                             </button>
                           ))}
                         </div>
@@ -838,7 +838,7 @@ export function StorefrontSettingsTab() {
                   lineHeight: '1.5',
                 }}>
                   <div style={{ fontWeight: 800, marginBottom: '2px' }}>
-                    📐 المقاس الموصى به لتصميم البنر بالذكاء الاصطناعي (AI):
+                    المقاس الموصى به لتصميم البنر بالذكاء الاصطناعي (AI):
                   </div>
                   <div>
                     • النسبة الذهبية: <strong>4:1 أو 16:5</strong> (المقاس: <strong>1280 × 320 بكسل</strong> أو <strong>1600 × 400</strong>).

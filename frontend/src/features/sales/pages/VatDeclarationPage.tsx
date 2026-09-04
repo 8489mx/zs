@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { vatDeclarationApi, type VatDeclarationData } from '@/features/sales/api/vat-declaration.api';
+import { PrinterIcon } from '@/shared/components/icons/AppIcons';
 
 export function VatDeclarationPage() {
   const [country, setCountry] = useState<'EG' | 'SA'>('EG');
@@ -103,7 +104,7 @@ export function VatDeclarationPage() {
               cursor: 'pointer',
             }}
           >
-            {copiedKey === 'all_summary' ? '✓ تم نسخ الملخص' : '📋 نسخ الأرقام للتقديم'}
+            {copiedKey === 'all_summary' ? 'تم نسخ الملخص ✓' : 'نسخ الأرقام للتقديم'}
           </Button>
 
           <Button
@@ -119,10 +120,11 @@ export function VatDeclarationPage() {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '8px',
             }}
           >
-            🖨️ طباعة الإقرار الرسمي (A4)
+            <PrinterIcon size={16} color="#ffffff" />
+            <span>طباعة الإقرار الرسمي (A4)</span>
           </Button>
         </div>
       </div>
@@ -269,7 +271,7 @@ export function VatDeclarationPage() {
           }}
         >
           <div style={{ fontSize: '13px', color: '#334155', fontWeight: '600', marginBottom: '8px' }}>
-            {data?.summary.status === 'payable' ? 'صافي الضريبة واجبة السداد 💳' : 'رصيد دائن مرحل للاسترداد 🔄'}
+            {data?.summary.status === 'payable' ? 'صافي الضريبة واجبة السداد' : 'رصيد دائن مرحل للاسترداد'}
           </div>
           <div
             style={{
@@ -587,7 +589,7 @@ export function VatDeclarationPage() {
                 cursor: 'pointer',
               }}
             >
-              {copiedKey === 'net_vat' ? '✓ تم النسخ' : '📋 نسخ الصافي'}
+              {copiedKey === 'net_vat' ? 'تم النسخ ✓' : 'نسخ الصافي'}
             </button>
           </div>
         </div>

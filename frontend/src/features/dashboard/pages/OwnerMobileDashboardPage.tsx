@@ -4,6 +4,7 @@ import { dashboardApi } from '@/features/dashboard/api/dashboard.api';
 import { cashDrawerApi } from '@/lib/api/cash-drawer';
 import { formatCurrency } from '@/lib/format';
 import { Link } from 'react-router-dom';
+import { SmartphoneIcon, ShoppingCartIcon, BarChartIcon, FileTextIcon, RefreshCwIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'month';
 
@@ -100,7 +101,7 @@ export function OwnerMobileDashboardPage() {
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '20px' }}>📱</span>
+          <SmartphoneIcon size={20} color="#ffffff" />
           <div>
             <h1 style={{ margin: 0, fontSize: '16px', fontWeight: 800, lineHeight: 1.2 }}>لوحة المالك اللحظية</h1>
             <span style={{ fontSize: '11px', opacity: 0.8 }}>
@@ -127,7 +128,7 @@ export function OwnerMobileDashboardPage() {
             fontWeight: 600,
           }}
         >
-          <span style={{ display: 'inline-block', transform: overviewQuery.isFetching ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s' }}>🔄</span>
+          <RefreshCwIcon size={14} color="#ffffff" style={{ transform: overviewQuery.isFetching ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s' }} />
           <span>{overviewQuery.isFetching ? '...' : 'تحديث'}</span>
         </button>
       </header>
@@ -222,7 +223,7 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>💰 المبيعات</div>
+            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>المبيعات</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(netSales)}</div>
             <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px', fontWeight: 600 }}>
               {invoiceCount} فاتورة
@@ -237,7 +238,7 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ fontSize: '12px', color: '#166534', fontWeight: 600, marginBottom: '4px' }}>📈 صافي الأرباح</div>
+            <div style={{ fontSize: '12px', color: '#166534', fontWeight: 600, marginBottom: '4px' }}>صافي الأرباح</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#15803d' }}>{formatCurrency(netProfit)}</div>
             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
               متوسط السلة: {formatCurrency(avgBasket)}
@@ -252,7 +253,7 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ fontSize: '12px', color: '#b45309', fontWeight: 600, marginBottom: '4px' }}>💵 نقدية الخزائن الحية</div>
+            <div style={{ fontSize: '12px', color: '#b45309', fontWeight: 600, marginBottom: '4px' }}>نقدية الخزائن الحية</div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#d97706' }}>
               {openShifts.length > 0 ? formatCurrency(totalOpenCash) : '—'}
             </div>
@@ -269,7 +270,7 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
-            <div style={{ fontSize: '12px', color: '#1e40af', fontWeight: 600, marginBottom: '4px' }}>🛒 عدد الفواتير</div>
+            <div style={{ fontSize: '12px', color: '#1e40af', fontWeight: 600, marginBottom: '4px' }}>عدد الفواتير</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#1d4ed8' }}>{invoiceCount}</div>
             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
               الفترة المحددة
@@ -287,7 +288,7 @@ export function OwnerMobileDashboardPage() {
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#1e293b' }}>🏆 الأكثر مبيعاً في الفترة</h2>
+              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#1e293b' }}>الأكثر مبيعاً في الفترة</h2>
               <span style={{ fontSize: '11px', color: '#64748b' }}>أعلى 5 أصناف</span>
             </div>
 
@@ -339,7 +340,7 @@ export function OwnerMobileDashboardPage() {
             boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#1e293b' }}>⚡ بث الفواتير المباشرة</h2>
+              <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#1e293b' }}>بث الفواتير المباشرة</h2>
               <span style={{ fontSize: '11px', color: '#64748b' }}>لحظة بلحظة</span>
             </div>
 
@@ -390,7 +391,7 @@ export function OwnerMobileDashboardPage() {
             padding: '14px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#92400e', fontWeight: 700, fontSize: '13px' }}>
-              <span>⚠️</span>
+              <AlertTriangleIcon size={16} color="#d97706" />
               <span>تنبيه أصناف قاربت على النفاد</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -427,20 +428,20 @@ export function OwnerMobileDashboardPage() {
         zIndex: 50,
         boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
       }}>
-        <Link to="/owner-mobile" style={{ textAlign: 'center', textDecoration: 'none', color: '#170e5e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-          <span style={{ fontSize: '18px' }}>📱</span>
+        <Link to="/owner-mobile" style={{ textAlign: 'center', textDecoration: 'none', color: '#170e5e', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <SmartphoneIcon size={20} color="#170e5e" strokeWidth={2.2} />
           <span style={{ fontSize: '11px', fontWeight: 800 }}>المالك</span>
         </Link>
-        <Link to="/pos" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-          <span style={{ fontSize: '18px' }}>🛒</span>
+        <Link to="/pos" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <ShoppingCartIcon size={20} color="#64748b" strokeWidth={2} />
           <span style={{ fontSize: '11px', fontWeight: 600 }}>الكاشير</span>
         </Link>
-        <Link to="/dashboard" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-          <span style={{ fontSize: '18px' }}>📊</span>
+        <Link to="/dashboard" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <BarChartIcon size={20} color="#64748b" strokeWidth={2} />
           <span style={{ fontSize: '11px', fontWeight: 600 }}>اللوحة الكاملة</span>
         </Link>
-        <Link to="/reports/overview" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-          <span style={{ fontSize: '18px' }}>📑</span>
+        <Link to="/reports/overview" style={{ textAlign: 'center', textDecoration: 'none', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <FileTextIcon size={20} color="#64748b" strokeWidth={2} />
           <span style={{ fontSize: '11px', fontWeight: 600 }}>التقارير</span>
         </Link>
       </nav>

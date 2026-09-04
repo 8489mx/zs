@@ -557,7 +557,7 @@ export function PrintingSettingsTab({
                   cursor: 'pointer'
                 }}
               >
-                🖨️ طباعة تجريبية حية (Test Print)
+                طباعة تجريبية حية (Test Print)
               </Button>
             </div>
           </div>
@@ -566,7 +566,7 @@ export function PrintingSettingsTab({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
               <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
-                💡 نصائح لضبط مقاس الطابعات الحرارية
+                نصائح لضبط مقاس الطابعات الحرارية
               </strong>
               <ul style={{ margin: 0, paddingRight: '20px', fontSize: '12px', color: '#64748b', lineHeight: 1.7 }}>
                 <li>مقاس <b>80mm</b> هو المقاس القياسي لمعظم طابعات الكاشير المكتفية (Epson, Xprinter, Rongta).</li>

@@ -719,7 +719,7 @@ export function buildReceiptDocument(options: {
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
     ...(!options.isReturn && !options.isPurchase && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : (options.orderType === 'takeout' || options.orderType === 'takeaway' ? 'تيك أواي' : (options.orderType || 'تيك أواي')) }] : []),
-    ...(options.note?.includes('متجر إلكتروني') || options.note?.includes('أونلاين') ? [{ label: 'المصدر', value: '🌐 طلب متجر أونلاين', isBadge: true }] : []),
+    ...(options.note?.includes('متجر إلكتروني') || options.note?.includes('أونلاين') ? [{ label: 'المصدر', value: 'طلب متجر أونلاين', isBadge: true }] : []),
     ...(showDeliveryRep && options.deliveryRepName ? [{ label: 'مندوب التوصيل', value: options.deliveryRepName }] : []),
     ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
   ];

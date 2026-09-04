@@ -14,7 +14,7 @@ import { StorefrontCheckoutModal } from '../components/StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from '../components/StorefrontSuccessModal';
 import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel';
 import { StorefrontMyOrdersModal } from '../components/StorefrontMyOrdersModal';
-import { IconFlame, IconFolder, IconSearch, IconArrowLeft, IconArrowUpRight } from '../components/StorefrontIcons';
+import { IconFlame, IconFolder, IconSearch, IconArrowLeft, IconArrowUpRight, IconStore } from '../components/StorefrontIcons';
 
 const ITEMS_PER_PAGE = 24;
 const arCollator = new Intl.Collator('ar', { sensitivity: 'base' });
@@ -359,7 +359,9 @@ export function PublicStorefrontPage() {
           textAlign: 'center',
         }}
       >
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏬</div>
+        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+          <IconStore size={48} color="#94a3b8" />
+        </div>
         <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
           عفواً، المتجر غير متاح حالياً
         </h2>

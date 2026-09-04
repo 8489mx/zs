@@ -4,6 +4,7 @@ import { customersApi } from '@/shared/api/customers.api';
 import { posApi } from '@/features/pos/api/pos.api';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { CreditCardIcon } from '@/shared/components/icons/AppIcons';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { DeliveryRep } from '@/shared/api/delivery-reps.api';
 
@@ -522,7 +523,7 @@ export function PosCheckoutPaymentSection({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '18px' }}>💳</span>
+              <CreditCardIcon size={18} color="#170e5e" />
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
                   جهاز نقاط البيع (EDC / مدى / فيزا)

@@ -78,7 +78,6 @@ export function PosTablesFloorPlanDialog({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '20px' }}>🍽️</span>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
                 خريطة الصالة وإدارة الطاولات
               </h3>
@@ -105,11 +104,13 @@ export function PosTablesFloorPlanDialog({
         {/* Stats and Quick Info Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#166534', fontWeight: 700 }}>
-              🟢 طاولات شاغرة: <strong>{availableCount}</strong>
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#166534', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+              <span>طاولات شاغرة: <strong>{availableCount}</strong></span>
             </div>
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#991b1b', fontWeight: 700 }}>
-              🔴 طاولات مشغولة: <strong>{occupiedCount}</strong> ({totalOccupiedMoney.toLocaleString('ar-EG')} ج.م)
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#991b1b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+              <span>طاولات مشغولة: <strong>{occupiedCount}</strong> ({totalOccupiedMoney.toLocaleString('ar-EG')} ج.م)</span>
             </div>
           </div>
 

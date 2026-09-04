@@ -91,7 +91,7 @@ export class TrialSignupMailService {
       <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 0.5px;">Z SYSTEMS PRO</h1>
       <p style="margin: 8px 0 0 0; color: #c7d2fe; font-size: 13px; font-weight: 500;">المنظومة المحاسبية والإدارية السحابية المتكاملة • Cloud ERP</p>
       <div style="display: inline-block; margin-top: 16px; padding: 6px 18px; background-color: rgba(99, 102, 241, 0.25); border: 1px solid rgba(199, 210, 254, 0.35); border-radius: 20px; color: #ffffff; font-size: 12px; font-weight: 600;">
-        ✨ تفعيل النسخة التجريبية | Free Trial Active
+        تفعيل النسخة التجريبية | Free Trial Active
       </div>
     </div>
 
@@ -100,7 +100,7 @@ export class TrialSignupMailService {
       
       <!-- ARABIC SECTION -->
       <div dir="rtl" style="text-align: right;">
-        <h2 style="margin: 0 0 12px 0; color: #0f172a; font-size: 20px; font-weight: 700;">مرحباً ${safeBusinessName} 👋</h2>
+        <h2 style="margin: 0 0 12px 0; color: #0f172a; font-size: 20px; font-weight: 700;">مرحباً ${safeBusinessName}</h2>
         <p style="margin: 0 0 18px 0; color: #334155; font-size: 15px; line-height: 1.7;">
           يسعدنا انضمامك إلى <strong>Z Systems Pro</strong>. تم تجهيز وتفعيل مساحة العمل السحابية الخاصة بنشاطك التجاري بنجاح، ونسختك التجريبية جاهزة للاستخدام الفوري بكافة الصلاحيات والمميزات لمدة <strong>${trialDays} أيام</strong>.
         </p>
@@ -108,7 +108,7 @@ export class TrialSignupMailService {
         <!-- CREDENTIALS BOX -->
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; margin: 24px 0;">
           <div style="margin: 0 0 16px 0; color: #1e1b4b; font-size: 15px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; display: flex; align-items: center;">
-            🔐 بيانات تسجيل الدخول إلى حسابك:
+            بيانات تسجيل الدخول إلى حسابك:
           </div>
 
           <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #334155;">
@@ -145,14 +145,14 @@ export class TrialSignupMailService {
         <!-- CTA BUTTON -->
         <div style="text-align: center; margin: 28px 0;">
           <a href="${safeLoginUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 34px; border-radius: 10px; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
-            🚀 الدخول إلى النظام الآن
+            الدخول إلى النظام الآن
           </a>
         </div>
 
         <!-- SECURITY NOTICE -->
         <div style="background-color: #fffbeb; border-right: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;">
           <p style="margin: 0; color: #92400e; font-size: 13px; line-height: 1.6;">
-            ⚠️ <strong>تنبيه أمني:</strong> يُرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول لأول مرة من إعدادات المستخدم لضمان أعلى مستويات الحماية.
+            <strong>تنبيه أمني:</strong> يُرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول لأول مرة من إعدادات المستخدم لضمان أعلى مستويات الحماية.
           </p>
         </div>
       </div>

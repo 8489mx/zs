@@ -4,6 +4,7 @@ import { deliveryRepsApi, DeliveryRep, DeliveryOrder } from '../api/delivery-rep
 import { Button } from '@/shared/ui/button';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
 import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
+import { BarcodeIcon, RefreshCwIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
 
 export function DeliveryDriverMobilePage() {
   const queryClient = useQueryClient();
@@ -135,19 +136,25 @@ export function DeliveryDriverMobilePage() {
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', marginBottom: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>🛵 شاشة مندوب التوصيل</h2>
+            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>شاشة مندوب التوصيل</h2>
             <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>متابعة الشحنات، التواصل مع العملاء، وتأكيد التحصيل</div>
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <Button
               variant="secondary"
               onClick={() => setScannerOpen(true)}
-              style={{ padding: '6px 10px', fontSize: '12px', background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }}
+              style={{ padding: '6px 10px', fontSize: '12px', background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
             >
-              📷 مسح باركود
+              <BarcodeIcon size={14} color="#0369a1" />
+              <span>مسح باركود</span>
             </Button>
-            <Button variant="secondary" onClick={() => refetch()} style={{ padding: '6px 10px', fontSize: '12px' }}>
-              🔄 تحديث
+            <Button
+              variant="secondary"
+              onClick={() => refetch()}
+              style={{ padding: '6px 10px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+            >
+              <RefreshCwIcon size={13} color="#475569" />
+              <span>تحديث</span>
             </Button>
           </div>
         </div>
@@ -286,7 +293,7 @@ export function DeliveryDriverMobilePage() {
                   </div>
                   {order.deliveryStatus && (
                     <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
-                      📍 {order.deliveryStatus}
+                      {order.deliveryStatus}
                     </div>
                   )}
                 </div>
@@ -315,7 +322,7 @@ export function DeliveryDriverMobilePage() {
                       cursor: 'pointer',
                     }}
                   >
-                    📞 اتصال
+                    اتصال
                   </button>
 
                   <button
@@ -333,7 +340,7 @@ export function DeliveryDriverMobilePage() {
                       cursor: 'pointer',
                     }}
                   >
-                    💬 واتساب
+                    واتساب
                   </button>
 
                   <button
@@ -351,7 +358,7 @@ export function DeliveryDriverMobilePage() {
                       cursor: 'pointer',
                     }}
                   >
-                    🗺️ الخريطة
+                    الخريطة
                   </button>
 
                   <button
@@ -366,9 +373,13 @@ export function DeliveryDriverMobilePage() {
                       fontSize: '12px',
                       fontWeight: 800,
                       cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    🖨️ إيصال
+                    <PrinterIcon size={13} color="#334155" />
+                    <span>إيصال</span>
                   </button>
                 </div>
 

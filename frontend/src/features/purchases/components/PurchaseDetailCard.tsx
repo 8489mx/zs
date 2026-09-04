@@ -197,7 +197,7 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
               style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center', background: '#059669', borderColor: '#059669' }}
               onClick={openReceiveModal}
             >
-              📦 استلام بضاعة (GRN)
+              استلام بضاعة (GRN)
             </Button>
           )}
           {onPrint ? <Button variant="secondary" style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center' }} onClick={onPrint}>طباعة الفاتورة</Button> : null}
@@ -322,7 +322,7 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
             overflowY: 'auto',
           }}>
             <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-              📦 إثبات استلام بضاعة مخزني (GRN)
+              إثبات استلام بضاعة مخزني (GRN)
             </h3>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
               حدد الكميات المستلمة فعلياً في المخزن لتحديث الأرصدة والمخزون وإكمال المطابقة الثلاثية.

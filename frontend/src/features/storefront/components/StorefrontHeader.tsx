@@ -1,5 +1,6 @@
 import { StorefrontInfo } from '../types/storefront.types';
 import { IconCheckCircle, IconSearch } from './StorefrontIcons';
+import { PackageIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontHeaderProps {
   info: StorefrontInfo;
@@ -267,7 +268,7 @@ export function StorefrontHeader({
                 e.currentTarget.style.background = '#f8fafc';
               }}
             >
-              <span>📦</span>
+              <PackageIcon size={16} />
               <span>طلباتي</span>
             </button>
           )}

@@ -161,7 +161,6 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '18px' }}>📸</span>
             <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>
               استوديو وسائط المتجر الإلكتروني (Media Studio)
             </h2>
@@ -201,7 +200,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
               transition: 'all 0.15s ease',
             }}
           >
-            🛍️ صور الأصناف ({products.length})
+            صور الأصناف ({products.length})
           </button>
           <button
             type="button"
@@ -218,7 +217,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
               transition: 'all 0.15s ease',
             }}
           >
-            📂 صور الأقسام ({categories.length})
+            صور الأقسام ({categories.length})
           </button>
         </div>
       </div>
@@ -401,7 +400,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                               borderRadius: '4px',
                             }}
                           >
-                            صورة ذكية ✨
+                            صورة ذكية
                           </div>
                         )}
 

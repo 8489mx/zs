@@ -147,7 +147,7 @@ export function StorefrontCheckoutModal({
         if (onEditSuccess) {
           onEditSuccess(editingOrderNumber);
         } else {
-          alert('✅ تم تحديث طلبك بنجاح!');
+          alert('تم تحديث طلبك بنجاح!');
           onClose();
         }
       } else if (onSubmitOrder) {
@@ -341,7 +341,6 @@ export function StorefrontCheckoutModal({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '15px' }}>🔒</span>
                     <span>
                       <strong>تم استرجاع بياناتك تلقائياً:</strong> لأنك طلبت من هذا الهاتف مسبقاً (بياناتك مؤمنة ومحفوظة على جهازك فقط).
                     </span>
@@ -448,7 +447,7 @@ export function StorefrontCheckoutModal({
                 }}
               />
               <div style={{ fontSize: '11px', color: '#047857', marginTop: '4px', lineHeight: '1.4', background: '#ecfdf5', padding: '5px 10px', borderRadius: '6px', border: '1px solid #d1fae5' }}>
-                💡 ملاحظاتك تصل لإدارة المحل والكاشير فوراً لتجهيز الأصناف وتغليفها بدقة دون الحاجة للاتصال تليفونياً.
+                ملاحظاتك تصل لإدارة المحل والكاشير فوراً لتجهيز الأصناف وتغليفها بدقة دون الحاجة للاتصال تليفونياً.
               </div>
             </div>
 
@@ -476,7 +475,6 @@ export function StorefrontCheckoutModal({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>💵</span>
                       <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
                         الدفع عند الاستلام
                       </span>
@@ -513,7 +511,6 @@ export function StorefrontCheckoutModal({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📱</span>
                       <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
                         إنستاباي / محفظة
                       </span>
@@ -614,7 +611,7 @@ export function StorefrontCheckoutModal({
                 }}
               />
               <span style={{ fontWeight: 700, color: '#1e293b' }}>
-                تذكر بياناتي على هذا الجهاز لتسريع الطلب في المرات القادمة ⚡
+                تذكر بياناتي على هذا الجهاز لتسريع الطلب في المرات القادمة
               </span>
             </label>
           </div>

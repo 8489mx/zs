@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { PackageIcon, ShoppingCartIcon } from '@/shared/components/icons/AppIcons';
 import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 
@@ -148,7 +149,7 @@ export function StorefrontMyOrdersModal({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>📦</span>
+            <PackageIcon size={22} color="#170e5e" />
             <div>
               <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 800, color: '#0f172a' }}>
                 متابعة طلباتي
@@ -239,7 +240,9 @@ export function StorefrontMyOrdersModal({
             </div>
           ) : orders.length === 0 ? (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
-              <div style={{ fontSize: '38px', marginBottom: '8px' }}>🛒</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                <ShoppingCartIcon size={42} color="#94a3b8" />
+              </div>
               <h4 style={{ margin: '0 0 4px', fontSize: '15px', color: '#0f172a' }}>
                 لا توجد طلبات مسجلة حالياً
               </h4>
@@ -348,7 +351,6 @@ export function StorefrontMyOrdersModal({
                               cursor: 'pointer',
                             }}
                           >
-                            <span>✏️</span>
                             <span>تعديل الطلب</span>
                           </button>
 
@@ -370,7 +372,6 @@ export function StorefrontMyOrdersModal({
                               cursor: 'pointer',
                             }}
                           >
-                            <span>❌</span>
                             <span>إلغاء الطلب</span>
                           </button>
                         </div>

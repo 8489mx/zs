@@ -15,7 +15,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
   const businessName = tenant?.businessName || 'متجرنا';
   const [days, setDays] = useState(30);
   const [template, setTemplate] = useState(
-    `أهلاً بحضرتك يا {name}، بنفتقدك جداً في ${businessName}! 🎁 حبينا نهديك خصم خاص 10% على مشترياتك القادمة، منتظرين تشرفنا في أي وقت!`
+    `أهلاً بحضرتك يا {name}، بنفتقدك جداً في ${businessName}! حبينا نهديك خصم خاص 10% على مشترياتك القادمة، منتظرين تشرفنا في أي وقت!`
   );
   const [copiedAll, setCopiedAll] = useState(false);
 
@@ -50,7 +50,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#0f172a' }}>
-              📢 حملات الواتساب وإعادة استهداف العملاء المنقطعين
+              حملات الواتساب وإعادة استهداف العملاء المنقطعين
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
               تحديد العملاء الذين لم يشتروا منذ فترة، وإرسال عروض ترويجية مخصصة لإعادتهم للشراء.
@@ -165,7 +165,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
                             gap: '4px',
                           }}
                         >
-                          💬 إرسال واتساب
+                          إرسال واتساب
                         </button>
                       ) : (
                         <span style={{ color: '#94a3b8', fontSize: '11px' }}>لا يوجد رقم</span>
@@ -181,7 +181,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
         {/* Footer Actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
           <Button variant="secondary" onClick={handleCopyAllPhones} disabled={customers.length === 0}>
-            {copiedAll ? '✓ تم نسخ جميع الأرقام!' : '📋 نسخ أرقام الهواتف للحملات'}
+            {copiedAll ? '✓ تم نسخ جميع الأرقام!' : 'نسخ أرقام الهواتف للحملات'}
           </Button>
 
           <Button variant="secondary" onClick={onClose}>

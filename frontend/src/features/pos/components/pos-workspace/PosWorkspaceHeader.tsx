@@ -90,7 +90,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
               border: pos.tableNumber ? '1px solid #bbf7d0' : undefined,
             }}
           >
-            {pos.tableNumber ? `🍽️ طاولة: ${pos.tableNumber}` : '🍽️ الطاولات'}
+            {pos.tableNumber ? `طاولة: ${pos.tableNumber}` : 'الطاولات'}
           </Button>
           <Button type="button" variant="secondary" onClick={onOpenQuickService}>خدمة سريعة F8</Button>
           <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale}>F9 إعادة طباعة الفواتير</Button>

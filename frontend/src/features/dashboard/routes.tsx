@@ -11,6 +11,6 @@ export const dashboardRouteModule: FeatureRouteModule = {
   navigation: [
     { key: 'dashboard', label: 'الرئيسية', to: '/' },
     { key: 'owner-companion', label: 'متابعة المالك', to: '/owner-companion' },
-    { key: 'owner-mobile', label: 'لوحة المالك (موبايل) 📱', to: '/owner-mobile' },
+    { key: 'owner-mobile', label: 'لوحة المالك (موبايل)', to: '/owner-mobile' },
   ]
 };

@@ -173,7 +173,7 @@ export class WhatsAppGatewayService {
       .executeTakeFirst();
 
     const businessName = tenant?.business_name || 'منظومة Z-Systems';
-    const testText = `✅ تم نجاح اختبار ربط بوابة الواتساب السحابية بنظام ${businessName}!\nسيتم إرسال الفواتير والإشعارات آلياً لعملائك بنجاح.`;
+    const testText = `تم نجاح اختبار ربط بوابة الواتساب السحابية بنظام ${businessName}!\nسيتم إرسال الفواتير والإشعارات آلياً لعملائك بنجاح.`;
 
     return this.sendRawMessage(tenantId, phone, testText);
   }
@@ -267,7 +267,7 @@ export class WhatsAppGatewayService {
     // Send alert to store owner/merchant
     const merchantPhone = tenant?.owner_phone;
     if (merchantPhone) {
-      const merchantMsg = `🛒 طلب أونلاين جديد #${orderNo}!\nالعميل: ${order.customer_name} (${order.customer_phone})\nالإجمالي: ${total} ج.م\nالعنوان: ${order.customer_address || 'استلام من الفرع'}\nيرجى فتح لوحة التحكم لتأكيد الطلب.`;
+      const merchantMsg = `طلب أونلاين جديد #${orderNo}!\nالعميل: ${order.customer_name} (${order.customer_phone})\nالإجمالي: ${total} ج.م\nالعنوان: ${order.customer_address || 'استلام من الفرع'}\nيرجى فتح لوحة التحكم لتأكيد الطلب.`;
       void this.sendRawMessage(tenantId, merchantPhone, merchantMsg).catch(() => undefined);
     }
 

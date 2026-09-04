@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
 import { accountingApi, type FixedAsset } from '@/features/accounting/api/accounting.api';
+import { Trash2Icon } from '@/shared/components/icons/AppIcons';
 
 const categoryLabels: Record<string, string> = {
   general: 'عام',
@@ -170,7 +171,7 @@ export function AccountingFixedAssetsPage() {
               onClick={() => setActiveTab('assets')}
               style={activeTab === 'assets' ? { background: '#170e5e', color: '#fff' } : {}}
             >
-              🏢 سجل الأصول
+              سجل الأصول
             </Button>
             <Button
               type="button"
@@ -178,7 +179,7 @@ export function AccountingFixedAssetsPage() {
               onClick={() => setActiveTab('logs')}
               style={activeTab === 'logs' ? { background: '#170e5e', color: '#fff' } : {}}
             >
-              📜 سجل الإهلاكات والقيود ({logs.length})
+              سجل الإهلاكات والقيود ({logs.length})
             </Button>
             <Button
               type="button"
@@ -187,7 +188,7 @@ export function AccountingFixedAssetsPage() {
               style={{ borderColor: '#f59e0b', color: '#b45309', fontWeight: 700 }}
               disabled={summary.activeCount === 0}
             >
-              ⚡ إهلاك شهري عام لجميع الأصول
+              إهلاك شهري عام لجميع الأصول
             </Button>
             <Button
               type="button"
@@ -315,10 +316,10 @@ export function AccountingFixedAssetsPage() {
                                 title="إهلاك يدوي للأصل وتوليد قيد"
                                 style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}
                               >
-                                إهلاك ⚡
+                                إهلاك
                               </button>
                             )}
-                            <button
+                              <button
                               type="button"
                               onClick={() => {
                                 if (window.confirm(`هل أنت متأكد من حذف أو استبعاد الأصل: ${asset.name}؟`)) {
@@ -326,9 +327,9 @@ export function AccountingFixedAssetsPage() {
                                 }
                               }}
                               title="استبعاد أو حذف الأصل"
-                              style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                              style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                              🗑️
+                              <Trash2Icon size={14} color="#991b1b" />
                             </button>
                           </div>
                         </td>
@@ -545,7 +546,7 @@ export function AccountingFixedAssetsPage() {
                 disabled={depreciateMutation.isPending}
                 style={{ background: '#170e5e', color: '#fff' }}
               >
-                {depreciateMutation.isPending ? 'جاري التنفيذ والتسجيل...' : 'تأكيد وتوليد القيد ⚡'}
+                {depreciateMutation.isPending ? 'جاري التنفيذ والتسجيل...' : 'تأكيد وتوليد القيد'}
               </Button>
             </div>
           </div>
@@ -557,7 +558,7 @@ export function AccountingFixedAssetsPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '500px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#b45309', marginBottom: '14px' }}>
-              ⚡ إهلاك شهري شامل لجميع الأصول النشطة
+              إهلاك شهري شامل لجميع الأصول النشطة
             </h3>
             <p style={{ fontSize: '14px', color: '#475569', marginBottom: '16px', lineHeight: 1.6 }}>
               سيتم فحص كافة الأصول النشطة ({summary.activeCount} أصل) واحتساب إهلاك الدورة وتوليد القيود المحاسبية وتحديث مجمع الإهلاك لكل أصل تلقائياً.
@@ -587,7 +588,7 @@ export function AccountingFixedAssetsPage() {
                 disabled={batchDepreciateMutation.isPending}
                 style={{ background: '#170e5e', color: '#fff', fontWeight: 700 }}
               >
-                {batchDepreciateMutation.isPending ? 'جاري المعالجة والترحيل...' : 'بدء الإهلاك الشامل 🚀'}
+                {batchDepreciateMutation.isPending ? 'جاري المعالجة والترحيل...' : 'بدء الإهلاك الشامل'}
               </Button>
             </div>
           </div>

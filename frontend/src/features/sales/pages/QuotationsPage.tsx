@@ -4,6 +4,7 @@ import { quotationsApi, QuotationRecord, CreateQuotationPayload, QuotationItem }
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
+import { Trash2Icon } from '@/shared/components/icons/AppIcons';
 
 export function QuotationsPage() {
   const queryClient = useQueryClient();
@@ -361,7 +362,7 @@ export function QuotationsPage() {
                             color: '#0f172a',
                           }}
                         >
-                          🖨️ طباعة
+                          طباعة
                         </button>
 
                         {/* Convert to Sale */}
@@ -386,7 +387,7 @@ export function QuotationsPage() {
                               color: '#1d4ed8',
                             }}
                           >
-                            ⚡ تحويل لفاتورة
+                            تحويل لفاتورة
                           </button>
                         )}
 
@@ -404,14 +405,14 @@ export function QuotationsPage() {
                               background: '#fff1f2',
                               border: '1px solid #fecdd3',
                               borderRadius: '6px',
-                              padding: '4px 8px',
-                              fontSize: '12px',
-                              fontWeight: 700,
+                              padding: '5px 8px',
                               cursor: 'pointer',
-                              color: '#e11d48',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                             }}
                           >
-                            🗑️
+                            <Trash2Icon size={14} color="#e11d48" />
                           </button>
                         )}
                       </div>

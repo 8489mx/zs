@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -87,11 +88,10 @@ export function PwaInstallBanner() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '18px',
           flexShrink: 0,
         }}
       >
-        📱
+        <SmartphoneIcon size={18} color="#170e5e" />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -180,7 +180,7 @@ export function PwaInstallBanner() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
           }}
         >
-          📱 على أجهزة آبل: اضغط على زر المشاركة <strong>(Share ⎋)</strong> أسفل المتصفح، ثم اختر <strong>"إضافة إلى الشاشة الرئيسية (Add to Home Screen ➕)"</strong>.
+          على أجهزة آبل: اضغط على زر المشاركة <strong>(Share)</strong> أسفل المتصفح، ثم اختر <strong>"إضافة إلى الشاشة الرئيسية (Add to Home Screen)"</strong>.
         </div>
       )}
     </div>

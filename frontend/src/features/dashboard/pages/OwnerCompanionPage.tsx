@@ -58,7 +58,7 @@ export function OwnerCompanionPage() {
           disabled={isFetching}
           style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
         >
-          {isFetching ? '...' : '🔄 تحديث'}
+          {isFetching ? '...' : 'تحديث'}
         </Button>
       </div>
 
@@ -112,7 +112,7 @@ export function OwnerCompanionPage() {
       {/* Top Products Sold Today */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', marginBottom: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>🔥 الأكثر مبيعاً اليوم</h4>
+          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>الأكثر مبيعاً اليوم</h4>
           <span style={{ fontSize: '11px', color: '#64748b' }}>أعلى الأصناف حركة</span>
         </div>
 

@@ -298,7 +298,7 @@ export function InstallmentsPage() {
                 transition: 'all 0.15s ease',
               }}
             >
-              📅 جدول الأقساط والاستحقاقات
+              جدول الأقساط والاستحقاقات
             </button>
             <button
               onClick={() => setActiveTab('plans')}
@@ -314,7 +314,7 @@ export function InstallmentsPage() {
                 transition: 'all 0.15s ease',
               }}
             >
-              📑 عقود وخطط التقسيط
+              عقود وخطط التقسيط
             </button>
           </div>
 
@@ -446,7 +446,7 @@ export function InstallmentsPage() {
                                 cursor: 'pointer',
                               }}
                             >
-                              💵 تحصيل القسط
+                              تحصيل القسط
                             </Button>
                           ) : (
                             <span style={{ fontSize: '12px', color: '#166534', fontWeight: '600' }}>
@@ -749,7 +749,7 @@ export function InstallmentsPage() {
               }}
             >
               <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', marginBottom: '10px' }}>
-                📊 المعاينة المالية والحسابية للخطة
+                المعاينة المالية والحسابية للخطة
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', textAlign: 'center' }}>
                 <div>
@@ -1010,7 +1010,7 @@ export function InstallmentsPage() {
                   cursor: 'pointer',
                 }}
               >
-                🖨️ طباعة الإيصال
+                طباعة الإيصال
               </Button>
               <Button
                 variant="secondary"

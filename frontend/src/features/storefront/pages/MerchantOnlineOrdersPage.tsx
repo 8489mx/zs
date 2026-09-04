@@ -9,6 +9,7 @@ import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/Po
 import { printPostedSaleReceipt } from '@/lib/pos-printing';
 import type { Sale } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
+import { PackageIcon } from '@/shared/components/icons/AppIcons';
 
 export function MerchantOnlineOrdersPage() {
   const navigate = useNavigate();
@@ -236,7 +237,9 @@ export function MerchantOnlineOrdersPage() {
           </div>
         ) : orders.length === 0 ? (
           <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}>📦</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', color: '#94a3b8' }}>
+              <PackageIcon size={44} />
+            </div>
             <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>
               لا توجد طلبات في هذا القسم
             </h3>
@@ -375,12 +378,8 @@ export function MerchantOnlineOrdersPage() {
                                   border: 'none',
                                   cursor: loadingPosOrderId === order.id ? 'wait' : 'pointer',
                                   whiteSpace: 'nowrap',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
                                 }}
                               >
-                                <span>🛒</span>
                                 <span>{loadingPosOrderId === order.id ? 'جاري النقل...' : 'بالسلة (POS)'}</span>
                               </button>
 
@@ -561,12 +560,12 @@ export function MerchantOnlineOrdersPage() {
                       color: selectedOrder.paymentMethod === 'instapay_wallet' ? '#6d28d9' : '#0f172a',
                     }}
                   >
-                    {selectedOrder.paymentMethod === 'instapay_wallet' ? '📱 إنستاباي / محفظة (تحويل مسبق)' : '💵 دفع عند الاستلام (كاش)'}
+                    {selectedOrder.paymentMethod === 'instapay_wallet' ? 'إنستاباي / محفظة (تحويل مسبق)' : 'دفع عند الاستلام (كاش)'}
                   </span>
                 </div>
                 {selectedOrder.customerNotes && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px', marginTop: '2px' }}>
-                    <span style={{ fontSize: '12px', color: '#92400e', fontWeight: 800 }}>📝 ملاحظات العميل وتجهيز الأصناف:</span>
+                    <span style={{ fontSize: '12px', color: '#92400e', fontWeight: 800 }}>ملاحظات العميل وتجهيز الأصناف:</span>
                     <span style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 600, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
                       {selectedOrder.customerNotes}
                     </span>
@@ -759,10 +758,8 @@ export function MerchantOnlineOrdersPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
                     }}
                   >
-                    <span>🛒</span>
                     <span>
                       {loadingPosOrderId === selectedOrder.id ? 'جاري النقل...' : 'تنزيل في السلة (POS)'}
                     </span>

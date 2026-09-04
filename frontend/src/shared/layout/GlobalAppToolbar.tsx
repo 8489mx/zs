@@ -7,6 +7,7 @@ import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
 import { FullScreenToggleButton } from '@/shared/components/FullScreenToggleButton';
 import { AiBusinessCopilotModal } from '@/features/ai-copilot/components/AiBusinessCopilotModal';
+import { AiRobotIcon } from '@/shared/ui/AiRobotIcon';
 
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
@@ -126,7 +127,7 @@ export function GlobalAppToolbar() {
               fontWeight: 800,
             }}
           >
-            <span>🤖</span>
+            <AiRobotIcon size={17} />
             <span className="desktop-only-toolbar-item">زاد AI</span>
           </button>
           <ManagerNotificationsBell />

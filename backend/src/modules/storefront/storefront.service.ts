@@ -349,22 +349,22 @@ export class StorefrontService {
     const targetPhone = cleanPhone.startsWith('01') ? `2${cleanPhone}` : cleanPhone;
 
     const itemsSummary = validatedItems
-      .map((i) => `▫️ ${i.name} (×${i.quantity}) = ${i.total} ج`)
+      .map((i) => `- ${i.name} (×${i.quantity}) = ${i.total} ج`)
       .join('\n');
 
-    const paymentLabel = (dto.paymentMethod === 'instapay_wallet') ? '📱 تحويل مسبق (إنستاباي / محفظة)' : '💵 دفع عند الاستلام (كاش)';
-    const notesPart = dto.customerNotes ? `\n📝 ملاحظات: ${dto.customerNotes}` : '';
+    const paymentLabel = (dto.paymentMethod === 'instapay_wallet') ? 'تحويل مسبق (إنستاباي / محفظة)' : 'دفع عند الاستلام (كاش)';
+    const notesPart = dto.customerNotes ? `\nملاحظات: ${dto.customerNotes}` : '';
 
     const whatsappMessage = encodeURIComponent(
       `مرحباً، أود متابعة طلبي من متجركم:\n` +
-      `📦 رقم الطلب: #${orderNumber}\n` +
-      `👤 العميل: ${dto.customerName}\n` +
-      `📞 الهاتف: ${dto.customerPhone}\n` +
-      `📍 العنوان: ${dto.customerAddress || 'غير محدد'}` +
+      `رقم الطلب: #${orderNumber}\n` +
+      `العميل: ${dto.customerName}\n` +
+      `الهاتف: ${dto.customerPhone}\n` +
+      `العنوان: ${dto.customerAddress || 'غير محدد'}` +
       `${notesPart}\n` +
-      `💳 طريقة الدفع: ${paymentLabel}\n\n` +
+      `طريقة الدفع: ${paymentLabel}\n\n` +
       `الأصناف المطلوبة:\n${itemsSummary}\n\n` +
-      `💰 الإجمالي: ${totalAmount} ج (شامل التوصيل ${deliveryFee} ج)`
+      `الإجمالي: ${totalAmount} ج (شامل التوصيل ${deliveryFee} ج)`
     );
 
     const whatsappUrl = targetPhone ? `https://wa.me/${targetPhone}?text=${whatsappMessage}` : null;

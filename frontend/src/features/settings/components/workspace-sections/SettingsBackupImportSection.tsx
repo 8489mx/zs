@@ -922,12 +922,12 @@ export function SettingsBackupImportSection({
                         cursor: 'pointer',
                       }}
                     >
-                      📁 {p.label}
+                      {p.label}
                     </button>
                   ))}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
-                  💡 عند اختيار مجلد مزامنة سحابية لـ (Google Drive أو OneDrive أو Dropbox)، تُرفع النسخ للسحابة تلقائياً لحظة إنشائها لحماية بياناتك من أي عطل بالهارد ديسك.
+                  ملاحظة: عند اختيار مجلد مزامنة سحابية لـ (Google Drive أو OneDrive أو Dropbox)، تُرفع النسخ للسحابة تلقائياً لحظة إنشائها لحماية بياناتك من أي عطل بالهارد ديسك.
                 </div>
               </div>
 

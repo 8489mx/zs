@@ -84,7 +84,6 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🛒</span>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>
               طلبات المتجر الإلكتروني الواردة
             </h3>
@@ -195,7 +194,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                         <span style={{ color: '#475569', direction: 'ltr' }}>{order.customerPhone}</span>
                       </div>
                       <div style={{ color: '#64748b', fontSize: '12px' }}>
-                        📍 {order.customerAddress || 'استلام من المتجر'}
+                        {order.customerAddress || 'استلام من المتجر'}
                       </div>
                     </div>
 
@@ -274,13 +273,9 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                             color: '#ffffff',
                             fontSize: '12px',
                             fontWeight: 700,
-                            padding: '6px 10px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
+                            padding: '6px 12px',
                           }}
                         >
-                          <span>🛒</span>
                           <span>{loadingPosOrderId === order.id ? 'جاري النقل...' : 'تنزيل بالسلة'}</span>
                         </Button>
 
@@ -293,12 +288,8 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
                             fontSize: '12px',
                             fontWeight: 700,
                             padding: '6px 12px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
                           }}
                         >
-                          <span>⚡</span>
                           <span>دليفري ومندوب</span>
                         </Button>
                       </div>
@@ -323,7 +314,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
           }}
         >
           <span style={{ color: '#64748b' }}>
-            ⚡ الأوتوميشن يسجل العميل تلقائياً ويخصم المخزون فوراً.
+            النظام يسجل العميل تلقائياً ويخصم المخزون فوراً.
           </span>
           <Link
             to="/online-orders"
@@ -351,10 +342,10 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
           queryClient.invalidateQueries({ queryKey: ['pos-online-orders-quick'] });
           queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders-count'] });
           const custMsg = data.isNewCustomer
-            ? `\n🎉 تم تسجيل (${data.customerName}) كعميل جديد في النظام تلقائياً!`
-            : `\n👤 العميل: ${data.customerName}`;
-          const repMsg = data.deliveryRepName ? `\n🛵 المندوب: ${data.deliveryRepName}` : '';
-          alert(`✅ تم تحويل الطلب بنجاح إلى فاتورة مبيعات دليفري رقم #${data.saleId} وتخصيم المخزون!${custMsg}${repMsg}`);
+            ? `\nتم تسجيل (${data.customerName}) كعميل جديد في النظام تلقائياً!`
+            : `\nالعميل: ${data.customerName}`;
+          const repMsg = data.deliveryRepName ? `\nالمندوب: ${data.deliveryRepName}` : '';
+          alert(`تم تحويل الطلب بنجاح إلى فاتورة مبيعات دليفري رقم #${data.saleId} وتخصيم المخزون!${custMsg}${repMsg}`);
         }}
         onLoadToPos={handleLoadToPos}
       />

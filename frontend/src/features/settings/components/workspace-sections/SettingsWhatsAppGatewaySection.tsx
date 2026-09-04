@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
+import { MessageSquareIcon } from '@/shared/components/icons/AppIcons';
 
 export interface WhatsAppGatewayConfig {
   enabled: boolean;
@@ -99,7 +100,9 @@ export function SettingsWhatsAppGatewaySection() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px', marginBottom: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '20px' }}>💬</span>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MessageSquareIcon size={18} color="#166534" />
+              </div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
                 بوابة الواتساب السحابية التلقائية (Automated Cloud WhatsApp)
               </h3>
@@ -265,7 +268,7 @@ export function SettingsWhatsAppGatewaySection() {
               onClick={handleSendTest}
               style={{ fontSize: '12px', padding: '6px 12px' }}
             >
-              {testMutation.isPending ? 'جاري الإرسال...' : '📲 إرسال رسالة اختبار'}
+              {testMutation.isPending ? 'جاري الإرسال...' : 'إرسال رسالة اختبار'}
             </Button>
           </div>
 

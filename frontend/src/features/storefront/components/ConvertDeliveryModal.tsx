@@ -93,7 +93,6 @@ export function ConvertDeliveryModal({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🛵</span>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#170e5e' }}>
               تحويل الطلب #{order.orderNumber}
             </h3>
@@ -132,11 +131,11 @@ export function ConvertDeliveryModal({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 800, color: '#0f172a' }}>👤 {order.customerName}</span>
+              <span style={{ fontWeight: 800, color: '#0f172a' }}>{order.customerName}</span>
               <span style={{ color: '#475569', direction: 'ltr', fontWeight: 600 }}>{order.customerPhone}</span>
             </div>
             <div style={{ color: '#64748b' }}>
-              📍 {order.customerAddress || 'استلام من المتجر'}
+              {order.customerAddress || 'استلام من المتجر'}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '4px' }}>
               <span style={{ color: '#64748b' }}>إجمالي الطلب:</span>
@@ -169,7 +168,7 @@ export function ConvertDeliveryModal({
               <option value="">-- تلقائي (توصيل المتجر / أول مندوب متاح) --</option>
               {activeReps.map((rep) => (
                 <option key={rep.id} value={rep.id}>
-                  🛵 {rep.name} {rep.phone ? `(${rep.phone})` : ''}
+                  {rep.name} {rep.phone ? `(${rep.phone})` : ''}
                 </option>
               ))}
             </select>
@@ -194,10 +193,8 @@ export function ConvertDeliveryModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
               }}
             >
-              <span>⚡</span>
               <span>{convertMutation.isPending ? 'جاري الإصدار...' : 'إصدار فاتورة دليفري فورية'}</span>
             </Button>
 
@@ -219,10 +216,8 @@ export function ConvertDeliveryModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
               }}
             >
-              <span>🛒</span>
               <span>تنزيل في سلة الكاشير (POS) للتعديل وإتمام البيع</span>
             </Button>
           </div>
