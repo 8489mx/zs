@@ -90,7 +90,7 @@ describe('PosProductsPanel', () => {
       />,
     );
 
-    await user.click(screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter'));
+    await user.click(screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...'));
     await user.keyboard('{Enter}');
 
     expect(onSearchSubmitFirstResult).toHaveBeenCalledWith('barcode-002');

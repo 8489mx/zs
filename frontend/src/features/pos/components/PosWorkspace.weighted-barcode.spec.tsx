@@ -159,14 +159,14 @@ describe('PosWorkspace - Weighted Barcodes', () => {
 
     // Wait for initial load
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...')).toBeInTheDocument();
       expect(screen.queryByText('أضف صنفًا واحدًا على الأقل قبل بدء البيع.')).not.toBeInTheDocument();
     });
     
     // Give settingsQuery a tiny moment to resolve
     await new Promise(r => setTimeout(r, 50));
 
-    const searchInput = screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter');
+    const searchInput = screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...');
     
     // Simulate scanner
     fireEvent.change(searchInput, { target: { value: '2000009015751' } });
@@ -223,12 +223,12 @@ describe('PosWorkspace - Weighted Barcodes', () => {
     renderWorkspace();
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...')).toBeInTheDocument();
       expect(screen.queryByText('أضف صنفًا واحدًا على الأقل قبل بدء البيع.')).not.toBeInTheDocument();
     });
     await new Promise(r => setTimeout(r, 50));
 
-    const searchInput = screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter');
+    const searchInput = screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...');
     
     // Simulate scanner
     fireEvent.change(searchInput, { target: { value: '2000002001355' } });
@@ -259,12 +259,12 @@ describe('PosWorkspace - Weighted Barcodes', () => {
     renderWorkspace();
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...')).toBeInTheDocument();
       expect(screen.queryByText('أضف صنفًا واحدًا على الأقل قبل بدء البيع.')).not.toBeInTheDocument();
     });
     await new Promise(r => setTimeout(r, 50));
 
-    const searchInput = screen.getByPlaceholderText('اضرب الباركود هنا أو اكتب الاسم ثم Enter');
+    const searchInput = screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...');
     
     // Simulate scanner for a non-existent weighted product
     fireEvent.change(searchInput, { target: { value: '2000009015751' } });

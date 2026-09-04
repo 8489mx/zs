@@ -100,6 +100,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <div className="pos-mode-toggle" role="group" aria-label="POS mode">
             <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
             <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
+            <Button type="button" variant={posMode === 'tablet' ? 'primary' : 'secondary'} onClick={() => onModeChange('tablet')}>تابلت 📱</Button>
           </div>
           {pos.currentBranch?.name && (
              <div className="pos-header-branch-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', background: '#e2e8f0', padding: '4px 12px', borderRadius: '4px', fontWeight: 600 }}>

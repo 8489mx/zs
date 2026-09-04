@@ -167,7 +167,7 @@ export function PosCartPaymentSection(props: Pick<PosCartPanelProps,
               {props.discountApprovalGranted ? 'تم اعتماد الخصم لهذه الفاتورة فقط.' : 'لا تملك صلاحية تعديل الخصم. استخدم اعتماد المدير لهذه الفاتورة.'}
             </span>
           ) : null}
-          {props.hasDiscountPermissionViolation ? <span className="pos-payment-strip-note is-warning">تم اكتشاف خصم غير مسموح به في هذه الفاتورة.</span> : null}
+          {props.hasDiscountPermissionViolation ? <span className="pos-payment-strip-note is-warning">الخصم يتجاوز الحد المسموح به أو يتطلب اعتماد المدير (PIN).</span> : null}
         </div>
       ) : null}
     </div>

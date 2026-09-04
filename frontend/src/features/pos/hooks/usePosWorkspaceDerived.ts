@@ -19,7 +19,7 @@ interface PosWorkspaceDerivedParams {
   openShiftRows: Array<{ id: string | number; docNo?: string; openedById?: string | number; openedByName?: string }>;
   authUserId?: string | number | null;
   authPermissions?: string[];
-  settings?: { taxRate?: number | string; taxMode?: string; allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown } | null;
+  settings?: { taxRate?: number | string; taxMode?: string; allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown; posMaxDiscountThresholdEnabled?: boolean; posMaxDiscountThresholdType?: string; posMaxDiscountThresholdValue?: number } | null;
   heldDrafts: Array<unknown>;
   recentProductIds: string[];
   productFilter: PosProductFilter;
@@ -61,7 +61,7 @@ function getCanSubmitHint(params: {
   if (params.hasCreditWithoutCustomer) return 'البيع الآجل يحتاج اختيار عميل.';
   if (params.hasDeliveryWithoutRep) return 'يرجى اختيار مندوب التوصيل لإتمام فاتورة الدليفري.';
   if (params.hasZeroPriceLine) return 'راجع السلة: يوجد صنف بسعر صفر.';
-  if ((params as typeof params & { hasDiscountPermissionViolation?: boolean }).hasDiscountPermissionViolation) return 'لا تملك صلاحية تعديل الخصم.';
+  if ((params as typeof params & { hasDiscountPermissionViolation?: boolean }).hasDiscountPermissionViolation) return 'الخصم يتطلب اعتماد المدير (PIN).';
   if ((params as typeof params & { hasPricePermissionViolation?: boolean }).hasPricePermissionViolation) return 'لا تملك صلاحية تعديل السعر.';
   if (params.hasUnderpaidSale) return 'أكمل المدفوع أو حوّل العملية إلى آجل.';
   return '';
@@ -200,7 +200,32 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     return matched || null;
   }, [openShiftByUserId, openShiftList, params.authUserId]);
 
-  const canApplyDiscount = authPermissionSet.has('canDiscount') || authPermissionSet.has('*') || Boolean(params.discountApprovalGranted);
+  const discountVal = Math.abs(Number(params.discount || 0));
+  const subtotalVal = Number(totals.subTotal || 0);
+  const isThresholdEnabled = Boolean(params.settings?.posMaxDiscountThresholdEnabled);
+  const thresholdType = params.settings?.posMaxDiscountThresholdType || 'percentage';
+  const thresholdValue = Number(params.settings?.posMaxDiscountThresholdValue ?? 15);
+
+  let exceedsDiscountThreshold = false;
+  if (isThresholdEnabled && discountVal > 0.0001 && thresholdValue > 0) {
+    if (thresholdType === 'percentage') {
+      const discountPercentage = subtotalVal > 0 ? (discountVal / subtotalVal) * 100 : 0;
+      exceedsDiscountThreshold = discountPercentage > thresholdValue;
+    } else {
+      exceedsDiscountThreshold = discountVal > thresholdValue;
+    }
+  }
+
+  const isApprovedByManager = Boolean(params.discountApprovalGranted);
+  const isSuperAdmin = authPermissionSet.has('*');
+  const hasBaseDiscountPermission = authPermissionSet.has('canDiscount') || isSuperAdmin;
+
+  const hasDiscountPermissionViolation = discountVal > 0.0001 && (
+    (!hasBaseDiscountPermission && !isApprovedByManager) ||
+    (exceedsDiscountThreshold && !isSuperAdmin && !isApprovedByManager)
+  );
+
+  const canApplyDiscount = (hasBaseDiscountPermission && !exceedsDiscountThreshold) || isSuperAdmin || isApprovedByManager;
   const canEditPrice = authPermissionSet.has('canEditPrice') || authPermissionSet.has('*');
   const canSellWholesale = authPermissionSet.has('canSellWholesale') || authPermissionSet.has('*') || Boolean(params.wholesaleApprovalGranted);
   const hasOperationalSetup = Boolean(branchList.length > 0 && locationList.length > 0);
@@ -222,7 +247,6 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     && !shouldAssumeFullCashPayment
     && !isDeliveryCOD
     && !isPartialCreditWithCustomer;
-  const hasDiscountPermissionViolation = !canApplyDiscount && Math.abs(Number(params.discount || 0)) > 0.0001;
   const hasPricePermissionViolation = useMemo(() => {
     if (canEditPrice) return false;
     return params.cart.some((item) => {

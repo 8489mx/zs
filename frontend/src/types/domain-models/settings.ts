@@ -71,6 +71,9 @@ export interface AppSettings {
   allowSellingBelowStock?: boolean;
   allowZeroPurchaseCost?: boolean;
   requireCashierShiftForSales?: boolean;
+  posMaxDiscountThresholdEnabled?: boolean;
+  posMaxDiscountThresholdType?: 'percentage' | 'fixed';
+  posMaxDiscountThresholdValue?: number;
   posKitchenPrinterEnabled?: boolean;
   posKitchenPrinterAuto?: boolean;
   weightedBarcodeEnabled?: boolean;

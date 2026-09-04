@@ -48,10 +48,49 @@ export class SalesWriteService {
     auth: AuthContext,
     discount: number,
     managerPin?: string | null,
+    subtotal?: number,
   ): Promise<void> {
-    if (Math.abs(Number(discount || 0)) <= 0.0001) return;
-    if (this.authz.hasPermission(auth, 'canDiscount')) return;
-    await this.authz.authorizeDiscountOverride(String(managerPin || '').trim(), auth, trx);
+    const discountVal = Math.abs(Number(discount || 0));
+    if (discountVal <= 0.0001) return;
+
+    let exceedsThreshold = false;
+    try {
+      const scope = requireTenantScope(auth);
+      const settingsRows = await trx
+        .selectFrom('settings')
+        .select(['key', 'value'])
+        .where('key', 'in', ['posMaxDiscountThresholdEnabled', 'posMaxDiscountThresholdType', 'posMaxDiscountThresholdValue'])
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+
+      const settingsMap = settingsRows.reduce<Record<string, any>>((acc, row) => {
+        try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
+        return acc;
+      }, {});
+
+      const isThresholdEnabled = settingsMap.posMaxDiscountThresholdEnabled === true || settingsMap.posMaxDiscountThresholdEnabled === 'true';
+      const thresholdType = settingsMap.posMaxDiscountThresholdType || 'percentage';
+      const thresholdValue = Number(settingsMap.posMaxDiscountThresholdValue || 0);
+
+      if (isThresholdEnabled && thresholdValue > 0) {
+        if (thresholdType === 'percentage') {
+          const sub = Number(subtotal || 0);
+          const pct = sub > 0 ? (discountVal / sub) * 100 : 0;
+          exceedsThreshold = pct > thresholdValue;
+        } else {
+          exceedsThreshold = discountVal > thresholdValue;
+        }
+      }
+    } catch {
+      // fallback to permission check
+    }
+
+    const isSuperAdmin = this.authz.hasPermission(auth, '*');
+    if (isSuperAdmin) return;
+
+    if (!this.authz.hasPermission(auth, 'canDiscount') || exceedsThreshold) {
+      await this.authz.authorizeDiscountOverride(String(managerPin || '').trim(), auth, trx);
+    }
   }
 
   private assertUnitPriceChangeAllowed(auth: AuthContext, providedPrice: number, allowedPrice: number): void {
@@ -599,7 +638,7 @@ export class SalesWriteService {
         pointsAfterRedeem = Math.max(0, Number((availablePoints - normalized.loyaltyPointsRedeemed).toFixed(2)));
       }
 
-      await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, normalized.managerPin);
+      await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, normalized.managerPin, subtotal);
       if (effectiveDiscount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
@@ -1454,7 +1493,7 @@ export class SalesWriteService {
         }
       }
 
-      await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, managerPin);
+      await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, managerPin, subtotal);
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);

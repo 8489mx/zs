@@ -717,6 +717,59 @@
   display: none;
 }
 
+/* Dedicated Tablet POS Mode */
+.pos-tablet-tab-switcher {
+  display: flex !important;
+  margin-bottom: 8px !important;
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.pos-grid-tablet-full {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+.pos-grid-tablet-full.pos-mobile-show-products .pos-checkout-column {
+  display: none !important;
+}
+
+.pos-grid-tablet-full.pos-mobile-show-cart .pos-products-column {
+  display: none !important;
+}
+
+.pos-grid-tablet-full .pos-resizer-handle {
+  display: none !important;
+}
+
+.pos-mobile-floating-cart-bar.is-tablet-active {
+  display: flex !important;
+  max-width: 680px !important;
+  margin: 0 auto !important;
+  left: 20px !important;
+  right: 20px !important;
+}
+
+.pos-product-group-grid-tablet {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.pos-product-group-grid-tablet .pos-group-card {
+  min-height: 120px !important;
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+}
+
+.pos-product-group-grid-tablet .pos-group-card-action strong {
+  font-size: 1rem !important;
+  line-height: 1.4 !important;
+}
+
 @media (max-width: 900px) {
   .pos-mobile-tab-switcher {
     display: flex;

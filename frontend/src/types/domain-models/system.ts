@@ -198,6 +198,9 @@ export interface AppSettings {
   posShowCartMeta?: boolean;
   clothingModuleEnabled?: boolean;
   enableMobileStoreFeatures?: boolean;
+  posMaxDiscountThresholdEnabled?: boolean;
+  posMaxDiscountThresholdType?: 'percentage' | 'fixed' | string;
+  posMaxDiscountThresholdValue?: number;
   enablePharmacyModule?: boolean;
   servicesModuleEnabled?: boolean;
   maintenanceProfile?: string;

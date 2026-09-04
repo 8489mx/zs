@@ -344,6 +344,65 @@ export function SalesInventorySettingsTab({
             />
           </div>
 
+          {/* Card 4.5: Max Cashier Discount Approval Threshold */}
+          <div style={{ gridColumn: '1 / -1', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={iconBadgeStyle}>
+                  <CashierShiftLockIcon size={20} />
+                </div>
+                <div>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف خصم الكاشير واعتماد المدير (PIN)</strong>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>اشتراط إدخال PIN المدير عند إعطاء الكاشير خصماً يتجاوز حداً معيناً</span>
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: form.watch('posMaxDiscountThresholdEnabled') ? '#166534' : '#64748b' }}>
+                  {form.watch('posMaxDiscountThresholdEnabled') ? 'مفعل' : 'معطل'}
+                </span>
+                <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posMaxDiscountThresholdEnabled')} disabled={disabled} />
+              </label>
+            </div>
+
+            {form.watch('posMaxDiscountThresholdEnabled') && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    طريقة حساب سقف الخصم
+                  </label>
+                  <select
+                    className="purchase-prototype-field-input"
+                    {...form.register('posMaxDiscountThresholdType')}
+                    disabled={disabled}
+                    style={fieldControlStyle}
+                  >
+                    <option value="percentage">نسبة مئوية من إجمالي الفاتورة (%)</option>
+                    <option value="fixed">مبلغ ثابت بالجنيه (ج.م)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? '(ج.م)' : '(%)'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    className="purchase-prototype-field-input"
+                    {...form.register('posMaxDiscountThresholdValue')}
+                    disabled={disabled}
+                    placeholder={form.watch('posMaxDiscountThresholdType') === 'fixed' ? 'مثال: 50' : 'مثال: 15'}
+                    style={fieldControlStyle}
+                  />
+                  <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    عند تطبيق خصم أعلى من هذا الحد بالكاشير، لن تكتمل الفاتورة إلا بإدخال رمز مرور المدير (PIN).
+                  </small>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Card 5: Default Branch Issue Mode (Span 2) */}
           <div style={{ gridColumn: '1 / -1', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

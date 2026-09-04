@@ -500,8 +500,8 @@ export function buildManagerActionInsights({
             severity: isOverdue ? 'danger' : 'warning',
             title: isOverdue ? 'قسط عميل متأخر' : 'قسط عميل مستحق اليوم',
             message: `${custName}: قسط #${instNo} بقيمة ${round(amount)} ج.م ${isOverdue ? `متأخر منذ ${daysDiff} يوم` : 'مستحق اليوم'}.`,
-            actionLabel: 'بيانات العميل',
-            actionHref: inst.customer_id ? `/accounts?customerId=${inst.customer_id}` : '/customers',
+            actionLabel: 'تحصيل / تذكير واتساب',
+            actionHref: '/sales/installments',
             metrics: { installmentId: id, customerId: inst.customer_id, amount: round(amount), daysOverdue: Math.max(0, daysDiff) },
             rank: 85 + Math.min(20, daysDiff * 2),
           }));
