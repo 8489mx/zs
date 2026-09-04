@@ -62,21 +62,25 @@ jobs:
             find /var/www/zsystems /home/ubuntu -maxdepth 3 -name ".env*" 2>/dev/null || true
           fi
 
-          echo "=== 3. Build Backend ==="
+          echo "=== 3. Clean and Build Backend ==="
           cd "$TARGET_DIR/backend"
           npm install --silent 2>&1 || true
           npm run migration:run 2>&1 || true
-          npx nest build 2>&1 || true
+          rm -rf dist
+          npm run build 2>&1
+          echo "Files in dist:"
+          ls -la dist/ || true
+          echo "Files in dist/config:"
+          ls -la dist/config/ 2>/dev/null || true
 
-          echo "=== 4. Test run main.js directly to capture startup log ==="
+          echo "=== 4. Test run main.js directly ==="
           if [ -n "$ENV_FILE" ]; then
-            # Run node directly with env file for 3 seconds to see output or error
             timeout 4 node --env-file="$ENV_FILE" dist/main.js 2>&1 || true
           else
             timeout 4 node dist/main.js 2>&1 || true
           fi
 
-          echo "=== 5. Start with PM2 using correct cwd and env ==="
+          echo "=== 5. Start with PM2 ==="
           pm2 delete all 2>/dev/null || true
           cd "$TARGET_DIR/backend"
           if [ -n "$ENV_FILE" ]; then
@@ -87,13 +91,13 @@ jobs:
           pm2 save 2>&1 || true
 
           sleep 5
-          echo "=== 6. PM2 Logs after start ==="
+          echo "=== 6. PM2 Status & Logs ==="
+          pm2 list
           pm2 logs zsystems-backend --nostream --lines 50 2>&1 || true
 
           echo "=== 7. Check listening ports and test HTTP ==="
           sudo ss -tulpn | grep -E '3000|3001|5432|80|443' || true
           curl -sv http://127.0.0.1:3000/api/activation/status 2>&1 || true
-          curl -sv http://127.0.0.1:3001/api/activation/status 2>&1 || true
 
           echo "=== 8. Reload Nginx ==="
           sudo systemctl reload nginx 2>/dev/null || true
