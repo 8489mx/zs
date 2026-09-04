@@ -30,6 +30,14 @@ export function openWhatsAppChat(phone: string, message: string): boolean {
   return true;
 }
 
+export function openWhatsApp(urlOrPhone: string, message?: string): boolean {
+  if (urlOrPhone.startsWith('http') || urlOrPhone.startsWith('whatsapp:')) {
+    window.open(urlOrPhone, '_blank', 'noopener,noreferrer');
+    return true;
+  }
+  return openWhatsAppChat(urlOrPhone, message || '');
+}
+
 export function formatInstallmentReminderMessage({
   customerName,
   installmentNumber,

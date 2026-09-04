@@ -8,6 +8,7 @@ import {
   type CustomerInstallmentItem,
 } from '@/features/sales/api/installments.api';
 import { customersApi } from '@/features/customers/api/customers.api';
+import { openWhatsAppChat, formatInstallmentReminderMessage } from '@/lib/whatsapp';
 
 const statusBadges: Record<string, { label: string; bg: string; color: string }> = {
   pending: { label: 'قيد الانتظار', bg: '#f1f5f9', color: '#475569' },
@@ -180,6 +181,33 @@ export function InstallmentsPage() {
     setPayAmount(String(remaining > 0 ? remaining : inst.amount));
     setPayMethod('cash');
     setPayNotes('');
+  };
+
+  const handleSendInstallmentReminder = (inst: CustomerInstallmentItem) => {
+    if (!inst.customer_phone) {
+      alert('رقم هاتف العميل غير مسجل لهذا القسط.');
+      return;
+    }
+    const message = formatInstallmentReminderMessage({
+      customerName: inst.customer_name || 'العميل',
+      installmentNumber: inst.installment_number,
+      totalInstallments: inst.installment_count,
+      amount: inst.amount,
+      dueDate: inst.due_date,
+      planNumber: inst.plan_number,
+    });
+    openWhatsAppChat(inst.customer_phone, message);
+  };
+
+  const handleSendReceiptWhatsApp = () => {
+    if (!receiptData) return;
+    if (!receiptData.customer_phone) {
+      alert('رقم هاتف العميل غير متوفر.');
+      return;
+    }
+    const formattedDate = new Date(receiptData.paid_at).toLocaleDateString('ar-EG');
+    const message = `مرحباً أستاذ/ة *${receiptData.customer_name}*،\nتم استلام دفعة قسطكم بنجاح!\n🧾 رقم الإيصال: *#${receiptData.receipt_no}*\n💵 المبلغ المسدد: *${Number(receiptData.paid_amount).toLocaleString()} ج.م*\n📋 القسط: *#${receiptData.installment_number}*\n💳 طريقة الدفع: ${receiptData.payment_method}\n📅 التاريخ: ${formattedDate}\n\nشكراً لتعاملكم معنا! 🙏`;
+    openWhatsAppChat(receiptData.customer_phone, message);
   };
 
   const metrics = metricsQuery.data || {
@@ -433,21 +461,43 @@ export function InstallmentsPage() {
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                           {!isFullyPaid ? (
-                            <Button
-                              onClick={() => openPayModal(inst)}
-                              style={{
-                                backgroundColor: '#170e5e',
-                                color: '#ffffff',
-                                padding: '6px 12px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                border: 'none',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              تحصيل القسط
-                            </Button>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
+                              <Button
+                                onClick={() => openPayModal(inst)}
+                                style={{
+                                  backgroundColor: '#170e5e',
+                                  color: '#ffffff',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                تحصيل القسط
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                onClick={() => handleSendInstallmentReminder(inst)}
+                                disabled={!inst.customer_phone}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  background: '#f0fdf4',
+                                  borderColor: '#bbf7d0',
+                                  color: '#15803d',
+                                }}
+                                title={inst.customer_phone ? 'إرسال تذكير بموعد القسط عبر واتساب' : 'رقم الهاتف غير مسجل'}
+                              >
+                                💬 تذكير
+                              </Button>
+                            </div>
                           ) : (
                             <span style={{ fontSize: '12px', color: '#166534', fontWeight: '600' }}>
                               ✓ مسدد بالكامل {inst.receipt_no ? `(${inst.receipt_no})` : ''}
@@ -996,7 +1046,7 @@ export function InstallmentsPage() {
               <div><strong>التاريخ:</strong> {new Date(receiptData.paid_at).toLocaleString('ar-EG')}</div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <Button
                 onClick={() => window.print()}
                 style={{
@@ -1011,6 +1061,25 @@ export function InstallmentsPage() {
                 }}
               >
                 طباعة الإيصال
+              </Button>
+              <Button
+                onClick={handleSendReceiptWhatsApp}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#25D366',
+                  color: '#ffffff',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                💬 إرسال واتساب
               </Button>
               <Button
                 variant="secondary"

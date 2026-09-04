@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
 import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 import { BarcodeIcon, RefreshCwIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { VanSaleNewInvoiceModal } from '../components/VanSaleNewInvoiceModal';
 
 export function DeliveryDriverMobilePage() {
   const queryClient = useQueryClient();
@@ -15,6 +16,7 @@ export function DeliveryDriverMobilePage() {
   const [statusFilter, setStatusFilter] = useState<'pending' | 'settled' | 'all'>('pending');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedCode, setScannedCode] = useState('');
+  const [vanSaleModalOpen, setVanSaleModalOpen] = useState(false);
 
   const { data: repsList = [] } = useQuery<DeliveryRep[]>({
     queryKey: ['delivery-reps-list'],
@@ -205,6 +207,33 @@ export function DeliveryDriverMobilePage() {
           <div style={{ fontSize: '11px', color: '#64748b' }}>تم تسليمها</div>
           <div style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{settledCount}</div>
         </div>
+      </div>
+
+      {/* Direct Van Sale Action Button */}
+      <div style={{ marginBottom: '14px' }}>
+        <button
+          type="button"
+          onClick={() => setVanSaleModalOpen(true)}
+          style={{
+            width: '100%',
+            padding: '12px',
+            borderRadius: '10px',
+            border: 'none',
+            background: '#170e5e',
+            color: '#ffffff',
+            fontSize: '14px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 4px rgba(23,14,94,0.15)',
+          }}
+        >
+          <span>🚚</span>
+          <span>+ بيع مباشر من السيارة (Van Sale)</span>
+        </button>
       </div>
 
       {/* Status Filter Tabs */}
@@ -409,6 +438,16 @@ export function DeliveryDriverMobilePage() {
         }}
         title="مسح باركود شحنة أو فاتورة"
       />
+
+      {vanSaleModalOpen && (
+        <VanSaleNewInvoiceModal
+          open={vanSaleModalOpen}
+          onClose={() => setVanSaleModalOpen(false)}
+          repId={selectedRepId}
+          repName={repsList.find((r) => r.id === selectedRepId)?.name}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
   );
 }
