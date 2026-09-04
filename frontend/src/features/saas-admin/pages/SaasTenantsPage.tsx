@@ -306,8 +306,8 @@ export function SaasTenantsPage() {
   });
 
   const renewMutation = useMutation({
-    mutationFn: (input: { tenantId: string; durationMonths: number; planId: number; paymentAmount?: number; paymentMethod?: string }) => 
-      saasAdminApi.renewTenant(input.tenantId, input),
+    mutationFn: ({ tenantId, ...payload }: { tenantId: string; durationMonths: number; planId: number; paymentAmount?: number; paymentMethod?: string }) => 
+      saasAdminApi.renewTenant(tenantId, payload),
     onSuccess: async () => {
       setFeedback('تم تجديد الاشتراك بنجاح.');
       await invalidateTenants();
@@ -317,8 +317,8 @@ export function SaasTenantsPage() {
   });
 
   const recordPaymentMutation = useMutation({
-    mutationFn: (input: { tenantId: string; amount: number; currency: string; method: string; reference?: string }) => 
-      saasAdminApi.recordPayment(input.tenantId, input),
+    mutationFn: ({ tenantId, ...payload }: { tenantId: string; amount: number; currency: string; method: string; reference?: string }) => 
+      saasAdminApi.recordPayment(tenantId, payload),
     onSuccess: async () => {
       setFeedback('تم تسجيل الدفعة بنجاح.');
       await invalidateTenants();

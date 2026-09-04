@@ -123,6 +123,10 @@ export class ActivateTenantDto {
 }
 
 export class RenewTenantDto {
+  @IsOptional()
+  @IsString()
+  tenantId?: string;
+
   @Type(() => Number)
   @IsInt()
   planId!: number;
@@ -182,6 +186,10 @@ export class CreateSaasPlanDto {
 }
 
 export class RecordPaymentDto {
+  @IsOptional()
+  @IsString()
+  tenantId?: string;
+
   @Type(() => Number)
   amount!: number;
 

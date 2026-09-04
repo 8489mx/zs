@@ -11,7 +11,7 @@ export function TenantSubscriptionPage() {
   const [notes, setNotes] = useState('');
   const [requestSuccessMessage, setRequestSuccessMessage] = useState<string | null>(null);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['tenant-my-subscription'],
     queryFn: () => tenantSubscriptionApi.getMySubscription(),
   });
@@ -65,10 +65,14 @@ export function TenantSubscriptionPage() {
   }
 
   if (isError || !data) {
+    const errorMsg = (error as any)?.message || 'تعذر تحميل بيانات الاشتراك.';
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
-        <p>تعذر تحميل بيانات الاشتراك.</p>
-        <Button variant="secondary" onClick={() => refetch()} style={{ marginTop: '10px' }}>
+        <p style={{ fontWeight: 700, margin: '0 0 4px' }}>{errorMsg}</p>
+        <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px' }}>
+          يرجى إعادة المحاولة، أو التواصل مع إدارة النظام في حال استمرار المشكلة.
+        </p>
+        <Button variant="secondary" onClick={() => refetch()} style={{ marginTop: '4px' }}>
           إعادة المحاولة
         </Button>
       </div>
@@ -260,10 +264,14 @@ export function TenantSubscriptionPage() {
             }}
           >
             <div style={{ fontSize: '20px', fontWeight: 900, color: '#170e5e', lineHeight: 1 }}>
-              {daysLeft}
+              {statusMeta.daysRemaining === null || statusMeta.daysRemaining > 365 ? '∞' : daysLeft}
             </div>
             <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', fontWeight: 700 }}>
-              {daysLeft > 0 ? 'يوم متبقي' : 'منتهي'}
+              {statusMeta.daysRemaining === null || statusMeta.daysRemaining > 365
+                ? 'اشتراك نشط'
+                : daysLeft > 0
+                ? 'يوم متبقي'
+                : 'منتهي'}
             </div>
           </div>
 

@@ -18,10 +18,6 @@ export function TenantSubscriptionsModal({
   onRecordPayment,
 }: TenantSubscriptionsModalProps) {
   const [activeTab, setActiveTab] = useState<'subscriptions' | 'payments'>('subscriptions');
-  const [printingItem, setPrintingItem] = useState<{
-    type: 'subscription' | 'payment';
-    data: any;
-  } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['saas-tenant-subscriptions', tenant.id],
@@ -32,10 +28,167 @@ export function TenantSubscriptionsModal({
   const payments = data?.payments || [];
 
   const handlePrintReceipt = (item: any, type: 'subscription' | 'payment') => {
-    setPrintingItem({ type, data: item });
-    setTimeout(() => {
-      window.print();
-    }, 200);
+    const printWindow = window.open('', '_blank', 'width=800,height=750');
+    if (!printWindow) return;
+
+    const isSub = type === 'subscription';
+    const planName = item.plan_name || tenant.planName || 'باقة مخصصة';
+    const amountStr = item.amount ? `${item.amount} ${item.currency || 'EGP'}` : '';
+    const methodStr = item.method === 'cash' ? 'نقدي' : item.method === 'transfer' ? 'تحويل بنكي / محفظة' : 'فيزا / بطاقة';
+    const paidAtStr = item.paid_at ? formatDate(item.paid_at) : '-';
+    const startsAtStr = item.starts_at ? formatDate(item.starts_at) : '-';
+    const endsAtStr = item.ends_at ? formatDate(item.ends_at) : 'مدى الحياة';
+    const durationStr = item.billing_period_months ? `${item.billing_period_months} شهر` : '-';
+    const dateNowStr = formatDate(new Date().toISOString());
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="utf-8" />
+          <title>إيصال استلام اشتراك رسمي - ${tenant.businessName || tenant.slug}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 12mm;
+            }
+            * { box-sizing: border-box; }
+            body {
+              font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Tahoma, sans-serif;
+              padding: 10px;
+              margin: 0;
+              color: #0f172a;
+              background: #ffffff;
+            }
+            .receipt-card {
+              border: 2px solid #0f172a;
+              border-radius: 12px;
+              padding: 24px;
+              max-width: 680px;
+              margin: 0 auto;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 2px solid #e2e8f0;
+              padding-bottom: 14px;
+              margin-bottom: 18px;
+            }
+            .header h2 { margin: 0; font-size: 20px; font-weight: 900; color: #170e5e; }
+            .header p { margin: 4px 0 0; font-size: 12.5px; color: #64748b; }
+            .header-meta { text-align: left; font-size: 12px; color: #475569; }
+            .grid-2 {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px 20px;
+            }
+            .info-box {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              padding: 14px 16px;
+              margin-bottom: 18px;
+            }
+            .field-label { font-size: 11.5px; color: #64748b; display: block; margin-bottom: 2px; }
+            .field-value { font-size: 14px; font-weight: 700; color: #0f172a; }
+            .details-box {
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              padding: 14px 16px;
+              margin-bottom: 20px;
+            }
+            .details-title {
+              margin: 0 0 10px;
+              font-size: 13.5px;
+              font-weight: 800;
+              border-bottom: 1px solid #f1f5f9;
+              padding-bottom: 6px;
+              color: #170e5e;
+            }
+            .footer-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+              margin-top: 24px;
+              padding-top: 14px;
+              border-top: 1px dashed #cbd5e1;
+            }
+            .footer-note { font-size: 11px; color: #64748b; max-width: 380px; line-height: 1.5; }
+            .seal-box { text-align: center; width: 160px; }
+            .seal-title { font-size: 12px; font-weight: 700; margin-bottom: 28px; }
+            .seal-line { border-bottom: 1px solid #000; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-card">
+            <div class="header">
+              <div>
+                <h2>منظومة Z-Systems السحابية</h2>
+                <p>إيصال استلام اشتراك رسمي - SaaS Subscription Receipt</p>
+              </div>
+              <div class="header-meta">
+                <div>التاريخ: <bdi dir="ltr">${dateNowStr}</bdi></div>
+                <div>المعرف السحابي: <strong>${tenant.slug}</strong></div>
+              </div>
+            </div>
+
+            <div class="info-box grid-2">
+              <div>
+                <span class="field-label">اسم المنشأة / النشاط:</span>
+                <span class="field-value">${tenant.businessName || tenant.slug}</span>
+              </div>
+              <div>
+                <span class="field-label">اسم المالك / المسؤول:</span>
+                <span class="field-value">${tenant.ownerName || '-'}</span>
+              </div>
+              <div>
+                <span class="field-label">رقم الهاتف:</span>
+                <span class="field-value" style="direction: ltr; display: inline-block;">${tenant.ownerPhone || '-'}</span>
+              </div>
+              <div>
+                <span class="field-label">نوع النشاط:</span>
+                <span class="field-value">${tenant.activityType || 'تجارة وإدارة أعمال'}</span>
+              </div>
+            </div>
+
+            <div class="details-box">
+              <div class="details-title">تفاصيل المعاملة والاشتراك</div>
+              <div class="grid-2">
+                ${isSub ? `
+                  <div><span class="field-label">الباقة:</span><span class="field-value">${planName}</span></div>
+                  <div><span class="field-label">المدة:</span><span class="field-value">${durationStr}</span></div>
+                  <div><span class="field-label">تاريخ البدء:</span><span class="field-value"><bdi dir="ltr">${startsAtStr}</bdi></span></div>
+                  <div><span class="field-label">تاريخ الانتهاء:</span><span class="field-value"><bdi dir="ltr">${endsAtStr}</bdi></span></div>
+                ` : `
+                  <div><span class="field-label">المبلغ المسدد:</span><span class="field-value" style="color: #15803d; font-size: 16px;">${amountStr}</span></div>
+                  <div><span class="field-label">طريقة الدفع:</span><span class="field-value">${methodStr}</span></div>
+                  <div><span class="field-label">تاريخ السداد:</span><span class="field-value"><bdi dir="ltr">${paidAtStr}</bdi></span></div>
+                  <div><span class="field-label">رقم المرجع:</span><span class="field-value">${item.reference || '—'}</span></div>
+                `}
+              </div>
+            </div>
+
+            <div class="footer-row">
+              <div class="footer-note">
+                * هذا الإيصال صادر إلكترونياً ومعتمد رسمياً من إدارة منصة Z-Systems السحابية لإدارة الأعمال.
+              </div>
+              <div class="seal-box">
+                <div class="seal-title">توقيع وخاتم المنصة</div>
+                <div class="seal-line"></div>
+              </div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.focus();
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -361,89 +514,7 @@ export function TenantSubscriptionsModal({
           </div>
         )}
 
-        {/* Printable Receipt Template (Hidden on Screen, Visible on Print) */}
-        {printingItem && (
-          <div className="print-only" style={{ display: 'none' }} id="saas-subscription-print-receipt">
-            <style>{`
-              @media print {
-                body * { visibility: hidden !important; }
-                #saas-subscription-print-receipt, #saas-subscription-print-receipt * { visibility: visible !important; }
-                #saas-subscription-print-receipt {
-                  position: absolute !important;
-                  left: 0 !important;
-                  top: 0 !important;
-                  width: 100% !important;
-                  display: block !important;
-                  padding: 24px !important;
-                  font-family: Cairo, Tahoma, sans-serif !important;
-                  color: #000000 !important;
-                }
-              }
-            `}</style>
-            <div style={{ border: '2px solid #0f172a', borderRadius: '12px', padding: '24px', maxWidth: '650px', margin: '0 auto' }} dir="rtl">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '16px', marginBottom: '16px' }}>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>منظومة Z-Systems السحابية</h2>
-                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#475569' }}>إيصال استلام اشتراك رسمي - SaaS Subscription Receipt</p>
-                </div>
-                <div style={{ textAlign: 'left', fontSize: '12px', color: '#475569' }}>
-                  <div>التاريخ: <bdi dir="ltr">{formatDate(new Date().toISOString())}</bdi></div>
-                  <div>المعرف السحابي: <strong>{tenant.slug}</strong></div>
-                </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '20px', background: '#f8fafc', padding: '14px', borderRadius: '8px' }}>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>اسم المنشأة / النشاط:</span>
-                  <strong style={{ fontSize: '15px' }}>{tenant.businessName || tenant.slug}</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>اسم المالك / المسؤول:</span>
-                  <strong style={{ fontSize: '15px' }}>{tenant.ownerName}</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>رقم الهاتف:</span>
-                  <strong style={{ fontSize: '13px', direction: 'ltr' }}>{tenant.ownerPhone || '-'}</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>نوع النشاط:</span>
-                  <strong style={{ fontSize: '13px' }}>{tenant.activityType || 'تجارة وإدارة أعمال'}</strong>
-                </div>
-              </div>
-
-              <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
-                <h4 style={{ margin: '0 0 10px', fontSize: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>تفاصيل المعاملة والاشتراك</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '13.5px' }}>
-                  {printingItem.type === 'subscription' ? (
-                    <>
-                      <div>الباقة: <strong>{printingItem.data.plan_name || tenant.planName || 'باقة مخصصة'}</strong></div>
-                      <div>المدة: <strong>{printingItem.data.billing_period_months ? `${printingItem.data.billing_period_months} شهر` : '-'}</strong></div>
-                      <div>تاريخ البدء: <bdi dir="ltr">{printingItem.data.starts_at ? formatDate(printingItem.data.starts_at) : '-'}</bdi></div>
-                      <div>تاريخ الانتهاء: <bdi dir="ltr">{printingItem.data.ends_at ? formatDate(printingItem.data.ends_at) : 'مدى الحياة'}</bdi></div>
-                    </>
-                  ) : (
-                    <>
-                      <div>المبلغ المسدد: <strong style={{ color: '#15803d', fontSize: '16px' }}>{printingItem.data.amount} {printingItem.data.currency || 'EGP'}</strong></div>
-                      <div>طريقة الدفع: <strong>{printingItem.data.method === 'cash' ? 'نقدي' : printingItem.data.method === 'transfer' ? 'تحويل بنكي / محفظة' : 'فيزا'}</strong></div>
-                      <div>تاريخ السداد: <bdi dir="ltr">{printingItem.data.paid_at ? formatDate(printingItem.data.paid_at) : '-'}</bdi></div>
-                      <div>رقم المرجع: <strong>{printingItem.data.reference || '—'}</strong></div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '30px', paddingTop: '16px', borderTop: '1px dashed #cbd5e1' }}>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>
-                  * هذا الإيصال صادر إلكترونياً من إدارة منصة Z-Systems السحابية لإدارة الأعمال.
-                </div>
-                <div style={{ textAlign: 'center', width: '160px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '24px' }}>توقيع وخاتم المنصة</div>
-                  <div style={{ borderBottom: '1px solid #000' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Footer Close */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
