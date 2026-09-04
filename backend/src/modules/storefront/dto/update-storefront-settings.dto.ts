@@ -46,7 +46,17 @@ export class UpdateStorefrontSettingsDto {
 
   @IsOptional()
   @IsString()
-  bannerPosition?: 'top' | 'center' | 'bottom';
+  bannerPosition?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  bannerPositions?: string[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  bannerIntervalSeconds?: number;
 
   @IsOptional()
   @IsString()

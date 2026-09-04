@@ -10,6 +10,7 @@ interface StorefrontHeaderProps {
   cartTotal: number;
   onOpenCart: () => void;
   onOpenOrders?: () => void;
+  onGoHome?: () => void;
 }
 
 export function StorefrontHeader({
@@ -20,6 +21,7 @@ export function StorefrontHeader({
   cartTotal,
   onOpenCart,
   onOpenOrders,
+  onGoHome,
 }: StorefrontHeaderProps) {
   const whatsappNumber = info.whatsappPhone.replace(/[^0-9]/g, '');
   const cleanPhone = whatsappNumber.startsWith('01') ? `2${whatsappNumber}` : whatsappNumber;
@@ -35,6 +37,11 @@ export function StorefrontHeader({
         boxShadow: '0 2px 10px rgba(15, 23, 42, 0.04)',
       }}
     >
+      <style>{`
+        .storefront-brand-btn:hover .storefront-brand-avatar { transform: scale(1.06); }
+        .storefront-brand-btn:hover .storefront-brand-title { color: #170e5e; }
+      `}</style>
+
       {/* Top Announcement Bar */}
       {info.announcement && (
         <div
@@ -64,9 +71,30 @@ export function StorefrontHeader({
           gap: '20px',
         }}
       >
-        {/* Brand & Store Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Brand & Store Name (Clickable to go home / reset) */}
+        <div
+          onClick={onGoHome}
+          role={onGoHome ? 'button' : undefined}
+          tabIndex={onGoHome ? 0 : undefined}
+          onKeyDown={(e) => {
+            if (onGoHome && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              onGoHome();
+            }
+          }}
+          title={onGoHome ? 'العودة للصفحة الرئيسية' : undefined}
+          className="storefront-brand-btn"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            cursor: onGoHome ? 'pointer' : 'default',
+            userSelect: 'none',
+            outline: 'none',
+          }}
+        >
           <div
+            className="storefront-brand-avatar"
             style={{
               width: '44px',
               height: '44px',
@@ -80,6 +108,7 @@ export function StorefrontHeader({
               fontWeight: 900,
               boxShadow: '0 4px 14px rgba(15, 23, 42, 0.2)',
               flexShrink: 0,
+              transition: 'transform 0.2s ease',
             }}
           >
             {info.title ? info.title.charAt(0) : 'Z'}
@@ -87,11 +116,13 @@ export function StorefrontHeader({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span
+                className="storefront-brand-title"
                 style={{
                   fontSize: '17px',
                   fontWeight: 900,
                   color: '#0f172a',
                   letterSpacing: '-0.3px',
+                  transition: 'color 0.15s ease',
                 }}
               >
                 {info.title || info.businessName}

@@ -7,6 +7,7 @@ import type { PosWorkspaceActionParams } from '@/features/pos/hooks/usePosWorksp
 import type { createPosWorkspaceBaseActions } from '@/features/pos/hooks/pos-workspace-actions/createPosWorkspaceBaseActions';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 import { storefrontApi } from '@/features/storefront/api/storefront.api';
+import { queryClient } from '@/app/providers';
 
 function getSaleKey(sale: Sale | null) {
   if (!sale) return '';
@@ -251,10 +252,12 @@ export function createPosWorkspaceAsyncActions(
         collectionStatus: params.collectionStatus,
         deliveryFeeMode: params.deliveryFeeMode,
       });
+      const rawOnlineNumber = localStorage.getItem('zs_pos_online_order_number');
       const hydratedSale: Sale = {
         ...(createdSale as Sale),
         cart: params.cart,
-      };
+        onlineOrderNumber: rawOnlineNumber || (createdSale as any)?.onlineOrderNumber,
+      } as any;
       params.setLastSale(hydratedSale);
       const createdSaleKey = getSaleKey(hydratedSale);
 
@@ -264,9 +267,16 @@ export function createPosWorkspaceAsyncActions(
         const activeOnlineOrderId = rawOnlineId ? Number(rawOnlineId) : 0;
         const saleId = Number((createdSale as any)?.id || (createdSale as any)?.sale?.id || (typeof createdSale === 'number' ? createdSale : 0));
         if (activeOnlineOrderId > 0 && saleId > 0) {
-          void storefrontApi.updateOrderStatus(activeOnlineOrderId, 'delivered', saleId);
+          storefrontApi.updateOrderStatus(activeOnlineOrderId, 'processing', saleId)
+            .then(() => {
+              void queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
+            })
+            .catch((err) => {
+              console.warn('Failed to link online order to POS sale:', err);
+            });
           localStorage.removeItem('zs_pos_online_order_id');
           localStorage.removeItem('zs_pos_online_order_number');
+          void queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
         }
       } catch (err) {
         console.warn('Failed to link online order to POS sale:', err);

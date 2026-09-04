@@ -9,7 +9,9 @@ export interface StorefrontInfo {
   bannerUrl: string;
   bannerUrls?: string[];
   bannerFit?: 'contain' | 'cover';
-  bannerPosition?: 'top' | 'center' | 'bottom';
+  bannerPosition?: string;
+  bannerPositions?: string[];
+  bannerIntervalSeconds?: number;
   deliveryFee: number;
   minOrder: number;
   whatsappPhone: string;
@@ -52,7 +54,7 @@ export interface CreateOnlineOrderPayload {
   customerAddress?: string;
   customerNotes?: string;
   items: Array<{
-    productId: number;
+    productId: number | string;
     quantity: number;
     notes?: string;
   }>;
@@ -108,7 +110,9 @@ export interface StorefrontSettingsPayload {
   bannerUrl?: string;
   bannerUrls?: string[];
   bannerFit?: 'contain' | 'cover';
-  bannerPosition?: 'top' | 'center' | 'bottom';
+  bannerPosition?: string;
+  bannerPositions?: string[];
+  bannerIntervalSeconds?: number;
   deliveryFee?: number;
   minOrder?: number;
   whatsappPhone?: string;

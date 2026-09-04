@@ -84,13 +84,13 @@ function renderStoreHeader(settings?: Partial<AppSettings> | null, compact = fal
   `;
 }
 
-function renderMetaPanel(rows: Array<{ label: string; value?: string | number | null; isBadge?: boolean; isHtml?: boolean; noColon?: boolean }>, compact = false, settings?: Partial<AppSettings> | null) {
+function renderMetaPanel(rows: Array<{ label: string; value?: string | number | null; isBadge?: boolean; isHtml?: boolean; noColon?: boolean; customClass?: string }>, compact = false, settings?: Partial<AppSettings> | null) {
   const visibleRows = rows.filter((row) => String(row.value ?? '').trim());
   if (!visibleRows.length) return '';
   return `
     <section class="invoice-card invoice-meta-panel${compact ? ' compact' : ''}">
       ${visibleRows.map((row) => `
-        <div class="meta-line${row.isBadge ? ' meta-document-badge' : ''}">
+        <div class="meta-line${row.isBadge ? ' meta-document-badge' : ''}${row.customClass ? ` ${row.customClass}` : ''}">
           <span class="meta-label">${escapeHtml(row.label)}${row.noColon ? '' : ':'}</span>
           <span class="meta-value">${row.isHtml ? row.value : escapeHtml(formatReceiptText(row.value ?? '—', settings))}</span>
         </div>
@@ -133,7 +133,7 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
       ? `<div class="item-offer-line" style="font-size: 0.74em; color: #444; margin-top: 1px; font-weight: 500; line-height: 1.15; letter-spacing: -0.25px;">${escapeHtml(comboComponentsText)}</div>`
       : '';
     const priceCellContent = (hasOffer && showItemOffers)
-      ? `<div style="line-height: 1.15;">
+      ? `<div style="line-height: 1.15; text-align: center;">
           <del style="display: block; text-decoration: line-through; text-decoration-thickness: 1px; color: #444; font-size: 0.82em; font-weight: 400; opacity: 0.85;">${formatReceiptMoney(origPrice, settings)}</del>
           <div style="font-weight: 600; color: #000;">${formatReceiptMoney(Number(item.price || 0), settings)}</div>
          </div>`
@@ -155,12 +155,12 @@ function renderItemsTable(items: Array<{ name?: string; unitName?: string; qty?:
       <table class="invoice-items-table${compact ? ' compact' : ''}">
         <thead>
           <tr>
-            ${compact ? '' : '<th>#</th>'}
-            <th>الصنف</th>
-            ${compact ? '' : '<th>الوحدة</th>'}
-            <th>العدد</th>
-            <th>السعر</th>
-            <th>الإجمالي</th>
+            ${compact ? '' : '<th class="index-th">#</th>'}
+            <th class="name-th">الصنف</th>
+            ${compact ? '' : '<th class="unit-th">الوحدة</th>'}
+            <th class="qty-th">العدد</th>
+            <th class="price-th">السعر</th>
+            <th class="total-th">الإجمالي</th>
           </tr>
         </thead>
         <tbody>${body || `<tr><td colspan="${compact ? 4 : 6}">لا توجد أصناف</td></tr>`}</tbody>
@@ -503,6 +503,29 @@ export function getInvoiceStyles(compact = false) {
     .meta-line:last-child {
       border-bottom: none;
     }
+    .meta-line.meta-document-badge {
+      font-weight: 800;
+      font-size: ${compact ? '10px' : '11.5px'};
+    }
+    .meta-line.meta-online-order-badge {
+      font-weight: 800;
+      font-size: ${compact ? '10.5px' : '12px'};
+      background: #f1f5f9;
+      padding: ${compact ? '2px 4px' : '3px 6px'};
+      border-radius: 4px;
+      border: 1px dashed #94a3b8;
+      margin: 2px 0;
+    }
+    .meta-line.meta-online-order-badge .meta-label {
+      font-weight: 800;
+      color: #000;
+    }
+    .meta-line.meta-online-order-badge .meta-value {
+      font-weight: 900;
+      color: #000;
+      font-family: monospace, monospace;
+      direction: ltr;
+    }
     .meta-line.strong {
       font-weight: 800;
       font-size: ${compact ? '10.5px' : '12px'};
@@ -527,11 +550,11 @@ export function getInvoiceStyles(compact = false) {
     }
     .invoice-items-table th,
     .invoice-items-table td {
-      padding: ${compact ? '2px 1px' : '4px 2px'};
+      padding: ${compact ? '2.5px 2px' : '4px 3px'};
       font-size: ${compact ? '9px' : '10.5px'};
-      text-align: right;
+      text-align: center;
       color: #000;
-      vertical-align: top;
+      vertical-align: middle;
       border-bottom: 1px dotted #000;
     }
     .invoice-items-table th {
@@ -540,14 +563,27 @@ export function getInvoiceStyles(compact = false) {
       font-weight: 800;
       border: 1px solid #000;
       text-align: center;
-      padding: ${compact ? '2px 1px' : '4px 2px'};
+      vertical-align: middle;
+      padding: ${compact ? '2.5px 2px' : '4px 3px'};
     }
-    .invoice-items-table .index-cell { width: 5%; text-align: center; color: #000; }
-    .invoice-items-table .name-cell { width: 45%; text-align: right; font-weight: 700; color: #000; }
-    .invoice-items-table .unit-cell { width: 12%; text-align: center; color: #000; }
-    .invoice-items-table .qty-cell { width: 10%; text-align: center; font-weight: 700; color: #000; }
-    .invoice-items-table .price-cell { width: 13%; text-align: center; color: #000; }
-    .invoice-items-table .total-cell { width: 15%; text-align: left; font-weight: 800; color: #000; }
+    .invoice-items-table th.name-th,
+    .invoice-items-table td.name-cell {
+      text-align: right;
+      vertical-align: middle;
+      padding-inline-start: ${compact ? '4px' : '6px'};
+    }
+    .invoice-items-table .index-cell,
+    .invoice-items-table .index-th { width: 5%; text-align: center; vertical-align: middle; color: #000; }
+    .invoice-items-table .name-cell,
+    .invoice-items-table .name-th { width: ${compact ? '46%' : '42%'}; font-weight: 700; color: #000; }
+    .invoice-items-table .unit-cell,
+    .invoice-items-table .unit-th { width: 12%; text-align: center; vertical-align: middle; color: #000; }
+    .invoice-items-table .qty-cell,
+    .invoice-items-table .qty-th { width: ${compact ? '12%' : '10%'}; text-align: center; vertical-align: middle; font-weight: 700; color: #000; }
+    .invoice-items-table .price-cell,
+    .invoice-items-table .price-th { width: ${compact ? '18%' : '14%'}; text-align: center; vertical-align: middle; color: #000; }
+    .invoice-items-table .total-cell,
+    .invoice-items-table .total-th { width: ${compact ? '24%' : '17%'}; text-align: center; vertical-align: middle; font-weight: 800; color: #000; }
     .invoice-totals-card {
       border-top: 1px dashed #000;
       margin-top: ${compact ? '2px' : '4px'};
@@ -640,6 +676,7 @@ export function buildReceiptDocument(options: {
   settings?: Partial<AppSettings> | null;
   documentLabel: string;
   documentNumber?: string | number;
+  onlineOrderNumber?: string;
   dateText?: string;
   customerName?: string;
   customerPhone?: string;
@@ -681,6 +718,19 @@ export function buildReceiptDocument(options: {
   const showDate = getPrintOption(options.settings, 'printShowDate', true);
   const showDeliveryRep = getPrintOption(options.settings, 'printDeliveryRepOnReceipt', true) || getPrintOption(options.settings, 'printShowDeliveryRep' as any, true);
 
+  const rawOnlineOrder = options.onlineOrderNumber
+    || (options as any).online_order_number
+    || options.note?.match(/\b(ON-\d{6}-\d{4}|ORD-[A-Za-z0-9]+)\b/i)?.[1];
+  const detectedOnlineOrderNumber = rawOnlineOrder ? String(rawOnlineOrder).trim() : null;
+
+  const rawNote = String(options.note || '').trim();
+  const cleanedNote = detectedOnlineOrderNumber
+    ? rawNote
+        .replace(new RegExp(`(?:طلب\\s*(?:متجر\\s*)?(?:إلكتروني|أونلاين)?\\s*#?\\s*)?${detectedOnlineOrderNumber}`, 'gi'), '')
+        .replace(/^[-\s#,،]+|[-\s#,،]+$/g, '')
+        .trim()
+    : rawNote;
+
   const partyLabel = options.isPurchase ? 'المورد' : (options.isReturn ? 'العميل' : 'العميل');
   const rawPartyValue = String(options.isPurchase ? (options.supplierName || options.customerName || '') : (options.customerName || '')).trim();
   const isDefaultCashCustomer = !options.isPurchase && (!rawPartyValue || rawPartyValue === 'عميل نقدي' || rawPartyValue === 'نقدي' || rawPartyValue === '—');
@@ -696,9 +746,15 @@ export function buildReceiptDocument(options: {
   const metaRows = [
     ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || (options.isPurchase ? 'فاتورة شراء' : (options.isReturn ? 'إيصال مرتجع مبيعات' : 'فاتورة')) }] : []),
     ...(showDocumentNumber ? [{
-      label: 'رقم المستند',
+      label: 'رقم الفاتورة',
       value: options.documentNumber ? String(options.documentNumber) : '—',
       isBadge: true,
+    }] : []),
+    ...(detectedOnlineOrderNumber ? [{
+      label: 'طلب أونلاين',
+      value: detectedOnlineOrderNumber,
+      isBadge: true,
+      customClass: 'meta-online-order-badge',
     }] : []),
     ...(options.referenceInvoice ? [{ label: 'مرجع الفاتورة الأصلية', value: options.referenceInvoice }] : []),
     ...(dateValue && cashierDisplayName ? [{
@@ -719,9 +775,9 @@ export function buildReceiptDocument(options: {
     ...(showLocation ? [{ label: 'المخزن', value: options.locationName || 'المخزن الأساسي' }] : []),
     ...(options.settings?.restaurantModuleEnabled && options.orderType === 'dine_in' && options.tableNumber ? [{ label: 'الطاولة', value: String(options.tableNumber) }] : []),
     ...(!options.isReturn && !options.isPurchase && showOrderType ? [{ label: 'نوع الطلب', value: options.orderType === 'dine_in' ? 'صالة' : options.orderType === 'delivery' ? 'دليفري' : (options.orderType === 'takeout' || options.orderType === 'takeaway' ? 'تيك أواي' : (options.orderType || 'تيك أواي')) }] : []),
-    ...(options.note?.includes('متجر إلكتروني') || options.note?.includes('أونلاين') ? [{ label: 'المصدر', value: 'طلب متجر أونلاين', isBadge: true }] : []),
+    ...(!detectedOnlineOrderNumber && (options.note?.includes('متجر إلكتروني') || options.note?.includes('أونلاين')) ? [{ label: 'المصدر', value: 'طلب متجر أونلاين', isBadge: true }] : []),
     ...(showDeliveryRep && options.deliveryRepName ? [{ label: 'مندوب التوصيل', value: options.deliveryRepName }] : []),
-    ...(options.note ? [{ label: 'ملاحظة', value: options.note }] : []),
+    ...(cleanedNote ? [{ label: 'ملاحظة', value: cleanedNote }] : []),
   ];
 
   const theme = getReceiptTheme(options.pageSize, options.settings);

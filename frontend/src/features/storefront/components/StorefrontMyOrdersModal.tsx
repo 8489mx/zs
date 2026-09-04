@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PackageIcon, ShoppingCartIcon } from '@/shared/components/icons/AppIcons';
 import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
+import { StorefrontOrderDateGroupCard, DateGroupedOrders } from './StorefrontOrderDateGroupCard';
 
 interface StorefrontMyOrdersModalProps {
   isOpen: boolean;
@@ -10,6 +11,16 @@ interface StorefrontMyOrdersModalProps {
   slug: string;
   info: StorefrontInfo;
   onEditOrder: (order: OnlineOrderRecord) => void;
+}
+
+function formatOrderDayAndDate(dateInput: string | Date): string {
+  const d = new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return 'تاريخ غير معروف';
+  const dayName = d.toLocaleDateString('ar-EG', { weekday: 'long' });
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
+  return `${dayName} ${day}/${month}/${year}`;
 }
 
 export function StorefrontMyOrdersModal({
@@ -23,28 +34,21 @@ export function StorefrontMyOrdersModal({
   const savedPhoneKey = `zs_customer_phone_${slug}`;
   const savedOrdersKey = `zs_customer_orders_${slug}`;
 
-  const getSavedPhone = () => {
-    try {
-      return localStorage.getItem(savedPhoneKey) || '';
-    } catch {
-      return '';
-    }
-  };
+  const [phoneSearch, setPhoneSearch] = useState(() => {
+    try { return localStorage.getItem(savedPhoneKey) || ''; } catch { return ''; }
+  });
+  const [activeSearchPhone, setActiveSearchPhone] = useState(phoneSearch);
+  const [actionError, setActionError] = useState('');
+  const [expandedDateKeys, setExpandedDateKeys] = useState<Record<string, boolean>>({});
 
-  const getSavedOrderNumbers = (): string[] => {
+  const savedOrderNumbers = useMemo((): string[] => {
     try {
       const raw = localStorage.getItem(savedOrdersKey);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
     }
-  };
-
-  const [phoneSearch, setPhoneSearch] = useState(getSavedPhone());
-  const [activeSearchPhone, setActiveSearchPhone] = useState(getSavedPhone());
-  const [actionError, setActionError] = useState('');
-
-  const savedOrderNumbers = getSavedOrderNumbers();
+  }, [savedOrdersKey]);
 
   const ordersQuery = useQuery({
     queryKey: ['customer-orders', slug, activeSearchPhone, savedOrderNumbers.join(',')],
@@ -63,32 +67,55 @@ export function StorefrontMyOrdersModal({
       queryClient.invalidateQueries({ queryKey: ['customer-orders', slug] });
       setActionError('');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setActionError(err.message || 'تعذر إلغاء الطلب');
     },
   });
 
-  if (!isOpen) return null;
+  const groupedOrders = useMemo(() => {
+    const orders = ordersQuery.data || [];
+    const map = new Map<string, DateGroupedOrders>();
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-  const orders = ordersQuery.data || [];
+    for (const order of orders) {
+      const d = new Date(order.createdAt);
+      const dateKey = Number.isNaN(d.getTime())
+        ? 'unknown'
+        : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return { label: 'قيد الانتظار (يمكن التعديل)', bg: '#fef3c7', text: '#92400e', border: '#fde68a' };
-      case 'confirmed':
-        return { label: 'تم الاعتماد والتأكيد', bg: '#e0e7ff', text: '#3730a3', border: '#c7d2fe' };
-      case 'processing':
-        return { label: 'جاري التجهيز في المتجر', bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd' };
-      case 'shipped':
-        return { label: 'خرج للتوصيل مع المندوب', bg: '#f3e8ff', text: '#6b21a8', border: '#e9d5ff' };
-      case 'delivered':
-        return { label: 'تم التسليم ومكتمل ✓', bg: '#dcfce7', text: '#166534', border: '#bbf7d0' };
-      case 'cancelled':
-        return { label: 'طلب ملغي', bg: '#fee2e2', text: '#991b1b', border: '#fecaca' };
-      default:
-        return { label: status, bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' };
+      let group = map.get(dateKey);
+      if (!group) {
+        group = {
+          dateKey,
+          label: formatOrderDayAndDate(order.createdAt),
+          isToday: dateKey === todayKey,
+          orders: [],
+          totalAmount: 0,
+        };
+        map.set(dateKey, group);
+      }
+      group.orders.push(order);
+      group.totalAmount += order.totalAmount || 0;
     }
+
+    return Array.from(map.values());
+  }, [ordersQuery.data]);
+
+  useEffect(() => {
+    if (groupedOrders.length > 0) {
+      setExpandedDateKeys((prev) => {
+        if (Object.keys(prev).length > 0) return prev;
+        return { [groupedOrders[0].dateKey]: true };
+      });
+    }
+  }, [groupedOrders]);
+
+  const toggleGroup = (dateKey: string) => {
+    setExpandedDateKeys((prev) => ({
+      ...prev,
+      [dateKey]: !prev[dateKey],
+    }));
   };
 
   const handleSearchPhone = (e: React.FormEvent) => {
@@ -105,6 +132,8 @@ export function StorefrontMyOrdersModal({
       cancelMutation.mutate(order.orderNumber);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -238,7 +267,7 @@ export function StorefrontMyOrdersModal({
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
               جاري البحث عن طلباتك...
             </div>
-          ) : orders.length === 0 ? (
+          ) : groupedOrders.length === 0 ? (
             <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
                 <ShoppingCartIcon size={42} color="#94a3b8" />
@@ -251,141 +280,19 @@ export function StorefrontMyOrdersModal({
               </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {orders.map((order) => {
-                const badge = getStatusBadge(order.status);
-                const isPending = order.status === 'pending' && !order.saleId;
-
-                return (
-                  <div
-                    key={order.id}
-                    style={{
-                      border: '1.5px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '14px 16px',
-                      background: '#ffffff',
-                      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
-                      transition: 'border-color 0.2s',
-                    }}
-                  >
-                    {/* Top Row: Order Number, Date, Status */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <div>
-                        <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>
-                          #{order.orderNumber}
-                        </span>
-                        <span style={{ fontSize: '11.5px', color: '#64748b', marginRight: '8px' }}>
-                          {new Date(order.createdAt).toLocaleDateString('ar-EG', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          padding: '3px 9px',
-                          borderRadius: '999px',
-                          background: badge.bg,
-                          color: badge.text,
-                          border: `1px solid ${badge.border}`,
-                        }}
-                      >
-                        {badge.label}
-                      </span>
-                    </div>
-
-                    {/* Items preview */}
-                    <div
-                      style={{
-                        fontSize: '12.5px',
-                        color: '#334155',
-                        background: '#f8fafc',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        marginBottom: '10px',
-                      }}
-                    >
-                      {order.items.map((it, idx) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                          <span>
-                            {it.name} (×{it.quantity})
-                          </span>
-                          <span style={{ fontWeight: 600 }}>{it.total.toFixed(0)} ج</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Bottom Row: Total & Action Buttons */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ fontSize: '13px' }}>
-                        <span style={{ color: '#64748b' }}>الإجمالي: </span>
-                        <span style={{ fontWeight: 800, color: '#170e5e', fontSize: '14.5px' }}>
-                          {order.totalAmount.toFixed(0)} {info.currency || 'ج.م'}
-                        </span>
-                      </div>
-
-                      {/* Action buttons (only if pending) */}
-                      {isPending ? (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onClose();
-                              onEditOrder(order);
-                            }}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              background: '#f0f3ff',
-                              border: '1px solid #c7d2fe',
-                              color: '#170e5e',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <span>تعديل الطلب</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleCancelOrder(order)}
-                            disabled={cancelMutation.isPending}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              background: '#fff1f2',
-                              border: '1px solid #fecdd3',
-                              color: '#be123c',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <span>إلغاء الطلب</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                          {order.status === 'cancelled'
-                            ? 'تم إلغاء هذا الطلب'
-                            : 'تم تأكيد الطلب من المتجر، لا يمكن تعديله'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {groupedOrders.map((group) => (
+                <StorefrontOrderDateGroupCard
+                  key={group.dateKey}
+                  group={group}
+                  isExpanded={Boolean(expandedDateKeys[group.dateKey])}
+                  onToggle={() => toggleGroup(group.dateKey)}
+                  info={info}
+                  onEditOrder={onEditOrder}
+                  onCancelOrder={handleCancelOrder}
+                  isCancelling={cancelMutation.isPending}
+                />
+              ))}
             </div>
           )}
         </div>

@@ -106,6 +106,7 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     settings: options.settings,
     documentLabel: options.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة بيع',
     documentNumber: isOffline ? 'فاتورة قيد المزامنة' : (sale.docNo || sale.id),
+    onlineOrderNumber: (sale as any).onlineOrderNumber || (sale as any).online_order_number || (sale as any).orderNumber || (sale as any).order_number,
     dateText: formatDateTime(sale.date || (sale as any).createdAt || new Date()),
     customerName: sale.customerName || 'عميل نقدي',
     customerPhone: sale.customerPhone,

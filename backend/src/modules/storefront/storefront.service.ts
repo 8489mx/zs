@@ -99,6 +99,15 @@ export class StorefrontService {
 
     const bannerFit = settings.get('storefront_banner_fit') || 'contain';
     const bannerPosition = settings.get('storefront_banner_position') || 'center';
+    const bannerIntervalSeconds = Math.max(1, Number(settings.get('storefront_banner_interval') || 4));
+    let bannerPositions: string[] = [];
+    try {
+      const rawPos = settings.get('storefront_banner_positions');
+      if (rawPos) {
+        const parsed = JSON.parse(rawPos);
+        if (Array.isArray(parsed)) bannerPositions = parsed.filter(Boolean);
+      }
+    } catch {}
 
     return {
       tenantId: tenant.id,
@@ -112,6 +121,8 @@ export class StorefrontService {
       bannerUrls,
       bannerFit,
       bannerPosition,
+      bannerPositions,
+      bannerIntervalSeconds,
       deliveryFee,
       minOrder,
       whatsappPhone,
@@ -197,11 +208,11 @@ export class StorefrontService {
       const retailPrice = Number(p.retail_price ?? 0);
 
       return {
-        id: p.id,
+        id: Number(p.id) || p.id,
         name: p.name,
         barcode: p.barcode || '',
         price: retailPrice,
-        categoryId: p.category_id,
+        categoryId: p.category_id ? Number(p.category_id) : null,
         categoryName: (p.category_id && catMap.get(p.category_id)) || 'عام',
         stockQty,
         inStock: stockQty > 0,
@@ -314,7 +325,39 @@ export class StorefrontService {
 
     const branchId = primaryBranch ? Number(primaryBranch.id) : null;
     const accountId = `${tenant.id}:main`;
-    const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
+
+    // Date-based daily sequential numbering: ON-YYMMDD-0001
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePrefix = `${yy}${mm}${dd}`;
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    let nextSeq = 1;
+    try {
+      const lastDoc = await this.db
+        .selectFrom('online_orders')
+        .select(
+          sql<number>`COALESCE(MAX(CASE WHEN order_number ~ '^[A-Za-z]+-[0-9]+-[0-9]+$' THEN CAST(SPLIT_PART(order_number, '-', 3) AS INTEGER) ELSE 0 END), 0)`.as('last_seq')
+        )
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('created_at', '>=', startOfDay)
+        .executeTakeFirst();
+
+      nextSeq = Number(lastDoc?.last_seq || 0) + 1;
+    } catch {
+      const countRow = await this.db
+        .selectFrom('online_orders')
+        .select(sql<number>`COUNT(*)::int`.as('cnt'))
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('created_at', '>=', startOfDay)
+        .executeTakeFirst();
+      nextSeq = Number(countRow?.cnt || 0) + 1;
+    }
+
+    const seq = String(nextSeq).padStart(4, '0');
+    const orderNumber = `ON-${datePrefix}-${seq}`;
 
     const insertedOrder = await this.db
       .insertInto('online_orders')
@@ -596,10 +639,46 @@ export class StorefrontService {
       .where(sql<boolean>`tenant_id = ${tenantId}`);
 
     if (status && status !== 'all') {
-      qb = qb.where('status', '=', status as any);
+      if (status === 'active') {
+        qb = qb.where('status', 'in', ['pending', 'confirmed', 'processing', 'shipped']);
+      } else {
+        qb = qb.where('status', '=', status as any);
+      }
     }
 
     const rows = await qb.orderBy('created_at', 'desc').execute();
+
+    const counts: Record<string, number> = {
+      all: 0,
+      active: 0,
+      pending: 0,
+      confirmed: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0,
+    };
+
+    try {
+      const countRows = await this.db
+        .selectFrom('online_orders')
+        .select(['status', sql<number>`COUNT(*)::int`.as('cnt')])
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .groupBy('status')
+        .execute();
+
+      for (const cr of countRows) {
+        const s = String(cr.status);
+        const c = Number(cr.cnt || 0);
+        counts[s] = (counts[s] || 0) + c;
+        counts.all += c;
+        if (['pending', 'confirmed', 'processing', 'shipped'].includes(s)) {
+          counts.active += c;
+        }
+      }
+    } catch {
+      // Ignore count aggregation failure
+    }
 
     return {
       orders: rows.map((r) => {
@@ -625,6 +704,7 @@ export class StorefrontService {
           items,
         };
       }),
+      counts,
     };
   }
 
@@ -977,6 +1057,16 @@ export class StorefrontService {
       bannerUrls = [bannerUrl];
     }
 
+    const bannerIntervalSeconds = Math.max(1, Number(settings.get('storefront_banner_interval') || 4));
+    let bannerPositions: string[] = [];
+    try {
+      const rawPos = settings.get('storefront_banner_positions');
+      if (rawPos) {
+        const parsed = JSON.parse(rawPos);
+        if (Array.isArray(parsed)) bannerPositions = parsed.filter(Boolean);
+      }
+    } catch {}
+
     return {
       slug: tenant?.slug || '',
       customDomain: tenant?.custom_domain || null,
@@ -988,6 +1078,8 @@ export class StorefrontService {
       bannerUrls,
       bannerFit: settings.get('storefront_banner_fit') || 'contain',
       bannerPosition: settings.get('storefront_banner_position') || 'center',
+      bannerPositions,
+      bannerIntervalSeconds,
       deliveryFee: Number(settings.get('storefront_delivery_fee') || 0),
       minOrder: Number(settings.get('storefront_min_order') || 0),
       whatsappPhone: settings.get('storefront_whatsapp') || settings.get('phone') || tenant?.owner_phone || '',
@@ -1025,6 +1117,8 @@ export class StorefrontService {
     }
     if (payload.bannerFit !== undefined) entries.push({ key: 'storefront_banner_fit', value: payload.bannerFit });
     if (payload.bannerPosition !== undefined) entries.push({ key: 'storefront_banner_position', value: payload.bannerPosition });
+    if (payload.bannerPositions !== undefined) entries.push({ key: 'storefront_banner_positions', value: payload.bannerPositions });
+    if (payload.bannerIntervalSeconds !== undefined) entries.push({ key: 'storefront_banner_interval', value: payload.bannerIntervalSeconds });
     if (payload.deliveryFee !== undefined) entries.push({ key: 'storefront_delivery_fee', value: payload.deliveryFee });
     if (payload.minOrder !== undefined) entries.push({ key: 'storefront_min_order', value: payload.minOrder });
     if (payload.whatsappPhone !== undefined) entries.push({ key: 'storefront_whatsapp', value: payload.whatsappPhone });

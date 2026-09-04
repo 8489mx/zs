@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CartItem, CreateOnlineOrderResponse, StorefrontInfo } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
 
@@ -44,9 +44,16 @@ export function StorefrontCheckoutModal({
   const [isDeviceMatched, setIsDeviceMatched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
+    // Always reset loading and error states whenever modal open state toggles
+    setLoading(false);
+    setErrorMsg('');
+    isSubmittingRef.current = false;
+
     if (!isOpen) return;
+
     try {
       const saved = localStorage.getItem(STOREFRONT_SAVED_CUSTOMER_KEY);
       if (saved) {
@@ -89,8 +96,22 @@ export function StorefrontCheckoutModal({
   const deliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
   const total = subtotal + deliveryFee;
 
+  const handleModalClose = () => {
+    setLoading(false);
+    setErrorMsg('');
+    isSubmittingRef.current = false;
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || loading) return;
+
+    if (!editingOrderNumber && cartItems.length === 0) {
+      setErrorMsg('سلة المشتريات فارغة، يرجى إضافة أصناف إلى السلة أولاً.');
+      return;
+    }
+
     if (!customerName.trim()) {
       setErrorMsg('يرجى إدخال اسم المستلم');
       return;
@@ -105,10 +126,11 @@ export function StorefrontCheckoutModal({
       return;
     }
 
-    try {
-      setLoading(true);
-      setErrorMsg('');
+    isSubmittingRef.current = true;
+    setLoading(true);
+    setErrorMsg('');
 
+    try {
       // Persist customer details on this device if requested
       if (rememberDevice) {
         try {
@@ -148,7 +170,7 @@ export function StorefrontCheckoutModal({
           onEditSuccess(editingOrderNumber);
         } else {
           alert('تم تحديث طلبك بنجاح!');
-          onClose();
+          handleModalClose();
         }
       } else if (onSubmitOrder) {
         await onSubmitOrder({
@@ -181,10 +203,14 @@ export function StorefrontCheckoutModal({
           localStorage.setItem(`zs_customer_phone_${tenantSlug}`, customerPhone.trim());
         } catch {}
         onOrderSuccess(res);
+      } else {
+        throw new Error('تعذر إرسال الطلب لعدم اكتمال بيانات المتجر، يرجى تحديث الصفحة والمحاولة مجدداً.');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'حدث خطأ أثناء تأكيد الطلب، يرجى المحاولة مرة أخرى');
+    } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -202,7 +228,7 @@ export function StorefrontCheckoutModal({
         padding: '16px',
         animation: 'fadeIn 0.2s ease',
       }}
-      onClick={onClose}
+      onClick={handleModalClose}
     >
       <div
         style={{

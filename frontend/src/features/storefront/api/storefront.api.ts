@@ -12,7 +12,17 @@ export const storefrontApi = {
   // Public APIs (No auth needed)
   getInfo: (slug: string) => http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`),
 
-  getCatalog: (slug: string) => http<StorefrontCatalogResponse>(`/api/storefront/${encodeURIComponent(slug)}/catalog`),
+  getCatalog: async (slug: string) => {
+    const res = await http<StorefrontCatalogResponse>(`/api/storefront/${encodeURIComponent(slug)}/catalog`);
+    if (res?.products) {
+      res.products = res.products.map((p) => ({
+        ...p,
+        id: Number(p.id),
+        categoryId: p.categoryId ? Number(p.categoryId) : null,
+      }));
+    }
+    return res;
+  },
 
   createOrder: (slug: string, payload: CreateOnlineOrderPayload) =>
     http<CreateOnlineOrderResponse>(`/api/storefront/${encodeURIComponent(slug)}/orders`, {
@@ -46,7 +56,7 @@ export const storefrontApi = {
 
   // Merchant Admin APIs (Requires Session Auth)
   listOrders: (status?: string) =>
-    http<{ orders: OnlineOrderRecord[] }>(`/api/storefront/admin/orders${status ? `?status=${status}` : ''}`),
+    http<{ orders: OnlineOrderRecord[]; counts?: Record<string, number> }>(`/api/storefront/admin/orders${status ? `?status=${status}` : ''}`),
 
   getOrder: (id: number) => http<OnlineOrderRecord>(`/api/storefront/admin/orders/${id}`),
 

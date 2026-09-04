@@ -31,22 +31,26 @@ export function MerchantOnlineOrdersPage() {
   const ordersQuery = useQuery({
     queryKey: ['storefront-admin-orders', statusFilter],
     queryFn: () => storefrontApi.listOrders(statusFilter),
-    refetchInterval: 15 * 1000, // auto-refresh every 15s for new orders!
+    refetchInterval: 10 * 1000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   // Mutations
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       storefrontApi.updateOrderStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
-      if (selectedOrder) {
-        setSelectedOrder((prev) => (prev ? { ...prev, status: statusFilter as any } : null));
+      if (selectedOrder && selectedOrder.id === vars.id) {
+        setSelectedOrder((prev) => (prev ? { ...prev, status: vars.status as any } : null));
       }
     },
   });
 
   const orders = ordersQuery.data?.orders || [];
+  const counts = ordersQuery.data?.counts;
   const settings = settingsQuery.data;
 
   const storeSlug = settings?.slug || '';
@@ -192,13 +196,13 @@ export function MerchantOnlineOrdersPage() {
         }}
       >
         {[
-          { id: 'all', label: 'جميع الطلبات' },
-          { id: 'pending', label: 'قيد الانتظار (جديدة)' },
-          { id: 'confirmed', label: 'تم التأكيد' },
-          { id: 'processing', label: 'جاري التجهيز' },
-          { id: 'shipped', label: 'خرجت للتوصيل' },
-          { id: 'delivered', label: 'مكتملة ومسلمة' },
-          { id: 'cancelled', label: 'ملغية' },
+          { id: 'all', label: 'جميع الطلبات', count: counts?.all },
+          { id: 'pending', label: 'قيد الانتظار (جديدة)', count: counts?.pending },
+          { id: 'confirmed', label: 'تم التأكيد', count: counts?.confirmed },
+          { id: 'processing', label: 'جاري التجهيز', count: counts?.processing },
+          { id: 'shipped', label: 'خرجت للتوصيل', count: counts?.shipped },
+          { id: 'delivered', label: 'مكتملة ومسلمة', count: counts?.delivered },
+          { id: 'cancelled', label: 'ملغية', count: counts?.cancelled },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -209,14 +213,32 @@ export function MerchantOnlineOrdersPage() {
               borderRadius: '10px',
               fontSize: '13px',
               fontWeight: statusFilter === tab.id ? 700 : 500,
-              background: statusFilter === tab.id ? '#0f172a' : '#ffffff',
+              background: statusFilter === tab.id ? '#170e5e' : '#ffffff',
               color: statusFilter === tab.id ? '#ffffff' : '#475569',
-              border: statusFilter === tab.id ? '1px solid #0f172a' : '1px solid #e2e8f0',
+              border: statusFilter === tab.id ? '1px solid #170e5e' : '1px solid #e2e8f0',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
             }}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            {typeof tab.count === 'number' && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '1px 7px',
+                  borderRadius: '999px',
+                  background: statusFilter === tab.id ? 'rgba(255, 255, 255, 0.25)' : '#f1f5f9',
+                  color: statusFilter === tab.id ? '#ffffff' : '#64748b',
+                }}
+              >
+                {tab.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -347,20 +369,74 @@ export function MerchantOnlineOrdersPage() {
                               ملغي من العميل
                             </span>
                           ) : order.saleId ? (
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                padding: '4px 8px',
-                                borderRadius: '6px',
-                                background: '#dcfce7',
-                                color: '#166534',
-                                border: '1px solid #bbf7d0',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              ✓ فاتورة #{order.saleId}
-                            </span>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  background: '#dcfce7',
+                                  color: '#166534',
+                                  border: '1px solid #bbf7d0',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                ✓ فاتورة #{order.saleId}
+                              </span>
+
+                              {order.status === 'processing' && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'shipped' })}
+                                  disabled={updateStatusMutation.isPending}
+                                  title="تسليم الأوردر والفاتورة لمندوب التوصيل"
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    padding: '5px 8px',
+                                    borderRadius: '6px',
+                                    background: '#6b21a8',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    cursor: updateStatusMutation.isPending ? 'wait' : 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                >
+                                  <span>🛵</span>
+                                  <span>تسليم للمندوب</span>
+                                </button>
+                              )}
+
+                              {order.status === 'shipped' && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateStatusMutation.mutate({ id: order.id, status: 'delivered' })}
+                                  disabled={updateStatusMutation.isPending}
+                                  title="تأكيد تسليم الأوردر للعميل بنجاح"
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    padding: '5px 8px',
+                                    borderRadius: '6px',
+                                    background: '#166534',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    cursor: updateStatusMutation.isPending ? 'wait' : 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                  }}
+                                >
+                                  <span>✓</span>
+                                  <span>تم التسليم</span>
+                                </button>
+                              )}
+                            </div>
                           ) : (
                             <>
                               <button
@@ -721,19 +797,68 @@ export function MerchantOnlineOrdersPage() {
                   ⚠️ هذا الطلب تم إلغاؤه من قبل العميل
                 </div>
               ) : selectedOrder.saleId ? (
-                <div
-                  style={{
-                    flex: 1,
-                    textAlign: 'center',
-                    padding: '10px',
-                    background: '#dcfce7',
-                    color: '#166534',
-                    borderRadius: '8px',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                  }}
-                >
-                  ✓ تم إصدار فاتورة دليفري رقم #{selectedOrder.saleId}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '10px',
+                      background: '#dcfce7',
+                      color: '#166534',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                    }}
+                  >
+                    ✓ تم إصدار فاتورة دليفري رقم #{selectedOrder.saleId}
+                  </div>
+                  {selectedOrder.status === 'processing' && (
+                    <button
+                      type="button"
+                      onClick={() => updateStatusMutation.mutate({ id: selectedOrder.id, status: 'shipped' })}
+                      disabled={updateStatusMutation.isPending}
+                      style={{
+                        background: '#6b21a8',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>🛵</span>
+                      <span>تسليم للمندوب (خرج للتوصيل)</span>
+                    </button>
+                  )}
+                  {selectedOrder.status === 'shipped' && (
+                    <button
+                      type="button"
+                      onClick={() => updateStatusMutation.mutate({ id: selectedOrder.id, status: 'delivered' })}
+                      disabled={updateStatusMutation.isPending}
+                      style={{
+                        background: '#166534',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>✓</span>
+                      <span>تأكيد استلام العميل (تم التسليم بنجاح)</span>
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: '8px', width: '100%' }}>

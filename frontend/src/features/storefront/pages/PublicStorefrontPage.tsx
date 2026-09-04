@@ -10,6 +10,7 @@ import { StorefrontCategoriesModal } from '../components/StorefrontCategoriesMod
 import { StorefrontProductCard } from '../components/StorefrontProductCard';
 import { StorefrontHorizontalCarousel } from '../components/StorefrontHorizontalCarousel';
 import { StorefrontCartDrawer } from '../components/StorefrontCartDrawer';
+import { StorefrontLiveCartDock } from '../components/StorefrontLiveCartDock';
 import { StorefrontCheckoutModal } from '../components/StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from '../components/StorefrontSuccessModal';
 import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel';
@@ -138,14 +139,15 @@ export function PublicStorefrontPage() {
   const cartMap = useMemo(() => {
     const map = new Map<number, number>();
     for (const item of cartItems) {
-      map.set(item.product.id, item.quantity);
+      map.set(Number(item.product.id), item.quantity);
     }
     return map;
   }, [cartItems]);
 
   const handleAddToCart = useCallback((product: StorefrontProduct) => {
     setCartItems((prev) => {
-      const existingIndex = prev.findIndex((i) => i.product.id === product.id);
+      const pNum = Number(product.id);
+      const existingIndex = prev.findIndex((i) => Number(i.product.id) === pNum);
       if (existingIndex > -1) {
         const next = [...prev];
         next[existingIndex] = {
@@ -160,17 +162,27 @@ export function PublicStorefrontPage() {
 
   const handleUpdateQuantity = useCallback((productId: number, qty: number) => {
     setCartItems((prev) => {
+      const pNum = Number(productId);
       if (qty <= 0) {
-        return prev.filter((i) => i.product.id !== productId);
+        return prev.filter((i) => Number(i.product.id) !== pNum);
       }
       return prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity: qty } : item
+        Number(item.product.id) === pNum ? { ...item, quantity: qty } : item
       );
     });
   }, []);
 
   const handleClearCart = useCallback(() => {
     setCartItems([]);
+  }, []);
+
+  const handleGoHome = useCallback(() => {
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setOnlyDeals(false);
+    setInStockOnly(false);
+    setSortBy('featured');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const handleEditOrder = useCallback((order: OnlineOrderRecord) => {
@@ -410,6 +422,7 @@ export function PublicStorefrontPage() {
         cartTotal={cartSubtotal}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenOrders={() => setIsMyOrdersOpen(true)}
+        onGoHome={handleGoHome}
       />
 
       {/* Top Promotional Billboard Banner Carousel (Multi-image auto-sliding slideshow) */}
@@ -419,7 +432,8 @@ export function PublicStorefrontPage() {
           title={info.title || info.businessName}
           bannerFit={info.bannerFit || 'contain'}
           bannerPosition={info.bannerPosition || 'center'}
-          autoPlayIntervalMs={3800}
+          bannerPositions={info.bannerPositions}
+          bannerIntervalSeconds={info.bannerIntervalSeconds || 4}
         />
       )}
 
@@ -898,6 +912,20 @@ export function PublicStorefrontPage() {
       <StorefrontCartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
+        cartItems={cartItems}
+        info={info}
+        deliveryFee={info.deliveryFee}
+        minOrder={info.minOrder}
+        onUpdateQuantity={handleUpdateQuantity}
+        onClearCart={handleClearCart}
+        onProceedToCheckout={() => {
+          setIsCartOpen(false);
+          setIsCheckoutOpen(true);
+        }}
+      />
+
+      {/* Live Floating Cart Dock on the Left */}
+      <StorefrontLiveCartDock
         cartItems={cartItems}
         info={info}
         deliveryFee={info.deliveryFee}

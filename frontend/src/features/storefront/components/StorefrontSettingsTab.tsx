@@ -1,8 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { compressImage } from '@/shared/utils/image-compressor';
 import { StorefrontProductStudio } from './StorefrontProductStudio';
+
+function parsePosition(posStr?: string): { x: number; y: number } {
+  if (!posStr) return { x: 50, y: 50 };
+  if (posStr === 'top') return { x: 50, y: 0 };
+  if (posStr === 'bottom') return { x: 50, y: 100 };
+  if (posStr === 'center') return { x: 50, y: 50 };
+  const parts = posStr.trim().split(/\s+/);
+  if (parts.length === 2) {
+    const x = parseFloat(parts[0]);
+    const y = parseFloat(parts[1]);
+    return {
+      x: isNaN(x) ? 50 : x,
+      y: isNaN(y) ? 50 : y,
+    };
+  }
+  return { x: 50, y: 50 };
+}
 
 export function StorefrontSettingsTab() {
   const queryClient = useQueryClient();
@@ -25,7 +42,9 @@ export function StorefrontSettingsTab() {
     bannerUrl: '',
     bannerUrls: [] as string[],
     bannerFit: 'contain' as 'contain' | 'cover',
-    bannerPosition: 'center' as 'top' | 'center' | 'bottom',
+    bannerPosition: 'center' as string,
+    bannerPositions: [] as string[],
+    bannerIntervalSeconds: 4,
     deliveryFee: 0,
     minOrder: 0,
     whatsappPhone: '',
@@ -33,15 +52,20 @@ export function StorefrontSettingsTab() {
   });
 
   const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
+  const [isPreviewHovered, setIsPreviewHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ clientX: number; clientY: number; initX: number; initY: number } | null>(null);
+  const previewContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-cycle the settings preview carousel every 3.2 seconds
+  // Auto-cycle the settings preview carousel, pausing when hovered or dragging
   useEffect(() => {
-    if (formState.bannerUrls.length <= 1) return;
+    if (formState.bannerUrls.length <= 1 || isPreviewHovered || isDragging) return;
+    const intervalMs = Math.max(1500, (formState.bannerIntervalSeconds || 4) * 1000);
     const interval = setInterval(() => {
       setPreviewSlideIndex((prev) => (prev + 1) % formState.bannerUrls.length);
-    }, 3200);
+    }, intervalMs);
     return () => clearInterval(interval);
-  }, [formState.bannerUrls.length]);
+  }, [formState.bannerUrls.length, formState.bannerIntervalSeconds, isPreviewHovered, isDragging]);
 
   useEffect(() => {
     if (settingsQuery.data) {
@@ -57,7 +81,9 @@ export function StorefrontSettingsTab() {
         bannerUrl: urls[0] || settingsQuery.data.bannerUrl || '',
         bannerUrls: urls,
         bannerFit: (settingsQuery.data.bannerFit || 'contain') as 'contain' | 'cover',
-        bannerPosition: (settingsQuery.data.bannerPosition || 'center') as 'top' | 'center' | 'bottom',
+        bannerPosition: settingsQuery.data.bannerPosition || 'center',
+        bannerPositions: settingsQuery.data.bannerPositions || [],
+        bannerIntervalSeconds: settingsQuery.data.bannerIntervalSeconds || 4,
         deliveryFee: settingsQuery.data.deliveryFee || 0,
         minOrder: settingsQuery.data.minOrder || 0,
         whatsappPhone: settingsQuery.data.whatsappPhone || '',
@@ -65,6 +91,78 @@ export function StorefrontSettingsTab() {
       });
     }
   }, [settingsQuery.data]);
+
+  const currentSlidePosition =
+    formState.bannerPositions?.[previewSlideIndex] ||
+    formState.bannerPosition ||
+    '50% 50%';
+
+  const currentCoords = parsePosition(currentSlidePosition);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    dragStartRef.current = {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      initX: currentCoords.x,
+      initY: currentCoords.y,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || !dragStartRef.current) return;
+    const rect = previewContainerRef.current?.getBoundingClientRect();
+    const width = rect?.width || 400;
+    const height = rect?.height || 160;
+
+    const dx = e.clientX - dragStartRef.current.clientX;
+    const dy = e.clientY - dragStartRef.current.clientY;
+
+    const sensitivity = 1.15;
+    const nextX = Math.min(100, Math.max(0, dragStartRef.current.initX - ((dx / width) * 100 * sensitivity)));
+    const nextY = Math.min(100, Math.max(0, dragStartRef.current.initY - ((dy / height) * 100 * sensitivity)));
+
+    const newPos = `${Math.round(nextX)}% ${Math.round(nextY)}%`;
+
+    setFormState((prev) => {
+      const updatedPositions = [...(prev.bannerPositions || [])];
+      while (updatedPositions.length < prev.bannerUrls.length) {
+        updatedPositions.push('50% 50%');
+      }
+      updatedPositions[previewSlideIndex] = newPos;
+      return {
+        ...prev,
+        bannerPosition: newPos,
+        bannerPositions: updatedPositions,
+      };
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      setIsDragging(false);
+      dragStartRef.current = null;
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+  };
+
+  const handleSetExactPosition = (posStr: string) => {
+    setFormState((prev) => {
+      const updatedPositions = [...(prev.bannerPositions || [])];
+      while (updatedPositions.length < prev.bannerUrls.length) {
+        updatedPositions.push('50% 50%');
+      }
+      updatedPositions[previewSlideIndex] = posStr;
+      return {
+        ...prev,
+        bannerPosition: posStr,
+        bannerPositions: updatedPositions,
+      };
+    });
+  };
 
   const updateMutation = useMutation({
     mutationFn: storefrontApi.updateSettings,
@@ -122,25 +220,39 @@ export function StorefrontSettingsTab() {
   const handleRemoveBanner = (index: number) => {
     setFormState((prev) => {
       const nextUrls = prev.bannerUrls.filter((_, idx) => idx !== index);
+      const nextPositions = (prev.bannerPositions || []).filter((_, idx) => idx !== index);
       return {
         ...prev,
         bannerUrls: nextUrls,
+        bannerPositions: nextPositions,
         bannerUrl: nextUrls[0] || '',
       };
     });
+    setPreviewSlideIndex((prev) => Math.max(0, Math.min(prev, formState.bannerUrls.length - 2)));
   };
 
   const handleMoveBanner = (index: number, direction: 'up' | 'down') => {
     setFormState((prev) => {
       const nextUrls = [...prev.bannerUrls];
+      const nextPositions = [...(prev.bannerPositions || [])];
+      while (nextPositions.length < nextUrls.length) {
+        nextPositions.push('50% 50%');
+      }
       const targetIndex = direction === 'up' ? index - 1 : index + 1;
       if (targetIndex < 0 || targetIndex >= nextUrls.length) return prev;
-      const temp = nextUrls[index];
+
+      const tempUrl = nextUrls[index];
       nextUrls[index] = nextUrls[targetIndex];
-      nextUrls[targetIndex] = temp;
+      nextUrls[targetIndex] = tempUrl;
+
+      const tempPos = nextPositions[index];
+      nextPositions[index] = nextPositions[targetIndex];
+      nextPositions[targetIndex] = tempPos;
+
       return {
         ...prev,
         bannerUrls: nextUrls,
+        bannerPositions: nextPositions,
         bannerUrl: nextUrls[0] || '',
       };
     });
@@ -593,60 +705,366 @@ export function StorefrontSettingsTab() {
                   )}
                 </div>
 
-                {/* Live Mini Preview of Rotating Carousel */}
+                {/* Multi-Slide Selector Bar (when multiple slides) */}
+                {formState.bannerUrls.length > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
+                      اختر الشريحة لتعديل موضعها:
+                    </span>
+                    {formState.bannerUrls.map((_, idx) => (
+                      <button
+                        key={`select-slide-${idx}`}
+                        type="button"
+                        onClick={() => setPreviewSlideIndex(idx)}
+                        style={{
+                          padding: '3px 9px',
+                          borderRadius: '5px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: previewSlideIndex === idx ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                          background: previewSlideIndex === idx ? '#170e5e' : '#ffffff',
+                          color: previewSlideIndex === idx ? '#ffffff' : '#475569',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        شريحة #{idx + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Interactive Facebook-Style Drag-to-Position Canvas */}
                 {formState.bannerUrls.length > 0 && (
-                  <div
-                    style={{
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      marginBottom: '10px',
-                      border: '1px solid #e2e8f0',
-                      background: '#ffffff',
-                      position: 'relative',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-                    }}
-                  >
+                  <div style={{ marginBottom: '10px' }}>
                     <div
+                      ref={previewContainerRef}
+                      onMouseEnter={() => setIsPreviewHovered(true)}
+                      onMouseLeave={() => setIsPreviewHovered(false)}
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerUp}
                       style={{
-                        height: '140px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: '#f8fafc',
+                        position: 'relative',
+                        height: '160px',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        border: '2px dashed #2563eb', // Dashed guide frame
+                        background: '#0f172a',
+                        cursor: isDragging ? 'grabbing' : 'grab',
+                        touchAction: 'none',
+                        boxShadow: '0 2px 10px rgba(37, 99, 235, 0.14)',
+                        userSelect: 'none',
                       }}
                     >
+                      {/* Image Layer with Object Position */}
                       <img
                         src={formState.bannerUrls[previewSlideIndex] || formState.bannerUrls[0]}
                         alt="معاينة حية للبنر"
+                        draggable={false}
                         style={{
                           width: '100%',
-                          maxHeight: '140px',
-                          objectFit: formState.bannerFit || 'contain',
-                          objectPosition: formState.bannerPosition || 'center',
+                          height: '100%',
+                          objectFit: formState.bannerFit || 'cover',
+                          objectPosition: currentSlidePosition,
                           display: 'block',
-                          transition: 'opacity 0.3s ease',
+                          pointerEvents: 'none',
+                          transition: isDragging ? 'none' : 'object-position 0.15s ease',
                         }}
                       />
+
+                      {/* Viewport Boundary & Dashed Guidelines Overlay */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          pointerEvents: 'none',
+                          border: '1px solid rgba(255, 255, 255, 0.35)',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          padding: '8px',
+                        }}
+                      >
+                        {/* Top Overlay Badge */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div
+                            style={{
+                              background: 'rgba(15, 23, 42, 0.88)',
+                              color: '#ffffff',
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              padding: '3px 10px',
+                              borderRadius: '6px',
+                              backdropFilter: 'blur(4px)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                            }}
+                          >
+                            <span>✋</span>
+                            <span>اسحب الصورة بالماوس لضبط موضع الظهور (مثل فيسبوك)</span>
+                          </div>
+
+                          <div
+                            style={{
+                              background: isDragging ? '#16a34a' : 'rgba(15, 23, 42, 0.88)',
+                              color: '#ffffff',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              backdropFilter: 'blur(4px)',
+                              transition: 'background 0.2s',
+                            }}
+                          >
+                            {isDragging ? 'جاري التحريك...' : (
+                              formState.bannerUrls.length > 1
+                                ? `شريحة ${previewSlideIndex + 1} من ${formState.bannerUrls.length}`
+                                : 'شريحة رئيسية'
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bottom Overlay: Coordinate Readout */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                          <div
+                            style={{
+                              background: 'rgba(15, 23, 42, 0.82)',
+                              color: '#ffffff',
+                              fontSize: '10px',
+                              fontFamily: 'monospace',
+                              direction: 'ltr',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              backdropFilter: 'blur(4px)',
+                            }}
+                          >
+                            الموضع: أفقي {Math.round(currentCoords.x)}% | رأسي {Math.round(currentCoords.y)}%
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Live Preview Indicator Badge */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        background: 'rgba(15, 23, 42, 0.75)',
-                        color: '#ffffff',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        backdropFilter: 'blur(4px)',
-                      }}
-                    >
-                      {formState.bannerUrls.length > 1
-                        ? `معاينة حية للسلايدر (${previewSlideIndex + 1} من ${formState.bannerUrls.length})`
-                        : 'بانر فردي ثابت'}
+                    {/* Quick Alignment Presets & Center Reset */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', padding: '6px 4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleSetExactPosition('50% 50%')}
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#ffffff',
+                            color: '#170e5e',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ⟲ توسيط للمنتصف (50% 50%)
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>محاذاة سريعة:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleSetExactPosition('50% 0%')}
+                          style={{
+                            padding: '2px 6px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#f8fafc',
+                            color: '#475569',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          أعلى
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetExactPosition('50% 100%')}
+                          style={{
+                            padding: '2px 6px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#f8fafc',
+                            color: '#475569',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          أسفل
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetExactPosition('100% 50%')}
+                          style={{
+                            padding: '2px 6px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#f8fafc',
+                            color: '#475569',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          يمين
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetExactPosition('0% 50%')}
+                          style={{
+                            padding: '2px 6px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#f8fafc',
+                            color: '#475569',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          يسار
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Slide Auto-Slide Duration Setting */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    marginBottom: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a', display: 'block' }}>
+                      سرعة تقليب الشرائح تلقائياً:
+                    </span>
+                    <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                      يقف التقليب تلقائياً بمجرد وقوف الماوس فوق البنر
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    {[2, 3, 4, 5, 7, 10].map((sec) => (
+                      <button
+                        key={sec}
+                        type="button"
+                        onClick={() => setFormState((prev) => ({ ...prev, bannerIntervalSeconds: sec }))}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          borderRadius: '5px',
+                          border: formState.bannerIntervalSeconds === sec ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                          background: formState.bannerIntervalSeconds === sec ? '#170e5e' : '#ffffff',
+                          color: formState.bannerIntervalSeconds === sec ? '#ffffff' : '#475569',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {sec} ث
+                      </button>
+                    ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginInlineStart: '4px' }}>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={formState.bannerIntervalSeconds || 4}
+                        onChange={(e) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            bannerIntervalSeconds: Math.max(1, Number(e.target.value)),
+                          }))
+                        }
+                        style={{
+                          width: '42px',
+                          padding: '3px 4px',
+                          borderRadius: '5px',
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          textAlign: 'center',
+                          direction: 'ltr',
+                        }}
+                      />
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>ث</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Banner Fit Mode Setting */}
+                {formState.bannerUrls.length > 0 && (
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      marginBottom: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                    }}
+                  >
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
+                      طريقة ملء إطار البنر:
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setFormState((prev) => ({ ...prev, bannerFit: 'cover' }))}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          borderRadius: '5px',
+                          border: formState.bannerFit === 'cover' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                          background: formState.bannerFit === 'cover' ? '#eff6ff' : '#ffffff',
+                          color: formState.bannerFit === 'cover' ? '#170e5e' : '#64748b',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ملء كامل الإطار (Cover - مفضل للسحب)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormState((prev) => ({ ...prev, bannerFit: 'contain' }))}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          borderRadius: '5px',
+                          border: formState.bannerFit === 'contain' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                          background: formState.bannerFit === 'contain' ? '#eff6ff' : '#ffffff',
+                          color: formState.bannerFit === 'contain' ? '#170e5e' : '#64748b',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        احتواء كامل (Contain)
+                      </button>
                     </div>
                   </div>
                 )}
@@ -744,85 +1162,6 @@ export function StorefrontSettingsTab() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                )}
-
-                {/* Banner Fit & Position Controls */}
-                {formState.bannerUrls.length > 0 && (
-                  <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                    marginBottom: '10px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>طريقة العرض في المتجر:</span>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setFormState(prev => ({ ...prev, bannerFit: 'contain' }))}
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            borderRadius: '5px',
-                            border: formState.bannerFit === 'contain' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                            background: formState.bannerFit === 'contain' ? '#eff6ff' : '#ffffff',
-                            color: formState.bannerFit === 'contain' ? '#170e5e' : '#64748b',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          احتواء كامل (بدون قص)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormState(prev => ({ ...prev, bannerFit: 'cover' }))}
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            borderRadius: '5px',
-                            border: formState.bannerFit === 'cover' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                            background: formState.bannerFit === 'cover' ? '#eff6ff' : '#ffffff',
-                            color: formState.bannerFit === 'cover' ? '#170e5e' : '#64748b',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          ملء كامل الإطار (Cover)
-                        </button>
-                      </div>
-                    </div>
-
-                    {formState.bannerFit === 'cover' && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '6px', borderTop: '1px dashed #e2e8f0' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>محاذاة التركيز الرأسي:</span>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          {(['top', 'center', 'bottom'] as const).map(pos => (
-                            <button
-                              key={pos}
-                              type="button"
-                              onClick={() => setFormState(prev => ({ ...prev, bannerPosition: pos }))}
-                              style={{
-                                padding: '3px 8px',
-                                fontSize: '10.5px',
-                                fontWeight: 700,
-                                borderRadius: '4px',
-                                border: formState.bannerPosition === pos ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                                background: formState.bannerPosition === pos ? '#eff6ff' : '#ffffff',
-                                color: formState.bannerPosition === pos ? '#170e5e' : '#64748b',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {pos === 'top' ? 'أعلى' : pos === 'bottom' ? 'أسفل' : 'وسط'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 

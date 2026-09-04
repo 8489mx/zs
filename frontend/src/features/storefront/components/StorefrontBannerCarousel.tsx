@@ -4,8 +4,10 @@ interface StorefrontBannerCarouselProps {
   banners: string[];
   title?: string;
   bannerFit?: 'contain' | 'cover';
-  bannerPosition?: 'top' | 'center' | 'bottom';
+  bannerPosition?: string;
+  bannerPositions?: string[];
   autoPlayIntervalMs?: number;
+  bannerIntervalSeconds?: number;
 }
 
 export function StorefrontBannerCarousel({
@@ -13,7 +15,9 @@ export function StorefrontBannerCarousel({
   title = 'عروض المتجر الترويجية',
   bannerFit = 'contain',
   bannerPosition = 'center',
-  autoPlayIntervalMs = 3800,
+  bannerPositions,
+  autoPlayIntervalMs,
+  bannerIntervalSeconds = 4,
 }: StorefrontBannerCarouselProps) {
   const validBanners = banners.filter(Boolean);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -21,6 +25,7 @@ export function StorefrontBannerCarousel({
   const timerRef = useRef<any>(null);
   const touchStartXRef = useRef<number | null>(null);
 
+  const effectiveIntervalMs = autoPlayIntervalMs ?? Math.max(1000, (bannerIntervalSeconds || 4) * 1000);
   const total = validBanners.length;
 
   const nextSlide = useCallback(() => {
@@ -37,18 +42,18 @@ export function StorefrontBannerCarousel({
     setCurrentIndex(index);
   };
 
-  // Autoplay timer
+  // Autoplay timer with pause on hover
   useEffect(() => {
     if (total <= 1 || isHovered) return;
 
     timerRef.current = setInterval(() => {
       nextSlide();
-    }, autoPlayIntervalMs);
+    }, effectiveIntervalMs);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [total, isHovered, nextSlide, autoPlayIntervalMs]);
+  }, [total, isHovered, nextSlide, effectiveIntervalMs]);
 
   // Touch swipe support for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -89,6 +94,7 @@ export function StorefrontBannerCarousel({
         onTouchEnd={handleTouchEnd}
         style={{
           width: '100%',
+          height: 'clamp(170px, 26vw, 320px)',
           borderRadius: '16px',
           overflow: 'hidden',
           boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
@@ -98,45 +104,48 @@ export function StorefrontBannerCarousel({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: '140px',
-          maxHeight: bannerFit === 'cover' ? '320px' : 'none',
           userSelect: 'none',
         }}
       >
-        {/* Slides Container */}
+        {/* Slides Container - Absolute layered slides for 100% stable zero-layout-shift height */}
         <div
           style={{
             position: 'relative',
             width: '100%',
+            height: '100%',
             overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
           }}
         >
           {validBanners.map((url, idx) => {
             const isActive = idx === currentIndex;
+            const slidePos = bannerPositions?.[idx] || bannerPosition || 'center';
             return (
               <div
                 key={`${url}-${idx}`}
                 style={{
+                  position: 'absolute',
+                  inset: 0,
                   width: '100%',
-                  display: isActive ? 'block' : 'none',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   opacity: isActive ? 1 : 0,
-                  transition: 'opacity 0.4s ease-in-out',
+                  pointerEvents: isActive ? 'auto' : 'none',
+                  transition: 'opacity 0.45s ease-in-out',
+                  background: '#ffffff',
                 }}
               >
                 <img
                   src={url}
                   alt={`${title} - إعلان ${idx + 1}`}
+                  loading={idx === 0 ? 'eager' : 'lazy'}
                   style={{
                     width: '100%',
-                    height: 'auto',
-                    maxHeight: bannerFit === 'cover' ? '320px' : 'none',
+                    height: '100%',
                     objectFit: bannerFit,
-                    objectPosition: bannerPosition,
+                    objectPosition: slidePos,
                     display: 'block',
-                    margin: '0 auto',
                   }}
                 />
               </div>
