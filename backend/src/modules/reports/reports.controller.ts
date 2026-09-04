@@ -29,6 +29,12 @@ export class ReportsController {
     return this.reportsService.inventoryReport(query, req.authContext!);
   }
 
+  @Get('reports/inventory/dead-stock')
+  @RequirePermissions('reports')
+  deadStockReport(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.reportsService.deadStockReport(query, req.authContext!);
+  }
+
   @Get('reports/customer-balances')
   @RequireAnyPermission('reports', 'accounts')
   customerBalances(@Query() query: ReportRangeQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

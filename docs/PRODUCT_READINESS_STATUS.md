@@ -34,19 +34,19 @@ The following critical milestones have been achieved and verified:
   - Platform Super Admin has access to Tenant Details & Activity Timeline, displaying core events securely (no secrets, no full page histories) and restricted from normal tenant owners.
 
 - **Live SaaS Operations & Infrastructure**:
-  - Supabase connection pooling (PgBouncer/Supavisor) configured for scale.
+  - PostgreSQL connection pooling and In-Memory/Redis auth cache configured for scale on Oracle Cloud VPS.
   - Safe production environment variable handling.
   - Liveness and Readiness probes for load-balancer monitoring.
-  - Deployment and rollback procedures documented for Hostinger.
+  - Deployment and rollback procedures documented for Oracle Cloud VPS / Hostinger.
 
 ## 3. Known Limitations & Caveats
 
-1. **Hostinger CI/CD Automation**: 
-   - Deployments to the Hostinger backend are currently documented as manual (SSH + git pull + build). While safe, this introduces a risk of human error compared to a fully automated pipeline.
+1. **VPS CI/CD Automation**: 
+   - Deployments to the backend are currently documented as manual (SSH + git pull + build). While safe, this introduces a risk of human error compared to a fully automated pipeline.
 2. **Offline Local Network Access**:
    - Running the portable version over a local network (LAN) requires proper firewall configuration on the host machine, which falls outside the scope of the software's automated setup.
 3. **Rollback of Database Migrations**:
-   - The system does not support automated down-migrations. If a deployment fails due to a breaking schema change, a manual point-in-time recovery via Supabase (or SQLite backup restoration) is required.
+   - The system does not support automated down-migrations. If a deployment fails due to a breaking schema change, restoring from a database dump (pg_dump or SQLite backup) is required.
 
 ## 4. Operational Handoff
 
@@ -54,7 +54,7 @@ The development phase for core platform readiness is officially complete. The pr
 
 **Next Steps for Operations:**
 1. Review `docs/LIVE_SAAS_OPERATIONS_CHECKLIST.md` before the first public SaaS launch.
-2. Monitor Supabase connection limits during initial scaling.
+2. Monitor database connection limits and memory usage during initial scaling.
 3. Train the support team on using the SaaS Admin dashboard for billing and tenant life cycle management.
 4. Schedule regular reviews of the application error logs (Sentry/Pino) to proactively identify production issues.
 

@@ -180,6 +180,7 @@ export function buildLegacyPosSalePayload(input: CreatePosSaleInput) {
     paymentType: input.paymentType,
     paymentChannel: simplePaymentChannel,
     discount: normalizeMoney(Number(input.discount || 0)),
+    loyaltyPointsRedeemed: Number(input.loyaltyPointsRedeemed || 0),
     deliveryFee: normalizeMoney(Number(input.deliveryFee || 0)),
     deliveryFeeMode: input.deliveryFeeMode || 'freelance_courier',
     note: String(input.note || '').trim(),

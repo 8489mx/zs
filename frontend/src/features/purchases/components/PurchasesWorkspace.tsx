@@ -27,7 +27,8 @@ export function PurchasesWorkspace() {
           badge={<span className="nav-pill">{controller.totalItems} فاتورة</span>}
           actions={
             <div className="actions compact-actions">
-              <Link to="/purchases/new"><Button variant="primary">+ فاتورة جديدة</Button></Link>
+              <Link to="/purchases/reorder"><Button variant="primary" style={{ backgroundColor: '#170e5e', borderColor: '#170e5e' }}>⚡ مقترح إعادة الطلب الذكي</Button></Link>
+              <Link to="/purchases/new"><Button variant="secondary">+ فاتورة جديدة</Button></Link>
               <Button variant="secondary" onClick={controller.resetPurchasesView}>إعادة ضبط</Button>
               <Button variant="secondary" onClick={() => void controller.copyPurchasesSummary()} disabled={!controller.totalItems}>نسخ</Button>
               <Button variant="secondary" onClick={() => void controller.exportPurchasesCsv()} disabled={!controller.totalItems}>تصدير</Button>

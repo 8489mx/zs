@@ -1,4 +1,15 @@
-export type ManagerActionDomain = 'products' | 'sales' | 'customers' | 'inventory' | 'purchases' | 'accounts';
+export type ManagerActionDomain =
+  | 'products'
+  | 'sales'
+  | 'customers'
+  | 'inventory'
+  | 'purchases'
+  | 'accounts'
+  | 'pharmacy_expiry'
+  | 'installments'
+  | 'online_orders'
+  | 'manager_actions';
+
 export type ManagerActionSeverity = 'info' | 'warning' | 'danger';
 
 export type ManagerActionInsight = {
@@ -57,6 +68,31 @@ export type ManagerActionCustomerBalanceRow = {
   balance_total?: number | string | null;
 };
 
+export type ManagerActionPharmacyBatchRow = {
+  id: number | string;
+  product_name?: string | null;
+  batch_number?: string | null;
+  expiry_date?: string | null;
+  quantity?: number | string | null;
+};
+
+export type ManagerActionInstallmentRow = {
+  id: number | string;
+  customer_name?: string | null;
+  customer_id?: number | string | null;
+  amount?: number | string | null;
+  due_date?: Date | string | null;
+  installment_number?: number | null;
+};
+
+export type ManagerActionOnlineOrderRow = {
+  id: number | string;
+  order_number?: string | null;
+  customer_name?: string | null;
+  total?: number | string | null;
+  created_at?: Date | string | null;
+};
+
 export type BuildManagerActionInsightsInput = {
   products: ManagerActionProductRow[];
   productLastSales: ManagerActionLastSaleRow[];
@@ -64,6 +100,9 @@ export type BuildManagerActionInsightsInput = {
   saleMargins: ManagerActionSaleMarginRow[];
   customers: ManagerActionCustomerRow[];
   customerBalances: ManagerActionCustomerBalanceRow[];
+  pharmacyBatches?: ManagerActionPharmacyBatchRow[];
+  installments?: ManagerActionInstallmentRow[];
+  onlineOrders?: ManagerActionOnlineOrderRow[];
   stagnantThresholdDays?: number;
   expiryAlertDays?: number;
   now?: Date;
@@ -121,6 +160,9 @@ export function buildManagerActionInsights({
   saleMargins,
   customers,
   customerBalances,
+  pharmacyBatches,
+  installments,
+  onlineOrders,
   stagnantThresholdDays = 60,
   expiryAlertDays = 60,
   now = new Date(),
@@ -400,6 +442,92 @@ export function buildManagerActionInsights({
       metrics: { customerId: topDebtCustomer.id, balance: round(topDebtCustomer.balance) },
       rank: 42 + Math.min(25, topDebtCustomer.balance / 1000),
     }));
+  }
+
+  if (pharmacyBatches && pharmacyBatches.length > 0) {
+    const configuredExpiryDays = Number(expiryAlertDays) > 0 ? Number(expiryAlertDays) : 60;
+    for (const batch of pharmacyBatches) {
+      const id = String(batch.id);
+      const prodName = batch.product_name?.trim() || 'دواء غير مسمى';
+      const batchNo = batch.batch_number?.trim() || id;
+      const expDate = toDate(batch.expiry_date);
+      const qty = toNumber(batch.quantity);
+      if (expDate && qty > 0) {
+        const daysRemaining = daysBetween(now, expDate);
+        if (daysRemaining <= 0) {
+          insights.push(buildInsight({
+            id: `pharmacy-batch-expired-${id}`,
+            domain: 'pharmacy_expiry',
+            severity: 'danger',
+            title: 'تشغيلة دواء منتهية الصلاحية',
+            message: `${prodName} (تشغيلة: ${batchNo}): انتهت بتاريخ ${batch.expiry_date} (متبقي: ${qty} عبوة).`,
+            actionLabel: 'دليل الصيدلية',
+            actionHref: '/pharmacy/batches-expiry',
+            metrics: { batchId: id, batchNo, expiryDate: batch.expiry_date, daysRemaining, qty },
+            rank: 99 + Math.abs(daysRemaining),
+          }));
+        } else if (daysRemaining <= configuredExpiryDays) {
+          insights.push(buildInsight({
+            id: `pharmacy-batch-near-expiry-${id}`,
+            domain: 'pharmacy_expiry',
+            severity: daysRemaining <= 15 ? 'danger' : 'warning',
+            title: 'تشغيلة دواء وشيكة الانتهاء',
+            message: `${prodName} (تشغيلة: ${batchNo}): تنتهي خلال ${daysRemaining} يوم (${batch.expiry_date}).`,
+            actionLabel: 'دليل الصيدلية',
+            actionHref: '/pharmacy/batches-expiry',
+            metrics: { batchId: id, batchNo, expiryDate: batch.expiry_date, daysRemaining, qty },
+            rank: 78 + Math.max(0, configuredExpiryDays - daysRemaining),
+          }));
+        }
+      }
+    }
+  }
+
+  if (installments && installments.length > 0) {
+    for (const inst of installments) {
+      const id = String(inst.id);
+      const custName = inst.customer_name?.trim() || 'عميل';
+      const amount = toNumber(inst.amount);
+      const dueDate = toDate(inst.due_date);
+      const instNo = inst.installment_number ?? 1;
+      if (dueDate && amount > 0) {
+        const daysDiff = daysBetween(dueDate, now);
+        if (daysDiff >= 0) {
+          const isOverdue = daysDiff > 0;
+          insights.push(buildInsight({
+            id: `installment-due-${id}`,
+            domain: 'installments',
+            severity: isOverdue ? 'danger' : 'warning',
+            title: isOverdue ? 'قسط عميل متأخر' : 'قسط عميل مستحق اليوم',
+            message: `${custName}: قسط #${instNo} بقيمة ${round(amount)} ج.م ${isOverdue ? `متأخر منذ ${daysDiff} يوم` : 'مستحق اليوم'}.`,
+            actionLabel: 'بيانات العميل',
+            actionHref: inst.customer_id ? `/accounts?customerId=${inst.customer_id}` : '/customers',
+            metrics: { installmentId: id, customerId: inst.customer_id, amount: round(amount), daysOverdue: Math.max(0, daysDiff) },
+            rank: 85 + Math.min(20, daysDiff * 2),
+          }));
+        }
+      }
+    }
+  }
+
+  if (onlineOrders && onlineOrders.length > 0) {
+    for (const order of onlineOrders) {
+      const id = String(order.id);
+      const orderNo = order.order_number?.trim() || id;
+      const custName = order.customer_name?.trim() || 'عميل المتجر';
+      const total = toNumber(order.total);
+      insights.push(buildInsight({
+        id: `online-order-pending-${id}`,
+        domain: 'online_orders',
+        severity: 'warning',
+        title: 'طلب متجر إلكتروني جديد',
+        message: `طلب #${orderNo} من ${custName} بإجمالي ${round(total)} ج.م بانتظار التأكيد والتحضير.`,
+        actionLabel: 'مراجعة الطلبات',
+        actionHref: '/sales/online-orders',
+        metrics: { orderId: id, total: round(total) },
+        rank: 95,
+      }));
+    }
   }
 
   return insights

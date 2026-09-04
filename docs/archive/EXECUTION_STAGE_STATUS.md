@@ -9,8 +9,8 @@ Date: 2026-07-30 (Updated)
 ## R1 & R2 Completion Update (Closed & Deployed)
 
 The system is now fully live and deployed in a real-world SaaS environment:
-- **Hosting:** Successfully deployed to Hostinger.
-- **Database:** Hosted on Supabase with mandatory SSL connections successfully established and validated.
+- **Hosting & Infrastructure:** Deployed on Oracle Cloud VPS.
+- **Database:** Self-hosted PostgreSQL on Oracle Cloud VPS.
 - **Multi-Tenancy:** The codebase is fully isolated. `tenant_id` scopes are rigidly enforced across all modules via `requireTenantScope(auth)` at the application logic layer.
 - **Observability:** Sentry is fully integrated in both Backend and Frontend for real-time error tracking and operational monitoring.
 

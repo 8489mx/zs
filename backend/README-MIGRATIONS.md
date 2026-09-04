@@ -51,9 +51,9 @@ This command does not include SaaS/production targets.
 1. Run `npm run migration:run:dev`
 2. Restart the backend process
 
-## Hosted Postgres / Supabase SSL
+## Hosted Postgres / Remote Server SSL
 
-For hosted Postgres poolers that fail from the local migration runner with:
+For hosted Postgres connections or remote servers that require SSL customization:
 
 `self-signed certificate in certificate chain`
 

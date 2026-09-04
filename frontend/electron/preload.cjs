@@ -47,5 +47,6 @@ contextBridge.exposeInMainWorld('electronRuntime', {
 
 contextBridge.exposeInMainWorld('electronPrinter', {
   getPrinters: () => ipcRenderer.invoke('get-printers'),
-  printHtmlSilent: (opts) => ipcRenderer.invoke('print-html-silent', opts)
+  printHtmlSilent: (opts) => ipcRenderer.invoke('print-html-silent', opts),
+  kickCashDrawer: (opts) => ipcRenderer.invoke('kick-cash-drawer', typeof opts === 'string' ? { deviceName: opts } : opts)
 });

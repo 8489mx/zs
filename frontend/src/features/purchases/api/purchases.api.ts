@@ -130,4 +130,110 @@ export const purchasesApi = {
       body: JSON.stringify({ receivedItems }),
     });
   },
+  getReorderSuggestions: async (params: ReorderSuggestionsParams = {}) => {
+    return http<ReorderAnalysisResult>(`/api/purchases/reorder/suggestions${buildQueryString(params as any)}`);
+  },
+  generateDraftOrders: async (payload: GenerateDraftOrdersPayload) => {
+    return http<GenerateDraftOrdersResponse>('/api/purchases/reorder/generate-drafts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
 };
+
+export interface ReorderItemSuggestion {
+  productId: number;
+  name: string;
+  barcode: string;
+  categoryName: string;
+  currentStock: number;
+  minStock: number;
+  costPrice: number;
+  retailPrice: number;
+  qtySoldPeriod: number;
+  dailyRunRate: number;
+  daysRemaining: number;
+  leadTimeDays: number;
+  leadTimeDemand: number;
+  safetyStock: number;
+  reorderPoint: number;
+  urgency: 'out_of_stock' | 'critical' | 'warning' | 'healthy' | 'overstocked';
+  needsReorder: boolean;
+  suggestedQty: number;
+  estimatedTotalCost: number;
+  supplierId: number | null;
+  supplierName: string;
+  supplierPhone: string;
+  defaultLocationId: number | null;
+}
+
+export interface SupplierReorderGroup {
+  supplierId: number | null;
+  supplierName: string;
+  supplierPhone: string;
+  leadTimeDays: number;
+  itemsCount: number;
+  criticalCount: number;
+  totalSuggestedQty: number;
+  totalEstimatedCost: number;
+  items: ReorderItemSuggestion[];
+}
+
+export interface ReorderAnalysisSummary {
+  totalMonitoredProducts: number;
+  needsReorderCount: number;
+  outOfStockCount: number;
+  criticalCount: number;
+  warningCount: number;
+  healthyCount: number;
+  overstockedCount: number;
+  totalEstimatedProcurementCost: number;
+  suppliersCount: number;
+  daysAnalysis: number;
+  targetCoverageDays: number;
+}
+
+export interface ReorderAnalysisResult {
+  summary: ReorderAnalysisSummary;
+  supplierGroups: SupplierReorderGroup[];
+  allSuggestions: ReorderItemSuggestion[];
+}
+
+export interface ReorderSuggestionsParams {
+  daysAnalysis?: number;
+  targetCoverageDays?: number;
+  defaultLeadTimeDays?: number;
+  supplierId?: number;
+  urgencyFilter?: 'all' | 'needs_reorder' | 'out_of_stock' | 'critical' | 'warning';
+  search?: string;
+}
+
+export interface GenerateDraftOrdersPayload {
+  orders: Array<{
+    supplierId: number;
+    locationId?: number;
+    notes?: string;
+    items: Array<{
+      productId: number;
+      qty: number;
+      cost?: number;
+      name?: string;
+    }>;
+  }>;
+  notes?: string;
+}
+
+export interface GenerateDraftOrdersResponse {
+  ok: boolean;
+  count: number;
+  createdOrders: Array<{
+    id: number;
+    docNo?: string;
+    supplierId: number;
+    supplierName?: string;
+    total: number;
+    itemsCount: number;
+    status: string;
+    lifecycleStatus: string;
+  }>;
+}

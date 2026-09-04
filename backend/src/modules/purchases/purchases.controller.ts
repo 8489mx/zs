@@ -28,6 +28,18 @@ export class PurchasesController {
     return this.purchasesService.listPurchases(query, req.authContext!);
   }
 
+  @Get('purchases/reorder/suggestions')
+  @RequirePermissions('purchases')
+  getReorderSuggestions(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.purchasesService.getReorderSuggestions(query, req.authContext!);
+  }
+
+  @Post('purchases/reorder/generate-drafts')
+  @RequirePermissions('purchases')
+  generateDraftPurchaseOrders(@Body() payload: any, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.purchasesService.generateDraftPurchaseOrders(payload, req.authContext!);
+  }
+
   @Get('purchases/:id')
   @RequirePermissions('purchases')
   getPurchase(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

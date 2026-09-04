@@ -6,7 +6,7 @@ import * as path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const pool = new Pool({
-  connectionString: 'postgres://postgres.pwbvvsqcnrimcvwavehu:Zz@0101184157@aws-1-eu-central-1.pooler.supabase.com:5432/postgres'
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/zsystems'
 });
 
 const db = new Kysely<any>({

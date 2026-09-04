@@ -110,6 +110,12 @@ export function PosSaleSuccessDialog({
   useEffect(() => {
     if (!open || !sale) return undefined;
 
+    // Auto-kick cash drawer on cash sale in Electron desktop mode
+    const isCashPayment = sale.paymentType === 'cash' || sale.paymentChannel === 'cash' || !sale.paymentType;
+    if (isCashPayment && typeof window !== 'undefined' && (window as any).electronPrinter?.kickCashDrawer) {
+      (window as any).electronPrinter.kickCashDrawer(settings?.posElectronCashierPrinter).catch(() => {});
+    }
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 

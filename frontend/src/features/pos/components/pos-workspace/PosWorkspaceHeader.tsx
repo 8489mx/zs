@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -6,6 +6,8 @@ import { Button } from '@/shared/ui/button';
 import { storefrontApi } from '@/features/storefront/api/storefront.api';
 import { PosOnlineOrdersModal } from './PosOnlineOrdersModal';
 import { PosTablesFloorPlanDialog } from './PosTablesFloorPlanDialog';
+import { PosOnlineOrderFloatingAlert } from './PosOnlineOrderFloatingAlert';
+import { playNotificationChime } from '@/lib/audio-chime';
 
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
@@ -31,6 +33,9 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
   const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
   const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
   const [isTablesOpen, setIsTablesOpen] = useState(false);
+  const [showFloatingAlert, setShowFloatingAlert] = useState(false);
+  const [drawerStatus, setDrawerStatus] = useState<string | null>(null);
+  const previousPendingCountRef = useRef<number | null>(null);
 
   const pendingOrdersQuery = useQuery({
     queryKey: ['pos-pending-orders-count'],
@@ -47,6 +52,32 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
   });
 
   const pendingCount = pendingOrdersQuery.data || 0;
+
+  useEffect(() => {
+    if (previousPendingCountRef.current !== null && pendingCount > previousPendingCountRef.current) {
+      playNotificationChime();
+      setShowFloatingAlert(true);
+    }
+    previousPendingCountRef.current = pendingCount;
+  }, [pendingCount]);
+
+  const handleKickDrawer = async () => {
+    try {
+      if (typeof window !== 'undefined' && (window as any).electronPrinter?.kickCashDrawer) {
+        const res = await (window as any).electronPrinter.kickCashDrawer((pos as any).settings?.posElectronCashierPrinter);
+        if (res?.ok) {
+          setDrawerStatus('تم إرسال إشارة فتح درج النقدية');
+        } else {
+          setDrawerStatus(res?.error || 'تعذر فتح الدرج');
+        }
+      } else {
+        alert('فتح درج الكاشير المباشر متاح عبر تطبيق سطح المكتب (Desktop/Electron)، أو يمكن ضبط فتح الدرج تلقائياً مع طباعة الفاتورة في إعدادات الويندوز.');
+      }
+    } catch (err: any) {
+      setDrawerStatus(err?.message || 'خطأ في فتح الدرج');
+    }
+    setTimeout(() => setDrawerStatus(null), 3000);
+  };
 
   return (
     <>
@@ -94,6 +125,26 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           </Button>
           <Button type="button" variant="secondary" onClick={onOpenQuickService}>خدمة سريعة F8</Button>
           <Button type="button" variant="secondary" onClick={onOpenReprintModal || pos.reprintLastSale}>F9 إعادة طباعة الفواتير</Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleKickDrawer}
+            title="فتح درج النقدية المالي (Cash Drawer Kick)"
+            style={{
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: '#0f172a',
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <line x1="2" y1="10" x2="22" y2="10" />
+              <circle cx="12" cy="15" r="1.5" />
+            </svg>
+            <span>فتح الدرج</span>
+          </Button>
           <Button
             type="button"
             variant="secondary"
@@ -164,6 +215,36 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
         alert(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}!`);
       }}
     />
+    {showFloatingAlert && (
+      <PosOnlineOrderFloatingAlert
+        orderCount={pendingCount}
+        onOpenOrders={() => {
+          setShowFloatingAlert(false);
+          setIsOnlineOrdersOpen(true);
+        }}
+        onDismiss={() => setShowFloatingAlert(false)}
+      />
+    )}
+    {drawerStatus && (
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#0f172a',
+          color: '#ffffff',
+          padding: '8px 18px',
+          borderRadius: '8px',
+          fontSize: '0.84rem',
+          fontWeight: 700,
+          zIndex: 99999,
+          boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+        }}
+      >
+        {drawerStatus}
+      </div>
+    )}
     </>
   );
 }

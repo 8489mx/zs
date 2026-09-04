@@ -30,7 +30,17 @@ export type DashboardPartnerItem = {
 
 export type ManagerActionInsight = {
   id: string;
-  domain: 'products' | 'sales' | 'customers' | 'inventory' | 'purchases' | 'accounts';
+  domain:
+    | 'products'
+    | 'sales'
+    | 'customers'
+    | 'inventory'
+    | 'purchases'
+    | 'accounts'
+    | 'pharmacy_expiry'
+    | 'installments'
+    | 'online_orders'
+    | 'manager_actions';
   severity: 'info' | 'warning' | 'danger';
   title: string;
   message: string;

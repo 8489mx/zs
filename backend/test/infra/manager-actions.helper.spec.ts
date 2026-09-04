@@ -81,5 +81,31 @@ import { buildManagerActionInsights } from '../../src/modules/manager-actions/he
   assert.ok(customIds.includes('product-near-expiry-3'), 'Should alert on near-expiry product within custom 60-day threshold');
   assert.ok(!customIds.includes('product-stagnant-warning-3'), 'Should not alert on stagnant if under 120 days');
 
+  // Test new domains: pharmacy batches, installments, online orders
+  const newDomainInsights = buildManagerActionInsights({
+    now: new Date('2026-04-27T12:00:00.000Z'),
+    limit: 15,
+    products: [],
+    productLastSales: [],
+    sales: [],
+    saleMargins: [],
+    customers: [],
+    customerBalances: [],
+    pharmacyBatches: [
+      { id: 101, product_name: 'بانادول', batch_number: 'B-2026', expiry_date: '2026-05-10', quantity: 50 },
+    ],
+    installments: [
+      { id: 201, customer_name: 'أحمد محمود', customer_id: 5, amount: 500, due_date: '2026-04-20', installment_number: 2 },
+    ],
+    onlineOrders: [
+      { id: 301, order_number: 'ORD-301', customer_name: 'سارة', total: 350, created_at: '2026-04-27T11:00:00.000Z' },
+    ],
+  });
+
+  const newDomainIds = newDomainInsights.map((i) => i.id);
+  assert.ok(newDomainIds.includes('pharmacy-batch-near-expiry-101'), 'Should include near-expiry pharmacy batch');
+  assert.ok(newDomainIds.includes('installment-due-201'), 'Should include overdue installment');
+  assert.ok(newDomainIds.includes('online-order-pending-301'), 'Should include pending online order');
+
   console.log('manager-actions.helper.spec: ok');
 })();

@@ -82,6 +82,7 @@ export function PosCheckoutCustomerSection({
     pos.setCustomerId(id);
     pos.setQuickCustomerPhone(phone);
     pos.setQuickCustomerAddress(address);
+    pos.setLoyaltyPointsRedeemed?.(0);
     setIsAddingCustomer(false);
     onCustomerQueryChange('');
     onCustomerPickerOpenChange(false);
@@ -253,43 +254,68 @@ export function PosCheckoutCustomerSection({
         </div>
       )}
 
-      {pos.customerId && loyaltyPoints > 0 ? (
+      {pos.customerId && (loyaltyPoints > 0 || (pos.loyaltyPointsRedeemed || 0) > 0) ? (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '6px 12px',
+          padding: '8px 12px',
           marginTop: '6px',
-          background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-          border: '1px solid #fcd34d',
+          background: (pos.loyaltyPointsRedeemed || 0) > 0 ? '#ecfdf5' : 'linear-gradient(135deg, #fef3c7, #fde68a)',
+          border: (pos.loyaltyPointsRedeemed || 0) > 0 ? '1px solid #a7f3d0' : '1px solid #fcd34d',
           borderRadius: '6px',
           fontSize: '12px',
-          color: '#92400e'
+          color: (pos.loyaltyPointsRedeemed || 0) > 0 ? '#065f46' : '#92400e'
         }}>
-          <span>⭐ رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {loyaltyPoints.toLocaleString()} ج.م خصم)</span>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              const subTotal = Number(pos.totals?.subTotal || 0);
-              const pointsToRedeem = Math.min(loyaltyPoints, subTotal);
-              if (pointsToRedeem > 0) {
-                pos.setDiscount(pointsToRedeem);
-              }
-            }}
-            style={{
-              height: '28px',
-              padding: '0 10px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#b45309',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '4px'
-            }}
-          >
-            استبدال النقاط بخصم
-          </Button>
+          {(pos.loyaltyPointsRedeemed || 0) > 0 ? (
+            <>
+              <span>⭐ تم استبدال <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} نقطة</strong> بخصم <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} ج.م</strong> ✓</span>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => pos.setLoyaltyPointsRedeemed?.(0)}
+                style={{
+                  height: '28px',
+                  padding: '0 10px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  background: '#fef2f2',
+                  color: '#991b1b',
+                  border: '1px solid #fecaca',
+                  borderRadius: '4px'
+                }}
+              >
+                إلغاء الاستبدال
+              </Button>
+            </>
+          ) : (
+            <>
+              <span>⭐ رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {loyaltyPoints.toLocaleString()} ج.م خصم)</span>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  const subTotal = Number(pos.totals?.subTotal || 0);
+                  const pointsToRedeem = Math.min(loyaltyPoints, subTotal);
+                  if (pointsToRedeem > 0) {
+                    pos.setLoyaltyPointsRedeemed?.(pointsToRedeem);
+                  }
+                }}
+                style={{
+                  height: '28px',
+                  padding: '0 10px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  background: '#b45309',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '4px'
+                }}
+              >
+                استبدال النقاط بخصم
+              </Button>
+            </>
+          )}
         </div>
       ) : null}
     </section>

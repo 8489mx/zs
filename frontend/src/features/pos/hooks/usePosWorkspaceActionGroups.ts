@@ -17,6 +17,8 @@ export interface PosWorkspaceActionParams {
   authUserName?: string;
   discount: number;
   setDiscount: Dispatch<SetStateAction<number>>;
+  loyaltyPointsRedeemed?: number;
+  setLoyaltyPointsRedeemed?: Dispatch<SetStateAction<number>>;
   deliveryFee: number;
   setDeliveryFee: Dispatch<SetStateAction<number>>;
   discountApprovalGranted: boolean;

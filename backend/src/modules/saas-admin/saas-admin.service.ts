@@ -12,6 +12,7 @@ import { createCsrfToken } from '../../core/auth/utils/csrf-token';
 import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, RecordPaymentDto, UpdateSaasPlanDto } from './dto/saas-admin.dto';
 import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
+import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 
 type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
 
@@ -23,6 +24,7 @@ export class SaasAdminService {
     private readonly provisioning: TrialTenantProvisioningService,
     private readonly configService: ConfigService,
     private readonly sessionService: SessionService,
+    private readonly authCache: AuthCacheService = new AuthCacheService(),
   ) {}
 
   private assertPlatformAccess(auth: AuthContext): void {
@@ -650,6 +652,7 @@ export class SaasAdminService {
       }
     });
 
+    this.authCache.invalidateTenant(tenant.id);
     await this.audit.log('تفعيل نسخة', `تم تفعيل/ترقية النسخة: ${tenant.slug} (${tenant.id}) ${body.planId ? `بخطة ${body.planId}` : ''}`, auth, { targetTenantId: tenant.id });
     return { ok: true };
   }
@@ -660,6 +663,7 @@ export class SaasAdminService {
     this.assertNotPlatformTenantTarget(tenant.id);
     const now = new Date();
     await this.db.updateTable('tenants').set({ status: 'suspended', updated_at: now }).where('id', '=', tenant.id).execute();
+    this.authCache.invalidateTenant(tenant.id);
     const note = [this.normalizeOptional(body.reason), this.normalizeOptional(body.notes)].filter(Boolean).join(' - ');
     await this.audit.log('إيقاف نسخة', `تم إيقاف النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth, { targetTenantId: tenant.id });
     return { ok: true };
@@ -677,6 +681,7 @@ export class SaasAdminService {
       .set({ status: 'expired', trial_ends_at: trialEndsAt, updated_at: now } as any)
       .where('id', '=', tenant.id)
       .execute();
+    this.authCache.invalidateTenant(tenant.id);
     const note = [this.normalizeOptional(body.reason), this.normalizeOptional(body.notes)].filter(Boolean).join(' - ');
     await this.audit.log('إنهاء نسخة', `تم إنهاء النسخة: ${tenant.slug} (${tenant.id})${note ? ` | ${note}` : ''}`, auth, { targetTenantId: tenant.id });
     return { ok: true };
@@ -703,6 +708,7 @@ export class SaasAdminService {
       } as any)
       .where('id', '=', tenant.id)
       .execute();
+    this.authCache.invalidateTenant(tenant.id);
     await this.audit.log('تمديد نسخة تجريبية', `تم تمديد النسخة ${tenant.slug} (${tenant.id}) لمدة ${days} يوم`, auth, { targetTenantId: tenant.id });
 
     return { ok: true, trialEndsAt: nextTrialEnd.toISOString(), daysAdded: days };

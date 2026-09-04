@@ -25,6 +25,7 @@ interface PosWorkspaceDerivedParams {
   productFilter: PosProductFilter;
   cart: PosItem[];
   discount: number;
+  loyaltyPointsRedeemed?: number;
   deliveryFee: number;
   discountApprovalGranted?: boolean;
   wholesaleApprovalGranted?: boolean;
@@ -149,7 +150,9 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
       const modifiersTotal = (item.modifiers || []).reduce((modSum: number, mod: any) => modSum + Number(mod.price || 0), 0);
       return sum + (item.qty * (item.price + modifiersTotal));
     }, 0);
-    const discountValue = Math.max(0, Number(params.discount || 0));
+    const manualDiscount = Math.max(0, Number(params.discount || 0));
+    const loyaltyDiscount = Math.max(0, Number(params.loyaltyPointsRedeemed || 0));
+    const discountValue = manualDiscount + loyaltyDiscount;
     const deliveryFee = Math.max(0, Number(params.deliveryFee || 0));
     const taxRate = Number(params.settings?.taxRate || 0);
     const pricesIncludeTax = String(params.settings?.taxMode || 'exclusive') === 'inclusive';
@@ -166,8 +169,18 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
     } else {
       total = Number((total + deliveryFee).toFixed(2));
     }
-    return { subTotal, discountValue, deliveryFee, taxRate, taxAmount, total, pricesIncludeTax };
-  }, [params.cart, params.discount, params.deliveryFee, params.settings]);
+    return {
+      subTotal: Number(subTotal.toFixed(2)),
+      discountValue: Number(discountValue.toFixed(2)),
+      manualDiscount: Number(manualDiscount.toFixed(2)),
+      loyaltyDiscount: Number(loyaltyDiscount.toFixed(2)),
+      deliveryFee: Number(deliveryFee.toFixed(2)),
+      taxRate,
+      pricesIncludeTax,
+      taxAmount,
+      total,
+    };
+  }, [params.cart, params.discount, params.loyaltyPointsRedeemed, params.deliveryFee, params.settings]);
 
   const changeAmount = useMemo(() => Math.max(0, Number(params.paidAmount || 0) - totals.total), [params.paidAmount, totals.total]);
   const amountDue = useMemo(() => Math.max(0, Number(totals.total || 0) - Number(params.paidAmount || 0)), [params.paidAmount, totals.total]);

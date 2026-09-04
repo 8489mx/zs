@@ -6,6 +6,7 @@ export function resetDraftState(params: PosWorkspaceActionParams) {
   params.setSelectedLineKey('');
   params.setCustomerId('');
   params.setDiscount(0);
+  params.setLoyaltyPointsRedeemed?.(0);
   params.setDeliveryFee(0);
   params.setDiscountApprovalGranted(false);
   params.setDiscountApprovalSecret('');

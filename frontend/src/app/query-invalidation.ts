@@ -92,6 +92,8 @@ export async function invalidateSalesDomain(
   const deferredTasks = [
     queryClient.invalidateQueries({ queryKey: queryKeys.customerBalances, refetchType: 'none' }),
     queryClient.invalidateQueries({ queryKey: queryKeys.posCustomers, refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['posCustomerSummaryCheckout'], refetchType: 'none' }),
+    queryClient.invalidateQueries({ queryKey: ['customer-loyalty-history'], refetchType: 'none' }),
     queryClient.invalidateQueries({ queryKey: queryKeys.customers, refetchType: 'none' }),
     queryClient.invalidateQueries({ queryKey: queryKeys.products, refetchType: 'none' }),
     queryClient.invalidateQueries({ queryKey: ['catalogProducts'], refetchType: 'none' }),

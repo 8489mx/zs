@@ -367,6 +367,26 @@ export class ReportsService {
         rowsQuery = rowsQuery.where('p.stock_qty', '>', 0).whereRef('p.stock_qty', '<=', 'p.min_stock_qty');
       }
     }
+    if (filter === 'dead') {
+      const scope = this.tenantScope(auth);
+      const days = Math.max(7, Math.min(365, Number(query.days || 60)));
+      const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const deadCondition = sql<boolean>`NOT EXISTS (
+        SELECT 1 FROM sale_items si
+        INNER JOIN sales sa ON sa.id = si.sale_id
+        WHERE si.product_id = p.id
+          AND sa.status = 'posted'
+          AND sa.created_at >= ${cutoffDate}
+          AND sa.tenant_id = ${scope.tenantId}
+      )`;
+      if (query.locationId) {
+        countQuery = countQuery.where('pls.qty', '>', 0).where(deadCondition);
+        rowsQuery = rowsQuery.where('pls.qty', '>', 0).where(deadCondition);
+      } else {
+        countQuery = countQuery.where('p.stock_qty', '>', 0).where(deadCondition);
+        rowsQuery = rowsQuery.where('p.stock_qty', '>', 0).where(deadCondition);
+      }
+    }
 
     const totalRow = await countQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
     const totalItems = Number((totalRow as { count?: number | string | null } | undefined)?.count || 0);
@@ -456,6 +476,120 @@ export class ReportsService {
       pagination,
       summary: buildInventorySummary(totalItems, outOfStock, lowStock, totalActive, trackedLocations),
       locationHighlights,
+    }, auth);
+  }
+
+  async deadStockReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.tenantScope(auth);
+    const days = Math.max(7, Math.min(365, Number(query.days || 60)));
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const { search, searchPattern, page, pageSize, offset } = buildReportListState(query, 20, { includeRange: false });
+
+    let baseQuery: any = this.db
+      .selectFrom('products as p')
+      .leftJoin('product_categories as c', 'c.id', 'p.category_id')
+      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .where('p.is_active', '=', true)
+      .where(this.tenantPredicate(auth, 'p'));
+
+    if (query.locationId) {
+      baseQuery = baseQuery
+        .innerJoin('product_location_stock as pls', 'pls.product_id', 'p.id')
+        .where('pls.location_id', '=', query.locationId)
+        .where('pls.qty', '>', 0);
+    } else {
+      baseQuery = baseQuery.where('p.stock_qty', '>', 0);
+    }
+
+    baseQuery = baseQuery.where(sql<boolean>`NOT EXISTS (
+      SELECT 1 FROM sale_items si
+      INNER JOIN sales sa ON sa.id = si.sale_id
+      WHERE si.product_id = p.id
+        AND sa.status = 'posted'
+        AND sa.created_at >= ${cutoffDate}
+        AND sa.tenant_id = ${scope.tenantId}
+    )`);
+
+    if (search) {
+      baseQuery = baseQuery.where((eb: any) => eb.or([
+        eb(sql`lower(p.name)`, 'like', searchPattern!),
+        eb(sql`lower(coalesce(c.name, ''))`, 'like', searchPattern!),
+        eb(sql`lower(coalesce(s.name, ''))`, 'like', searchPattern!),
+      ]));
+    }
+
+    const countRow = await baseQuery.select(sql<number>`count(*)`.as('count')).executeTakeFirst();
+    const totalItems = Number((countRow as any)?.count || 0);
+    const pagination = buildPagination(page, pageSize, totalItems);
+
+    const stockCol = query.locationId ? sql<number>`coalesce(pls.qty, 0)`.as('stock_qty') : 'p.stock_qty';
+    const rows = await baseQuery
+      .select([
+        'p.id',
+        'p.name',
+        'p.barcode',
+        stockCol,
+        'p.cost_price',
+        'p.retail_price',
+        'c.name as category_name',
+        's.name as supplier_name',
+        sql<string | null>`(
+          SELECT max(sa.created_at) FROM sale_items si
+          INNER JOIN sales sa ON sa.id = si.sale_id
+          WHERE si.product_id = p.id
+            AND sa.status = 'posted'
+            AND sa.tenant_id = ${scope.tenantId}
+        )`.as('last_sale_date')
+      ])
+      .orderBy(query.locationId ? 'pls.qty' : 'p.stock_qty', 'desc')
+      .orderBy('p.id', 'asc')
+      .limit(pageSize)
+      .offset(offset)
+      .execute();
+
+    const nowMs = Date.now();
+    const items = rows.map((r: any) => {
+      const stock = Number(r.stock_qty || 0);
+      const cost = Number(r.cost_price || 0);
+      const tiedCapital = Number((stock * cost).toFixed(2));
+      const lastSale = r.last_sale_date ? new Date(r.last_sale_date) : null;
+      const daysWithoutSale = lastSale
+        ? Math.max(0, Math.floor((nowMs - lastSale.getTime()) / (1000 * 60 * 60 * 24)))
+        : null;
+
+      return {
+        id: Number(r.id),
+        name: r.name,
+        barcode: r.barcode || '',
+        categoryName: r.category_name || 'بدون قسم',
+        supplierName: r.supplier_name || 'بدون مورد',
+        stock,
+        costPrice: cost,
+        retailPrice: Number(r.retail_price || 0),
+        tiedCapital,
+        lastSaleDate: lastSale ? lastSale.toISOString() : null,
+        daysWithoutSale,
+      };
+    });
+
+    const summaryAgg = await baseQuery
+      .select([
+        sql<number>`coalesce(sum(${query.locationId ? sql`pls.qty` : sql`p.stock_qty`}), 0)`.as('total_qty'),
+        sql<number>`coalesce(sum((${query.locationId ? sql`pls.qty` : sql`p.stock_qty`}) * coalesce(p.cost_price, 0)), 0)`.as('total_tied_capital'),
+        sql<number>`coalesce(sum((${query.locationId ? sql`pls.qty` : sql`p.stock_qty`}) * coalesce(p.retail_price, 0)), 0)`.as('total_retail_value'),
+      ])
+      .executeTakeFirst();
+
+    return this.withScope({
+      items,
+      pagination,
+      summary: {
+        totalDeadItems: totalItems,
+        totalDeadStockQty: Number(Number((summaryAgg as any)?.total_qty || 0).toFixed(2)),
+        totalTiedCapital: Number(Number((summaryAgg as any)?.total_tied_capital || 0).toFixed(2)),
+        totalRetailValue: Number(Number((summaryAgg as any)?.total_retail_value || 0).toFixed(2)),
+        daysThreshold: days,
+      }
     }, auth);
   }
 

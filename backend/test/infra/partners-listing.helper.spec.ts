@@ -13,7 +13,7 @@ assert.equal(unpaged.isUnpagedDefault, true);
 
 assert.deepEqual(
   mapCustomerRow({ id: 7 as never, name: 'Ali', phone: null as never, address: null as never, balance: '4.5' as never, customer_type: 'vip' as never, credit_limit: '10' as never, store_credit_balance: '2' as never, company_name: null as never, tax_number: null as never } as never),
-  { id: '7', name: 'Ali', phone: '', address: '', balance: 4.5, type: 'vip', creditLimit: 10, storeCreditBalance: 2, companyName: '', taxNumber: '', metadata: {} },
+  { id: '7', name: 'Ali', phone: '', address: '', balance: 4.5, type: 'vip', creditLimit: 10, storeCreditBalance: 2, companyName: '', taxNumber: '', loyaltyPoints: 0, metadata: {} },
 );
 
 assert.deepEqual(

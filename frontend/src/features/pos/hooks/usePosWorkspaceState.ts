@@ -11,6 +11,7 @@ export function usePosWorkspaceState() {
   const [search, setSearch] = useState(storedDraft?.search || '');
   const [customerId, setCustomerId] = useState(storedDraft?.customerId || '');
   const [discount, setDiscount] = useState(Number(storedDraft?.discount || 0));
+  const [loyaltyPointsRedeemed, setLoyaltyPointsRedeemed] = useState<number>(Number((storedDraft as any)?.loyaltyPointsRedeemed || 0));
   const [deliveryFee, setDeliveryFee] = useState(Number((storedDraft as any)?.deliveryFee || 0));
   const [cashAmount, setCashAmount] = useState(Number(storedDraft?.cashAmount ?? (storedDraft?.paymentChannel === 'cash' ? storedDraft?.paidAmount || 0 : 0)));
   const [cardAmount, setCardAmount] = useState(Number(storedDraft?.cardAmount ?? (storedDraft?.paymentChannel === 'card' ? storedDraft?.paidAmount || 0 : 0)));
@@ -64,6 +65,8 @@ export function usePosWorkspaceState() {
     setCustomerId,
     discount,
     setDiscount,
+    loyaltyPointsRedeemed,
+    setLoyaltyPointsRedeemed,
     deliveryFee,
     setDeliveryFee,
     cashAmount,

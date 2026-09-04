@@ -11,6 +11,7 @@ import { assertStrongPassword } from '../utils/password-policy';
 import { resolveTenantContext } from '../utils/tenant-context';
 import { requireTenantScope } from '../utils/tenant-boundary';
 import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
+import { AuthCacheService } from './auth-cache.service';
 
 function safeJsonArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
@@ -37,6 +38,7 @@ export class SessionService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly configService: ConfigService,
     private readonly audit: AuditService,
+    private readonly authCache: AuthCacheService = new AuthCacheService(),
   ) {}
 
   private get lockoutConfig() {
@@ -60,14 +62,30 @@ export class SessionService {
   private async assertTenantLoginAllowed(tenantId: string): Promise<void> {
     const normalizedTenantId = toNonEmpty(tenantId);
     if (!normalizedTenantId || normalizedTenantId === 'default') return;
+
+    // 1. Fast Cache Check: If tenant was recently verified as allowed, skip all DB queries!
+    const cachedAllowed = this.authCache.isTenantAllowed(normalizedTenantId);
+    if (cachedAllowed === true) return;
+    if (cachedAllowed === false) throw new UnauthorizedException('تم إيقاف أو انتهاء اشتراك هذه النسخة.');
+
     const tenant = await this.db.selectFrom('tenants').select(['id', 'slug', 'status', 'trial_ends_at']).where('id', '=', normalizedTenantId).executeTakeFirst();
-    if (!tenant) return;
-    if (tenant.status === 'suspended') throw new UnauthorizedException('تم إيقاف هذه النسخة. تواصل مع الدعم لتفعيلها.');
-    if (tenant.status === 'expired') throw new UnauthorizedException('انتهى اشتراك هذه النسخة. تواصل معنا لتفعيل الاشتراك.');
+    if (!tenant) {
+      this.authCache.setTenantAllowed(normalizedTenantId, true);
+      return;
+    }
+    if (tenant.status === 'suspended') {
+      this.authCache.setTenantAllowed(normalizedTenantId, false);
+      throw new UnauthorizedException('تم إيقاف هذه النسخة. تواصل مع الدعم لتفعيلها.');
+    }
+    if (tenant.status === 'expired') {
+      this.authCache.setTenantAllowed(normalizedTenantId, false);
+      throw new UnauthorizedException('انتهى اشتراك هذه النسخة. تواصل معنا لتفعيل الاشتراك.');
+    }
     
     const now = new Date();
     if (tenant.status === 'trial' && tenant.trial_ends_at <= now) {
       await this.db.updateTable('tenants').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', tenant.id).execute();
+      this.authCache.setTenantAllowed(normalizedTenantId, false);
       throw new UnauthorizedException('انتهت الفترة التجريبية لهذه النسخة. تواصل معنا لتفعيل الاشتراك.');
     }
 
@@ -82,6 +100,7 @@ export class SessionService {
 
       if (!subscription) {
         await this.db.updateTable('tenants').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', tenant.id).execute();
+        this.authCache.setTenantAllowed(normalizedTenantId, false);
         throw new UnauthorizedException('لا يوجد اشتراك فعال لهذه النسخة. تواصل معنا لتفعيل الاشتراك.');
       }
 
@@ -92,16 +111,25 @@ export class SessionService {
             await trx.updateTable('tenant_subscriptions').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', subscription.id).execute();
             await trx.updateTable('tenants').set({ status: 'expired', updated_at: now.toISOString() }).where('id', '=', tenant.id).execute();
           });
+          this.authCache.setTenantAllowed(normalizedTenantId, false);
           throw new UnauthorizedException('انتهى اشتراك هذه النسخة وانتهت فترة السماح. تواصل معنا لتفعيل الاشتراك.');
         } else if (subscription.status === 'active') {
           await this.db.updateTable('tenant_subscriptions').set({ status: 'past_due', updated_at: now.toISOString() }).where('id', '=', subscription.id).execute();
         }
       }
     }
+
+    // Cache success: tenant is verified and active!
+    this.authCache.setTenantAllowed(normalizedTenantId, true);
   }
 
   private async getTenantPayload(auth: AuthContext): Promise<Record<string, unknown> | null> {
     const { tenantId, accountId } = this.scope(auth);
+
+    // Fast Cache Check
+    const cached = this.authCache.getTenantPayload(tenantId);
+    if (cached) return cached;
+
     const tenant = await this.db
       .selectFrom('tenants')
       .select(['id', 'slug', 'business_name', 'status', 'trial_ends_at', 'created_at', 'plan_id', 'extra_features'])
@@ -109,7 +137,9 @@ export class SessionService {
       .executeTakeFirst();
 
     if (!tenant) {
-      return { id: tenantId, accountId, slug: tenantId, businessName: '', status: 'active', isTrial: false, trialEndsAt: null, trialDaysRemaining: null, features: [] };
+      const fallback = { id: tenantId, accountId, slug: tenantId, businessName: '', status: 'active', isTrial: false, trialEndsAt: null, trialDaysRemaining: null, features: [] };
+      this.authCache.setTenantPayload(tenantId, fallback);
+      return fallback;
     }
 
     const trialEndsAt = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null;
@@ -129,7 +159,7 @@ export class SessionService {
     const extraRemove = extraFeatures.filter((f: string) => f.startsWith('-')).map((f: string) => f.substring(1));
     const activeFeatures = Array.from(new Set([...planFeatures, ...extraAdd])).filter(f => !extraRemove.includes(f));
 
-    return {
+    const payload = {
       id: tenant.id,
       accountId,
       slug: tenant.slug || tenant.id,
@@ -143,9 +173,20 @@ export class SessionService {
       extraFeatures: extraFeatures,
       createdAt: tenant.created_at || null,
     };
+
+    this.authCache.setTenantPayload(tenantId, payload);
+    return payload;
   }
 
   async resolveAuthContext(sessionId: string): Promise<AuthContext | null> {
+    if (!sessionId) return null;
+
+    // Fast Cache Check: If session is valid in memory cache, return immediately without hitting DB!
+    const cachedAuth = this.authCache.getSession(sessionId);
+    if (cachedAuth) {
+      return cachedAuth;
+    }
+
     const row = await this.db
       .selectFrom('sessions as s')
       .innerJoin('users as u', 'u.id', 's.user_id')
@@ -162,7 +203,11 @@ export class SessionService {
     const tenantContext = this.resolveUserTenantContext(row);
     try { await this.assertTenantLoginAllowed(tenantContext.tenantId); } catch { return null; }
     const permissions = row.role === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(row.permissions_json)])) : safeJsonArray(row.permissions_json);
-    return { userId: row.user_id, sessionId: row.session_id, username: row.username, role: row.role, permissions, planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
+    const auth: AuthContext = { userId: row.user_id, sessionId: row.session_id, username: row.username, role: row.role, permissions, planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
+
+    // Cache the resolved auth context!
+    this.authCache.setSession(sessionId, auth);
+    return auth;
   }
 
   async authenticate(identifier: string, password: string, meta?: { ipAddress?: string; userAgent?: string }): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
@@ -262,6 +307,7 @@ export class SessionService {
   }
 
   async logout(sessionId: string, auth?: AuthContext): Promise<void> {
+    this.authCache.invalidateSession(sessionId);
     let query = this.db.deleteFrom('sessions').where('id', '=', sessionId);
     if (auth) {
       const { tenantId } = this.scope(auth);
@@ -277,18 +323,21 @@ export class SessionService {
   }
 
   async revokeSessionForUser(sessionId: string, auth: AuthContext, userId: number = auth.userId): Promise<number> {
+    this.authCache.invalidateSession(sessionId);
     const { tenantId } = this.scope(auth);
     const result = await this.db.deleteFrom('sessions').where('id', '=', sessionId).where('user_id', '=', userId).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
     return Number(result.numDeletedRows ?? 0);
   }
 
   async revokeOtherSessions(auth: AuthContext, keepSessionId: string, userId: number = auth.userId): Promise<number> {
+    this.authCache.invalidateUserSessions(userId);
     const { tenantId } = this.scope(auth);
     const result = await this.db.deleteFrom('sessions').where('user_id', '=', userId).where('id', '!=', keepSessionId).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
     return Number(result.numDeletedRows ?? 0);
   }
 
   async revokeAllSessionsForUser(auth: AuthContext, userId: number = auth.userId): Promise<number> {
+    this.authCache.invalidateUserSessions(userId);
     const { tenantId } = this.scope(auth);
     const result = await this.db.deleteFrom('sessions').where('user_id', '=', userId).where(sql<boolean>`tenant_id = ${tenantId}`).executeTakeFirst();
     return Number(result.numDeletedRows ?? 0);
@@ -321,6 +370,7 @@ export class SessionService {
     assertStrongPassword(newPassword);
     const nextPassword = await createPasswordRecord(newPassword);
     await this.db.updateTable('users').set({ password_hash: nextPassword.hash, password_salt: nextPassword.salt, must_change_password: false, failed_login_count: 0, locked_until: null }).where('id', '=', auth.userId).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
+    this.authCache.invalidateUserSessions(auth.userId);
   }
 
   async dismissPasswordChange(auth: AuthContext): Promise<void> {

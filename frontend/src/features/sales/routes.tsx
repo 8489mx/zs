@@ -13,9 +13,9 @@ export const salesRouteModule: FeatureRouteModule = {
   navigation: [
     { key: 'sales', label: 'المبيعات', to: '/sales' },
     { key: 'quotations', label: 'عروض الأسعار', to: '/quotations' },
-    { key: 'installments', label: 'البيع بالتقسيط', to: '/installments' },
+    { key: 'installments', label: 'مبيعات التقسيط', to: '/installments' },
     { key: 'online-orders', label: 'طلبات الأونلاين', to: '/online-orders' },
     { key: 'tax-dispatcher', label: 'الضرائب (ETA)', to: '/tax-dispatcher' },
-    { key: 'vat-declaration', label: 'الإقرار الضريبي', to: '/vat-declaration' }
+    { key: 'vat-declaration', label: 'الإقرار الضريبي (ن10 و ZATCA)', to: '/vat-declaration' }
   ]
 };

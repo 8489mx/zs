@@ -9,6 +9,7 @@ import { PurchasesFinanceService } from './services/purchases-finance.service';
 import { PurchasesQueryService } from './services/purchases-query.service';
 import { PurchasesWriteService } from './services/purchases-write.service';
 import { SupplierPaymentSchedulesService } from './services/supplier-payment-schedules.service';
+import { PurchasesReorderService } from './services/purchases-reorder.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule],
@@ -19,6 +20,8 @@ import { SupplierPaymentSchedulesService } from './services/supplier-payment-sch
     PurchasesQueryService,
     PurchasesWriteService,
     SupplierPaymentSchedulesService,
+    PurchasesReorderService,
   ],
+  exports: [PurchasesService, PurchasesReorderService],
 })
 export class PurchasesModule {}

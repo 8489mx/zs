@@ -1,10 +1,10 @@
 # Live SaaS Operations Checklist
 
-This document provides a single source of truth for Cloud SaaS deployment, operations, monitoring, and emergency procedures on Hostinger/Supabase.
+This document provides a single source of truth for Cloud SaaS deployment, operations, monitoring, and emergency procedures on Oracle Cloud VPS.
 
 ## 1. Production Environment Safety Checklist
 
-Before deploying or scaling the SaaS offering, verify the environment (`.env` or Hostinger variables) adheres to the following constraints.
+Before deploying or scaling the SaaS offering, verify the environment (`.env` or server variables) adheres to the following constraints.
 
 > [!WARNING]
 > Dev configuration in production can lead to severe security breaches. Ensure the values below are exactly as stated.
@@ -16,27 +16,27 @@ Before deploying or scaling the SaaS offering, verify the environment (`.env` or
 - [x] `ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION=false`: Prevents accidental or forced re-seeding of the root owner in production.
 - [x] `PUBLIC_TRIAL_DEBUG_CREDENTIALS=false`: Ensures temporary passwords are not returned in the API response payload.
 - [x] `SESSION_COOKIE_SECURE=true`: Only allows cookies over HTTPS.
-- [x] `SESSION_COOKIE_SAME_SITE=lax`: Given the Hostinger configuration (`api.zsystems.io` and `app.zsystems.io`), `lax` allows cookies to flow properly during top-level navigation while `strict` may block cross-subdomain top-level navigation. `lax` is secure if `SESSION_COOKIE_DOMAIN=zsystems.io` is configured correctly, and the CSRF token handles cross-site request forgery protection.
-- [x] `DATABASE_SSL=true`: Required for secure communication with Supabase.
+- [x] `SESSION_COOKIE_SAME_SITE=lax`: Given the domain configuration (`api.zsystems.io` and `app.zsystems.io`), `lax` allows cookies to flow properly during top-level navigation while `strict` may block cross-subdomain top-level navigation. `lax` is secure if `SESSION_COOKIE_DOMAIN=zsystems.io` is configured correctly, and the CSRF token handles cross-site request forgery protection.
+- [x] `DATABASE_SSL=false`: (Or `true` if connecting to external DB over SSL. On Oracle VPS running local PostgreSQL, SSL can be false).
 
-## 2. Supabase Connection and Operations Review
+## 2. Database Connection and Operations Review (Oracle Cloud VPS)
 
-- **SSL Connection**: Verified. Ensure `DATABASE_SSL_REJECT_UNAUTHORIZED=true` and `DATABASE_SSL_CA_CERT_B64` is configured if required by your Supabase cluster.
+- **Connection**: Verified. Configured via `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD` or `DATABASE_URL`.
 - **Log Safety**: Database connection strings are properly sanitized in `database.module.ts` and `Kysely` logs are disabled (`DATABASE_LOGGING=false`).
 - **Data Isolation**: All access is strictly gated by `tenant_id` at the service layer, validated via `SessionAuthGuard`.
-- **Connection Limits**: Monitor the Supabase dashboard. By default, Supabase provides connection pooling (PgBouncer/Supavisor). Ensure `DATABASE_HOST` points to the pooler (e.g., port 6543 or IPv4 pooler endpoint) to avoid exhaustion under heavy SaaS load.
+- **High-Performance Caching**: Session auth context and tenant SaaS plan features are cached in memory via `AuthCacheService` to prevent connection pool exhaustion.
 
-## 3. Hostinger Deployment Steps
+## 3. Server Deployment Steps
 
-Currently, CI/CD relies on GitHub Actions for build checks (`ci.yml`), but deployment to Hostinger may involve a manual pull or FTP/SSH strategy depending on Hostinger plan limits.
+Currently, CI/CD relies on GitHub Actions for build checks (`ci.yml`), with deployment on the Oracle Cloud VPS.
 
 ### Manual / Semi-Automated Deployment Flow:
-1. SSH into the Hostinger VPS or Terminal.
+1. SSH into the Oracle Cloud VPS.
 2. Navigate to the application root.
 3. Pull the latest `main` branch.
 4. Run `npm ci` in `backend` and `frontend`.
 5. Run `npm run build` in both directories.
-6. Run `npm run migration:run` in `backend` to update the Supabase schema safely.
+6. Run `npm run migration:run` in `backend` to update the PostgreSQL schema safely.
 7. Restart the Node process via PM2 (e.g., `pm2 restart api`).
 
 > [!NOTE]
@@ -65,35 +65,36 @@ Whenever releasing a major update to the SaaS billing engine, run a manual or au
 
 ## 6. Backup and Restore Strategy
 
-### Database Backups (Supabase)
-For SaaS, **Supabase is the primary disaster recovery mechanism**.
-- Supabase performs automatic daily backups (Point-in-Time Recovery available on Pro/Enterprise plans).
-- Restore operations should strictly occur via the Supabase dashboard.
+#### Database Backups (Oracle Cloud VPS PostgreSQL)
+For SaaS, automated PostgreSQL dumps and block volume backups are the primary disaster recovery mechanisms:
+- Daily automatic backups using `pg_dump` scheduled via cron / systemd.
+- Automated block volume backups via Oracle Cloud Infrastructure (OCI) dashboard.
+- Restore operations are performed via `psql < backup.sql` or OCI volume restoration.
 
 ### Application Backups (ZIP Exports)
 - The application's local `SettingsBackupService` exports ZIP backups.
 - In SaaS mode, this allows tenants to export their *own* data for peace of mind.
-- **Do not use the in-app restore tool on production Supabase.** Use it only for migrating data into a local Portable environment.
+- In-app restore tool is primarily intended for migrating data into a local Portable environment.
 
 ## 7. Emergency Rollback Procedures
 
 If a deployment breaks the production SaaS:
 1. Identify the last stable commit.
-2. SSH into Hostinger.
+2. SSH into the Oracle Cloud VPS.
 3. `git checkout <stable-commit-hash>`
 4. `npm ci` and `npm run build`.
 5. Restart PM2.
-6. If the database schema was modified destructively, use the Supabase Dashboard to restore to the nearest Point-in-Time prior to the deployment.
+6. If the database schema was modified destructively, restore from the nearest PostgreSQL dump prior to the deployment.
 
 ## 8. Remaining Risks and Recommendations Before Public Launch
 
-1. **Bootstrap Admin Enabled in Prod**: The live configuration `hostinger-api.production.env` currently has `ENABLE_BOOTSTRAP_ADMIN=true`. This must be set to `false` immediately to prevent accidental admin resets.
+1. **Bootstrap Admin Enabled in Prod**: Ensure `ENABLE_BOOTSTRAP_ADMIN=false` in production to prevent accidental admin resets.
 2. **Automated CD**: Deployments are currently not fully automated, which could lead to human error during manual SSH deployments.
 3. **SMTP Verification**: If SMTP fails, the current public trial signup throws an error. Ensure robust SMTP credentials are in place to prevent signup blocking.
 
 ## 9. Production Env Migration Checklist
 
-When migrating to a new domain or environment, ensure you use the securely tracked ackend/.env.production.example template.
+When migrating to a new domain or environment, ensure you use the securely tracked backend/.env.production.example template.
 
 - **Never commit the real .local.env or .production.env to Git.** They are properly ignored.
 - When changing domains, update:
@@ -107,17 +108,17 @@ When migrating to a new domain or environment, ensure you use the securely track
   - Stateful Operations (validates CSRF protection works cross-subdomain/domain).
   - /health/live and /health/ready check.
 
-## 10. Supabase Connection Pooling
+## 10. Database Connection Pooling & In-Memory Caching
 
-For scalable SaaS operations, connections to Supabase should be managed properly to avoid exhausting database connection limits:
+For scalable SaaS operations, connections to PostgreSQL are managed properly to avoid exhausting database connection limits:
 
-- **App Runtime Connection (Pooled):** The main application runtime MUST connect to Supabase via its Connection Pooler (PgBouncer/Supavisor). Ensure `DATABASE_HOST` points to the pooler address (usually IPv4 or port 6543) and not the direct DB address.
+- **In-Memory Auth & SaaS Caching:** Session authentication contexts, tenant permissions, and plan features are cached in memory (`AuthCacheService`) with a 60s TTL, eliminating 2–3 database queries per request and preventing pool exhaustion.
+- **App Runtime Connection (Pooled):** The main application runtime connects to PostgreSQL via connection pooling.
 - **Recommended Env Vars:**
-  - `DATABASE_POOL_MAX=20` (Adjust based on Supabase plan limits and number of running Node instances)
+  - `DATABASE_POOL_MAX=20` (Adjust based on server RAM and number of running Node instances)
   - `DATABASE_POOL_IDLE_TIMEOUT_MS=10000`
   - `DATABASE_POOL_CONNECTION_TIMEOUT_MS=10000`
-- **Migration Connection (Direct):** When running `npm run migration:run`, you should temporarily use the *Direct Connection* (port 5432) to avoid transaction locks or statement timeout issues through the pooler.
-- **Troubleshooting Connection Errors:** If you see `timeout` or `too many clients` errors in Kysely logs, ensure your instances aren't exceeding the max pooled connections allowed by your Supabase tier. Verify `DATABASE_POOL_MAX` is appropriately scaled across your Hostinger PM2 cluster.
+- **Troubleshooting Connection Errors:** If you see `timeout` or `too many clients` errors in Kysely logs, ensure your Node instances aren't exceeding `max_connections` in `postgresql.conf`. Verify `DATABASE_POOL_MAX` is appropriately scaled across your PM2 cluster.
 
 ## 11. Monitoring and Alerts
 
@@ -145,7 +146,7 @@ For a Cloud SaaS environment, proactive monitoring is critical to detect and res
 Currently, backend deployment on Hostinger is **Manual** via SSH. Frontend deployment is automated via GitHub Actions (FTP).
 
 ### Backend Deployment Steps:
-1. **Backup:** Take a database backup (via Supabase dashboard or pg_dump) before any major release.
+1. **Backup:** Take a database backup (via `pg_dump` or OCI volume snapshot) before any major release.
 2. **Pull Code:** SSH into Hostinger, navigate to the backend directory, and run \`git pull origin main\`.
 3. **Install Dependencies:** If \`package.json\` changed, run \`npm ci\`.
 4. **Build:** Run \`npm run build\` to compile TypeScript.

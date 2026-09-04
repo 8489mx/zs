@@ -64,4 +64,10 @@ export class ReportRangeQueryDto {
   @Min(1)
   @Max(100)
   limit?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  days?: number;
 }

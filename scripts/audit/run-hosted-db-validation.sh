@@ -21,12 +21,10 @@ if [[ -z "$database_url" ]]; then
   : "${DATABASE_USER:?DATABASE_USER is required when DATABASE_URL is unset}"
   : "${DATABASE_PASSWORD:?DATABASE_PASSWORD is required when DATABASE_URL is unset}"
 
-  if [[ "$DATABASE_HOST" == *"pooler.supabase.com"* ]]; then
-    encoded_password="$(node -e "process.stdout.write(encodeURIComponent(process.argv[1] || ''))" "$DATABASE_PASSWORD")"
-    database_url="postgresql://${DATABASE_USER}:${encoded_password}@${DATABASE_HOST}:${DATABASE_PORT:-5432}/${DATABASE_NAME}?sslmode=require"
-    export DATABASE_URL="$database_url"
-    db_connection_mode="database_url(pooler-derived)"
-  fi
+  encoded_password="$(node -e "process.stdout.write(encodeURIComponent(process.argv[1] || ''))" "$DATABASE_PASSWORD")"
+  database_url="postgresql://${DATABASE_USER}:${encoded_password}@${DATABASE_HOST}:${DATABASE_PORT:-5432}/${DATABASE_NAME}"
+  export DATABASE_URL="$database_url"
+  db_connection_mode="database_url(derived)"
 else
   db_connection_mode="database_url(explicit)"
 fi

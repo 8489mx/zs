@@ -5,6 +5,7 @@ import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions'
 import { importantManagerActions } from '@/features/dashboard/lib/manager-actions-ui';
 import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 import { RocketIcon } from '@/shared/components/icons/AppIcons';
+import { isAudioChimeEnabled, playNotificationChime, setAudioChimeEnabled } from '@/lib/audio-chime';
 
 function formatCompactAlert(alert: { title: string; message: string; domain: string; severity: string; metrics?: Record<string, unknown> }) {
   let mainLabel = alert.title;
@@ -48,6 +49,8 @@ export function ManagerNotificationsBell() {
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<string>('all');
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({ visibility: 'hidden' });
+  const [soundEnabled, setSoundEnabled] = useState(isAudioChimeEnabled);
+  const previousCountRef = useRef<number | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const managerActions = useManagerActions(30);
@@ -57,7 +60,17 @@ export function ManagerNotificationsBell() {
   const badgeCount = importantActions.length + (hasUpdate ? 1 : 0);
   const compactCount = 7;
 
+  useEffect(() => {
+    if (previousCountRef.current !== null && badgeCount > previousCountRef.current) {
+      playNotificationChime();
+    }
+    previousCountRef.current = badgeCount;
+  }, [badgeCount]);
+
+  const onlineOrdersCount = importantActions.filter((a) => a.domain === 'online_orders').length;
   const inventoryCount = importantActions.filter((a) => a.domain === 'inventory' || a.domain === 'products').length;
+  const pharmacyCount = importantActions.filter((a) => a.domain === 'pharmacy_expiry').length;
+  const installmentsCount = importantActions.filter((a) => a.domain === 'installments').length;
   const customersCount = importantActions.filter((a) => a.domain === 'customers').length;
   const salesCount = importantActions.filter((a) => a.domain === 'sales').length;
   const accountsCount = importantActions.filter((a) => a.domain === 'accounts' || a.domain === 'purchases').length;
@@ -65,7 +78,10 @@ export function ManagerNotificationsBell() {
   const filteredAlerts = selectedDomain === 'all'
     ? importantActions
     : importantActions.filter((a) => {
+        if (selectedDomain === 'online_orders') return a.domain === 'online_orders';
         if (selectedDomain === 'inventory') return a.domain === 'inventory' || a.domain === 'products';
+        if (selectedDomain === 'pharmacy_expiry') return a.domain === 'pharmacy_expiry';
+        if (selectedDomain === 'installments') return a.domain === 'installments';
         if (selectedDomain === 'customers') return a.domain === 'customers';
         if (selectedDomain === 'sales') return a.domain === 'sales';
         if (selectedDomain === 'accounts') return a.domain === 'accounts' || a.domain === 'purchases';
@@ -184,9 +200,36 @@ export function ManagerNotificationsBell() {
             </span>
           ) : null}
         </div>
-        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-          {badgeCount ? `${badgeCount} تنبيه بحاجة لمتابعة` : 'الكل مستقر ومحدث'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !soundEnabled;
+              setSoundEnabled(next);
+              setAudioChimeEnabled(next);
+            }}
+            title={soundEnabled ? 'صوت التنبيهات: مفعّل (اضغط للكتم)' : 'صوت التنبيهات: صامت (اضغط للتشغيل)'}
+            style={{
+              background: soundEnabled ? '#eff6ff' : '#f1f5f9',
+              border: soundEnabled ? '1px solid #bfdbfe' : '1px solid #cbd5e1',
+              borderRadius: '6px',
+              padding: '2px 8px',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <span>{soundEnabled ? '🔔' : '🔕'}</span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: soundEnabled ? '#1e40af' : '#64748b' }}>
+              {soundEnabled ? 'صوت' : 'صامت'}
+            </span>
+          </button>
+          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+            {badgeCount ? `${badgeCount} تنبيه بحاجة لمتابعة` : 'الكل مستقر ومحدث'}
+          </span>
+        </div>
       </div>
 
       {/* Pinned System Update Notification */}
@@ -244,6 +287,27 @@ export function ManagerNotificationsBell() {
             الكل ({badgeCount})
           </button>
 
+          {onlineOrdersCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedDomain('online_orders')}
+              style={{
+                padding: '4px 10px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                borderRadius: '6px',
+                border: selectedDomain === 'online_orders' ? '1px solid #0f172a' : '1px solid #e2e8f0',
+                background: selectedDomain === 'online_orders' ? '#0f172a' : '#eff6ff',
+                color: selectedDomain === 'online_orders' ? '#ffffff' : '#1d4ed8',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              طلبات المتجر ({onlineOrdersCount})
+            </button>
+          )}
+
           {inventoryCount > 0 && (
             <button
               type="button"
@@ -262,6 +326,48 @@ export function ManagerNotificationsBell() {
               }}
             >
               المخزون ({inventoryCount})
+            </button>
+          )}
+
+          {pharmacyCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedDomain('pharmacy_expiry')}
+              style={{
+                padding: '4px 10px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                borderRadius: '6px',
+                border: selectedDomain === 'pharmacy_expiry' ? '1px solid #0f172a' : '1px solid #e2e8f0',
+                background: selectedDomain === 'pharmacy_expiry' ? '#0f172a' : '#fef2f2',
+                color: selectedDomain === 'pharmacy_expiry' ? '#ffffff' : '#b91c1c',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              صلاحية الأدوية ({pharmacyCount})
+            </button>
+          )}
+
+          {installmentsCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedDomain('installments')}
+              style={{
+                padding: '4px 10px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                borderRadius: '6px',
+                border: selectedDomain === 'installments' ? '1px solid #0f172a' : '1px solid #e2e8f0',
+                background: selectedDomain === 'installments' ? '#0f172a' : '#fffbeb',
+                color: selectedDomain === 'installments' ? '#ffffff' : '#b45309',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              الأقساط ({installmentsCount})
             </button>
           )}
 

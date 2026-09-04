@@ -652,6 +652,53 @@ app.whenReady().then(async () => {
       });
     });
   });
+
+  // Handle IPC for Cash Drawer Kick
+  ipcMain.handle('kick-cash-drawer', async (e, { deviceName } = {}) => {
+    return new Promise((resolve) => {
+      // 1. Check if printer is network TCP (e.g. 192.168.1.100:9100)
+      if (deviceName && (deviceName.includes(':') || /^\d+\.\d+\.\d+\.\d+$/.test(deviceName))) {
+        try {
+          const net = require('net');
+          const [host, port = 9100] = deviceName.split(':');
+          const client = new net.Socket();
+          client.setTimeout(2500);
+          client.connect(Number(port), host, () => {
+            const kickBytes = Buffer.from([27, 112, 0, 25, 250, 27, 112, 1, 25, 250, 7]);
+            client.write(kickBytes, () => {
+              client.end();
+              resolve({ ok: true });
+            });
+          });
+          client.on('error', (err) => {
+            console.error('TCP drawer kick error:', err);
+            resolve({ ok: false, error: err.message });
+          });
+          client.on('timeout', () => {
+            client.destroy();
+            resolve({ ok: false, error: 'Connection timeout' });
+          });
+          return;
+        } catch (netErr) {
+          console.error('Failed to init TCP drawer kick:', netErr);
+        }
+      }
+
+      // 2. Windows local printer via kick-drawer.ps1
+      const psScript = path.join(__dirname, 'kick-drawer.ps1');
+      const safePrinter = (deviceName || '').replace(/["'`$]/g, '');
+      const cmd = `powershell -NoProfile -ExecutionPolicy Bypass -File "${psScript}" ${safePrinter ? `-PrinterName "${safePrinter}"` : ''}`;
+
+      exec(cmd, { timeout: 4000 }, (error, stdout, stderr) => {
+        if (error) {
+          console.error('Drawer kick script failed:', error, stderr);
+          resolve({ ok: false, error: stderr || error.message });
+        } else {
+          resolve({ ok: true, output: (stdout || '').trim() });
+        }
+      });
+    });
+  });
   ipcMain.handle('switch-to-standalone', () => {
     runtimeConfigInstance.switchToStandalone();
     app.relaunch();

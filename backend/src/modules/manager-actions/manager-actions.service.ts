@@ -8,7 +8,10 @@ import {
   ManagerActionCustomerBalanceRow,
   ManagerActionCustomerRow,
   ManagerActionInsight,
+  ManagerActionInstallmentRow,
   ManagerActionLastSaleRow,
+  ManagerActionOnlineOrderRow,
+  ManagerActionPharmacyBatchRow,
   ManagerActionProductRow,
   ManagerActionSaleMarginRow,
   ManagerActionSaleRow,
@@ -29,6 +32,9 @@ export class ManagerActionsService {
       saleMargins,
       customers,
       customerBalances,
+      pharmacyBatches,
+      installments,
+      onlineOrders,
       settingsRows,
     ] = await Promise.all([
       this.safeQuery(() => this.loadProducts(scope.tenantId)),
@@ -37,6 +43,9 @@ export class ManagerActionsService {
       this.safeQuery(() => this.loadSaleMargins(scope.tenantId)),
       this.safeQuery(() => this.loadCustomers(scope.tenantId)),
       this.safeQuery(() => this.loadCustomerBalances(scope.tenantId)),
+      this.safeQuery(() => this.loadPharmacyBatches(scope.tenantId)),
+      this.safeQuery(() => this.loadOverdueInstallments(scope.tenantId)),
+      this.safeQuery(() => this.loadPendingOnlineOrders(scope.tenantId)),
       this.safeQuery(() => this.loadSettings(scope.tenantId)),
     ]);
 
@@ -53,6 +62,9 @@ export class ManagerActionsService {
         saleMargins,
         customers,
         customerBalances,
+        pharmacyBatches,
+        installments,
+        onlineOrders,
         stagnantThresholdDays: Number(settingsMap.stagnantProductDays) > 0 ? Number(settingsMap.stagnantProductDays) : 60,
         expiryAlertDays: Number(settingsMap.expiryAlertDays) > 0 ? Number(settingsMap.expiryAlertDays) : 60,
         limit: safeLimit,
@@ -148,6 +160,56 @@ export class ManagerActionsService {
       .select(['customer_id', sql<number>`coalesce(sum(amount), 0)`.as('balance_total')])
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .groupBy('customer_id')
+      .execute();
+  }
+
+  private loadPharmacyBatches(tenantId: string): Promise<ManagerActionPharmacyBatchRow[]> {
+    return this.db
+      .selectFrom('pharmacy_batches as pb')
+      .leftJoin('products as p', 'p.id', 'pb.product_id')
+      .select([
+        'pb.id',
+        'p.name as product_name',
+        'pb.batch_number',
+        'pb.expiry_date',
+        'pb.quantity',
+      ])
+      .where(sql<boolean>`pb.tenant_id = ${tenantId}`)
+      .where('pb.status', '=', 'active')
+      .where(sql<boolean>`cast(pb.quantity as numeric) > 0`)
+      .orderBy('pb.expiry_date', 'asc')
+      .limit(30)
+      .execute();
+  }
+
+  private loadOverdueInstallments(tenantId: string): Promise<ManagerActionInstallmentRow[]> {
+    return this.db
+      .selectFrom('customer_installments as ci')
+      .leftJoin('customers as c', 'c.id', 'ci.customer_id')
+      .select([
+        'ci.id',
+        'c.name as customer_name',
+        'ci.customer_id',
+        'ci.amount',
+        'ci.due_date',
+        'ci.installment_number',
+      ])
+      .where(sql<boolean>`ci.tenant_id = ${tenantId}`)
+      .where(sql<boolean>`ci.status in ('pending', 'partially_paid')`)
+      .where(sql<boolean>`cast(ci.amount as numeric) > cast(coalesce(ci.paid_amount, 0) as numeric)`)
+      .orderBy('ci.due_date', 'asc')
+      .limit(30)
+      .execute();
+  }
+
+  private loadPendingOnlineOrders(tenantId: string): Promise<ManagerActionOnlineOrderRow[]> {
+    return this.db
+      .selectFrom('online_orders')
+      .select(['id', 'order_number', 'customer_name', 'total_amount as total', 'created_at'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('status', '=', 'pending')
+      .orderBy('created_at', 'desc')
+      .limit(20)
       .execute();
   }
 }

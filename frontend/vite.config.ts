@@ -7,8 +7,11 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const pkg = require('./package.json') as { version: string };
 
-export default defineConfig({
-  base: './',
+export default defineConfig(({ mode }) => {
+  const isDesktop = mode === 'electron' || mode === 'portable' || process.env.ELECTRON === 'true';
+
+  return {
+    base: isDesktop ? './' : '/',
   plugins: [
     react(),
     VitePWA({
@@ -80,4 +83,5 @@ export default defineConfig({
       },
     },
   },
+};
 });
