@@ -44,24 +44,59 @@ jobs:
           git fetch origin main 2>&1
           git reset --hard origin/main 2>&1
 
-          echo "=== 2. Build backend ==="
+          echo "=== 2. Locate .env and Check Configuration ==="
+          ENV_FILE=""
+          for f in "$TARGET_DIR/backend/.env" "$TARGET_DIR/.env" "/var/www/zsystems/.env"; do
+            if [ -f "$f" ]; then
+              ENV_FILE="$f"
+              echo "Found env file: $f"
+              break
+            fi
+          done
+
+          if [ -n "$ENV_FILE" ]; then
+            echo "PORT in env file:"
+            grep -E 'PORT|HOST|NODE_ENV|APP_MODE' "$ENV_FILE" || true
+          else
+            echo "⚠️ No .env file found in standard locations!"
+            find /var/www/zsystems /home/ubuntu -maxdepth 3 -name ".env*" 2>/dev/null || true
+          fi
+
+          echo "=== 3. Build Backend ==="
           cd "$TARGET_DIR/backend"
           npm install --silent 2>&1 || true
           npm run migration:run 2>&1 || true
           npx nest build 2>&1 || true
 
-          echo "=== 3. Start PM2 in stable fork mode ==="
+          echo "=== 4. Test run main.js directly to capture startup log ==="
+          if [ -n "$ENV_FILE" ]; then
+            # Run node directly with env file for 3 seconds to see output or error
+            timeout 4 node --env-file="$ENV_FILE" dist/main.js 2>&1 || true
+          else
+            timeout 4 node dist/main.js 2>&1 || true
+          fi
+
+          echo "=== 5. Start with PM2 using correct cwd and env ==="
           pm2 delete all 2>/dev/null || true
-          pm2 start dist/main.js --name zsystems-backend 2>&1
+          cd "$TARGET_DIR/backend"
+          if [ -n "$ENV_FILE" ]; then
+            pm2 start dist/main.js --name zsystems-backend --cwd "$TARGET_DIR/backend" --node-args="--env-file=$ENV_FILE" 2>&1
+          else
+            pm2 start dist/main.js --name zsystems-backend --cwd "$TARGET_DIR/backend" 2>&1
+          fi
           pm2 save 2>&1 || true
 
-          echo "=== 4. Reload Nginx ==="
-          sudo systemctl reload nginx 2>/dev/null || true
+          sleep 5
+          echo "=== 6. PM2 Logs after start ==="
+          pm2 logs zsystems-backend --nostream --lines 50 2>&1 || true
 
-          echo "=== 5. Health Check on Port 3000 ==="
-          sleep 4
-          sudo ss -tulpn | grep 3000 || true
+          echo "=== 7. Check listening ports and test HTTP ==="
+          sudo ss -tulpn | grep -E '3000|3001|5432|80|443' || true
           curl -sv http://127.0.0.1:3000/api/activation/status 2>&1 || true
+          curl -sv http://127.0.0.1:3001/api/activation/status 2>&1 || true
+
+          echo "=== 8. Reload Nginx ==="
+          sudo systemctl reload nginx 2>/dev/null || true
 
           echo "=== Execution completed at $(date) ==="
           REMOTEEVERYTHING
