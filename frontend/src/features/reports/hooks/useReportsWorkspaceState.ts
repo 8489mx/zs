@@ -13,7 +13,8 @@ export function useReportsWorkspaceState() {
   const [inventoryPage, setInventoryPage] = useState(1);
   const [inventoryPageSize, setInventoryPageSize] = useState(10);
   const [inventorySearch, setInventorySearch] = useState('');
-  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'attention' | 'low' | 'out'>('attention');
+  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'attention' | 'low' | 'out' | 'dead'>('attention');
+  const [deadStockDays, setDeadStockDays] = useState<number>(60);
   const [balancesPage, setBalancesPage] = useState(1);
   const [balancesPageSize, setBalancesPageSize] = useState(10);
   const [balancesSearch, setBalancesSearch] = useState('');
@@ -67,6 +68,7 @@ export function useReportsWorkspaceState() {
     inventoryPageSize,
     inventorySearch,
     inventoryFilter,
+    deadStockDays,
     balancesPage,
     balancesPageSize,
     balancesSearch,
@@ -88,6 +90,7 @@ export function useReportsWorkspaceState() {
     setInventoryPageSize,
     setInventorySearch,
     setInventoryFilter,
+    setDeadStockDays,
     setBalancesPage,
     setBalancesPageSize,
     setBalancesSearch,

@@ -20,6 +20,7 @@ const LazyProductBarcodeDialog = lazy(() => import('@/features/products/componen
 const LazyBarcodePrintDialog = lazy(() => import('@/features/products/components/BarcodePrintDialog').then((module) => ({ default: module.BarcodePrintDialog })));
 const LazyProductSerialsDialog = lazy(() => import('@/features/products/components/ProductSerialsDialog').then((module) => ({ default: module.ProductSerialsDialog })));
 const LazySerialLookupModal = lazy(() => import('@/features/products/components/SerialLookupModal').then((module) => ({ default: module.SerialLookupModal })));
+const LazyScalePluExportModal = lazy(() => import('@/features/products/components/ScalePluExportModal').then((module) => ({ default: module.ScalePluExportModal })));
 
 const productsWorkspaceRegressionLabels = ['باركود', 'وحدات'];
 void productsWorkspaceRegressionLabels;
@@ -38,6 +39,7 @@ export function ProductsWorkspace() {
   const [addonsDialogOpen, setAddonsDialogOpen] = useState(false);
   const [serialLookupOpen, setSerialLookupOpen] = useState(false);
   const [serialsProduct, setSerialsProduct] = useState<Product | null>(null);
+  const [scalePluOpen, setScalePluOpen] = useState(false);
 
   useAppToolbar([{ label: 'المنتجات' }]);
 
@@ -63,6 +65,9 @@ export function ProductsWorkspace() {
                   الإضافات
                 </Button>
               )}
+              <Button variant="secondary" onClick={() => setScalePluOpen(true)}>
+                موازين الباركود (PLU) ⚖️
+              </Button>
               <Button variant="secondary" onClick={controller.resetProductsView}>إعادة ضبط</Button>
               <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير</Button>
               <Button variant="secondary" onClick={controller.printProductsList} disabled={!controller.canPrint}>طباعة</Button>
@@ -147,6 +152,16 @@ export function ProductsWorkspace() {
               open={Boolean(serialsProduct)}
               product={serialsProduct}
               onClose={() => setSerialsProduct(null)}
+            />
+          )}
+
+          {scalePluOpen && (
+            <LazyScalePluExportModal
+              open={scalePluOpen}
+              onClose={() => setScalePluOpen(false)}
+              products={controller.visibleProducts}
+              selectedIds={controller.selectedIds}
+              categoryNames={controller.categoryNames}
             />
           )}
         </Suspense>

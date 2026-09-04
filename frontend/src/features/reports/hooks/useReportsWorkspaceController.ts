@@ -48,6 +48,7 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     pageSize: state.inventoryPageSize, 
     search: state.inventorySearch, 
     filter: state.inventoryFilter,
+    days: state.deadStockDays,
     ...(state.locationId !== 'all' ? { locationId: state.locationId } : {})
   }, { enabled: ['overview', 'inventory'].includes(currentSection) });
   const balancesQuery = useCustomerBalancesPage({ page: state.balancesPage, pageSize: state.balancesPageSize, search: state.balancesSearch, filter: state.balancesFilter }, { enabled: ['overview', 'balances'].includes(currentSection) });
@@ -83,6 +84,7 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     topProducts: metrics.topProducts,
     inventorySearch: state.inventorySearch,
     inventoryFilter: state.inventoryFilter,
+    deadStockDays: state.deadStockDays,
     balancesSearch: state.balancesSearch,
     balancesFilter: state.balancesFilter,
   });
@@ -113,6 +115,7 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     sectionGuidanceCards: metrics.sectionGuidanceCards,
     inventorySearch: state.inventorySearch,
     inventoryFilter: state.inventoryFilter,
+    deadStockDays: state.deadStockDays,
     balancesSearch: state.balancesSearch,
     balancesFilter: state.balancesFilter,
     setFrom: state.setFrom,
@@ -122,7 +125,8 @@ export function useReportsWorkspaceController(currentSection: ReportsSectionKey)
     resetRange: state.resetRange,
     applyRange: state.applyScope,
     onInventorySearchChange: (value: string) => { state.setInventorySearch(value); state.setInventoryPage(1); },
-    onInventoryFilterChange: (value: 'all' | 'attention' | 'low' | 'out') => { state.setInventoryFilter(value); state.setInventoryPage(1); },
+    onInventoryFilterChange: (value: 'all' | 'attention' | 'low' | 'out' | 'dead') => { state.setInventoryFilter(value); state.setInventoryPage(1); },
+    onDeadStockDaysChange: (days: number) => { state.setDeadStockDays(days); state.setInventoryPage(1); },
     onInventoryPageChange: state.setInventoryPage,
     onInventoryPageSizeChange: (value: number) => { state.setInventoryPageSize(value); state.setInventoryPage(1); },
 

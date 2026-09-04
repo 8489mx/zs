@@ -85,6 +85,8 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         onInventorySearchChange={controller.onInventorySearchChange}
         inventoryFilter={controller.inventoryFilter}
         onInventoryFilterChange={controller.onInventoryFilterChange}
+        deadStockDays={controller.deadStockDays}
+        onDeadStockDaysChange={controller.onDeadStockDaysChange}
         onInventoryPageChange={controller.onInventoryPageChange}
         onInventoryPageSizeChange={controller.onInventoryPageSizeChange}
         onInventoryFiltersReset={controller.onInventoryFiltersReset}

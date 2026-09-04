@@ -1,4 +1,4 @@
-export type ReportsSectionKey = 'overview' | 'sales' | 'purchases' | 'inventory' | 'balances' | 'treasury' | 'employees' | 'aging' | 'forecasting';
+export type ReportsSectionKey = 'overview' | 'sales' | 'purchases' | 'inventory' | 'balances' | 'treasury' | 'employees' | 'aging' | 'forecasting' | 'customers';
 
 export const reportsSections: Array<{ key: ReportsSectionKey; label: string; description?: string }> = [
   { key: 'overview', label: 'نظرة عامة' },
@@ -6,6 +6,7 @@ export const reportsSections: Array<{ key: ReportsSectionKey; label: string; des
   { key: 'treasury', label: 'الخزنة والربحية' },
   { key: 'inventory', label: 'المخزون' },
   { key: 'balances', label: 'الذمم' },
+  { key: 'customers', label: 'سلوك العملاء (RFM)' },
   { key: 'aging', label: 'أعمار الديون' },
   { key: 'forecasting', label: 'التنبؤ بالطلب' },
   { key: 'purchases', label: 'المشتريات' },

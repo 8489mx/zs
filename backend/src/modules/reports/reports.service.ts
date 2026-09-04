@@ -368,7 +368,7 @@ export class ReportsService {
       }
     }
     if (filter === 'dead') {
-      const scope = this.tenantScope(auth);
+      const scope = this.scope(auth);
       const days = Math.max(7, Math.min(365, Number(query.days || 60)));
       const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       const deadCondition = sql<boolean>`NOT EXISTS (
@@ -480,7 +480,7 @@ export class ReportsService {
   }
 
   async deadStockReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const scope = this.tenantScope(auth);
+    const scope = this.scope(auth);
     const days = Math.max(7, Math.min(365, Number(query.days || 60)));
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const { search, searchPattern, page, pageSize, offset } = buildReportListState(query, 20, { includeRange: false });
@@ -590,6 +590,109 @@ export class ReportsService {
         totalRetailValue: Number(Number((summaryAgg as any)?.total_retail_value || 0).toFixed(2)),
         daysThreshold: days,
       }
+    }, auth);
+  }
+
+  async customerRfmReport(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const { search, searchPattern } = buildReportListState(query, 50, { includeRange: false });
+
+    let baseQuery = (this.db as any)
+      .selectFrom('sales as s')
+      .innerJoin('customers as c', 'c.id', 's.customer_id')
+      .select([
+        'c.id as customerId',
+        'c.name as customerName',
+        'c.phone as customerPhone',
+        'c.balance as currentBalance',
+        'c.loyalty_points as loyaltyPoints',
+        sql<number>`count(s.id)`.as('frequency'),
+        sql<number>`coalesce(sum(s.total), 0)`.as('monetary'),
+        sql<string>`max(s.created_at)`.as('lastSaleDate'),
+      ])
+      .where('s.status', '=', 'posted')
+      .where(this.tenantPredicate(auth, 's'))
+      .where(this.tenantPredicate(auth, 'c'))
+      .groupBy(['c.id', 'c.name', 'c.phone', 'c.balance', 'c.loyalty_points']);
+
+    if (search && searchPattern) {
+      baseQuery = baseQuery.where((eb: any) => eb.or([
+        eb(sql`lower(c.name)`, 'like', searchPattern),
+        eb(sql`lower(coalesce(c.phone, ''))`, 'like', searchPattern),
+      ]));
+    }
+
+    const rows = await baseQuery.execute();
+    const now = Date.now();
+
+    const mapped = (rows as any[]).map((r) => {
+      const frequency = Number(r.frequency || 0);
+      const monetary = Number(Number(r.monetary || 0).toFixed(2));
+      const lastDate = r.lastSaleDate ? new Date(r.lastSaleDate).getTime() : 0;
+      const recencyDays = lastDate ? Math.max(0, Math.floor((now - lastDate) / (1000 * 60 * 60 * 24))) : 999;
+      const aov = frequency > 0 ? Number((monetary / frequency).toFixed(2)) : 0;
+
+      let segment: 'champions' | 'loyal' | 'promising' | 'at_risk' | 'lost' = 'promising';
+      if (recencyDays <= 30 && frequency >= 4) {
+        segment = 'champions';
+      } else if (recencyDays <= 60 && frequency >= 3) {
+        segment = 'loyal';
+      } else if (recencyDays <= 30) {
+        segment = 'promising';
+      } else if (recencyDays > 120) {
+        segment = 'lost';
+      } else if (recencyDays > 60 && frequency >= 2) {
+        segment = 'at_risk';
+      } else {
+        segment = 'at_risk';
+      }
+
+      return {
+        id: String(r.customerId),
+        name: r.customerName,
+        phone: r.customerPhone || '',
+        balance: Number(r.currentBalance || 0),
+        loyaltyPoints: Number(r.loyaltyPoints || 0),
+        frequency,
+        monetary,
+        recencyDays,
+        lastSaleDate: r.lastSaleDate,
+        aov,
+        segment,
+      };
+    });
+
+    const totalCustomers = mapped.length;
+    const championsCount = mapped.filter((c) => c.segment === 'champions').length;
+    const loyalCount = mapped.filter((c) => c.segment === 'loyal').length;
+    const promisingCount = mapped.filter((c) => c.segment === 'promising').length;
+    const atRiskCount = mapped.filter((c) => c.segment === 'at_risk').length;
+    const lostCount = mapped.filter((c) => c.segment === 'lost').length;
+    const totalRevenue = Number(mapped.reduce((sum, c) => sum + c.monetary, 0).toFixed(2));
+    const totalOrders = mapped.reduce((sum, c) => sum + c.frequency, 0);
+    const averageAov = totalOrders > 0 ? Number((totalRevenue / totalOrders).toFixed(2)) : 0;
+    const repeatCount = mapped.filter((c) => c.frequency > 1).length;
+    const repeatRate = totalCustomers > 0 ? Number(((repeatCount / totalCustomers) * 100).toFixed(1)) : 0;
+
+    const targetSegment = (query as any).segment;
+    const items = targetSegment && targetSegment !== 'all'
+      ? mapped.filter((c) => c.segment === targetSegment)
+      : mapped;
+
+    items.sort((a, b) => b.monetary - a.monetary);
+
+    return this.withScope({
+      summary: {
+        totalCustomers,
+        championsCount,
+        loyalCount,
+        promisingCount,
+        atRiskCount,
+        lostCount,
+        totalRevenue,
+        averageAov,
+        repeatRate,
+      },
+      items,
     }, auth);
   }
 

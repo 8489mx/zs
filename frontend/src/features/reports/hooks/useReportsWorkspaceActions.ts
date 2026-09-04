@@ -12,6 +12,7 @@ export function useReportsWorkspaceActions({
   topProducts,
   inventorySearch,
   inventoryFilter,
+  deadStockDays,
   balancesSearch,
   balancesFilter,
 }: {
@@ -21,7 +22,8 @@ export function useReportsWorkspaceActions({
   executiveRows: Array<[string, number]>;
   topProducts: Array<{ name?: string; qty?: number; revenue?: number }>;
   inventorySearch: string;
-  inventoryFilter: 'all' | 'attention' | 'low' | 'out';
+  inventoryFilter: 'all' | 'attention' | 'low' | 'out' | 'dead';
+  deadStockDays?: number;
   balancesSearch: string;
   balancesFilter: 'all' | 'high-balance' | 'over-limit';
 }) {
@@ -29,8 +31,9 @@ export function useReportsWorkspaceActions({
   const todayDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
 
   const exportLowStock = async () => {
-    const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter });
-    downloadExcelFile(`الأصناف النواقص ${todayDate}.xlsx`, ['name', 'stock', 'minStock', 'category', 'supplier', 'topLocation', 'locations', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.topLocationName || '', item.locationsLabel || '', item.status]));
+    const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter, days: deadStockDays });
+    const title = inventoryFilter === 'dead' ? `المخزون الراكد ${todayDate}.xlsx` : `الأصناف النواقص ${todayDate}.xlsx`;
+    downloadExcelFile(title, ['name', 'stock', 'minStock', 'category', 'supplier', 'topLocation', 'locations', 'status'], rows.map((item) => [item.name, item.stock, item.minStock, item.category, item.supplier, item.topLocationName || '', item.locationsLabel || '', item.status]));
   };
 
   const exportCustomerBalances = async () => {

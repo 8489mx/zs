@@ -51,8 +51,10 @@ export type ReportsSectionContentProps = {
   formatPercent: (value: number) => string;
   inventorySearch: string;
   onInventorySearchChange: (value: string) => void;
-  inventoryFilter: 'all' | 'attention' | 'low' | 'out';
-  onInventoryFilterChange: (value: 'all' | 'attention' | 'low' | 'out') => void;
+  inventoryFilter: 'all' | 'attention' | 'low' | 'out' | 'dead';
+  onInventoryFilterChange: (value: 'all' | 'attention' | 'low' | 'out' | 'dead') => void;
+  deadStockDays?: number;
+  onDeadStockDaysChange?: (days: number) => void;
   onInventoryPageChange: (page: number) => void;
   onInventoryPageSizeChange: (pageSize: number) => void;
   balancesSearch: string;

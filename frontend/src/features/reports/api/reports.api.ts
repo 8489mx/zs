@@ -46,7 +46,9 @@ export interface ReportInventoryQueryParams {
   page?: number;
   pageSize?: number;
   search?: string;
-  filter?: 'all' | 'attention' | 'low' | 'out';
+  filter?: 'all' | 'attention' | 'low' | 'out' | 'dead';
+  days?: number;
+  locationId?: string;
 }
 
 export interface CustomerBalancesQueryParams {
@@ -325,7 +327,96 @@ export const reportsApi = {
   products: async () => unwrapArray<Product>(await http<Product[] | { products: Product[] }>('/api/products'), 'products'),
   debtAging: () => http<DebtAgingResponse>('/api/reports/debt-aging'),
   demandForecasting: () => http<DemandForecastingResponse>('/api/reports/demand-forecasting'),
+  deadStock: (params: DeadStockQueryParams = {}) => {
+    const query: Record<string, string | number | undefined | null> = {
+      ...(params.days ? { days: params.days } : {}),
+      ...(params.locationId ? { locationId: params.locationId } : {}),
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.page ? { page: params.page } : {}),
+      ...(params.pageSize ? { pageSize: params.pageSize } : {}),
+    };
+    return http<DeadStockResponse>(`/api/reports/inventory/dead-stock${buildQueryString(query)}`);
+  },
+  customerRfm: (params: { search?: string; segment?: string } = {}) => {
+    const query: Record<string, string | number | undefined | null> = {
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.segment && params.segment !== 'all' ? { segment: params.segment } : {}),
+    };
+    return http<CustomerRfmResponse>(`/api/reports/customers/rfm${buildQueryString(query)}`);
+  },
 };
+
+export type CustomerRfmSegment = 'champions' | 'loyal' | 'promising' | 'at_risk' | 'lost';
+
+export interface CustomerRfmItem {
+  id: string;
+  name: string;
+  phone: string;
+  balance: number;
+  loyaltyPoints: number;
+  frequency: number;
+  monetary: number;
+  recencyDays: number;
+  lastSaleDate: string | null;
+  aov: number;
+  segment: CustomerRfmSegment;
+}
+
+export interface CustomerRfmResponse {
+  summary: {
+    totalCustomers: number;
+    championsCount: number;
+    loyalCount: number;
+    promisingCount: number;
+    atRiskCount: number;
+    lostCount: number;
+    totalRevenue: number;
+    averageAov: number;
+    repeatRate: number;
+  };
+  items: CustomerRfmItem[];
+}
+
+export interface DeadStockItem {
+  id: string;
+  name: string;
+  sku?: string;
+  barcode?: string;
+  category?: string;
+  supplier?: string;
+  stockQty: number;
+  costPrice: number;
+  retailPrice: number;
+  tiedCapital: number;
+  daysSinceLastSale: number | null;
+  lastSaleAt: string | null;
+}
+
+export interface DeadStockResponse {
+  items: DeadStockItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    rangeStart: number;
+    rangeEnd: number;
+  };
+  summary: {
+    totalDeadProducts: number;
+    totalTiedCapital: number;
+    totalDeadStockUnits: number;
+    cutoffDays: number;
+  };
+}
+
+export interface DeadStockQueryParams {
+  days?: number;
+  locationId?: number | string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
 
 export interface DebtAgingBucketSummary {
   total: number;
