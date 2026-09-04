@@ -227,6 +227,33 @@ export const routeFeatureMap: Record<string, string> = {
   'settings/tax-integration': 'accounting',
   audit: 'accounting',
   '/audit': 'accounting',
+  'online-orders': 'storefront',
+  '/online-orders': 'storefront',
+  storefront: 'storefront',
+  '/storefront': 'storefront',
+  maintenance: 'maintenance',
+  '/maintenance': 'maintenance',
+  'trade-in': 'maintenance',
+  '/trade-in': 'maintenance',
+  'imei-history': 'maintenance',
+  '/imei-history': 'maintenance',
+  pharmacy: 'pharmacy',
+  '/pharmacy': 'pharmacy',
+  'pharmacy-dashboard': 'pharmacy',
+  'pharmacy-drugs': 'pharmacy',
+  'pharmacy-prescriptions': 'pharmacy',
+  'pharmacy-shortages': 'pharmacy',
+  'pharmacy-batches': 'pharmacy',
+  'pharmacy-clinical': 'pharmacy',
+  import: 'import',
+  '/import': 'import',
+  'import-shipments': 'import',
+  'import-supplier-credit': 'import',
+  'import-profit-pool': 'import',
+  restaurant: 'restaurant',
+  '/restaurant': 'restaurant',
+  clothing: 'clothing',
+  '/clothing': 'clothing',
 };
 
 function normalizeAccessKey(value: string) {
@@ -334,7 +361,7 @@ export function canAccessPath(user: AuthUser | null | undefined, target: string)
 
 export function canAccessNavigationItem(user: AuthUser | null | undefined, item: NavigationItemDefinition) {
   if (item.platformOnly) return isPlatformAdmin(user);
-  if (!hasRequiredFeature(item.to)) return false;
+  if (!hasRequiredFeature(item.to) || (item.key && !hasRequiredFeature(item.key))) return false;
   return hasAnyPermission(user, getRoutePermissionRequirement(item.key || item.to));
 }
 

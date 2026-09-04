@@ -25,6 +25,7 @@ const AVAILABLE_FEATURES = [
   { id: 'maintenance', name: 'إدارة الصيانة والأجهزة' },
   { id: 'restaurant', name: 'المطاعم والكافيهات والطاولات' },
   { id: 'clothing', name: 'المتغيرات والمقاسات والألوان' },
+  { id: 'storefront', name: 'المتجر الإلكتروني وطلبات الأونلاين' },
 ];
 
 export function DeveloperActivationPanel() {
@@ -65,7 +66,7 @@ export function DeveloperActivationPanel() {
 
   const featurePlansQuery = useQuery({
     queryKey: ['saas-feature-plans'],
-    queryFn: () => http<any[]>('/api/developer/feature-plans'),
+    queryFn: () => http<any[]>('/api/developer/feature-plans', { skipUnauthorizedInterceptor: true }),
     enabled: open,
   });
   const featurePlans = featurePlansQuery.data || [];
