@@ -548,6 +548,7 @@ export function VatDeclarationPage() {
             <div style={{ borderBottom: '1px solid #94a3b8', width: '180px', margin: '0 auto' }} />
           </div>
         </div>
+      </div>
       </section>
     </main>
   </div>

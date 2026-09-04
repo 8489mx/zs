@@ -73,6 +73,12 @@ jobs:
           echo "Files in dist/config:"
           ls -la dist/config/ 2>/dev/null || true
 
+          echo "=== 3.1 Clean and Build Frontend ==="
+          cd "$TARGET_DIR/frontend"
+          npm install --silent 2>&1 || true
+          npm run build 2>&1 || node ./node_modules/vite/bin/vite.js build 2>&1
+          echo "Frontend dist files count: $(ls -1 dist 2>/dev/null | wc -l)"
+
           echo "=== 4. Test run main.js directly ==="
           if [ -n "$ENV_FILE" ]; then
             timeout 4 node --env-file="$ENV_FILE" dist/main.js 2>&1 || true
