@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import { vatDeclarationApi, type VatDeclarationData } from '@/features/sales/api/vat-declaration.api';
 import { PrinterIcon } from '@/shared/components/icons/AppIcons';
@@ -76,62 +78,52 @@ export function VatDeclarationPage() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const stats = [
+    { key: 'sales', label: 'وعاء المبيعات الصافي', value: formatCurrency(data?.output_tax.total_sales_base || 0) },
+    { key: 'output', label: 'ضريبة المخرجات المحصلة', value: formatCurrency(data?.output_tax.total_output_vat || 0) },
+    { key: 'input', label: 'ضريبة المدخلات المخصومة', value: formatCurrency(data?.input_tax.total_input_vat || 0) },
+    {
+      key: 'net',
+      label: data?.summary.status === 'payable' ? 'صافي الضريبة واجبة السداد' : 'رصيد دائن مرحل',
+      value: formatCurrency(Math.abs(data?.summary.net_vat_due || 0)),
+    },
+  ] as const;
+
   return (
-    <div dir="rtl" style={{ padding: '24px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-      {/* Header & Controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>
-            الإقرار الضريبي الرسمي الجاهز (Official VAT Declaration)
-          </h1>
-          <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
-            توليد واحتساب أوعية وضريبة القيمة المضافة مطابقة لـ نموذج 10 المصري وهيئة الزكاة والضريبة والجمارك ZATCA
-          </p>
-        </div>
+    <div className="page-stack page-shell vat-declaration-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+        {/* Header & Controls */}
+        <PageHeader
+          title="الإقرار الضريبي الرسمي (VAT Declaration)"
+          description="توليد واحتساب أوعية وضريبة القيمة المضافة مطابقة لـ نموذج 10 المصري وهيئة الزكاة والضريبة والجمارك ZATCA."
+          badge={<span className="nav-pill">{country === 'EG' ? 'مصر نموذج 10' : 'السعودية ZATCA'}</span>}
+          actions={
+            <div className="actions compact-actions">
+              <Button
+                variant="secondary"
+                onClick={copyAllSummary}
+              >
+                {copiedKey === 'all_summary' ? 'تم نسخ الملخص ✓' : 'نسخ الأرقام للتقديم'}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => window.print()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <PrinterIcon size={16} color="#ffffff" />
+                <span>طباعة الإقرار (A4)</span>
+              </Button>
+            </div>
+          }
+        />
 
-        {/* Top Actions */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Button
-            onClick={copyAllSummary}
-            style={{
-              backgroundColor: '#f1f5f9',
-              border: '1px solid #cbd5e1',
-              color: '#334155',
-              padding: '9px 14px',
-              borderRadius: '8px',
-              fontWeight: '600',
-              fontSize: '13px',
-              cursor: 'pointer',
-            }}
-          >
-            {copiedKey === 'all_summary' ? 'تم نسخ الملخص ✓' : 'نسخ الأرقام للتقديم'}
-          </Button>
+        {/* KPI Cards Grid */}
+        <StatsGrid items={stats} />
 
-          <Button
-            onClick={() => window.print()}
-            style={{
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-              padding: '9px 18px',
-              borderRadius: '8px',
-              fontWeight: '600',
-              fontSize: '13px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <PrinterIcon size={16} color="#ffffff" />
-            <span>طباعة الإقرار الرسمي (A4)</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Control Filter Bar */}
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <section className="document-prototype-section">
+          {/* Control Filter Bar */}
+          <div style={{ paddingBottom: '16px', borderBottom: '1px solid #f1f5f9', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           {/* Country Selection */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>نظام الإقرار:</span>
@@ -214,77 +206,6 @@ export function VatDeclarationPage() {
                 />
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
-        {/* KPI 1 */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', marginBottom: '8px' }}>إجمالي وعاء المبيعات الصافي</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>
-            {formatCurrency(data?.output_tax.total_sales_base || 0)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: '500' }}>
-            {data?.output_tax.invoices_count || 0} فاتورة صادرة بالفترة
-          </div>
-        </div>
-
-        {/* KPI 2 */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', marginBottom: '8px' }}>ضريبة المخرجات المحصلة</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#166534', marginBottom: '4px' }}>
-            {formatCurrency(data?.output_tax.total_output_vat || 0)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#15803d', fontWeight: '500' }}>
-            النسبة المقررة: {data?.period.standard_rate_percent || (country === 'SA' ? 15 : 14)}%
-          </div>
-        </div>
-
-        {/* KPI 3 */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', marginBottom: '8px' }}>ضريبة المدخلات القابلة للخصم</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>
-            {formatCurrency(data?.input_tax.total_input_vat || 0)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
-            عن {data?.input_tax.bills_count || 0} فاتورة مشتريات محلية
-          </div>
-        </div>
-
-        {/* KPI 4 */}
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            border: `1px solid ${data?.summary.status === 'payable' ? '#bbf7d0' : '#bfdbfe'}`,
-            borderRadius: '12px',
-            padding: '18px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}
-        >
-          <div style={{ fontSize: '13px', color: '#334155', fontWeight: '600', marginBottom: '8px' }}>
-            {data?.summary.status === 'payable' ? 'صافي الضريبة واجبة السداد' : 'رصيد دائن مرحل للاسترداد'}
-          </div>
-          <div
-            style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: data?.summary.status === 'payable' ? '#166534' : '#1d4ed8',
-              marginBottom: '4px',
-            }}
-          >
-            {formatCurrency(Math.abs(data?.summary.net_vat_due || 0))}
-          </div>
-          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
-            {data?.summary.status === 'payable' ? 'واجبة التوريد إلى مصلحة الضرائب' : 'رصيد لصالح المنشأة يُخصم من الفترة القادمة'}
           </div>
         </div>
       </div>
@@ -627,7 +548,8 @@ export function VatDeclarationPage() {
             <div style={{ borderBottom: '1px solid #94a3b8', width: '180px', margin: '0 auto' }} />
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
+  </div>
   );
 }

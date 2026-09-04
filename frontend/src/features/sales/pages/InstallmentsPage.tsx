@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import {
   installmentsApi,
@@ -220,178 +222,101 @@ export function InstallmentsPage() {
     overdue_amount: 0,
   };
 
+  const stats = [
+    { key: 'active', label: 'الخطط والعقود النشطة', value: formatCurrency(metrics.active_total_amount) },
+    { key: 'collected', label: 'إجمالي المبالغ المحصلة', value: formatCurrency(metrics.total_collected) },
+    { key: 'unpaid', label: 'المتبقي قيد التحصيل', value: formatCurrency(metrics.unpaid_amount) },
+    { key: 'overdue', label: 'الأقساط المتأخرة المستحقة', value: `${formatCurrency(metrics.overdue_amount)} (${metrics.overdue_count} قسط)` },
+  ] as const;
+
   return (
-    <div dir="rtl" style={{ padding: '24px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-      {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>
-            نظام إدارة أقساط العملاء (Installment Sales Engine)
-          </h1>
-          <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
-            جدولة وتوزيع مبيعات الآجل على أقساط شهرية، احتساب نسب الفائدة، ومتابعة التحصيلات والإيصالات
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Button
-            onClick={() => setCreatePlanModalOpen(true)}
-            style={{
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-              padding: '10px 20px',
-              borderRadius: '8px',
-              fontWeight: '600',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <span>+</span> إنشاء خطة تقسيط جديدة
-          </Button>
-        </div>
-      </div>
+    <div className="page-stack page-shell installments-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+        {/* Page Header */}
+        <PageHeader
+          title="نظام إدارة أقساط العملاء (Installments Engine)"
+          description="جدولة وتوزيع مبيعات الآجل على أقساط شهرية، احتساب نسب الفائدة، ومتابعة التحصيلات والإيصالات."
+          badge={<span className="nav-pill">{metrics.active_plans} عقد نشط</span>}
+          actions={
+            <div className="actions compact-actions">
+              <Button
+                variant="primary"
+                onClick={() => setCreatePlanModalOpen(true)}
+              >
+                + إنشاء خطة تقسيط جديدة
+              </Button>
+            </div>
+          }
+        />
 
-      {/* KPI Cards Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
-        {/* Card 1 */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', marginBottom: '8px' }}>الخطط والعقود النشطة</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>
-            {formatCurrency(metrics.active_total_amount)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: '500' }}>
-            {metrics.active_plans} خطة سارية (من إجمالي {metrics.total_plans})
-          </div>
-        </div>
+        {/* KPI Cards Grid */}
+        <StatsGrid items={stats} />
 
-        {/* Card 2 */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', marginBottom: '8px' }}>إجمالي المبالغ المحصلة</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#166534', marginBottom: '4px' }}>
-            {formatCurrency(metrics.total_collected)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#15803d', fontWeight: '500' }}>
-            تم تحصيلها وإيداعها في الخزينة
-          </div>
-        </div>
+        {/* Navigation Tabs and Content */}
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                type="button"
+                variant={activeTab === 'schedule' ? 'primary' : 'secondary'}
+                onClick={() => setActiveTab('schedule')}
+              >
+                جدول الأقساط والاستحقاقات
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === 'plans' ? 'primary' : 'secondary'}
+                onClick={() => setActiveTab('plans')}
+              >
+                عقود وخطط التقسيط
+              </Button>
+            </div>
 
-        {/* Card 3 */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', marginBottom: '8px' }}>المتبقي قيد التحصيل</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>
-            {formatCurrency(metrics.unpaid_amount)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
-            أقساط مستقبلية مستحقة الجدولة
-          </div>
-        </div>
-
-        {/* Card 4 */}
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #fecaca', borderRadius: '12px', padding: '18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '13px', color: '#991b1b', fontWeight: '500', marginBottom: '8px' }}>الأقساط المتأخرة المستحقة</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#dc2626', marginBottom: '4px' }}>
-            {formatCurrency(metrics.overdue_amount)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#b91c1c', fontWeight: '600' }}>
-            {metrics.overdue_count} قسط متأخر تجاوز تاريخ الاستحقاق
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Tabs and Search */}
-      <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setActiveTab('schedule')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                border: 'none',
-                backgroundColor: activeTab === 'schedule' ? '#170e5e' : '#f1f5f9',
-                color: activeTab === 'schedule' ? '#ffffff' : '#475569',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              جدول الأقساط والاستحقاقات
-            </button>
-            <button
-              onClick={() => setActiveTab('plans')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                border: 'none',
-                backgroundColor: activeTab === 'plans' ? '#170e5e' : '#f1f5f9',
-                color: activeTab === 'plans' ? '#ffffff' : '#475569',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              عقود وخطط التقسيط
-            </button>
-          </div>
-
-          {/* Search bar */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <input
-              type="text"
-              placeholder="بحث برقم الخطة، اسم العميل، الهاتف..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                width: '260px',
-                outline: 'none',
-              }}
-            />
-
-            {activeTab === 'schedule' && (
-              <select
-                value={scheduleStatusFilter}
-                onChange={(e) => setScheduleStatusFilter(e.target.value as any)}
+            {/* Search and filters */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="بحث برقم الخطة، اسم العميل، الهاتف..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
-                  padding: '8px 12px',
+                  padding: '7px 12px',
                   borderRadius: '8px',
                   border: '1px solid #cbd5e1',
                   fontSize: '13px',
+                  width: '240px',
                   outline: 'none',
-                  backgroundColor: '#ffffff',
                 }}
-              >
-                <option value="all">كل الحالات</option>
-                <option value="overdue">المتأخرة فقط ⚠️</option>
-                <option value="due_now">مستحقة اليوم أو قبل</option>
-                <option value="pending">غير مسددة</option>
-                <option value="paid">المسددة</option>
-              </select>
-            )}
-          </div>
-        </div>
-      </div>
+              />
 
-      {/* Main Content Area */}
-      {activeTab === 'schedule' ? (
-        /* Installments Schedule Table */
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ overflowX: 'auto' }}>
+              {activeTab === 'schedule' && (
+                <select
+                  value={scheduleStatusFilter}
+                  onChange={(e) => setScheduleStatusFilter(e.target.value as any)}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    backgroundColor: '#ffffff',
+                  }}
+                >
+                  <option value="all">كل الحالات</option>
+                  <option value="overdue">المتأخرة فقط ⚠️</option>
+                  <option value="due_now">مستحقة اليوم أو قبل</option>
+                  <option value="pending">غير مسددة</option>
+                  <option value="paid">المسددة</option>
+                </select>
+              )}
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          {activeTab === 'schedule' ? (
+            /* Installments Schedule Table */
+            <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
@@ -511,12 +436,10 @@ export function InstallmentsPage() {
               </tbody>
             </table>
           </div>
-        </div>
       ) : (
         /* Installment Plans Table */
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                   <th style={{ padding: '12px 16px' }}>رقم العقد</th>
@@ -636,8 +559,9 @@ export function InstallmentsPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+        </section>
+      </main>
 
       {/* Modal: Create Installment Plan */}
       {createPlanModalOpen && (

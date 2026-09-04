@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { quotationsApi, QuotationRecord, CreateQuotationPayload, QuotationItem } from '../api/quotations.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { useAuthStore } from '@/stores/auth-store';
 import { Trash2Icon } from '@/shared/components/icons/AppIcons';
 
@@ -253,72 +255,84 @@ export function QuotationsPage() {
     }
   };
 
+  const quotations = data?.quotations || [];
+  const stats = [
+    { key: 'total', label: 'إجمالي عروض الأسعار', value: `${quotations.length} عرض` },
+    { key: 'sent', label: 'عروض مرسلة للعملاء', value: `${quotations.filter((q) => q.status === 'sent').length} عرض` },
+    { key: 'converted', label: 'تم تحويلها لفواتير مبيعات', value: `${quotations.filter((q) => q.status === 'converted').length} فاتورة` },
+    { key: 'amount', label: 'إجمالي مبالغ العروض', value: `${quotations.reduce((sum, q) => sum + Number(q.total_amount || 0), 0).toLocaleString('ar-EG')} ج.م` },
+  ] as const;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', padding: '20px' }} dir="rtl">
-      
-      {/* Header Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>عروض الأسعار والطلبيات (Quotations)</h2>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-            إنشاء عروض أسعار رسمية للعملاء، طباعتها ومشاركتها، وتحويلها إلى فواتير بيع بضغطة زر واحدة.
-          </p>
-        </div>
-
-        <Button variant="primary" onClick={() => setIsCreateModalOpen(true)} style={{ background: '#170e5e', fontWeight: 800 }}>
-          + إنشاء عرض سعر جديد
-        </Button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="بحث برقم العرض أو اسم العميل أو الهاتف..."
-          style={{ flex: 1, minWidth: '220px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px' }}
+    <div className="page-stack page-shell quotations-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+        <PageHeader
+          title="عروض الأسعار والطلبيات (Quotations)"
+          description="إنشاء عروض أسعار رسمية للعملاء، طباعتها ومشاركتها، وتحويلها إلى فواتير بيع بضغطة زر واحدة."
+          badge={<span className="nav-pill">{quotations.length} عرض سعر</span>}
+          actions={
+            <div className="actions compact-actions">
+              <Button
+                variant="primary"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                + إنشاء عرض سعر جديد
+              </Button>
+            </div>
+          }
         />
 
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {[
-            { id: 'all', label: 'الكل' },
-            { id: 'draft', label: 'مسودة' },
-            { id: 'sent', label: 'مرسل' },
-            { id: 'accepted', label: 'مقبول' },
-            { id: 'converted', label: 'تم تحويله لفاتورة' },
-          ].map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setStatusFilter(f.id)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                border: 'none',
-                cursor: 'pointer',
-                background: statusFilter === f.id ? '#170e5e' : '#f1f5f9',
-                color: statusFilter === f.id ? '#ffffff' : '#475569',
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
+        <StatsGrid items={stats} />
 
-      {/* Quotations Table */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-        {isLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري تحميل عروض الأسعار...</div>
-        ) : !data?.quotations || data.quotations.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-            لا توجد عروض أسعار مسجلة حتى الآن. انقر على "+ إنشاء عرض سعر جديد" للبدء.
+        <section className="document-prototype-section">
+          {/* Filter and Search Bar */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث برقم العرض أو اسم العميل أو الهاتف..."
+              style={{ flex: 1, minWidth: '220px', padding: '7px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[
+                { id: 'all', label: 'الكل' },
+                { id: 'draft', label: 'مسودة' },
+                { id: 'sent', label: 'مرسل' },
+                { id: 'accepted', label: 'مقبول' },
+                { id: 'converted', label: 'تم تحويله لفاتورة' },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setStatusFilter(f.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: statusFilter === f.id ? '#170e5e' : '#f1f5f9',
+                    color: statusFilter === f.id ? '#ffffff' : '#475569',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
+
+          {/* Quotations Table */}
+          {isLoading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري تحميل عروض الأسعار...</div>
+          ) : !data?.quotations || data.quotations.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+              لا توجد عروض أسعار مسجلة حتى الآن. انقر على "+ إنشاء عرض سعر جديد" للبدء.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'right' }}>
@@ -423,7 +437,8 @@ export function QuotationsPage() {
             </table>
           </div>
         )}
-      </div>
+        </section>
+      </main>
 
       {/* Create Quotation Modal */}
       {isCreateModalOpen && (

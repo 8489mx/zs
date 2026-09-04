@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
-import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/components/data-table';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { StatsGrid } from '@/shared/components/stats-grid';
@@ -69,27 +68,36 @@ export function SaasDiagnosticsPage() {
   }, [items, pagination]);
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <PageHeader
-        title="سجلات التشخيص والدعم الفني"
-        description="متابعة وتحميل حزم اللوجات والفحص المرفوعة تلقائياً ويدوياً من أجهزة العملاء لحل المشاكل استباقياً."
-        actions={
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="flex items-center gap-2"
-          >
-            <span>{isFetching ? 'جاري التحديث...' : 'تحديث البيانات'}</span>
-          </Button>
-        }
-      />
+    <div className="page-stack page-shell saas-diagnostics-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+        <PageHeader
+          title="سجلات التشخيص والدعم الفني"
+          description="متابعة وتحميل حزم اللوجات والفحص المرفوعة تلقائياً ويدوياً من أجهزة العملاء لحل المشاكل استباقياً."
+          badge={<span className="nav-pill">{pagination?.totalItems || items.length} تقرير</span>}
+          actions={
+            <div className="actions compact-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => refetch()}
+                disabled={isFetching}
+              >
+                {isFetching ? 'جاري التحديث...' : 'تحديث البيانات'}
+              </Button>
+            </div>
+          }
+        />
 
-      <StatsGrid items={stats} />
+        <StatsGrid items={stats} />
 
-      <FormSection title="سجلات العملاء المرفوعة">
-        <div className="space-y-4">
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row" style={{ marginBottom: '12px' }}>
+            <h3 className="document-prototype-section-title">سجلات العملاء المرفوعة</h3>
+            <div className="section-header-actions-group">
+              <span className="muted small">يتم استلام اللوجات تلقائياً دورياً أو عند طلب الدعم الفني</span>
+            </div>
+          </div>
+          <div className="space-y-4">
           {/* Search & Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
             <div className="w-full sm:w-80">
@@ -253,7 +261,8 @@ export function SaasDiagnosticsPage() {
             </div>
           )}
         </div>
-      </FormSection>
+      </section>
+    </main>
 
       {/* Error Details Modal */}
       {selectedErrorRow && (

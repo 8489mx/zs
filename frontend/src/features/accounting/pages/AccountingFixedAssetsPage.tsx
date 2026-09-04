@@ -6,6 +6,7 @@ import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
 import { accountingApi, type FixedAsset } from '@/features/accounting/api/accounting.api';
 import { Trash2Icon } from '@/shared/components/icons/AppIcons';
+import { StatsGrid } from '@/shared/components/stats-grid';
 
 const categoryLabels: Record<string, string> = {
   general: 'عام',
@@ -157,82 +158,70 @@ export function AccountingFixedAssetsPage() {
     });
   }, [assets, selectedCategory, searchQuery]);
 
+  const stats = [
+    { key: 'cost', label: 'إجمالي تكلفة الشراء', value: formatCurrency(summary.totalCost) },
+    { key: 'accum', label: 'مجمع الإهلاك (1290)', value: formatCurrency(summary.totalAccum) },
+    { key: 'book', label: 'صافي القيمة الدفترية', value: formatCurrency(summary.totalBook) },
+    { key: 'active', label: 'الأصول النشطة القابلة للإهلاك', value: `${summary.activeCount} أصل` },
+  ] as const;
+
   return (
-    <div style={{ padding: '24px', maxWidth: '100%', background: '#f8fafc', minHeight: '100vh', direction: 'rtl' }}>
-      {/* Header */}
-      <PageHeader
-        title="الأصول الثابتة والإهلاك المحاسبي"
-        badge={<span style={{ background: '#e0e7ff', color: '#170e5e', padding: '4px 10px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}>سجل الأصول والقيود الآلية</span>}
-        actions={
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <Button
-              type="button"
-              variant={activeTab === 'assets' ? 'primary' : 'secondary'}
-              onClick={() => setActiveTab('assets')}
-              style={activeTab === 'assets' ? { background: '#170e5e', color: '#fff' } : {}}
-            >
-              سجل الأصول
-            </Button>
-            <Button
-              type="button"
-              variant={activeTab === 'logs' ? 'primary' : 'secondary'}
-              onClick={() => setActiveTab('logs')}
-              style={activeTab === 'logs' ? { background: '#170e5e', color: '#fff' } : {}}
-            >
-              سجل الإهلاكات والقيود ({logs.length})
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setBatchDepreciateOpen(true)}
-              style={{ borderColor: '#f59e0b', color: '#b45309', fontWeight: 700 }}
-              disabled={summary.activeCount === 0}
-            >
-              إهلاك شهري عام لجميع الأصول
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => setAddModalOpen(true)}
-              style={{ background: '#170e5e', color: '#ffffff', fontWeight: 700 }}
-            >
-              + إضافة أصل جديد
-            </Button>
-          </div>
-        }
-      />
+    <div className="page-stack page-shell fixed-assets-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+        {/* Header */}
+        <PageHeader
+          title="الأصول الثابتة والإهلاك المحاسبي"
+          description="تسجيل وإدارة الأصول الرأسمالية واحتساب قسط الإهلاك وتوليد القيود الآلية في شجرة الحسابات."
+          badge={<span className="nav-pill">{summary.activeCount} أصل نشط</span>}
+          actions={
+            <div className="actions compact-actions">
+              <Button
+                type="button"
+                variant={activeTab === 'assets' ? 'primary' : 'secondary'}
+                onClick={() => setActiveTab('assets')}
+              >
+                سجل الأصول
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === 'logs' ? 'primary' : 'secondary'}
+                onClick={() => setActiveTab('logs')}
+              >
+                سجل القيود ({logs.length})
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setBatchDepreciateOpen(true)}
+                style={{ borderColor: '#f59e0b', color: '#b45309', fontWeight: 700 }}
+                disabled={summary.activeCount === 0}
+              >
+                إهلاك شهري عام
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => setAddModalOpen(true)}
+              >
+                + إضافة أصل جديد
+              </Button>
+            </div>
+          }
+        />
 
-      {/* Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', margin: '20px 0' }}>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>إجمالي تكلفة الشراء</div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(summary.totalCost)}</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>كافة الأصول المسجلة</div>
-        </div>
+        {/* Summary KPI Cards */}
+        <StatsGrid items={stats} />
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '13px', color: '#b45309', marginBottom: '6px', fontWeight: 600 }}>إجمالي مجمع الإهلاك (1290)</div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#d97706' }}>{formatCurrency(summary.totalAccum)}</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>المستهلك محاسبياً حتى الآن</div>
-        </div>
-
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '13px', color: '#166534', marginBottom: '6px', fontWeight: 600 }}>صافي القيمة الدفترية الحالية</div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#15803d' }}>{formatCurrency(summary.totalBook)}</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>التكلفة - مجمع الإهلاك</div>
-        </div>
-
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '13px', color: '#1e40af', marginBottom: '6px', fontWeight: 600 }}>الأصول النشطة القابلة للإهلاك</div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1d4ed8' }}>{summary.activeCount} أصل</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>من أصل {assets.length} أصل كلي</div>
-        </div>
-      </div>
-
-      {activeTab === 'assets' ? (
-        /* Assets Tab */
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          {/* Filters Bar */}
+        {activeTab === 'assets' ? (
+          /* Assets Tab */
+          <section className="document-prototype-section">
+            <div className="section-header-compact-row">
+              <h3 className="document-prototype-section-title">سجل الأصول الرأسمالية</h3>
+              <div className="section-header-actions-group">
+                <span className="muted small">عرض {filteredAssets.length} من {assets.length} أصل</span>
+              </div>
+            </div>
+            {/* Filters Bar */}
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap' }}>
             <input
               type="text"
@@ -340,22 +329,30 @@ export function AccountingFixedAssetsPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       ) : (
         /* Logs Tab */
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '16px' }}>سجل عمليات الإهلاك والقيود اليومية الآلية المولدة</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '14px' }}>
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row">
+            <h3 className="document-prototype-section-title">سجل عمليات الإهلاك والقيود اليومية الآلية</h3>
+            <div className="section-header-actions-group">
+              <span className="nav-pill">{logs.length} قيد محاسبي</span>
+            </div>
+          </div>
+          <p className="muted small section-header-subtitle">
+            سجل القيود المحاسبية المولدة آلياً في شجرة الحسابات مع أرقام القيود ومجمعات الإهلاك.
+          </p>
+          <div style={{ overflowX: 'auto', marginTop: '14px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13.5px' }}>
               <thead>
-                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '12px 14px' }}>تاريخ العملية</th>
-                  <th style={{ padding: '12px 14px' }}>الأصل</th>
-                  <th style={{ padding: '12px 14px' }}>قيمة الإهلاك</th>
-                  <th style={{ padding: '12px 14px' }}>مجمع الإهلاك الجديد</th>
-                  <th style={{ padding: '12px 14px' }}>القيمة الدفترية المتبقية</th>
-                  <th style={{ padding: '12px 14px' }}>رقم القيد المحاسبي</th>
-                  <th style={{ padding: '12px 14px' }}>البيان / الملاحظة</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
+                  <th style={{ padding: '10px 12px' }}>تاريخ العملية</th>
+                  <th style={{ padding: '10px 12px' }}>الأصل</th>
+                  <th style={{ padding: '10px 12px' }}>قيمة الإهلاك</th>
+                  <th style={{ padding: '10px 12px' }}>مجمع الإهلاك الجديد</th>
+                  <th style={{ padding: '10px 12px' }}>القيمة الدفترية المتبقية</th>
+                  <th style={{ padding: '10px 12px' }}>رقم القيد المحاسبي</th>
+                  <th style={{ padding: '10px 12px' }}>البيان / الملاحظة</th>
                 </tr>
               </thead>
               <tbody>
@@ -368,25 +365,26 @@ export function AccountingFixedAssetsPage() {
                 ) : (
                   logs.map((l) => (
                     <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 14px', color: '#64748b' }}>{new Date(l.period_date).toLocaleString('ar-EG')}</td>
-                      <td style={{ padding: '12px 14px', fontWeight: 600 }}>{l.asset_name || `أصل #${l.asset_id}`} ({l.asset_code || ''})</td>
-                      <td style={{ padding: '12px 14px', fontWeight: 700, color: '#dc2626' }}>{formatCurrency(Number(l.depreciation_amount))}</td>
-                      <td style={{ padding: '12px 14px', color: '#d97706' }}>{formatCurrency(Number(l.accumulated_amount))}</td>
-                      <td style={{ padding: '12px 14px', color: '#16a34a', fontWeight: 700 }}>{formatCurrency(Number(l.book_value))}</td>
-                      <td style={{ padding: '12px 14px' }}>
+                      <td style={{ padding: '10px 12px', color: '#64748b' }}>{new Date(l.period_date).toLocaleString('ar-EG')}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{l.asset_name || `أصل #${l.asset_id}`} ({l.asset_code || ''})</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 700, color: '#dc2626' }}>{formatCurrency(Number(l.depreciation_amount))}</td>
+                      <td style={{ padding: '10px 12px', color: '#d97706' }}>{formatCurrency(Number(l.accumulated_amount))}</td>
+                      <td style={{ padding: '10px 12px', color: '#16a34a', fontWeight: 700 }}>{formatCurrency(Number(l.book_value))}</td>
+                      <td style={{ padding: '10px 12px' }}>
                         <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '12px' }}>
                           {l.journal_entry_no || `JE-${l.journal_entry_id}`}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 14px', color: '#64748b', fontSize: '13px' }}>{l.note}</td>
+                      <td style={{ padding: '10px 12px', color: '#64748b', fontSize: '13px' }}>{l.note}</td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
+      </main>
 
       {/* Modal: Add New Asset */}
       {addModalOpen && (
