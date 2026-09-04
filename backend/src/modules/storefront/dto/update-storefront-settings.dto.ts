@@ -61,4 +61,12 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsString()
   customDomain?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  smartDealsEnabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
 }

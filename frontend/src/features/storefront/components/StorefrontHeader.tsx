@@ -40,47 +40,86 @@ export function StorefrontHeader({
       <style>{`
         .storefront-brand-btn:hover .storefront-brand-avatar { transform: scale(1.06); }
         .storefront-brand-btn:hover .storefront-brand-title { color: #170e5e; }
+        .storefront-nav-bottom-row {
+          display: contents;
+        }
         @media (max-width: 640px) {
           .storefront-navbar {
-            flex-wrap: wrap !important;
-            padding: 8px 12px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 8px 12px 10px !important;
             gap: 8px !important;
           }
           .storefront-brand-btn {
             gap: 8px !important;
+            width: 100% !important;
+            justify-content: flex-start !important;
           }
           .storefront-brand-avatar {
-            width: 36px !important;
-            height: 36px !important;
-            font-size: 16px !important;
-            border-radius: 10px !important;
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
           }
           .storefront-brand-title {
             font-size: 15px !important;
           }
-          .storefront-brand-verified,
+          .storefront-brand-verified {
+            font-size: 10px !important;
+            padding: 1px 6px !important;
+          }
           .storefront-brand-subtitle {
             display: none !important;
           }
-          .storefront-search-wrapper {
-            order: 3;
-            flex: unset !important;
+          .storefront-nav-bottom-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
             width: 100% !important;
+          }
+          .storefront-search-wrapper {
+            flex: 1 !important;
+            min-width: 0 !important;
             max-width: 100% !important;
             margin: 0 !important;
           }
+          .storefront-search-box {
+            padding: 3px 4px 3px 10px !important;
+            border-radius: 8px !important;
+          }
+          .storefront-search-input {
+            font-size: 12.5px !important;
+            padding: 5px 4px !important;
+          }
+          .storefront-search-btn {
+            padding: 6px 10px !important;
+            border-radius: 6px !important;
+          }
+          .storefront-search-btn-text {
+            display: none !important;
+          }
           .storefront-actions {
-            margin-inline-start: auto;
-            gap: 6px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 5px !important;
+            flex-shrink: 0 !important;
+            margin: 0 !important;
           }
           .storefront-action-label {
             display: none !important;
           }
           .storefront-action-btn {
-            padding: 8px 10px !important;
+            padding: 7px 9px !important;
+            border-radius: 8px !important;
+            min-width: 36px !important;
+            height: 36px !important;
+            justify-content: center !important;
           }
           .storefront-cart-btn {
-            padding: 8px 12px !important;
+            padding: 7px 10px !important;
+            border-radius: 8px !important;
+            height: 36px !important;
+            justify-content: center !important;
+            gap: 4px !important;
           }
         }
       `}</style>
@@ -137,26 +176,24 @@ export function StorefrontHeader({
             outline: 'none',
           }}
         >
-          <div
-            className="storefront-brand-avatar"
-            style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              fontWeight: 900,
-              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.2)',
-              flexShrink: 0,
-              transition: 'transform 0.2s ease',
-            }}
-          >
-            {info.title ? info.title.charAt(0) : 'Z'}
-          </div>
+          {info.logo_url ? (
+            <img
+              src={info.logo_url}
+              alt={info.title || info.businessName}
+              className="storefront-brand-avatar"
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                objectFit: 'contain',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
+                flexShrink: 0,
+                transition: 'transform 0.2s ease',
+              }}
+            />
+          ) : null}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span
@@ -196,85 +233,92 @@ export function StorefrontHeader({
           </div>
         </div>
 
-        {/* Center: Sleek Unified Search Bar */}
-        <div
-          className="storefront-search-wrapper"
-          style={{
-            flex: 1,
-            maxWidth: '640px',
-            margin: '0 16px',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
+        {/* Unified Search & Actions Bottom Row on Mobile / Inline on Desktop */}
+        <div className="storefront-nav-bottom-row">
+          {/* Center: Sleek Unified Search Bar */}
           <div
+            className="storefront-search-wrapper"
             style={{
-              width: '100%',
+              flex: 1,
+              maxWidth: '640px',
+              margin: '0 16px',
               display: 'flex',
               alignItems: 'center',
-              background: '#f8fafc',
-              borderRadius: '10px',
-              padding: '4px 6px 4px 14px',
-              border: '1.5px solid #cbd5e1',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 1px 4px rgba(15, 23, 42, 0.04)',
             }}
           >
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="ابحث عن أي منتج، كود، أو تصنيف (مثل: أرز، زيت، نسكافيه)..."
+            <div
+              className="storefront-search-box"
               style={{
-                flex: 1,
-                border: 'none',
-                outline: 'none',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                color: '#0f172a',
-                background: 'transparent',
-                padding: '7px 6px',
-                fontFamily: 'inherit',
-              }}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => onSearchChange('')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  padding: '4px 6px',
-                  fontWeight: 700,
-                }}
-              >
-                ✕
-              </button>
-            )}
-            <button
-              type="button"
-              style={{
-                background: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                fontSize: '13px',
-                fontWeight: 700,
+                width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
+                background: '#f8fafc',
+                borderRadius: '10px',
+                padding: '4px 6px 4px 14px',
+                border: '1.5px solid #cbd5e1',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 4px rgba(15, 23, 42, 0.04)',
               }}
             >
-              <IconSearch size={15} strokeWidth={2.2} />
-              <span>بحث</span>
-            </button>
+              <input
+                className="storefront-search-input"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="ابحث عن أي منتج، كود، أو تصنيف..."
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  background: 'transparent',
+                  padding: '7px 6px',
+                  fontFamily: 'inherit',
+                  minWidth: 0,
+                }}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => onSearchChange('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    padding: '4px 6px',
+                    fontWeight: 700,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+              <button
+                className="storefront-search-btn"
+                type="button"
+                style={{
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                <IconSearch size={15} strokeWidth={2.2} />
+                <span className="storefront-search-btn-text">بحث</span>
+              </button>
+            </div>
           </div>
-        </div>
 
         {/* Quick Actions (WhatsApp & Cart) */}
         <div className="storefront-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
@@ -407,6 +451,7 @@ export function StorefrontHeader({
               </span>
             )}
           </button>
+        </div>
         </div>
       </div>
     </header>

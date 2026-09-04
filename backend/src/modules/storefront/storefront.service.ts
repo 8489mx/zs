@@ -35,6 +35,39 @@ export class StorefrontService {
         .executeTakeFirst();
     }
 
+    if (!tenant) {
+      const slugSetting = await this.db
+        .selectFrom('settings')
+        .select('tenant_id')
+        .where('key', '=', 'storefront_slug')
+        .where(sql<boolean>`LOWER(TRIM(BOTH '"' FROM value)) = ${cleanSlug}`)
+        .executeTakeFirst();
+
+      if (slugSetting) {
+        tenant = await this.db
+          .selectFrom('tenants')
+          .selectAll()
+          .where('id', '=', slugSetting.tenant_id)
+          .executeTakeFirst();
+      }
+    }
+
+    if (!tenant && (cleanSlug === 'default' || cleanSlug === 'almhnds' || cleanSlug === 'almohandes')) {
+      tenant = await this.db
+        .selectFrom('tenants')
+        .selectAll()
+        .where('id', '=', 'default')
+        .executeTakeFirst();
+
+      if (!tenant) {
+        tenant = await this.db
+          .selectFrom('tenants')
+          .selectAll()
+          .orderBy('created_at', 'asc')
+          .executeTakeFirst();
+      }
+    }
+
     if (!tenant) throw new NotFoundException('المتجر غير موجود');
     return tenant;
   }
@@ -100,6 +133,7 @@ export class StorefrontService {
     const bannerFit = settings.get('storefront_banner_fit') || 'contain';
     const bannerPosition = settings.get('storefront_banner_position') || 'center';
     const bannerIntervalSeconds = Math.max(1, Number(settings.get('storefront_banner_interval') || 4));
+    const smartDealsEnabled = settings.get('storefront_smart_deals') === 'true';
     let bannerPositions: string[] = [];
     try {
       const rawPos = settings.get('storefront_banner_positions');
@@ -123,6 +157,7 @@ export class StorefrontService {
       bannerPosition,
       bannerPositions,
       bannerIntervalSeconds,
+      smartDealsEnabled,
       deliveryFee,
       minOrder,
       whatsappPhone,
@@ -1068,7 +1103,7 @@ export class StorefrontService {
     } catch {}
 
     return {
-      slug: tenant?.slug || '',
+      slug: settings.get('storefront_slug') || tenant?.slug || '',
       customDomain: tenant?.custom_domain || null,
       enabled: settings.get('storefront_enabled') !== 'false',
       title: settings.get('storefront_title') || settings.get('storeName') || tenant?.business_name || '',
@@ -1080,6 +1115,7 @@ export class StorefrontService {
       bannerPosition: settings.get('storefront_banner_position') || 'center',
       bannerPositions,
       bannerIntervalSeconds,
+      smartDealsEnabled: settings.get('storefront_smart_deals') === 'true',
       deliveryFee: Number(settings.get('storefront_delivery_fee') || 0),
       minOrder: Number(settings.get('storefront_min_order') || 0),
       whatsappPhone: settings.get('storefront_whatsapp') || settings.get('phone') || tenant?.owner_phone || '',
@@ -1101,7 +1137,47 @@ export class StorefrontService {
         .execute();
     }
 
+    if (payload.slug !== undefined) {
+      const cleanSlug = String(payload.slug || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-');
+
+      if (cleanSlug && cleanSlug.length >= 3) {
+        const reserved = ['admin', 'api', 'trial', 'login', 'store', 'st', 'shop', 'profile', 'settings', 'pos', 'system'];
+        if (!reserved.includes(cleanSlug)) {
+          const existing = await this.db
+            .selectFrom('tenants')
+            .select('id')
+            .where('slug', '=', cleanSlug)
+            .where('id', '!=', tenantId)
+            .executeTakeFirst();
+
+          if (!existing) {
+            await this.db
+              .updateTable('tenants')
+              .set({ slug: cleanSlug, updated_at: new Date() })
+              .where('id', '=', tenantId)
+              .execute();
+          }
+        }
+      }
+    }
+
     const entries: Array<{ key: string; value: any }> = [];
+    if (payload.slug !== undefined) {
+      const cleanSlug = String(payload.slug || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-');
+      if (cleanSlug && cleanSlug.length >= 3) {
+        entries.push({ key: 'storefront_slug', value: cleanSlug });
+      }
+    }
     if (payload.enabled !== undefined) entries.push({ key: 'storefront_enabled', value: payload.enabled });
     if (payload.title !== undefined) entries.push({ key: 'storefront_title', value: payload.title });
     if (payload.bio !== undefined) entries.push({ key: 'storefront_bio', value: payload.bio });
@@ -1119,6 +1195,7 @@ export class StorefrontService {
     if (payload.bannerPosition !== undefined) entries.push({ key: 'storefront_banner_position', value: payload.bannerPosition });
     if (payload.bannerPositions !== undefined) entries.push({ key: 'storefront_banner_positions', value: payload.bannerPositions });
     if (payload.bannerIntervalSeconds !== undefined) entries.push({ key: 'storefront_banner_interval', value: payload.bannerIntervalSeconds });
+    if (payload.smartDealsEnabled !== undefined) entries.push({ key: 'storefront_smart_deals', value: payload.smartDealsEnabled });
     if (payload.deliveryFee !== undefined) entries.push({ key: 'storefront_delivery_fee', value: payload.deliveryFee });
     if (payload.minOrder !== undefined) entries.push({ key: 'storefront_min_order', value: payload.minOrder });
     if (payload.whatsappPhone !== undefined) entries.push({ key: 'storefront_whatsapp', value: payload.whatsappPhone });
@@ -1131,6 +1208,8 @@ export class StorefrontService {
         DO UPDATE SET value = EXCLUDED.value, account_id = EXCLUDED.account_id
       `.execute(this.db);
     }
+
+    this.catalogCache.clear();
 
     return this.getStorefrontSettings(actor);
   }

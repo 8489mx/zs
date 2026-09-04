@@ -127,25 +127,6 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                     }}
                   />
 
-                  {/* Red Promo Tag (Amazon Deals Tag) */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '5px',
-                      right: '5px',
-                      background: '#cc0c39', // Amazon red discount badge
-                      color: '#ffffff',
-                      fontSize: '9.5px',
-                      fontWeight: 800,
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '2px',
-                    }}
-                  >
-                    <span>عرض</span>
-                  </div>
 
                   {/* Quick Add Button Overlay */}
                   <button

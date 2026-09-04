@@ -1,3 +1,4 @@
+import React, { useRef } from 'react';
 
 interface StorefrontLiveCartPillProps {
   itemsCount: number;
@@ -6,6 +7,7 @@ interface StorefrontLiveCartPillProps {
   isMinOrderMet: boolean;
   onExpand: () => void;
   onProceedToCheckout: () => void;
+  onDismiss?: () => void;
 }
 
 export function StorefrontLiveCartPill({
@@ -15,24 +17,52 @@ export function StorefrontLiveCartPill({
   isMinOrderMet,
   onExpand,
   onProceedToCheckout,
+  onDismiss,
 }: StorefrontLiveCartPillProps) {
+  const touchStartXRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return;
+    const diff = Math.abs(touchStartXRef.current - e.changedTouches[0].clientX);
+    touchStartXRef.current = null;
+    if (diff > 50 && onDismiss) {
+      onDismiss();
+    }
+  };
+
   return (
     <div
       style={{
-        background: '#ffffff',
+        background: 'rgba(255, 255, 255, 0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         borderRadius: '999px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid rgba(255, 255, 255, 0.9)',
         borderRight: '4.5px solid #170e5e',
-        boxShadow: '0 12px 28px -4px rgba(15, 23, 42, 0.18), 0 6px 12px -2px rgba(15, 23, 42, 0.08)',
-        padding: '10px 16px',
+        boxShadow: '0 12px 32px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08)',
+        padding: '8px 14px',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
+        gap: '10px',
         animation: 'liveCartSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         cursor: 'pointer',
+        userSelect: 'none',
       }}
       onClick={onExpand}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
+      <style>{`
+        @media (max-width: 480px) {
+          .storefront-pill-view-btn {
+            display: none !important;
+          }
+        }
+      `}</style>
       <div
         style={{
           width: '32px',
@@ -67,17 +97,20 @@ export function StorefrontLiveCartPill({
         </svg>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-        <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-          سلة المشتريات {itemsCount === totalQuantity ? `(${itemsCount} صنف)` : `(${itemsCount} صنف • ${totalQuantity} قطعة)`}
+      {/* Exactly 2 clean lines: Line 1 = Items & Pieces, Line 2 = Total */}
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
+        <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
+          {itemsCount} صنف • {totalQuantity} قطعة
         </div>
-        <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
+        <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#166534', whiteSpace: 'nowrap' }}>
           الإجمالي: {total.toFixed(0)} ج.م
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: 'auto' }}>
+      {/* Action Buttons & Dismiss */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: 'auto', flexShrink: 0 }}>
         <button
+          className="storefront-pill-view-btn"
           type="button"
           onClick={(e) => {
             e.stopPropagation();
@@ -92,6 +125,7 @@ export function StorefrontLiveCartPill({
             padding: '5px 10px',
             borderRadius: '999px',
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
           }}
         >
           عرض السلة ⤢
@@ -114,10 +148,59 @@ export function StorefrontLiveCartPill({
             borderRadius: '999px',
             cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
             boxShadow: isMinOrderMet ? '0 2px 6px rgba(23, 14, 94, 0.25)' : 'none',
+            whiteSpace: 'nowrap',
           }}
         >
           إتمام الطلب ←
         </button>
+
+        {onDismiss && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismiss();
+            }}
+            aria-label="إخفاء السلة مؤقتاً"
+            title="إخفاء السلة مؤقتاً"
+            style={{
+              width: '26px',
+              height: '26px',
+              minWidth: '26px',
+              minHeight: '26px',
+              maxWidth: '26px',
+              maxHeight: '26px',
+              aspectRatio: '1 / 1',
+              borderRadius: '50%',
+              background: 'rgba(241, 245, 249, 0.95)',
+              color: '#64748b',
+              border: '1px solid #e2e8f0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+              alignSelf: 'center',
+              boxSizing: 'border-box',
+              padding: 0,
+              transition: 'all 0.15s ease',
+              marginRight: '2px',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#e2e8f0';
+              e.currentTarget.style.color = '#0f172a';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(241, 245, 249, 0.95)';
+              e.currentTarget.style.color = '#64748b';
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );

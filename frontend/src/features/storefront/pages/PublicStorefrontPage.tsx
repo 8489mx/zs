@@ -14,7 +14,7 @@ import { StorefrontCheckoutModal } from '../components/StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from '../components/StorefrontSuccessModal';
 import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel';
 import { StorefrontMyOrdersModal } from '../components/StorefrontMyOrdersModal';
-import { IconFlame, IconFolder, IconSearch, IconArrowLeft, IconArrowUpRight, IconStore } from '../components/StorefrontIcons';
+import { IconFlame, IconFolder, IconSearch, IconArrowUpRight, IconStore } from '../components/StorefrontIcons';
 
 const ITEMS_PER_PAGE = 24;
 const arCollator = new Intl.Collator('ar', { sensitivity: 'base' });
@@ -215,9 +215,20 @@ export function PublicStorefrontPage() {
   const rawProducts: StorefrontProduct[] = catalogQuery.data?.products || [];
   const categories: StorefrontCategory[] = catalogQuery.data?.categories || [];
 
+  const isSmartDealsOn = Boolean(infoQuery.data?.smartDealsEnabled);
+
   const dealsProducts = useMemo(() => {
-    return rawProducts.filter((p) => p.price > 0 && p.inStock);
-  }, [rawProducts]);
+    if (isSmartDealsOn) {
+      // Pick top 8 in-stock products as curated smart marketing deals
+      return rawProducts.filter((p) => p.price > 0 && p.inStock).slice(0, 8);
+    }
+    // Strict Real Deals: only products with explicit real discount (or empty if none)
+    return rawProducts.filter((p) => Boolean((p as any).hasDiscount));
+  }, [rawProducts, isSmartDealsOn]);
+
+  const smartDealProductIds = useMemo(() => {
+    return new Set(dealsProducts.map((p) => p.id));
+  }, [dealsProducts]);
 
   const categoryCounts = useMemo(() => {
     const counts = new Map<number | 'all', number>();
@@ -247,7 +258,7 @@ export function PublicStorefrontPage() {
 
     // Only deals
     if (onlyDeals) {
-      list = list.filter((p) => p.price > 0 && p.inStock);
+      list = dealsProducts;
     }
 
     // Search filter
@@ -398,6 +409,7 @@ export function PublicStorefrontPage() {
     minOrder: 0,
     whatsappPhone: '',
     currency: 'EGP',
+    smartDealsEnabled: false,
   };
   const paginatedProducts = filteredProducts.slice(0, visibleCount);
   const hasMore = visibleCount < filteredProducts.length;
@@ -470,13 +482,49 @@ export function PublicStorefrontPage() {
 
       {/* Main Content Area */}
       <style>{`
+        .storefront-products-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 16px;
+        }
+        .storefront-homepage-sections {
+          display: flex;
+          flex-direction: column;
+          gap: 28px;
+        }
         @media (max-width: 640px) {
           .storefront-main-content {
-            padding: 12px 12px 80px !important;
+            padding: 8px 10px 80px !important;
           }
           .storefront-main-content .storefront-section-card {
-            padding: 14px !important;
+            padding: 10px !important;
             border-radius: 12px !important;
+          }
+          .storefront-homepage-sections {
+            gap: 12px !important;
+          }
+          .storefront-products-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+          }
+          .storefront-deals-header {
+            margin-bottom: 10px !important;
+            padding-bottom: 8px !important;
+          }
+          .storefront-deals-subtitle {
+            display: none !important;
+          }
+          .storefront-cat-shelf-header {
+            margin-bottom: 10px !important;
+            padding-bottom: 8px !important;
+          }
+          .storefront-home-btn-label {
+            display: none !important;
+          }
+          .storefront-filter-header {
+            padding: 8px 10px !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
           }
         }
       `}</style>
@@ -492,7 +540,7 @@ export function PublicStorefrontPage() {
       >
         {/* CASE 1: Curated Multi-Row Homepage (Ultra-Fast: 36 Cards Max) */}
         {isHomepageMultiRow ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div className="storefront-homepage-sections">
             {/* Row 1: Deals Spotlight */}
             {dealsProducts.length > 0 && (
               <div
@@ -506,6 +554,7 @@ export function PublicStorefrontPage() {
                 }}
               >
                 <div
+                  className="storefront-deals-header"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -532,7 +581,7 @@ export function PublicStorefrontPage() {
                       <IconFlame size={14} color="#ffffff" strokeWidth={2.2} />
                       <span>عروض وتخفيضات حصرية</span>
                     </span>
-                    <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                    <span className="storefront-deals-subtitle" style={{ fontSize: '12.5px', color: '#64748b' }}>
                       أقوى الخصومات والأسعار المخفضة
                     </span>
                   </div>
@@ -557,13 +606,7 @@ export function PublicStorefrontPage() {
                   </button>
                 </div>
 
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
-                    gap: '18px',
-                  }}
-                >
+                <div className="storefront-products-grid">
                   {dealsProducts.slice(0, 4).map((product) => (
                     <StorefrontProductCard
                       key={product.id}
@@ -572,6 +615,7 @@ export function PublicStorefrontPage() {
                       whatsappPhone={info.whatsappPhone}
                       onAddToCart={handleAddToCart}
                       onUpdateQuantity={handleUpdateQuantity}
+                      isSmartDeal={true}
                     />
                   ))}
                 </div>
@@ -610,6 +654,7 @@ export function PublicStorefrontPage() {
                   >
                     {/* Wide Shelf Header */}
                     <div
+                      className="storefront-cat-shelf-header"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -634,7 +679,7 @@ export function PublicStorefrontPage() {
                         >
                           {section.categoryName}
                         </span>
-                        <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                        <span className="storefront-deals-subtitle" style={{ fontSize: '12.5px', color: '#64748b' }}>
                           أفضل منتجات {section.categoryName} بأسعار الجملة
                         </span>
                       </div>
@@ -663,13 +708,7 @@ export function PublicStorefrontPage() {
                     </div>
 
                     {/* 4 Full Sized Product Cards in Horizontal Row */}
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
-                        gap: '18px',
-                      }}
-                    >
+                    <div className="storefront-products-grid">
                       {section.products.slice(0, 4).map((product) => (
                         <StorefrontProductCard
                           key={product.id}
@@ -728,92 +767,199 @@ export function PublicStorefrontPage() {
         ) : (
           /* CASE 2: Category View / Search View (with Pagination for high performance) */
           <div>
-            {/* Filter & Sorting Controls Bar */}
+            {/* Filter & Sorting Controls Bar (Always strictly 1 line on all screens) */}
             <div
+              className="storefront-filter-header"
               style={{
                 background: '#ffffff',
-                borderRadius: '12px',
                 border: '1px solid #e2e8f0',
-                padding: '10px 16px',
+                borderRadius: '12px',
+                padding: '8px 12px',
                 display: 'flex',
-                flexWrap: 'wrap',
+                flexWrap: 'nowrap',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '12px',
-                marginBottom: '18px',
+                gap: '8px',
+                marginBottom: '16px',
                 boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    setOnlyDeals(false);
-                    setSearchTerm('');
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    color: '#0f172a',
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
+              {/* Home Return Button (Clean Icon) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('all');
+                  setOnlyDeals(false);
+                  setSearchTerm('');
+                }}
+                title="العودة للصفحة الرئيسية"
+                aria-label="العودة للصفحة الرئيسية"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  color: '#170e5e',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                  padding: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#e2e8f0';
+                  e.currentTarget.style.borderColor = '#94a3b8';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#f8fafc';
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <IconArrowLeft size={13} strokeWidth={2.2} />
-                  <span>الرئيسية</span>
-                </button>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+              </button>
 
-                <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+              {/* Title & Count (One Line Truncated with Ellipsis) */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minWidth: 0,
+                  flex: 1,
+                  overflow: 'hidden',
+                }}
+              >
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={
+                    searchTerm
+                      ? `نتائج البحث عن "${searchTerm}"`
+                      : onlyDeals
+                      ? 'العروض والتخفيضات'
+                      : `${categories.find((c) => c.id === selectedCategory)?.name || 'القسم'}`
+                  }
+                >
                   {searchTerm
-                    ? `نتائج البحث عن "${searchTerm}"`
+                    ? `بحث: "${searchTerm}"`
                     : onlyDeals
-                    ? 'العروض والتخفيضات المتاحة'
-                    : `قسم: ${categories.find((c) => c.id === selectedCategory)?.name || 'القسم المختار'}`}
+                    ? 'العروض والتخفيضات'
+                    : `${categories.find((c) => c.id === selectedCategory)?.name || 'القسم المختار'}`}
                 </h2>
                 <span
                   style={{
-                    fontSize: '11px',
+                    fontSize: '10.5px',
                     fontWeight: 700,
                     background: '#f0f3ff',
                     color: '#170e5e',
-                    padding: '2px 8px',
-                    borderRadius: '6px',
+                    padding: '2px 6px',
+                    borderRadius: '5px',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {filteredProducts.length} صنف
                 </span>
               </div>
 
-              {/* Sorting Controls */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>الترتيب:</span>
+              {/* Compact Sorting Icon Button with Native Select Overlay */}
+              <div
+                title={
+                  sortBy === 'price-asc'
+                    ? 'الترتيب: الأقل سعراً'
+                    : sortBy === 'price-desc'
+                    ? 'الترتيب: الأعلى سعراً'
+                    : sortBy === 'name'
+                    ? 'الترتيب: أبجدياً'
+                    : 'الترتيب: المتوفر أولاً'
+                }
+                style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  border: sortBy !== 'featured' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                  background: sortBy !== 'featured' ? '#eff6ff' : '#f8fafc',
+                  color: '#170e5e',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {/* Sort SVG Icon */}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 6h18M6 12h12M9 18h6" />
+                </svg>
+
+                {/* Active Sort Indicator Dot */}
+                {sortBy !== 'featured' && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      left: '4px',
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: '#2563eb',
+                    }}
+                  />
+                )}
+
+                {/* Invisible Native Select overlay for seamless mobile wheel / desktop picker */}
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
+                  aria-label="ترتيب المنتجات"
                   style={{
-                    padding: '5px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    outline: 'none',
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
                     cursor: 'pointer',
-                    fontFamily: 'inherit',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
                   }}
                 >
                   <option value="featured">المتوفر أولاً (افتراضي)</option>
                   <option value="price-asc">السعر: من الأقل للأعلى</option>
                   <option value="price-desc">السعر: من الأعلى للأقل</option>
-                  <option value="name">الاسم: أ - ي</option>
+                  <option value="name">أبجدياً (أ - ي)</option>
                 </select>
               </div>
             </div>
@@ -862,13 +1008,7 @@ export function PublicStorefrontPage() {
               </div>
             ) : (
               <>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
-                    gap: '18px',
-                  }}
-                >
+                <div className="storefront-products-grid">
                   {paginatedProducts.map((product) => (
                     <StorefrontProductCard
                       key={product.id}
@@ -877,6 +1017,7 @@ export function PublicStorefrontPage() {
                       whatsappPhone={info.whatsappPhone}
                       onAddToCart={handleAddToCart}
                       onUpdateQuantity={handleUpdateQuantity}
+                      isSmartDeal={smartDealProductIds.has(product.id)}
                     />
                   ))}
                 </div>

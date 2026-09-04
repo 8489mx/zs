@@ -36,6 +36,7 @@ export function StorefrontSettingsTab() {
 
   const [formState, setFormState] = useState({
     enabled: true,
+    slug: '',
     title: '',
     bio: '',
     announcement: '',
@@ -45,6 +46,7 @@ export function StorefrontSettingsTab() {
     bannerPosition: 'center' as string,
     bannerPositions: [] as string[],
     bannerIntervalSeconds: 4,
+    smartDealsEnabled: false,
     deliveryFee: 0,
     minOrder: 0,
     whatsappPhone: '',
@@ -75,6 +77,7 @@ export function StorefrontSettingsTab() {
 
       setFormState({
         enabled: settingsQuery.data.enabled,
+        slug: settingsQuery.data.slug || '',
         title: settingsQuery.data.title || '',
         bio: settingsQuery.data.bio || '',
         announcement: settingsQuery.data.announcement || '',
@@ -84,6 +87,7 @@ export function StorefrontSettingsTab() {
         bannerPosition: settingsQuery.data.bannerPosition || 'center',
         bannerPositions: settingsQuery.data.bannerPositions || [],
         bannerIntervalSeconds: settingsQuery.data.bannerIntervalSeconds || 4,
+        smartDealsEnabled: Boolean(settingsQuery.data.smartDealsEnabled),
         deliveryFee: settingsQuery.data.deliveryFee || 0,
         minOrder: settingsQuery.data.minOrder || 0,
         whatsappPhone: settingsQuery.data.whatsappPhone || '',
@@ -480,6 +484,41 @@ export function StorefrontSettingsTab() {
                 />
               </div>
 
+              {/* Store Slug */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  معرّف المتجر في الرابط (Slug):
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', direction: 'ltr', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden' }}>
+                  <span style={{ padding: '6px 10px', background: '#f8fafc', color: '#64748b', fontSize: '12px', borderRight: '1px solid #cbd5e1', fontWeight: 600, userSelect: 'none' }}>
+                    {window.location.origin}/st/
+                  </span>
+                  <input
+                    type="text"
+                    value={formState.slug}
+                    onChange={(e) => {
+                      const clean = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                      setFormState({ ...formState, slug: clean });
+                    }}
+                    placeholder="almhnds"
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '12.5px',
+                      background: 'transparent',
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                      color: '#170e5e',
+                    }}
+                  />
+                </div>
+                <span style={{ display: 'block', fontSize: '10.5px', color: '#64748b', marginTop: '3px' }}>
+                  يُستخدم في رابط متجرك المباشر (أحرف إنجليزية وأرقام فقط)
+                </span>
+              </div>
+
               {/* Store Bio */}
               <div>
                 <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
@@ -633,6 +672,35 @@ export function StorefrontSettingsTab() {
                   checked={formState.enabled}
                   onChange={(e) => setFormState({ ...formState, enabled: e.target.checked })}
                   style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Smart Deals Toggle */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  border: formState.smartDealsEnabled ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
+                    تفعيل العروض التسويقية الذكية (Smart Deals)
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    توليد شارات وتخفيضات شكلية على الأصناف المميزة لإعطاء مظهر تسويقي جذاب للمتجر
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formState.smartDealsEnabled}
+                  onChange={(e) => setFormState({ ...formState, smartDealsEnabled: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
                 />
               </div>
 

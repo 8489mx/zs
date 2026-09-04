@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
 import { StorefrontLiveCartPill } from './StorefrontLiveCartPill';
@@ -34,7 +35,9 @@ export function StorefrontLiveCartDock({
   onClearCart,
   onProceedToCheckout,
 }: StorefrontLiveCartDockProps) {
-  if (cartItems.length === 0) return null;
+  const [isDismissed, setIsDismissed] = useState(false);
+  const prevItemsCount = useRef(cartItems.length);
+  const prevTotalQuantity = useRef(0);
 
   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -42,6 +45,17 @@ export function StorefrontLiveCartDock({
   const minOrder = minOrderProp ?? info?.minOrder ?? 0;
   const total = subtotal + deliveryFee;
   const isMinOrderMet = minOrder <= 0 || subtotal >= minOrder;
+
+  // Auto-restore visibility if items or quantities change
+  useEffect(() => {
+    if (cartItems.length !== prevItemsCount.current || totalQuantity !== prevTotalQuantity.current) {
+      setIsDismissed(false);
+      prevItemsCount.current = cartItems.length;
+      prevTotalQuantity.current = totalQuantity;
+    }
+  }, [cartItems.length, totalQuantity]);
+
+  if (cartItems.length === 0 || (isDismissed && !isOpen)) return null;
 
   // Case 1: Collapsed State -> Sleek Floating Pill at Bottom
   if (!isOpen) {
@@ -78,6 +92,7 @@ export function StorefrontLiveCartDock({
           isMinOrderMet={isMinOrderMet}
           onExpand={onOpen}
           onProceedToCheckout={onProceedToCheckout}
+          onDismiss={() => setIsDismissed(true)}
         />
       </div>
     );

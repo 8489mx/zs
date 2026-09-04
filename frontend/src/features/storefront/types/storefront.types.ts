@@ -12,10 +12,13 @@ export interface StorefrontInfo {
   bannerPosition?: string;
   bannerPositions?: string[];
   bannerIntervalSeconds?: number;
+  smartDealsEnabled?: boolean;
   deliveryFee: number;
   minOrder: number;
   whatsappPhone: string;
   currency: string;
+  logo_url?: string;
+  logoUrl?: string;
 }
 
 export interface StorefrontCategory {
@@ -113,6 +116,7 @@ export interface StorefrontSettingsPayload {
   bannerPosition?: string;
   bannerPositions?: string[];
   bannerIntervalSeconds?: number;
+  smartDealsEnabled?: boolean;
   deliveryFee?: number;
   minOrder?: number;
   whatsappPhone?: string;

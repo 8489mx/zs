@@ -45,6 +45,11 @@ export function StorefrontSubNav({
             padding: 6px 10px !important;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+          .storefront-subnav::-webkit-scrollbar {
+            display: none;
           }
           .storefront-subnav-inner {
             flex-wrap: nowrap !important;
@@ -55,10 +60,11 @@ export function StorefrontSubNav({
             gap: 6px !important;
           }
           .storefront-subnav-pill {
-            padding: 8px 12px !important;
-            font-size: 12px !important;
+            padding: 7px 11px !important;
+            font-size: 11.5px !important;
             white-space: nowrap;
-            min-height: 36px;
+            min-height: 34px;
+            border-radius: 7px !important;
           }
           .storefront-subnav-hint {
             display: none !important;
@@ -116,42 +122,44 @@ export function StorefrontSubNav({
           </button>
 
           {/* Deals Pill */}
-          <button
-            className="storefront-subnav-pill"
-            type="button"
-            onClick={onToggleDeals}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              border: onlyDeals ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
-              background: onlyDeals ? '#fef2f2' : '#ffffff',
-              color: onlyDeals ? '#dc2626' : '#334155',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <IconFlame size={14} color={onlyDeals ? '#dc2626' : '#ef4444'} strokeWidth={2} />
-            <span>عروض وتخفيضات</span>
-            {dealsCount > 0 && (
-              <span
-                style={{
-                  fontSize: '10.5px',
-                  background: onlyDeals ? '#ef4444' : '#fee2e2',
-                  color: onlyDeals ? '#ffffff' : '#991b1b',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                  fontWeight: 800,
-                }}
-              >
-                {dealsCount}
-              </span>
-            )}
-          </button>
+          {(dealsCount > 0 || onlyDeals) && (
+            <button
+              className="storefront-subnav-pill"
+              type="button"
+              onClick={onToggleDeals}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: onlyDeals ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
+                background: onlyDeals ? '#fef2f2' : '#ffffff',
+                color: onlyDeals ? '#dc2626' : '#334155',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <IconFlame size={14} color={onlyDeals ? '#dc2626' : '#ef4444'} strokeWidth={2} />
+              <span>عروض وتخفيضات</span>
+              {dealsCount > 0 && (
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    background: onlyDeals ? '#ef4444' : '#fee2e2',
+                    color: onlyDeals ? '#ffffff' : '#991b1b',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    fontWeight: 800,
+                  }}
+                >
+                  {dealsCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* In Stock Only Pill */}
           <button

@@ -9,6 +9,7 @@ interface StorefrontProductCardProps {
   whatsappPhone?: string;
   onAddToCart: (product: StorefrontProduct) => void;
   onUpdateQuantity: (productId: number, newQty: number) => void;
+  isSmartDeal?: boolean;
 }
 
 export const StorefrontProductCard = React.memo(function StorefrontProductCard({
@@ -17,6 +18,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   whatsappPhone,
   onAddToCart,
   onUpdateQuantity,
+  isSmartDeal,
 }: StorefrontProductCardProps) {
   const isOutOfStock = !product.inStock || product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
@@ -43,8 +45,9 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   // Priority: 1. Merchant Uploaded Photo -> 2. Auto-Assigned Photographic Library
   const displayPhotoUrl = product.imageUrl || getAutoProductPhoto(product.name, product.categoryName);
 
-  // Fake slight discount for visual psychological appeal on active products
-  const fakeOldPrice = !isZeroPrice ? Math.round(product.price * 1.15) : 0;
+  // Optional smart discount badge for visual psychological appeal only when isSmartDeal is enabled
+  const isDeal = Boolean(isSmartDeal || (product as any).hasDiscount);
+  const fakeOldPrice = (!isZeroPrice && isDeal) ? Math.round(product.price * 1.15) : 0;
   const hasDiscount = fakeOldPrice > product.price;
   const discountPercent = hasDiscount && fakeOldPrice > 0
     ? Math.round(((fakeOldPrice - product.price) / fakeOldPrice) * 100)
@@ -52,6 +55,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
 
   return (
     <div
+      className="storefront-product-card"
       style={{
         background: '#ffffff',
         borderRadius: '16px',
@@ -75,9 +79,84 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         e.currentTarget.style.borderColor = '#e2e8f0';
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .storefront-product-card {
+            padding: 8px !important;
+            border-radius: 12px !important;
+          }
+          .storefront-product-photo-box {
+            border-radius: 9px !important;
+            margin-bottom: 6px !important;
+          }
+          .storefront-product-badge {
+            font-size: 9px !important;
+            padding: 1px 5px !important;
+          }
+          .storefront-product-meta-row {
+            margin-bottom: 3px !important;
+          }
+          .storefront-product-cat-tag {
+            font-size: 10px !important;
+            padding: 1px 5px !important;
+          }
+          .storefront-product-rating {
+            font-size: 10.5px !important;
+          }
+          .storefront-product-title {
+            font-size: 12px !important;
+            line-height: 1.35 !important;
+            min-height: auto !important;
+            margin-bottom: 2px !important;
+          }
+          .storefront-product-action-box {
+            margin-top: auto !important;
+            padding-top: 4px !important;
+          }
+          .storefront-product-price-row {
+            margin-top: 1px !important;
+            margin-bottom: 3px !important;
+            min-height: auto !important;
+            gap: 3px !important;
+          }
+          .storefront-product-price-main {
+            font-size: 16px !important;
+          }
+          .storefront-product-price-curr {
+            font-size: 10.5px !important;
+          }
+          .storefront-product-price-old {
+            font-size: 10px !important;
+          }
+          .storefront-product-price-save {
+            font-size: 9px !important;
+            padding: 1px 4px !important;
+          }
+          .storefront-product-action-btn {
+            padding: 8px 6px !important;
+            font-size: 11.5px !important;
+            border-radius: 8px !important;
+            gap: 4px !important;
+          }
+          .storefront-product-stepper {
+            padding: 2px !important;
+            border-radius: 8px !important;
+          }
+          .storefront-product-stepper-btn {
+            width: 28px !important;
+            height: 28px !important;
+            font-size: 15px !important;
+          }
+          .storefront-product-stepper-count {
+            font-size: 12.5px !important;
+            min-width: 20px !important;
+          }
+        }
+      `}</style>
       <div>
         {/* Real Product Photo Showcase Box (Square 1:1 Aspect Ratio) */}
         <div
+          className="storefront-product-photo-box"
           style={{
             width: '100%',
             aspectRatio: '1 / 1',
@@ -132,6 +211,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           >
             {isOutOfStock ? (
               <span
+                className="storefront-product-badge"
                 style={{
                   fontSize: '10.5px',
                   fontWeight: 800,
@@ -148,6 +228,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             ) : (
               <>
                 <span
+                  className="storefront-product-badge"
                   style={{
                     fontSize: '10.5px',
                     fontWeight: 800,
@@ -167,6 +248,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 </span>
                 {hasDiscount && (
                   <span
+                    className="storefront-product-badge"
                     style={{
                       fontSize: '10.5px',
                       fontWeight: 800,
@@ -189,6 +271,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
 
           {/* Top Left: Interactive Wishlist Heart Button */}
           <button
+            className="storefront-product-fav-btn"
             type="button"
             onClick={toggleFavorite}
             aria-label="إضافة للمفضلة"
@@ -232,6 +315,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           {/* Bottom Left: Quick Add Float Button (Noon Style) */}
           {!isOutOfStock && !isZeroPrice && cartQuantity === 0 && (
             <button
+              className="storefront-product-quick-add"
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -273,8 +357,9 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         </div>
 
         {/* Category & Star Rating Row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+        <div className="storefront-product-meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
           <span
+            className="storefront-product-cat-tag"
             style={{
               fontSize: '11px',
               color: '#475569',
@@ -286,7 +371,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           >
             {product.categoryName || 'عام'}
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11.5px', color: '#f59e0b' }}>
+          <div className="storefront-product-rating" style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11.5px', color: '#f59e0b' }}>
             <IconStar size={12} fill="#f59e0b" color="#f59e0b" />
             <span style={{ color: '#475569', fontWeight: 700 }}>4.9</span>
           </div>
@@ -294,35 +379,33 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
 
         {/* Product Title */}
         <h3
+          className="storefront-product-title"
           style={{
-            margin: '0 0 6px',
-            fontSize: '14.5px',
+            margin: '0 0 3px',
+            fontSize: '14px',
             fontWeight: 800,
             color: '#0f172a',
-            lineHeight: '1.4',
+            lineHeight: '1.35',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            minHeight: '40px',
           }}
           title={product.name}
         >
           {product.name}
         </h3>
-      </div>
 
-      {/* Pricing & CTA Bottom Row */}
-      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
+        {/* Price Row: Immediately under product title */}
         {isZeroPrice ? (
-          <div style={{ marginBottom: '10px', minHeight: '30px', display: 'flex', alignItems: 'center' }}>
+          <div className="storefront-product-price-row" style={{ display: 'flex', alignItems: 'center', minHeight: '26px', margin: '2px 0 4px' }}>
             <span
               style={{
-                fontSize: '12px',
+                fontSize: '11.5px',
                 fontWeight: 700,
                 color: '#475569',
                 background: '#f1f5f9',
-                padding: '3px 8px',
+                padding: '2px 8px',
                 borderRadius: '6px',
               }}
             >
@@ -330,37 +413,50 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             </span>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '6px', marginBottom: '10px', minHeight: '30px' }}>
+          <div
+            className="storefront-product-price-row"
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              flexWrap: 'wrap',
+              gap: '4px',
+              margin: '2px 0 4px',
+              minHeight: '26px',
+            }}
+          >
             <span
+              className="storefront-product-price-main"
               style={{
-                fontSize: '21px',
+                fontSize: '20px',
                 fontWeight: 900,
                 color: '#0f172a',
-                letterSpacing: '-0.4px',
+                letterSpacing: '-0.3px',
               }}
             >
               {product.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>ج.م</span>
+            <span className="storefront-product-price-curr" style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>ج.م</span>
             {hasDiscount && (
               <>
                 <span
+                  className="storefront-product-price-old"
                   style={{
-                    fontSize: '12px',
+                    fontSize: '11.5px',
                     color: '#94a3b8',
                     textDecoration: 'line-through',
-                    marginRight: '4px',
+                    marginRight: '3px',
                   }}
                 >
                   {fakeOldPrice} ج
                 </span>
                 <span
+                  className="storefront-product-price-save"
                   style={{
-                    fontSize: '11px',
+                    fontSize: '10.5px',
                     fontWeight: 700,
                     color: '#16a34a',
                     background: '#f0fdf4',
-                    padding: '1px 6px',
+                    padding: '1px 5px',
                     borderRadius: '4px',
                     marginRight: '2px',
                   }}
@@ -371,10 +467,14 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             )}
           </div>
         )}
+      </div>
 
+      {/* Action CTA Container (Pinned at card bottom) */}
+      <div className="storefront-product-action-box" style={{ marginTop: 'auto', paddingTop: '8px' }}>
         {/* Action Button */}
         {isOutOfStock ? (
           <button
+            className="storefront-product-action-btn"
             type="button"
             disabled
             style={{
@@ -393,6 +493,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           </button>
         ) : isZeroPrice ? (
           <a
+            className="storefront-product-action-btn"
             href={
               whatsappPhone
                 ? `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(`مرحباً، أستفسر عن سعر صنف: ${product.name}`)}`
@@ -421,6 +522,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         ) : cartQuantity > 0 ? (
           /* Dynamic Stepper Counter: [- count +] */
           <div
+            className="storefront-product-stepper"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -432,6 +534,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             }}
           >
             <button
+              className="storefront-product-stepper-btn"
               type="button"
               onClick={() => onUpdateQuantity(product.id, cartQuantity - 1)}
               style={{
@@ -452,6 +555,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               -
             </button>
             <span
+              className="storefront-product-stepper-count"
               style={{
                 fontSize: '14px',
                 fontWeight: 800,
@@ -463,6 +567,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               {cartQuantity}
             </span>
             <button
+              className="storefront-product-stepper-btn"
               type="button"
               onClick={() => onUpdateQuantity(product.id, cartQuantity + 1)}
               style={{
@@ -485,6 +590,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           </div>
         ) : (
           <button
+            className="storefront-product-action-btn"
             type="button"
             onClick={() => onAddToCart(product)}
             style={{

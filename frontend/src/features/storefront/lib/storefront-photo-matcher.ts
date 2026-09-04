@@ -441,82 +441,343 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
     id: 'cat_drinks_fallback',
     nameAr: 'قسم مشروبات وعصائر ومياه (عام)',
     keywords: ['مشروبات وعصائر ومياه', 'مشروبات وعصائر', 'عصائر ومياه'],
-    imageUrl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Pepsi_355_ml%2C_Canada_%28obverse%29%2C_2026-03-05.jpg/500px-Pepsi_355_ml%2C_Canada_%28obverse%29%2C_2026-03-05.jpg',
+    imageUrl: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=300&q=50&fm=webp',
     weight: 30,
   },
 
-  // -------------------------------------------------------------
-  // 9. COMPUTERS, ELECTRONICS & ACCESSORIES (كمبيوتر وإلكترونيات)
-  // -------------------------------------------------------------
+  // =========================================================================
+  // 5. TECH, COMPUTERS & ELECTRONICS (REFINED SPECIFIC DOMAIN)
+  // =========================================================================
+  {
+    id: 'ink_toner_printers',
+    nameAr: 'أحبار وطابعات وتونر وحبارات',
+    keywords: [
+      'احبار بطاريات', 'احبار', 'المتميز للاحبار', 'المتميز للأحبار', 'حبر', 'احبار طابعات', 
+      'حبارات', 'حباره', 'حبارة', 'تونر', 'طابعه', 'طابعات', 'طابعة', 'طابعة ليزر', 'طابعة الوان', 'cartridge', 'toner'
+    ],
+    imageUrl: '/catalog/computer/toner_cartridges.jpg',
+    weight: 98,
+  },
+  {
+    id: 'printer_drums',
+    nameAr: 'درامات وسخانات وقطع غيار طابعات',
+    keywords: ['درامات', 'درام', 'درام طابعه', 'درام طابعة', 'drum unit', 'opc drum'],
+    imageUrl: 'https://images.unsplash.com/photo-1616401784845-180882ba9ba8?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'receipt_pos_printers',
+    nameAr: 'طابعات فواتير وريسيت حرارية وكاشير',
+    keywords: [
+      'برنتر ريسيت', 'طابعه ريسيت', 'طابعات ريسيت', 'طابعه فواتير', 'طابعات فواتير', 
+      'طابعه كاشير', 'طابعه حراريه', 'طابعة ريسيت', 'receipt printer', 'pos printer'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 98,
+  },
+  {
+    id: 'barcode_scanners',
+    nameAr: 'سكانر وقارئ باركود ليزر',
+    keywords: ['سكانر باركود', 'سكانر', 'قارئ باركود', 'قارئ بار كود', 'قارئ باركود ليزر', 'barcode scanner', 'سكانر ليزر'],
+    imageUrl: '/catalog/computer/barcode_scanner.jpg',
+    weight: 98,
+  },
+  {
+    id: 'pos_cashier_supplies',
+    nameAr: 'مستلزمات سيستم كاشير وأدراج نقدية',
+    keywords: [
+      'مستلزمات سيستم كاشير', 'سيستم كاشير', 'درج كاشير', 'درج نقديه', 'درج نقدية', 
+      'بكر فواتير', 'ورق حراري', 'ورق كاشير', 'شاشه كاشير', 'كاشير'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'graphics_cards_gpu',
+    nameAr: 'كروت فيجا وكروت شاشة للألعاب والتصميم',
+    keywords: [
+      'كروت فيجا', 'كرت فيجا', 'كارت فيجا', 'كروت شاشه', 'كرت شاشه', 'كارت شاشه', 
+      'فيجا', 'gpu', 'rtx', 'gtx', 'rx', 'كارت شاشة', 'graphics card'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'motherboards',
+    nameAr: 'مازر بورد ولوحات أم',
+    keywords: ['مازر بورد', 'ماذربورد', 'لوحه ام', 'لوحة ام', 'motherboard', 'لوحه رئيسيه', 'بوردة'],
+    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'processors_cpu',
+    nameAr: 'بروسيسورات ومعالجات كمبيوتر',
+    keywords: [
+      'بروسيسورات', 'بروسيسور', 'معالج', 'معالجات', 'cpu', 'intel', 'amd', 
+      'core i3', 'core i5', 'core i7', 'core i9', 'ryzen', 'رايزن'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
   {
     id: 'ram_memory',
-    nameAr: 'رامات وذاكرة عشوائية للكمبيوتر',
-    keywords: ['رامات', 'رام', 'ddr4', 'ddr3', 'ddr5', 'ذاكره عشوائيه', 'رام لابتوب', 'ram'],
-    imageUrl: 'https://images.unsplash.com/photo-1562976540-1502c2145186?auto=format&fit=crop&w=300&q=50&fm=webp',
+    nameAr: 'رامات حديثة وذاكرة عشوائية DDR4 وDDR5',
+    keywords: ['رامات', 'رام', 'رامة', 'ddr4', 'ddr3', 'ddr5', 'ذاكره عشوائيه', 'رام لابتوب', 'ram', 'ذاكرة رام', '3200hz'],
+    imageUrl: '/catalog/computer/ram_modern.jpg',
+    weight: 98,
+  },
+  {
+    id: 'hard_drives_ssd',
+    nameAr: 'هاردات وذاكرة تخزين داخلية وخارجية وSSD',
+    keywords: ['هاردات', 'هارد', 'ssd', 'hdd', 'هارد ديسك', 'm2 nvme', 'nvme', 'قرص صلب', 'تخزين'],
+    imageUrl: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&w=300&q=50&fm=webp',
     weight: 95,
   },
   {
-    id: 'cables_converters',
-    nameAr: 'كابلات وكونفرت ووصلات وOTG',
-    keywords: ['كابلات', 'كابل', 'كونفرت', 'وصله', 'وصلات', 'otg', 'hdmi', 'vga', 'display to hd', 'aux', 'كابل باور'],
-    imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=50&fm=webp',
+    id: 'pc_cases_gaming',
+    nameAr: 'كيسات كمبيوتر وشاسيهات جيمنج RGB',
+    keywords: [
+      'كيسات جيمنج', 'كيسات كمبيوتر', 'كيسات', 'كيسه كمبيوتر', 'كيسة كمبيوتر', 
+      'كيسه جيمنج', 'كيسة جيمنج', 'case pc', 'pc case', 'كيسه', 'كيسة'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?auto=format&fit=crop&w=300&q=50&fm=webp',
     weight: 95,
   },
   {
-    id: 'sound_cards_audio',
-    nameAr: 'كروت صوت ومحولات صوتية',
-    keywords: ['كارت صوت', 'كرت صوت', 'صوت usb', 'sound card', 'اوديو', 'محول صوت'],
+    id: 'computer_fans_cooling',
+    nameAr: 'مراوح تبريد وفانات بروسيسور وكيسة',
+    keywords: [
+      'مراوح', 'مروحه', 'مروحة', 'فانات', 'فانة', 'تبريد', 'تبريد مائي', 
+      'مروحه كيسه', 'مروحة كيسة', 'فانة بروسيسور', 'rgb fan', 'cooler'
+    ],
     imageUrl: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 94,
+  },
+  {
+    id: 'computer_mice',
+    nameAr: 'ماوسات وفأرة كمبيوتر سلكية ولاسلكية وجيمنج',
+    keywords: [
+      'ماوسات', 'ماوس', 'فاره', 'فأرة', 'mouse', 'ماوس وايرلس', 
+      'ماوس لاسلكي', 'ماوس سلكي', 'ماوس جيمنج', 'optical mouse'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'keyboards',
+    nameAr: 'كيبوردات ولوحات مفاتيح كمبيوتر ميكانيكية ومكتبية',
+    keywords: ['كيبوردات', 'كيبورد', 'لوحه مفاتيح', 'لوحة مفاتيح', 'keyboard', 'كيبورد جيمنج', 'كيبورد وايرلس'],
+    imageUrl: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'mousepads_desk_mats',
+    nameAr: 'بادات وماوس باد وسجادات مكتبية',
+    keywords: ['بادات', 'باد', 'ماوس باد', 'باد ماوس', 'mousepad', 'desk mat', 'بادات جيمنج'],
+    imageUrl: 'https://images.unsplash.com/photo-1616763355548-1b606f43848c?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'monitors_screens',
+    nameAr: 'شاشات كمبيوتر ومونيتور',
+    keywords: ['شاشات كمبيوتر', 'شاشات', 'شاشه كمبيوتر', 'شاشه', 'شاشة كمبيوتر', 'شاشة', 'monitor', 'led monitor'],
+    imageUrl: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'headphones_audio',
+    nameAr: 'سماعات وهيدفون وايربودز ومكبرات صوت',
+    keywords: [
+      'سماعات هيدفون كمبيوتر', 'سماعات', 'هيدفون', 'ايربودز', 'سماعه', 
+      'سماعة', 'headphone', 'earbuds', 'headset', 'صب', 'مكبر صوت'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 93,
+  },
+  {
+    id: 'laptop_chargers',
+    nameAr: 'شواحن لابتوب وادابتورات وباور سبلاي',
+    keywords: [
+      'شواحن لابتوب', 'شاحن لابتوب', 'شواحن', 'شاحن ديل', 'شاحن hp', 
+      'شاحن لينوفو', 'ادابتور لابتوب', 'باور سبلاي', 'شاحن لاب'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'laptop_stands',
+    nameAr: 'حوامل لابات وقواعد تبريد لابتوب',
+    keywords: ['حوامل لابات', 'حوامل', 'حامل لابتوب', 'ستاند لابتوب', 'قاعده لابتوب', 'laptop stand', 'كولر لاب', 'حامل لاب', 'ستاند لاب'],
+    imageUrl: '/catalog/computer/laptop_stand.jpg',
+    weight: 98,
+  },
+  {
+    id: 'cables_hdmi_display',
+    nameAr: 'كابلات شاشات وHDMI وVGA وDisplayPort وتوصيلات',
+    keywords: [
+      'كابلات hd', 'كابلات', 'كابل', 'hdmi', 'vga', 'displayport', 
+      'كابل display to hd', 'كابل display', 'aux', 'كابل aux', 'كابل شاشه', 
+      'كابل باور', 'كابل شاشة', 'وصله شاشه', 'dvi', '1*3', '1*1'
+    ],
+    imageUrl: '/catalog/computer/cables_hdmi.jpg',
+    weight: 98,
+  },
+  {
+    id: 'cables_mobile_charging',
+    nameAr: 'كابلات شحن موبايل وUSB Type-C وLightning',
+    keywords: [
+      'كابلات شحن موبايل', 'كابلات شحن', 'كابل شحن', 'سلك شاحن', 
+      'سلك شحن', 'شاحن تايب سي', 'type c cable', 'lightning cable', 'micro usb', 'كابل شحن سريع'
+    ],
+    imageUrl: '/catalog/computer/charging_cable.jpg',
+    weight: 98,
+  },
+  {
+    id: 'adapters_converters',
+    nameAr: 'كونفرتات ومحولات OTG وHDMI to VGA وType-C',
+    keywords: [
+      'كونفرتات', 'كونفرت', 'محولات', 'محول', 'تحويله', 'تحويلة', 
+      'converter', 'dongle', 'otg', 'او تي جي', 'joyroom', 'كارت صوت', 
+      'كارت صوت usb', 'hdmi to vga', 'vga to hdmi', 'type c to hdmi', 'type c to usb',
+      'كونفرت display', 'كونفرت display to hd'
+    ],
+    imageUrl: '/catalog/computer/usb_otg.jpg',
+    weight: 99,
+  },
+  {
+    id: 'portable_speakers',
+    nameAr: 'سبيكرات وسماعات بلوتوث محمولة للأغاني',
+    keywords: [
+      'سبيكرات', 'سبيكر', 'سبيكر بلوتوث', 'سماعات بلوتوث', 'صب بلوتوث', 
+      'سبيكر راديو', 'سبيكر مستطيل', 'سبيكر محمول', 'bluetooth speaker', 
+      'portable speaker', 'مكبر صوت محمول', 'سبيكر مضيء'
+    ],
+    imageUrl: '/catalog/computer/bluetooth_speaker.webp',
+    weight: 99,
+  },
+  {
+    id: 'usb_hubs',
+    nameAr: 'هب USB وموزعات مداخل',
+    keywords: ['هب usb', 'usb hub', 'هب', 'موزع usb', 'مشترك usb', 'hub'],
+    imageUrl: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'wifi_routers',
+    nameAr: 'روترات ومودم وأكسس بوينت وواي فاي',
+    keywords: ['روترات', 'روتر', 'راوتر', 'راوترات', 'واي فاي', 'wifi router', 'access point', 'مودم', 'مقوي شبكه'],
+    imageUrl: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'network_switches',
+    nameAr: 'سويتشات شبكات وموزعات إيثرنت',
+    keywords: ['سويتشات', 'سويتش', 'سويتش شبكات', 'network switch', 'ethernet switch', 'switch 8 port', 'switch 16 port'],
+    imageUrl: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'network_racks',
+    nameAr: 'راكات وكبائن سيرفرات وشبكات',
+    keywords: ['راكات', 'راك', 'راك شبكات', 'كابينة راك', 'server rack', 'network rack', 'كابينه راك'],
+    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
+  },
+  {
+    id: 'rj45_connectors',
+    nameAr: 'اوجيهات وبنسات شبكات وكونكتورات RJ45',
+    keywords: ['اوجيهات', 'ارجيهات', 'ار جيه', 'rj45', 'كونكتور نت', 'بنسه ارجيهات', 'سوكت نت', 'ار جي'],
+    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'network_cables_wires',
+    nameAr: 'اسلاك شبكات ودش وكابلات نت Cat6 وCat5',
+    keywords: ['اسلاك', 'سلك شبكه', 'سلك شبكة', 'كابل نت', 'cat6', 'cat5', 'سلك دش', 'اسلاك شبكات', 'لفة سلك'],
+    imageUrl: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=300&q=50&fm=webp',
     weight: 95,
   },
   {
     id: 'cctv_dvr',
     nameAr: 'كاميرات مراقبة وأجهزة تسجيل DVR',
-    keywords: ['dvr', 'كاميرات', 'كاميرا مراقبه', 'مراقبه', 'كاميرات مراقبة', 'مستلزمات سيستم كاميرات', 'dvr 4ch', 'dvr 8ch', 'dvr 16ch'],
+    keywords: [
+      'dvr', 'كاميرات', 'كاميرا مراقبه', 'مراقبه', 'كاميرات مراقبة', 
+      'كاميرا مراقبة', 'dvr 4ch', 'dvr 8ch', 'dvr 16ch', 'cctv'
+    ],
     imageUrl: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=300&q=50&fm=webp',
     weight: 95,
   },
   {
-    id: 'keyboard_mouse',
-    nameAr: 'لوحات مفاتيح وفأرة وماوس',
-    keywords: ['ماوس', 'كيبورد', 'لوحه مفاتيح', 'فاره', 'mouse', 'keyboard', 'ماوس باد'],
-    imageUrl: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=300&q=50&fm=webp',
-    weight: 92,
+    id: 'cctv_cables_accessories',
+    nameAr: 'سلك كاميرات ومستلزمات كاميرات المراقبة RG59 وBNC',
+    keywords: [
+      'سلك كاميرات', 'كابل كاميرات', 'مستلزمات سيسيم كاميرات', 'مستلزمات سيستم كاميرات', 
+      'rg59', 'سلك باور كاميرات', 'bnc', 'كونكتور bnc'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
   },
   {
-    id: 'hard_drives_ssd',
-    nameAr: 'هارد ديسك وذاكرة تخزين وSSD',
-    keywords: ['هارد', 'قرص صلب', 'ssd', 'hdd', 'هارد ديسك', 'تخزين'],
-    imageUrl: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&w=300&q=50&fm=webp',
-    weight: 92,
+    id: 'batteries_cells',
+    nameAr: 'حجر بطارية وبطاريات أقلام ومازربورد CR2032',
+    keywords: [
+      'حجر بطارية', 'حجر بطاريه', 'حجاره', 'بطاريات', 'بطاريه', 'بطارية', 
+      'بطاريه قلم', 'بطارية قلم', 'حجارة قلم', 'cr2032', 'بطارية مازر بورد'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1619725002198-6a689b72f41d?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
   },
   {
-    id: 'monitors_screens',
-    nameAr: 'شاشات كمبيوتر',
-    keywords: ['شاشه', 'شاشات', 'monitor', 'شاشه كمبيوتر', 'شاشات كمبيوتر'],
-    imageUrl: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=300&q=50&fm=webp',
-    weight: 92,
+    id: 'power_strips_extensions',
+    nameAr: 'مشتركات كهرباء ووصلات حماية متعددة المنافذ',
+    keywords: ['مشتركات', 'مشترك', 'مشترك كهرباء', 'مشترك فيش', 'مشترك باور', 'power strip', 'وصلة كهرباء'],
+    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
   },
   {
-    id: 'chargers_adapters',
-    nameAr: 'شواحن وادابتور وباور',
-    keywords: ['شاحن', 'شواحن', 'ادابتور', 'باور', 'شاحن لابتوب', 'باور سبلاي', 'راس شاحن'],
-    imageUrl: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=300&q=50&fm=webp',
-    weight: 90,
+    id: 'optical_discs_cd_dvd',
+    nameAr: 'اسطوانات وسيديهات ودي في دي فارغة',
+    keywords: ['اسطوانات', 'اسطوانه', 'اسطوانة', 'سيدي', 'دي في دي', 'cd', 'dvd', 'بلوراي', 'اسطوانات فارغه'],
+    imageUrl: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'keyboard_stickers_labels',
+    nameAr: 'استيكرات ولواصق وحروف كيبورد عربي',
+    keywords: ['استيكرات', 'استيكر', 'ستيكر', 'ملصقات', 'لواصق', 'ستيكر كيبورد', 'حروف كيبورد', 'استيكر كيبورد'],
+    imageUrl: 'https://images.unsplash.com/photo-1572375992501-4b0892d50c69?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'stationery_staplers',
+    nameAr: 'دباسات ودبابيس ومستلزمات مكتبية',
+    keywords: ['دباسات', 'ديباسات', 'دباسه', 'دباسة', 'دبابيس', 'خارمه', 'خارمة', 'ادوات مكتبيه', 'مستلزمات مكتبيه', 'stapler'],
+    imageUrl: '/catalog/computer/stapler.jpg',
+    weight: 98,
+  },
+  {
+    id: 'network_accessories_rack',
+    nameAr: 'ملحقات شبكات وبنسات وراكات',
+    keywords: ['ملحقات شبكات', 'ملحقات شبكه', 'ملحقات شبكة', 'مستلزمات شبكات'],
+    imageUrl: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'screen_cleaners_blowers',
+    nameAr: 'منظفات شاشات وكمبيوتر واسبراي وبلاور',
+    keywords: [
+      'منظفات', 'منظف شاشات', 'اسبراي شاشه', 'اسبراي شاشة', 'بلاور', 
+      'بلور', 'هواء مضغوط', 'منظف كمبيوتر', 'screen cleaner'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1584813470613-5b1c1cad3d69?auto=format&fit=crop&w=300&q=50&fm=webp',
+    weight: 95,
   },
   {
     id: 'flash_memory_sd',
-    nameAr: 'فلاشات وكروت ميموري USB',
-    keywords: ['فلاشه', 'فلاش ميموري', 'usb flash', 'كارت ميموري', 'ميموري'],
+    nameAr: 'فلاشات وكروت ميموري USB وSD Cards',
+    keywords: ['فلاشات', 'فلاشه', 'فلاشة', 'كارت ميموري', 'usb flash', 'ميموري', 'sd card', 'فلاش ميموري'],
     imageUrl: 'https://images.unsplash.com/photo-1618410320928-25228d811631?auto=format&fit=crop&w=300&q=50&fm=webp',
-    weight: 90,
-  },
-  {
-    id: 'headphones_audio',
-    nameAr: 'سماعات وهيدفون وايربودز',
-    keywords: ['سماعه', 'سماعات', 'هيدفون', 'ايربودز', 'صب', 'مكبر صوت', 'headphone', 'earbuds'],
-    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=50&fm=webp',
-    weight: 90,
+    weight: 95,
   },
 ];
 
@@ -658,9 +919,12 @@ export function getAutoProductPhoto(productName: string, categoryName?: string):
         }
       }
 
-      // Check category name for secondary weighting
+      // Check category name for solid contextual fallback (e.g., product in known category or category tile itself)
       if (cleanCat && cleanCat.includes(cleanKw)) {
-        score = Math.max(score, 35);
+        // High confidence contextual score: 70
+        // Allows items like "1*3" in "كابلات" to inherit authentic cable photo,
+        // while direct product-name matches (weight 95+) still take priority.
+        score = Math.max(score, 70);
       }
     }
 
