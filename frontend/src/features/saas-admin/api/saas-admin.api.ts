@@ -116,6 +116,11 @@ export const saasAdminApi = {
       { method: 'POST', body: JSON.stringify({ newPassword }) },
     ),
   deleteTenant: (id: string) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/delete`, { method: 'POST', body: JSON.stringify({}) }),
+  updateTenantSlug: (id: string, slug: string) =>
+    http<{ success: boolean; oldSlug: string; newSlug: string; message: string }>(
+      `/api/saas-admin/tenants/${encodeURIComponent(id)}/slug`,
+      { method: 'POST', body: JSON.stringify({ slug }) },
+    ),
   
   listPlans: () => http<SaasPlan[]>('/api/saas-admin/plans'),
   listFeaturePlans: () => http<any[]>('/api/saas-admin/feature-plans'),

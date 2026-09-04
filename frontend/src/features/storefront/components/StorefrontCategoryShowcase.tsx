@@ -29,6 +29,7 @@ export function StorefrontCategoryShowcase({
 
   return (
     <div
+      className="storefront-cat-showcase"
       style={{
         background: '#ffffff',
         borderBottom: '1px solid #e2e8f0',
@@ -38,7 +39,30 @@ export function StorefrontCategoryShowcase({
         direction: 'rtl',
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .storefront-cat-showcase {
+            padding: 8px 10px !important;
+          }
+          .storefront-cat-showcase-inner {
+            gap: 10px !important;
+          }
+          .storefront-cat-item {
+            min-width: 60px !important;
+            max-width: 74px !important;
+          }
+          .storefront-cat-avatar {
+            width: 52px !important;
+            height: 52px !important;
+            margin-bottom: 4px !important;
+          }
+          .storefront-cat-label {
+            font-size: 11px !important;
+          }
+        }
+      `}</style>
       <div
+        className="storefront-cat-showcase-inner"
         style={{
           maxWidth: '1280px',
           margin: '0 auto',
@@ -49,6 +73,7 @@ export function StorefrontCategoryShowcase({
       >
         {/* All Products Avatar */}
         <div
+          className="storefront-cat-item"
           onClick={() => onSelectCategory('all')}
           style={{
             display: 'flex',
@@ -63,6 +88,7 @@ export function StorefrontCategoryShowcase({
           onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
           <div
+            className="storefront-cat-avatar"
             style={{
               width: '66px',
               height: '66px',
@@ -81,6 +107,7 @@ export function StorefrontCategoryShowcase({
             <IconShoppingBag size={24} color={selectedCategoryId === 'all' ? '#ffffff' : '#170e5e'} strokeWidth={2} />
           </div>
           <span
+            className="storefront-cat-label"
             style={{
               fontSize: '12px',
               fontWeight: 800,
@@ -101,6 +128,7 @@ export function StorefrontCategoryShowcase({
           return (
             <div
               key={cat.id}
+              className="storefront-cat-item"
               onClick={() => onSelectCategory(cat.id)}
               style={{
                 display: 'flex',
@@ -116,6 +144,7 @@ export function StorefrontCategoryShowcase({
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
             >
               <div
+                className="storefront-cat-avatar"
                 style={{
                   width: '66px',
                   height: '66px',

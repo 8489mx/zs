@@ -435,13 +435,13 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               type="button"
               onClick={() => onUpdateQuantity(product.id, cartQuantity - 1)}
               style={{
-                width: '32px',
-                height: '32px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '8px',
                 background: 'rgba(255,255,255,0.18)',
                 color: '#ffffff',
                 border: 'none',
-                fontSize: '16px',
+                fontSize: '18px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
@@ -466,13 +466,13 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               type="button"
               onClick={() => onUpdateQuantity(product.id, cartQuantity + 1)}
               style={{
-                width: '32px',
-                height: '32px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '8px',
                 background: 'rgba(255,255,255,0.18)',
                 color: '#ffffff',
                 border: 'none',
-                fontSize: '16px',
+                fontSize: '18px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
@@ -489,7 +489,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             onClick={() => onAddToCart(product)}
             style={{
               width: '100%',
-              padding: '10px 14px',
+              padding: '11px 14px',
               borderRadius: '10px',
               border: 'none',
               background: '#170e5e',

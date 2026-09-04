@@ -15,6 +15,7 @@ interface TenantActionHubModalProps {
   onRenew: (row: SaasTenantRow) => void;
   onRecordPayment: (row: SaasTenantRow) => void;
   onExtendTrial: (id: string) => void;
+  onEditSlug: (row: SaasTenantRow) => void;
   onResetPassword: (row: SaasTenantRow) => void;
   onUnlockOwner: (id: string) => void;
   onSuspend: (id: string) => void;
@@ -36,6 +37,7 @@ export function TenantActionHubModal({
   onRenew,
   onRecordPayment,
   onExtendTrial,
+  onEditSlug,
   onResetPassword,
   onUnlockOwner,
   onSuspend,
@@ -269,6 +271,26 @@ export function TenantActionHubModal({
               <div className="saas-action-card-info">
                 <strong className="saas-action-card-title">سجل النشاط والتفاصيل</strong>
                 <span className="saas-action-card-sub">استعراض سجل الأحداث والعمليات للنسخة</span>
+              </div>
+            </button>
+
+            {/* تعديل معرّف النسخة (Slug) */}
+            <button
+              type="button"
+              className="saas-action-card-btn"
+              onClick={() => { onClose(); onEditSlug(tenant); }}
+            >
+              <div className="saas-action-card-icon" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+              </div>
+              <div className="saas-action-card-info">
+                <strong className="saas-action-card-title">تعديل معرّف النسخة (Slug)</strong>
+                <span className="saas-action-card-sub">
+                  تغيير الرابط الفريد الحالي: ({tenant.slug})
+                </span>
               </div>
             </button>
 

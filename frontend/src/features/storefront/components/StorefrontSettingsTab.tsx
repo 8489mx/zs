@@ -174,7 +174,7 @@ export function StorefrontSettingsTab() {
   });
 
   const storeSlug = settingsQuery.data?.slug || 'default';
-  const storeUrl = `${window.location.origin}/store/${storeSlug}`;
+  const storeUrl = `${window.location.origin}/st/${storeSlug}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(storeUrl);
@@ -286,7 +286,7 @@ export function StorefrontSettingsTab() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
               رابط المتجر الإلكتروني الخاص بنشاطك:
             </span>
@@ -302,6 +302,19 @@ export function StorefrontSettingsTab() {
               }}
             >
               مباشر ومفعل
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                background: '#f8fafc',
+                color: '#334155',
+                padding: '1px 8px',
+                borderRadius: '6px',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              معرّف النسخة (Slug): <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{storeSlug}</strong>
             </span>
           </div>
           <div style={{ fontSize: '13px', fontFamily: 'monospace', direction: 'ltr', color: '#170e5e', fontWeight: 700 }}>

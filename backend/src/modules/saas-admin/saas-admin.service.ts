@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { Response } from 'express';
@@ -826,6 +826,72 @@ export class SaasAdminService {
     }
 
     return { ok: true };
+  }
+
+  async updateTenantSlug(id: string, newSlug: string, auth: AuthContext) {
+    if (auth.role !== 'super_admin') {
+      throw new ForbiddenException('فقط المشرف العام يمكنه تعديل معرّف النسخة');
+    }
+
+    const tenant = await this.db
+      .selectFrom('tenants')
+      .select(['id', 'slug', 'business_name'])
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!tenant) throw new NotFoundException('النسخة غير موجودة');
+
+    const cleanSlug = String(newSlug || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-');
+
+    if (!cleanSlug || cleanSlug.length < 3) {
+      throw new BadRequestException('معرّف النسخة يجب أن يتكون من 3 أحرف إنجليزية أو أرقام على الأقل');
+    }
+
+    const reserved = ['admin', 'api', 'trial', 'login', 'store', 'st', 'shop', 'profile', 'settings', 'pos', 'system'];
+    if (reserved.includes(cleanSlug)) {
+      throw new BadRequestException('هذا المعرّف محجوز للنظام ولا يمكن استخدامه');
+    }
+
+    // Check uniqueness across other tenants
+    const existing = await this.db
+      .selectFrom('tenants')
+      .select('id')
+      .where('slug', '=', cleanSlug)
+      .where('id', '!=', id)
+      .executeTakeFirst();
+
+    if (existing) {
+      throw new ConflictException(`معرّف النسخة "${cleanSlug}" مستخدم بالفعل من قبل عميل آخر`);
+    }
+
+    const oldSlug = tenant.slug;
+    await this.db
+      .updateTable('tenants')
+      .set({
+        slug: cleanSlug,
+        updated_at: new Date(),
+      })
+      .where('id', '=', id)
+      .execute();
+
+    await this.audit.log(
+      'تعديل معرّف النسخة',
+      `تم تغيير معرّف النسخة من "${oldSlug}" إلى "${cleanSlug}" لنشاط (${tenant.business_name})`,
+      auth,
+      { targetTenantId: tenant.id },
+    );
+
+    return {
+      success: true,
+      oldSlug,
+      newSlug: cleanSlug,
+      message: `تم تحديث معرّف النسخة بنجاح إلى "${cleanSlug}"`,
+    };
   }
 
   async developerListFeaturePlans(): Promise<Record<string, unknown>[]> {

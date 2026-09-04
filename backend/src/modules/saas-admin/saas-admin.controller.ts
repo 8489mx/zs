@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '
 import type { Response } from 'express';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
-import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, UpdateSaasPlanDto, RecordPaymentDto, UpdateTenantPlanDto } from './dto/saas-admin.dto';
+import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, UpdateSaasPlanDto, RecordPaymentDto, UpdateTenantPlanDto, UpdateTenantSlugDto } from './dto/saas-admin.dto';
 import { SaasAdminService } from './saas-admin.service';
 
 @Controller('api/saas-admin')
@@ -105,6 +105,11 @@ export class SaasAdminController {
   @Post('tenants/:id/plan')
   updateTenantPlan(@Param('id') id: string, @Body() body: UpdateTenantPlanDto, @Req() req: RequestWithAuth) {
     return this.service.updateTenantPlan(id, body, req.authContext!);
+  }
+
+  @Post('tenants/:id/slug')
+  updateTenantSlug(@Param('id') id: string, @Body() body: UpdateTenantSlugDto, @Req() req: RequestWithAuth) {
+    return this.service.updateTenantSlug(id, body.slug, req.authContext!);
   }
 
   @Post('tenants/:id/impersonate')

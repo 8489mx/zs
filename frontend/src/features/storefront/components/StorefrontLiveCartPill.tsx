@@ -1,5 +1,6 @@
 
 interface StorefrontLiveCartPillProps {
+  itemsCount: number;
   totalQuantity: number;
   total: number;
   isMinOrderMet: boolean;
@@ -8,6 +9,7 @@ interface StorefrontLiveCartPillProps {
 }
 
 export function StorefrontLiveCartPill({
+  itemsCount,
   totalQuantity,
   total,
   isMinOrderMet,
@@ -67,7 +69,7 @@ export function StorefrontLiveCartPill({
 
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
         <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-          سلة المشتريات ({totalQuantity})
+          سلة المشتريات {itemsCount === totalQuantity ? `(${itemsCount} صنف)` : `(${itemsCount} صنف • ${totalQuantity} قطعة)`}
         </div>
         <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>
           الإجمالي: {total.toFixed(0)} ج.م

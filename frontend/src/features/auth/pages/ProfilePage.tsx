@@ -70,6 +70,7 @@ const roleLabelMap: Record<string, string> = {
 
 export function ProfilePage() {
   const user = useAuthStore((s) => s.user);
+  const tenant = useAuthStore((s) => s.tenant);
   const updateUser = useAuthStore((s) => s.updateUser);
 
   const [name, setName] = useState(user?.displayName || '');
@@ -192,10 +193,16 @@ export function ProfilePage() {
                 {userRoleDisplay}
               </span>
             </div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span>اسم الدخول: <strong>@{username}</strong></span>
+              {tenant?.slug && (
+                <>
+                  <span>•</span>
+                  <span>معرّف النسخة (Slug): <strong style={{ color: '#170e5e', fontFamily: 'monospace' }}>{tenant.slug}</strong></span>
+                </>
+              )}
               <span>•</span>
-              <span style={{ color: '#16a34a', fontWeight: 700 }}>● الحساب نشط ومتصل</span>
+              <span style={{ color: '#166534', fontWeight: 700 }}>● الحساب نشط ومتصل</span>
             </div>
           </div>
         </div>

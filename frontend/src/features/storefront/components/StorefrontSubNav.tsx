@@ -28,6 +28,7 @@ export function StorefrontSubNav({
 
   return (
     <div
+      className="storefront-subnav"
       style={{
         background: '#ffffff',
         borderBottom: '1px solid #e2e8f0',
@@ -38,7 +39,34 @@ export function StorefrontSubNav({
         boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .storefront-subnav {
+            padding: 6px 10px !important;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+          .storefront-subnav-inner {
+            flex-wrap: nowrap !important;
+            gap: 6px !important;
+          }
+          .storefront-subnav-pills {
+            flex-wrap: nowrap !important;
+            gap: 6px !important;
+          }
+          .storefront-subnav-pill {
+            padding: 8px 12px !important;
+            font-size: 12px !important;
+            white-space: nowrap;
+            min-height: 36px;
+          }
+          .storefront-subnav-hint {
+            display: none !important;
+          }
+        }
+      `}</style>
       <div
+        className="storefront-subnav-inner"
         style={{
           maxWidth: '1280px',
           margin: '0 auto',
@@ -50,9 +78,10 @@ export function StorefrontSubNav({
         }}
       >
         {/* Left Side: Category Drawer Button + Filter Pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="storefront-subnav-pills" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {/* Main "Browse Categories" Button */}
           <button
+            className="storefront-subnav-pill"
             type="button"
             onClick={onOpenCategoriesModal}
             style={{
@@ -88,6 +117,7 @@ export function StorefrontSubNav({
 
           {/* Deals Pill */}
           <button
+            className="storefront-subnav-pill"
             type="button"
             onClick={onToggleDeals}
             style={{
@@ -125,6 +155,7 @@ export function StorefrontSubNav({
 
           {/* In Stock Only Pill */}
           <button
+            className="storefront-subnav-pill"
             type="button"
             onClick={onToggleInStock}
             style={{
@@ -184,7 +215,7 @@ export function StorefrontSubNav({
             </button>
           </div>
         ) : (
-          <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+          <div className="storefront-subnav-hint" style={{ fontSize: '11.5px', color: '#64748b' }}>
             تصفح المتجر حسب الأقسام
           </div>
         )}

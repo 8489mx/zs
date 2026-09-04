@@ -14,6 +14,12 @@ export const storefrontApi = {
 
   getCatalog: async (slug: string) => {
     const res = await http<StorefrontCatalogResponse>(`/api/storefront/${encodeURIComponent(slug)}/catalog`);
+    if (res?.categories) {
+      res.categories = res.categories.map((c) => ({
+        ...c,
+        id: Number(c.id),
+      }));
+    }
     if (res?.products) {
       res.products = res.products.map((p) => ({
         ...p,

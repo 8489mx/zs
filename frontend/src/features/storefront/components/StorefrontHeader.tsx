@@ -40,6 +40,49 @@ export function StorefrontHeader({
       <style>{`
         .storefront-brand-btn:hover .storefront-brand-avatar { transform: scale(1.06); }
         .storefront-brand-btn:hover .storefront-brand-title { color: #170e5e; }
+        @media (max-width: 640px) {
+          .storefront-navbar {
+            flex-wrap: wrap !important;
+            padding: 8px 12px !important;
+            gap: 8px !important;
+          }
+          .storefront-brand-btn {
+            gap: 8px !important;
+          }
+          .storefront-brand-avatar {
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 16px !important;
+            border-radius: 10px !important;
+          }
+          .storefront-brand-title {
+            font-size: 15px !important;
+          }
+          .storefront-brand-verified,
+          .storefront-brand-subtitle {
+            display: none !important;
+          }
+          .storefront-search-wrapper {
+            order: 3;
+            flex: unset !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+          }
+          .storefront-actions {
+            margin-inline-start: auto;
+            gap: 6px !important;
+          }
+          .storefront-action-label {
+            display: none !important;
+          }
+          .storefront-action-btn {
+            padding: 8px 10px !important;
+          }
+          .storefront-cart-btn {
+            padding: 8px 12px !important;
+          }
+        }
       `}</style>
 
       {/* Top Announcement Bar */}
@@ -61,6 +104,7 @@ export function StorefrontHeader({
 
       {/* Main Navbar */}
       <div
+        className="storefront-navbar"
         style={{
           maxWidth: '1280px',
           margin: '0 auto',
@@ -128,6 +172,7 @@ export function StorefrontHeader({
                 {info.title || info.businessName}
               </span>
               <span
+                className="storefront-brand-verified"
                 style={{
                   fontSize: '11px',
                   background: '#f0f3ff',
@@ -145,7 +190,7 @@ export function StorefrontHeader({
                 <span>متجر معتمد</span>
               </span>
             </div>
-            <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+            <span className="storefront-brand-subtitle" style={{ fontSize: '11.5px', color: '#64748b' }}>
               تسوق أونلاين والدفع عند الاستلام
             </span>
           </div>
@@ -153,6 +198,7 @@ export function StorefrontHeader({
 
         {/* Center: Sleek Unified Search Bar */}
         <div
+          className="storefront-search-wrapper"
           style={{
             flex: 1,
             maxWidth: '640px',
@@ -231,9 +277,10 @@ export function StorefrontHeader({
         </div>
 
         {/* Quick Actions (WhatsApp & Cart) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        <div className="storefront-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           {cleanPhone && (
             <a
+              className="storefront-action-btn"
               href={`https://wa.me/${cleanPhone}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -265,13 +312,14 @@ export function StorefrontHeader({
               <svg width="16" height="16" fill="#10b981" viewBox="0 0 24 24">
                 <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.181-.076.355.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.072.043.419-.101.824z" />
               </svg>
-              <span>خدمة العملاء</span>
+              <span className="storefront-action-label">خدمة العملاء</span>
             </a>
           )}
 
           {/* My Orders Trigger */}
           {onOpenOrders && (
             <button
+              className="storefront-action-btn"
               type="button"
               onClick={onOpenOrders}
               style={{
@@ -300,12 +348,13 @@ export function StorefrontHeader({
               }}
             >
               <PackageIcon size={16} />
-              <span>طلباتي</span>
+              <span className="storefront-action-label">طلباتي</span>
             </button>
           )}
 
           {/* Cart Trigger */}
           <button
+            className="storefront-cart-btn"
             type="button"
             onClick={onOpenCart}
             style={{
@@ -335,7 +384,7 @@ export function StorefrontHeader({
                 d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
               />
             </svg>
-            <span>السلة</span>
+            <span className="storefront-action-label">السلة</span>
             {cartCount > 0 && (
               <span
                 style={{
@@ -353,7 +402,7 @@ export function StorefrontHeader({
               </span>
             )}
             {cartTotal > 0 && (
-              <span style={{ borderRight: '1px solid rgba(255,255,255,0.2)', paddingRight: '6px', marginRight: '4px' }}>
+              <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.2)', paddingRight: '6px', marginRight: '4px' }}>
                 {cartTotal.toFixed(0)} ج
               </span>
             )}

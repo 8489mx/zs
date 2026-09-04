@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min, IsNumber, IsNotEmpty } from 'class-validator';
 
 export class ListSaasTenantsQueryDto {
   @IsOptional()
@@ -264,4 +264,10 @@ export class UpdateSaasPlanDto {
   @IsOptional()
   @IsString()
   featurePlanId?: string;
+}
+
+export class UpdateTenantSlugDto {
+  @IsString()
+  @IsNotEmpty({ message: 'معرف النسخة الجديد مطلوب' })
+  slug!: string;
 }

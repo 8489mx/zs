@@ -21,6 +21,7 @@ import { TenantDetailsModal } from '../components/TenantDetailsModal';
 import { TenantSubscriptionsModal } from '../components/TenantSubscriptionsModal';
 import { TenantWelcomeShareModal } from '../components/TenantWelcomeShareModal';
 import { TenantActionHubModal } from '../components/TenantActionHubModal';
+import { EditTenantSlugModal } from '../components/EditTenantSlugModal';
 
 type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner' | 'delete';
 type SaasTenantsResponse = { tenants: SaasTenantRow[] };
@@ -180,6 +181,7 @@ export function SaasTenantsPage() {
   const [updatePlanTenant, setUpdatePlanTenant] = useState<SaasTenantRow | null>(null);
   const [subscriptionsTenant, setSubscriptionsTenant] = useState<SaasTenantRow | null>(null);
   const [welcomeShareTenant, setWelcomeShareTenant] = useState<{ tenant: SaasTenantRow; temporaryPassword?: string; username?: string } | null>(null);
+  const [editingSlugTenant, setEditingSlugTenant] = useState<SaasTenantRow | null>(null);
 
   const [renewTenant, setRenewTenant] = useState<{ id: string; name?: string } | null>(null);
   const [renewDuration, setRenewDuration] = useState<number>(1);
@@ -1637,11 +1639,26 @@ export function SaasTenantsPage() {
             setActionHubTenant(null);
             tenantActionMutation.mutate({ action: 'expire', tenantId: id });
           }}
+          onEditSlug={(r) => {
+            setActionHubTenant(null);
+            setEditingSlugTenant(r);
+          }}
           onDelete={(id, name) => {
             setActionHubTenant(null);
             if (window.confirm(`هل أنت متأكد تماماً من حذف نسخة (${name}) بجميع قواعد بياناتها وسجلاتها؟\nلا يمكن التراجع عن هذا الإجراء!`)) {
               tenantActionMutation.mutate({ action: 'delete', tenantId: id });
             }
+          }}
+        />
+      )}
+
+      {editingSlugTenant && (
+        <EditTenantSlugModal
+          tenant={editingSlugTenant}
+          onClose={() => setEditingSlugTenant(null)}
+          onSuccess={(msg) => {
+            setFeedback(msg);
+            setEditingSlugTenant(null);
           }}
         />
       )}

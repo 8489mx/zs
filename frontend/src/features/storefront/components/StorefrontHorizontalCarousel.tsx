@@ -42,6 +42,7 @@ export const StorefrontHorizontalCarousel = React.memo(function StorefrontHorizo
 
   return (
     <div
+      className="storefront-carousel-card"
       style={{
         background: '#ffffff',
         borderRadius: '16px',
@@ -51,6 +52,18 @@ export const StorefrontHorizontalCarousel = React.memo(function StorefrontHorizo
         direction: 'rtl',
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .storefront-carousel-card {
+            padding: 14px !important;
+            border-radius: 12px !important;
+          }
+          .storefront-carousel-item {
+            flex: 0 0 200px !important;
+            min-width: 200px !important;
+          }
+        }
+      `}</style>
       {/* Header with Title and Scroll Controls */}
       <div
         style={{
@@ -184,6 +197,7 @@ export const StorefrontHorizontalCarousel = React.memo(function StorefrontHorizo
         {products.map((product) => (
           <div
             key={product.id}
+            className="storefront-carousel-item"
             style={{
               flex: '0 0 240px',
               scrollSnapAlign: 'start',

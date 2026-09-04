@@ -328,30 +328,66 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
             borderRadius: '12px 12px 0 0',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
             <div
               style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '11px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
                 background: 'linear-gradient(135deg, #170e5e 0%, #2e1065 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(23,14,94,0.25)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 2px 8px rgba(23,14,94,0.22)',
+                border: '1px solid rgba(255,255,255,0.15)',
                 flexShrink: 0,
               }}
             >
-              <AiRobotIcon size={24} />
+              <AiRobotIcon size={25} />
             </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>
-                زاد AI • مستشارك الذكي
-              </h3>
-              <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700 }}>
-                ● متصل بقاعدة بيانات منشأتك مباشرة
-              </span>
+
+            {/* Vertical accent stripe spanning both title and subtitle */}
+            <div
+              style={{
+                width: '4px',
+                height: '36px',
+                borderRadius: '999px',
+                background: 'linear-gradient(180deg, #170e5e 0%, #312e81 100%)',
+                flexShrink: 0,
+              }}
+            />
+
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px' }}>
+              <div
+                style={{
+                  margin: 0,
+                  fontSize: '15px',
+                  fontWeight: 900,
+                  color: '#0f172a',
+                  lineHeight: '1.25',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>زاد AI</span>
+                <span style={{ color: '#94a3b8', fontSize: '13px' }}>•</span>
+                <span>مستشارك الذكي</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  fontSize: '11.5px',
+                  color: '#059669',
+                  fontWeight: 700,
+                  lineHeight: '1.2',
+                }}
+              >
+                <span style={{ fontSize: '8px', lineHeight: 1, color: '#10b981' }}>●</span>
+                <span>متصل بقاعدة بيانات منشأتك مباشرة</span>
+              </div>
             </div>
           </div>
 

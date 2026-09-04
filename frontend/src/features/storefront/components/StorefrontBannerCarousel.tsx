@@ -78,6 +78,7 @@ export function StorefrontBannerCarousel({
 
   return (
     <div
+      className="storefront-banner-carousel-wrapper"
       style={{
         maxWidth: '1280px',
         width: '100%',
@@ -87,7 +88,20 @@ export function StorefrontBannerCarousel({
         direction: 'rtl',
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .storefront-banner-carousel-wrapper {
+            padding: 0 12px !important;
+            margin: 10px auto 6px !important;
+          }
+          .storefront-banner-carousel-inner {
+            height: clamp(140px, 34vw, 320px) !important;
+            border-radius: 12px !important;
+          }
+        }
+      `}</style>
       <div
+        className="storefront-banner-carousel-inner"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onTouchStart={handleTouchStart}

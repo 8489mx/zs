@@ -9,7 +9,6 @@ import { StorefrontCategoryShowcase } from '../components/StorefrontCategoryShow
 import { StorefrontCategoriesModal } from '../components/StorefrontCategoriesModal';
 import { StorefrontProductCard } from '../components/StorefrontProductCard';
 import { StorefrontHorizontalCarousel } from '../components/StorefrontHorizontalCarousel';
-import { StorefrontCartDrawer } from '../components/StorefrontCartDrawer';
 import { StorefrontLiveCartDock } from '../components/StorefrontLiveCartDock';
 import { StorefrontCheckoutModal } from '../components/StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from '../components/StorefrontSuccessModal';
@@ -225,7 +224,8 @@ export function PublicStorefrontPage() {
     counts.set('all', rawProducts.length);
     for (const p of rawProducts) {
       if (p.categoryId) {
-        counts.set(p.categoryId, (counts.get(p.categoryId) || 0) + 1);
+        const cid = Number(p.categoryId);
+        counts.set(cid, (counts.get(cid) || 0) + 1);
       }
     }
     return counts;
@@ -237,7 +237,7 @@ export function PublicStorefrontPage() {
 
     // Category filter
     if (selectedCategory !== 'all') {
-      list = list.filter((p) => p.categoryId === selectedCategory);
+      list = list.filter((p) => Number(p.categoryId) === Number(selectedCategory));
     }
 
     // In-stock only filter
@@ -284,12 +284,13 @@ export function PublicStorefrontPage() {
 
     // Sort categories by product count descending
     const sortedCats = [...categories].sort(
-      (a, b) => (categoryCounts.get(b.id) || 0) - (categoryCounts.get(a.id) || 0)
+      (a, b) => (categoryCounts.get(Number(b.id)) || 0) - (categoryCounts.get(Number(a.id)) || 0)
     );
 
     // Pick top 8 categories that have products
     for (const cat of sortedCats) {
-      let prods = rawProducts.filter((p) => p.categoryId === cat.id);
+      const catId = Number(cat.id);
+      let prods = rawProducts.filter((p) => Number(p.categoryId) === catId);
       if (inStockOnly) {
         prods = prods.filter((p) => p.inStock && p.stockQty > 0);
       }
@@ -468,7 +469,19 @@ export function PublicStorefrontPage() {
       )}
 
       {/* Main Content Area */}
+      <style>{`
+        @media (max-width: 640px) {
+          .storefront-main-content {
+            padding: 12px 12px 80px !important;
+          }
+          .storefront-main-content .storefront-section-card {
+            padding: 14px !important;
+            border-radius: 12px !important;
+          }
+        }
+      `}</style>
       <main
+        className="storefront-main-content"
         style={{
           flex: 1,
           maxWidth: '1280px',
@@ -483,6 +496,7 @@ export function PublicStorefrontPage() {
             {/* Row 1: Deals Spotlight */}
             {dealsProducts.length > 0 && (
               <div
+                className="storefront-section-card"
                 style={{
                   background: '#ffffff',
                   borderRadius: '16px',
@@ -546,7 +560,7 @@ export function PublicStorefrontPage() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
                     gap: '18px',
                   }}
                 >
@@ -585,6 +599,7 @@ export function PublicStorefrontPage() {
                   />
                 ) : (
                   <div
+                    className="storefront-section-card"
                     style={{
                       background: '#ffffff',
                       borderRadius: '16px',
@@ -651,7 +666,7 @@ export function PublicStorefrontPage() {
                     <div
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
                         gap: '18px',
                       }}
                     >
@@ -850,7 +865,7 @@ export function PublicStorefrontPage() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
                     gap: '18px',
                   }}
                 >
@@ -908,28 +923,15 @@ export function PublicStorefrontPage() {
         }}
       />
 
-      {/* Cart Drawer */}
-      <StorefrontCartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        info={info}
-        deliveryFee={info.deliveryFee}
-        minOrder={info.minOrder}
-        onUpdateQuantity={handleUpdateQuantity}
-        onClearCart={handleClearCart}
-        onProceedToCheckout={() => {
-          setIsCartOpen(false);
-          setIsCheckoutOpen(true);
-        }}
-      />
-
-      {/* Live Floating Cart Dock on the Left */}
+      {/* Unified Live Cart: Floating Pill when collapsed, full-height blur drawer when expanded */}
       <StorefrontLiveCartDock
         cartItems={cartItems}
         info={info}
         deliveryFee={info.deliveryFee}
         minOrder={info.minOrder}
+        isOpen={isCartOpen}
+        onOpen={() => setIsCartOpen(true)}
+        onClose={() => setIsCartOpen(false)}
         onUpdateQuantity={handleUpdateQuantity}
         onClearCart={handleClearCart}
         onProceedToCheckout={() => {
