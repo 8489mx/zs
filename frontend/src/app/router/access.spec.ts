@@ -71,4 +71,15 @@ describe('router access guards', () => {
     expect(canAccessPath({ ...superAdminUser, tenantId: '', accountId: 'default' }, '/saas-admin/tenants')).toBe(true);
     expect(canAccessPath({ ...superAdminUser, tenantId: '', accountId: 'demo:main' }, '/saas-admin/tenants')).toBe(false);
   });
+
+  it('blocks saas-admin completely in electron desktop mode', () => {
+    (window as any).electronRuntime = {};
+    try {
+      expect(canAccessPath(superAdminUser, '/saas-admin/tenants')).toBe(false);
+      expect(canAccessNavigationItem(superAdminUser, { key: 'saas-admin-tenants', label: 'إدارة النسخ', to: '/saas-admin/tenants', platformOnly: true })).toBe(false);
+      expect(canAccessNavigationItem(superAdminUser, { key: 'saas-admin-plans', label: 'باقات الاشتراك', to: '/saas-admin/plans', platformOnly: true })).toBe(false);
+    } finally {
+      delete (window as any).electronRuntime;
+    }
+  });
 });

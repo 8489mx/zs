@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function AppCloseGuard() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +10,14 @@ export function AppCloseGuard() {
     const electronRuntime = typeof window !== 'undefined' ? (window as any).electronRuntime : null;
     if (electronRuntime && typeof electronRuntime.onShowCustomCloseDialog === 'function') {
       const unsubscribe = electronRuntime.onShowCustomCloseDialog(() => {
+        const user = useAuthStore.getState().user;
+        // If logged out or on login page, close app immediately without prompt
+        if (!user) {
+          if (typeof electronRuntime.forceCloseApp === 'function') {
+            electronRuntime.forceCloseApp();
+          }
+          return;
+        }
         setIsOpen(true);
       });
       return () => {

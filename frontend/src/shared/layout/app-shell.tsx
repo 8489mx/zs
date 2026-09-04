@@ -4,13 +4,12 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { storefrontApi } from '@/features/storefront/api/storefront.api';
-import { AppCloseGuard } from './AppCloseGuard';
 import { Button } from '@/shared/ui/button';
 import { authApi } from '@/shared/api/auth';
 import { resetAuthenticatedClient } from '@/lib/query-client-session';
 import { DEFAULT_STORE_NAME, useAuthStore } from '@/stores/auth-store';
 import { navigationItems } from '@/app/router/registry';
-import { canAccessNavigationItem } from '@/app/router/access';
+import { canAccessNavigationItem, isDesktopOfflineApp } from '@/app/router/access';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { PasswordRotationGate } from '@/shared/system/password-rotation-gate';
 import { SystemStatusBanner } from '@/shared/system/system-status-banner';
@@ -479,6 +478,7 @@ export function AppShell({ children }: PropsWithChildren) {
     return navigationItems
       .filter((item) => {
         if (!user || !canAccessNavigationItem(user, item)) return false;
+        if (isDesktopOfflineApp() && (item.key === 'saas-admin-tenants' || item.key === 'saas-admin-plans' || item.key?.startsWith('saas-admin'))) return false;
         if (item.key === 'tax-dispatcher' && !isEtaActive) return false;
         if (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true) return false;
         if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && settings?.enableMobileStoreFeatures !== true) return false;
@@ -960,7 +960,6 @@ export function AppShell({ children }: PropsWithChildren) {
         </div>
       </div>
       {(isMobileScreen || !isPosChromeHidden) && <MobileBottomNav />}
-      <AppCloseGuard />
       <PasswordRotationGate />
       <LiveOrderNotificationBanner />
       <PwaInstallBanner />

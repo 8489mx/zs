@@ -14,6 +14,7 @@ import { FirstRunSetupPage } from '@/features/activation/pages/FirstRunSetupPage
 import { SupplierQuickPaymentDialog } from '@/features/accounts/components/SupplierQuickPaymentDialog';
 import { QuickCashAdvanceModal } from '@/features/hr/components/QuickCashAdvanceModal';
 import { QuickOffersModal } from '@/features/products/components/QuickOffersModal';
+import { AppCloseGuard } from '@/shared/layout/AppCloseGuard';
 
 const isElectron = typeof window !== 'undefined' && (
   Boolean((window as any).electronAPI) ||
@@ -156,5 +157,10 @@ const router = createRouter([
 ]);
 
 export function AppRouter() {
-  return <AppErrorBoundary><RouterProvider router={router} /></AppErrorBoundary>;
+  return (
+    <AppErrorBoundary>
+      <RouterProvider router={router} />
+      <AppCloseGuard />
+    </AppErrorBoundary>
+  );
 }

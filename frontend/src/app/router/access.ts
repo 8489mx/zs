@@ -251,7 +251,20 @@ export function hasAnyPermission(user: AuthUser | null | undefined, required: Ro
   return needed.some((permission) => userPermissions.has(permission));
 }
 
+export function isDesktopOfflineApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    (window as any).electronRuntime ||
+    (window as any).electronAPI ||
+    (window as any).process?.versions?.electron ||
+    (window.navigator?.userAgent && window.navigator.userAgent.toLowerCase().includes('electron')) ||
+    import.meta.env.MODE === 'electron' ||
+    import.meta.env.MODE === 'portable'
+  );
+}
+
 export function isPlatformAdmin(user: AuthUser | null | undefined) {
+  if (isDesktopOfflineApp()) return false;
   if (!user) return false;
   if (user.role !== 'super_admin') return false;
 
@@ -312,6 +325,7 @@ export function hasRequiredFeature(target: string): boolean {
 export function canAccessPath(user: AuthUser | null | undefined, target: string) {
   const normalized = normalizeAccessKey(target);
   if (normalized === 'saas-admin' || normalized === 'saas-admin/tenants' || normalized.startsWith('saas-admin/')) {
+    if (isDesktopOfflineApp()) return false;
     return isPlatformAdmin(user);
   }
   if (!hasRequiredFeature(target)) return false;

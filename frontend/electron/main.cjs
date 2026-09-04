@@ -226,6 +226,9 @@ const createMainWindow = (customLoadHandler) => {
     }
   });
 
+  let closeAttemptCount = 0;
+  let closeAttemptTimer = null;
+
   mainWindow.on('close', (event) => {
     if (isForceClosing) {
       return;
@@ -233,6 +236,29 @@ const createMainWindow = (customLoadHandler) => {
     event.preventDefault();
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('show-custom-close-dialog');
+
+      closeAttemptCount++;
+      if (closeAttemptTimer) clearTimeout(closeAttemptTimer);
+      closeAttemptTimer = setTimeout(() => {
+        closeAttemptCount = 0;
+      }, 2500);
+
+      // Infallible fallback: If clicked twice or renderer is unresponsive, offer native exit
+      if (closeAttemptCount >= 2) {
+        closeAttemptCount = 0;
+        const choice = dialog.showMessageBoxSync(mainWindow, {
+          type: 'question',
+          buttons: ['إغلاق البرنامج ومغادرة', 'البقاء في البرنامج'],
+          defaultId: 0,
+          cancelId: 1,
+          title: 'تأكيد إغلاق المنظومة',
+          message: 'هل أنت متأكد من رغبتك في إغلاق تطبيق Z-ERP الآن؟',
+        });
+        if (choice === 0) {
+          isForceClosing = true;
+          app.quit();
+        }
+      }
     }
   });
 

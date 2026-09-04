@@ -5,6 +5,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
 import { useAuthStore } from '@/stores/auth-store';
+import { isDesktopOfflineApp } from '@/app/router/access';
 
 const AVAILABLE_FEATURES = [
   { id: 'catalog', name: 'المنتجات والأصناف' },
@@ -139,55 +140,57 @@ export function DeveloperActivationPanel() {
             <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
               التحكم في الباقات وتفعيل / تعطيل الوحدات والميزات للمستأجر الحالي
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
-              <a
-                href="/saas-admin/tenants"
-                onClick={() => setOpen(false)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  color: '#1d4ed8',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                }}
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                <span>إدارة المشتركين والنسخ</span>
-              </a>
-              <a
-                href="/saas-admin/plans"
-                onClick={() => setOpen(false)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  background: '#fef3c7',
-                  border: '1px solid #fde68a',
-                  color: '#b45309',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                }}
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                <span>باقات الاشتراكات والأسعار</span>
-              </a>
-            </div>
+            {!isDesktopOfflineApp() && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                <a
+                  href="/saas-admin/tenants"
+                  onClick={() => setOpen(false)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    color: '#1d4ed8',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                  <span>إدارة المشتركين والنسخ</span>
+                </a>
+                <a
+                  href="/saas-admin/plans"
+                  onClick={() => setOpen(false)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    background: '#fef3c7',
+                    border: '1px solid #fde68a',
+                    color: '#b45309',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                  <span>باقات الاشتراكات والأسعار</span>
+                </a>
+              </div>
+            )}
           </div>
 
           <button
