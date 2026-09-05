@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { posApi } from '@/features/pos/api/pos.api';
 import { buildPosSalePayload, buildLegacyPosSalePayload, buildMinimalPosSalePayload } from '@/features/pos/contracts';
-import { getOfflineSalesQueue, updateOfflineSaleStatus, removeOfflineSale, OfflinePosSale } from '@/features/pos/lib/pos-offline-sync';
+import { getOfflineSalesQueue, updateOfflineSaleStatus, removeOfflineSale, OfflinePosSale, APP_NETWORK_STATE_EVENT } from '@/features/pos/lib/pos-offline-sync';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateSalesDomain } from '@/app/query-invalidation';
 
@@ -103,15 +103,25 @@ export function usePosOfflineSync() {
     const handleOnline = () => {
       void syncOfflineSales();
     };
+    const handleNetworkState = (e: Event) => {
+      const customEvent = e as CustomEvent<{ online?: boolean }>;
+      if (customEvent.detail?.online === true) {
+        void syncOfflineSales();
+      }
+    };
     
     window.addEventListener('online', handleOnline);
+    window.addEventListener(APP_NETWORK_STATE_EVENT, handleNetworkState);
     
     // Attempt initial sync on load if queue exists
     if (getOfflineSalesQueue().length > 0) {
       void syncOfflineSales();
     }
     
-    return () => window.removeEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener(APP_NETWORK_STATE_EVENT, handleNetworkState);
+    };
   }, [syncOfflineSales]);
 
   return {

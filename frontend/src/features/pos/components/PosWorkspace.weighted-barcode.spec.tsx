@@ -72,7 +72,8 @@ vi.mock('@/stores/auth-store', () => ({
 
 vi.mock('@/lib/http', () => ({
   http: vi.fn(),
-  ApiError: class ApiError extends Error {}
+  ApiError: class ApiError extends Error {},
+  APP_NETWORK_STATE_EVENT: 'zsystems:network-state',
 }));
 
 // Mock scrollIntoView

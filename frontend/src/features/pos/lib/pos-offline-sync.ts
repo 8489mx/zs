@@ -1,6 +1,7 @@
 import { CreatePosSaleInput } from '@/features/pos/contracts';
 
 const OFFLINE_QUEUE_KEY = 'zsystems_pos_offline_sales_queue';
+export const APP_NETWORK_STATE_EVENT = 'zsystems:network-state';
 
 export interface OfflinePosSale {
   id: string;

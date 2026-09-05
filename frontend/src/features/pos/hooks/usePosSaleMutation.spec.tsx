@@ -83,4 +83,26 @@ describe('usePosSaleMutation', () => {
       includeDashboard: true,
     });
   });
+
+  it('safely catches ApiError network failures, enqueues offline sale without throwing, and skips active domain invalidation', async () => {
+    createSaleMock.mockRejectedValueOnce({
+      name: 'ApiError',
+      status: 0,
+      code: 'network_error',
+      message: 'تعذر الاتصال بالخادم. تحقق من الشبكة ثم أعد المحاولة.',
+    });
+
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => usePosSaleMutation(), { wrapper: Wrapper });
+
+    let saleResult: any;
+    await act(async () => {
+      saleResult = await result.current.mutateAsync(createSaleInput());
+    });
+
+    expect(saleResult).toBeDefined();
+    expect(saleResult.offline).toBe(true);
+    expect(saleResult.docNo).toMatch(/^INV-/);
+    expect(invalidateSalesDomainMock).not.toHaveBeenCalled();
+  });
 });

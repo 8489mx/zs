@@ -15,6 +15,7 @@ import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features/pos/lib/pos-shell';
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
+import { APP_NETWORK_STATE_EVENT } from '@/features/pos/lib/pos-offline-sync';
 
 interface PosWorkspaceHeaderProps {
   pos: PosWorkspaceState;
@@ -86,11 +87,19 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
   useEffect(() => {
     const onOnline = () => setIsOnline(true);
     const onOffline = () => setIsOnline(false);
+    const onNetworkEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ online?: boolean }>;
+      if (typeof customEvent.detail?.online === 'boolean') {
+        setIsOnline(customEvent.detail.online);
+      }
+    };
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
+    window.addEventListener(APP_NETWORK_STATE_EVENT, onNetworkEvent);
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
+      window.removeEventListener(APP_NETWORK_STATE_EVENT, onNetworkEvent);
     };
   }, []);
 
