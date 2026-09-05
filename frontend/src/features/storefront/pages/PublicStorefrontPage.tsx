@@ -24,50 +24,19 @@ export function PublicStorefrontPage() {
   const { slug } = useParams<{ slug?: string }>();
   const cleanSlug = String(slug || 'default').trim();
 
-  const cachedInfoKey = `zs_storefront_info_${cleanSlug}`;
-  const cachedCatalogKey = `zs_storefront_catalog_${cleanSlug}`;
-
-  // Queries with Instant Offline-First Hydration
+  // Queries for live Storefront data (Always fresh from server)
   const infoQuery = useQuery({
     queryKey: ['storefront-info', cleanSlug],
-    queryFn: async () => {
-      const res = await storefrontApi.getInfo(cleanSlug);
-      try { localStorage.setItem(cachedInfoKey, JSON.stringify(res)); } catch {}
-      return res;
-    },
-    initialData: () => {
-      try {
-        const saved = localStorage.getItem(cachedInfoKey);
-        return saved ? JSON.parse(saved) : undefined;
-      } catch {
-        return undefined;
-      }
-    },
-    initialDataUpdatedAt: 0, // Mark initialData as stale so React Query revalidates from server immediately
-    refetchOnWindowFocus: true,
+    queryFn: () => storefrontApi.getInfo(cleanSlug),
     enabled: Boolean(cleanSlug),
-    staleTime: 5 * 1000,
+    staleTime: 30 * 1000,
   });
 
   const catalogQuery = useQuery({
     queryKey: ['storefront-catalog', cleanSlug],
-    queryFn: async () => {
-      const res = await storefrontApi.getCatalog(cleanSlug);
-      try { localStorage.setItem(cachedCatalogKey, JSON.stringify(res)); } catch {}
-      return res;
-    },
-    initialData: () => {
-      try {
-        const saved = localStorage.getItem(cachedCatalogKey);
-        return saved ? JSON.parse(saved) : undefined;
-      } catch {
-        return undefined;
-      }
-    },
-    initialDataUpdatedAt: 0, // Mark initialData as stale so React Query revalidates from server immediately
-    refetchOnWindowFocus: true,
+    queryFn: () => storefrontApi.getCatalog(cleanSlug),
     enabled: Boolean(cleanSlug),
-    staleTime: 5 * 1000,
+    staleTime: 30 * 1000,
   });
 
   // State
@@ -112,19 +81,6 @@ export function PublicStorefrontPage() {
   });
   const [onlyFavorites, setOnlyFavorites] = useState(false);
 
-  // Network connection state
-  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   const handleToggleFavorite = useCallback((productId: number) => {
     setFavoriteIds((prev) => {
