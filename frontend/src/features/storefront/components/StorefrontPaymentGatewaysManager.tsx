@@ -5,6 +5,7 @@ import { storefrontApi } from '../api/storefront.api';
 export function StorefrontPaymentGatewaysManager() {
   const queryClient = useQueryClient();
   const [copySuccess, setCopySuccess] = useState(false);
+  const [copyXPaySuccess, setCopyXPaySuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState('');
 
@@ -21,6 +22,9 @@ export function StorefrontPaymentGatewaysManager() {
     paymobIframeId: '',
     paymobHmacSecret: '',
     paymobTestMode: true,
+    xpayApiKey: '',
+    xpayCommunityId: '',
+    xpayTestMode: true,
   });
 
   useEffect(() => {
@@ -34,6 +38,9 @@ export function StorefrontPaymentGatewaysManager() {
         paymobIframeId: data.paymobIframeId || '',
         paymobHmacSecret: data.paymobHmacSecret || '',
         paymobTestMode: data.paymobTestMode !== false,
+        xpayApiKey: data.xpayApiKey || '',
+        xpayCommunityId: data.xpayCommunityId || '',
+        xpayTestMode: data.xpayTestMode !== false,
       });
     }
   }, [settingsQuery.data]);
@@ -61,15 +68,29 @@ export function StorefrontPaymentGatewaysManager() {
     ? `${window.location.origin}/api/storefront/webhooks/paymob`
     : '/api/storefront/webhooks/paymob';
 
+  const xpayWebhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/storefront/webhooks/xpay`
+    : '/api/storefront/webhooks/xpay';
+
   const handleCopyWebhook = async () => {
     try {
       await navigator.clipboard.writeText(webhookUrl);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2500);
     } catch {
-      // Fallback
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2500);
+    }
+  };
+
+  const handleCopyXPayWebhook = async () => {
+    try {
+      await navigator.clipboard.writeText(xpayWebhookUrl);
+      setCopyXPaySuccess(true);
+      setTimeout(() => setCopyXPaySuccess(false), 2500);
+    } catch {
+      setCopyXPaySuccess(true);
+      setTimeout(() => setCopyXPaySuccess(false), 2500);
     }
   };
 
@@ -226,27 +247,52 @@ export function StorefrontPaymentGatewaysManager() {
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-              مزود بوابة الدفع
+              مزود بوابة الدفع المعتمد
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
               <div
                 onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'paymob' })}
                 style={{
                   border: formState.onlinePaymentProvider === 'paymob' ? '2px solid #170e5e' : '1px solid #cbd5e1',
                   background: formState.onlinePaymentProvider === 'paymob' ? '#f8fafc' : '#ffffff',
                   borderRadius: '12px',
-                  padding: '12px 14px',
+                  padding: '12px 10px',
                   cursor: 'pointer',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '10px',
+                  textAlign: 'center',
+                  gap: '6px',
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '20px' }}>🏦</span>
+                <span style={{ fontSize: '22px' }}>🏦</span>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>بوابة Paymob</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>فيزا / ماستركارد / ميزة / محافظ</div>
+                  <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>Paymob</div>
+                  <div style={{ fontSize: '10.5px', color: '#64748b' }}>فيزا / ماستركارد</div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'xpay' })}
+                style={{
+                  border: formState.onlinePaymentProvider === 'xpay' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                  background: formState.onlinePaymentProvider === 'xpay' ? '#f8fafc' : '#ffffff',
+                  borderRadius: '12px',
+                  padding: '12px 10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ fontSize: '22px' }}>💳</span>
+                <div>
+                  <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>إكس باي (XPay)</div>
+                  <div style={{ fontSize: '10.5px', color: '#64748b' }}>بطاقات وكشك فوري</div>
                 </div>
               </div>
 
@@ -256,109 +302,202 @@ export function StorefrontPaymentGatewaysManager() {
                   border: formState.onlinePaymentProvider === 'mock' ? '2px solid #170e5e' : '1px solid #cbd5e1',
                   background: formState.onlinePaymentProvider === 'mock' ? '#f8fafc' : '#ffffff',
                   borderRadius: '12px',
-                  padding: '12px 14px',
+                  padding: '12px 10px',
                   cursor: 'pointer',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '10px',
+                  textAlign: 'center',
+                  gap: '6px',
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '20px' }}>🧪</span>
+                <span style={{ fontSize: '22px' }}>🧪</span>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>وضع المحاكاة (Mock)</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>تجربة الدفع الفوري محلياً</div>
+                  <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>Sandbox Mock</div>
+                  <div style={{ fontSize: '10.5px', color: '#64748b' }}>محاكي تجريبي فوري</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Test Mode / Sandbox Toggle */}
-          <div
-            style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '14px 18px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (Sandbox Mode)</div>
-              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                يتيح اختبار كامل دورة الدفع ببطاقات تجريبية دون سحب أموال حقيقية
-              </div>
-            </div>
-            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={formState.paymobTestMode}
-                onChange={(e) => setFormState({ ...formState, paymobTestMode: e.target.checked })}
-                style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
-              />
-            </label>
-          </div>
-
-          {/* Webhook Configuration Card */}
-          <div
-            style={{
-              background: '#f0f9ff',
-              border: '1px solid #bae6fd',
-              borderRadius: '12px',
-              padding: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '18px' }}>🔗</span>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0369a1' }}>
-                رابط إشعار العمليات الفوري (Paymob Webhook URL)
-              </div>
-            </div>
-            <div style={{ fontSize: '11.5px', color: '#0c4a6e', lineHeight: '1.5' }}>
-              قم بنسخ هذا الرابط ووضعه في لوحة تحكم Paymob تحت (Transaction Processed Callback / Webhook):
-            </div>
+          {formState.onlinePaymentProvider === 'paymob' && (
             <div
               style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 18px',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: '8px',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '6px 12px',
               }}
             >
-              <code style={{ fontSize: '11.5px', color: '#0f172a', direction: 'ltr', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {webhookUrl}
-              </code>
-              <button
-                type="button"
-                onClick={handleCopyWebhook}
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (Paymob Sandbox)</div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                  اختبار كامل دورة الدفع ببطاقات تجريبية دون سحب أموال حقيقية
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formState.paymobTestMode}
+                  onChange={(e) => setFormState({ ...formState, paymobTestMode: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                />
+              </label>
+            </div>
+          )}
+
+          {formState.onlinePaymentProvider === 'xpay' && (
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (XPay Staging Mode)</div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                  استخدام خوادم الاختبار (staging.xpay.app) لاختبار الدفع
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formState.xpayTestMode}
+                  onChange={(e) => setFormState({ ...formState, xpayTestMode: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Webhook Configuration Card for Paymob */}
+          {formState.onlinePaymentProvider === 'paymob' && (
+            <div
+              style={{
+                background: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🔗</span>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#0369a1' }}>
+                  رابط إشعار العمليات الفوري (Paymob Webhook URL)
+                </div>
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#0c4a6e', lineHeight: '1.5' }}>
+                قم بنسخ هذا الرابط ووضعه في لوحة تحكم Paymob تحت (Transaction Processed Callback):
+              </div>
+              <div
                 style={{
-                  background: copySuccess ? '#16a34a' : '#170e5e',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '5px 12px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
                 }}
               >
-                {copySuccess ? 'تم النسخ!' : 'نسخ الرابط'}
-              </button>
+                <code style={{ fontSize: '11.5px', color: '#0f172a', direction: 'ltr', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {webhookUrl}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyWebhook}
+                  style={{
+                    background: copySuccess ? '#16a34a' : '#170e5e',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {copySuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Webhook Configuration Card for XPay */}
+          {formState.onlinePaymentProvider === 'xpay' && (
+            <div
+              style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🔗</span>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#15803d' }}>
+                  رابط إشعار العمليات الفوري (XPay Webhook URL)
+                </div>
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#166534', lineHeight: '1.5' }}>
+                قم بنسخ هذا الرابط ووضعه في لوحة تحكم إكس باي تحت (Webhooks / Payment Notification URL):
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                }}
+              >
+                <code style={{ fontSize: '11.5px', color: '#0f172a', direction: 'ltr', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {xpayWebhookUrl}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyXPayWebhook}
+                  style={{
+                    background: copyXPaySuccess ? '#16a34a' : '#170e5e',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {copyXPaySuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Column: API Credentials */}
+        {/* Right Column: API Credentials based on selected provider */}
         <div
           style={{
             background: '#ffffff',
@@ -371,107 +510,185 @@ export function StorefrontPaymentGatewaysManager() {
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
           }}
         >
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-            <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-              مفاتيح الربط والاعتماد (Paymob API Keys)
-            </h4>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>
-              يمكنك استخراج هذه المفاتيح مباشرة من لوحة حسابك في Paymob
-            </span>
-          </div>
+          {formState.onlinePaymentProvider === 'paymob' && (
+            <>
+              <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                  مفاتيح الربط والاعتماد (Paymob API Keys)
+                </h4>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  يمكنك استخراج هذه المفاتيح مباشرة من لوحة حسابك في Paymob
+                </span>
+              </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              مفتاح الـ API العام (API Key)
-            </label>
-            <input
-              type="password"
-              value={formState.paymobApiKey}
-              onChange={(e) => setFormState({ ...formState, paymobApiKey: e.target.value })}
-              placeholder="مثال: ZXlKaGJHY2lPaUpJVXpVe..."
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                outline: 'none',
-                boxSizing: 'border-box',
-                direction: 'ltr',
-              }}
-            />
-          </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  مفتاح الـ API العام (API Key)
+                </label>
+                <input
+                  type="password"
+                  value={formState.paymobApiKey}
+                  onChange={(e) => setFormState({ ...formState, paymobApiKey: e.target.value })}
+                  placeholder="مثال: ZXlKaGJHY2lPaUpJVXpVe..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+              </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                معرف التكامل (Integration ID)
-              </label>
-              <input
-                type="text"
-                value={formState.paymobIntegrationId}
-                onChange={(e) => setFormState({ ...formState, paymobIntegrationId: e.target.value })}
-                placeholder="مثال: 456789"
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  direction: 'ltr',
-                }}
-              />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    معرف التكامل (Integration ID)
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.paymobIntegrationId}
+                    onChange={(e) => setFormState({ ...formState, paymobIntegrationId: e.target.value })}
+                    placeholder="مثال: 456789"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      direction: 'ltr',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                    معرف الإطار (Iframe ID)
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.paymobIframeId}
+                    onChange={(e) => setFormState({ ...formState, paymobIframeId: e.target.value })}
+                    placeholder="مثال: 812345"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      direction: 'ltr',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  المفتاح السري للتحقق الأمني (HMAC Secret)
+                </label>
+                <input
+                  type="password"
+                  value={formState.paymobHmacSecret}
+                  onChange={(e) => setFormState({ ...formState, paymobHmacSecret: e.target.value })}
+                  placeholder="مثال: A8B4F12E99..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  يُستخدم لتأكيد صحة التوقيع الرقمي للـ Webhook ومنع تزوير عمليات الدفع نهائياً.
+                </span>
+              </div>
+            </>
+          )}
+
+          {formState.onlinePaymentProvider === 'xpay' && (
+            <>
+              <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                  مفاتيح الربط والاعتماد (XPay API Credentials)
+                </h4>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  يمكنك استخراج هذه المفاتيح من لوحة حساب التاجر في منصة إكس باي (XPay Dashboard)
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  مفتاح API السري (x-api-key)
+                </label>
+                <input
+                  type="password"
+                  value={formState.xpayApiKey}
+                  onChange={(e) => setFormState({ ...formState, xpayApiKey: e.target.value })}
+                  placeholder="مثال: xpay_sec_key_..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  يُرسل في الترويسة (Header) الخاصة بالطلب للتحقق من هوية التاجر.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  معرف المجتمع في إكس باي (Community ID)
+                </label>
+                <input
+                  type="text"
+                  value={formState.xpayCommunityId}
+                  onChange={(e) => setFormState({ ...formState, xpayCommunityId: e.target.value })}
+                  placeholder="مثال: cm_987654..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  المعرّف الخاص بمنشأتك أو متجرك في منصة إكس باي لتوجيه العمليات المالية.
+                </span>
+              </div>
+            </>
+          )}
+
+          {formState.onlinePaymentProvider === 'mock' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 0' }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                🧪 وضع المحاكاة التجريبي نشط
+              </div>
+              <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: '1.6', margin: 0 }}>
+                هذا الوضع مخصص لتجربة ومحاكاة عمليات الدفع بالبطاقات محلياً بدون إدخال أي مفاتيح بنكية حقيقية. سيتمكن زوار المتجر من تجربة إدخال بطاقة وهمية والحصول على تأكيد السداد وإشعار الواتساب التلقائي فوراً.
+              </p>
             </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                معرف الإطار (Iframe ID)
-              </label>
-              <input
-                type="text"
-                value={formState.paymobIframeId}
-                onChange={(e) => setFormState({ ...formState, paymobIframeId: e.target.value })}
-                placeholder="مثال: 812345"
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  direction: 'ltr',
-                }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              المفتاح السري للتحقق الأمني (HMAC Secret)
-            </label>
-            <input
-              type="password"
-              value={formState.paymobHmacSecret}
-              onChange={(e) => setFormState({ ...formState, paymobHmacSecret: e.target.value })}
-              placeholder="مثال: A8B4F12E99..."
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                outline: 'none',
-                boxSizing: 'border-box',
-                direction: 'ltr',
-              }}
-            />
-            <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-              يُستخدم لتأكيد صحة التوقيع الرقمي للـ Webhook ومنع تزوير عمليات الدفع نهائياً.
-            </span>
-          </div>
+          )}
 
           <div
             style={{
@@ -484,7 +701,7 @@ export function StorefrontPaymentGatewaysManager() {
               lineHeight: '1.4',
             }}
           >
-            💡 في حال تفعيل <strong>وضع التجربة (Sandbox)</strong> وعدم إدخال مفاتيح حية، سيوفر المتجر تلقائياً تجربة دفع بطاقة تجريبية متكاملة لضمان فحص دورة الشراء بالكامل.
+            💡 في حال تفعيل <strong>وضع التجربة (Sandbox / Staging)</strong> وعدم إدخال مفاتيح حية، سيوفر المتجر تلقائياً تجربة دفع بطاقة تجريبية متكاملة لضمان فحص دورة الشراء بالكامل.
           </div>
         </div>
       </div>

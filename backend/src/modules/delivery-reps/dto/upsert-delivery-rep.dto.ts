@@ -25,6 +25,10 @@ export class UpsertDeliveryRepDto {
   @IsOptional()
   vehiclePlate?: string;
 
+  @IsString()
+  @IsOptional()
+  pinCode?: string;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

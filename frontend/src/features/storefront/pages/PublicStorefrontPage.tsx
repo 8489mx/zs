@@ -564,8 +564,8 @@ export function PublicStorefrontPage() {
         onGoHome={handleGoHome}
       />
 
-      {/* Offline Alert Strip */}
-      {(!isOnline || catalogQuery.isError || infoQuery.isError) && (
+      {/* Offline Alert Strip - Only shown when browser is genuinely offline */}
+      {!isOnline && (
         <div
           dir="rtl"
           style={{

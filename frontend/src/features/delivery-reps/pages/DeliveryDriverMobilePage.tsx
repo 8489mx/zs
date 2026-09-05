@@ -1,11 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { deliveryRepsApi, DeliveryRep, DeliveryOrder } from '../api/delivery-reps.api';
+import { deliveryRepsApi, DeliveryRep, DeliveryOrder, SettleOrderPayload } from '../api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
 import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 import { BarcodeIcon, RefreshCwIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
 import { VanSaleNewInvoiceModal } from '../components/VanSaleNewInvoiceModal';
+import { DeliverySettlementModal } from '../components/DeliverySettlementModal';
+
+interface OfflineQueueItem {
+  orderId: number;
+  docNo: string;
+  customerName: string;
+  total: number;
+  payload?: SettleOrderPayload;
+  settledAt: string;
+}
 
 export function DeliveryDriverMobilePage() {
   const queryClient = useQueryClient();
@@ -17,6 +27,42 @@ export function DeliveryDriverMobilePage() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedCode, setScannedCode] = useState('');
   const [vanSaleModalOpen, setVanSaleModalOpen] = useState(false);
+  const [activeSettleOrder, setActiveSettleOrder] = useState<DeliveryOrder | null>(null);
+
+  // Offline Queue State
+  const [offlineQueue, setOfflineQueue] = useState<OfflineQueueItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('zs_driver_offline_queue');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      alert('لتثبيت شاشة المندوب كتطبيق:\n• أندرويد (Chrome): اضغط على القائمة (⋮) ثم "تثبيت التطبيق" أو "إضافة للشاشة الرئيسية".\n• آيفون (Safari): اضغط زر المشاركة ثم "إضافة إلى الصفحة الرئيسية" (Add to Home Screen).');
+    }
+  };
 
   const { data: repsList = [] } = useQuery<DeliveryRep[]>({
     queryKey: ['delivery-reps-list'],
@@ -38,14 +84,68 @@ export function DeliveryDriverMobilePage() {
     refetchInterval: 15000,
   });
 
+  const saveToOfflineQueue = (order: DeliveryOrder, payload?: SettleOrderPayload) => {
+    const item: OfflineQueueItem = {
+      orderId: order.id,
+      docNo: order.docNo,
+      customerName: order.customerName,
+      total: order.total,
+      payload,
+      settledAt: new Date().toISOString(),
+    };
+    const updated = [item, ...offlineQueue.filter((q) => q.orderId !== order.id)];
+    setOfflineQueue(updated);
+    localStorage.setItem('zs_driver_offline_queue', JSON.stringify(updated));
+    setActiveSettleOrder(null);
+    alert('⚠️ تم حفظ تسليم الطلب محلياً بنجاح في وضع الأوفلاين! سيتم مزامنته تلقائياً فور عودة الإنترنت.');
+  };
+
+  const syncOfflineQueue = async () => {
+    if (offlineQueue.length === 0 || isSyncingOffline) return;
+    setIsSyncingOffline(true);
+    const remaining = [...offlineQueue];
+    for (const item of offlineQueue) {
+      try {
+        await deliveryRepsApi.settleOrder(item.orderId, item.payload);
+        const idx = remaining.findIndex((r) => r.orderId === item.orderId);
+        if (idx >= 0) remaining.splice(idx, 1);
+      } catch (err) {
+        console.error('Offline sync item failed:', err);
+      }
+    }
+    setOfflineQueue(remaining);
+    localStorage.setItem('zs_driver_offline_queue', JSON.stringify(remaining));
+    setIsSyncingOffline(false);
+    queryClient.invalidateQueries({ queryKey: ['driver-orders', selectedRepId] });
+    if (remaining.length === 0) {
+      alert('تمت مزامنة جميع الشحنات المعلقة مع السيرفر بنجاح! ✓');
+    }
+  };
+
+  useEffect(() => {
+    const handleOnline = () => {
+      void syncOfflineQueue();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [offlineQueue]);
+
   const settleMutation = useMutation({
-    mutationFn: (saleId: number) => deliveryRepsApi.settleOrder(saleId),
+    mutationFn: ({ saleId, payload }: { saleId: number; payload?: SettleOrderPayload }) =>
+      deliveryRepsApi.settleOrder(saleId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['driver-orders', selectedRepId] });
+      setActiveSettleOrder(null);
       alert('تم تأكيد تسليم وتحصيل الطلب بنجاح! ✅');
     },
-    onError: (err: any) => {
-      alert(err.message || 'فشل تأكيد تسليم الطلب');
+    onError: (err: any, vars) => {
+      if (!navigator.onLine || err?.message?.includes('Network') || err?.message?.includes('Failed to fetch')) {
+        if (activeSettleOrder) {
+          saveToOfflineQueue(activeSettleOrder, vars.payload);
+        }
+      } else {
+        alert(err.message || 'فشل تأكيد تسليم الطلب');
+      }
     },
   });
 
@@ -97,23 +197,13 @@ export function DeliveryDriverMobilePage() {
     printSmallReceiptDocument(html, { title: `إيصال #${order.docNo}`, widthMm: 58 });
   };
 
-  const handleSettleWithGps = (order: DeliveryOrder) => {
-    if (!confirm(`تأكيد تسليم الطلب #${order.docNo} وتحصيل مبلغ ${order.total} ج.م؟`)) return;
+  const handleOpenSettleModal = (order: DeliveryOrder) => {
+    setActiveSettleOrder(order);
+  };
 
-    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          console.log(`[Delivery GPS] Order #${order.docNo} delivered at Lat: ${pos.coords.latitude}, Lng: ${pos.coords.longitude}`);
-          settleMutation.mutate(order.id);
-        },
-        () => {
-          settleMutation.mutate(order.id);
-        },
-        { timeout: 4000 }
-      );
-    } else {
-      settleMutation.mutate(order.id);
-    }
+  const handleSettleConfirm = (payload: SettleOrderPayload) => {
+    if (!activeSettleOrder) return;
+    settleMutation.mutate({ saleId: activeSettleOrder.id, payload });
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -134,6 +224,89 @@ export function DeliveryDriverMobilePage() {
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px 14px', width: '100%', boxSizing: 'border-box' }} dir="rtl">
+      {/* PWA Install Banner */}
+      {deferredPrompt && (
+        <div
+          style={{
+            background: '#e0e7ff',
+            border: '1px solid #c7d2fe',
+            borderRadius: '12px',
+            padding: '10px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#1e1b4b' }}>
+            <span style={{ fontSize: '18px' }}>📲</span>
+            <div>
+              <strong>تثبيت شاشة المندوب:</strong> شاشة كاملة وسرعة وصول بدون متصفح.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleInstallPwa}
+            style={{
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            تثبيت الآن
+          </button>
+        </div>
+      )}
+
+      {/* Offline Pending Sync Banner */}
+      {offlineQueue.length > 0 && (
+        <div
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: '12px',
+            padding: '10px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#92400e' }}>
+            <span style={{ fontSize: '18px' }}>📦</span>
+            <div>
+              <strong>شحنات بانتظار المزامنة:</strong> لديك {offlineQueue.length} طلب سُلم أوفلاين.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={syncOfflineQueue}
+            disabled={isSyncingOffline}
+            style={{
+              background: '#b45309',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              cursor: isSyncingOffline ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isSyncingOffline ? 'جاري الرفع...' : 'مزامنة الآن ⟳'}
+          </button>
+        </div>
+      )}
+
       {/* Driver Header */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', marginBottom: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -339,7 +512,7 @@ export function DeliveryDriverMobilePage() {
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     type="button"
-                    onClick={() => handleCall(order.customerName)}
+                    onClick={() => handleCall(order.customerPhone || '')}
                     style={{
                       flex: 1,
                       padding: '7px',
@@ -356,7 +529,7 @@ export function DeliveryDriverMobilePage() {
 
                   <button
                     type="button"
-                    onClick={() => handleWhatsApp(order.customerName, order.docNo)}
+                    onClick={() => handleWhatsApp(order.customerPhone || '', order.docNo)}
                     style={{
                       flex: 1,
                       padding: '7px',
@@ -374,7 +547,7 @@ export function DeliveryDriverMobilePage() {
 
                   <button
                     type="button"
-                    onClick={() => handleOpenMap(order.deliveryStatus || order.customerName)}
+                    onClick={() => handleOpenMap(order.customerAddress || order.deliveryStatus || '')}
                     style={{
                       flex: 1,
                       padding: '7px',
@@ -412,15 +585,35 @@ export function DeliveryDriverMobilePage() {
                   </button>
                 </div>
 
-                {/* Settle Action */}
-                {!isSettled && (
+                {/* Settle / Proof Info */}
+                {isSettled ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
+                    {order.deliverySignature && (
+                      <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                        ✍️ توقيع العميل معتمد
+                      </span>
+                    )}
+                    {order.deliveryPhotoUrl && (
+                      <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                        📸 صورة إثبات التسليم مرفقة
+                      </span>
+                    )}
+                    {order.deliveryNotes && (
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        ملاحظة: {order.deliveryNotes}
+                      </span>
+                    )}
+                  </div>
+                ) : (
                   <Button
                     variant="primary"
                     disabled={settleMutation.isPending}
-                    onClick={() => handleSettleWithGps(order)}
-                    style={{ width: '100%', padding: '10px', fontSize: '13px', fontWeight: 800, background: '#16a34a', border: 'none' }}
+                    onClick={() => handleOpenSettleModal(order)}
+                    style={{ width: '100%', padding: '10px', fontSize: '13px', fontWeight: 800, background: '#16a34a', border: 'none', borderRadius: '10px' }}
                   >
-                    {settleMutation.isPending ? 'جاري التأكيد...' : '✅ تأكيد التسليم والتحصيل'}
+                    {settleMutation.isPending && activeSettleOrder?.id === order.id
+                      ? 'جاري التأكيد...'
+                      : '✅ تسليم وتحصيل (توقيع وكاميرا أوفلاين)'}
                   </Button>
                 )}
               </div>
@@ -448,6 +641,15 @@ export function DeliveryDriverMobilePage() {
           onSuccess={() => refetch()}
         />
       )}
+
+      {/* Delivery Settlement with Signature & Photo Modal */}
+      <DeliverySettlementModal
+        order={activeSettleOrder}
+        isOpen={Boolean(activeSettleOrder)}
+        isSubmitting={settleMutation.isPending}
+        onConfirm={handleSettleConfirm}
+        onClose={() => setActiveSettleOrder(null)}
+      />
     </div>
   );
 }

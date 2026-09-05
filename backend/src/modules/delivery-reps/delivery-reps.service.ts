@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { createHmac } from 'node:crypto';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
@@ -84,6 +85,7 @@ export class DeliveryRepsService {
         national_id: payload.nationalId || null,
         address: payload.address || null,
         vehicle_plate: payload.vehiclePlate || null,
+        pin_code: payload.pinCode || null,
         is_active: payload.isActive !== false,
         ...this.tenantFields(actor),
       } as any)
@@ -115,6 +117,7 @@ export class DeliveryRepsService {
         national_id: payload.nationalId !== undefined ? (payload.nationalId || null) : undefined,
         address: payload.address !== undefined ? (payload.address || null) : undefined,
         vehicle_plate: payload.vehiclePlate !== undefined ? (payload.vehiclePlate || null) : undefined,
+        pin_code: payload.pinCode !== undefined ? (payload.pinCode || null) : undefined,
         is_active: payload.isActive !== undefined ? payload.isActive : undefined,
         updated_at: sql`NOW()`,
       } as any)
@@ -159,10 +162,17 @@ export class DeliveryRepsService {
         'sales.total',
         'sales.delivery_fee as deliveryFee',
         'customers.name as customerName',
+        'customers.phone as customerPhone',
+        'customers.address as customerAddress',
         'sales.order_type as orderType',
         'sales.delivery_rep_id as deliveryRepId',
         'sales.delivery_status as deliveryStatus',
         'sales.collection_status as collectionStatus',
+        sql<string | null>`sales.delivery_signature`.as('deliverySignature'),
+        sql<string | null>`sales.delivery_photo_url`.as('deliveryPhotoUrl'),
+        sql<number | null>`sales.delivery_gps_lat`.as('deliveryGpsLat'),
+        sql<number | null>`sales.delivery_gps_lng`.as('deliveryGpsLng'),
+        sql<string | null>`sales.delivery_notes`.as('deliveryNotes'),
         'sales.settled_at as settledAt',
         'sales.created_at as createdAt',
         'settled_user.username as settledByName',
@@ -295,7 +305,11 @@ export class DeliveryRepsService {
     };
   }
 
-  async settleOrder(saleId: number, actor: AuthContext): Promise<Record<string, unknown>> {
+  async settleOrder(
+    saleId: number,
+    actor: AuthContext,
+    payload?: { signatureDataUrl?: string; proofPhotoUrl?: string; gpsLat?: number; gpsLng?: number; notes?: string }
+  ): Promise<Record<string, unknown>> {
     const sale = await this.db
       .selectFrom('sales')
       .select(['id', 'total', 'delivery_fee', 'delivery_fee_mode', 'delivery_status', 'delivery_rep_id', 'collection_status', 'customer_id'])
@@ -346,14 +360,21 @@ export class DeliveryRepsService {
         await this.accountingPosting.postDeliveryRepSettlement(trx, saleId, settledCashAmount, branchId, locationId, actor);
       }
 
+      const updateData: Record<string, any> = {
+        delivery_status: 'settled',
+        settled_at: sql`NOW()`,
+        settled_by: actor.userId,
+        updated_at: sql`NOW()`,
+      };
+      if (payload?.signatureDataUrl) updateData.delivery_signature = payload.signatureDataUrl;
+      if (payload?.proofPhotoUrl) updateData.delivery_photo_url = payload.proofPhotoUrl;
+      if (payload?.gpsLat !== undefined && payload?.gpsLat !== null) updateData.delivery_gps_lat = payload.gpsLat;
+      if (payload?.gpsLng !== undefined && payload?.gpsLng !== null) updateData.delivery_gps_lng = payload.gpsLng;
+      if (payload?.notes) updateData.delivery_notes = payload.notes;
+
       await trx
         .updateTable('sales')
-        .set({
-          delivery_status: 'settled',
-          settled_at: sql`NOW()`,
-          settled_by: actor.userId,
-          updated_at: sql`NOW()`,
-        })
+        .set(updateData)
         .where('id', '=', saleId)
         .where(this.tenantPredicate(actor))
         .execute();
@@ -462,5 +483,162 @@ export class DeliveryRepsService {
 
     await this.audit.log('تسوية كل الطلبات', `تمت تسوية ${result.settledCount} طلب للمندوب #${repId} بواسطة ${actor.username}`, actor);
     return { ok: true, settledCount: result.settledCount, totalAmount: result.totalAmount };
+  }
+
+  async driverLogin(payload: { phone: string; pinCode: string }): Promise<{ token: string; rep: Record<string, unknown> }> {
+    const rawPhone = String(payload?.phone || '').trim();
+    const pinCode = String(payload?.pinCode || '').trim();
+    if (!rawPhone || !pinCode) {
+      throw new AppError('رقم الهاتف ورمز الدخول السريع (PIN) مطلوبان', 'INVALID_CREDENTIALS', 400);
+    }
+
+    const cleanDigits = rawPhone.replace(/\D/g, '');
+    const cleanNoCountry = cleanDigits.startsWith('20') ? cleanDigits.slice(2) : (cleanDigits.startsWith('0') ? cleanDigits.slice(1) : cleanDigits);
+
+    const reps = await this.db
+      .selectFrom('delivery_representatives')
+      .selectAll()
+      .where('is_active', '=', true)
+      .execute();
+
+    const matchedRep = reps.find((r) => {
+      if (!r.phone || !r.pin_code) return false;
+      const rDigits = String(r.phone).replace(/\D/g, '');
+      const rNoCountry = rDigits.startsWith('20') ? rDigits.slice(2) : (rDigits.startsWith('0') ? rDigits.slice(1) : rDigits);
+      return (rNoCountry === cleanNoCountry || rDigits === cleanDigits) && String(r.pin_code).trim() === pinCode;
+    });
+
+    if (!matchedRep) {
+      throw new AppError('بيانات الدخول غير صحيحة أو حساب المندوب غير مفعّل', 'UNAUTHORIZED_DRIVER', 401);
+    }
+
+    const tokenPayload = {
+      repId: Number(matchedRep.id),
+      tenantId: matchedRep.tenant_id,
+      accountId: matchedRep.account_id,
+      name: matchedRep.name,
+      phone: matchedRep.phone,
+      iat: Date.now(),
+      exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
+    };
+
+    const tokenSecret = process.env.SESSION_SECRET || 'zs-delivery-secret-token-key-2026';
+    const payloadEncoded = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
+    const signature = createHmac('sha256', tokenSecret).update(payloadEncoded).digest('base64url');
+    const token = `${payloadEncoded}.${signature}`;
+
+    return {
+      token,
+      rep: {
+        id: matchedRep.id,
+        name: matchedRep.name,
+        fullName: matchedRep.full_name,
+        phone: matchedRep.phone,
+        vehiclePlate: matchedRep.vehicle_plate,
+        tenantId: matchedRep.tenant_id,
+      },
+    };
+  }
+
+  verifyDriverToken(token: string): { repId: number; tenantId: string; accountId: string; name: string; phone: string } {
+    if (!token) throw new AppError('غير مصرح - مطلوب تسجيل الدخول', 'UNAUTHORIZED_DRIVER', 401);
+    const cleanToken = token.startsWith('Bearer ') ? token.slice(7).trim() : token.trim();
+    const parts = cleanToken.split('.');
+    if (parts.length !== 2) throw new AppError('رمز الدخول غير صالح', 'INVALID_DRIVER_TOKEN', 401);
+    const [payloadEncoded, signature] = parts;
+    const tokenSecret = process.env.SESSION_SECRET || 'zs-delivery-secret-token-key-2026';
+    const expectedSignature = createHmac('sha256', tokenSecret).update(payloadEncoded).digest('base64url');
+    if (signature !== expectedSignature) {
+      throw new AppError('رمز الدخول غير صالح أو مزور', 'INVALID_DRIVER_TOKEN', 401);
+    }
+    const payload = JSON.parse(Buffer.from(payloadEncoded, 'base64url').toString('utf8'));
+    if (payload.exp && Date.now() > payload.exp) {
+      throw new AppError('انتهت صلاحية جلسة المندوب، يرجى إعادة تسجيل الدخول', 'DRIVER_SESSION_EXPIRED', 401);
+    }
+    return payload;
+  }
+
+  async driverListOrders(repId: number, tenantId: string, filters?: { dateFrom?: string; dateTo?: string; status?: string }): Promise<Record<string, unknown>> {
+    let query = this.db
+      .selectFrom('sales')
+      .leftJoin('customers', 'customers.id', 'sales.customer_id')
+      .select([
+        'sales.id',
+        'sales.doc_no as docNo',
+        'sales.total',
+        'sales.delivery_fee as deliveryFee',
+        'customers.name as customerName',
+        'customers.phone as customerPhone',
+        'customers.address as customerAddress',
+        'sales.order_type as orderType',
+        'sales.delivery_rep_id as deliveryRepId',
+        'sales.delivery_status as deliveryStatus',
+        'sales.collection_status as collectionStatus',
+        sql<string | null>`sales.delivery_signature`.as('deliverySignature'),
+        sql<string | null>`sales.delivery_photo_url`.as('deliveryPhotoUrl'),
+        sql<number | null>`sales.delivery_gps_lat`.as('deliveryGpsLat'),
+        sql<number | null>`sales.delivery_gps_lng`.as('deliveryGpsLng'),
+        sql<string | null>`sales.delivery_notes`.as('deliveryNotes'),
+        'sales.settled_at as settledAt',
+        'sales.created_at as createdAt',
+      ])
+      .where('sales.delivery_rep_id', '=', repId)
+      .where('sales.tenant_id', '=', tenantId);
+
+    if (filters?.status) {
+      if (filters.status === 'pending') {
+        query = query.where((eb) => eb.or([
+          eb('sales.delivery_status', '!=', 'settled'),
+          eb('sales.delivery_status', 'is', null),
+        ]));
+      } else if (filters.status === 'settled') {
+        query = query.where('sales.delivery_status', '=', 'settled');
+      }
+    }
+
+    const orders = await query.orderBy('sales.created_at', 'desc').execute();
+    return { ok: true, orders };
+  }
+
+  async driverSettleOrder(
+    saleId: number,
+    repId: number,
+    tenantId: string,
+    payload?: { signatureDataUrl?: string; proofPhotoUrl?: string; gpsLat?: number; gpsLng?: number; notes?: string }
+  ): Promise<Record<string, unknown>> {
+    const sale = await this.db
+      .selectFrom('sales')
+      .select(['id', 'delivery_rep_id', 'delivery_status', 'tenant_id'])
+      .where('id', '=', saleId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!sale) throw new AppError('الطلب غير موجود', 'ORDER_NOT_FOUND', 404);
+    if (Number(sale.delivery_rep_id) !== Number(repId)) {
+      throw new AppError('هذا الطلب غير مسند إلى هذا المندوب', 'NOT_ASSIGNED', 403);
+    }
+    if (sale.delivery_status === 'settled') {
+      throw new AppError('تمت تسوية هذا الطلب مسبقاً', 'ALREADY_SETTLED', 400);
+    }
+
+    const updateData: Record<string, any> = {
+      delivery_status: 'settled',
+      settled_at: sql`NOW()`,
+      updated_at: sql`NOW()`,
+    };
+    if (payload?.signatureDataUrl) updateData.delivery_signature = payload.signatureDataUrl;
+    if (payload?.proofPhotoUrl) updateData.delivery_photo_url = payload.proofPhotoUrl;
+    if (payload?.gpsLat !== undefined && payload?.gpsLat !== null) updateData.delivery_gps_lat = payload.gpsLat;
+    if (payload?.gpsLng !== undefined && payload?.gpsLng !== null) updateData.delivery_gps_lng = payload.gpsLng;
+    if (payload?.notes) updateData.delivery_notes = payload.notes;
+
+    await this.db
+      .updateTable('sales')
+      .set(updateData)
+      .where('id', '=', saleId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    return { ok: true, message: 'تم تأكيد تسليم الشحنة بنجاح' };
   }
 }

@@ -28,6 +28,10 @@ export interface StorefrontInfo {
   paymobIntegrationId?: string;
   paymobIframeId?: string;
   paymobHmacSecret?: string;
+  paymobTestMode?: boolean;
+  xpayApiKey?: string;
+  xpayCommunityId?: string;
+  xpayTestMode?: boolean;
   logo_url?: string;
   logoUrl?: string;
 }
@@ -170,11 +174,14 @@ export interface StorefrontSettingsPayload {
   paymobIframeId?: string;
   paymobHmacSecret?: string;
   paymobTestMode?: boolean;
+  xpayApiKey?: string;
+  xpayCommunityId?: string;
+  xpayTestMode?: boolean;
 }
 
 export interface StorefrontPaymentSessionResponse {
   ok: boolean;
-  mode: 'paymob' | 'mock';
+  mode: 'paymob' | 'xpay' | 'mock';
   provider: string;
   orderNumber: string;
   amount: number;
@@ -182,6 +189,7 @@ export interface StorefrontPaymentSessionResponse {
   paymentToken?: string;
   iframeId?: string;
   iframeUrl?: string;
+  transactionId?: string;
   orderId?: string;
   isPaid?: boolean;
   message?: string;

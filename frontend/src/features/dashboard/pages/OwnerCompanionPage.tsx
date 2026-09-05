@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../api/dashboard.api';
 import { useAuthStore } from '@/stores/auth-store';
@@ -8,6 +8,28 @@ import type { DashboardTopItem } from '../api/dashboard.types';
 export function OwnerCompanionPage() {
   const tenant = useAuthStore((state) => state.tenant);
   const [lastUpdated, setLastUpdated] = useState<string>(new Date().toLocaleTimeString('ar-EG'));
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      alert('لتثبيت شاشة المتابعة كتطبيق:\n• أندرويد (Chrome): اضغط على القائمة (⋮) ثم "تثبيت التطبيق" أو "إضافة للشاشة الرئيسية".\n• آيفون (Safari): اضغط زر المشاركة ثم "إضافة إلى الصفحة الرئيسية" (Add to Home Screen).');
+    }
+  };
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const { data, isLoading, isFetching, refetch } = useQuery({
@@ -27,6 +49,69 @@ export function OwnerCompanionPage() {
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px 14px', width: '100%', boxSizing: 'border-box' }} dir="rtl">
+      {/* PWA Install Banner */}
+      {deferredPrompt && (
+        <div
+          style={{
+            background: '#e0e7ff',
+            border: '1px solid #c7d2fe',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '20px' }}>📲</span>
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e1b4b' }}>تثبيت شاشة المتابعة على الهاتف</div>
+              <div style={{ fontSize: '11px', color: '#4338ca' }}>وصول فوري وشاشة كاملة كأي تطبيق أندرويد/آيفون</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleInstallPwa}
+            style={{
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            تثبيت الآن
+          </button>
+        </div>
+      )}
+
+      {/* WhatsApp Live Alerts Notification Pill */}
+      <div
+        style={{
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: '12px',
+          padding: '10px 14px',
+          marginBottom: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '11.5px',
+          color: '#166534',
+        }}
+      >
+        <span style={{ fontSize: '18px' }}>🔔</span>
+        <div>
+          <strong>تنبيهات الواتساب الحية مفعلة:</strong> ستصلك إشعارات إغلاق الورديات والعجز/الزيادة وطلبات المتجر فورياً على هاتفك.
+        </div>
+      </div>
+
       {/* Top Header Card */}
       <div
         style={{

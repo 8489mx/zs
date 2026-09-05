@@ -55,7 +55,7 @@ export class StorefrontService {
       }
     }
 
-    if (!tenant && (cleanSlug === 'default' || cleanSlug === 'almhnds' || cleanSlug === 'almohandes')) {
+    if (!tenant && (cleanSlug === 'default' || cleanSlug === 'almhnds' || cleanSlug === 'slmhnds' || cleanSlug === 'elmhnds' || cleanSlug === 'almohandes' || cleanSlug === 'elmohandes')) {
       tenant = await this.db
         .selectFrom('tenants')
         .selectAll()
@@ -149,21 +149,26 @@ export class StorefrontService {
       }
     } catch {}
 
-    const deliveryZoneRows = await this.db
-      .selectFrom('storefront_delivery_zones')
-      .selectAll()
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where('is_active', '=', true)
-      .orderBy('sort_order', 'asc')
-      .orderBy('name', 'asc')
-      .execute();
+    let deliveryZones: Array<{ id: number; name: string; deliveryFee: number; estimatedTime: string }> = [];
+    try {
+      const deliveryZoneRows = await this.db
+        .selectFrom('storefront_delivery_zones')
+        .selectAll()
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('is_active', '=', true)
+        .orderBy('sort_order', 'asc')
+        .orderBy('name', 'asc')
+        .execute();
 
-    const deliveryZones = deliveryZoneRows.map((z) => ({
-      id: z.id,
-      name: z.name,
-      deliveryFee: Number(z.delivery_fee || 0),
-      estimatedTime: z.estimated_time || '',
-    }));
+      deliveryZones = deliveryZoneRows.map((z) => ({
+        id: z.id,
+        name: z.name,
+        deliveryFee: Number(z.delivery_fee || 0),
+        estimatedTime: z.estimated_time || '',
+      }));
+    } catch {
+      deliveryZones = [];
+    }
 
     const onlinePaymentEnabled = settings.get('storefront_online_payment_enabled') === 'true';
     const onlinePaymentTestMode = settings.get('storefront_paymob_test_mode') !== 'false';
@@ -265,25 +270,27 @@ export class StorefrontService {
       .execute();
 
     // 3. Fetch Real Product Reviews / Ratings Summary
-    const reviewsSummary = await this.db
-      .selectFrom('product_reviews')
-      .select([
-        'product_id',
-        sql<number>`ROUND(AVG(rating)::numeric, 1)`.as('avg_rating'),
-        sql<number>`COUNT(*)::int`.as('review_count'),
-      ])
-      .where(sql<boolean>`tenant_id = ${tenant.id}`)
-      .where('is_approved', '=', true)
-      .groupBy('product_id')
-      .execute();
-
     const ratingMap = new Map<number, { avgRating: number; reviewCount: number }>();
-    for (const r of reviewsSummary) {
-      ratingMap.set(Number(r.product_id), {
-        avgRating: Number(r.avg_rating) || 0,
-        reviewCount: Number(r.review_count) || 0,
-      });
-    }
+    try {
+      const reviewsSummary = await this.db
+        .selectFrom('product_reviews')
+        .select([
+          'product_id',
+          sql<number>`ROUND(AVG(rating)::numeric, 1)`.as('avg_rating'),
+          sql<number>`COUNT(*)::int`.as('review_count'),
+        ])
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('is_approved', '=', true)
+        .groupBy('product_id')
+        .execute();
+
+      for (const r of reviewsSummary) {
+        ratingMap.set(Number(r.product_id), {
+          avgRating: Number(r.avg_rating) || 0,
+          reviewCount: Number(r.review_count) || 0,
+        });
+      }
+    } catch {}
 
     const formattedProducts = products.map((p) => {
       let meta: Record<string, any> = {};
@@ -1365,6 +1372,9 @@ export class StorefrontService {
       paymobIframeId: settings.get('storefront_paymob_iframe_id') || '',
       paymobHmacSecret: settings.get('storefront_paymob_hmac_secret') || '',
       paymobTestMode: settings.get('storefront_paymob_test_mode') !== 'false',
+      xpayApiKey: settings.get('storefront_xpay_api_key') || '',
+      xpayCommunityId: settings.get('storefront_xpay_community_id') || '',
+      xpayTestMode: settings.get('storefront_xpay_test_mode') !== 'false',
     };
   }
 
@@ -1454,6 +1464,9 @@ export class StorefrontService {
     if (payload.paymobIframeId !== undefined) entries.push({ key: 'storefront_paymob_iframe_id', value: payload.paymobIframeId });
     if (payload.paymobHmacSecret !== undefined) entries.push({ key: 'storefront_paymob_hmac_secret', value: payload.paymobHmacSecret });
     if (payload.paymobTestMode !== undefined) entries.push({ key: 'storefront_paymob_test_mode', value: payload.paymobTestMode });
+    if (payload.xpayApiKey !== undefined) entries.push({ key: 'storefront_xpay_api_key', value: payload.xpayApiKey });
+    if (payload.xpayCommunityId !== undefined) entries.push({ key: 'storefront_xpay_community_id', value: payload.xpayCommunityId });
+    if (payload.xpayTestMode !== undefined) entries.push({ key: 'storefront_xpay_test_mode', value: payload.xpayTestMode });
 
     for (const e of entries) {
       await sql`

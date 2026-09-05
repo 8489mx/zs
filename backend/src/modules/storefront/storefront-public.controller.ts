@@ -119,6 +119,21 @@ export class StorefrontPublicController {
   ) {
     return { ok: true, message: 'Paymob callback processed', query };
   }
+
+  @Post('webhooks/xpay')
+  handleXPayWebhook(
+    @Headers() headers: Record<string, any>,
+    @Body() body: any,
+  ) {
+    return this.paymentService.processXPayWebhook(headers, body);
+  }
+
+  @Get('webhooks/xpay')
+  handleXPayCallback(
+    @Query() query: Record<string, any>,
+  ) {
+    return { ok: true, message: 'XPay callback received', query };
+  }
 }
 
 

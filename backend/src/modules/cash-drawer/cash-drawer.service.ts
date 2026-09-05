@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
 import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNote, buildCashDrawerShiftDocNo, computeCashDrawerVariance, filterCashDrawerRows, mapCashDrawerShiftRow, normalizeCashDrawerMovementType, normalizeShiftOpenPayload, paginateCashDrawerRows, summarizeCashDrawerRows, toSignedCashDrawerAmount } from './helpers/cash-drawer.helper';
@@ -9,6 +9,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
+import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
 type ShiftRow = {
   id?: number | string;
@@ -96,6 +97,7 @@ export class CashDrawerService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
     private readonly accountingPosting: AccountingPostingService,
+    @Optional() private readonly whatsappService?: WhatsAppGatewayService,
   ) {}
 
   private toMoney(value: unknown): number { return Number(Number(value || 0).toFixed(2)); }
@@ -704,6 +706,11 @@ export class CashDrawerService {
         await this.accountingPosting.postCashierShiftVariance(trx, shiftId, auth);
       }
     });
+
+    if (this.whatsappService) {
+      void this.whatsappService.sendShiftCloseNotification(shiftId, scope.tenantId).catch(() => undefined);
+    }
+
     const listing = await this.listCashierShifts({}, auth);
     return { ok: true, cashierShifts: listing.cashierShifts, pagination: listing.pagination, summary: listing.summary };
   }

@@ -273,4 +273,98 @@ export class WhatsAppGatewayService {
 
     return { success: true };
   }
+
+  async sendShiftCloseNotification(shiftId: number, tenantId: string): Promise<{ success: boolean; message?: string }> {
+    const cfg = await this.getRawConfig(tenantId);
+    if (!cfg.whatsapp_gateway_enabled) {
+      return { success: false, message: 'بوابة الواتساب غير مفعلة' };
+    }
+
+    const shift = await this.db
+      .selectFrom('cashier_shifts')
+      .selectAll()
+      .where('id', '=', shiftId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+
+    if (!shift) return { success: false, message: 'الوردية غير موجودة' };
+
+    const tenant = await this.db
+      .selectFrom('tenants')
+      .select(['business_name', 'owner_phone'])
+      .where('id', '=', tenantId)
+      .executeTakeFirst();
+
+    const merchantPhone = tenant?.owner_phone;
+    if (!merchantPhone) return { success: false, message: 'رقم هاتف المالك غير مسجل' };
+
+    const cashierUser = shift.opened_by
+      ? await this.db.selectFrom('users').select(['username']).where('id', '=', shift.opened_by).executeTakeFirst()
+      : null;
+
+    const branch = shift.branch_id
+      ? await this.db.selectFrom('branches').select(['name']).where('id', '=', shift.branch_id).executeTakeFirst()
+      : null;
+
+    const businessName = tenant?.business_name || 'منظومة Z-Systems';
+    const cashierName = cashierUser?.username || 'كاشير الوردية';
+    const branchName = branch?.name || 'الفرع الرئيسي';
+    const docNo = shift.doc_no || `#CS-${shift.id}`;
+    const counted = Number(shift.counted_cash || 0).toLocaleString('ar-EG');
+    const expected = Number(shift.expected_cash || 0).toLocaleString('ar-EG');
+    const varianceVal = Number(shift.variance || 0);
+    const varianceText = varianceVal === 0
+      ? 'متطابق تماماً (0 ج.م)'
+      : varianceVal > 0
+        ? `زيادة بمقدار +${varianceVal.toLocaleString('ar-EG')} ج.م 🟢`
+        : `عجز بمقدار ${varianceVal.toLocaleString('ar-EG')} ج.م 🔴`;
+
+    const closeNote = shift.close_note ? `\n📝 ملاحظة: ${shift.close_note}` : '';
+    const closeTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    const msg = `🔔 *إشعار إغلاق وردية كاشير - ${businessName}*\n\n` +
+      `📍 *الفرع:* ${branchName}\n` +
+      `👤 *الكاشير:* ${cashierName}\n` +
+      `🔢 *رقم الوردية:* ${docNo}\n` +
+      `💵 *المتوقع في الصندوق:* ${expected} ج.م\n` +
+      `💰 *الكاش الفعلي المحصي:* ${counted} ج.م\n` +
+      `📊 *الفارق (عجز/زيادة):* ${varianceText}` +
+      closeNote +
+      `\n⏰ *وقت الإغلاق:* ${closeTime}\n\n` +
+      `_تم الإرسال آلياً عبر منظومة Z-Systems_`;
+
+    void this.sendRawMessage(tenantId, merchantPhone, msg).catch(() => undefined);
+    return { success: true };
+  }
+
+  async sendRefundNotification(docNo: string, amount: number, reason: string, tenantId: string, authorName: string): Promise<{ success: boolean; message?: string }> {
+    const cfg = await this.getRawConfig(tenantId);
+    if (!cfg.whatsapp_gateway_enabled) {
+      return { success: false, message: 'بوابة الواتساب غير مفعلة' };
+    }
+
+    const tenant = await this.db
+      .selectFrom('tenants')
+      .select(['business_name', 'owner_phone'])
+      .where('id', '=', tenantId)
+      .executeTakeFirst();
+
+    const merchantPhone = tenant?.owner_phone;
+    if (!merchantPhone) return { success: false, message: 'رقم هاتف المالك غير مسجل' };
+
+    const businessName = tenant?.business_name || 'منظومة Z-Systems';
+    const formattedAmount = Number(amount || 0).toLocaleString('ar-EG');
+    const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+    const msg = `⚠️ *تنبيه عملية مرتجع مبيعات - ${businessName}*\n\n` +
+      `📄 *رقم المرتجع:* #${docNo}\n` +
+      `💰 *المبلغ المسترد للعميل:* ${formattedAmount} ج.م\n` +
+      `👤 *الموظف المنفذ:* ${authorName}\n` +
+      `📝 *السبب:* ${reason || 'لم يُحدد سبب'}\n` +
+      `⏰ *الوقت:* ${time}\n\n` +
+      `_تم الإرسال آلياً للتنبيه والرقابة المالية_`;
+
+    void this.sendRawMessage(tenantId, merchantPhone, msg).catch(() => undefined);
+    return { success: true };
+  }
 }

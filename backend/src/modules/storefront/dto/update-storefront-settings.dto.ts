@@ -110,4 +110,16 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsBoolean()
   paymobTestMode?: boolean;
+
+  @IsOptional()
+  @IsString()
+  xpayApiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  xpayCommunityId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  xpayTestMode?: boolean;
 }

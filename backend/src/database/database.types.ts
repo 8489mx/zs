@@ -602,6 +602,7 @@ export interface DeliveryRepresentativeTable {
   national_id: string | null;
   address: string | null;
   vehicle_plate: string | null;
+  pin_code?: string | null;
   rep_type?: 'freelance' | 'store_fleet' | string | null;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -796,14 +797,20 @@ export interface CashierShiftTable {
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
+  doc_no?: string | null;
   opened_by: number;
+  opening_cash?: number | null;
+  opening_note?: string | null;
   status: string;
   expected_cash: number | null;
   counted_cash: number | null;
+  variance?: number | null;
+  close_note?: string | null;
   branch_id: number | null;
   location_id: number | null;
   closed_at: Date | null;
   closed_by: number | null;
+  created_at?: ColumnType<Date, string | undefined, never>;
 }
 
 export interface ServicesTable {

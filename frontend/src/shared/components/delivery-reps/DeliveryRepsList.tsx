@@ -67,6 +67,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
   const [nationalIdInput, setNationalIdInput] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [vehiclePlateInput, setVehiclePlateInput] = useState('');
+  const [pinCodeInput, setPinCodeInput] = useState('');
 
   const repsQuery = useQuery({
     queryKey: ['delivery-reps'],
@@ -82,6 +83,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
     setNationalIdInput('');
     setAddressInput('');
     setVehiclePlateInput('');
+    setPinCodeInput('');
   };
 
   const createMutation = useMutation({
@@ -140,6 +142,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
     const payload: UpsertDeliveryRepPayload = {
       name: nameInput.trim(),
       phone: phoneInput.trim() || undefined,
+      pinCode: pinCodeInput.trim() || undefined,
       fullName: fullNameInput.trim() || undefined,
       nationalId: nationalIdInput.trim() || undefined,
       address: addressInput.trim() || undefined,
@@ -157,6 +160,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
     setEditingRep(rep);
     setNameInput(rep.name || '');
     setPhoneInput(rep.phone || '');
+    setPinCodeInput(rep.pin_code || '');
     setFullNameInput(rep.full_name || '');
     setNationalIdInput(rep.national_id || '');
     setAddressInput(rep.address || '');
@@ -168,6 +172,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
     setEditingRep(null);
     setNameInput('');
     setPhoneInput('');
+    setPinCodeInput('');
     setFullNameInput('');
     setNationalIdInput('');
     setAddressInput('');
@@ -177,10 +182,41 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '12px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ padding: '12px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <Button variant="primary" style={{ width: '100%' }} onClick={startAdd}>
-          + إضافة مندوب
+          + إضافة مندوب جديد
         </Button>
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#1e293b' }}>
+            <span style={{ fontSize: '16px' }}>🛵</span>
+            <div>
+              <div style={{ fontWeight: 700 }}>بوابة المندوب للموبايل:</div>
+              <code style={{ fontSize: '11px', color: '#0369a1', direction: 'ltr', display: 'inline-block' }}>/driver</code>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <Button
+              variant="secondary"
+              style={{ fontSize: '11px', padding: '4px 8px' }}
+              onClick={() => {
+                const url = window.location.origin + '/driver';
+                navigator.clipboard.writeText(url);
+                systemAlert('تم نسخ رابط بوابة المندوب إلى الحافظة!\n' + url);
+              }}
+              title="نسخ الرابط لمشاركته مع المناديب على الواتساب"
+            >
+              نسخ الرابط
+            </Button>
+            <Button
+              variant="secondary"
+              style={{ fontSize: '11px', padding: '4px 8px', background: '#170e5e', color: '#ffffff', borderColor: '#170e5e' }}
+              onClick={() => window.open('/driver', '_blank')}
+              title="فتح بوابة المندوب في نافذة جديدة للتجربة"
+            >
+              فتح البوابة ↗
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Modal Dialog for Add / Edit Delivery Rep */}
@@ -215,9 +251,9 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
             
             {/* Section 1: Essential Info */}
             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>البيانات الأساسية (إجباري)</span>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>البيانات الأساسية وتطبيق الموبايل</span>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
                     اسم المندوب / الشهرة *
@@ -241,6 +277,21 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
                     value={phoneInput} 
                     onChange={e => setPhoneInput(e.target.value)}
                     style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box', direction: 'ltr', textAlign: 'right' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                    رمز الدخول (PIN)
+                  </label>
+                  <input 
+                    type="password" 
+                    maxLength={6}
+                    placeholder="مثال: 1234" 
+                    value={pinCodeInput} 
+                    onChange={e => setPinCodeInput(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', minHeight: '38px', border: '1px solid #cbd5e1', borderRadius: '7px', fontSize: '13px', background: '#ffffff', boxSizing: 'border-box', direction: 'ltr', textAlign: 'center' }}
+                    title="رمز مكون من 4 أرقام يتيح للمندوب تسجيل الدخول لتطبيق الهاتف"
                   />
                 </div>
               </div>

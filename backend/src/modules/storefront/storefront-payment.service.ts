@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
 
 export interface TenantPaymentConfig {
   enabled: boolean;
-  provider: 'paymob' | 'mock';
+  provider: 'paymob' | 'xpay' | 'mock';
   apiKey: string;
   secretKey?: string;
   publicKey?: string;
@@ -15,6 +15,9 @@ export interface TenantPaymentConfig {
   iframeId: string;
   hmacSecret: string;
   testMode: boolean;
+  xpayApiKey: string;
+  xpayCommunityId: string;
+  xpayTestMode: boolean;
 }
 
 @Injectable()
@@ -61,7 +64,7 @@ export class StorefrontPaymentService {
       }
     }
 
-    if (!tenant && (cleanSlug === 'default' || cleanSlug === 'almhnds' || cleanSlug === 'almohandes')) {
+    if (!tenant && (cleanSlug === 'default' || cleanSlug === 'almhnds' || cleanSlug === 'slmhnds' || cleanSlug === 'elmhnds' || cleanSlug === 'almohandes' || cleanSlug === 'elmohandes')) {
       tenant = await this.db
         .selectFrom('tenants')
         .selectAll()
@@ -94,6 +97,9 @@ export class StorefrontPaymentService {
         'storefront_paymob_iframe_id',
         'storefront_paymob_hmac_secret',
         'storefront_paymob_test_mode',
+        'storefront_xpay_api_key',
+        'storefront_xpay_community_id',
+        'storefront_xpay_test_mode',
       ])
       .execute();
 
@@ -108,12 +114,15 @@ export class StorefrontPaymentService {
     }
 
     const enabled = map.get('storefront_online_payment_enabled') === 'true';
-    const provider = (map.get('storefront_online_payment_provider') || 'paymob') as 'paymob' | 'mock';
+    const provider = (map.get('storefront_online_payment_provider') || 'paymob') as 'paymob' | 'xpay' | 'mock';
     const apiKey = map.get('storefront_paymob_api_key') || '';
     const integrationId = map.get('storefront_paymob_integration_id') || '';
     const iframeId = map.get('storefront_paymob_iframe_id') || '';
     const hmacSecret = map.get('storefront_paymob_hmac_secret') || '';
     const testMode = map.get('storefront_paymob_test_mode') !== 'false';
+    const xpayApiKey = map.get('storefront_xpay_api_key') || '';
+    const xpayCommunityId = map.get('storefront_xpay_community_id') || '';
+    const xpayTestMode = map.get('storefront_xpay_test_mode') !== 'false';
 
     return {
       enabled,
@@ -123,6 +132,9 @@ export class StorefrontPaymentService {
       iframeId,
       hmacSecret,
       testMode,
+      xpayApiKey,
+      xpayCommunityId,
+      xpayTestMode,
     };
   }
 
@@ -160,8 +172,8 @@ export class StorefrontPaymentService {
       throw new BadRequestException('الدفع الإلكتروني غير مفعل في هذا المتجر حالياً.');
     }
 
-    // Try Live Paymob Flow if API key & Integration ID are present and testMode is false
-    if (!config.testMode && config.apiKey && config.integrationId) {
+    // Try Live Paymob Flow if provider is paymob and API key & Integration ID are present
+    if (config.provider === 'paymob' && !config.testMode && config.apiKey && config.integrationId) {
       try {
         const authRes = await fetch('https://accept.paymob.com/api/auth/tokens', {
           method: 'POST',
@@ -254,6 +266,85 @@ export class StorefrontPaymentService {
       } catch (err: any) {
         this.logger.error(`Live Paymob initiation error: ${err.message}`);
       }
+    }
+
+    // Try Live XPay Flow if provider is xpay and credentials are present
+    if (config.provider === 'xpay') {
+      if (config.xpayApiKey && config.xpayCommunityId) {
+        try {
+          const xpayBase = config.xpayTestMode ? 'https://staging.xpay.app' : 'https://community.xpay.app';
+          const phone = order.customer_phone || '01000000000';
+          const formattedPhone = phone.startsWith('+') ? phone : (phone.startsWith('0') ? `+2${phone}` : `+20${phone}`);
+
+          const xpayRes = await fetch(`${xpayBase}/api/v1/payments/pay/variable-amount`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': config.xpayApiKey,
+            },
+            body: JSON.stringify({
+              billing_data: {
+                name: order.customer_name || 'Customer',
+                email: 'customer@z-systems.cloud',
+                phone_number: formattedPhone,
+              },
+              amount: totalAmount,
+              currency: 'EGP',
+              community_id: config.xpayCommunityId,
+              pay_using: 'card',
+              custom_fields: [
+                { field_label: 'OrderNumber', value: order.order_number },
+                { field_label: 'TenantId', value: tenant.id },
+              ],
+            }),
+          });
+
+          if (xpayRes.ok) {
+            const xpayData: any = await xpayRes.json();
+            const iframeUrl = xpayData?.data?.iframe_url || xpayData?.data?.payment_url;
+            const txnId = xpayData?.data?.transaction_id || xpayData?.data?.transaction_uuid;
+
+            if (iframeUrl) {
+              await this.db
+                .updateTable('online_orders')
+                .set({
+                  gateway_provider: 'xpay',
+                  gateway_order_id: String(txnId || ''),
+                  updated_at: new Date(),
+                })
+                .where('id', '=', order.id)
+                .execute();
+
+              return {
+                ok: true,
+                mode: 'xpay',
+                provider: 'xpay',
+                orderNumber: order.order_number,
+                amount: totalAmount,
+                iframeUrl,
+                transactionId: String(txnId || ''),
+                testMode: config.xpayTestMode,
+              };
+            }
+          } else {
+            const errText = await xpayRes.text();
+            this.logger.error(`XPay API response error (${xpayRes.status}): ${errText}`);
+          }
+        } catch (err: any) {
+          this.logger.error(`Live XPay initiation error: ${err.message}`);
+        }
+      }
+
+      // Default XPay Sandbox Simulator
+      return {
+        ok: true,
+        mode: 'mock',
+        provider: 'xpay',
+        orderNumber: order.order_number,
+        amount: totalAmount,
+        testMode: true,
+        message: 'تم تجهيز جلسة الدفع عبر إكس باي في الوضع التجريبي (XPay Sandbox Mode).',
+      };
     }
 
     // Default: Mock / Sandbox Simulator Mode
@@ -359,6 +450,75 @@ export class StorefrontPaymentService {
       }
 
       this.logger.log(`Order ${order.order_number} marked as PAID via Paymob Webhook.`);
+      return { ok: true, status: 'paid', orderNumber: order.order_number };
+    } else {
+      await this.db
+        .updateTable('online_orders')
+        .set({
+          payment_status: 'failed',
+          gateway_response_json: JSON.stringify(body),
+          updated_at: new Date(),
+        })
+        .where('id', '=', order.id)
+        .execute();
+
+      return { ok: true, status: 'failed', orderNumber: order.order_number };
+    }
+  }
+
+  async processXPayWebhook(headers: Record<string, any>, body: any) {
+    this.logger.log(`XPay Webhook received: ${JSON.stringify(body)}`);
+    const data = body?.data || body;
+    const transactionStatus = String(data?.transaction_status || body?.transaction_status || data?.status || '').toUpperCase();
+    const transactionId = String(data?.transaction_id || data?.id || body?.transaction_id || '');
+
+    // Extract orderNumber from custom_fields or payload
+    let orderNumber = '';
+    let tenantId = '';
+    const customFields = Array.isArray(data?.custom_fields) ? data.custom_fields : Array.isArray(body?.custom_fields) ? body.custom_fields : [];
+    for (const f of customFields) {
+      if (f.field_label === 'OrderNumber' || f.label === 'OrderNumber') orderNumber = String(f.value || '');
+      if (f.field_label === 'TenantId' || f.label === 'TenantId') tenantId = String(f.value || '');
+    }
+
+    let orderQuery = this.db.selectFrom('online_orders').selectAll();
+    if (tenantId) {
+      orderQuery = orderQuery.where(sql<boolean>`tenant_id = ${tenantId}`);
+    }
+    if (orderNumber) {
+      orderQuery = orderQuery.where('order_number', '=', orderNumber);
+    } else if (transactionId) {
+      orderQuery = orderQuery.where('gateway_order_id', '=', transactionId);
+    }
+
+    const order = await orderQuery.executeTakeFirst();
+    if (!order) {
+      this.logger.warn(`XPay Webhook received for unknown order. Transaction: ${transactionId}, Order: ${orderNumber}`);
+      return { ok: false, message: 'Order not found' };
+    }
+
+    const isSuccessful = transactionStatus === 'SUCCESSFUL' || transactionStatus === 'SUCCESS' || transactionStatus === 'PAID';
+
+    if (isSuccessful) {
+      await this.db
+        .updateTable('online_orders')
+        .set({
+          payment_status: 'paid',
+          status: 'confirmed',
+          gateway_provider: 'xpay',
+          gateway_transaction_id: transactionId,
+          gateway_response_json: JSON.stringify(body),
+          paid_at: new Date(),
+          updated_at: new Date(),
+        })
+        .where('id', '=', order.id)
+        .execute();
+
+      if (this.whatsappService) {
+        void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
+      }
+
+      this.logger.log(`Order ${order.order_number} marked as PAID via XPay Webhook.`);
       return { ok: true, status: 'paid', orderNumber: order.order_number };
     } else {
       await this.db

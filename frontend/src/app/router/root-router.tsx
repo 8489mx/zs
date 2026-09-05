@@ -134,6 +134,14 @@ const router = createRouter([
     path: '/shop/:slug',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },
+  {
+    path: '/driver',
+    element: createLazyRoute(() => import('@/features/delivery-reps/pages/DriverPortalPage').then((module) => ({ default: module.DriverPortalPage }))),
+  },
+  {
+    path: '/driver-portal',
+    element: <Navigate to="/driver" replace />,
+  },
   { path: '/login', element: <AppGateGuard expected="login"><LoginRoute /></AppGateGuard> },
   {
     path: '/',

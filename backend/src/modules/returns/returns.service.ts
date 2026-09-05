@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
@@ -18,6 +18,7 @@ import { AccountingPostingService } from '../accounting/accounting-posting.servi
 import { IdempotencyService } from '../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../core/idempotency/idempotency.context';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
+import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
 type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null };
@@ -30,6 +31,7 @@ export class ReturnsService {
     private readonly audit: AuditService,
     private readonly accountingPosting: AccountingPostingService,
     private readonly idempotency: IdempotencyService,
+    @Optional() private readonly whatsappService?: WhatsAppGatewayService,
   ) {}
 
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
@@ -269,6 +271,29 @@ export class ReturnsService {
     await this.audit.log('إنشاء مرتجع', auditText, auth);
 
     const result = { ok: true, createdIds: returnIds, id: returnIds[0], returnDocumentId: returnIds[0] };
+
+    // WhatsApp refund notification to owner
+    if (payload.type === 'sale' && this.whatsappService && returnIds[0]) {
+      void (async () => {
+        try {
+          const doc = await this.db
+            .selectFrom('return_documents')
+            .select(['doc_no', 'total'])
+            .where('id', '=', returnIds[0])
+            .where('tenant_id', '=', scope.tenantId)
+            .executeTakeFirst();
+          if (doc) {
+            void this.whatsappService?.sendRefundNotification(
+              doc.doc_no || String(returnIds[0]),
+              Number(doc.total || 0),
+              payload.note || '',
+              scope.tenantId,
+              auth.username
+            ).catch(() => undefined);
+          }
+        } catch {}
+      })();
+    }
 
     // Idempotency: commit the response so future duplicate requests return it
     if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {

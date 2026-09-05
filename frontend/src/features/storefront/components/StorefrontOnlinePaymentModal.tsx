@@ -29,7 +29,10 @@ export function StorefrontOnlinePaymentModal({
   if (!isOpen || !session || !orderData) return null;
 
   const totalAmount = session.amount || orderData.totalAmount;
-  const isPaymobLive = session.mode === 'paymob' && !session.testMode && Boolean(session.iframeUrl);
+  const isLiveIframe = (session.mode === 'paymob' || session.mode === 'xpay') && !session.testMode && Boolean(session.iframeUrl);
+  const providerLabel = session.provider === 'xpay' || session.mode === 'xpay'
+    ? 'إكس باي (XPay)'
+    : (session.provider === 'paymob' || session.mode === 'paymob' ? 'Paymob' : 'بيئة الاختبار التجريبية');
 
   const handleMockPay = async () => {
     setLoading(true);
@@ -61,7 +64,7 @@ export function StorefrontOnlinePaymentModal({
       if (statusRes.ok && statusRes.paymentStatus === 'paid') {
         onSuccess({
           orderNumber: session.orderNumber,
-          transactionId: statusRes.gatewayTransactionId || 'PAYMOB-PAID',
+          transactionId: statusRes.gatewayTransactionId || `${(session.provider || 'ONLINE').toUpperCase()}-PAID`,
         });
       } else {
         setErrorMsg('لم يتم رصد تأكيد الدفع بعد، يرجى استكمال البيانات في النافذة أو المحاولة مجدداً.');
@@ -92,7 +95,7 @@ export function StorefrontOnlinePaymentModal({
       <div
         style={{
           width: '100%',
-          maxWidth: isPaymobLive ? '640px' : '460px',
+          maxWidth: isLiveIframe ? '640px' : '460px',
           maxHeight: 'min(94vh, 750px)',
           background: '#ffffff',
           borderRadius: '20px',
@@ -118,7 +121,7 @@ export function StorefrontOnlinePaymentModal({
             <span style={{ fontSize: '20px' }}>🔒</span>
             <div>
               <div style={{ fontSize: '14px', fontWeight: 800 }}>
-                {isPaymobLive ? 'بوابة الدفع الآمنة (Paymob)' : 'بوابة الدفع الإلكتروني (بيئة الاختبار التجريبية)'}
+                {isLiveIframe ? `بوابة الدفع الآمنة (${providerLabel})` : `بوابة الدفع الإلكتروني (${providerLabel} - تجريبي)`}
               </div>
               <div style={{ fontSize: '11px', opacity: 0.85 }}>
                 طلب رقم: #{session.orderNumber} • الإجمالي: {totalAmount.toFixed(0)} ج.م
@@ -163,15 +166,15 @@ export function StorefrontOnlinePaymentModal({
             </div>
           )}
 
-          {isPaymobLive ? (
-            /* Paymob Embedded Iframe */
+          {isLiveIframe && session.iframeUrl ? (
+            /* Embedded Iframe */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <iframe
                 src={session.iframeUrl}
-                title="Paymob Payment"
+                title={session.provider === 'xpay' ? 'XPay Payment' : 'Paymob Payment'}
                 style={{
                   width: '100%',
-                  height: '460px',
+                  height: '480px',
                   border: '1px solid #e2e8f0',
                   borderRadius: '12px',
                 }}
@@ -210,7 +213,7 @@ export function StorefrontOnlinePaymentModal({
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
                   <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', opacity: 0.9 }}>
-                    BANK CARD • تجريبي
+                    {session.provider === 'xpay' ? 'XPAY' : 'BANK CARD'} • تجريبي
                   </span>
                   <span style={{ fontSize: '18px', fontWeight: 900, fontStyle: 'italic', letterSpacing: '1px' }}>
                     VISA
