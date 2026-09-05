@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
 
 export interface TenantPaymentConfig {
   enabled: boolean;
-  provider: 'paymob' | 'xpay' | 'mock';
+  provider: 'paymob' | 'xpay' | 'tap' | 'stripe' | 'mock';
   apiKey: string;
   secretKey?: string;
   publicKey?: string;
@@ -18,6 +18,13 @@ export interface TenantPaymentConfig {
   xpayApiKey: string;
   xpayCommunityId: string;
   xpayTestMode: boolean;
+  tapSecretKey: string;
+  tapPublishableKey: string;
+  tapTestMode: boolean;
+  stripeSecretKey: string;
+  stripePublishableKey: string;
+  stripeWebhookSecret: string;
+  stripeTestMode: boolean;
 }
 
 @Injectable()
@@ -100,6 +107,13 @@ export class StorefrontPaymentService {
         'storefront_xpay_api_key',
         'storefront_xpay_community_id',
         'storefront_xpay_test_mode',
+        'storefront_tap_secret_key',
+        'storefront_tap_publishable_key',
+        'storefront_tap_test_mode',
+        'storefront_stripe_secret_key',
+        'storefront_stripe_publishable_key',
+        'storefront_stripe_webhook_secret',
+        'storefront_stripe_test_mode',
       ])
       .execute();
 
@@ -114,7 +128,7 @@ export class StorefrontPaymentService {
     }
 
     const enabled = map.get('storefront_online_payment_enabled') === 'true';
-    const provider = (map.get('storefront_online_payment_provider') || 'paymob') as 'paymob' | 'xpay' | 'mock';
+    const provider = (map.get('storefront_online_payment_provider') || 'paymob') as 'paymob' | 'xpay' | 'tap' | 'stripe' | 'mock';
     const apiKey = map.get('storefront_paymob_api_key') || '';
     const integrationId = map.get('storefront_paymob_integration_id') || '';
     const iframeId = map.get('storefront_paymob_iframe_id') || '';
@@ -123,6 +137,13 @@ export class StorefrontPaymentService {
     const xpayApiKey = map.get('storefront_xpay_api_key') || '';
     const xpayCommunityId = map.get('storefront_xpay_community_id') || '';
     const xpayTestMode = map.get('storefront_xpay_test_mode') !== 'false';
+    const tapSecretKey = map.get('storefront_tap_secret_key') || '';
+    const tapPublishableKey = map.get('storefront_tap_publishable_key') || '';
+    const tapTestMode = map.get('storefront_tap_test_mode') !== 'false';
+    const stripeSecretKey = map.get('storefront_stripe_secret_key') || '';
+    const stripePublishableKey = map.get('storefront_stripe_publishable_key') || '';
+    const stripeWebhookSecret = map.get('storefront_stripe_webhook_secret') || '';
+    const stripeTestMode = map.get('storefront_stripe_test_mode') !== 'false';
 
     return {
       enabled,
@@ -135,6 +156,13 @@ export class StorefrontPaymentService {
       xpayApiKey,
       xpayCommunityId,
       xpayTestMode,
+      tapSecretKey,
+      tapPublishableKey,
+      tapTestMode,
+      stripeSecretKey,
+      stripePublishableKey,
+      stripeWebhookSecret,
+      stripeTestMode,
     };
   }
 
@@ -344,6 +372,245 @@ export class StorefrontPaymentService {
         amount: totalAmount,
         testMode: true,
         message: 'تم تجهيز جلسة الدفع عبر إكس باي في الوضع التجريبي (XPay Sandbox Mode).',
+      };
+    }
+
+    // 3. Tap Payments (GCC - Mada 🇸🇦, KNET 🇰🇼, NAPS 🇶🇦, Apple Pay 🍎)
+    if (config.provider === 'tap') {
+      if (config.tapSecretKey) {
+        try {
+          const currencyRow = await this.db
+            .selectFrom('settings')
+            .select(['value'])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where('key', '=', 'currency')
+            .executeTakeFirst();
+          let currency = 'SAR';
+          if (currencyRow?.value) {
+            try {
+              const parsed = JSON.parse(currencyRow.value);
+              currency = typeof parsed === 'string' ? parsed : String(parsed);
+            } catch {
+              currency = currencyRow.value;
+            }
+          }
+          if (!currency || currency === 'EGP') {
+            currency = 'SAR';
+          }
+
+          const rawPhone = (order.customer_phone || '500000000').replace(/[^0-9]/g, '');
+          let countryCode = '966';
+          let phoneNum = rawPhone;
+          if (rawPhone.startsWith('966')) {
+            countryCode = '966';
+            phoneNum = rawPhone.slice(3);
+          } else if (rawPhone.startsWith('965')) {
+            countryCode = '965';
+            phoneNum = rawPhone.slice(3);
+          } else if (rawPhone.startsWith('974')) {
+            countryCode = '974';
+            phoneNum = rawPhone.slice(3);
+          } else if (rawPhone.startsWith('971')) {
+            countryCode = '971';
+            phoneNum = rawPhone.slice(3);
+          } else if (rawPhone.startsWith('20')) {
+            countryCode = '20';
+            phoneNum = rawPhone.slice(2);
+          } else if (rawPhone.startsWith('0')) {
+            phoneNum = rawPhone.slice(1);
+          }
+
+          const domain = tenant.custom_domain || `${tenant.slug}.z-systems.cloud`;
+          const tapPayload = {
+            amount: Number(totalAmount.toFixed(2)),
+            currency: currency.toUpperCase(),
+            threeDSecure: true,
+            save_card: false,
+            description: `Order #${order.order_number} - ${tenant.business_name}`,
+            statement_descriptor: `Store ${tenant.slug}`,
+            metadata: {
+              orderNumber: order.order_number,
+              tenantId: tenant.id,
+            },
+            reference: {
+              transaction: order.order_number,
+              order: order.order_number,
+            },
+            receipt: {
+              email: false,
+              sms: false,
+            },
+            customer: {
+              first_name: order.customer_name?.split(' ')[0] || 'Customer',
+              last_name: order.customer_name?.split(' ').slice(1).join(' ') || 'Storefront',
+              email: 'customer@z-systems.cloud',
+              phone: {
+                country_code: countryCode,
+                number: phoneNum || '500000000',
+              },
+            },
+            source: { id: 'src_all' }, // Unified checkout: Mada, KNET, NAPS, Benefit, Apple Pay, Visa, MC
+            redirect: {
+              url: `https://${domain}/storefront/orders?orderNumber=${order.order_number}`,
+            },
+            post: {
+              url: `https://z-systems.cloud/api/storefront/webhooks/tap`,
+            },
+          };
+
+          const tapRes = await fetch('https://api.tap.company/v2/charges', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${config.tapSecretKey.trim()}`,
+            },
+            body: JSON.stringify(tapPayload),
+          });
+
+          if (tapRes.ok) {
+            const tapData: any = await tapRes.json();
+            const chargeUrl = tapData?.transaction?.url;
+            const chargeId = tapData?.id;
+
+            if (chargeUrl) {
+              await this.db
+                .updateTable('online_orders')
+                .set({
+                  gateway_provider: 'tap',
+                  gateway_order_id: String(chargeId || ''),
+                  updated_at: new Date(),
+                })
+                .where('id', '=', order.id)
+                .execute();
+
+              return {
+                ok: true,
+                mode: 'tap',
+                provider: 'tap',
+                orderNumber: order.order_number,
+                amount: totalAmount,
+                currency,
+                iframeUrl: chargeUrl,
+                checkoutUrl: chargeUrl,
+                transactionId: String(chargeId || ''),
+                testMode: config.tapTestMode,
+              };
+            }
+          } else {
+            const errText = await tapRes.text();
+            this.logger.error(`Tap API response error (${tapRes.status}): ${errText}`);
+          }
+        } catch (err: any) {
+          this.logger.error(`Live Tap initiation error: ${err.message}`);
+        }
+      }
+
+      // Default Tap Sandbox Simulator
+      return {
+        ok: true,
+        mode: 'mock',
+        provider: 'tap',
+        orderNumber: order.order_number,
+        amount: totalAmount,
+        testMode: true,
+        message: 'تم تجهيز جلسة الدفع عبر تاب للمدفوعات (Tap Payments GCC Sandbox - مدى / KNET / Apple Pay).',
+      };
+    }
+
+    // 4. Stripe (International Cards & Apple Pay / Google Pay)
+    if (config.provider === 'stripe') {
+      if (config.stripeSecretKey) {
+        try {
+          const currencyRow = await this.db
+            .selectFrom('settings')
+            .select(['value'])
+            .where(sql<boolean>`tenant_id = ${tenant.id}`)
+            .where('key', '=', 'currency')
+            .executeTakeFirst();
+          let currency = 'USD';
+          if (currencyRow?.value) {
+            try {
+              const parsed = JSON.parse(currencyRow.value);
+              currency = typeof parsed === 'string' ? parsed : String(parsed);
+            } catch {
+              currency = currencyRow.value;
+            }
+          }
+
+          const domain = tenant.custom_domain || `${tenant.slug}.z-systems.cloud`;
+          const successUrl = `https://${domain}/storefront/orders?orderNumber=${order.order_number}&payment=success`;
+          const cancelUrl = `https://${domain}/storefront/orders?orderNumber=${order.order_number}&payment=cancel`;
+
+          const params = new URLSearchParams();
+          params.append('payment_method_types[0]', 'card');
+          params.append('mode', 'payment');
+          params.append('client_reference_id', `${tenant.id}__${order.order_number}`);
+          params.append('metadata[orderNumber]', order.order_number);
+          params.append('metadata[tenantId]', tenant.id);
+          params.append('line_items[0][price_data][currency]', currency.toLowerCase());
+          params.append('line_items[0][price_data][product_data][name]', `طلب رقم #${order.order_number}`);
+          params.append('line_items[0][price_data][product_data][description]', `متجر ${tenant.business_name}`);
+          params.append('line_items[0][price_data][unit_amount]', String(Math.round(totalAmount * 100)));
+          params.append('line_items[0][quantity]', '1');
+          params.append('success_url', successUrl);
+          params.append('cancel_url', cancelUrl);
+
+          const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              Authorization: `Bearer ${config.stripeSecretKey.trim()}`,
+            },
+            body: params.toString(),
+          });
+
+          if (stripeRes.ok) {
+            const stripeData: any = await stripeRes.json();
+            const sessionUrl = stripeData?.url;
+            const sessionId = stripeData?.id;
+
+            if (sessionUrl) {
+              await this.db
+                .updateTable('online_orders')
+                .set({
+                  gateway_provider: 'stripe',
+                  gateway_order_id: String(sessionId || ''),
+                  updated_at: new Date(),
+                })
+                .where('id', '=', order.id)
+                .execute();
+
+              return {
+                ok: true,
+                mode: 'stripe',
+                provider: 'stripe',
+                orderNumber: order.order_number,
+                amount: totalAmount,
+                currency,
+                iframeUrl: sessionUrl,
+                checkoutUrl: sessionUrl,
+                transactionId: String(sessionId || ''),
+                testMode: config.stripeTestMode,
+              };
+            }
+          } else {
+            const errText = await stripeRes.text();
+            this.logger.error(`Stripe API response error (${stripeRes.status}): ${errText}`);
+          }
+        } catch (err: any) {
+          this.logger.error(`Live Stripe initiation error: ${err.message}`);
+        }
+      }
+
+      // Default Stripe Sandbox Simulator
+      return {
+        ok: true,
+        mode: 'mock',
+        provider: 'stripe',
+        orderNumber: order.order_number,
+        amount: totalAmount,
+        testMode: true,
+        message: 'تم تجهيز جلسة الدفع عبر سترايب في الوضع التجريبي (Stripe Sandbox Mode).',
       };
     }
 
@@ -606,5 +873,137 @@ export class StorefrontPaymentService {
       gatewayTransactionId: order.gateway_transaction_id || null,
       paidAt: order.paid_at || null,
     };
+  }
+
+  async processTapWebhook(headers: Record<string, any>, body: any) {
+    this.logger.log(`Tap Webhook received: ${JSON.stringify(body)}`);
+    const chargeId = String(body?.id || '');
+    const status = String(body?.status || '').toUpperCase();
+    const metadata = body?.metadata || {};
+    const reference = body?.reference || {};
+
+    let orderNumber = String(metadata?.orderNumber || reference?.order || reference?.transaction || '');
+    let tenantId = String(metadata?.tenantId || '');
+
+    let orderQuery = this.db.selectFrom('online_orders').selectAll();
+    if (tenantId) {
+      orderQuery = orderQuery.where(sql<boolean>`tenant_id = ${tenantId}`);
+    }
+    if (orderNumber) {
+      orderQuery = orderQuery.where('order_number', '=', orderNumber);
+    } else if (chargeId) {
+      orderQuery = orderQuery.where('gateway_order_id', '=', chargeId);
+    }
+
+    const order = await orderQuery.executeTakeFirst();
+    if (!order) {
+      this.logger.warn(`Tap Webhook received for unknown order. ChargeId: ${chargeId}, Order: ${orderNumber}`);
+      return { ok: false, message: 'Order not found' };
+    }
+
+    const isSuccessful = status === 'CAPTURED' || status === 'PAID' || status === 'SUCCESS';
+
+    if (isSuccessful) {
+      await this.db
+        .updateTable('online_orders')
+        .set({
+          payment_status: 'paid',
+          status: 'confirmed',
+          gateway_provider: 'tap',
+          gateway_transaction_id: chargeId,
+          gateway_response_json: JSON.stringify(body),
+          paid_at: new Date(),
+          updated_at: new Date(),
+        })
+        .where('id', '=', order.id)
+        .execute();
+
+      if (this.whatsappService) {
+        void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
+      }
+
+      this.logger.log(`Order ${order.order_number} marked as PAID via Tap Webhook.`);
+      return { ok: true, status: 'paid', orderNumber: order.order_number };
+    } else if (status === 'DECLINED' || status === 'CANCELLED' || status === 'FAILED') {
+      await this.db
+        .updateTable('online_orders')
+        .set({
+          payment_status: 'failed',
+          gateway_response_json: JSON.stringify(body),
+          updated_at: new Date(),
+        })
+        .where('id', '=', order.id)
+        .execute();
+
+      return { ok: true, status: 'failed', orderNumber: order.order_number };
+    }
+
+    return { ok: true, status: status.toLowerCase(), orderNumber: order.order_number };
+  }
+
+  async processStripeWebhook(headers: Record<string, any>, body: any) {
+    this.logger.log(`Stripe Webhook received: ${body?.type}`);
+    const eventType = String(body?.type || '');
+    const obj = body?.data?.object || body;
+
+    let orderNumber = String(obj?.metadata?.orderNumber || '');
+    let tenantId = String(obj?.metadata?.tenantId || '');
+    const clientRef = String(obj?.client_reference_id || '');
+
+    if (!orderNumber && clientRef.includes('__')) {
+      const parts = clientRef.split('__');
+      tenantId = parts[0];
+      orderNumber = parts.slice(1).join('__');
+    }
+
+    const sessionId = String(obj?.id || '');
+
+    let orderQuery = this.db.selectFrom('online_orders').selectAll();
+    if (tenantId) {
+      orderQuery = orderQuery.where(sql<boolean>`tenant_id = ${tenantId}`);
+    }
+    if (orderNumber) {
+      orderQuery = orderQuery.where('order_number', '=', orderNumber);
+    } else if (sessionId) {
+      orderQuery = orderQuery.where('gateway_order_id', '=', sessionId);
+    }
+
+    const order = await orderQuery.executeTakeFirst();
+    if (!order) {
+      this.logger.warn(`Stripe Webhook received for unknown order: Session: ${sessionId}, Order: ${orderNumber}`);
+      return { ok: false, message: 'Order not found' };
+    }
+
+    const isSuccessful =
+      eventType === 'checkout.session.completed' ||
+      eventType === 'payment_intent.succeeded' ||
+      obj?.payment_status === 'paid' ||
+      obj?.status === 'complete';
+
+    if (isSuccessful) {
+      const txnId = String(obj?.payment_intent || obj?.id || '');
+      await this.db
+        .updateTable('online_orders')
+        .set({
+          payment_status: 'paid',
+          status: 'confirmed',
+          gateway_provider: 'stripe',
+          gateway_transaction_id: txnId,
+          gateway_response_json: JSON.stringify(body),
+          paid_at: new Date(),
+          updated_at: new Date(),
+        })
+        .where('id', '=', order.id)
+        .execute();
+
+      if (this.whatsappService) {
+        void this.whatsappService.sendOnlineOrderNotification(order.id, order.tenant_id).catch(() => undefined);
+      }
+
+      this.logger.log(`Order ${order.order_number} marked as PAID via Stripe Webhook.`);
+      return { ok: true, status: 'paid', orderNumber: order.order_number };
+    }
+
+    return { ok: true, received: true };
   }
 }

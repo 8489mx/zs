@@ -101,37 +101,40 @@ export const migration = {
         price = EXCLUDED.price;
     `.execute(db);
 
-    // 8. Safely re-link and clean up duplicate legacy saas_plans before normalizing
+    // 8. Safely normalize codes of legacy saas_plans if standard uppercase version doesn't exist yet
     await sql`
-      UPDATE tenant_subscriptions
-      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'PRO' LIMIT 1)
-      WHERE plan_id IN (SELECT id FROM saas_plans WHERE code = 'pro');
+      UPDATE saas_plans 
+      SET code = 'BASIC' 
+      WHERE LOWER(code) = 'basic' 
+        AND code != 'BASIC' 
+        AND NOT EXISTS (SELECT 1 FROM saas_plans WHERE code = 'BASIC');
     `.execute(db);
 
     await sql`
-      UPDATE tenant_subscriptions
-      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'BASIC' LIMIT 1)
-      WHERE plan_id IN (SELECT id FROM saas_plans WHERE code = 'basic');
+      UPDATE saas_plans 
+      SET code = 'PRO' 
+      WHERE LOWER(code) = 'pro' 
+        AND code != 'PRO' 
+        AND NOT EXISTS (SELECT 1 FROM saas_plans WHERE code = 'PRO');
     `.execute(db);
 
     await sql`
-      UPDATE tenant_subscriptions
-      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'ULTIMATE' LIMIT 1)
-      WHERE plan_id IN (SELECT id FROM saas_plans WHERE code IN ('ultimate', 'enterprise'));
+      UPDATE saas_plans 
+      SET code = 'ULTIMATE' 
+      WHERE LOWER(code) IN ('ultimate', 'enterprise') 
+        AND code != 'ULTIMATE' 
+        AND NOT EXISTS (SELECT 1 FROM saas_plans WHERE code = 'ULTIMATE');
     `.execute(db);
 
     await sql`
-      DELETE FROM saas_plans
-      WHERE code IN ('basic', 'pro', 'enterprise', 'ultimate', 'omnichannel')
-        AND id NOT IN (SELECT id FROM saas_plans WHERE code IN ('BASIC', 'PRO', 'ULTIMATE', 'OMNICHANNEL'));
+      UPDATE saas_plans 
+      SET code = 'OMNICHANNEL' 
+      WHERE LOWER(code) = 'omnichannel' 
+        AND code != 'OMNICHANNEL' 
+        AND NOT EXISTS (SELECT 1 FROM saas_plans WHERE code = 'OMNICHANNEL');
     `.execute(db);
 
-    await sql`UPDATE saas_plans SET code = 'BASIC' WHERE LOWER(code) = 'basic' AND code != 'BASIC'`.execute(db);
-    await sql`UPDATE saas_plans SET code = 'PRO' WHERE LOWER(code) = 'pro' AND code != 'PRO'`.execute(db);
-    await sql`UPDATE saas_plans SET code = 'ULTIMATE' WHERE LOWER(code) IN ('ultimate', 'enterprise') AND code != 'ULTIMATE'`.execute(db);
-    await sql`UPDATE saas_plans SET code = 'OMNICHANNEL' WHERE LOWER(code) = 'omnichannel' AND code != 'OMNICHANNEL'`.execute(db);
-
-    // 9. Upsert the 4 standardized production plans
+    // 9. Upsert the 4 standardized production plans (ensuring they exist before re-linking)
     await sql`
       INSERT INTO saas_plans (code, name, price, currency, billing_period_months, max_users, max_branches, feature_plan_id, is_active)
       VALUES 
@@ -192,7 +195,32 @@ export const migration = {
         is_active = true;
     `.execute(db);
 
-    // 10. Re-link any subscriptions pointing to other/invalid plans to BASIC plan before deletion
+    // 10. Safely re-link any subscriptions pointing to legacy/duplicate plans to standard plans
+    await sql`
+      UPDATE tenant_subscriptions
+      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'PRO' LIMIT 1)
+      WHERE plan_id IN (SELECT id FROM saas_plans WHERE LOWER(code) = 'pro' AND code != 'PRO');
+    `.execute(db);
+
+    await sql`
+      UPDATE tenant_subscriptions
+      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'BASIC' LIMIT 1)
+      WHERE plan_id IN (SELECT id FROM saas_plans WHERE LOWER(code) = 'basic' AND code != 'BASIC');
+    `.execute(db);
+
+    await sql`
+      UPDATE tenant_subscriptions
+      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'ULTIMATE' LIMIT 1)
+      WHERE plan_id IN (SELECT id FROM saas_plans WHERE LOWER(code) IN ('ultimate', 'enterprise') AND code != 'ULTIMATE');
+    `.execute(db);
+
+    await sql`
+      UPDATE tenant_subscriptions
+      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'OMNICHANNEL' LIMIT 1)
+      WHERE plan_id IN (SELECT id FROM saas_plans WHERE LOWER(code) = 'omnichannel' AND code != 'OMNICHANNEL');
+    `.execute(db);
+
+    // Re-link any subscriptions pointing to other/invalid plans to BASIC plan before deletion
     await sql`
       UPDATE tenant_subscriptions 
       SET plan_id = (SELECT id FROM saas_plans WHERE code = 'BASIC' LIMIT 1)

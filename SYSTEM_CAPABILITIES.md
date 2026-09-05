@@ -38,7 +38,7 @@
 | **تسعير التوصيل الذكي حسب المنطقة/المحافظة** | 🟢 | 100% | `StorefrontDeliveryZonesManager.tsx`, `delivery-zone.dto.ts` | مصفوفة مناطق وشحن، قوالب جاهزة بضغطة زر (محلي وشحن محافظات)، اختيار المنطقة بدقة، وحساب الفاتورة فورياً. |
 | **تكامل واتساب المباشر والتلقائي** | 🟢 | 100% | `storefront.service.ts`, `whatsapp-gateway.service.ts` | توليد رابط رسالة واتساب منسقة بالتفاصيل، وإشعار فوري عبر بوابة الواتساب عند كل طلب جديد. |
 | **استوديو وضبط صور الأصناف** | 🟢 | 100% | `StorefrontProductStudio.tsx`, `image-compressor.ts` | ضغط الصور، قص، ورفع ومعاينة مباشرة لصور الكتالوج والتصنيفات. |
-| **بوابات الدفع الإلكتروني المباشرة والتلقائية (Paymob & XPay & Mock Sandbox)** | 🟢 | 100% | `storefront-payment.service.ts`, `StorefrontPaymentGatewaysManager.tsx`, `StorefrontOnlinePaymentModal.tsx`, `storefront-public.controller.ts` | تكامل مع كبرى بوابات الدفع في مصر: **Paymob** و **إكس باي (XPay)** بخصم البطاقات البنكية (Visa / MasterCard / Meeza)، مع وضع محاكاة تجريبي تفاعلي (Sandbox Simulator)، وتأكيد السداد التلقائي الفوري عبر الـ Webhooks (توقيع HMAC لـ Paymob ومعالجة إشعارات XPay)، وإرسال إشعار الواتساب التلقائي فور السداد. |
+| **بوابات الدفع الإلكتروني المتكاملة (Tap GCC & Stripe & Paymob & XPay & Mock)** | 🟢 | 100% | `storefront-payment.service.ts`, `StorefrontPaymentGatewaysManager.tsx`, `StorefrontOnlinePaymentModal.tsx`, `storefront-public.controller.ts` | دعم متكامل وشامل لـ 5 بوابات دفع رئيسية: **تاب (Tap Payments الخليجية)** لدعم بطاقات مدى السعودية 🇸🇦، شبكة كي نت الكويتية 🇰🇼، بطاقات ناباس القطرية 🇶🇦، وبطاقات بنفت 🇧🇭، و **Stripe العالمية 🌍** لدعم كافة البطاقات الدولية و Apple Pay و Google Pay، بالإضافة إلى **Paymob** و **XPay** للمدفوعات المصرية و **Sandbox Mock**، مع تأكيد سداد آلي عبر الـ Webhooks وإشعارات واتساب فورية. |
 | **لوحة إدارة الطلبات للتاجر** | 🟢 | 100% | `MerchantOnlineOrdersPage.tsx`, `ConvertDeliveryModal.tsx` | متابعة الطلبات، الفلترة حسب الحالة، وتنزيل الطلب بنقرة واحدة في سلة الـ POS أو تحويله مباشرة لفاتورة دليفري مع مندوب. |
 
 ---
@@ -319,15 +319,54 @@
 
 ---
 
-## 21. ما ينقص النظام فعلياً أو يمكن التوسع فيه (Future Expansions & Real Gaps)
+## 21. الربط المتكامل مع شركات الشحن الخارجية (Bosta Couriers API Integration)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:** `backend/src/modules/bosta`, `frontend/src/features/storefront/components/BostaShipmentModal.tsx`, `frontend/src/features/storefront/components/BostaSettingsCard.tsx`, `frontend/src/features/storefront/api/bosta.api.ts`
+* **الجداول في قاعدة البيانات:** `online_orders` (`shipping_carrier`, `bosta_delivery_id`, `bosta_tracking_number`, `bosta_status`, `bosta_awb_url`, `bosta_created_at`), `settings`
 
-بناءً على الفحص الشامل وتحديثات اليوم، كافة الوظائف التشغيلية والـ ERP ولوحات ذكاء الأعمال التفاعلية (Executive BI) وخط النشر المستمر المؤتمت (CI/CD) **مكتملة ومبرمجة بالكامل بنسبة 100%**. 
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **إنشاء بوالص الشحن بضغطة زر من صفحة الطلبات** | 🟢 | 100% | `BostaShipmentModal.tsx`, `bosta.service.ts`, `MerchantOnlineOrdersPage.tsx` | نافذة منبثقة تفاعلية ذكية لحساب الـ COD تلقائياً (تصفير التحصيل للطلبات المسددة أونلاين بالبطاقات، أو تحصيل كامل الفاتورة للدفع عند الاستلام)، مع فحص عنوان العميل وملاحظات المندوب، وإنشاء الشحنة وتوليد رقم التتبع فورياً. |
+| **طباعة ملصق الشحن الحراري AWB المعتمد** | 🟢 | 100% | `bosta.controller.ts`, `BostaShipmentModal.tsx` | صفحة مخصصة متوافقة مع طابعات الباركود والملصقات الحرارية مقاس 4x6 والفواتير العادية، تحتوي على باركود بوسطة والبيانات الكاملة بضغطة زر. |
+| **تتبع مسار الشحنات المباشر (Shipment Tracking)** | 🟢 | 100% | `bosta.service.ts`, `bosta.controller.ts`, `bosta.api.ts` | ربط مباشر ومتابعة حية لحالات الشحنة (تم استلام الطرد، في المستودع، خرج مع المندوب، تم التسليم) مع رابط مباشر لتتبع بوسطة الرسمي. |
+| **البيئة التجريبية والمحاكاة الذكية (Sandbox & Mock Engine)** | 🟢 | 100% | `bosta.service.ts`, `BostaSettingsCard.tsx` | إمكانية التبديل بين وضع المحاكاة التجريبي (Sandbox) والإنتاج الحقيقي، مما يتيح تجربة كافة دورات الشحن وطباعة البوالص دون الحاجة لحساب بوسطة مفعل فورياً. |
+
+---
+
+## 22. منظومة المراقبة والرصد السحابي الاستباقي وتنبيهات التيليجرام (Proactive APM & Telegram Incident Alerts)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:** `backend/src/core/alerts/telegram-alerts.service.ts`, `backend/src/core/health/health.controller.ts`, `.github/workflows/deploy-oracle.yml`, `frontend/src/features/settings/components/workspace-sections/SettingsTelegramAlertsSection.tsx`
+* **البنية التحتية المستهدفة:** سيرفر أوراكل السحابي (Oracle Cloud VPS)
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **بوت تيليجرام لتنبيهات الأعطال الفورية (Telegram Incident Bot)** | 🟢 | 100% | `telegram-alerts.service.ts`, `health.controller.ts` | رصد فوري واستباقي لأي انقطاع في قاعدة بيانات PostgreSQL أو تعطل غير متوقع في الخدمات، مع إرسال رسالة تيليجرام طارئة للمسؤول تتضمن نوع العطل ووقت الحدوث وتفاصيله التقنية. |
+| **إشعارات النشر السحابي التلقائي (CI/CD Deployment Alerts)** | 🟢 | 100% | `deploy-oracle.yml`, `telegram-alerts.service.ts` | إشعار فوري على تيليجرام فور انتهاء خط النشر المؤتمت على سيرفر أوراكل، يوضح حالة النشر (نجاح أو فشل)، رقم الكوميت، اسم المطور، وسلامة نقاط الجاهزية. |
+| **مسبار المؤشرات الحية واستهلاك الموارد (Live APM Metrics)** | 🟢 | 100% | `health.controller.ts`, `SettingsTelegramAlertsSection.tsx` | بطاقات حية في شاشة الإعدادات تعرض: استهلاك ذاكرة الرام (RAM RSS / Heap)، زمن التشغيل المستمر (Uptime)، حالة قاعدة البيانات، وبيئة الخادم الحالية. |
+| **فحص واختبار التنبيهات الفوري** | 🟢 | 100% | `health.controller.ts`, `SettingsTelegramAlertsSection.tsx` | زر فحص مباشر يتيح إرسال تنبيه اختباري إلى قناة أو محادثة تيليجرام للتأكد من صحة الـ Bot Token والـ Chat ID. |
+
+---
+
+## 23. بوابات الدفع الإلكتروني الخليجية والدولية (Tap Payments GCC & Stripe Global Integration)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:** `backend/src/modules/storefront/storefront-payment.service.ts`, `backend/src/modules/storefront/storefront-public.controller.ts`, `frontend/src/features/storefront/components/StorefrontPaymentGatewaysManager.tsx`, `frontend/src/features/storefront/components/StorefrontOnlinePaymentModal.tsx`
+* **الجداول في قاعدة البيانات:** `online_orders`, `settings`, `tenants`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **بوابة تاب للمدفوعات الخليجية (Tap Payments)** | 🟢 | 100% | `storefront-payment.service.ts`, `storefront-public.controller.ts`, `StorefrontPaymentGatewaysManager.tsx` | ربط مباشر ومكتمل مع API منصة Tap Payments (`api.tap.company/v2/charges`) مع دعم موحد (`src_all`) لبطاقات مدى السعودية 🇸🇦، شبكة كي نت الكويتية 🇰🇼، بطاقات ناباس القطرية 🇶🇦، بطاقات بنفت 🇧🇭، و Apple Pay 🍎. معالجة Webhook تلقائية لتحويل الطلبات إلى مدفوعة وإرسال إشعار الواتساب فورياً. |
+| **بوابة سترايب للمدفوعات العالمية (Stripe Global Checkout)** | 🟢 | 100% | `storefront-payment.service.ts`, `storefront-public.controller.ts`, `StorefrontPaymentGatewaysManager.tsx` | تكامل كامل مع Stripe Checkout Sessions لدعم البطاقات الدولية (Visa, MasterCard, Amex) والعملات الأجنبية (USD, EUR, SAR, EGP) و Apple Pay و Google Pay، مع معالجة أحداث الويب هوك وتأكيد السداد التلقائي. |
+| **محاكي البطاقات الخليجية والدولية التفاعلي (GCC & Global Card Simulator)** | 🟢 | 100% | `StorefrontOnlinePaymentModal.tsx` | بطاقة بنكية افتراضية تفاعلية تحاكي بطاقات مدى وكي نت وسترايب مع أزرار تعبئة سريعة لأرقام بطاقات الاختبار، تتيح فحص كامل دورة البيع والتأكيد بدون الحاجة لمفاتيح بنكية حقيقية. |
+| **إدارة مفاتيح الربط والروابط الآلية للتاجر** | 🟢 | 100% | `StorefrontPaymentGatewaysManager.tsx` | بطاقات إعداد متجاوبة وأنيقة لإدخال المفاتيح السرية والعامة لكل بوابة، تبديل وضع التجربة (Sandbox/Staging)، مع نسخ روابط الـ Webhook بنقرة واحدة. |
+
+---
+
+## 24. ما ينقص النظام فعلياً أو يمكن التوسع فيه (Future Expansions & Real Gaps)
 
 | الميزة المقترحة / البديل المنفذ | الحالة | نسبة الإنجاز | الملاحظات والبديل المنجز في النظام |
 | :--- | :---: | :---: | :--- |
-| **المراقبة والرصد الاستباقي للإنتاج (External APM & Uptime Monitoring)** | 🟡 | 60% | نقاط الـ Health Checks متوفرة ومدمجة بالكامل، ونظام Sentry مدمج ومحمي برمجياً؛ يتبقى فقط ربط خدمة مراقبة خارجية مثل UptimeRobot أو BetterStack عند رغبة العميل في إشعارات تيليجرام وسلاك فورية. |
-| **بوابات الدفع الدولية المباشرة (Stripe)** | 🔴 | مقترح | النظام يدعم محلياً Paymob و XPay والماكينات البنكية؛ إذا دعت الحاجة لعملاء من أوروبا وأمريكا يمكن إضافة Stripe كبوابة دولية إضافية. |
-| **تغليف تطبيقات المتاجر الرسمية (Capacitor / TWA)** | 🟢 | 100% | بديل PWA الفوري للمناديب والمالك يعمل بكفاءة تامة دون الحاجة للمتاجر، ويمكن تغليفه إلى APK/AAB بنقرة واحدة عند الرغبة التسويقية. |
+| **شات بوت واتساب التفاعلي (Conversational WhatsApp Bot)** | 🔴 | مقترح | بوابة الواتساب السحابية مدمجة بالكامل لإرسال الإشعارات والروابط والفواتير تلقائياً؛ يمكن مستقبلاً إضافة رد آلي ذكي عبر الذكاء الاصطناعي للرد على استفسارات الأسعار. |
+| **تغليف تطبيقات المتاجر الرسمية (Google Play / App Store)** | 🟢 | 100% | بديل PWA الفوري للمناديب والمالك يعمل بكفاءة تامة دون الحاجة للمتاجر، ويمكن تغليفه إلى APK/AAB بنقرة واحدة عند الرغبة التسويقية. |
 
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*

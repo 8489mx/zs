@@ -12,7 +12,7 @@ async function run(): Promise<void> {
     runFastCleanup: async () => ({ ok: true }),
   };
 
-  const controller = new HealthController({} as any, mockMaintenanceService as any);
+  const controller = new HealthController({} as any, mockMaintenanceService as any, {} as any);
   (controller as any).checkDatabase = async () => ({ status: 'ok', database: 'up' });
 
   const live = controller.getLiveness();
@@ -27,7 +27,7 @@ async function run(): Promise<void> {
   assert.equal(health.environment, 'test');
   assert.equal(health.version, 'test-build');
 
-  const degradedController = new HealthController({} as any, mockMaintenanceService as any);
+  const degradedController = new HealthController({} as any, mockMaintenanceService as any, {} as any);
   (degradedController as any).checkDatabase = async () => ({ status: 'degraded', database: 'down' });
 
   let threw = false;

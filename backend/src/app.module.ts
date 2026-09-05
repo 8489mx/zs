@@ -43,6 +43,7 @@ import { TenantSubscriptionModule } from './modules/tenant-subscription/tenant-s
 import { StorefrontModule } from './modules/storefront/storefront.module';
 import { AiCopilotModule } from './modules/ai-copilot/ai-copilot.module';
 import { JobQueueModule } from './common/queue/job-queue.module';
+import { BostaModule } from './modules/bosta/bosta.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { JobQueueModule } from './common/queue/job-queue.module';
     PharmacyModule,
     StorefrontModule,
     AiCopilotModule,
+    BostaModule,
   ],
 
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],

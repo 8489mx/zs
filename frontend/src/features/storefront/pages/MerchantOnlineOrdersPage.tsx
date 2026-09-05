@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord } from '../types/storefront.types';
 import { ConvertDeliveryModal } from '../components/ConvertDeliveryModal';
+import { BostaShipmentModal } from '../components/BostaShipmentModal';
 import { loadOnlineOrderIntoPosCart } from '../lib/storefront-pos-loader';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
 import { printPostedSaleReceipt } from '@/lib/pos-printing';
@@ -18,6 +19,7 @@ export function MerchantOnlineOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrderRecord | null>(null);
   const [deliveryModalOrder, setDeliveryModalOrder] = useState<OnlineOrderRecord | null>(null);
+  const [bostaModalOrder, setBostaModalOrder] = useState<OnlineOrderRecord | null>(null);
   const [loadingPosOrderId, setLoadingPosOrderId] = useState<number | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
@@ -493,33 +495,87 @@ export function MerchantOnlineOrdersPage() {
                               <span>✓</span>
                               <span>تم التسليم</span>
                             </button>
-                          ) : !order.saleId && order.status !== 'cancelled' ? (
+                          ) : order.bostaTrackingNumber ? (
                             <button
                               type="button"
-                              onClick={() => setDeliveryModalOrder(order)}
-                              title="تحويل فوري لدليفري واختيار مندوب التوصيل"
+                              onClick={() => window.open(`/api/bosta/awb/${order.bostaDeliveryId || order.bostaTrackingNumber}`, '_blank')}
+                              title="طباعة بوليصة شحن بوسطة AWB"
                               style={{
                                 width: '100%',
                                 height: '32px',
                                 fontSize: '11px',
                                 fontWeight: 700,
                                 borderRadius: '7px',
-                                background: '#170e5e',
-                                color: '#ffffff',
-                                border: 'none',
+                                background: '#fff1f2',
+                                color: '#e11d48',
+                                border: '1px solid #fecdd3',
                                 cursor: 'pointer',
                                 whiteSpace: 'nowrap',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '4px',
-                                boxShadow: '0 1px 2px rgba(23,14,94,0.2)',
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <span>⚡</span>
-                              <span>تحويل لدليفري</span>
+                              <span>📦</span>
+                              <span>بوليصة #{order.bostaTrackingNumber}</span>
                             </button>
+                          ) : !order.saleId && order.status !== 'cancelled' ? (
+                            <div style={{ display: 'flex', gap: '4px', width: '100%' }}>
+                              <button
+                                type="button"
+                                onClick={() => setDeliveryModalOrder(order)}
+                                title="تحويل فوري لدليفري واختيار مندوب التوصيل"
+                                style={{
+                                  flex: 1,
+                                  height: '32px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  borderRadius: '7px',
+                                  background: '#170e5e',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '2px',
+                                  boxShadow: '0 1px 2px rgba(23,14,94,0.2)',
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                <span>⚡</span>
+                                <span>دليفري</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setBostaModalOrder(order)}
+                                title="شحن فوري عبر بوسطة وتوليد البوليصة"
+                                style={{
+                                  flex: 1,
+                                  height: '32px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  borderRadius: '7px',
+                                  background: '#e11d48',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '2px',
+                                  boxShadow: '0 1px 2px rgba(225,29,72,0.2)',
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                <span>📦</span>
+                                <span>بوسطة</span>
+                              </button>
+                            </div>
                           ) : order.status === 'delivered' ? (
                             <div
                               style={{
@@ -1053,13 +1109,52 @@ export function MerchantOnlineOrdersPage() {
                     }}
                   >
                     <span>⚡</span>
-                    <span>تحويل لدليفري واختيار المندوب</span>
+                    <span>دليفري داخلي</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ord = selectedOrder;
+                      setSelectedOrder(null);
+                      setBostaModalOrder(ord);
+                    }}
+                    style={{
+                      flex: 1,
+                      background: '#e11d48',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>📦</span>
+                    <span>شحن بوسطة</span>
                   </button>
                 </div>
               )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bosta Courier Express Modal */}
+      {bostaModalOrder && (
+        <BostaShipmentModal
+          order={bostaModalOrder}
+          onClose={() => setBostaModalOrder(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
+            setSelectedOrder(null);
+          }}
+        />
       )}
 
       {/* Delivery Representative & Quick Convert Modal */}

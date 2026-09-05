@@ -32,6 +32,13 @@ export interface StorefrontInfo {
   xpayApiKey?: string;
   xpayCommunityId?: string;
   xpayTestMode?: boolean;
+  tapSecretKey?: string;
+  tapPublishableKey?: string;
+  tapTestMode?: boolean;
+  stripeSecretKey?: string;
+  stripePublishableKey?: string;
+  stripeWebhookSecret?: string;
+  stripeTestMode?: boolean;
   logo_url?: string;
   logoUrl?: string;
 }
@@ -136,6 +143,12 @@ export interface OnlineOrderRecord {
   saleId: number | null;
   deliveryRepName?: string | null;
   deliveryRepPhone?: string | null;
+  shippingCarrier?: 'internal' | 'bosta' | string | null;
+  bostaDeliveryId?: string | null;
+  bostaTrackingNumber?: string | null;
+  bostaStatus?: string | null;
+  bostaAwbUrl?: string | null;
+  bostaCreatedAt?: string | null;
   createdAt: string;
   updatedAt?: string;
   items: Array<{
@@ -146,6 +159,30 @@ export interface OnlineOrderRecord {
     total: number;
     notes?: string;
   }>;
+}
+
+export interface BostaSettings {
+  enabled: boolean;
+  environment: 'sandbox' | 'production';
+  apiKey: string;
+  pickupBusinessName?: string;
+  pickupPhone?: string;
+  pickupCity?: string;
+  pickupAddress?: string;
+}
+
+export interface BostaShipmentPayload {
+  specs?: {
+    packageType?: 'Parcel' | 'Document';
+    size?: 'SMALL' | 'MEDIUM' | 'LARGE';
+    itemsCount: number;
+    description: string;
+    weight?: number;
+  };
+  cod?: number;
+  notes?: string;
+  receiverAddress?: string;
+  receiverCity?: string;
 }
 
 export interface StorefrontSettingsPayload {
@@ -177,18 +214,27 @@ export interface StorefrontSettingsPayload {
   xpayApiKey?: string;
   xpayCommunityId?: string;
   xpayTestMode?: boolean;
+  tapSecretKey?: string;
+  tapPublishableKey?: string;
+  tapTestMode?: boolean;
+  stripeSecretKey?: string;
+  stripePublishableKey?: string;
+  stripeWebhookSecret?: string;
+  stripeTestMode?: boolean;
 }
 
 export interface StorefrontPaymentSessionResponse {
   ok: boolean;
-  mode: 'paymob' | 'xpay' | 'mock';
+  mode: 'paymob' | 'xpay' | 'tap' | 'stripe' | 'mock';
   provider: string;
   orderNumber: string;
   amount: number;
+  currency?: string;
   testMode?: boolean;
   paymentToken?: string;
   iframeId?: string;
   iframeUrl?: string;
+  checkoutUrl?: string;
   transactionId?: string;
   orderId?: string;
   isPaid?: boolean;

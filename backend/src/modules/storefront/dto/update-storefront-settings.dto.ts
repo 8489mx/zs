@@ -122,4 +122,34 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsBoolean()
   xpayTestMode?: boolean;
+
+  // Tap Payments (GCC)
+  @IsOptional()
+  @IsString()
+  tapSecretKey?: string;
+
+  @IsOptional()
+  @IsString()
+  tapPublishableKey?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  tapTestMode?: boolean;
+
+  // Stripe (International)
+  @IsOptional()
+  @IsString()
+  stripeSecretKey?: string;
+
+  @IsOptional()
+  @IsString()
+  stripePublishableKey?: string;
+
+  @IsOptional()
+  @IsString()
+  stripeWebhookSecret?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  stripeTestMode?: boolean;
 }

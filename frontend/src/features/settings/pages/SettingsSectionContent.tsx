@@ -12,6 +12,7 @@ import { SystemUpdatesSection } from '@/features/settings/components/workspace-s
 import { TenantSubscriptionPage } from '@/features/settings/pages/TenantSubscriptionPage';
 import { StorefrontSettingsTab } from '@/features/storefront/components/StorefrontSettingsTab';
 import { SettingsWhatsAppGatewaySection } from '@/features/settings/components/workspace-sections/SettingsWhatsAppGatewaySection';
+import { SettingsTelegramAlertsSection } from '@/features/settings/components/workspace-sections/SettingsTelegramAlertsSection';
 
 type QueryState = { isLoading: boolean; isError: boolean; error?: unknown; isSuccess?: boolean; data?: unknown };
 
@@ -56,5 +57,6 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
   if (section === 'system-updates') return <SystemUpdatesSection />;
   if (section === 'lan-network') return renderLanNetworkSection();
   if (section === 'tax-integration') return renderTaxIntegrationSection();
+  if (section === 'monitoring') return <SettingsTelegramAlertsSection />;
   return null;
 }

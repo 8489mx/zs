@@ -128,3 +128,23 @@ jobs:
           echo "========================================================"
           REMOTEEVERYTHING
 
+      - name: Send Telegram Deployment Notification
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOY_STATUS: ${{ job.status }}
+        run: |
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            if [ "$DEPLOY_STATUS" = "success" ]; then
+              TEXT="🚀 *Z-Systems Deployment Succeeded!*%0A━━━━━━━━━━━━━━━━━%0A*Server:* Oracle Cloud VPS%0A*Branch:* main%0A*Commit:* \`${{ github.sha }}\`%0A*Author:* ${{ github.actor }}%0A*Status:* 🟢 Production Live & Healthy"
+            else
+              TEXT="🚨 *Z-Systems Deployment Alert!*%0A━━━━━━━━━━━━━━━━━%0A*Server:* Oracle Cloud VPS%0A*Branch:* main%0A*Commit:* \`${{ github.sha }}\`%0A*Status:* 🔴 Deployment Failed or Unhealthy"
+            fi
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "text=${TEXT}" \
+              -d "parse_mode=Markdown" || true
+          fi
+
+

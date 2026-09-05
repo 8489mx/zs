@@ -6,6 +6,7 @@ import { StorefrontProductStudio } from './StorefrontProductStudio';
 import { StorefrontCouponsManager } from './StorefrontCouponsManager';
 import { StorefrontDeliveryZonesManager } from './StorefrontDeliveryZonesManager';
 import { StorefrontPaymentGatewaysManager } from './StorefrontPaymentGatewaysManager';
+import { BostaSettingsCard } from './BostaSettingsCard';
 
 function parsePosition(posStr?: string): { x: number; y: number } {
   if (!posStr) return { x: 50, y: 50 };
@@ -26,7 +27,7 @@ function parsePosition(posStr?: string): { x: number; y: number } {
 
 export function StorefrontSettingsTab() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images' | 'bosta'>('settings');
   const [copySuccess, setCopySuccess] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [bannerCompressFeedback, setBannerCompressFeedback] = useState('');
@@ -476,6 +477,23 @@ export function StorefrontSettingsTab() {
           }}
         >
           استوديو صور الأصناف
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('bosta')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: activeTab === 'bosta' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+            background: activeTab === 'bosta' ? '#170e5e' : '#ffffff',
+            color: activeTab === 'bosta' ? '#ffffff' : '#475569',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          شحن بوسطة 📦
         </button>
       </div>
 
@@ -1560,6 +1578,9 @@ export function StorefrontSettingsTab() {
 
       {/* Tab 5: Product Studio in Full Width Grid */}
       {activeTab === 'images' && <StorefrontProductStudio slug={storeSlug} />}
+
+      {/* Tab 6: Bosta Shipping Gateway */}
+      {activeTab === 'bosta' && <BostaSettingsCard />}
     </div>
   );
 }

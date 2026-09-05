@@ -3,6 +3,7 @@ import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { DatabaseMaintenanceService } from './db-maintenance.service';
+import { TelegramAlertsService } from '../alerts/telegram-alerts.service';
 
 type HealthPayload = {
   status: string;
@@ -18,6 +19,7 @@ export class HealthController {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly maintenanceService: DatabaseMaintenanceService,
+    private readonly telegramAlerts: TelegramAlertsService,
   ) {}
 
   private async checkDatabase(): Promise<Pick<HealthPayload, 'status' | 'database'>> {
@@ -26,9 +28,15 @@ export class HealthController {
 
     try {
       await sql`select 1`.execute(this.db);
-    } catch {
+    } catch (err) {
       database = 'down';
       status = 'degraded';
+      // تنبيه فوري استباقي عبر تيليجرام عند تعطل قاعدة البيانات
+      this.telegramAlerts.sendIncidentAlert(
+        'انقطاع اتصال قاعدة البيانات',
+        `تعذر الاتصال بـ PostgreSQL: ${(err as Error).message}`,
+        'critical'
+      ).catch(() => {});
     }
 
     return { status, database };
@@ -153,5 +161,61 @@ export class HealthController {
         message: (err as Error).message,
       };
     }
+  }
+
+  @Get('metrics')
+  async getSystemMetrics(): Promise<Record<string, unknown>> {
+    const memory = process.memoryUsage();
+    const cpuUsage = process.cpuUsage();
+    const { status, database } = await this.checkDatabase();
+
+    return {
+      status,
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      database,
+      memory: {
+        rssMb: Number((memory.rss / (1024 * 1024)).toFixed(2)),
+        heapTotalMb: Number((memory.heapTotal / (1024 * 1024)).toFixed(2)),
+        heapUsedMb: Number((memory.heapUsed / (1024 * 1024)).toFixed(2)),
+        externalMb: Number((memory.external / (1024 * 1024)).toFixed(2)),
+      },
+      cpu: {
+        userMicroseconds: cpuUsage.user,
+        systemMicroseconds: cpuUsage.system,
+      },
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      environment: process.env.NODE_ENV || 'development',
+    };
+  }
+
+  @Post('telegram-test')
+  async testTelegramAlert(): Promise<{ ok: boolean; message: string }> {
+    const settings = await this.telegramAlerts.getSettings();
+    if (!settings.botToken || !settings.chatId) {
+      return {
+        ok: false,
+        message: 'إعدادات تيليجرام غير مكتملة (يرجى ضبط Bot Token و Chat ID في متغيرات البيئة أو الإعدادات)',
+      };
+    }
+    const testText = `
+🧪 <b>رسالة اختبار مسبار المراقبة - Z-Systems</b>
+━━━━━━━━━━━━━━━━━
+تم بنجاح التحقق من ربط بوت تيليجرام مع منظومة Z-Systems!
+<b>الوقت:</b> ${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}
+<b>السيرفر:</b> Oracle Cloud VPS
+━━━━━━━━━━━━━━━━━
+<i>ستصلك عبر هذه القناة أي تنبيهات تخص أعطال السيرفر أو تقارير النشر التلقائي.</i>
+    `.trim();
+
+    const res = await this.telegramAlerts.sendMessage(testText);
+    return {
+      ok: res.ok,
+      message: res.ok
+        ? 'تم إرسال رسالة الاختبار بنجاح إلى تيليجرام!'
+        : `فشل الإرسال: ${res.message || 'خطأ غير معروف'}`,
+    };
   }
 }

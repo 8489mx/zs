@@ -6,6 +6,8 @@ export function StorefrontPaymentGatewaysManager() {
   const queryClient = useQueryClient();
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyXPaySuccess, setCopyXPaySuccess] = useState(false);
+  const [copyTapSuccess, setCopyTapSuccess] = useState(false);
+  const [copyStripeSuccess, setCopyStripeSuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState('');
 
@@ -16,7 +18,7 @@ export function StorefrontPaymentGatewaysManager() {
 
   const [formState, setFormState] = useState({
     onlinePaymentEnabled: false,
-    onlinePaymentProvider: 'paymob',
+    onlinePaymentProvider: 'tap',
     paymobApiKey: '',
     paymobIntegrationId: '',
     paymobIframeId: '',
@@ -25,6 +27,13 @@ export function StorefrontPaymentGatewaysManager() {
     xpayApiKey: '',
     xpayCommunityId: '',
     xpayTestMode: true,
+    tapSecretKey: '',
+    tapPublishableKey: '',
+    tapTestMode: true,
+    stripeSecretKey: '',
+    stripePublishableKey: '',
+    stripeWebhookSecret: '',
+    stripeTestMode: true,
   });
 
   useEffect(() => {
@@ -32,7 +41,7 @@ export function StorefrontPaymentGatewaysManager() {
       const data = settingsQuery.data as any;
       setFormState({
         onlinePaymentEnabled: Boolean(data.onlinePaymentEnabled),
-        onlinePaymentProvider: data.onlinePaymentProvider || 'paymob',
+        onlinePaymentProvider: data.onlinePaymentProvider || 'tap',
         paymobApiKey: data.paymobApiKey || '',
         paymobIntegrationId: data.paymobIntegrationId || '',
         paymobIframeId: data.paymobIframeId || '',
@@ -41,6 +50,13 @@ export function StorefrontPaymentGatewaysManager() {
         xpayApiKey: data.xpayApiKey || '',
         xpayCommunityId: data.xpayCommunityId || '',
         xpayTestMode: data.xpayTestMode !== false,
+        tapSecretKey: data.tapSecretKey || '',
+        tapPublishableKey: data.tapPublishableKey || '',
+        tapTestMode: data.tapTestMode !== false,
+        stripeSecretKey: data.stripeSecretKey || '',
+        stripePublishableKey: data.stripePublishableKey || '',
+        stripeWebhookSecret: data.stripeWebhookSecret || '',
+        stripeTestMode: data.stripeTestMode !== false,
       });
     }
   }, [settingsQuery.data]);
@@ -72,6 +88,14 @@ export function StorefrontPaymentGatewaysManager() {
     ? `${window.location.origin}/api/storefront/webhooks/xpay`
     : '/api/storefront/webhooks/xpay';
 
+  const tapWebhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/storefront/webhooks/tap`
+    : '/api/storefront/webhooks/tap';
+
+  const stripeWebhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/storefront/webhooks/stripe`
+    : '/api/storefront/webhooks/stripe';
+
   const handleCopyWebhook = async () => {
     try {
       await navigator.clipboard.writeText(webhookUrl);
@@ -91,6 +115,28 @@ export function StorefrontPaymentGatewaysManager() {
     } catch {
       setCopyXPaySuccess(true);
       setTimeout(() => setCopyXPaySuccess(false), 2500);
+    }
+  };
+
+  const handleCopyTapWebhook = async () => {
+    try {
+      await navigator.clipboard.writeText(tapWebhookUrl);
+      setCopyTapSuccess(true);
+      setTimeout(() => setCopyTapSuccess(false), 2500);
+    } catch {
+      setCopyTapSuccess(true);
+      setTimeout(() => setCopyTapSuccess(false), 2500);
+    }
+  };
+
+  const handleCopyStripeWebhook = async () => {
+    try {
+      await navigator.clipboard.writeText(stripeWebhookUrl);
+      setCopyStripeSuccess(true);
+      setTimeout(() => setCopyStripeSuccess(false), 2500);
+    } catch {
+      setCopyStripeSuccess(true);
+      setTimeout(() => setCopyStripeSuccess(false), 2500);
     }
   };
 
@@ -249,14 +295,63 @@ export function StorefrontPaymentGatewaysManager() {
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
               مزود بوابة الدفع المعتمد
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
+              {/* Tap Payments (GCC) */}
+              <div
+                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'tap' })}
+                style={{
+                  border: formState.onlinePaymentProvider === 'tap' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                  background: formState.onlinePaymentProvider === 'tap' ? '#f0fdf4' : '#ffffff',
+                  borderRadius: '12px',
+                  padding: '12px 8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ fontSize: '22px' }}>🇸🇦</span>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>تاب (Tap GCC)</div>
+                  <div style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700 }}>مدى / KNET / Apple Pay</div>
+                </div>
+              </div>
+
+              {/* Stripe (International) */}
+              <div
+                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'stripe' })}
+                style={{
+                  border: formState.onlinePaymentProvider === 'stripe' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                  background: formState.onlinePaymentProvider === 'stripe' ? '#eff6ff' : '#ffffff',
+                  borderRadius: '12px',
+                  padding: '12px 8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ fontSize: '22px' }}>🌍</span>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>سترايب (Stripe)</div>
+                  <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: 700 }}>بطاقات عالمية & Apple</div>
+                </div>
+              </div>
+
+              {/* Paymob */}
               <div
                 onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'paymob' })}
                 style={{
                   border: formState.onlinePaymentProvider === 'paymob' ? '2px solid #170e5e' : '1px solid #cbd5e1',
                   background: formState.onlinePaymentProvider === 'paymob' ? '#f8fafc' : '#ffffff',
                   borderRadius: '12px',
-                  padding: '12px 10px',
+                  padding: '12px 8px',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -268,18 +363,19 @@ export function StorefrontPaymentGatewaysManager() {
               >
                 <span style={{ fontSize: '22px' }}>🏦</span>
                 <div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>Paymob</div>
-                  <div style={{ fontSize: '10.5px', color: '#64748b' }}>فيزا / ماستركارد</div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Paymob</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>فيزا / ماستركارد</div>
                 </div>
               </div>
 
+              {/* XPay */}
               <div
                 onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'xpay' })}
                 style={{
                   border: formState.onlinePaymentProvider === 'xpay' ? '2px solid #170e5e' : '1px solid #cbd5e1',
                   background: formState.onlinePaymentProvider === 'xpay' ? '#f8fafc' : '#ffffff',
                   borderRadius: '12px',
-                  padding: '12px 10px',
+                  padding: '12px 8px',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -291,18 +387,19 @@ export function StorefrontPaymentGatewaysManager() {
               >
                 <span style={{ fontSize: '22px' }}>💳</span>
                 <div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>إكس باي (XPay)</div>
-                  <div style={{ fontSize: '10.5px', color: '#64748b' }}>بطاقات وكشك فوري</div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>إكس باي (XPay)</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>بطاقات وفوري</div>
                 </div>
               </div>
 
+              {/* Mock Simulator */}
               <div
                 onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'mock' })}
                 style={{
                   border: formState.onlinePaymentProvider === 'mock' ? '2px solid #170e5e' : '1px solid #cbd5e1',
                   background: formState.onlinePaymentProvider === 'mock' ? '#f8fafc' : '#ffffff',
                   borderRadius: '12px',
-                  padding: '12px 10px',
+                  padding: '12px 8px',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -314,14 +411,72 @@ export function StorefrontPaymentGatewaysManager() {
               >
                 <span style={{ fontSize: '22px' }}>🧪</span>
                 <div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>Sandbox Mock</div>
-                  <div style={{ fontSize: '10.5px', color: '#64748b' }}>محاكي تجريبي فوري</div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Sandbox Mock</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>محاكي تجريبي</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Test Mode / Sandbox Toggle */}
+          {formState.onlinePaymentProvider === 'tap' && (
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (Tap Sandbox Mode)</div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                  اختبار كامل دورة الدفع الخليجي (مدى، KNET، Apple Pay) ببيئة الاختبار
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formState.tapTestMode}
+                  onChange={(e) => setFormState({ ...formState, tapTestMode: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                />
+              </label>
+            </div>
+          )}
+
+          {formState.onlinePaymentProvider === 'stripe' && (
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (Stripe Test Mode)</div>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                  اختبار البطاقات الدولية عبر مفاتيح الاختبار بدون خصم أموال حقيقية
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formState.stripeTestMode}
+                  onChange={(e) => setFormState({ ...formState, stripeTestMode: e.target.checked })}
+                  style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                />
+              </label>
+            </div>
+          )}
+
           {formState.onlinePaymentProvider === 'paymob' && (
             <div
               style={{
@@ -377,6 +532,122 @@ export function StorefrontPaymentGatewaysManager() {
                   style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
                 />
               </label>
+            </div>
+          )}
+
+          {/* Webhook Configuration Card for Tap Payments */}
+          {formState.onlinePaymentProvider === 'tap' && (
+            <div
+              style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🔗</span>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#15803d' }}>
+                  رابط إشعار العمليات الفوري (Tap Webhook URL)
+                </div>
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#166534', lineHeight: '1.5' }}>
+                قم بنسخ هذا الرابط ووضعه في لوحة تحكم Tap (Developers &gt; Webhooks):
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                }}
+              >
+                <code style={{ fontSize: '11.5px', color: '#0f172a', direction: 'ltr', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {tapWebhookUrl}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyTapWebhook}
+                  style={{
+                    background: copyTapSuccess ? '#16a34a' : '#170e5e',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {copyTapSuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Webhook Configuration Card for Stripe */}
+          {formState.onlinePaymentProvider === 'stripe' && (
+            <div
+              style={{
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🔗</span>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#1d4ed8' }}>
+                  رابط إشعار العمليات الفوري (Stripe Webhook URL)
+                </div>
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#1e40af', lineHeight: '1.5' }}>
+                قم بنسخ هذا الرابط ووضعه في لوحة تحكم سترايب (Developers &gt; Webhooks &gt; Add Endpoint):
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                }}
+              >
+                <code style={{ fontSize: '11.5px', color: '#0f172a', direction: 'ltr', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {stripeWebhookUrl}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyStripeWebhook}
+                  style={{
+                    background: copyStripeSuccess ? '#16a34a' : '#170e5e',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {copyStripeSuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -510,6 +781,157 @@ export function StorefrontPaymentGatewaysManager() {
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
           }}
         >
+          {formState.onlinePaymentProvider === 'tap' && (
+            <>
+              <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '18px' }}>🇸🇦</span>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                    مفاتيح بوابة تاب للمدفوعات (Tap Payments GCC)
+                  </h4>
+                </div>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  تدعم بطاقات مدى السعودية 🇸🇦، شبكة كي نت الكويتية 🇰🇼، بطاقات ناباس القطرية 🇶🇦، وبطاقات بنفت 🇧🇭، وApple Pay 🍎 بالكامل.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  المفتاح السري (Tap Secret Key)
+                </label>
+                <input
+                  type="password"
+                  value={formState.tapSecretKey}
+                  onChange={(e) => setFormState({ ...formState, tapSecretKey: e.target.value })}
+                  placeholder="sk_test_... أو sk_live_..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  المفتاح السري لإنشاء جلسات الدفع وخصم الفواتير عبر خوادم Tap.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  المفتاح العام (Tap Publishable Key)
+                </label>
+                <input
+                  type="text"
+                  value={formState.tapPublishableKey}
+                  onChange={(e) => setFormState({ ...formState, tapPublishableKey: e.target.value })}
+                  placeholder="pk_test_... أو pk_live_..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  المفتاح العام المخصص للواجهة الأمامية وتوثيق عمليات Apple Pay المباشرة.
+                </span>
+              </div>
+            </>
+          )}
+
+          {formState.onlinePaymentProvider === 'stripe' && (
+            <>
+              <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '18px' }}>🌍</span>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                    مفاتيح بوابة سترايب (Stripe Global Payments)
+                  </h4>
+                </div>
+                <span style={{ fontSize: '12px', color: '#64748b' }}>
+                  تدعم بطاقات فيزا، ماستركارد، أمريكان إكسبريس، وApple Pay وGoogle Pay عالمياً بكل العملات.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  المفتاح السري (Stripe Secret Key)
+                </label>
+                <input
+                  type="password"
+                  value={formState.stripeSecretKey}
+                  onChange={(e) => setFormState({ ...formState, stripeSecretKey: e.target.value })}
+                  placeholder="sk_test_... أو sk_live_..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  المفتاح العام (Stripe Publishable Key)
+                </label>
+                <input
+                  type="text"
+                  value={formState.stripePublishableKey}
+                  onChange={(e) => setFormState({ ...formState, stripePublishableKey: e.target.value })}
+                  placeholder="pk_test_... أو pk_live_..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  مفتاح توقيع الويب هوك (Webhook Signing Secret)
+                </label>
+                <input
+                  type="password"
+                  value={formState.stripeWebhookSecret}
+                  onChange={(e) => setFormState({ ...formState, stripeWebhookSecret: e.target.value })}
+                  placeholder="whsec_..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    direction: 'ltr',
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  للتحقق من صحة أحداث سترايب عند استلام إشعارات الدفع التلقائية (checkout.session.completed).
+                </span>
+              </div>
+            </>
+          )}
+
           {formState.onlinePaymentProvider === 'paymob' && (
             <>
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>

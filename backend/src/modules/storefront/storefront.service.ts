@@ -1375,6 +1375,13 @@ export class StorefrontService {
       xpayApiKey: settings.get('storefront_xpay_api_key') || '',
       xpayCommunityId: settings.get('storefront_xpay_community_id') || '',
       xpayTestMode: settings.get('storefront_xpay_test_mode') !== 'false',
+      tapSecretKey: settings.get('storefront_tap_secret_key') || '',
+      tapPublishableKey: settings.get('storefront_tap_publishable_key') || '',
+      tapTestMode: settings.get('storefront_tap_test_mode') !== 'false',
+      stripeSecretKey: settings.get('storefront_stripe_secret_key') || '',
+      stripePublishableKey: settings.get('storefront_stripe_publishable_key') || '',
+      stripeWebhookSecret: settings.get('storefront_stripe_webhook_secret') || '',
+      stripeTestMode: settings.get('storefront_stripe_test_mode') !== 'false',
     };
   }
 
@@ -1467,6 +1474,13 @@ export class StorefrontService {
     if (payload.xpayApiKey !== undefined) entries.push({ key: 'storefront_xpay_api_key', value: payload.xpayApiKey });
     if (payload.xpayCommunityId !== undefined) entries.push({ key: 'storefront_xpay_community_id', value: payload.xpayCommunityId });
     if (payload.xpayTestMode !== undefined) entries.push({ key: 'storefront_xpay_test_mode', value: payload.xpayTestMode });
+    if (payload.tapSecretKey !== undefined) entries.push({ key: 'storefront_tap_secret_key', value: payload.tapSecretKey });
+    if (payload.tapPublishableKey !== undefined) entries.push({ key: 'storefront_tap_publishable_key', value: payload.tapPublishableKey });
+    if (payload.tapTestMode !== undefined) entries.push({ key: 'storefront_tap_test_mode', value: payload.tapTestMode });
+    if (payload.stripeSecretKey !== undefined) entries.push({ key: 'storefront_stripe_secret_key', value: payload.stripeSecretKey });
+    if (payload.stripePublishableKey !== undefined) entries.push({ key: 'storefront_stripe_publishable_key', value: payload.stripePublishableKey });
+    if (payload.stripeWebhookSecret !== undefined) entries.push({ key: 'storefront_stripe_webhook_secret', value: payload.stripeWebhookSecret });
+    if (payload.stripeTestMode !== undefined) entries.push({ key: 'storefront_stripe_test_mode', value: payload.stripeTestMode });
 
     for (const e of entries) {
       await sql`

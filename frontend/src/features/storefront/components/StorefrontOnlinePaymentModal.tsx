@@ -29,10 +29,22 @@ export function StorefrontOnlinePaymentModal({
   if (!isOpen || !session || !orderData) return null;
 
   const totalAmount = session.amount || orderData.totalAmount;
-  const isLiveIframe = (session.mode === 'paymob' || session.mode === 'xpay') && !session.testMode && Boolean(session.iframeUrl);
-  const providerLabel = session.provider === 'xpay' || session.mode === 'xpay'
-    ? 'إكس باي (XPay)'
-    : (session.provider === 'paymob' || session.mode === 'paymob' ? 'Paymob' : 'بيئة الاختبار التجريبية');
+  const currencyLabel = session.currency || 'ج.م';
+  const isLiveIframe =
+    (session.mode === 'paymob' || session.mode === 'xpay' || session.mode === 'tap' || session.mode === 'stripe') &&
+    !session.testMode &&
+    Boolean(session.iframeUrl);
+
+  const providerLabel =
+    session.provider === 'tap' || session.mode === 'tap'
+      ? 'تاب للمدفوعات (Tap GCC)'
+      : session.provider === 'stripe' || session.mode === 'stripe'
+      ? 'سترايب (Stripe Global)'
+      : session.provider === 'xpay' || session.mode === 'xpay'
+      ? 'إكس باي (XPay)'
+      : session.provider === 'paymob' || session.mode === 'paymob'
+      ? 'Paymob'
+      : 'بيئة الاختبار التجريبية';
 
   const handleMockPay = async () => {
     setLoading(true);
@@ -67,7 +79,7 @@ export function StorefrontOnlinePaymentModal({
           transactionId: statusRes.gatewayTransactionId || `${(session.provider || 'ONLINE').toUpperCase()}-PAID`,
         });
       } else {
-        setErrorMsg('لم يتم رصد تأكيد الدفع بعد، يرجى استكمال البيانات في النافذة أو المحاولة مجدداً.');
+        setErrorMsg('لم يتم رصد تأكيد الدفع بعد، يرجى استكمال السداد ثم الضغط على التحقق مجدداً.');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'تعذر التحقق من حالة السداد');
@@ -124,7 +136,7 @@ export function StorefrontOnlinePaymentModal({
                 {isLiveIframe ? `بوابة الدفع الآمنة (${providerLabel})` : `بوابة الدفع الإلكتروني (${providerLabel} - تجريبي)`}
               </div>
               <div style={{ fontSize: '11px', opacity: 0.85 }}>
-                طلب رقم: #{session.orderNumber} • الإجمالي: {totalAmount.toFixed(0)} ج.م
+                طلب رقم: #{session.orderNumber} • الإجمالي: {totalAmount.toFixed(0)} {currencyLabel}
               </div>
             </div>
           </div>
@@ -171,7 +183,8 @@ export function StorefrontOnlinePaymentModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <iframe
                 src={session.iframeUrl}
-                title={session.provider === 'xpay' ? 'XPay Payment' : 'Paymob Payment'}
+                title={providerLabel}
+                allow="payment *"
                 style={{
                   width: '100%',
                   height: '480px',
@@ -179,22 +192,42 @@ export function StorefrontOnlinePaymentModal({
                   borderRadius: '12px',
                 }}
               />
-              <button
-                onClick={handleCheckStatus}
-                disabled={loading}
-                style={{
-                  background: '#170e5e',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '12px',
-                  fontSize: '13.5px',
-                  fontWeight: 800,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {loading ? 'جاري التحقق...' : 'تأكيد إتمام السداد الآن ✓'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleCheckStatus}
+                  disabled={loading}
+                  style={{
+                    flex: 1,
+                    background: '#170e5e',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {loading ? 'جاري التحقق...' : 'تأكيد إتمام السداد الآن ✓'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.open(session.iframeUrl, '_blank')}
+                  style={{
+                    background: '#f8fafc',
+                    color: '#170e5e',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  فتح بنافذة مستقلة ↗
+                </button>
+              </div>
             </div>
           ) : (
             /* Realistic Card Payment Simulator */
@@ -213,10 +246,16 @@ export function StorefrontOnlinePaymentModal({
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
                   <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', opacity: 0.9 }}>
-                    {session.provider === 'xpay' ? 'XPAY' : 'BANK CARD'} • تجريبي
+                    {session.provider === 'tap'
+                      ? '🇸🇦 TAP GCC • تجريبي'
+                      : session.provider === 'stripe'
+                      ? '🌍 STRIPE • تجريبي'
+                      : session.provider === 'xpay'
+                      ? 'XPAY • تجريبي'
+                      : 'BANK CARD • تجريبي'}
                   </span>
-                  <span style={{ fontSize: '18px', fontWeight: 900, fontStyle: 'italic', letterSpacing: '1px' }}>
-                    VISA
+                  <span style={{ fontSize: '14px', fontWeight: 900, fontStyle: 'italic', letterSpacing: '1px' }}>
+                    {session.provider === 'tap' ? 'MADA / KNET / APPLE' : session.provider === 'stripe' ? 'VISA / MC / APPLE' : 'VISA'}
                   </span>
                 </div>
 
@@ -247,6 +286,97 @@ export function StorefrontOnlinePaymentModal({
                   </div>
                 </div>
               </div>
+
+              {/* Quick Card Presets for Testing */}
+              {session.provider === 'tap' && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardNumber('4588 5233 4411 9660');
+                      setCardHolder('حامل بطاقة مدى');
+                      setCardExpiry('08/29');
+                    }}
+                    style={{
+                      background: '#f0fdf4',
+                      border: '1px solid #86efac',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#166534',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🇸🇦 مدى (Mada)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardNumber('5210 8822 7733 9650');
+                      setCardHolder('عميل كي نت الكويت');
+                      setCardExpiry('11/28');
+                    }}
+                    style={{
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#1d4ed8',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🇰🇼 كي نت (KNET)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardNumber('4111 2222 3333 4242');
+                      setCardHolder('Apple Pay User');
+                      setCardExpiry('12/28');
+                    }}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🍎 Apple Pay
+                  </button>
+                </div>
+              )}
+
+              {session.provider === 'stripe' && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCardNumber('4242 4242 4242 4242');
+                      setCardHolder('Stripe Customer');
+                      setCardExpiry('04/28');
+                    }}
+                    style={{
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#1d4ed8',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    💳 بطاقة سترايب تجريبية (4242)
+                  </button>
+                </div>
+              )}
 
               {/* Notice Pill */}
               <div
@@ -373,7 +503,7 @@ export function StorefrontOnlinePaymentModal({
                   marginTop: '4px',
                 }}
               >
-                {loading ? 'جاري معالجة الدفع...' : `دفع فوري تجريبي (${totalAmount.toFixed(0)} ج.م) ✓`}
+                {loading ? 'جاري معالجة الدفع...' : `دفع فوري تجريبي (${totalAmount.toFixed(0)} ${currencyLabel}) ✓`}
               </button>
             </div>
           )}

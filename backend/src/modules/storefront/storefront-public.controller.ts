@@ -134,6 +134,29 @@ export class StorefrontPublicController {
   ) {
     return { ok: true, message: 'XPay callback received', query };
   }
+
+  @Post('webhooks/tap')
+  handleTapWebhook(
+    @Headers() headers: Record<string, any>,
+    @Body() body: any,
+  ) {
+    return this.paymentService.processTapWebhook(headers, body);
+  }
+
+  @Get('webhooks/tap-callback')
+  handleTapCallback(
+    @Query() query: Record<string, any>,
+  ) {
+    return { ok: true, message: 'Tap callback received', query };
+  }
+
+  @Post('webhooks/stripe')
+  handleStripeWebhook(
+    @Headers() headers: Record<string, any>,
+    @Body() body: any,
+  ) {
+    return this.paymentService.processStripeWebhook(headers, body);
+  }
 }
 
 

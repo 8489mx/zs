@@ -2138,6 +2138,12 @@ export interface OnlineOrderTable {
   delivery_zone_name?: string | null;
   branch_id: number | null;
   sale_id: number | null;
+  shipping_carrier?: ColumnType<'internal' | 'bosta' | string, string | undefined, string | undefined>;
+  bosta_delivery_id?: string | null;
+  bosta_tracking_number?: string | null;
+  bosta_status?: string | null;
+  bosta_awb_url?: string | null;
+  bosta_created_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
