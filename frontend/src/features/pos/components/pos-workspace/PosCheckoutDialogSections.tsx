@@ -553,7 +553,7 @@ export function PosCheckoutPaymentSection({
       </div>
 
       {/* EDC POS Terminal Direct Dispatch Banner */}
-      {(isPaymentActive('card') || pos.cardAmount > 0) && (
+      {(isPaymentActive('card') || pos.cardAmount > 0) && (pos.settingsQuery?.data?.posTerminalEnabled !== false) && (
         <div style={{
           padding: '8px 12px',
           background: '#f8fafc',
@@ -568,7 +568,7 @@ export function PosCheckoutPaymentSection({
               <CreditCardIcon size={18} color="#170e5e" />
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
-                  جهاز نقاط البيع (EDC / مدى / فيزا)
+                  {pos.settingsQuery?.data?.posTerminalName || 'جهاز نقاط البيع (EDC / مدى / فيزا)'}
                 </div>
                 <div style={{ fontSize: '11px', color: '#64748b' }}>
                   إرسال {formatCurrency(pos.cardAmount > 0 ? pos.cardAmount : pos.totals.total)} إلى شاشة الجهاز آلياً

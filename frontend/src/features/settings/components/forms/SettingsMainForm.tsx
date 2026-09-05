@@ -70,6 +70,11 @@ export const SETTINGS_FIELD_METADATA: Record<
   loyaltyMinRedeemPoints: { tab: 'sales_inventory', label: 'الحد الأدنى للنقاط للاستبدال' },
   loyaltyMaxDiscountPercentage: { tab: 'sales_inventory', label: 'أقصى نسبة خصم بالنقاط' },
   printShowLoyaltyPoints: { tab: 'sales_inventory', label: 'إظهار رصيد النقاط في الفاتورة' },
+  posTerminalEnabled: { tab: 'sales_inventory', label: 'تفعيل ماكينات نقاط البيع الذكية (POS Terminal)' },
+  posTerminalProvider: { tab: 'sales_inventory', label: 'مزود خدمة ماكينة الدفع البنكي' },
+  posTerminalName: { tab: 'sales_inventory', label: 'اسم ماكينة الدفع' },
+  posTerminalIp: { tab: 'sales_inventory', label: 'عنوان IP الماكينة' },
+  posTerminalPort: { tab: 'sales_inventory', label: 'منفذ الاتصال بالماكينة' },
 
   // Modules Tab
   manufacturingModuleEnabled: { tab: 'modules', label: 'موديول التصنيع والتجميع' },
@@ -243,6 +248,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       whatsappLinkMode: 'wa_me',
       defaultBranchIssueMode: 'final_issue',
       invoiceNumberingScheme: 'daily',
+      posTerminalEnabled: true,
+      posTerminalProvider: 'mock_sandbox',
+      posTerminalName: 'جهاز الكاشير الرئيسي (EDC)',
+      posTerminalIp: '192.168.1.150',
+      posTerminalPort: 8080,
     },
   });
 
@@ -436,6 +446,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       invoiceNumberingScheme: settings.invoiceNumberingScheme === 'sequential' ? 'sequential' : 'daily',
       expiryAlertDays: Math.max(1, Number(settings.expiryAlertDays || 60)),
       stagnantProductDays: Math.max(1, Number(settings.stagnantProductDays || 60)),
+      posTerminalEnabled: settings.posTerminalEnabled !== false,
+      posTerminalProvider: (['geidea', 'paymob', 'network_international', 'mock_sandbox'].includes(settings.posTerminalProvider as any) ? settings.posTerminalProvider : 'mock_sandbox') as any,
+      posTerminalName: settings.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)',
+      posTerminalIp: settings.posTerminalIp || '192.168.1.150',
+      posTerminalPort: Number(settings.posTerminalPort || 8080),
     });
   }, [settings, form, branches]);
 

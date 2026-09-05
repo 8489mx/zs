@@ -128,6 +128,11 @@ const baseSettingsMutationValues = {
   storeFleetCommissionRate: 0,
   defaultDeliveryFee: 0,
   printDualReceiptForOnlineDelivery: false,
+  posTerminalEnabled: true,
+  posTerminalProvider: 'mock_sandbox' as const,
+  posTerminalName: 'جهاز الكاشير الرئيسي (EDC)',
+  posTerminalIp: '192.168.1.150',
+  posTerminalPort: 8080,
 };
 
 describe('useSettingsUpdateMutation setup flow', () => {

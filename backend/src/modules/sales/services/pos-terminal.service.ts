@@ -1,4 +1,7 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, Logger, BadRequestException, Optional } from '@nestjs/common';
+import { Kysely } from '../../../database/kysely';
+import { KYSELY_DB } from '../../../database/database.constants';
+import { Database } from '../../../database/database.types';
 
 export interface PosTerminalInfo {
   id: string;
@@ -37,30 +40,81 @@ export class PosTerminalService {
   private readonly logger = new Logger(PosTerminalService.name);
   private activeSessions = new Map<string, TerminalPaymentSession>();
 
-  constructor() {}
+  constructor(@Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>) {}
 
   /**
-   * Get configured POS Terminals for the tenant
+   * Get configured POS Terminals for the tenant from settings
    */
-  async getTerminals(_tenantId: string): Promise<PosTerminalInfo[]> {
-    return [
-      {
-        id: 'term-main-01',
-        name: 'جهاز شبكة الكاشير الرئيسي (EDC - Mada/Visa)',
-        type: 'edc_standalone',
-        status: 'online',
-        provider: 'Geidea / Network International',
-        ipAddress: '192.168.1.150'
-      },
-      {
-        id: 'term-mobile-02',
-        name: 'جهاز دفع محمول / SoftPOS',
-        type: 'softpos',
-        status: 'online',
-        provider: 'SoftPOS NFC',
-        ipAddress: '192.168.1.151'
+  async getTerminals(tenantId: string): Promise<PosTerminalInfo[]> {
+    if (!this.db) {
+      return [
+        {
+          id: 'term-main-01',
+          name: 'جهاز شبكة الكاشير الرئيسي (EDC - Mada/Visa)',
+          type: 'edc_standalone',
+          status: 'online',
+          provider: 'Geidea / Paymob POS',
+          ipAddress: '192.168.1.150:8080',
+        },
+      ];
+    }
+
+    try {
+      const rows = await this.db
+        .selectFrom('settings')
+        .selectAll()
+        .where('tenant_id', '=', String(tenantId))
+        .execute();
+
+      const settingsMap: Record<string, any> = {};
+      for (const row of rows) {
+        try {
+          settingsMap[row.key] = JSON.parse(row.value);
+        } catch {
+          settingsMap[row.key] = row.value;
+        }
       }
-    ];
+
+      const isEnabled = settingsMap.posTerminalEnabled !== false;
+      if (!isEnabled) {
+        return [];
+      }
+
+      const name = settingsMap.posTerminalName || 'جهاز الكاشير الرئيسي (EDC)';
+      const provider = settingsMap.posTerminalProvider || 'mock_sandbox';
+      const ipAddress = settingsMap.posTerminalIp || '192.168.1.150';
+      const port = Number(settingsMap.posTerminalPort || 8080);
+
+      const providerDisplayNames: Record<string, string> = {
+        geidea: 'Geidea POS (جيديا)',
+        paymob: 'Paymob Smart POS (باي موب)',
+        network_international: 'Network International (NI)',
+        mock_sandbox: 'محاكي نقاط البيع التجريبي (Simulator)',
+      };
+
+      return [
+        {
+          id: 'term-main-01',
+          name: `${name} - ${providerDisplayNames[provider] || provider}`,
+          type: 'edc_standalone',
+          status: 'online',
+          provider: providerDisplayNames[provider] || provider,
+          ipAddress: `${ipAddress}:${port}`,
+        },
+      ];
+    } catch (err) {
+      this.logger.error(`Error loading terminals for tenant ${tenantId}:`, err);
+      return [
+        {
+          id: 'term-main-01',
+          name: 'جهاز شبكة الكاشير الرئيسي (EDC - Mada/Visa)',
+          type: 'edc_standalone',
+          status: 'online',
+          provider: 'Geidea / Network International',
+          ipAddress: '192.168.1.150:8080',
+        },
+      ];
+    }
   }
 
   /**
@@ -72,8 +126,11 @@ export class PosTerminalService {
     }
 
     const terminals = await this.getTerminals(tenantId);
-    const selectedTerminal = terminals.find(t => t.id === request.terminalId) || terminals[0];
+    if (!terminals.length) {
+      throw new BadRequestException('خدمة ماكينات نقاط البيع (POS Terminal) غير مفعلة في إعدادات المنشأة');
+    }
 
+    const selectedTerminal = terminals.find(t => t.id === request.terminalId) || terminals[0];
     const transactionId = `EDC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const session: TerminalPaymentSession = {
@@ -81,7 +138,7 @@ export class PosTerminalService {
       terminalId: selectedTerminal.id,
       terminalName: selectedTerminal.name,
       amount: request.amount,
-      currency: request.currency || 'SAR',
+      currency: request.currency || 'EGP',
       status: 'pending',
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -89,7 +146,7 @@ export class PosTerminalService {
     };
 
     this.activeSessions.set(transactionId, session);
-    this.logger.log(`Initiated terminal payment: ${transactionId} for amount: ${request.amount}`);
+    this.logger.log(`Initiated terminal payment: ${transactionId} for amount: ${request.amount} on ${selectedTerminal.name}`);
 
     return session;
   }

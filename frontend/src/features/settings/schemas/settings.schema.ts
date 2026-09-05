@@ -118,6 +118,11 @@ export const settingsFormSchema = z.object({
   whatsappLinkMode: z.enum(['wa_me', 'web', 'app']).default('wa_me'),
   defaultBranchIssueMode: z.enum(['final_issue', 'transfer_to_branch_stock']).default('final_issue'),
   invoiceNumberingScheme: z.enum(['daily', 'sequential']).default('daily'),
+  posTerminalEnabled: z.boolean().optional().default(true),
+  posTerminalProvider: z.enum(['geidea', 'paymob', 'network_international', 'mock_sandbox']).optional().default('mock_sandbox'),
+  posTerminalName: z.string().optional().default('جهاز الكاشير الرئيسي (EDC)'),
+  posTerminalIp: z.string().optional().default('192.168.1.150'),
+  posTerminalPort: z.coerce.number().int().min(1).max(65535).optional().default(8080),
 });
 
 export const branchFormSchema = z.object({

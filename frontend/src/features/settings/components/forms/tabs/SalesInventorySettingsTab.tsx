@@ -136,6 +136,22 @@ function LoyaltyPointsIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function PosTerminalIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="16" height="20" x="4" y="2" rx="2" />
+      <line x1="8" y1="6" x2="16" y2="6" />
+      <line x1="16" y1="14" x2="16" y2="14.01" />
+      <path d="M8 10h.01" />
+      <path d="M12 10h.01" />
+      <path d="M16 10h.01" />
+      <path d="M8 14h.01" />
+      <path d="M12 14h.01" />
+      <path d="M8 18h8" />
+    </svg>
+  );
+}
+
 const premiumCardStyle = {
   display: 'flex',
   alignItems: 'center',
@@ -517,6 +533,114 @@ export function SalesInventorySettingsTab({
               </div>
             </div>
           ) : null}
+        </div>
+      </FormSection>
+
+      {/* ===== ماكينات نقاط البيع والدفع البنكي الذكية ===== */}
+      <FormSection
+        title="ماكينات نقاط البيع والدفع البنكي الذكية (Smart POS Terminals)"
+        description="الربط الشبكي المباشر مع ماكينات الدفع الإلكتروني البنكية (Geidea, Paymob, Network International) لتمرير مبالغ الفواتير آلياً وقراءة نجاح السحب دون إدخال يدوي."
+      >
+        <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+          {/* Card 1: Activation Toggle & Provider Selection */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <label style={{ ...premiumCardStyle, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ ...iconBadgeStyle, background: form.watch('posTerminalEnabled') ? '#eff6ff' : '#f8fafc', color: form.watch('posTerminalEnabled') ? '#1d4ed8' : '#64748b' }}>
+                  <PosTerminalIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تفعيل ربط ماكينات الدفع (POS Terminal)</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إظهار خيار إرسال المبلغ لماكينة البنك آلياً في شاشة الكاشير عند الدفع بالبطاقة</small>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                style={premiumCheckboxInputStyle}
+                {...form.register('posTerminalEnabled')}
+                disabled={disabled}
+              />
+            </label>
+
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                مزود خدمة ماكينة الدفع البنكي
+              </label>
+              <select
+                className="purchase-prototype-field-input"
+                {...form.register('posTerminalProvider')}
+                disabled={disabled || !form.watch('posTerminalEnabled')}
+                style={fieldControlStyle}
+              >
+                <option value="geidea">Geidea POS (جيديا - السعودية / مصر)</option>
+                <option value="paymob">Paymob Smart POS (باي موب نقاط البيع)</option>
+                <option value="network_international">Network International (NI)</option>
+                <option value="mock_sandbox">محاكي نقاط البيع التجريبي (Mock Simulator)</option>
+              </select>
+              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                يدعم الربط الشبكي بروتوكول TCP/IP و ECR عبر الشبكة المحلية (LAN/Wi-Fi).
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Terminal Details & IP Configuration */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                اسم الجهاز / الماكينة
+              </label>
+              <input
+                className="purchase-prototype-field-input"
+                {...form.register('posTerminalName')}
+                disabled={disabled || !form.watch('posTerminalEnabled')}
+                placeholder="مثال: جهاز الكاشير الرئيسي (EDC)"
+                style={fieldControlStyle}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', alignItems: 'end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  عنوان IP الماكينة (Local IP)
+                </label>
+                <input
+                  className="purchase-prototype-field-input"
+                  {...form.register('posTerminalIp')}
+                  disabled={disabled || !form.watch('posTerminalEnabled')}
+                  placeholder="192.168.1.150"
+                  dir="ltr"
+                  style={{ ...fieldControlStyle, textAlign: 'left', fontFamily: 'monospace' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  المنفذ (Port)
+                </label>
+                <input
+                  type="number"
+                  className="purchase-prototype-field-input"
+                  {...form.register('posTerminalPort')}
+                  disabled={disabled || !form.watch('posTerminalEnabled')}
+                  placeholder="8080"
+                  dir="ltr"
+                  style={{ ...fieldControlStyle, textAlign: 'center', fontFamily: 'monospace' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: form.watch('posTerminalEnabled') ? '#10b981' : '#94a3b8', display: 'inline-block' }}></span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+                  حالة التكامل: {form.watch('posTerminalEnabled') ? 'مفعل وجاهز بالكاشير' : 'معطل'}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                بروتوكول ECR / IP Direct
+              </span>
+            </div>
+          </div>
         </div>
       </FormSection>
 
