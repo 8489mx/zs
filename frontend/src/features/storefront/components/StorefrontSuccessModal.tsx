@@ -6,13 +6,16 @@ interface StorefrontSuccessModalProps {
   isOpen?: boolean;
   whatsappPhone?: string;
   onClose: () => void;
+  onTrackOrder?: () => void;
 }
 
 export function StorefrontSuccessModal({
   order,
   orderData,
   isOpen = true,
+  whatsappPhone,
   onClose,
+  onTrackOrder,
 }: StorefrontSuccessModalProps) {
   const activeOrder = order || orderData;
   if (!activeOrder || !isOpen) return null;
@@ -108,6 +111,25 @@ export function StorefrontSuccessModal({
               </div>
             ))}
 
+            {activeOrder.deliveryFee === 0 ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px' }}>
+                <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
+                <span style={{ fontWeight: 700 }}>مجاناً 🚚</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '12.5px' }}>
+                <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
+                <span style={{ fontWeight: 600 }}>{activeOrder.deliveryFee.toFixed(0)} ج</span>
+              </div>
+            )}
+
+            {(activeOrder.discountAmount ?? 0) > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px' }}>
+                <span>خصم الكوبون {activeOrder.couponCode ? `(${activeOrder.couponCode})` : ''}:</span>
+                <span style={{ fontWeight: 700 }}>-{(activeOrder.discountAmount ?? 0).toFixed(0)} ج.م</span>
+              </div>
+            )}
+
             <div
               style={{
                 display: 'flex',
@@ -125,6 +147,35 @@ export function StorefrontSuccessModal({
             </div>
           </div>
         </div>
+
+        {/* Track Order in My Orders CTA Button */}
+        {onTrackOrder && (
+          <button
+            type="button"
+            onClick={onTrackOrder}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              width: '100%',
+              padding: '13px 18px',
+              borderRadius: '12px',
+              background: '#170e5e',
+              color: '#ffffff',
+              fontSize: '14px',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              marginBottom: '10px',
+              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.25)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>تتبع حالة الطلب في (طلباتي)</span>
+            <span>📦</span>
+          </button>
+        )}
 
         {/* WhatsApp Direct Action */}
         {activeOrder.whatsappUrl && (

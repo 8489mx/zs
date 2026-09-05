@@ -465,6 +465,7 @@ export function StorefrontHeader({
               className="storefront-action-btn"
               type="button"
               onClick={onOpenOrders}
+              title="متابعة وتتبع طلباتي"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -491,6 +492,9 @@ export function StorefrontHeader({
               }}
             >
               <PackageIcon size={19} />
+              <span className="storefront-action-label" style={{ fontSize: '12.5px', fontWeight: 700 }}>
+                طلباتي
+              </span>
             </button>
           )}
 

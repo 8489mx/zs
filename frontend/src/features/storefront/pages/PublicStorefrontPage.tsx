@@ -1201,6 +1201,10 @@ export function PublicStorefrontPage() {
         orderData={confirmedOrder}
         whatsappPhone={info.whatsappPhone}
         onClose={() => setConfirmedOrder(null)}
+        onTrackOrder={() => {
+          setConfirmedOrder(null);
+          setIsMyOrdersOpen(true);
+        }}
       />
 
       {/* Customer My Orders Modal */}

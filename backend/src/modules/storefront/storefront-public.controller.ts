@@ -34,6 +34,14 @@ export class StorefrontPublicController {
     return this.service.getProductReviews(slug, Number(productId));
   }
 
+  @Post(':slug/coupons/validate')
+  validateCoupon(
+    @Param('slug') slug: string,
+    @Body() body: { code: string; subtotal: number },
+  ) {
+    return this.service.validateCoupon(slug, body.code, Number(body.subtotal || 0));
+  }
+
   @Post(':slug/orders')
   createOrder(@Param('slug') slug: string, @Body() body: CreateOnlineOrderDto) {
     return this.service.createOnlineOrder(slug, body);

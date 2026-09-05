@@ -22,3 +22,9 @@
 - **Buttons & Brand Colors**:
   - Primary action buttons: deep royal navy (`#170e5e`), matching the "حفظ الإعدادات" button in `settings/core`.
   - Clean input fields with clear labels above them matching the system standard.
+
+## 5. System Capability Verification Rule (سجل قدرات النظام ومنع تكرار الميزات)
+- **ممنوع نهائياً** اقتراح ميزات أو التخمين بوجود أو عدم وجود ميزة من الذاكرة أو تقديم اقتراحات لميزات معمولة بالفعل عند سؤال المستخدم عن "ما ينقص النظام".
+- **يجب دائماً** مراجعة وفحص الملف المرجعي الموحد: `SYSTEM_CAPABILITIES.md` (والكود الفعلي) لمعرفة حالة كل وحدة وما تم إنجازه بنسبة 100% وما هو جزئي وما هو غير موجود فعلاً.
+- **قاعدة التحديث الإلزامي:** أي ميزة أو شاشة أو منطق جديد يتم إضافته أو تعديله في النظام يجب فوراً توثيقه وتحديث حالته ونسبته وملفاته في `SYSTEM_CAPABILITIES.md`.
+

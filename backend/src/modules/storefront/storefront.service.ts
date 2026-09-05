@@ -7,6 +7,8 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 import { CreateProductReviewDto } from './dto/create-product-review.dto';
 import { UpdateStorefrontSettingsDto } from './dto/update-storefront-settings.dto';
+import { CreateCouponDto, UpdateCouponDto } from './dto/coupon.dto';
+import { CreateDeliveryZoneDto, UpdateDeliveryZoneDto } from './dto/delivery-zone.dto';
 import { SalesService } from '../sales/sales.service';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
@@ -136,6 +138,8 @@ export class StorefrontService {
     const bannerPosition = settings.get('storefront_banner_position') || 'center';
     const bannerIntervalSeconds = Math.max(1, Number(settings.get('storefront_banner_interval') || 4));
     const smartDealsEnabled = settings.get('storefront_smart_deals') === 'true';
+    const freeShippingEnabled = settings.get('storefront_free_shipping_enabled') === 'true';
+    const freeShippingMinOrder = Number(settings.get('storefront_free_shipping_min_order') || 0);
     let bannerPositions: string[] = [];
     try {
       const rawPos = settings.get('storefront_banner_positions');
@@ -144,6 +148,22 @@ export class StorefrontService {
         if (Array.isArray(parsed)) bannerPositions = parsed.filter(Boolean);
       }
     } catch {}
+
+    const deliveryZoneRows = await this.db
+      .selectFrom('storefront_delivery_zones')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('is_active', '=', true)
+      .orderBy('sort_order', 'asc')
+      .orderBy('name', 'asc')
+      .execute();
+
+    const deliveryZones = deliveryZoneRows.map((z) => ({
+      id: z.id,
+      name: z.name,
+      deliveryFee: Number(z.delivery_fee || 0),
+      estimatedTime: z.estimated_time || '',
+    }));
 
     return {
       tenantId: tenant.id,
@@ -162,7 +182,10 @@ export class StorefrontService {
       bannerIntervalSeconds,
       smartDealsEnabled,
       deliveryFee,
+      deliveryZones,
       minOrder,
+      freeShippingEnabled,
+      freeShippingMinOrder,
       whatsappPhone,
       currency,
     };
@@ -326,7 +349,27 @@ export class StorefrontService {
     }
 
     const minOrder = Number(settings.get('storefront_min_order') || 0);
-    const deliveryFee = Number(settings.get('storefront_delivery_fee') || 0);
+    let deliveryFee = Number(settings.get('storefront_delivery_fee') || 0);
+    let deliveryZoneId: number | null = null;
+    let deliveryZoneName: string | null = null;
+
+    if (dto.deliveryZoneId) {
+      const zone = await this.db
+        .selectFrom('storefront_delivery_zones')
+        .selectAll()
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('id', '=', dto.deliveryZoneId)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+
+      if (zone) {
+        deliveryZoneId = zone.id;
+        deliveryZoneName = zone.name;
+        deliveryFee = Number(zone.delivery_fee || 0);
+      }
+    } else if (dto.deliveryZoneName && dto.deliveryZoneName.trim()) {
+      deliveryZoneName = dto.deliveryZoneName.trim();
+    }
 
     // Fetch products in order to verify price and names
     const numericIds = dto.items.map((i) => Number(i.productId)).filter((id) => !isNaN(id) && id > 0);
@@ -388,7 +431,61 @@ export class StorefrontService {
       throw new BadRequestException(`الحد الأدنى للطلب هو ${minOrder} ج`);
     }
 
-    const totalAmount = subtotal + deliveryFee;
+    // Automatic Free Shipping Rule Check
+    const freeShippingEnabled = settings.get('storefront_free_shipping_enabled') === 'true';
+    const freeShippingMinOrder = Number(settings.get('storefront_free_shipping_min_order') || 0);
+    if (freeShippingEnabled && freeShippingMinOrder > 0 && subtotal >= freeShippingMinOrder) {
+      deliveryFee = 0;
+    }
+
+    // Coupon Validation & Application
+    let discountAmount = 0;
+    let appliedCouponCode: string | null = null;
+
+    if (dto.couponCode && dto.couponCode.trim()) {
+      const codeUpper = dto.couponCode.trim().toUpperCase();
+      const coupon = await this.db
+        .selectFrom('storefront_coupons')
+        .selectAll()
+        .where(sql<boolean>`tenant_id = ${tenant.id}`)
+        .where('code', '=', codeUpper)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+
+      if (coupon) {
+        const nowDate = new Date();
+        const isStarted = !coupon.start_date || new Date(coupon.start_date) <= nowDate;
+        const isNotExpired = !coupon.end_date || new Date(coupon.end_date) >= nowDate;
+        const hasRemainingUsage = coupon.usage_limit === null || Number(coupon.times_used || 0) < coupon.usage_limit;
+        const meetsMinOrder = subtotal >= Number(coupon.min_order_amount || 0);
+
+        if (isStarted && isNotExpired && hasRemainingUsage && meetsMinOrder) {
+          appliedCouponCode = coupon.code;
+          if (coupon.discount_type === 'free_shipping') {
+            deliveryFee = 0;
+          } else if (coupon.discount_type === 'percentage') {
+            const rawDiscount = (subtotal * Number(coupon.discount_value)) / 100;
+            discountAmount = coupon.max_discount_amount
+              ? Math.min(rawDiscount, Number(coupon.max_discount_amount))
+              : rawDiscount;
+          } else if (coupon.discount_type === 'fixed') {
+            discountAmount = Math.min(subtotal, Number(coupon.discount_value));
+          }
+
+          // Increment coupon usage
+          await this.db
+            .updateTable('storefront_coupons')
+            .set({
+              times_used: Number(coupon.times_used || 0) + 1,
+              updated_at: new Date(),
+            })
+            .where('id', '=', coupon.id)
+            .execute();
+        }
+      }
+    }
+
+    const totalAmount = Math.max(0, subtotal - discountAmount) + deliveryFee;
 
     // Get default primary branch
     const primaryBranch = await this.db
@@ -448,6 +545,10 @@ export class StorefrontService {
         items_json: JSON.stringify(validatedItems),
         subtotal,
         delivery_fee: deliveryFee,
+        delivery_zone_id: deliveryZoneId,
+        delivery_zone_name: deliveryZoneName,
+        discount_amount: discountAmount,
+        coupon_code: appliedCouponCode,
         total_amount: totalAmount,
         status: 'pending',
         payment_method: dto.paymentMethod || 'cod',
@@ -473,6 +574,9 @@ export class StorefrontService {
 
     const paymentLabel = (dto.paymentMethod === 'instapay_wallet') ? 'تحويل مسبق (إنستاباي / محفظة)' : 'دفع عند الاستلام (كاش)';
     const notesPart = dto.customerNotes ? `\nملاحظات: ${dto.customerNotes}` : '';
+    const zonePart = deliveryZoneName ? `\nالمنطقة: ${deliveryZoneName}` : '';
+    const discountPart = discountAmount > 0 ? `\nالخصم (${appliedCouponCode}): -${discountAmount.toFixed(0)} ج` : '';
+    const shippingText = deliveryFee === 0 ? 'شحن مجاني 🎉' : `شامل التوصيل ${deliveryFee} ج`;
 
     const whatsappMessage = encodeURIComponent(
       `مرحباً، أود متابعة طلبي من متجركم:\n` +
@@ -480,10 +584,12 @@ export class StorefrontService {
       `العميل: ${dto.customerName}\n` +
       `الهاتف: ${dto.customerPhone}\n` +
       `العنوان: ${dto.customerAddress || 'غير محدد'}` +
+      `${zonePart}` +
       `${notesPart}\n` +
       `طريقة الدفع: ${paymentLabel}\n\n` +
       `الأصناف المطلوبة:\n${itemsSummary}\n\n` +
-      `الإجمالي: ${totalAmount} ج (شامل التوصيل ${deliveryFee} ج)`
+      `المجموع: ${subtotal} ج${discountPart}\n` +
+      `الإجمالي: ${totalAmount} ج (${shippingText})`
     );
 
     const whatsappUrl = targetPhone ? `https://wa.me/${targetPhone}?text=${whatsappMessage}` : null;
@@ -495,6 +601,10 @@ export class StorefrontService {
       totalAmount: Number(insertedOrder.total_amount),
       subtotal,
       deliveryFee,
+      deliveryZoneId,
+      deliveryZoneName,
+      discountAmount,
+      couponCode: appliedCouponCode,
       items: validatedItems,
       whatsappUrl,
     };
@@ -510,22 +620,47 @@ export class StorefrontService {
     }
 
     let qb = this.db
-      .selectFrom('online_orders')
-      .selectAll()
-      .where(sql<boolean>`tenant_id = ${tenant.id}`);
+      .selectFrom('online_orders as o')
+      .leftJoin('sales as s', 's.id', 'o.sale_id')
+      .leftJoin('delivery_representatives as dr', 'dr.id', 's.delivery_rep_id')
+      .select([
+        'o.id',
+        'o.order_number',
+        'o.customer_name',
+        'o.customer_phone',
+        'o.customer_address',
+        'o.customer_notes',
+        'o.items_json',
+        'o.subtotal',
+        'o.delivery_fee',
+        'o.delivery_zone_id',
+        'o.delivery_zone_name',
+        'o.total_amount',
+        'o.status',
+        'o.payment_method',
+        'o.coupon_code',
+        'o.discount_amount',
+        'o.sale_id',
+        'o.created_at',
+        'o.updated_at',
+        'dr.name as delivery_rep_name',
+        'dr.phone as delivery_rep_phone',
+        's.delivery_status as sale_delivery_status',
+      ])
+      .where(sql<boolean>`o.tenant_id = ${tenant.id}`);
 
     qb = qb.where((eb) => {
       const conditions: any[] = [];
       if (cleanPhone) {
-        conditions.push(eb('customer_phone', 'like', `%${cleanPhone.slice(-9)}%`));
+        conditions.push(eb('o.customer_phone', 'like', `%${cleanPhone.slice(-9)}%`));
       }
       if (validOrderNumbers.length > 0) {
-        conditions.push(eb('order_number', 'in', validOrderNumbers));
+        conditions.push(eb('o.order_number', 'in', validOrderNumbers));
       }
       return eb.or(conditions);
     });
 
-    const rows = await qb.orderBy('created_at', 'desc').limit(20).execute();
+    const rows = await qb.orderBy('o.created_at', 'desc').limit(20).execute();
 
     return {
       ok: true,
@@ -535,6 +670,15 @@ export class StorefrontService {
           items = typeof r.items_json === 'string' ? JSON.parse(r.items_json) : r.items_json;
         } catch {}
 
+        let effectiveStatus: string = r.status;
+        if (r.status !== 'cancelled') {
+          if (r.status === 'delivered' || r.sale_delivery_status === 'delivered' || r.sale_delivery_status === 'settled') {
+            effectiveStatus = 'delivered';
+          } else if (r.status === 'shipped' || r.sale_delivery_status === 'out_for_delivery') {
+            effectiveStatus = 'shipped';
+          }
+        }
+
         return {
           id: r.id,
           orderNumber: r.order_number,
@@ -542,13 +686,20 @@ export class StorefrontService {
           customerPhone: r.customer_phone,
           customerAddress: r.customer_address,
           customerNotes: r.customer_notes,
+          deliveryZoneId: r.delivery_zone_id ? Number(r.delivery_zone_id) : null,
+          deliveryZoneName: r.delivery_zone_name || null,
           subtotal: Number(r.subtotal),
           deliveryFee: Number(r.delivery_fee),
+          discountAmount: Number(r.discount_amount || 0),
+          couponCode: r.coupon_code || null,
           totalAmount: Number(r.total_amount),
-          status: r.status,
+          status: effectiveStatus,
           paymentMethod: r.payment_method,
           saleId: r.sale_id,
+          deliveryRepName: r.delivery_rep_name || null,
+          deliveryRepPhone: r.delivery_rep_phone || null,
           createdAt: r.created_at,
+          updatedAt: r.updated_at,
           items,
         };
       }),
@@ -795,6 +946,10 @@ export class StorefrontService {
           customerNotes: r.customer_notes,
           subtotal: Number(r.subtotal),
           deliveryFee: Number(r.delivery_fee),
+          deliveryZoneId: r.delivery_zone_id ? Number(r.delivery_zone_id) : null,
+          deliveryZoneName: r.delivery_zone_name || null,
+          discountAmount: Number(r.discount_amount || 0),
+          couponCode: r.coupon_code || null,
           totalAmount: Number(r.total_amount),
           status: r.status,
           paymentMethod: r.payment_method,
@@ -827,6 +982,10 @@ export class StorefrontService {
       ...order,
       subtotal: Number(order.subtotal),
       deliveryFee: Number(order.delivery_fee),
+      deliveryZoneId: order.delivery_zone_id ? Number(order.delivery_zone_id) : null,
+      deliveryZoneName: order.delivery_zone_name || null,
+      discountAmount: Number(order.discount_amount || 0),
+      couponCode: order.coupon_code || null,
       totalAmount: Number(order.total_amount),
       items,
     };
@@ -1183,6 +1342,8 @@ export class StorefrontService {
       smartDealsEnabled: settings.get('storefront_smart_deals') === 'true',
       deliveryFee: Number(settings.get('storefront_delivery_fee') || 0),
       minOrder: Number(settings.get('storefront_min_order') || 0),
+      freeShippingEnabled: settings.get('storefront_free_shipping_enabled') === 'true',
+      freeShippingMinOrder: Number(settings.get('storefront_free_shipping_min_order') || 0),
       whatsappPhone: settings.get('storefront_whatsapp') || settings.get('phone') || tenant?.owner_phone || '',
       currency: settings.get('currency') || 'EGP',
     };
@@ -1264,6 +1425,8 @@ export class StorefrontService {
     if (payload.smartDealsEnabled !== undefined) entries.push({ key: 'storefront_smart_deals', value: payload.smartDealsEnabled });
     if (payload.deliveryFee !== undefined) entries.push({ key: 'storefront_delivery_fee', value: payload.deliveryFee });
     if (payload.minOrder !== undefined) entries.push({ key: 'storefront_min_order', value: payload.minOrder });
+    if (payload.freeShippingEnabled !== undefined) entries.push({ key: 'storefront_free_shipping_enabled', value: payload.freeShippingEnabled });
+    if (payload.freeShippingMinOrder !== undefined) entries.push({ key: 'storefront_free_shipping_min_order', value: payload.freeShippingMinOrder });
     if (payload.whatsappPhone !== undefined) entries.push({ key: 'storefront_whatsapp', value: payload.whatsappPhone });
 
     for (const e of entries) {
@@ -1430,5 +1593,292 @@ export class StorefrontService {
         createdAt: r.created_at,
       })),
     };
+  }
+
+  // --- Coupon & Promo Code Management ---
+
+  async validateCoupon(slug: string, code: string, subtotal: number) {
+    const tenant = await this.getTenantBySlug(slug);
+    const codeUpper = String(code || '').trim().toUpperCase();
+    if (!codeUpper) {
+      throw new BadRequestException('يرجى إدخال كود الكوبون');
+    }
+
+    const coupon = await this.db
+      .selectFrom('storefront_coupons')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenant.id}`)
+      .where('code', '=', codeUpper)
+      .executeTakeFirst();
+
+    if (!coupon) {
+      return { ok: false, message: 'كود الكوبون غير صحيح أو غير مسجل' };
+    }
+
+    if (!coupon.is_active) {
+      return { ok: false, message: 'هذا الكوبون تم إيقافه حالياً من قِبل المتجر' };
+    }
+
+    const now = new Date();
+    if (coupon.start_date && new Date(coupon.start_date) > now) {
+      return { ok: false, message: 'عذراً، هذا الكوبون لم يبدأ بعد' };
+    }
+    if (coupon.end_date && new Date(coupon.end_date) < now) {
+      return { ok: false, message: 'عذراً، هذا الكوبون انتهت فترة صلاحيته' };
+    }
+
+    if (coupon.usage_limit !== null && Number(coupon.times_used || 0) >= coupon.usage_limit) {
+      return { ok: false, message: 'عذراً، استنفد هذا الكوبون الحد الأقصى لمرات الاستخدام المتاحة' };
+    }
+
+    const minOrder = Number(coupon.min_order_amount || 0);
+    if (subtotal < minOrder) {
+      return {
+        ok: false,
+        message: `لتفعيل هذا الكوبون، يجب أن تبلغ قيمة المشتريات ${minOrder} ج على الأقل (مشترياتك الآن: ${subtotal.toFixed(0)} ج)`,
+      };
+    }
+
+    let discountAmount = 0;
+    let isFreeShipping = false;
+    if (coupon.discount_type === 'free_shipping') {
+      isFreeShipping = true;
+    } else if (coupon.discount_type === 'percentage') {
+      const rawDiscount = (subtotal * Number(coupon.discount_value)) / 100;
+      discountAmount = coupon.max_discount_amount
+        ? Math.min(rawDiscount, Number(coupon.max_discount_amount))
+        : rawDiscount;
+    } else if (coupon.discount_type === 'fixed') {
+      discountAmount = Math.min(subtotal, Number(coupon.discount_value));
+    }
+
+    return {
+      ok: true,
+      code: coupon.code,
+      discountType: coupon.discount_type,
+      discountValue: Number(coupon.discount_value),
+      discountAmount: Number(discountAmount.toFixed(2)),
+      isFreeShipping,
+      minOrderAmount: minOrder,
+      maxDiscountAmount: coupon.max_discount_amount ? Number(coupon.max_discount_amount) : null,
+      message: isFreeShipping
+        ? 'تم تطبيق كوبون الشحن المجاني بنجاح!'
+        : `تم تطبيق كود الخصم بنجاح (- ${discountAmount.toFixed(0)} ج)!`,
+    };
+  }
+
+  async listCoupons(actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    const rows = await this.db
+      .selectFrom('storefront_coupons')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    return {
+      ok: true,
+      coupons: rows.map((c) => ({
+        id: c.id,
+        code: c.code,
+        discountType: c.discount_type,
+        discountValue: Number(c.discount_value),
+        minOrderAmount: Number(c.min_order_amount),
+        maxDiscountAmount: c.max_discount_amount ? Number(c.max_discount_amount) : null,
+        usageLimit: c.usage_limit,
+        timesUsed: Number(c.times_used || 0),
+        isActive: Boolean(c.is_active),
+        startDate: c.start_date,
+        endDate: c.end_date,
+        createdAt: c.created_at,
+      })),
+    };
+  }
+
+  async createCoupon(dto: CreateCouponDto, actor: AuthContext) {
+    const { tenantId, accountId } = requireTenantScope(actor);
+    const codeClean = dto.code.trim().toUpperCase();
+
+    const existing = await this.db
+      .selectFrom('storefront_coupons')
+      .select('id')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('code', '=', codeClean)
+      .executeTakeFirst();
+
+    if (existing) {
+      throw new BadRequestException(`كود الكوبون "${codeClean}" موجود بالفعل، يرجى اختيار كود آخر`);
+    }
+
+    const inserted = await this.db
+      .insertInto('storefront_coupons')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        code: codeClean,
+        discount_type: dto.discountType,
+        discount_value: dto.discountValue,
+        min_order_amount: dto.minOrderAmount || 0,
+        max_discount_amount: dto.maxDiscountAmount || null,
+        usage_limit: dto.usageLimit || null,
+        times_used: 0,
+        is_active: dto.isActive !== undefined ? dto.isActive : true,
+        start_date: dto.startDate ? new Date(dto.startDate) : null,
+        end_date: dto.endDate ? new Date(dto.endDate) : null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return { ok: true, coupon: inserted };
+  }
+
+  async updateCoupon(id: number, dto: UpdateCouponDto, actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    const existing = await this.db
+      .selectFrom('storefront_coupons')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!existing) {
+      throw new NotFoundException('الكوبون غير موجود');
+    }
+
+    const payload: any = { updated_at: new Date() };
+    if (dto.code !== undefined) {
+      payload.code = dto.code.trim().toUpperCase();
+    }
+    if (dto.discountType !== undefined) payload.discount_type = dto.discountType;
+    if (dto.discountValue !== undefined) payload.discount_value = dto.discountValue;
+    if (dto.minOrderAmount !== undefined) payload.min_order_amount = dto.minOrderAmount;
+    if (dto.maxDiscountAmount !== undefined) payload.max_discount_amount = dto.maxDiscountAmount;
+    if (dto.usageLimit !== undefined) payload.usage_limit = dto.usageLimit;
+    if (dto.isActive !== undefined) payload.is_active = dto.isActive;
+    if (dto.startDate !== undefined) payload.start_date = dto.startDate ? new Date(dto.startDate) : null;
+    if (dto.endDate !== undefined) payload.end_date = dto.endDate ? new Date(dto.endDate) : null;
+
+    await this.db
+      .updateTable('storefront_coupons')
+      .set(payload)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('id', '=', id)
+      .execute();
+
+    return { ok: true, id };
+  }
+
+  async deleteCoupon(id: number, actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    await this.db
+      .deleteFrom('storefront_coupons')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('id', '=', id)
+      .execute();
+
+    return { ok: true, id };
+  }
+
+  // --- Delivery Zones Management ---
+
+  async listDeliveryZones(actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    const rows = await this.db
+      .selectFrom('storefront_delivery_zones')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .orderBy('sort_order', 'asc')
+      .orderBy('name', 'asc')
+      .execute();
+
+    return {
+      ok: true,
+      zones: rows.map((z) => ({
+        id: z.id,
+        name: z.name,
+        deliveryFee: Number(z.delivery_fee || 0),
+        estimatedTime: z.estimated_time || '',
+        isActive: Boolean(z.is_active),
+        sortOrder: Number(z.sort_order || 0),
+        createdAt: z.created_at,
+        updatedAt: z.updated_at,
+      })),
+    };
+  }
+
+  async createDeliveryZone(dto: CreateDeliveryZoneDto, actor: AuthContext) {
+    const { tenantId, accountId } = requireTenantScope(actor);
+    const nameClean = dto.name.trim();
+
+    const inserted = await this.db
+      .insertInto('storefront_delivery_zones')
+      .values({
+        tenant_id: tenantId,
+        account_id: accountId,
+        name: nameClean,
+        delivery_fee: dto.deliveryFee,
+        estimated_time: dto.estimatedTime ? dto.estimatedTime.trim() : null,
+        is_active: dto.isActive !== undefined ? dto.isActive : true,
+        sort_order: dto.sortOrder !== undefined ? dto.sortOrder : 0,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return {
+      ok: true,
+      zone: {
+        id: inserted.id,
+        name: inserted.name,
+        deliveryFee: Number(inserted.delivery_fee || 0),
+        estimatedTime: inserted.estimated_time || '',
+        isActive: Boolean(inserted.is_active),
+        sortOrder: Number(inserted.sort_order || 0),
+      },
+    };
+  }
+
+  async updateDeliveryZone(id: number, dto: UpdateDeliveryZoneDto, actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    const existing = await this.db
+      .selectFrom('storefront_delivery_zones')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!existing) {
+      throw new NotFoundException('منطقة التوصيل غير موجودة');
+    }
+
+    const payload: any = { updated_at: new Date() };
+    if (dto.name !== undefined) payload.name = dto.name.trim();
+    if (dto.deliveryFee !== undefined) payload.delivery_fee = dto.deliveryFee;
+    if (dto.estimatedTime !== undefined) payload.estimated_time = dto.estimatedTime ? dto.estimatedTime.trim() : null;
+    if (dto.isActive !== undefined) payload.is_active = dto.isActive;
+    if (dto.sortOrder !== undefined) payload.sort_order = dto.sortOrder;
+
+    await this.db
+      .updateTable('storefront_delivery_zones')
+      .set(payload)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('id', '=', id)
+      .execute();
+
+    return { ok: true, id };
+  }
+
+  async deleteDeliveryZone(id: number, actor: AuthContext) {
+    const { tenantId } = requireTenantScope(actor);
+    await this.db
+      .deleteFrom('storefront_delivery_zones')
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('id', '=', id)
+      .execute();
+
+    return { ok: true, id };
   }
 }

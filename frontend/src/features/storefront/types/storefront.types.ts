@@ -14,7 +14,10 @@ export interface StorefrontInfo {
   bannerPositions?: string[];
   bannerIntervalSeconds?: number;
   smartDealsEnabled?: boolean;
+  freeShippingEnabled?: boolean;
+  freeShippingMinOrder?: number;
   deliveryFee: number;
+  deliveryZones?: StorefrontDeliveryZone[];
   minOrder: number;
   whatsappPhone: string;
   currency: string;
@@ -73,6 +76,9 @@ export interface CreateOnlineOrderPayload {
     notes?: string;
   }>;
   paymentMethod?: string;
+  couponCode?: string;
+  deliveryZoneId?: number;
+  deliveryZoneName?: string;
 }
 
 export interface CreateOnlineOrderResponse {
@@ -82,6 +88,10 @@ export interface CreateOnlineOrderResponse {
   totalAmount: number;
   subtotal: number;
   deliveryFee: number;
+  deliveryZoneId?: number | null;
+  deliveryZoneName?: string | null;
+  discountAmount?: number;
+  couponCode?: string | null;
   items: Array<{
     productId: number;
     name: string;
@@ -99,13 +109,20 @@ export interface OnlineOrderRecord {
   customerPhone: string;
   customerAddress: string | null;
   customerNotes: string | null;
+  deliveryZoneId?: number | null;
+  deliveryZoneName?: string | null;
   subtotal: number;
   deliveryFee: number;
   totalAmount: number;
+  discountAmount?: number;
+  couponCode?: string | null;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentMethod: string;
   saleId: number | null;
+  deliveryRepName?: string | null;
+  deliveryRepPhone?: string | null;
   createdAt: string;
+  updatedAt?: string;
   items: Array<{
     productId: number;
     name: string;
@@ -129,8 +146,74 @@ export interface StorefrontSettingsPayload {
   bannerPositions?: string[];
   bannerIntervalSeconds?: number;
   smartDealsEnabled?: boolean;
+  freeShippingEnabled?: boolean;
+  freeShippingMinOrder?: number;
   deliveryFee?: number;
   minOrder?: number;
   whatsappPhone?: string;
   customDomain?: string;
 }
+
+export interface StorefrontCoupon {
+  id: number;
+  code: string;
+  discountType: 'percentage' | 'fixed' | 'free_shipping';
+  discountValue: number;
+  minOrderAmount: number;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  timesUsed: number;
+  isActive: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateCouponPayload {
+  code: string;
+  discountType: 'percentage' | 'fixed' | 'free_shipping';
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  isActive?: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export interface UpdateCouponPayload extends Partial<CreateCouponPayload> {}
+
+export interface ValidateCouponResponse {
+  ok: boolean;
+  code?: string;
+  discountType?: 'percentage' | 'fixed' | 'free_shipping';
+  discountValue?: number;
+  discountAmount?: number;
+  isFreeShipping?: boolean;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number | null;
+  message?: string;
+}
+
+export interface StorefrontDeliveryZone {
+  id: number;
+  name: string;
+  deliveryFee: number;
+  estimatedTime?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateDeliveryZonePayload {
+  name: string;
+  deliveryFee: number;
+  estimatedTime?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface UpdateDeliveryZonePayload extends Partial<CreateDeliveryZonePayload> {}
+

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { compressImage } from '@/shared/utils/image-compressor';
 import { StorefrontProductStudio } from './StorefrontProductStudio';
+import { StorefrontCouponsManager } from './StorefrontCouponsManager';
+import { StorefrontDeliveryZonesManager } from './StorefrontDeliveryZonesManager';
 
 function parsePosition(posStr?: string): { x: number; y: number } {
   if (!posStr) return { x: 50, y: 50 };
@@ -23,7 +25,7 @@ function parsePosition(posStr?: string): { x: number; y: number } {
 
 export function StorefrontSettingsTab() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'settings' | 'images'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'images'>('settings');
   const [copySuccess, setCopySuccess] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [bannerCompressFeedback, setBannerCompressFeedback] = useState('');
@@ -48,6 +50,8 @@ export function StorefrontSettingsTab() {
     bannerPositions: [] as string[],
     bannerIntervalSeconds: 4,
     smartDealsEnabled: false,
+    freeShippingEnabled: false,
+    freeShippingMinOrder: 500,
     deliveryFee: 0,
     minOrder: 0,
     whatsappPhone: '',
@@ -98,6 +102,8 @@ export function StorefrontSettingsTab() {
         bannerPositions: settingsQuery.data.bannerPositions || [],
         bannerIntervalSeconds: settingsQuery.data.bannerIntervalSeconds || 4,
         smartDealsEnabled: Boolean(settingsQuery.data.smartDealsEnabled),
+        freeShippingEnabled: Boolean(settingsQuery.data.freeShippingEnabled),
+        freeShippingMinOrder: settingsQuery.data.freeShippingMinOrder !== undefined && settingsQuery.data.freeShippingMinOrder !== null ? Number(settingsQuery.data.freeShippingMinOrder) : 500,
         deliveryFee: settingsQuery.data.deliveryFee || 0,
         minOrder: settingsQuery.data.minOrder || 0,
         whatsappPhone: settingsQuery.data.whatsappPhone || '',
@@ -401,6 +407,40 @@ export function StorefrontSettingsTab() {
           }}
         >
           بيانات المتجر والبنر
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('coupons')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: activeTab === 'coupons' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+            background: activeTab === 'coupons' ? '#170e5e' : '#ffffff',
+            color: activeTab === 'coupons' ? '#ffffff' : '#475569',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          كوبونات الخصم والعروض 🏷️
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('zones')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: activeTab === 'zones' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+            background: activeTab === 'zones' ? '#170e5e' : '#ffffff',
+            color: activeTab === 'zones' ? '#ffffff' : '#475569',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          مناطق وأسعار التوصيل 🚚
         </button>
         <button
           type="button"
@@ -783,6 +823,114 @@ export function StorefrontSettingsTab() {
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Delivery Zones Shortcut Tip */}
+              <div
+                style={{
+                  background: '#f0f3ff',
+                  border: '1px solid #d8e0fc',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px' }}>💡</span>
+                  <span style={{ fontSize: '11px', color: '#170e5e', fontWeight: 600 }}>
+                    هل تريد تحديد أسعار دليفري مختلفة لكل حي أو محافظة تخدمها؟
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('zones')}
+                  style={{
+                    background: '#170e5e',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  إدارة مصفوفة المناطق ↗
+                </button>
+              </div>
+
+              {/* Automatic Free Shipping Threshold Rule */}
+              <div
+                style={{
+                  background: formState.freeShippingEnabled ? '#f0fdf4' : '#f8fafc',
+                  border: formState.freeShippingEnabled ? '1.5px solid #86efac' : '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span>🚚</span>
+                      <span>تفعيل الشحن المجاني التلقائي (Free Shipping Rule)</span>
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '1px' }}>
+                      إلغاء رسوم التوصيل تلقائياً عندما يتجاوز إجمالي مشتريات الزبون حداً معيناً
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formState.freeShippingEnabled}
+                    onChange={(e) => setFormState({ ...formState, freeShippingEnabled: e.target.checked })}
+                    style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+                  />
+                </div>
+
+                {formState.freeShippingEnabled && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      paddingTop: '6px',
+                      borderTop: '1px dashed #bbf7d0',
+                    }}
+                  >
+                    <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#166534', whiteSpace: 'nowrap' }}>
+                      شحن مجاني عند الطلب بمبلغ (ج.م) أو أكثر:
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formState.freeShippingMinOrder}
+                      onChange={(e) =>
+                        setFormState({ ...formState, freeShippingMinOrder: Math.max(1, Number(e.target.value)) })
+                      }
+                      style={{
+                        width: '100px',
+                        padding: '5px 8px',
+                        borderRadius: '6px',
+                        border: '1.5px solid #86efac',
+                        fontSize: '12.5px',
+                        fontWeight: 800,
+                        color: '#166534',
+                        background: '#ffffff',
+                        textAlign: 'center',
+                      }}
+                    />
+                    <span style={{ fontSize: '11px', color: '#15803d' }}>
+                      (مثال: 500 جنيه)
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Multi-Banner Carousel Manager (Slider / GIF-like Auto Rotation) */}
@@ -1383,7 +1531,13 @@ export function StorefrontSettingsTab() {
         </form>
       )}
 
-      {/* Tab 2: Product Studio in Full Width Grid */}
+      {/* Tab 2: Coupons Manager */}
+      {activeTab === 'coupons' && <StorefrontCouponsManager />}
+
+      {/* Tab 3: Delivery Zones Matrix */}
+      {activeTab === 'zones' && <StorefrontDeliveryZonesManager />}
+
+      {/* Tab 4: Product Studio in Full Width Grid */}
       {activeTab === 'images' && <StorefrontProductStudio slug={storeSlug} />}
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CartItem, CreateOnlineOrderResponse, StorefrontInfo } from '../types/storefront.types';
+import { CartItem, CreateOnlineOrderResponse, StorefrontInfo, ValidateCouponResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
 
 const STOREFRONT_SAVED_CUSTOMER_KEY = 'zsystems.storefront.saved_customer';
@@ -20,6 +20,9 @@ interface StorefrontCheckoutModalProps {
     customerAddress: string;
     customerNotes: string;
     paymentMethod?: string;
+    couponCode?: string;
+    deliveryZoneId?: number;
+    deliveryZoneName?: string;
   }) => Promise<void>;
 }
 
@@ -82,8 +85,38 @@ export function StorefrontCheckoutModal({
   const [isDeviceMatched, setIsDeviceMatched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<ValidateCouponResponse | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const isSubmittingRef = useRef(false);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
+
+  const activeDeliveryZones = (info?.deliveryZones || []).filter((z) => z.isActive !== false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    try {
+      const savedZone = localStorage.getItem('zsystems.storefront.saved_zone_id');
+      if (savedZone && activeDeliveryZones.some((z) => z.id === Number(savedZone))) {
+        setSelectedZoneId(Number(savedZone));
+      } else if (activeDeliveryZones.length > 0) {
+        setSelectedZoneId((prev) => (prev !== null && activeDeliveryZones.some((z) => z.id === prev) ? prev : activeDeliveryZones[0].id));
+      }
+    } catch {
+      if (activeDeliveryZones.length > 0) {
+        setSelectedZoneId((prev) => (prev !== null && activeDeliveryZones.some((z) => z.id === prev) ? prev : activeDeliveryZones[0].id));
+      }
+    }
+  }, [isOpen, activeDeliveryZones.length]);
+
+  const handleZoneSelect = (zoneId: number) => {
+    setSelectedZoneId(zoneId);
+    try {
+      localStorage.setItem('zsystems.storefront.saved_zone_id', String(zoneId));
+    } catch {}
+  };
 
   const showError = (msg: string) => {
     setErrorMsg(msg);
@@ -104,6 +137,7 @@ export function StorefrontCheckoutModal({
     // Always reset loading and error states whenever modal open state toggles
     setLoading(false);
     setErrorMsg('');
+    setCouponError('');
     isSubmittingRef.current = false;
 
     if (!isOpen) return;
@@ -144,22 +178,77 @@ export function StorefrontCheckoutModal({
     setIsDeviceMatched(false);
   };
 
+  const handleModalClose = () => {
+    setLoading(false);
+    setErrorMsg('');
+    setCouponCodeInput('');
+    setAppliedCoupon(null);
+    setCouponError('');
+    isSubmittingRef.current = false;
+    onClose();
+  };
+
+  const handleApplyCoupon = async () => {
+    const cleanCode = couponCodeInput.trim().toUpperCase();
+    if (!cleanCode) {
+      setCouponError('يرجى كتابة كود الكوبون أولاً');
+      return;
+    }
+    if (!tenantSlug) return;
+
+    setCouponLoading(true);
+    setCouponError('');
+
+    try {
+      const res = await storefrontApi.validateCoupon(tenantSlug, cleanCode, subtotal);
+      if (res.ok) {
+        setAppliedCoupon(res);
+        setCouponError('');
+      } else {
+        setAppliedCoupon(null);
+        setCouponError(res.message || 'كود الكوبون غير صالح');
+      }
+    } catch (err: any) {
+      setAppliedCoupon(null);
+      setCouponError(err.message || 'تعذر التحقق من كود الكوبون');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCodeInput('');
+    setCouponError('');
+  };
+
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const deliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
-  const total = subtotal + deliveryFee;
+  const selectedZone = activeDeliveryZones.find((z) => z.id === selectedZoneId) || (activeDeliveryZones.length > 0 ? activeDeliveryZones[0] : null);
+  const rawDeliveryFee = selectedZone ? selectedZone.deliveryFee : (deliveryFeeProp ?? info?.deliveryFee ?? 0);
+
+  // Automatic Free Shipping Rule
+  const isAutoFreeShipping = Boolean(info?.freeShippingEnabled && subtotal >= (info?.freeShippingMinOrder || 500));
+  const freeShippingThreshold = info?.freeShippingMinOrder || 500;
+  const freeShippingRemaining = (info?.freeShippingEnabled && !isAutoFreeShipping)
+    ? Math.max(0, freeShippingThreshold - subtotal)
+    : 0;
+
+  // Coupon Free Shipping & Discount
+  const isCouponFreeShipping = Boolean(appliedCoupon?.ok && appliedCoupon?.isFreeShipping);
+  const effectiveDeliveryFee = (isAutoFreeShipping || isCouponFreeShipping) ? 0 : rawDeliveryFee;
+
+  let discountAmount = 0;
+  if (appliedCoupon?.ok && appliedCoupon.discountAmount) {
+    discountAmount = Math.min(subtotal, appliedCoupon.discountAmount);
+  }
+
+  const total = Math.max(0, subtotal - discountAmount) + effectiveDeliveryFee;
 
   const phoneStatus = getEgyptianPhoneValidation(customerPhone);
   const nameStatus = getCustomerNameValidation(customerName);
   const addressStatus = getCustomerAddressValidation(customerAddress);
-
-  const handleModalClose = () => {
-    setLoading(false);
-    setErrorMsg('');
-    isSubmittingRef.current = false;
-    onClose();
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,6 +310,9 @@ export function StorefrontCheckoutModal({
           customerAddress: customerAddress.trim(),
           customerNotes: customerNotes.trim(),
           paymentMethod,
+          couponCode: appliedCoupon?.ok ? appliedCoupon.code : undefined,
+          deliveryZoneId: selectedZone ? selectedZone.id : undefined,
+          deliveryZoneName: selectedZone ? selectedZone.name : undefined,
           items: cartItems.map((item) => ({
             productId: Number(item.product.id),
             quantity: Number(item.quantity) || 1,
@@ -243,6 +335,9 @@ export function StorefrontCheckoutModal({
           customerAddress: customerAddress.trim(),
           customerNotes: customerNotes.trim(),
           paymentMethod,
+          couponCode: appliedCoupon?.ok ? appliedCoupon.code : undefined,
+          deliveryZoneId: selectedZone ? selectedZone.id : undefined,
+          deliveryZoneName: selectedZone ? selectedZone.name : undefined,
         });
       } else if (tenantSlug && onOrderSuccess) {
         const payload = {
@@ -251,6 +346,9 @@ export function StorefrontCheckoutModal({
           customerAddress: customerAddress.trim(),
           customerNotes: customerNotes.trim(),
           paymentMethod,
+          couponCode: appliedCoupon?.ok ? appliedCoupon.code : undefined,
+          deliveryZoneId: selectedZone ? selectedZone.id : undefined,
+          deliveryZoneName: selectedZone ? selectedZone.name : undefined,
           items: cartItems.map((item) => ({
             productId: Number(item.product.id),
             quantity: Number(item.quantity) || 1,
@@ -518,6 +616,46 @@ export function StorefrontCheckoutModal({
               />
             </div>
 
+            {/* Field: Delivery Zone Matrix Selector */}
+            {activeDeliveryZones.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
+                    منطقة / حي التوصيل <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  {selectedZone?.estimatedTime && (
+                    <span style={{ fontSize: '11px', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 7px', borderRadius: '4px', fontWeight: 600 }}>
+                      ⏱️ التوصيل المتوقع: {selectedZone.estimatedTime}
+                    </span>
+                  )}
+                </div>
+
+                <select
+                  value={selectedZone?.id ?? ''}
+                  onChange={(e) => handleZoneSelect(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    background: '#f8fafc',
+                    fontFamily: 'inherit',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {activeDeliveryZones.map((z) => (
+                    <option key={z.id} value={z.id}>
+                      {z.name} — {z.deliveryFee === 0 ? 'توصيل مجاني (0 ج)' : `${z.deliveryFee} ج.م`} {z.estimatedTime ? `(${z.estimatedTime})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Field 3: Customer Address */}
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
@@ -686,27 +824,237 @@ export function StorefrontCheckoutModal({
               )}
             </div>
 
+            {/* Automatic Free Shipping Callout */}
+            {info?.freeShippingEnabled && (
+              <div>
+                {isAutoFreeShipping ? (
+                  <div
+                    style={{
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: '#065f46',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>🎉</span>
+                    <span>
+                      مبروك! مشترياتك تجاوزت {freeShippingThreshold} ج.م وحصلت على شحن مجاني (توفير {rawDeliveryFee.toFixed(0)} ج.م).
+                    </span>
+                  </div>
+                ) : freeShippingRemaining > 0 ? (
+                  <div
+                    style={{
+                      background: '#f0f9ff',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      color: '#0369a1',
+                      fontSize: '11.5px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🚚</span>
+                      <span>
+                        أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} ج.م</strong> إضافية للحصول على شحن مجاني!
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        background: '#e0f2fe',
+                        color: '#0369a1',
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      عرض الشحن
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* Promo Code Input Box */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '10px 12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
+                  كود الخصم أو الكوبون (Promo Code):
+                </label>
+                {appliedCoupon?.ok && (
+                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>
+                    ✓ تم التطبيق
+                  </span>
+                )}
+              </div>
+
+              {appliedCoupon?.ok ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: '#ecfdf5',
+                    border: '1px solid #86efac',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '14px' }}>🏷️</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#166534', fontSize: '12.5px' }}>
+                      {appliedCoupon.code}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#15803d', marginRight: '4px' }}>
+                      {appliedCoupon.isFreeShipping ? '(شحن مجاني)' : `(خصم ${discountAmount.toFixed(0)} ج)`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#dc2626',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                    }}
+                  >
+                    إلغاء ✕
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input
+                      type="text"
+                      value={couponCodeInput}
+                      onChange={(e) => {
+                        setCouponCodeInput(e.target.value.toUpperCase().replace(/\s+/g, ''));
+                        setCouponError('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleApplyCoupon();
+                        }
+                      }}
+                      placeholder="أدخل كود الكوبون هنا..."
+                      style={{
+                        flex: 1,
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: couponError ? '1.5px solid #f87171' : '1px solid #cbd5e1',
+                        fontSize: '12px',
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        direction: 'ltr',
+                        textAlign: 'right',
+                        background: '#ffffff',
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCodeInput.trim()}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        background: '#170e5e',
+                        color: '#ffffff',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: couponLoading || !couponCodeInput.trim() ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {couponLoading ? 'جاري...' : 'تطبيق'}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <span style={{ display: 'block', fontSize: '11px', color: '#dc2626', marginTop: '4px', fontWeight: 600 }}>
+                      ⚠️ {couponError}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Order Total Summary */}
             <div
               style={{
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
                 borderRadius: '8px',
-                padding: '8px 14px',
+                padding: '10px 14px',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                flexDirection: 'column',
+                gap: '6px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>المبلغ الإجمالي للدفع:</span>
-                <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>
-                  ({subtotal.toFixed(0)} أصناف + {deliveryFee.toFixed(0)} توصيل)
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                <span>مجموع الأصناف:</span>
+                <span style={{ fontWeight: 600, color: '#334155' }}>{subtotal.toFixed(0)} ج.م</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
+                <span>خدمة التوصيل {selectedZone ? `(${selectedZone.name})` : ''}:</span>
+                {effectiveDeliveryFee === 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {rawDeliveryFee > 0 && (
+                      <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{rawDeliveryFee.toFixed(0)} ج</span>
+                    )}
+                    <strong style={{ color: '#16a34a' }}>مجاناً 🚚</strong>
+                  </div>
+                ) : (
+                  <span style={{ fontWeight: 600, color: '#334155' }}>{effectiveDeliveryFee.toFixed(0)} ج.م</span>
+                )}
+              </div>
+
+              {discountAmount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#16a34a' }}>
+                  <span>خصم الكوبون ({appliedCoupon?.code}):</span>
+                  <strong style={{ fontWeight: 800 }}>- {discountAmount.toFixed(0)} ج.م</strong>
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingTop: '6px',
+                  marginTop: '2px',
+                  borderTop: '1px dashed #cbd5e1',
+                }}
+              >
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                  المبلغ الإجمالي للدفع:
+                </span>
+                <span style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                  {total.toFixed(0)} ج.م
                 </span>
               </div>
-              <span style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                {total.toFixed(0)} ج.م
-              </span>
             </div>
 
             {/* Remember details checkbox (default checked) */}

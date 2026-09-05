@@ -308,6 +308,23 @@ export function MerchantOnlineOrdersPage() {
                         >
                           {order.customerAddress || 'غير محدد'}
                         </div>
+                        {order.deliveryZoneName && (
+                          <div
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              color: '#170e5e',
+                              background: '#f0f3ff',
+                              border: '1px solid #d8e0fc',
+                              borderRadius: '4px',
+                              padding: '1px 6px',
+                              marginTop: '3px',
+                              display: 'inline-block',
+                            }}
+                          >
+                            📍 {order.deliveryZoneName}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', textAlign: 'center', verticalAlign: 'middle' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '12.5px', textAlign: 'center' }}>
@@ -712,6 +729,24 @@ export function MerchantOnlineOrdersPage() {
                     {selectedOrder.customerAddress || 'غير محدد'}
                   </span>
                 </div>
+                {selectedOrder.deliveryZoneName && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>منطقة التوصيل:</span>
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: '#f0f3ff',
+                        color: '#170e5e',
+                        border: '1px solid #d8e0fc',
+                      }}
+                    >
+                      📍 {selectedOrder.deliveryZoneName}
+                    </span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '12px', color: '#64748b' }}>طريقة الدفع:</span>
                   <span
@@ -810,9 +845,25 @@ export function MerchantOnlineOrdersPage() {
                   <span style={{ fontWeight: 600 }}>{selectedOrder.subtotal.toFixed(0)} ج</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                  <span>رسوم التوصيل:</span>
-                  <span style={{ fontWeight: 600 }}>{selectedOrder.deliveryFee.toFixed(0)} ج</span>
+                  <span>رسوم التوصيل {selectedOrder.deliveryZoneName ? `(${selectedOrder.deliveryZoneName})` : ''}:</span>
+                  {selectedOrder.deliveryFee === 0 ? (
+                    <span style={{ fontWeight: 700, color: '#16a34a' }}>مجاناً 🚚</span>
+                  ) : (
+                    <span style={{ fontWeight: 600 }}>{selectedOrder.deliveryFee.toFixed(0)} ج</span>
+                  )}
                 </div>
+                {selectedOrder.couponCode && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#170e5e' }}>
+                    <span>كود الخصم المستخدم:</span>
+                    <span style={{ fontWeight: 800, fontFamily: 'monospace' }}>{selectedOrder.couponCode}</span>
+                  </div>
+                )}
+                {(selectedOrder.discountAmount ?? 0) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
+                    <span>قيمة الخصم:</span>
+                    <span style={{ fontWeight: 700 }}>-{(selectedOrder.discountAmount ?? 0).toFixed(0)} ج.م</span>
+                  </div>
+                )}
                 <div
                   style={{
                     display: 'flex',

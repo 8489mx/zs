@@ -71,6 +71,15 @@ export class UpdateStorefrontSettingsDto {
   smartDealsEnabled?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  freeShippingEnabled?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  freeShippingMinOrder?: number;
+
+  @IsOptional()
   @IsString()
   slug?: string;
 }

@@ -7,6 +7,13 @@ import {
   OnlineOrderRecord,
   StorefrontSettingsPayload,
   StorefrontReview,
+  StorefrontCoupon,
+  CreateCouponPayload,
+  UpdateCouponPayload,
+  ValidateCouponResponse,
+  StorefrontDeliveryZone,
+  CreateDeliveryZonePayload,
+  UpdateDeliveryZonePayload,
 } from '../types/storefront.types';
 
 export const storefrontApi = {
@@ -35,6 +42,12 @@ export const storefrontApi = {
     http<CreateOnlineOrderResponse>(`/api/storefront/${encodeURIComponent(slug)}/orders`, {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+
+  validateCoupon: (slug: string, code: string, subtotal: number) =>
+    http<ValidateCouponResponse>(`/api/storefront/${encodeURIComponent(slug)}/coupons/validate`, {
+      method: 'POST',
+      body: JSON.stringify({ code, subtotal }),
     }),
 
   getCustomerOrders: (slug: string, phone?: string, orderNumbers?: string[]) => {
@@ -152,4 +165,42 @@ export const storefrontApi = {
         body: JSON.stringify({ imageUrl }),
       }
     ),
+
+  listCoupons: () => http<{ ok: boolean; coupons: StorefrontCoupon[] }>('/api/storefront/admin/coupons'),
+
+  createCoupon: (payload: CreateCouponPayload) =>
+    http<{ ok: boolean; coupon: StorefrontCoupon }>('/api/storefront/admin/coupons', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateCoupon: (id: number, payload: UpdateCouponPayload) =>
+    http<{ ok: boolean; coupon: StorefrontCoupon }>(`/api/storefront/admin/coupons/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteCoupon: (id: number) =>
+    http<{ ok: boolean; message: string }>(`/api/storefront/admin/coupons/${id}`, {
+      method: 'DELETE',
+    }),
+
+  listDeliveryZones: () => http<{ ok: boolean; zones: StorefrontDeliveryZone[] }>('/api/storefront/admin/delivery-zones'),
+
+  createDeliveryZone: (payload: CreateDeliveryZonePayload) =>
+    http<{ ok: boolean; zone: StorefrontDeliveryZone }>('/api/storefront/admin/delivery-zones', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateDeliveryZone: (id: number, payload: UpdateDeliveryZonePayload) =>
+    http<{ ok: boolean; id: number }>(`/api/storefront/admin/delivery-zones/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteDeliveryZone: (id: number) =>
+    http<{ ok: boolean; id: number }>(`/api/storefront/admin/delivery-zones/${id}`, {
+      method: 'DELETE',
+    }),
 };

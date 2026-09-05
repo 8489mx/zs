@@ -44,4 +44,16 @@ export class CreateOnlineOrderDto {
   @IsOptional()
   @IsString()
   paymentMethod?: string;
+
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
+
+  @IsOptional()
+  @IsNumber()
+  deliveryZoneId?: number;
+
+  @IsOptional()
+  @IsString()
+  deliveryZoneName?: string;
 }

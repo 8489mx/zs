@@ -57,8 +57,8 @@ export function StorefrontMyOrdersModal({
       return res.orders || [];
     },
     enabled: isOpen && (Boolean(activeSearchPhone) || savedOrderNumbers.length > 0),
-    staleTime: 10 * 1000,
-    refetchInterval: isOpen ? 15 * 1000 : false,
+    staleTime: 5 * 1000,
+    refetchInterval: isOpen ? 10 * 1000 : false,
   });
 
   const cancelMutation = useMutation({
@@ -188,25 +188,52 @@ export function StorefrontMyOrdersModal({
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              fontWeight: 700,
-              color: '#64748b',
-            }}
-          >
-            ✕
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => ordersQuery.refetch()}
+              disabled={ordersQuery.isFetching}
+              title="تحديث البيانات فوراً"
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                height: '32px',
+                padding: '0 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                cursor: ordersQuery.isFetching ? 'not-allowed' : 'pointer',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#170e5e',
+                fontFamily: 'inherit',
+              }}
+            >
+              <span style={{ fontSize: '13px' }}>{ordersQuery.isFetching ? '⏳' : '🔄'}</span>
+              <span>{ordersQuery.isFetching ? 'جاري التحديث...' : 'تحديث'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontWeight: 700,
+                color: '#64748b',
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Phone Lookup Bar */}

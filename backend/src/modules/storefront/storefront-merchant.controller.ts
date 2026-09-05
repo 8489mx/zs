@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { StorefrontService } from './storefront.service';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { UpdateStorefrontSettingsDto } from './dto/update-storefront-settings.dto';
+import { CreateCouponDto, UpdateCouponDto } from './dto/coupon.dto';
+import { CreateDeliveryZoneDto, UpdateDeliveryZoneDto } from './dto/delivery-zone.dto';
 
 @Controller('api/storefront/admin')
 @UseGuards(SessionAuthGuard)
@@ -69,5 +71,53 @@ export class StorefrontMerchantController {
     @Req() req: RequestWithAuth,
   ) {
     return this.service.updateCategoryImage(id, imageUrl || '', req.authContext!);
+  }
+
+  @Get('coupons')
+  listCoupons(@Req() req: RequestWithAuth) {
+    return this.service.listCoupons(req.authContext!);
+  }
+
+  @Post('coupons')
+  createCoupon(@Body() body: CreateCouponDto, @Req() req: RequestWithAuth) {
+    return this.service.createCoupon(body, req.authContext!);
+  }
+
+  @Put('coupons/:id')
+  updateCoupon(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateCouponDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.updateCoupon(id, body, req.authContext!);
+  }
+
+  @Delete('coupons/:id')
+  deleteCoupon(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.service.deleteCoupon(id, req.authContext!);
+  }
+
+  @Get('delivery-zones')
+  listDeliveryZones(@Req() req: RequestWithAuth) {
+    return this.service.listDeliveryZones(req.authContext!);
+  }
+
+  @Post('delivery-zones')
+  createDeliveryZone(@Body() body: CreateDeliveryZoneDto, @Req() req: RequestWithAuth) {
+    return this.service.createDeliveryZone(body, req.authContext!);
+  }
+
+  @Put('delivery-zones/:id')
+  updateDeliveryZone(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateDeliveryZoneDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.updateDeliveryZone(id, body, req.authContext!);
+  }
+
+  @Delete('delivery-zones/:id')
+  deleteDeliveryZone(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.service.deleteDeliveryZone(id, req.authContext!);
   }
 }

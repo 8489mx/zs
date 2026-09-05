@@ -1939,6 +1939,8 @@ export interface Database {
   customer_installments: CustomerInstallmentTable;
   saas_client_diagnostics: SaasClientDiagnosticTable;
   product_reviews: ProductReviewTable;
+  storefront_coupons: StorefrontCouponTable;
+  storefront_delivery_zones: StorefrontDeliveryZoneTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -2117,6 +2119,10 @@ export interface OnlineOrderTable {
   total_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   payment_method: string;
+  coupon_code?: string | null;
+  discount_amount?: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  delivery_zone_id?: number | null;
+  delivery_zone_name?: string | null;
   branch_id: number | null;
   sale_id: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -2291,3 +2297,35 @@ export interface ProductReviewTable {
   is_approved: ColumnType<boolean, boolean | undefined, boolean | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
+
+export interface StorefrontCouponTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  code: string;
+  discount_type: 'percentage' | 'fixed' | 'free_shipping' | string;
+  discount_value: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  min_order_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  max_discount_amount: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  usage_limit: number | null;
+  times_used: ColumnType<number, number | undefined, number | undefined>;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  start_date: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  end_date: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface StorefrontDeliveryZoneTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  name: string;
+  delivery_fee: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  estimated_time: string | null;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  sort_order: ColumnType<number, number | undefined, number | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
