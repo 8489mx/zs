@@ -45,14 +45,31 @@ export function usePosOfflineSync() {
           const legacyPayload = buildLegacyPosSalePayload(input);
           const minimalPayload = buildMinimalPosSalePayload(input);
           
-          await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });
-          removeOfflineSale(sale.id);
+          try {
+            await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });
+            removeOfflineSale(sale.id);
+          } catch (initialError: any) {
+            const isStaleOrConflict =
+              initialError?.status === 422 ||
+              initialError?.status === 409 ||
+              String(initialError?.message || '').includes('manual recovery') ||
+              String(initialError?.message || '').includes('processing');
+
+            if (isStaleOrConflict) {
+              // Stale idempotency reservation in backend: retry immediately with fresh recovery key
+              const recoveryKey = crypto.randomUUID();
+              await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': recoveryKey });
+              removeOfflineSale(sale.id);
+            } else {
+              throw initialError;
+            }
+          }
         } catch (error: any) {
-          // If it's a validation error, mark as failed permanently, otherwise keep pending
-          if (error?.status === 400 || error?.status === 403) {
-            updateOfflineSaleStatus(sale.id, 'failed', error.message || 'Validation failed');
+          const errMsg = error?.message || 'تعذر ترحيل الفاتورة إلى الخادم';
+          if (error?.status === 400 || error?.status === 403 || error?.status === 422) {
+            updateOfflineSaleStatus(sale.id, 'failed', errMsg);
           } else {
-            updateOfflineSaleStatus(sale.id, 'pending', 'Network failure during sync');
+            updateOfflineSaleStatus(sale.id, 'pending', errMsg);
           }
         }
       }

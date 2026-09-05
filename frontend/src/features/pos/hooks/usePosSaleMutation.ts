@@ -21,7 +21,7 @@ export function usePosSaleMutation() {
 
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
           const offlineSale = enqueueOfflineSale(input, idempotencyKey);
-          return { id: offlineSale.id, docNo: offlineSale.id, offline: true, ...input };
+          return { id: offlineSale.id, docNo: (offlineSale.payload as any)?.docNo || offlineSale.id, offline: true, ...input };
         }
         
         try {
@@ -35,7 +35,7 @@ export function usePosSaleMutation() {
             (typeof navigator !== 'undefined' && !navigator.onLine)
           ) {
             const offlineSale = enqueueOfflineSale(input, idempotencyKey);
-            return { id: offlineSale.id, docNo: offlineSale.id, offline: true, ...input };
+            return { id: offlineSale.id, docNo: (offlineSale.payload as any)?.docNo || offlineSale.id, offline: true, ...input };
           }
           throw error;
         }

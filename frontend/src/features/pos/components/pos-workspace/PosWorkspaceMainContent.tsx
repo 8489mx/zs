@@ -71,18 +71,15 @@ export function PosWorkspaceMainContent({
   const user = useAuthStore((state) => state.user);
   const [mobileActiveTab, setMobileActiveTab] = useState<'products' | 'cart'>('products');
   const [isFloatingCartExpanded, setIsFloatingCartExpanded] = useState(false);
-  const isTablet = posMode === 'tablet';
   const defaultLeft = posMode === 'scanner' ? 75 : 65;
   const { leftRatio, rightRatio, startDrag } = useSplitter(`pos_split_${posMode}_${user?.id || 'default'}`, defaultLeft);
 
   // CSS grid with direction:rtl renders Col1 on the RIGHT, Col2 on the LEFT.
   // leftRatio = percentage from the left edge of the grid = width of the LEFT panel (Col2).
   // rightRatio = width of the RIGHT panel (Col1).
-  const gridStyle = isTablet
-    ? undefined
-    : ({
-        '--pos-grid-cols': `minmax(0, ${rightRatio}fr) minmax(0, ${leftRatio}fr)`,
-      } as React.CSSProperties);
+  const gridStyle = {
+    '--pos-grid-cols': `minmax(0, ${rightRatio}fr) minmax(0, ${leftRatio}fr)`,
+  } as React.CSSProperties;
 
   return (
     <QueryFeedback
@@ -95,8 +92,8 @@ export function PosWorkspaceMainContent({
       errorAction={<Button variant="secondary" onClick={() => { void pos.refetchCatalogs(); }}>إعادة المحاولة</Button>}
     >
       <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {/* Mobile / Tablet Tab Switcher */}
-        <div className={`pos-mobile-tab-switcher ${isTablet ? 'pos-tablet-tab-switcher' : ''}`}>
+        {/* Mobile Tab Switcher (displayed only on small mobile screens via media query) */}
+        <div className="pos-mobile-tab-switcher">
           <button
             type="button"
             className={`pos-mobile-tab-btn ${mobileActiveTab === 'products' ? 'is-active' : ''}`}
@@ -123,7 +120,7 @@ export function PosWorkspaceMainContent({
           </button>
         </div>
 
-        <div className={`pos-grid-premium ${isTablet ? 'pos-grid-tablet-full' : ''} ${mobileActiveTab === 'products' ? 'pos-mobile-show-products' : 'pos-mobile-show-cart'}`} style={gridStyle}>
+        <div className={`pos-grid-premium ${mobileActiveTab === 'products' ? 'pos-mobile-show-products' : 'pos-mobile-show-cart'}`} style={gridStyle}>
 
           {/* Products column: startup issues banner + products panel stacked */}
           <div className={`pos-products-column ${mobileActiveTab === 'products' ? 'is-mobile-active' : 'is-mobile-hidden'}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', overflow: 'hidden', flex: 1 }}>
@@ -258,31 +255,29 @@ export function PosWorkspaceMainContent({
         </div>
 
         {/* Resizer handle — positioned absolutely over the gap between the two columns */}
-        {!isTablet && (
-          <div
-            className="pos-resizer-handle"
-            onPointerDown={startDrag}
-            style={{
-              position: 'absolute',
-              top: 0,
-              bottom: 0,
-              left: `calc(${leftRatio}% - 12px)`,
-              width: '24px',
-              cursor: 'col-resize',
-              zIndex: 20,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            title="اسحب لتعديل مقاس الشاشة"
-          >
-            <div style={{ width: '4px', height: '40px', background: 'rgba(15, 23, 42, 0.15)', borderRadius: '8px' }} />
-          </div>
-        )}
+        <div
+          className="pos-resizer-handle"
+          onPointerDown={startDrag}
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: `calc(${leftRatio}% - 12px)`,
+            width: '24px',
+            cursor: 'col-resize',
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title="اسحب لتعديل مقاس الشاشة"
+        >
+          <div style={{ width: '4px', height: '40px', background: 'rgba(15, 23, 42, 0.15)', borderRadius: '8px' }} />
+        </div>
 
-        {/* Mobile / Tablet Sticky Floating Cart Bar (visible when on products tab and cart has items) */}
+        {/* Mobile Sticky Floating Cart Bar (visible only on small mobile screens when on products tab and cart has items) */}
         {mobileActiveTab === 'products' && cartItemsCount > 0 && (
-          <div className={`pos-mobile-floating-cart-bar ${isTablet ? 'is-tablet-active' : ''} ${isFloatingCartExpanded ? 'is-expanded' : ''}`}>
+          <div className={`pos-mobile-floating-cart-bar ${isFloatingCartExpanded ? 'is-expanded' : ''}`}>
             {/* Header / Drawer Handle with Toggle Button */}
             <div className="pos-mobile-floating-cart-header">
               <button

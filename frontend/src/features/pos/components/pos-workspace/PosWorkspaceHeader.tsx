@@ -7,6 +7,7 @@ import { storefrontApi } from '@/features/storefront/api/storefront.api';
 import { PosOnlineOrdersModal } from './PosOnlineOrdersModal';
 import { PosTablesFloorPlanDialog } from './PosTablesFloorPlanDialog';
 import { PosOnlineOrderFloatingAlert } from './PosOnlineOrderFloatingAlert';
+import { PosOfflineQueueModal } from './PosOfflineQueueModal';
 import { playNotificationChime } from '@/lib/audio-chime';
 
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
@@ -30,7 +31,8 @@ interface PosWorkspaceHeaderProps {
 }
 
 function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenNewProduct, onOpenQuickService, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
-  const { offlineQueue, isSyncing, hasFailedSales } = usePosOfflineSync();
+  const { offlineQueue, isSyncing, hasFailedSales, syncOfflineSales } = usePosOfflineSync();
+  const [isOfflineQueueModalOpen, setIsOfflineQueueModalOpen] = useState(false);
   const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
   const [isTablesOpen, setIsTablesOpen] = useState(false);
   const [showFloatingAlert, setShowFloatingAlert] = useState(false);
@@ -79,8 +81,71 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
     setTimeout(() => setDrawerStatus(null), 3000);
   };
 
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
   return (
     <>
+      {!isOnline && (
+        <div style={{
+          background: '#fffbeb',
+          color: '#92400e',
+          borderBottom: '1px solid #fde68a',
+          padding: '8px 16px',
+          fontSize: '12px',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          direction: 'rtl',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
+            <span>وضع عدم الاتصال: انقطع الاتصال بالخادم. المبيعات مستمرة وتُحفظ محلياً بأمان.</span>
+          </div>
+          {offlineQueue.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsOfflineQueueModalOpen(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#b45309',
+                fontWeight: 800,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontSize: '12px'
+              }}
+            >
+              عرض الفواتير المعلقة ({offlineQueue.length})
+            </button>
+          )}
+        </div>
+      )}
+      {isOnline && isSyncing && (
+        <div style={{
+          background: '#ecfdf5',
+          color: '#065f46',
+          borderBottom: '1px solid #a7f3d0',
+          padding: '6px 16px',
+          fontSize: '12px',
+          fontWeight: 700,
+          textAlign: 'center',
+          direction: 'rtl',
+        }}>
+          تم استعادة الاتصال بالخادم. جاري ترحيل الفواتير المعلقة تلقائياً...
+        </div>
+      )}
       <PageHeader
       title="نقطة البيع"
       badge={(
@@ -88,9 +153,30 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <ZErpIcon size={26} />
           <strong style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1 }}>ERP</strong>
           {offlineQueue.length > 0 && (
-            <span style={{ background: hasFailedSales ? '#dc3545' : '#fd7e14', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '11px', marginRight: '6px', direction: 'rtl' }}>
-              {isSyncing ? '...' : `(${offlineQueue.length})`}
-            </span>
+            <button
+              type="button"
+              onClick={() => setIsOfflineQueueModalOpen(true)}
+              title="انقر لعرض وإدارة الفواتير المعلقة بدون إنترنت"
+              style={{
+                background: hasFailedSales ? '#fee2e2' : '#ffedd5',
+                color: hasFailedSales ? '#991b1b' : '#9a3412',
+                border: hasFailedSales ? '1px solid #fca5a5' : '1px solid #fed7aa',
+                padding: '3px 10px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                marginRight: '8px',
+                direction: 'rtl',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'transform 0.1s ease',
+              }}
+            >
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: hasFailedSales ? '#dc2626' : '#d97706', display: 'inline-block' }} />
+              <span>{isSyncing ? 'جاري المزامنة...' : `${offlineQueue.length} فواتير معلقة`}</span>
+            </button>
           )}
         </span>
       )}
@@ -100,7 +186,6 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           <div className="pos-mode-toggle" role="group" aria-label="POS mode">
             <Button type="button" variant={posMode === 'scanner' ? 'primary' : 'secondary'} onClick={() => onModeChange('scanner')}>سكانر</Button>
             <Button type="button" variant={posMode === 'touch' ? 'primary' : 'secondary'} onClick={() => onModeChange('touch')}>تاتش</Button>
-            <Button type="button" variant={posMode === 'tablet' ? 'primary' : 'secondary'} onClick={() => onModeChange('tablet')}>تابلت 📱</Button>
           </div>
           {pos.currentBranch?.name && (
              <div className="pos-header-branch-info" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', background: '#e2e8f0', padding: '4px 12px', borderRadius: '4px', fontWeight: 600 }}>
@@ -246,6 +331,13 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
         {drawerStatus}
       </div>
     )}
+    <PosOfflineQueueModal
+      open={isOfflineQueueModalOpen}
+      onClose={() => setIsOfflineQueueModalOpen(false)}
+      offlineQueue={offlineQueue}
+      isSyncing={isSyncing}
+      onRetrySync={syncOfflineSales}
+    />
     </>
   );
 }

@@ -88,11 +88,13 @@ export const posApi = {
       return await postSale(payload, headers);
     } catch (error) {
       if (!legacyPayload || !shouldRetrySaleWithFallback(error)) throw error;
+      const fallbackHeaders = headers ? { ...headers, 'x-idempotency-key': crypto.randomUUID() } : undefined;
       try {
-        return await postSale(legacyPayload, headers);
+        return await postSale(legacyPayload, fallbackHeaders);
       } catch (legacyError) {
         if (!minimalPayload || !shouldRetrySaleWithFallback(legacyError)) throw legacyError;
-        return await postSale(minimalPayload, headers);
+        const minimalHeaders = headers ? { ...headers, 'x-idempotency-key': crypto.randomUUID() } : undefined;
+        return await postSale(minimalPayload, minimalHeaders);
       }
     }
   },

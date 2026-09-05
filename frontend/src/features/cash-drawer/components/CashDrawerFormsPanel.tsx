@@ -10,6 +10,7 @@ import { formatCurrency } from '@/lib/format';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, CashierShift, Location } from '@/types/domain';
 import type { CloseShiftValues, MovementValues, OpenShiftValues } from '@/features/cash-drawer/hooks/useCashDrawerPageController';
+import { getOfflineSalesQueue } from '@/features/pos/lib/pos-offline-sync';
 
 interface MutationLike {
   isPending: boolean;
@@ -533,6 +534,28 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
   const [showWalletDetails, setShowWalletDetails] = useState(false);
   const [showInstapayDetails, setShowInstapayDetails] = useState(false);
 
+  const [offlinePendingCount, setOfflinePendingCount] = useState(() => {
+    try {
+      return getOfflineSalesQueue().length;
+    } catch {
+      return 0;
+    }
+  });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      try {
+        setOfflinePendingCount(getOfflineSalesQueue().length);
+      } catch {}
+    };
+    window.addEventListener('pos-offline-queue-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('pos-offline-queue-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
   useEffect(() => {
     if (selectedCloseShift) {
       const cardCount = normalizeCount(selectedCloseShift.cardOperationCount);
@@ -894,6 +917,34 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>وردية نشطة</span>
             </div>
           </div>
+
+          {offlinePendingCount > 0 && (
+            <div style={{
+              marginBottom: '16px',
+              background: '#fffbeb',
+              border: '1px solid #fde68a',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              color: '#92400e',
+              fontSize: '0.85rem',
+              lineHeight: 1.5,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+            }}>
+              <div style={{ flexShrink: 0, marginTop: '2px' }}>
+                <AlertCircleIcon size={18} color="#d97706" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, marginBottom: '2px' }}>
+                  تنبيه: توجد {offlinePendingCount} فواتير مسجلة محلياً بدون إنترنت لم يتم ترحيلها للخادم بعد.
+                </div>
+                <div>
+                  يرجى التأكد من اتصال الجهاز بالإنترنت والانتظار حتى يتم ترحيل كافة الفواتير تلقائياً قبل إغلاق الوردية، لضمان دقة الحسابات ومطابقة النقدية في الدرج.
+                </div>
+              </div>
+            </div>
+          )}
 
           <form className="form-grid" onSubmit={props.onCloseSubmit}>
             {props.isManager && props.openOptions.length > 1 ? (

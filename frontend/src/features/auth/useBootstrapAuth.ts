@@ -5,7 +5,7 @@ import { ApiError, ensureAuthStateVersion } from '@/lib/http';
 import { clearQueryClientData } from '@/lib/query-client-session';
 import { authApi } from '@/shared/api/auth';
 import { activationApi } from '@/shared/api/activation';
-import { useAuthStore } from '@/stores/auth-store';
+import { useAuthStore, getStoredOfflineSession } from '@/stores/auth-store';
 
 export function useBootstrapAuth() {
   const hasRun = useRef(false);
@@ -30,6 +30,15 @@ export function useBootstrapAuth() {
         const [statusResult, meResult] = await Promise.allSettled([activationApi.status(), authApi.me()]);
 
         if (statusResult.status === 'rejected') {
+          // If device is offline, restore stored session and keep app ready
+          const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+          const offlineSession = getStoredOfflineSession();
+          if (offlineSession && (isOffline || retries <= 2)) {
+            setSession(offlineSession);
+            setAppGate('ready');
+            return;
+          }
+
           if (retries > 0) {
             console.log(`Backend not ready yet, retrying... (${retries} attempts left)`);
             setTimeout(() => void checkAuth(retries - 1), 2000);

@@ -21,6 +21,17 @@ interface SubmitOptions {
 
 function getSubmitSaleErrorMessage(error: unknown) {
   const raw = error instanceof Error ? String(error.message || '').trim() : '';
+  if (!raw) return 'تعذر حفظ الفاتورة';
+
+  // If the server provided our detailed, dynamic stock message, display it directly!
+  if (
+    raw.includes('رصيد الصنف')
+    || raw.includes('غير كافٍ')
+    || raw.includes('متوفر في:')
+  ) {
+    return raw;
+  }
+
   const normalized = raw.toLowerCase();
   if (
     normalized.includes('الكمية المطلوبة أكبر من المخزون المتاح')
@@ -28,9 +39,9 @@ function getSubmitSaleErrorMessage(error: unknown) {
     || normalized.includes('stock')
     || normalized.includes('inventory')
   ) {
-    return 'الكمية المطلوبة أكبر من المخزون المتاح. راجع الكميات في السلة قبل إتمام البيع.';
+    return 'الكمية المطلوبة أكبر من المخزون المتاح في المخزن الحالي. راجع الكميات في السلة قبل إتمام البيع.';
   }
-  return raw || 'تعذر حفظ الفاتورة';
+  return raw;
 }
 
 function matchesCreatedCustomer(customer: Customer, name: string, phone: string) {
@@ -289,7 +300,7 @@ export function createPosWorkspaceAsyncActions(
       const isOffline = Boolean((createdSale as any)?.offline);
       const docNo = (createdSale as Sale)?.docNo || (createdSale as any)?.id || '';
       const baseMsg = isOffline
-        ? `⚡ تم حفظ الفاتورة محلياً (بدون إنترنت): ${docNo}. ستُرحل تلقائياً فور عودة الاتصال.`
+        ? `تم حفظ الفاتورة محلياً (بدون إنترنت): ${docNo}. ستُرحل تلقائياً فور عودة الاتصال.`
         : `تم حفظ فاتورة البيع بنجاح${docNo ? `: ${docNo}` : ''}.`;
       params.setSubmitMessage(`${baseMsg} ${getPostSalePrintHint(postSalePrintMode)}`);
       params.requestBarcodeFocus();

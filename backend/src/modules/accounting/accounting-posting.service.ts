@@ -71,6 +71,34 @@ export class AccountingPostingService {
     return Number(amount.toFixed(2));
   }
 
+  private async resolveAccountWithFallback(
+    queryable: DbOrTx,
+    tenantId: string,
+    configuredId: number | null | undefined,
+    fallbackCode: string,
+  ): Promise<number> {
+    if (configuredId && Number(configuredId) > 0) {
+      const exists = await queryable
+        .selectFrom('accounting_accounts')
+        .select(['id', 'is_active'])
+        .where('id', '=', Number(configuredId))
+        .where(sql<boolean>`tenant_id = ${tenantId}`)
+        .executeTakeFirst();
+      if (exists && exists.is_active) return Number(exists.id);
+    }
+
+    const fallback = await queryable
+      .selectFrom('accounting_accounts')
+      .select(['id'])
+      .where('code', '=', fallbackCode)
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+
+    if (fallback?.id) return Number(fallback.id);
+    return Number(configuredId || 0);
+  }
+
   private async getExistingSaleJournal(queryable: DbOrTx, saleId: number, tenantId: string) {
     return queryable
       .selectFrom('journal_entries')
@@ -492,9 +520,18 @@ export class AccountingPostingService {
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
 
+    const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
+    const bankAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
+    const customerAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.customer_receivable_account_id, '1130');
+    const salesDiscountAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_discount_account_id, '4300');
+    const salesRevenueAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_revenue_account_id, '4100');
+    const salesTaxAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.sales_tax_account_id, '2120');
+    const cogsAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cogs_account_id, '5100');
+    const inventoryAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.inventory_account_id, '1140');
+
     if (cashAmount > 0) {
       this.addLine(lines, {
-        accountId: Number(settings.cash_account_id || 0),
+        accountId: cashAccountId,
         description: 'تحصيل نقدي من فاتورة بيع',
         debit: cashAmount,
         credit: 0,
@@ -507,7 +544,7 @@ export class AccountingPostingService {
 
     if (nonCashAmount > 0) {
       this.addLine(lines, {
-        accountId: Number(settings.bank_account_id || 0),
+        accountId: bankAccountId,
         description: 'تحصيل غير نقدي من فاتورة بيع',
         debit: nonCashAmount,
         credit: 0,
@@ -520,7 +557,7 @@ export class AccountingPostingService {
 
     if (receivableAmount > 0) {
       this.addLine(lines, {
-        accountId: Number(settings.customer_receivable_account_id || 0),
+        accountId: customerAccountId,
         description: 'مديونية عميل من فاتورة بيع',
         debit: receivableAmount,
         credit: 0,
@@ -533,7 +570,7 @@ export class AccountingPostingService {
 
     if (storeCreditUsed > 0) {
       this.addLine(lines, {
-        accountId: Number(settings.customer_receivable_account_id || 0),
+        accountId: customerAccountId,
         description: 'استخدام رصيد دائن للعميل (Store Credit)',
         debit: storeCreditUsed,
         credit: 0,
@@ -546,7 +583,7 @@ export class AccountingPostingService {
 
     if (discount > 0) {
       this.addLine(lines, {
-        accountId: Number(settings.sales_discount_account_id || 0),
+        accountId: salesDiscountAccountId,
         description: 'خصم مبيعات على الفاتورة',
         debit: discount,
         credit: 0,
@@ -559,7 +596,7 @@ export class AccountingPostingService {
 
     if (revenueCredit > 0) {
       this.addLine(lines, {
-        accountId: Number(settings.sales_revenue_account_id || 0),
+        accountId: salesRevenueAccountId,
         description: 'إيراد مبيعات الفاتورة',
         debit: 0,
         credit: revenueCredit,
@@ -572,7 +609,7 @@ export class AccountingPostingService {
 
     if (taxAmount > 0) {
       this.addLine(lines, {
-        accountId: Number(settings.sales_tax_account_id || 0),
+        accountId: salesTaxAccountId,
         description: 'ضريبة مبيعات مستحقة',
         debit: 0,
         credit: taxAmount,
@@ -596,7 +633,7 @@ export class AccountingPostingService {
 
     if (cogsAmount > 0) {
       this.addLine(lines, {
-        accountId: Number(settings.cogs_account_id || 0),
+        accountId: cogsAccountId,
         description: 'تكلفة البضاعة المباعة',
         debit: cogsAmount,
         credit: 0,
@@ -606,7 +643,7 @@ export class AccountingPostingService {
         locationId: sale.location_id ? Number(sale.location_id) : null,
       });
       this.addLine(lines, {
-        accountId: Number(settings.inventory_account_id || 0),
+        accountId: inventoryAccountId,
         description: 'إخراج مخزون مقابل المبيعات',
         debit: 0,
         credit: cogsAmount,

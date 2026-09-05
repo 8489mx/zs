@@ -100,12 +100,11 @@ export function printPosDraftPreview(options: {
 }
 
 function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
-  const isOffline = (sale as any).offline === true;
   return buildReceiptDocument({
     pageSize: options.pageSize,
     settings: options.settings,
     documentLabel: options.pageSize === 'receipt' ? 'إيصال بيع' : 'فاتورة بيع',
-    documentNumber: isOffline ? 'فاتورة قيد المزامنة' : (sale.docNo || sale.id),
+    documentNumber: sale.docNo || sale.id || 'فاتورة بيع',
     onlineOrderNumber: (sale as any).onlineOrderNumber || (sale as any).online_order_number || (sale as any).orderNumber || (sale as any).order_number,
     dateText: formatDateTime(sale.date || (sale as any).createdAt || new Date()),
     customerName: sale.customerName || 'عميل نقدي',

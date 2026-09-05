@@ -322,7 +322,7 @@ export function StorefrontCouponsManager() {
               </thead>
               <tbody>
                 {coupons.map((coupon) => {
-                  const isMaxReached = coupon.usageLimit !== null && coupon.timesUsed >= coupon.usageLimit;
+                  const isMaxReached = typeof coupon.usageLimit === 'number' && coupon.timesUsed >= coupon.usageLimit;
 
                   return (
                     <tr

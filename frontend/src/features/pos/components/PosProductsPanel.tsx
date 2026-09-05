@@ -304,8 +304,7 @@ function PosProductsPanelComponent({
   const deferredSearch = useDeferredValue(search);
   const scannerSearchQuery = deferredSearch.trim();
   const isScannerMode = posMode === 'scanner';
-  const isTouchMode = posMode === 'touch' || posMode === 'tablet';
-  const isTabletMode = posMode === 'tablet';
+  const isTouchMode = posMode === 'touch';
   const hasBrowseFilter = productFilter !== 'all' || shelf !== 'all';
   const canShowScannerResults = !isScannerMode || scannerSearchQuery.length >= 2 || hasBrowseFilter;
   const visibleGroups = useMemo(() => getGroupShelfGroups({
@@ -893,7 +892,7 @@ function PosProductsPanelComponent({
 
         {canShowScannerResults ? (
           <>
-            <div className={`product-pick-grid pos-product-group-grid ${cardDensity === 'compact' ? 'pos-product-group-grid-density-compact' : ''} ${isTabletMode ? 'pos-product-group-grid-tablet' : ''}`}>
+            <div className={`product-pick-grid pos-product-group-grid ${cardDensity === 'compact' ? 'pos-product-group-grid-density-compact' : ''}`}>
               {displayedGroups.map((group, index) => {
                 const isSelected = index === selectedIndex;
                 const isFavorite = favoriteKeySet.has(group.key);

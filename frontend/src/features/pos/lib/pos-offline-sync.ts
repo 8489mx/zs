@@ -20,15 +20,29 @@ export function getOfflineSalesQueue(): OfflinePosSale[] {
   }
 }
 
+export function generateOfflineDocNo(): string {
+  try {
+    const rawSeq = localStorage.getItem('zs_offline_doc_seq');
+    const seq = (rawSeq ? parseInt(rawSeq, 10) : 100) + 1;
+    localStorage.setItem('zs_offline_doc_seq', String(seq));
+    const now = new Date();
+    const dateStr = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    return `INV-${dateStr}-${seq}`;
+  } catch {
+    return `INV-${Date.now().toString().slice(-6)}`;
+  }
+}
+
 export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempotencyKey?: string): OfflinePosSale {
   const queue = getOfflineSalesQueue();
-  const draftId = existingIdempotencyKey || ((payload as any).docNo ? String((payload as any).docNo) : `offline_${Date.now()}`);
+  const docNo = (payload as any).docNo || generateOfflineDocNo();
+  const draftId = existingIdempotencyKey || docNo;
   
   const offlineSale: OfflinePosSale = {
     id: draftId,
     payload: {
       ...payload,
-      docNo: (payload as any).docNo || draftId,
+      docNo,
     } as any,
     savedAt: new Date().toISOString(),
     status: 'pending',

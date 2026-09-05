@@ -1,5 +1,5 @@
 /* POS cashier unified scanner/touch layout
-   - touch mode keeps a balanced 45/55 split
+   - touch mode keeps a balanced 45/55 split (or user adjusted splitter)
    - scanner mode uses an explicit RTL-safe 25/75 split:
      right column = products/scanner, left column = cart/checkout
    This file is imported after pos-step4-cashier-tune.css to override late POS CSS safely. */

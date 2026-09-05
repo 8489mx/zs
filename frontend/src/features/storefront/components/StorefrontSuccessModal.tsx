@@ -13,7 +13,7 @@ export function StorefrontSuccessModal({
   order,
   orderData,
   isOpen = true,
-  whatsappPhone,
+  whatsappPhone: _whatsappPhone,
   onClose,
   onTrackOrder,
 }: StorefrontSuccessModalProps) {

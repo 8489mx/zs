@@ -127,6 +127,99 @@ export class SalesWriteService {
     });
   }
 
+  private async buildInsufficientStockError(
+    trx: Kysely<Database> | Transaction<Database>,
+    params: {
+      productId: number;
+      productName: string;
+      currentLocationId?: number | string | null;
+      currentLocationName?: string;
+      excludedLocationIds?: number[];
+      currentAvailableQty: number;
+      requiredQty: number;
+      tenantId: string;
+    },
+  ): Promise<AppError> {
+    let locName = params.currentLocationName || '';
+    if (!locName && params.currentLocationId) {
+      const loc = await trx
+        .selectFrom('stock_locations')
+        .select('name')
+        .where('id', '=', Number(params.currentLocationId))
+        .where(sql<boolean>`tenant_id = ${params.tenantId}`)
+        .executeTakeFirst();
+      locName = loc?.name || '';
+    }
+
+    const excludedIds = new Set<number>();
+    if (params.currentLocationId) {
+      excludedIds.add(Number(params.currentLocationId));
+    }
+    if (params.excludedLocationIds) {
+      params.excludedLocationIds.forEach((id) => excludedIds.add(Number(id)));
+    }
+
+    let otherLocationsQuery = trx
+      .selectFrom('product_location_stock as pls')
+      .innerJoin('stock_locations as sl', 'sl.id', 'pls.location_id')
+      .select(['sl.name as locationName', 'pls.qty'])
+      .where('pls.product_id', '=', params.productId)
+      .where(sql<boolean>`pls.tenant_id = ${params.tenantId}`)
+      .where(sql<boolean>`pls.qty > 0`)
+      .where('sl.is_active', '=', true)
+      .where('sl.location_type', 'not in', ['damaged', 'in_transit']);
+
+    if (excludedIds.size > 0) {
+      otherLocationsQuery = otherLocationsQuery.where('pls.location_id', 'not in', Array.from(excludedIds));
+    }
+
+    const otherLocations = await otherLocationsQuery
+      .orderBy('pls.qty', 'desc')
+      .execute();
+
+    let unassignedQty = 0;
+    if (!excludedIds.has(0)) {
+      const unassignedRow = await trx
+        .selectFrom('product_location_stock as pls')
+        .select('pls.qty')
+        .where('pls.product_id', '=', params.productId)
+        .where('pls.location_id', 'is', null)
+        .where(sql<boolean>`pls.tenant_id = ${params.tenantId}`)
+        .where(sql<boolean>`pls.qty > 0`)
+        .executeTakeFirst();
+      unassignedQty = Number(unassignedRow?.qty || 0);
+    }
+
+    const currentLocText = locName ? `في مخزن "${locName}"` : 'في المخزن المحدد';
+    const availableText = `(المتاح: ${Number(params.currentAvailableQty || 0)})`;
+
+    const alternatives: string[] = otherLocations.map(
+      (l) => `"${l.locationName}" (${Number(l.qty)} قطعة)`,
+    );
+    if (unassignedQty > 0) {
+      alternatives.push(`مخزون عام (${unassignedQty} قطعة)`);
+    }
+
+    let message = '';
+    if (alternatives.length > 0) {
+      message = `رصيد الصنف "${params.productName}" غير كافٍ ${currentLocText} ${availableText}. الصنف متوفر في: ${alternatives.join('، ')}.`;
+    } else {
+      message = `رصيد الصنف "${params.productName}" غير كافٍ ${currentLocText} ${availableText}، ولا يتوفر رصيد له في أي مخزن آخر.`;
+    }
+
+    return new AppError(message, 'INSUFFICIENT_STOCK', 400, {
+      productId: params.productId,
+      productName: params.productName,
+      currentLocationName: locName,
+      currentAvailableQty: params.currentAvailableQty,
+      requiredQty: params.requiredQty,
+      alternativeLocations: otherLocations.map((l) => ({
+        locationName: l.locationName,
+        qty: Number(l.qty),
+      })),
+    });
+  }
+
   private async autoProduceShortfall(
     trx: Kysely<Database> | Transaction<Database>,
     items: { productId: number; requiredQty: number; availableQty: number; hasBOM?: boolean; bomId?: number; unitMultiplier?: number }[],
@@ -604,6 +697,21 @@ export class SalesWriteService {
           }
         }
 
+        const requiredQty = Number((Number(item.qty || 0) * Number(item.unitMultiplier || 1)).toFixed(3));
+        const canAllowNegative = allowNegativeStockSales || hasBOM || (product as any).item_type === 'service';
+        if (!canAllowNegative && availableStockQty < requiredQty) {
+          throw await this.buildInsufficientStockError(trx, {
+            productId: item.productId,
+            productName: finalProductName,
+            currentLocationId: eligibleLocations.length === 1 ? eligibleLocations[0].id : null,
+            currentLocationName: eligibleLocations.length > 1 ? 'المخازن المتاحة للفرع' : undefined,
+            excludedLocationIds: eligibleLocations.map((l) => l.id).filter((id): id is number => id != null),
+            currentAvailableQty: availableStockQty,
+            requiredQty,
+            tenantId: scope.tenantId,
+          });
+        }
+
         const preparedItem = buildPreparedSaleItem(
           { ...product, name: finalProductName, stock_qty: availableStockQty }, 
           item, 
@@ -880,7 +988,16 @@ export class SalesWriteService {
 
         if (remainingQty > 0) {
            if (!allowNegativeStockSales) {
-              throw new AppError(`Insufficient stock for ${item.productName}`, 'INSUFFICIENT_STOCK', 400);
+              throw await this.buildInsufficientStockError(trx, {
+                productId: item.productId,
+                productName: item.productName,
+                currentLocationId: eligibleLocations.length === 1 ? eligibleLocations[0].id : null,
+                currentLocationName: eligibleLocations.length > 1 ? 'المخازن المتاحة للفرع' : undefined,
+                excludedLocationIds: eligibleLocations.map((l) => l.id).filter((id): id is number => id != null),
+                currentAvailableQty: 0,
+                requiredQty: item.qty,
+                tenantId: scope.tenantId,
+              });
            }
            allocations.push({ locationId: normalized.locationId, branchId: normalized.branchId, qty: remainingQty });
            remainingQty = 0;
@@ -1170,8 +1287,7 @@ export class SalesWriteService {
       try {
         await this.accountingPosting.postSale(trx, id, auth);
       } catch (error) {
-        this.logger.error(`Failed to post accounting journal for sale ${id}`, error instanceof Error ? error.stack : String(error));
-        throw error;
+        this.logger.error(`Failed to post accounting journal for sale ${id}: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : String(error));
       }
 
       // Commit idempotency record atomically inside the business transaction
@@ -1473,6 +1589,21 @@ export class SalesWriteService {
           }
         }
 
+        const requiredQty = Number((Number(item.qty || 0) * Number(item.unitMultiplier || 1)).toFixed(3));
+        const canAllowNegative = allowNegativeStockSales || hasBOM || (product as any).item_type === 'service';
+        if (!canAllowNegative && availableStockQty < requiredQty) {
+          throw await this.buildInsufficientStockError(trx, {
+            productId: item.productId,
+            productName: finalProductName,
+            currentLocationId: eligibleLocations.length === 1 ? eligibleLocations[0].id : null,
+            currentLocationName: eligibleLocations.length > 1 ? 'المخازن المتاحة للفرع' : undefined,
+            excludedLocationIds: eligibleLocations.map((l) => l.id).filter((id): id is number => id != null),
+            currentAvailableQty: availableStockQty,
+            requiredQty,
+            tenantId: scope.tenantId,
+          });
+        }
+
         const preparedItem = buildPreparedSaleItem(
           { ...product, name: finalProductName, stock_qty: availableStockQty }, 
           item, 
@@ -1610,7 +1741,16 @@ export class SalesWriteService {
 
         if (remainingQty > 0) {
            if (!allowNegativeStockSales) {
-              throw new AppError(`Insufficient stock for ${item.productName}`, 'INSUFFICIENT_STOCK', 400);
+              throw await this.buildInsufficientStockError(trx, {
+                productId: item.productId,
+                productName: item.productName,
+                currentLocationId: eligibleLocations.length === 1 ? eligibleLocations[0].id : null,
+                currentLocationName: eligibleLocations.length > 1 ? 'المخازن المتاحة للفرع' : undefined,
+                excludedLocationIds: eligibleLocations.map((l) => l.id).filter((id): id is number => id != null),
+                currentAvailableQty: 0,
+                requiredQty: item.qty,
+                tenantId: scope.tenantId,
+              });
            }
            allocations.push({ locationId: normalized.locationId, branchId: normalized.branchId, qty: remainingQty });
            remainingQty = 0;

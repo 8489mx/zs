@@ -33,6 +33,25 @@ export interface AuthState {
   setAppGate: (gate: AppGate, activationStatus?: ActivationStatusResponse | null) => void;
 }
 
+const OFFLINE_SESSION_STORAGE_KEY = 'zs_offline_auth_session';
+
+export function getStoredOfflineSession(): {
+  user: AuthUser;
+  tenant: AuthTenant | null;
+  storeName: string;
+  theme: string;
+  language: 'ar' | 'en';
+  isEtaActive: boolean;
+} | null {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(OFFLINE_SESSION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   tenant: null,
@@ -43,8 +62,26 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialized: false,
   appGate: 'loading',
   activationStatus: null,
-  setSession: ({ user, tenant = null, storeName, theme, language = 'ar', isEtaActive = false }) => set({ user, tenant, storeName, theme, language, isEtaActive, initialized: true, appGate: 'ready' }),
-  updateUser: (patch) => set((state) => ({ user: state.user ? { ...state.user, ...patch } : state.user })),
+  setSession: ({ user, tenant = null, storeName, theme, language = 'ar', isEtaActive = false }) => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(OFFLINE_SESSION_STORAGE_KEY, JSON.stringify({ user, tenant, storeName, theme, language, isEtaActive }));
+      }
+    } catch {}
+    set({ user, tenant, storeName, theme, language, isEtaActive, initialized: true, appGate: 'ready' });
+  },
+  updateUser: (patch) => set((state) => {
+    const nextUser = state.user ? { ...state.user, ...patch } : state.user;
+    if (nextUser) {
+      try {
+        const stored = getStoredOfflineSession();
+        if (stored) {
+          localStorage.setItem(OFFLINE_SESSION_STORAGE_KEY, JSON.stringify({ ...stored, user: nextUser }));
+        }
+      } catch {}
+    }
+    return { user: nextUser };
+  }),
   updateSessionMeta: (patch) => set((state) => ({
     storeName: typeof patch.storeName === 'string' && patch.storeName.trim() ? patch.storeName : state.storeName,
     theme: typeof patch.theme === 'string' && patch.theme.trim() ? patch.theme : state.theme,
@@ -52,7 +89,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     tenant: patch.tenant !== undefined ? patch.tenant : state.tenant,
     isEtaActive: patch.isEtaActive !== undefined ? patch.isEtaActive : state.isEtaActive,
   })),
-  clearSession: () => set({ user: null, tenant: null, storeName: DEFAULT_STORE_NAME, theme: DEFAULT_THEME, language: 'ar', isEtaActive: false, initialized: true }),
+  clearSession: () => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(OFFLINE_SESSION_STORAGE_KEY);
+      }
+    } catch {}
+    set({ user: null, tenant: null, storeName: DEFAULT_STORE_NAME, theme: DEFAULT_THEME, language: 'ar', isEtaActive: false, initialized: true });
+  },
   markInitialized: () => set({ initialized: true }),
   setAppGate: (gate, activationStatus = null) => set({ appGate: gate, activationStatus, initialized: gate !== 'loading' })
 }));

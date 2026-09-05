@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type PosSaleMode = 'scanner' | 'touch' | 'tablet';
+export type PosSaleMode = 'scanner' | 'touch';
 
 const POS_SALE_MODE_KEY = 'zsystems.pos.sale-mode';
 
 export function normalizePosSaleMode(value: unknown): PosSaleMode {
-  if (value === 'tablet') return 'tablet';
   return value === 'touch' ? 'touch' : 'scanner';
 }
 
 function readStoredPosSaleMode(): PosSaleMode | null {
   if (typeof window === 'undefined') return null;
   const stored = window.localStorage.getItem(POS_SALE_MODE_KEY);
-  return stored === 'scanner' || stored === 'touch' || stored === 'tablet' ? stored : null;
+  if (stored === 'tablet') return 'touch';
+  return stored === 'scanner' || stored === 'touch' ? stored : null;
 }
 
 function writeStoredPosSaleMode(mode: PosSaleMode) {
