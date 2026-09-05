@@ -8,6 +8,7 @@ import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashb
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
 import { DashboardExecutiveHero } from '@/features/dashboard/components/DashboardExecutiveHero';
+import { ExecutiveBiGrid } from '@/features/dashboard/components/ExecutiveBiGrid';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
 import { DashboardMonthlySnapshot } from '@/features/dashboard/components/DashboardMonthlySnapshot';
@@ -47,7 +48,7 @@ export function DashboardPage() {
 
   return (
     <div className="page-stack page-shell dashboard-premium-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '100px' }}>
+      <main className="document-prototype-column" style={{ width: '100%', paddingBottom: '100px' }}>
         <PageHeader
           title="لوحة التحكم اليومية"
           description="مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية."
@@ -63,7 +64,7 @@ export function DashboardPage() {
         <FirstRunSetupChecklist />
         <SmartDemoOnboardingBanner />
 
-        {/* 1. البانر التنفيذي الفاخر والمخطط الانسيابي المتدرج المدمج */}
+        {/* 1. البانر التنفيذي والترحيب الذكي */}
         <DashboardExecutiveHero
           salesTrend={overview.data.trends?.sales}
           purchasesTrend={overview.data.trends?.purchases}
@@ -73,7 +74,14 @@ export function DashboardPage() {
           totalStockAlerts={totalStockAlerts}
         />
 
-        {/* 2. الهيكل الثنائي المتوازن للداشبورد */}
+        {/* 2. لوحات ذكاء الأعمال والرسوم البيانية المتقدمة (Executive BI Charts) */}
+        <ExecutiveBiGrid
+          overviewData={overview.data}
+          managerData={managerOverview.data}
+          isLoading={managerOverview.isLoading}
+        />
+
+        {/* 3. الهيكل الثنائي المتوازن للداشبورد */}
         <div className="dashboard-balanced-grid">
           
           {/* العمود الرئيسي (الأيمن) */}

@@ -479,40 +479,41 @@ export function AppShell({ children }: PropsWithChildren) {
       'saas-admin-tenants': 'إدارة المشتركين',
       'saas-admin-plans': 'باقات الاشتراكات',
     };
+    const isSuperAdminUser = user?.role === 'super_admin';
+    const hasFeature = (feat: string) => isSuperAdminUser || !tenant?.features || tenant.features.includes(feat);
+
     return navigationItems
       .filter((item) => {
         if (!user || !canAccessNavigationItem(user, item)) return false;
         if (isDesktopOfflineApp() && (item.key === 'saas-admin-tenants' || item.key === 'saas-admin-plans' || item.key?.startsWith('saas-admin'))) return false;
         if (item.key === 'tax-dispatcher' && !isEtaActive) return false;
 
-        const hasFeature = (feat: string) => !tenant?.features || tenant.features.includes(feat);
+        // Feature & Setting gating (Bypassed for Super Admin):
+        if (item.key?.startsWith('import-') && !isSuperAdminUser && (settings?.importModuleEnabled !== true || !hasFeature('import'))) return false;
+        if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && !isSuperAdminUser && (settings?.enableMobileStoreFeatures !== true || !hasFeature('maintenance'))) return false;
+        if (item.key?.startsWith('pharmacy-') && !isSuperAdminUser && (settings?.enablePharmacyModule !== true || !hasFeature('pharmacy'))) return false;
+        if (item.key?.startsWith('manufacturing-') && !isSuperAdminUser && (settings?.manufacturingModuleEnabled !== true || !hasFeature('manufacturing'))) return false;
+        if (item.key === 'services' && !isSuperAdminUser && settings?.servicesModuleEnabled !== true) return false;
+        if (item.key === 'online-orders' && !isSuperAdminUser && (settings?.storefrontModuleEnabled === false || !hasFeature('storefront'))) return false;
+        if (item.key === 'installments' && !isSuperAdminUser && (settings?.installmentsModuleEnabled === false || !hasFeature('installments'))) return false;
+        if (item.key === 'vat-declaration' && !isSuperAdminUser && (settings?.taxDeclarationModuleEnabled === false || !hasFeature('vat_declaration'))) return false;
+        if (item.key === 'accounting-fixed-assets' && !isSuperAdminUser && (settings?.fixedAssetsModuleEnabled === false || !hasFeature('fixed_assets'))) return false;
+        if (item.key === 'delivery-reps' && !isSuperAdminUser && (settings?.deliveryFleetModuleEnabled === false || !hasFeature('deliveryReps'))) return false;
 
-        // Feature & Setting gating:
-        if (item.key?.startsWith('import-') && (settings?.importModuleEnabled !== true || !hasFeature('import'))) return false;
-        if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && (settings?.enableMobileStoreFeatures !== true || !hasFeature('maintenance'))) return false;
-        if (item.key?.startsWith('pharmacy-') && (settings?.enablePharmacyModule !== true || !hasFeature('pharmacy'))) return false;
-        if (item.key?.startsWith('manufacturing-') && (settings?.manufacturingModuleEnabled !== true || !hasFeature('manufacturing'))) return false;
-        if (item.key === 'services' && settings?.servicesModuleEnabled !== true) return false;
-        if (item.key === 'online-orders' && (settings?.storefrontModuleEnabled === false || !hasFeature('storefront'))) return false;
-        if (item.key === 'installments' && (settings?.installmentsModuleEnabled === false || !hasFeature('installments'))) return false;
-        if (item.key === 'vat-declaration' && (settings?.taxDeclarationModuleEnabled === false || !hasFeature('vat_declaration'))) return false;
-        if (item.key === 'accounting-fixed-assets' && (settings?.fixedAssetsModuleEnabled === false || !hasFeature('fixed_assets'))) return false;
-        if (item.key === 'delivery-reps' && (settings?.deliveryFleetModuleEnabled === false || !hasFeature('deliveryReps'))) return false;
+        // Purchases gating (Bypassed for Super Admin):
+        if (!isSuperAdminUser && (item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers') && !hasFeature('purchases')) return false;
 
-        // Purchases gating:
-        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers') && !hasFeature('purchases')) return false;
+        // Advanced Inventory gating (Bypassed for Super Admin):
+        if (!isSuperAdminUser && (item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new') && !hasFeature('inventory')) return false;
 
-        // Advanced Inventory gating:
-        if ((item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new') && !hasFeature('inventory')) return false;
+        // Reports gating (Bypassed for Super Admin):
+        if (!isSuperAdminUser && (item.key?.startsWith('reports-') || item.key === 'audit') && !hasFeature('reports')) return false;
 
-        // Reports gating:
-        if ((item.key?.startsWith('reports-') || item.key === 'audit') && !hasFeature('reports')) return false;
+        // HR gating (Bypassed for Super Admin):
+        if (!isSuperAdminUser && item.key === 'hr' && !hasFeature('hr')) return false;
 
-        // HR gating:
-        if (item.key === 'hr' && !hasFeature('hr')) return false;
-
-        // Accounting tree & journal gating:
-        if ((item.key === 'accounting-accounts' || item.key === 'accounting-journal-entries' || item.key === 'accounting-settings' || item.key === 'accounts') && !hasFeature('accounting')) return false;
+        // Accounting tree & journal gating (Bypassed for Super Admin):
+        if (!isSuperAdminUser && (item.key === 'accounting-accounts' || item.key === 'accounting-journal-entries' || item.key === 'accounting-settings' || item.key === 'accounts') && !hasFeature('accounting')) return false;
 
         return true;
       })
@@ -527,8 +528,9 @@ export function AppShell({ children }: PropsWithChildren) {
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'online-orders', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
+    const isSuperAdminUser = user?.role === 'super_admin';
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
-    const hasAccounting = !tenant?.features || tenant.features.includes('accounting');
+    const hasAccounting = isSuperAdminUser || !tenant?.features || tenant.features.includes('accounting');
     return [
       { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'quotations', 'installments', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher', 'vat-declaration'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
@@ -539,9 +541,15 @@ export function AppShell({ children }: PropsWithChildren) {
       { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'], iconKey: 'import' },
       { key: 'manufacturing-group', label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'], iconKey: 'manufacturing' },
       { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },
-      { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings', 'saas-admin-tenants', 'saas-admin-plans'], iconKey: 'admin' },
+      ...(isSuperAdminUser ? [{
+        key: 'saas-group',
+        label: 'إدارة المنصة والساس',
+        itemKeys: ['saas-admin-tenants', 'saas-admin-plans'],
+        iconKey: 'saas-admin-tenants',
+      }] : []),
+      { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings', ...(isSuperAdminUser ? [] : ['saas-admin-tenants', 'saas-admin-plans'])], iconKey: 'admin' },
     ];
-  }, [t, settings?.maintenanceProfile, tenant?.features]);
+  }, [t, settings?.maintenanceProfile, tenant?.features, user?.role]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {

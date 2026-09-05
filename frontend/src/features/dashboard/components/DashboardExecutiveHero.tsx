@@ -30,7 +30,7 @@ function getInitialTheme(): 'dark' | 'light' {
       if (saved === 'dark' || saved === 'light') return saved;
     } catch {}
   }
-  return 'dark';
+  return 'light';
 }
 
 export function DashboardExecutiveHero({

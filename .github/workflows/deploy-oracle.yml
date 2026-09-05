@@ -1,9 +1,12 @@
 name: Deploy to Oracle SaaS Server
 
 on:
-  push:
+  workflow_run:
+    workflows: ["ci"]
     branches:
       - main
+    types:
+      - completed
   workflow_dispatch:
 
 concurrency:
@@ -11,40 +14,49 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deploy:
     name: Deploy to Oracle Cloud VPS
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: SSH and Deploy to Oracle Server
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST || '92.5.178.54' }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER || 'ubuntu' }}
+          ORACLE_PORT: ${{ secrets.ORACLE_PORT || '22' }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "$ORACLE_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@92.5.178.54 'bash -s' > server-diag.txt 2>&1 << 'REMOTEEVERYTHING'
-          echo "🚀 Connected to Oracle VPS successfully at $(date)"
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=20 -p "$ORACLE_PORT" "$ORACLE_USER@$ORACLE_HOST" 'bash -s' << 'REMOTEEVERYTHING'
+          set -e
+          echo "========================================================"
+          echo "🚀 Oracle Cloud VPS Production Deployment Started at $(date)"
+          echo "========================================================"
           
           TARGET_DIR="/var/www/zsystems/app"
           if [ ! -d "$TARGET_DIR" ]; then
             TARGET_DIR="/var/www/zsystems"
           fi
-          echo "📂 TARGET_DIR is: $TARGET_DIR"
+          echo "📂 Deploy Target Directory: $TARGET_DIR"
           cd "$TARGET_DIR"
 
-          echo "=== 1. Git update ==="
+          echo "=== 1. Safe Git Update ==="
           git config --global --add safe.directory "$TARGET_DIR" 2>/dev/null || true
-          git fetch origin main 2>&1
-          git reset --hard origin/main 2>&1
+          git fetch origin main
+          git reset --hard origin/main
 
-          echo "=== 2. Locate .env and Check Configuration ==="
+          echo "=== 2. Environment Verification ==="
           ENV_FILE=""
           for f in "$TARGET_DIR/backend/.env" "$TARGET_DIR/.env" "/var/www/zsystems/.env"; do
             if [ -f "$f" ]; then
@@ -54,70 +66,65 @@ jobs:
             fi
           done
 
-          if [ -n "$ENV_FILE" ]; then
-            echo "PORT in env file:"
-            grep -E 'PORT|HOST|NODE_ENV|APP_MODE' "$ENV_FILE" || true
-          else
-            echo "⚠️ No .env file found in standard locations!"
-            find /var/www/zsystems /home/ubuntu -maxdepth 3 -name ".env*" 2>/dev/null || true
+          if [ -z "$ENV_FILE" ]; then
+            echo "⚠️ Warning: No explicit .env file found in target root. Relying on system/PM2 environment."
           fi
 
-          echo "=== 3. Clean and Build Backend ==="
+          echo "=== 3. Backend Build & Migrations ==="
           cd "$TARGET_DIR/backend"
-          npm install --silent 2>&1 || true
-          npm run migration:run 2>&1 || true
+          npm ci --prefer-offline || npm install
           rm -rf dist
-          npm run build 2>&1
-          echo "Files in dist:"
-          ls -la dist/ || true
-          echo "Files in dist/config:"
-          ls -la dist/config/ 2>/dev/null || true
+          npm run build
+          
+          echo "Running database schema migrations..."
+          npm run migration:run
 
-          echo "=== 3.1 Clean and Build Frontend ==="
+          echo "=== 4. Frontend Build ==="
           cd "$TARGET_DIR/frontend"
-          npm install --silent 2>&1 || true
-          npm run build 2>&1 || node ./node_modules/vite/bin/vite.js build 2>&1
-          echo "Frontend dist files count: $(ls -1 dist 2>/dev/null | wc -l)"
+          npm ci --prefer-offline || npm install
+          npm run build || node ./node_modules/vite/bin/vite.js build
 
-          echo "=== 4. Test run main.js directly ==="
-          if [ -n "$ENV_FILE" ]; then
-            timeout 4 node --env-file="$ENV_FILE" dist/main.js 2>&1 || true
-          else
-            timeout 4 node dist/main.js 2>&1 || true
-          fi
-
-          echo "=== 5. Start with PM2 ==="
-          pm2 delete all 2>/dev/null || true
+          echo "=== 5. Graceful PM2 Backend Reload (Zero Downtime) ==="
           cd "$TARGET_DIR/backend"
-          if [ -n "$ENV_FILE" ]; then
-            pm2 start dist/main.js --name zsystems-backend --cwd "$TARGET_DIR/backend" --node-args="--env-file=$ENV_FILE" 2>&1
+          if pm2 describe zsystems-backend > /dev/null 2>&1; then
+            echo "Reloading existing PM2 process 'zsystems-backend'..."
+            pm2 reload zsystems-backend --update-env
           else
-            pm2 start dist/main.js --name zsystems-backend --cwd "$TARGET_DIR/backend" 2>&1
+            echo "Starting new PM2 process 'zsystems-backend'..."
+            if [ -n "$ENV_FILE" ]; then
+              pm2 start dist/main.js --name zsystems-backend --cwd "$TARGET_DIR/backend" --node-args="--env-file=$ENV_FILE"
+            else
+              pm2 start dist/main.js --name zsystems-backend --cwd "$TARGET_DIR/backend"
+            fi
           fi
-          pm2 save 2>&1 || true
+          pm2 save || true
 
-          sleep 5
-          echo "=== 6. PM2 Status & Logs ==="
-          pm2 list
-          pm2 logs zsystems-backend --nostream --lines 50 2>&1 || true
+          echo "=== 6. Automated Health Check Verification ==="
+          HEALTHY=false
+          for i in $(seq 1 15); do
+            sleep 2
+            HTTP_LIVE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/health/live || curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/health/live || true)
+            HTTP_READY=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/health/ready || curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/health/ready || true)
+            
+            echo "Health Probe #$i -> live: $HTTP_LIVE, ready: $HTTP_READY"
+            if [ "$HTTP_LIVE" = "200" ] && [ "$HTTP_READY" = "200" ]; then
+              HEALTHY=true
+              break
+            fi
+          done
 
-          echo "=== 7. Check listening ports and test HTTP ==="
-          sudo ss -tulpn | grep -E '3000|3001|5432|80|443' || true
-          curl -sv http://127.0.0.1:3000/api/activation/status 2>&1 || true
+          if [ "$HEALTHY" != "true" ]; then
+            echo "❌ Health check verification failed! Backend did not become healthy in time."
+            echo "=== Recent Backend Logs ==="
+            pm2 logs zsystems-backend --nostream --lines 50 || true
+            exit 1
+          fi
 
-          echo "=== 8. Reload Nginx ==="
+          echo "=== 7. Reload Nginx ==="
           sudo systemctl reload nginx 2>/dev/null || true
 
-          echo "=== Execution completed at $(date) ==="
+          echo "========================================================"
+          echo "✅ Production Deployment to Oracle VPS Completed Successfully!"
+          echo "========================================================"
           REMOTEEVERYTHING
-
-      - name: Push diagnostics to server-diag branch
-        if: always()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B server-diag
-          git add -f server-diag.txt
-          git commit -m "chore: server diagnostics $(date +'%Y-%m-%d %H:%M:%S') [skip ci]" || true
-          git push -f origin server-diag || true
 
