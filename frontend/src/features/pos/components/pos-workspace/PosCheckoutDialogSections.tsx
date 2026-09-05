@@ -254,70 +254,86 @@ export function PosCheckoutCustomerSection({
         </div>
       )}
 
-      {pos.customerId && (loyaltyPoints > 0 || (pos.loyaltyPointsRedeemed || 0) > 0) ? (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 12px',
-          marginTop: '6px',
-          background: (pos.loyaltyPointsRedeemed || 0) > 0 ? '#ecfdf5' : 'linear-gradient(135deg, #fef3c7, #fde68a)',
-          border: (pos.loyaltyPointsRedeemed || 0) > 0 ? '1px solid #a7f3d0' : '1px solid #fcd34d',
-          borderRadius: '6px',
-          fontSize: '12px',
-          color: (pos.loyaltyPointsRedeemed || 0) > 0 ? '#065f46' : '#92400e'
-        }}>
-          {(pos.loyaltyPointsRedeemed || 0) > 0 ? (
-            <>
-              <span>⭐ تم استبدال <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} نقطة</strong> بخصم <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} ج.م</strong> ✓</span>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => pos.setLoyaltyPointsRedeemed?.(0)}
-                style={{
-                  height: '28px',
-                  padding: '0 10px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  background: '#fef2f2',
-                  color: '#991b1b',
-                  border: '1px solid #fecaca',
-                  borderRadius: '4px'
-                }}
-              >
-                إلغاء الاستبدال
-              </Button>
-            </>
-          ) : (
-            <>
-              <span>⭐ رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {loyaltyPoints.toLocaleString()} ج.م خصم)</span>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  const subTotal = Number(pos.totals?.subTotal || 0);
-                  const pointsToRedeem = Math.min(loyaltyPoints, subTotal);
-                  if (pointsToRedeem > 0) {
-                    pos.setLoyaltyPointsRedeemed?.(pointsToRedeem);
-                  }
-                }}
-                style={{
-                  height: '28px',
-                  padding: '0 10px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  background: '#b45309',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '4px'
-                }}
-              >
-                استبدال النقاط بخصم
-              </Button>
-            </>
-          )}
-        </div>
-      ) : null}
+      {pos.customerId && (loyaltyPoints > 0 || (pos.loyaltyPointsRedeemed || 0) > 0) ? (() => {
+        const pointValue = Number(pos.settings?.loyaltyPointRedeemValue ?? 0.1);
+        const minPoints = Number(pos.settings?.loyaltyMinRedeemPoints ?? 50);
+        const maxPct = Number(pos.settings?.loyaltyMaxDiscountPercentage ?? 50);
+        const discountInCurrency = Number(((pos.loyaltyPointsRedeemed || 0) * pointValue).toFixed(2));
+        const totalValueInCurrency = Number((loyaltyPoints * pointValue).toFixed(2));
+        const subTotal = Number(pos.totals?.subTotal || 0);
+
+        return (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            marginTop: '6px',
+            background: (pos.loyaltyPointsRedeemed || 0) > 0 ? '#ecfdf5' : 'linear-gradient(135deg, #fef3c7, #fde68a)',
+            border: (pos.loyaltyPointsRedeemed || 0) > 0 ? '1px solid #a7f3d0' : '1px solid #fcd34d',
+            borderRadius: '6px',
+            fontSize: '12px',
+            color: (pos.loyaltyPointsRedeemed || 0) > 0 ? '#065f46' : '#92400e'
+          }}>
+            {(pos.loyaltyPointsRedeemed || 0) > 0 ? (
+              <>
+                <span>⭐ تم استبدال <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} نقطة</strong> بخصم <strong>{discountInCurrency.toLocaleString()} ج.م</strong> ✓</span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => pos.setLoyaltyPointsRedeemed?.(0)}
+                  style={{
+                    height: '28px',
+                    padding: '0 10px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    background: '#fef2f2',
+                    color: '#991b1b',
+                    border: '1px solid #fecaca',
+                    borderRadius: '4px'
+                  }}
+                >
+                  إلغاء الاستبدال
+                </Button>
+              </>
+            ) : (
+              <>
+                <span>⭐ رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {totalValueInCurrency.toLocaleString()} ج.م خصم)</span>
+                {loyaltyPoints < minPoints ? (
+                  <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600 }}>
+                    (الحد الأدنى للاستبدال: {minPoints} نقطة)
+                  </span>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      const maxAllowedDiscount = (subTotal * maxPct) / 100;
+                      const maxPointsAllowedByCap = Math.floor(maxAllowedDiscount / pointValue);
+                      const pointsToRedeem = Math.min(loyaltyPoints, maxPointsAllowedByCap);
+                      if (pointsToRedeem > 0) {
+                        pos.setLoyaltyPointsRedeemed?.(pointsToRedeem);
+                      }
+                    }}
+                    style={{
+                      height: '28px',
+                      padding: '0 10px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      background: '#b45309',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    استبدال النقاط بخصم
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })() : null}
     </section>
   );
 }

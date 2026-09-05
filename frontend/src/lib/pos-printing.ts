@@ -54,6 +54,9 @@ export function printPosDraftPreview(options: {
   orderType?: string | null;
   pageSize?: PosPrintPageSize;
   settings?: Partial<AppSettings> | null;
+  loyaltyPointsEarned?: number;
+  loyaltyPointsRedeemed?: number;
+  loyaltyPointsBalance?: number;
 }) {
   const document = buildReceiptDocument({
     pageSize: options.pageSize,
@@ -88,6 +91,9 @@ export function printPosDraftPreview(options: {
     taxAmount: Number(options.taxAmount || 0),
     total: Number(options.total || 0),
     paidAmount: Number(options.total || 0),
+    loyaltyPointsEarned: options.loyaltyPointsEarned,
+    loyaltyPointsRedeemed: options.loyaltyPointsRedeemed,
+    loyaltyPointsBalance: options.loyaltyPointsBalance,
   });
 
   openReceiptDocument(
@@ -100,6 +106,13 @@ export function printPosDraftPreview(options: {
 }
 
 function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
+  const pointsPer100 = Number(options.settings?.loyaltyPointsPer100Egp ?? 10);
+  const loyaltyPointsEarned = (sale as any).loyaltyPointsEarned !== undefined
+    ? Number((sale as any).loyaltyPointsEarned)
+    : (Number(sale.paidAmount || 0) > 0 && pointsPer100 > 0 && options.settings?.loyaltyEnabled !== false
+        ? Math.floor((Number(sale.paidAmount || 0) / 100) * pointsPer100)
+        : undefined);
+
   return buildReceiptDocument({
     pageSize: options.pageSize,
     settings: options.settings,
@@ -145,6 +158,9 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
     tenderedAmount: Number((sale as any).tenderedAmount || 0),
     changeAmount: Number((sale as any).changeAmount || 0),
     payments: sale.payments,
+    loyaltyPointsEarned,
+    loyaltyPointsRedeemed: Number((sale as any).loyaltyPointsRedeemed || (sale as any).loyalty_points_redeemed || 0),
+    loyaltyPointsBalance: (sale as any).customerLoyaltyPoints ?? (sale as any).customer?.loyaltyPoints ?? (sale as any).loyaltyPointsBalance,
     copyType: options.copyType || (options.settings?.printDualReceiptForOnlineDelivery && (sale.orderType === 'delivery' || sale.paymentChannel === 'instapay' || sale.paymentChannel === 'wallet' || sale.paymentChannel === 'card') ? 'dual' : 'customer'),
   });
 }

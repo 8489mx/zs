@@ -5,6 +5,7 @@ import { compressImage } from '@/shared/utils/image-compressor';
 import { StorefrontProductStudio } from './StorefrontProductStudio';
 import { StorefrontCouponsManager } from './StorefrontCouponsManager';
 import { StorefrontDeliveryZonesManager } from './StorefrontDeliveryZonesManager';
+import { StorefrontPaymentGatewaysManager } from './StorefrontPaymentGatewaysManager';
 
 function parsePosition(posStr?: string): { x: number; y: number } {
   if (!posStr) return { x: 50, y: 50 };
@@ -25,7 +26,7 @@ function parsePosition(posStr?: string): { x: number; y: number } {
 
 export function StorefrontSettingsTab() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'images'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images'>('settings');
   const [copySuccess, setCopySuccess] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [bannerCompressFeedback, setBannerCompressFeedback] = useState('');
@@ -441,6 +442,23 @@ export function StorefrontSettingsTab() {
           }}
         >
           مناطق وأسعار التوصيل 🚚
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('payments')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: activeTab === 'payments' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+            background: activeTab === 'payments' ? '#170e5e' : '#ffffff',
+            color: activeTab === 'payments' ? '#ffffff' : '#475569',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          بوابات الدفع الإلكتروني 💳
         </button>
         <button
           type="button"
@@ -1537,7 +1555,10 @@ export function StorefrontSettingsTab() {
       {/* Tab 3: Delivery Zones Matrix */}
       {activeTab === 'zones' && <StorefrontDeliveryZonesManager />}
 
-      {/* Tab 4: Product Studio in Full Width Grid */}
+      {/* Tab 4: Online Payment Gateways */}
+      {activeTab === 'payments' && <StorefrontPaymentGatewaysManager />}
+
+      {/* Tab 5: Product Studio in Full Width Grid */}
       {activeTab === 'images' && <StorefrontProductStudio slug={storeSlug} />}
     </div>
   );

@@ -425,6 +425,94 @@ export class ReturnsService {
     else if (refundMethod === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
     else if (refundMethod === 'card') await this.addTreasuryTransaction(trx, 'sale_return_refund', -total, 'sale return (card) ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
 
+    // Reconcile Customer Loyalty Points on Return
+    if (customerId) {
+      const originalSaleTotal = Number(sale.total) || 1;
+      const returnRatio = Math.min(1, Math.max(0, total / originalSaleTotal));
+
+      // 1. Clawback earned loyalty points proportionally
+      const earnLog = await trx
+        .selectFrom('customer_loyalty_logs')
+        .select(['points_change'])
+        .where('sale_id', '=', Number(sale.id))
+        .where('action_type', '=', 'earn')
+        .where(this.tenantPredicate(auth))
+        .executeTakeFirst();
+
+      if (earnLog && Number(earnLog.points_change) > 0) {
+        const earnedPoints = Number(earnLog.points_change);
+        const clawbackPoints = Math.min(earnedPoints, Math.round(earnedPoints * returnRatio));
+        if (clawbackPoints > 0) {
+          const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(this.tenantPredicate(auth)).executeTakeFirst();
+          const currentBal = Number(cust?.loyalty_points || 0);
+          const balanceAfter = Math.max(0, Number((currentBal - clawbackPoints).toFixed(2)));
+
+          await trx
+            .updateTable('customers')
+            .set({ loyalty_points: balanceAfter, updated_at: sql`NOW()` } as any)
+            .where('id', '=', customerId)
+            .where(this.tenantPredicate(auth))
+            .execute();
+
+          await trx
+            .insertInto('customer_loyalty_logs')
+            .values({
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              customer_id: customerId,
+              points_change: -clawbackPoints,
+              balance_after: balanceAfter,
+              action_type: 'return_clawback',
+              sale_id: Number(sale.id),
+              notes: `خصم ${clawbackPoints} نقطة ولاء مكتسبة بسبب مرتجع مبيعات ${returnDocNo} على الفاتورة S-${sale.id}`,
+              created_at: sql`NOW()`,
+            } as any)
+            .execute();
+        }
+      }
+
+      // 2. Refund redeemed loyalty points proportionally if customer had used points for discount
+      const redeemLog = await trx
+        .selectFrom('customer_loyalty_logs')
+        .select(['points_change'])
+        .where('sale_id', '=', Number(sale.id))
+        .where('action_type', '=', 'redeem')
+        .where(this.tenantPredicate(auth))
+        .executeTakeFirst();
+
+      if (redeemLog && Number(redeemLog.points_change) < 0) {
+        const totalRedeemed = Math.abs(Number(redeemLog.points_change));
+        const refundPoints = Math.min(totalRedeemed, Math.round(totalRedeemed * returnRatio));
+        if (refundPoints > 0) {
+          const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(this.tenantPredicate(auth)).executeTakeFirst();
+          const currentBal = Number(cust?.loyalty_points || 0);
+          const balanceAfter = Number((currentBal + refundPoints).toFixed(2));
+
+          await trx
+            .updateTable('customers')
+            .set({ loyalty_points: balanceAfter, updated_at: sql`NOW()` } as any)
+            .where('id', '=', customerId)
+            .where(this.tenantPredicate(auth))
+            .execute();
+
+          await trx
+            .insertInto('customer_loyalty_logs')
+            .values({
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              customer_id: customerId,
+              points_change: refundPoints,
+              balance_after: balanceAfter,
+              action_type: 'return_refund',
+              sale_id: Number(sale.id),
+              notes: `رد ${refundPoints} نقطة ولاء مستبدلة سابقاً بسبب مرتجع مبيعات ${returnDocNo} على الفاتورة S-${sale.id}`,
+              created_at: sql`NOW()`,
+            } as any)
+            .execute();
+        }
+      }
+    }
+
     try {
       await this.accountingPosting.postSalesReturn(trx, returnDocumentId, auth);
     } catch (error) {

@@ -59,6 +59,11 @@ export interface AppSettings {
   enableMobileStoreFeatures?: boolean;
   enablePharmacyModule?: boolean;
   servicesModuleEnabled?: boolean;
+  storefrontModuleEnabled?: boolean;
+  installmentsModuleEnabled?: boolean;
+  fixedAssetsModuleEnabled?: boolean;
+  taxDeclarationModuleEnabled?: boolean;
+  deliveryFleetModuleEnabled?: boolean;
   maintenanceProfile?: string;
   enableEnterpriseFeatures?: boolean;
   technicianCommissionRate?: number;

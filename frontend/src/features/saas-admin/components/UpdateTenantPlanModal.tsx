@@ -5,6 +5,8 @@ import { Field } from '@/shared/ui/field';
 import { saasAdminApi, SaasTenantRow } from '../api/saas-admin.api';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
+import { STANDARD_TIER_FEATURES } from '@/shared/system/DeveloperActivationPanel';
+
 interface UpdateTenantPlanModalProps {
   tenant: SaasTenantRow | null;
   onClose: () => void;
@@ -20,15 +22,20 @@ const AVAILABLE_FEATURES = [
   { id: 'inventory', name: 'المخزون المتقدم والجرد' },
   { id: 'reports', name: 'التقارير المتقدمة وسجل النشاط' },
   { id: 'hr', name: 'الموارد البشرية والرواتب' },
-  { id: 'manufacturing', name: 'التصنيع والإنتاج' },
-  { id: 'accounting', name: 'الحسابات العامة وشجرة الحسابات' },
   { id: 'deliveryReps', name: 'مناديب التوصيل' },
-  { id: 'taxIntegration', name: 'الربط الضريبي والفاتورة الإلكترونية' },
-  { id: 'import', name: 'الاستيراد والحاويات والشراكة' },
-  { id: 'pharmacy', name: 'الصيدليات والأدوية والروشتات' },
-  { id: 'maintenance', name: 'إدارة الصيانة والأجهزة' },
-  { id: 'restaurant', name: 'المطاعم والكافيهات والطاولات' },
+  { id: 'loyalty', name: 'محرك نقاط وولاء العملاء' },
+  { id: 'maintenance', name: 'إدارة الصيانة وتتبع السيريال (IMEI)' },
   { id: 'clothing', name: 'المتغيرات والمقاسات والألوان' },
+  { id: 'restaurant', name: 'المطاعم والكافيهات والطاولات' },
+  { id: 'accounting', name: 'الحسابات العامة وشجرة الحسابات' },
+  { id: 'fixed_assets', name: 'إدارة وإهلاك الأصول الثابتة' },
+  { id: 'installments', name: 'مبيعات وجدولة التقسيط' },
+  { id: 'taxIntegration', name: 'الربط الضريبي والفاتورة الإلكترونية' },
+  { id: 'vat_declaration', name: 'الإقرار الضريبي (ن10 و ZATCA)' },
+  { id: 'manufacturing', name: 'التصنيع وقوائم المواد وأوامر الإنتاج' },
+  { id: 'import', name: 'الاستيراد والشراكة والحاويات' },
+  { id: 'pharmacy', name: 'الصيدليات والأدوية والروشتات' },
+  { id: 'storefront', name: 'المتجر الإلكتروني وطلبات الأونلاين' },
 ];
 
 export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTenantPlanModalProps) {
@@ -40,6 +47,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
   const featurePlansQuery = useQuery({
     queryKey: ['saas-feature-plans'],
     queryFn: () => saasAdminApi.listFeaturePlans(),
+    staleTime: 0,
   });
   const featurePlans = featurePlansQuery.data || [];
 
@@ -85,7 +93,9 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
     });
   };
 
-  const selectedPlanFeatures = featurePlans.find(p => String(p.id) === planId)?.features || [];
+  const selectedPlanFeatures = STANDARD_TIER_FEATURES[planId]
+    || featurePlans.find(p => String(p.id) === planId)?.features 
+    || [];
 
   return (
     <DialogShell open={true} onClose={onClose} width="700px" ariaLabel="تحديث الباقة والميزات">
@@ -113,9 +123,17 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
           {error && <div className="warning-box">{error}</div>}
           
           <Field label="الباقة (الميزات الأساسية)">
-            <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
+            <select value={planId} onChange={(e) => {
+              setPlanId(e.target.value);
+              setExtraFeatures([]);
+            }}>
               <option value="">-- بدون باقة --</option>
-              {featurePlans.map((p) => (
+              {(featurePlans.length > 0 ? featurePlans : [
+                { id: 'plan_basic', name: 'الأساسية' },
+                { id: 'plan_pro', name: 'الاحترافية' },
+                { id: 'plan_ultimate', name: 'المتكاملة' },
+                { id: 'plan_omnichannel', name: 'باقة التجارة الشاملة (Omnichannel Enterprise)' },
+              ]).map((p: any) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>

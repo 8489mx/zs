@@ -2119,6 +2119,12 @@ export interface OnlineOrderTable {
   total_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   payment_method: string;
+  payment_status?: ColumnType<'pending' | 'paid' | 'failed' | 'refunded', string | undefined, string | undefined>;
+  gateway_provider?: string | null;
+  gateway_transaction_id?: string | null;
+  gateway_order_id?: string | null;
+  gateway_response_json?: string | null;
+  paid_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   coupon_code?: string | null;
   discount_amount?: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   delivery_zone_id?: number | null;
@@ -2176,7 +2182,7 @@ export interface CustomerLoyaltyLogTable {
   customer_id: number;
   points_change: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   balance_after: ColumnType<number | string, number | string | undefined, number | string | undefined>;
-  action_type: 'earn' | 'redeem' | 'manual_adjust';
+  action_type: 'earn' | 'redeem' | 'manual_adjust' | 'return_clawback' | 'return_refund';
   sale_id: number | null;
   notes: string | null;
   created_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;

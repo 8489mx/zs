@@ -732,16 +732,49 @@ export class SalesWriteService {
         }
       }
 
+      // Fetch loyalty settings
+      const loyaltySettingRows = await trx
+        .selectFrom('settings')
+        .select(['key', 'value'])
+        .where('key', 'in', [
+          'loyaltyEnabled',
+          'loyaltyPointsPer100Egp',
+          'loyaltyPointRedeemValue',
+          'loyaltyMinRedeemPoints',
+          'loyaltyMaxDiscountPercentage',
+        ])
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+
+      const loyaltyConfig = loyaltySettingRows.reduce<Record<string, any>>((acc, row) => {
+        try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; }
+        return acc;
+      }, {});
+
+      const loyaltyEnabled = loyaltyConfig.loyaltyEnabled !== false;
+      const pointsPer100Egp = Number(loyaltyConfig.loyaltyPointsPer100Egp ?? 10);
+      const pointRedeemValue = Number(loyaltyConfig.loyaltyPointRedeemValue ?? 0.1);
+      const minRedeemPoints = Number(loyaltyConfig.loyaltyMinRedeemPoints ?? 0);
+      const maxDiscountPercentage = Number(loyaltyConfig.loyaltyMaxDiscountPercentage ?? 100);
+
       let effectiveDiscount = normalized.discount;
       let loyaltyDiscount = 0;
       let pointsAfterRedeem = Number((customer as any)?.loyalty_points || 0);
 
       if (normalized.loyaltyPointsRedeemed > 0 && customer) {
+        if (!loyaltyEnabled) {
+          throw new AppError('برنامج نقاط الولاء معطل حالياً في إعدادات النظام', 'LOYALTY_PROGRAM_DISABLED', 400);
+        }
         const availablePoints = Number((customer as any)?.loyalty_points || 0);
         if (normalized.loyaltyPointsRedeemed > availablePoints + 0.001) {
           throw new AppError('رصيد نقاط الولاء غير كافٍ للاستبدال', 'INSUFFICIENT_LOYALTY_POINTS', 400);
         }
-        loyaltyDiscount = Number(normalized.loyaltyPointsRedeemed.toFixed(2));
+        if (minRedeemPoints > 0 && availablePoints < minRedeemPoints - 0.001) {
+          throw new AppError(`الحد الأدنى لرصيد النقاط للاستبدال هو ${minRedeemPoints} نقطة`, 'MIN_LOYALTY_POINTS_NOT_MET', 400);
+        }
+        const calculatedDiscount = Number((normalized.loyaltyPointsRedeemed * pointRedeemValue).toFixed(2));
+        const maxAllowedDiscount = Number(((subtotal * maxDiscountPercentage) / 100).toFixed(2));
+        loyaltyDiscount = Math.min(calculatedDiscount, maxAllowedDiscount);
         effectiveDiscount = Number((effectiveDiscount + loyaltyDiscount).toFixed(2));
         pointsAfterRedeem = Math.max(0, Number((availablePoints - normalized.loyaltyPointsRedeemed).toFixed(2)));
       }
@@ -1168,9 +1201,9 @@ export class SalesWriteService {
           .execute();
       }
 
-      // Automatically award loyalty points based on paid amount (1 point per 100 EGP)
-      if (customer && paidAmount > 0) {
-        const pointsEarned = Math.floor(paidAmount / 100);
+      // Automatically award loyalty points based on paid amount
+      if (customer && paidAmount > 0 && loyaltyEnabled && pointsPer100Egp > 0) {
+        const pointsEarned = Math.floor((paidAmount / 100) * pointsPer100Egp);
         if (pointsEarned > 0) {
           const startingPoints = normalized.loyaltyPointsRedeemed > 0 ? pointsAfterRedeem : Number((customer as any)?.loyalty_points || 0);
           const finalPoints = Number((startingPoints + pointsEarned).toFixed(2));
@@ -1192,7 +1225,7 @@ export class SalesWriteService {
               balance_after: finalPoints,
               action_type: 'earn',
               sale_id: id,
-              notes: `اكتساب ${pointsEarned} نقطة من مشتريات الفاتورة S-${id}`,
+              notes: `اكتساب ${pointsEarned} نقطة من مشتريات الفاتورة S-${id} (بمعدل ${pointsPer100Egp} نقطة لكل 100 ج.م)`,
               created_at: sql`NOW()`,
             } as any)
             .execute();

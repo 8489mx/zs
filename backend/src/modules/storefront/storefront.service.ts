@@ -165,6 +165,10 @@ export class StorefrontService {
       estimatedTime: z.estimated_time || '',
     }));
 
+    const onlinePaymentEnabled = settings.get('storefront_online_payment_enabled') === 'true';
+    const onlinePaymentTestMode = settings.get('storefront_paymob_test_mode') !== 'false';
+    const onlinePaymentProvider = settings.get('storefront_online_payment_provider') || 'paymob';
+
     return {
       tenantId: tenant.id,
       slug: tenant.slug,
@@ -188,6 +192,9 @@ export class StorefrontService {
       freeShippingMinOrder,
       whatsappPhone,
       currency,
+      onlinePaymentEnabled,
+      onlinePaymentTestMode,
+      onlinePaymentProvider,
     };
   }
 
@@ -552,6 +559,7 @@ export class StorefrontService {
         total_amount: totalAmount,
         status: 'pending',
         payment_method: dto.paymentMethod || 'cod',
+        payment_status: 'pending',
         branch_id: branchId,
         sale_id: null,
       })
@@ -572,7 +580,11 @@ export class StorefrontService {
       .map((i) => `- ${i.name} (×${i.quantity}) = ${i.total} ج`)
       .join('\n');
 
-    const paymentLabel = (dto.paymentMethod === 'instapay_wallet') ? 'تحويل مسبق (إنستاباي / محفظة)' : 'دفع عند الاستلام (كاش)';
+    const paymentLabel = (dto.paymentMethod === 'credit_card')
+      ? 'بطاقة بنكية أونلاين (فيزا / ماستركارد)'
+      : (dto.paymentMethod === 'instapay_wallet')
+      ? 'تحويل مسبق (إنستاباي / محفظة)'
+      : 'دفع عند الاستلام (كاش)';
     const notesPart = dto.customerNotes ? `\nملاحظات: ${dto.customerNotes}` : '';
     const zonePart = deliveryZoneName ? `\nالمنطقة: ${deliveryZoneName}` : '';
     const discountPart = discountAmount > 0 ? `\nالخصم (${appliedCouponCode}): -${discountAmount.toFixed(0)} ج` : '';
@@ -1346,6 +1358,13 @@ export class StorefrontService {
       freeShippingMinOrder: Number(settings.get('storefront_free_shipping_min_order') || 0),
       whatsappPhone: settings.get('storefront_whatsapp') || settings.get('phone') || tenant?.owner_phone || '',
       currency: settings.get('currency') || 'EGP',
+      onlinePaymentEnabled: settings.get('storefront_online_payment_enabled') === 'true',
+      onlinePaymentProvider: settings.get('storefront_online_payment_provider') || 'paymob',
+      paymobApiKey: settings.get('storefront_paymob_api_key') || '',
+      paymobIntegrationId: settings.get('storefront_paymob_integration_id') || '',
+      paymobIframeId: settings.get('storefront_paymob_iframe_id') || '',
+      paymobHmacSecret: settings.get('storefront_paymob_hmac_secret') || '',
+      paymobTestMode: settings.get('storefront_paymob_test_mode') !== 'false',
     };
   }
 
@@ -1428,6 +1447,13 @@ export class StorefrontService {
     if (payload.freeShippingEnabled !== undefined) entries.push({ key: 'storefront_free_shipping_enabled', value: payload.freeShippingEnabled });
     if (payload.freeShippingMinOrder !== undefined) entries.push({ key: 'storefront_free_shipping_min_order', value: payload.freeShippingMinOrder });
     if (payload.whatsappPhone !== undefined) entries.push({ key: 'storefront_whatsapp', value: payload.whatsappPhone });
+    if (payload.onlinePaymentEnabled !== undefined) entries.push({ key: 'storefront_online_payment_enabled', value: payload.onlinePaymentEnabled });
+    if (payload.onlinePaymentProvider !== undefined) entries.push({ key: 'storefront_online_payment_provider', value: payload.onlinePaymentProvider });
+    if (payload.paymobApiKey !== undefined) entries.push({ key: 'storefront_paymob_api_key', value: payload.paymobApiKey });
+    if (payload.paymobIntegrationId !== undefined) entries.push({ key: 'storefront_paymob_integration_id', value: payload.paymobIntegrationId });
+    if (payload.paymobIframeId !== undefined) entries.push({ key: 'storefront_paymob_iframe_id', value: payload.paymobIframeId });
+    if (payload.paymobHmacSecret !== undefined) entries.push({ key: 'storefront_paymob_hmac_secret', value: payload.paymobHmacSecret });
+    if (payload.paymobTestMode !== undefined) entries.push({ key: 'storefront_paymob_test_mode', value: payload.paymobTestMode });
 
     for (const e of entries) {
       await sql`

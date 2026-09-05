@@ -203,6 +203,11 @@ export interface AppSettings {
   posMaxDiscountThresholdValue?: number;
   enablePharmacyModule?: boolean;
   servicesModuleEnabled?: boolean;
+  storefrontModuleEnabled?: boolean;
+  installmentsModuleEnabled?: boolean;
+  fixedAssetsModuleEnabled?: boolean;
+  taxDeclarationModuleEnabled?: boolean;
+  deliveryFleetModuleEnabled?: boolean;
   maintenanceProfile?: string;
   enableEnterpriseFeatures?: boolean;
   technicianCommissionRate?: number;
@@ -241,6 +246,12 @@ export interface AppSettings {
   hrDelayPenalty2nd?: number;
   hrDelayPenalty3rd?: number;
   hrDelayPenalty4th?: number;
+  loyaltyEnabled?: boolean;
+  loyaltyPointsPer100Egp?: number;
+  loyaltyPointRedeemValue?: number;
+  loyaltyMinRedeemPoints?: number;
+  loyaltyMaxDiscountPercentage?: number;
+  printShowLoyaltyPoints?: boolean;
 }
 
 export interface ExpenseRecord {

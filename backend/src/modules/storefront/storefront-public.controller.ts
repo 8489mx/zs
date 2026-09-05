@@ -1,11 +1,15 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post, Put, Query } from '@nestjs/common';
 import { StorefrontService } from './storefront.service';
+import { StorefrontPaymentService } from './storefront-payment.service';
 import { CreateOnlineOrderDto } from './dto/create-online-order.dto';
 import { CreateProductReviewDto } from './dto/create-product-review.dto';
 
 @Controller('api/storefront')
 export class StorefrontPublicController {
-  constructor(private readonly service: StorefrontService) {}
+  constructor(
+    private readonly service: StorefrontService,
+    private readonly paymentService: StorefrontPaymentService,
+  ) {}
 
   @Get(':slug/info')
   getInfo(@Param('slug') slug: string) {
@@ -72,6 +76,48 @@ export class StorefrontPublicController {
     @Body() body: CreateOnlineOrderDto,
   ) {
     return this.service.updateCustomerOrder(slug, orderNumber, body);
+  }
+
+  // --- Online Payment Gateway Endpoints ---
+
+  @Post(':slug/orders/:orderNumber/payment-session')
+  createPaymentSession(
+    @Param('slug') slug: string,
+    @Param('orderNumber') orderNumber: string,
+  ) {
+    return this.paymentService.initiatePaymentSession(slug, orderNumber);
+  }
+
+  @Get(':slug/orders/:orderNumber/payment-status')
+  getPaymentStatus(
+    @Param('slug') slug: string,
+    @Param('orderNumber') orderNumber: string,
+  ) {
+    return this.paymentService.getOrderPaymentStatus(slug, orderNumber);
+  }
+
+  @Post(':slug/orders/:orderNumber/mock-pay')
+  mockPayOrder(
+    @Param('slug') slug: string,
+    @Param('orderNumber') orderNumber: string,
+    @Body() body: { cardNumber?: string; cardHolder?: string },
+  ) {
+    return this.paymentService.processMockPayment(slug, orderNumber, body);
+  }
+
+  @Post('webhooks/paymob')
+  handlePaymobWebhook(
+    @Headers() headers: Record<string, any>,
+    @Body() body: any,
+  ) {
+    return this.paymentService.processPaymobWebhook(headers, body);
+  }
+
+  @Get('webhooks/paymob')
+  handlePaymobCallback(
+    @Query() query: Record<string, any>,
+  ) {
+    return { ok: true, message: 'Paymob callback processed', query };
   }
 }
 

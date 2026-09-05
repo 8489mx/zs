@@ -21,6 +21,13 @@ export interface StorefrontInfo {
   minOrder: number;
   whatsappPhone: string;
   currency: string;
+  onlinePaymentEnabled?: boolean;
+  onlinePaymentTestMode?: boolean;
+  onlinePaymentProvider?: string;
+  paymobApiKey?: string;
+  paymobIntegrationId?: string;
+  paymobIframeId?: string;
+  paymobHmacSecret?: string;
   logo_url?: string;
   logoUrl?: string;
 }
@@ -118,6 +125,10 @@ export interface OnlineOrderRecord {
   couponCode?: string | null;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentMethod: string;
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  gatewayProvider?: string | null;
+  gatewayTransactionId?: string | null;
+  paidAt?: string | null;
   saleId: number | null;
   deliveryRepName?: string | null;
   deliveryRepPhone?: string | null;
@@ -152,6 +163,39 @@ export interface StorefrontSettingsPayload {
   minOrder?: number;
   whatsappPhone?: string;
   customDomain?: string;
+  onlinePaymentEnabled?: boolean;
+  onlinePaymentProvider?: string;
+  paymobApiKey?: string;
+  paymobIntegrationId?: string;
+  paymobIframeId?: string;
+  paymobHmacSecret?: string;
+  paymobTestMode?: boolean;
+}
+
+export interface StorefrontPaymentSessionResponse {
+  ok: boolean;
+  mode: 'paymob' | 'mock';
+  provider: string;
+  orderNumber: string;
+  amount: number;
+  testMode?: boolean;
+  paymentToken?: string;
+  iframeId?: string;
+  iframeUrl?: string;
+  orderId?: string;
+  isPaid?: boolean;
+  message?: string;
+}
+
+export interface StorefrontPaymentStatusResponse {
+  ok: boolean;
+  orderNumber: string;
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  orderStatus: string;
+  totalAmount: number;
+  gatewayProvider?: string | null;
+  gatewayTransactionId?: string | null;
+  paidAt?: string | null;
 }
 
 export interface StorefrontCoupon {

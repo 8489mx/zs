@@ -1,0 +1,493 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { storefrontApi } from '../api/storefront.api';
+
+export function StorefrontPaymentGatewaysManager() {
+  const queryClient = useQueryClient();
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  const settingsQuery = useQuery({
+    queryKey: ['storefront-admin-settings'],
+    queryFn: storefrontApi.getSettings,
+  });
+
+  const [formState, setFormState] = useState({
+    onlinePaymentEnabled: false,
+    onlinePaymentProvider: 'paymob',
+    paymobApiKey: '',
+    paymobIntegrationId: '',
+    paymobIframeId: '',
+    paymobHmacSecret: '',
+    paymobTestMode: true,
+  });
+
+  useEffect(() => {
+    if (settingsQuery.data) {
+      const data = settingsQuery.data as any;
+      setFormState({
+        onlinePaymentEnabled: Boolean(data.onlinePaymentEnabled),
+        onlinePaymentProvider: data.onlinePaymentProvider || 'paymob',
+        paymobApiKey: data.paymobApiKey || '',
+        paymobIntegrationId: data.paymobIntegrationId || '',
+        paymobIframeId: data.paymobIframeId || '',
+        paymobHmacSecret: data.paymobHmacSecret || '',
+        paymobTestMode: data.paymobTestMode !== false,
+      });
+    }
+  }, [settingsQuery.data]);
+
+  const updateMutation = useMutation({
+    mutationFn: storefrontApi.updateSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['storefront-admin-settings'] });
+      setSaveSuccess(true);
+      setSaveError('');
+      setTimeout(() => setSaveSuccess(false), 3500);
+    },
+    onError: (err: any) => {
+      setSaveError(err.message || 'حدث خطأ أثناء حفظ الإعدادات');
+      setSaveSuccess(false);
+    },
+  });
+
+  const handleSave = () => {
+    setSaveError('');
+    updateMutation.mutate(formState);
+  };
+
+  const webhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/storefront/webhooks/paymob`
+    : '/api/storefront/webhooks/paymob';
+
+  const handleCopyWebhook = async () => {
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2500);
+    } catch {
+      // Fallback
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2500);
+    }
+  };
+
+  return (
+    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      {/* Header Info Banner */}
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          padding: '20px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              background: '#e0e7ff',
+              color: '#170e5e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '22px',
+            }}
+          >
+            💳
+          </div>
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+              بوابات الدفع الإلكتروني التلقائية للمتجر (Payment Gateways)
+            </h3>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+              ربط مباشر لخصم البطاقات البنكية (Visa / MasterCard / Meeza) وتأكيد سداد الفواتير تلقائياً عبر الـ Webhooks
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              background: formState.onlinePaymentEnabled ? '#f0fdf4' : '#f8fafc',
+              border: formState.onlinePaymentEnabled ? '1.5px solid #22c55e' : '1px solid #cbd5e1',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={formState.onlinePaymentEnabled}
+              onChange={(e) => setFormState({ ...formState, onlinePaymentEnabled: e.target.checked })}
+              style={{ width: '18px', height: '18px', accentColor: '#16a34a', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '13px', fontWeight: 700, color: formState.onlinePaymentEnabled ? '#15803d' : '#475569' }}>
+              {formState.onlinePaymentEnabled ? 'الدفع الإلكتروني مفعّل' : 'الدفع الإلكتروني معطّل'}
+            </span>
+          </label>
+
+          <button
+            onClick={handleSave}
+            disabled={updateMutation.isPending}
+            style={{
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '10px 22px',
+              fontSize: '13.5px',
+              fontWeight: 800,
+              cursor: updateMutation.isPending ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 4px rgba(23, 14, 94, 0.2)',
+              opacity: updateMutation.isPending ? 0.7 : 1,
+            }}
+          >
+            {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+          </button>
+        </div>
+      </div>
+
+      {saveSuccess && (
+        <div
+          style={{
+            background: '#dcfce7',
+            border: '1px solid #86efac',
+            color: '#15803d',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontSize: '13.5px',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          ✓ تم حفظ إعدادات بوابة الدفع الإلكتروني بنجاح!
+        </div>
+      )}
+
+      {saveError && (
+        <div
+          style={{
+            background: '#fee2e2',
+            border: '1px solid #fca5a5',
+            color: '#991b1b',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            fontSize: '13.5px',
+            fontWeight: 700,
+          }}
+        >
+          ✕ {saveError}
+        </div>
+      )}
+
+      {/* Main Grid: 2 Columns */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
+        {/* Left Column: Gateway Provider & Mode */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+            <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+              اختيار مزود الخدمة ووضع التشغيل
+            </h4>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              حدد بوابة الدفع المعتمدة وطور التشغيل (تجريبي أو إنتاجي مباشر)
+            </span>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+              مزود بوابة الدفع
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div
+                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'paymob' })}
+                style={{
+                  border: formState.onlinePaymentProvider === 'paymob' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                  background: formState.onlinePaymentProvider === 'paymob' ? '#f8fafc' : '#ffffff',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>🏦</span>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>بوابة Paymob</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>فيزا / ماستركارد / ميزة / محافظ</div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'mock' })}
+                style={{
+                  border: formState.onlinePaymentProvider === 'mock' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                  background: formState.onlinePaymentProvider === 'mock' ? '#f8fafc' : '#ffffff',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>🧪</span>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>وضع المحاكاة (Mock)</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>تجربة الدفع الفوري محلياً</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Test Mode / Sandbox Toggle */}
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '14px 18px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>وضع التجربة (Sandbox Mode)</div>
+              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                يتيح اختبار كامل دورة الدفع ببطاقات تجريبية دون سحب أموال حقيقية
+              </div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={formState.paymobTestMode}
+                onChange={(e) => setFormState({ ...formState, paymobTestMode: e.target.checked })}
+                style={{ width: '18px', height: '18px', accentColor: '#170e5e', cursor: 'pointer' }}
+              />
+            </label>
+          </div>
+
+          {/* Webhook Configuration Card */}
+          <div
+            style={{
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '12px',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>🔗</span>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0369a1' }}>
+                رابط إشعار العمليات الفوري (Paymob Webhook URL)
+              </div>
+            </div>
+            <div style={{ fontSize: '11.5px', color: '#0c4a6e', lineHeight: '1.5' }}>
+              قم بنسخ هذا الرابط ووضعه في لوحة تحكم Paymob تحت (Transaction Processed Callback / Webhook):
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '6px 12px',
+              }}
+            >
+              <code style={{ fontSize: '11.5px', color: '#0f172a', direction: 'ltr', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {webhookUrl}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyWebhook}
+                style={{
+                  background: copySuccess ? '#16a34a' : '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '5px 12px',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {copySuccess ? 'تم النسخ!' : 'نسخ الرابط'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: API Credentials */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+            <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+              مفاتيح الربط والاعتماد (Paymob API Keys)
+            </h4>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              يمكنك استخراج هذه المفاتيح مباشرة من لوحة حسابك في Paymob
+            </span>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              مفتاح الـ API العام (API Key)
+            </label>
+            <input
+              type="password"
+              value={formState.paymobApiKey}
+              onChange={(e) => setFormState({ ...formState, paymobApiKey: e.target.value })}
+              placeholder="مثال: ZXlKaGJHY2lPaUpJVXpVe..."
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                direction: 'ltr',
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                معرف التكامل (Integration ID)
+              </label>
+              <input
+                type="text"
+                value={formState.paymobIntegrationId}
+                onChange={(e) => setFormState({ ...formState, paymobIntegrationId: e.target.value })}
+                placeholder="مثال: 456789"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  direction: 'ltr',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                معرف الإطار (Iframe ID)
+              </label>
+              <input
+                type="text"
+                value={formState.paymobIframeId}
+                onChange={(e) => setFormState({ ...formState, paymobIframeId: e.target.value })}
+                placeholder="مثال: 812345"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  direction: 'ltr',
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              المفتاح السري للتحقق الأمني (HMAC Secret)
+            </label>
+            <input
+              type="password"
+              value={formState.paymobHmacSecret}
+              onChange={(e) => setFormState({ ...formState, paymobHmacSecret: e.target.value })}
+              placeholder="مثال: A8B4F12E99..."
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                direction: 'ltr',
+              }}
+            />
+            <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+              يُستخدم لتأكيد صحة التوقيع الرقمي للـ Webhook ومنع تزوير عمليات الدفع نهائياً.
+            </span>
+          </div>
+
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px dashed #cbd5e1',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              fontSize: '12px',
+              color: '#475569',
+              lineHeight: '1.4',
+            }}
+          >
+            💡 في حال تفعيل <strong>وضع التجربة (Sandbox)</strong> وعدم إدخال مفاتيح حية، سيوفر المتجر تلقائياً تجربة دفع بطاقة تجريبية متكاملة لضمان فحص دورة الشراء بالكامل.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

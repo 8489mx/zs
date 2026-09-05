@@ -218,6 +218,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  const tenant = useAuthStore((state) => state.tenant);
   const { data: settings } = useSettingsQuery();
   const storeName = useAuthStore((state) => state.storeName);
   const isEtaActive = useAuthStore((state) => state.isEtaActive);
@@ -483,11 +484,36 @@ export function AppShell({ children }: PropsWithChildren) {
         if (!user || !canAccessNavigationItem(user, item)) return false;
         if (isDesktopOfflineApp() && (item.key === 'saas-admin-tenants' || item.key === 'saas-admin-plans' || item.key?.startsWith('saas-admin'))) return false;
         if (item.key === 'tax-dispatcher' && !isEtaActive) return false;
-        if (item.key?.startsWith('import-') && settings?.importModuleEnabled !== true) return false;
-        if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && settings?.enableMobileStoreFeatures !== true) return false;
-        if (item.key?.startsWith('pharmacy-') && settings?.enablePharmacyModule !== true) return false;
-        if (item.key?.startsWith('manufacturing-') && settings?.manufacturingModuleEnabled !== true) return false;
+
+        const hasFeature = (feat: string) => !tenant?.features || tenant.features.includes(feat);
+
+        // Feature & Setting gating:
+        if (item.key?.startsWith('import-') && (settings?.importModuleEnabled !== true || !hasFeature('import'))) return false;
+        if ((item.key === 'maintenance' || item.key === 'trade-in' || item.key === 'imei-history') && (settings?.enableMobileStoreFeatures !== true || !hasFeature('maintenance'))) return false;
+        if (item.key?.startsWith('pharmacy-') && (settings?.enablePharmacyModule !== true || !hasFeature('pharmacy'))) return false;
+        if (item.key?.startsWith('manufacturing-') && (settings?.manufacturingModuleEnabled !== true || !hasFeature('manufacturing'))) return false;
         if (item.key === 'services' && settings?.servicesModuleEnabled !== true) return false;
+        if (item.key === 'online-orders' && (settings?.storefrontModuleEnabled === false || !hasFeature('storefront'))) return false;
+        if (item.key === 'installments' && (settings?.installmentsModuleEnabled === false || !hasFeature('installments'))) return false;
+        if (item.key === 'vat-declaration' && (settings?.taxDeclarationModuleEnabled === false || !hasFeature('vat_declaration'))) return false;
+        if (item.key === 'accounting-fixed-assets' && (settings?.fixedAssetsModuleEnabled === false || !hasFeature('fixed_assets'))) return false;
+        if (item.key === 'delivery-reps' && (settings?.deliveryFleetModuleEnabled === false || !hasFeature('deliveryReps'))) return false;
+
+        // Purchases gating:
+        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers') && !hasFeature('purchases')) return false;
+
+        // Advanced Inventory gating:
+        if ((item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new') && !hasFeature('inventory')) return false;
+
+        // Reports gating:
+        if ((item.key?.startsWith('reports-') || item.key === 'audit') && !hasFeature('reports')) return false;
+
+        // HR gating:
+        if (item.key === 'hr' && !hasFeature('hr')) return false;
+
+        // Accounting tree & journal gating:
+        if ((item.key === 'accounting-accounts' || item.key === 'accounting-journal-entries' || item.key === 'accounting-settings' || item.key === 'accounts') && !hasFeature('accounting')) return false;
+
         return true;
       })
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
@@ -496,17 +522,18 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled]);
+  }, [user, tenant?.features, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'online-orders', 'cash-drawer'], []);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
+    const hasAccounting = !tenant?.features || tenant.features.includes('accounting');
     return [
       { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'quotations', 'installments', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher', 'vat-declaration'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
       { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'], iconKey: 'inventory' },
-      { key: 'accounting-group', label: t('sidebar.accounting-group', 'المالية والمحاسبة'), itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
+      { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
       { key: 'mobile-group', label: maintenanceProfile.sidebarTitle, itemKeys: ['maintenance', 'trade-in', 'imei-history'], iconKey: 'mobile' },
       { key: 'pharmacy-group', label: 'قسم الصيدلية والأدوية', itemKeys: ['pharmacy-dashboard', 'pharmacy-drugs', 'pharmacy-prescriptions', 'pharmacy-shortages', 'pharmacy-batches', 'pharmacy-clinical'], iconKey: 'pharmacy' },
       { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'], iconKey: 'import' },
@@ -514,7 +541,7 @@ export function AppShell({ children }: PropsWithChildren) {
       { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },
       { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings', 'saas-admin-tenants', 'saas-admin-plans'], iconKey: 'admin' },
     ];
-  }, [t, settings?.maintenanceProfile]);
+  }, [t, settings?.maintenanceProfile, tenant?.features]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {

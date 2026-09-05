@@ -14,11 +14,37 @@ import {
   StorefrontDeliveryZone,
   CreateDeliveryZonePayload,
   UpdateDeliveryZonePayload,
+  StorefrontPaymentSessionResponse,
+  StorefrontPaymentStatusResponse,
 } from '../types/storefront.types';
 
 export const storefrontApi = {
   // Public APIs (No auth needed)
   getInfo: (slug: string) => http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`),
+
+  createPaymentSession: (slug: string, orderNumber: string) =>
+    http<StorefrontPaymentSessionResponse>(
+      `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/payment-session`,
+      { method: 'POST' }
+    ),
+
+  getPaymentStatus: (slug: string, orderNumber: string) =>
+    http<StorefrontPaymentStatusResponse>(
+      `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/payment-status`
+    ),
+
+  mockPayOrder: (
+    slug: string,
+    orderNumber: string,
+    payload?: { cardNumber?: string; cardHolder?: string }
+  ) =>
+    http<{ ok: boolean; orderNumber: string; paymentStatus: string; transactionId: string; message: string }>(
+      `/api/storefront/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderNumber)}/mock-pay`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload || {}),
+      }
+    ),
 
   getCatalog: async (slug: string) => {
     const res = await http<StorefrontCatalogResponse>(`/api/storefront/${encodeURIComponent(slug)}/catalog`);

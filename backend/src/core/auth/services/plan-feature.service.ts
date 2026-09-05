@@ -44,11 +44,13 @@ export class PlanFeatureService implements OnModuleInit {
       return true; // If no plan is assigned, assume backward compatibility
     }
     
-    // Hardcoded ultimate check just in case cache misses
-    if (planId === 'plan_ultimate') return true;
+    // Explicit tier checks
+    if (planId === 'plan_omnichannel') return true;
+    if (planId === 'plan_ultimate' && requiredFeature === 'storefront') return false;
 
     const planFeatures = this.planFeatures.get(planId);
     if (!planFeatures) {
+      if (planId === 'plan_ultimate') return true;
       return false;
     }
 

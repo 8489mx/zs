@@ -19,8 +19,121 @@ import { ModulesSettingsTab } from './tabs/ModulesSettingsTab';
 import { SecuritySettingsTab } from './tabs/SecuritySettingsTab';
 import { PrintingSettingsTab } from './tabs/PrintingSettingsTab';
 
+export const SETTINGS_FIELD_METADATA: Record<
+  string,
+  { tab: 'general' | 'sales_inventory' | 'modules' | 'printing' | 'security'; label: string }
+> = {
+  // General Tab
+  storeName: { tab: 'general', label: 'اسم النشاط / المتجر' },
+  brandName: { tab: 'general', label: 'الاسم التجاري' },
+  phone: { tab: 'general', label: 'رقم الهاتف' },
+  address: { tab: 'general', label: 'العنوان' },
+  currentBranchId: { tab: 'general', label: 'الفرع الرئيسي' },
+  currentLocationId: { tab: 'general', label: 'مكان الاستلام الافتراضي' },
+  accentColor: { tab: 'general', label: 'لون الواجهة الرئيسي' },
+  logoData: { tab: 'general', label: 'شعار المؤسسة' },
+  businessIndustry: { tab: 'general', label: 'طبيعة النشاط التجاري' },
+  currency: { tab: 'general', label: 'العملة الافتراضية' },
+  timezone: { tab: 'general', label: 'المنطقة الزمنية' },
+  dateFormat: { tab: 'general', label: 'تنسيق التاريخ' },
+  timeFormat: { tab: 'general', label: 'تنسيق الوقت' },
+  uiLanguage: { tab: 'general', label: 'لغة النظام' },
+  whatsappLinkMode: { tab: 'general', label: 'طريقة فتح روابط واتساب' },
 
+  // Sales & Inventory Tab
+  lowStockThreshold: { tab: 'sales_inventory', label: 'حد المخزون الأدنى' },
+  expiryAlertDays: { tab: 'sales_inventory', label: 'تنبيه قرب الصلاحية (أيام)' },
+  stagnantProductDays: { tab: 'sales_inventory', label: 'تنبيه ركود الأصناف (أيام)' },
+  taxNumber: { tab: 'sales_inventory', label: 'الرقم الضريبي' },
+  taxRate: { tab: 'sales_inventory', label: 'نسبة الضريبة' },
+  taxMode: { tab: 'sales_inventory', label: 'طريقة احتساب الضريبة' },
+  allowNegativeStockSales: { tab: 'sales_inventory', label: 'البيع بالسالب عند نفاد المخزون' },
+  allowZeroPurchaseCost: { tab: 'sales_inventory', label: 'السماح بتكلفة شراء صفرية' },
+  requireCashierShiftForSales: { tab: 'sales_inventory', label: 'إلزام فتح وردية كاشير' },
+  defaultProductKind: { tab: 'sales_inventory', label: 'نوع المنتج الافتراضي' },
+  defaultPosMode: { tab: 'sales_inventory', label: 'نمط شاشة البيع السريع' },
+  deliveryFeeMode: { tab: 'sales_inventory', label: 'نمط خدمة التوصيل' },
+  storeFleetCommissionRate: { tab: 'sales_inventory', label: 'عمولة مناديب المتجر' },
+  defaultDeliveryFee: { tab: 'sales_inventory', label: 'رسوم التوصيل الافتراضية' },
+  defaultBranchIssueMode: { tab: 'sales_inventory', label: 'طريقة صرف بضاعة الفرع الافتراضية' },
+  posMaxDiscountThresholdEnabled: { tab: 'sales_inventory', label: 'تفعيل حد أقصى للخصم' },
+  posMaxDiscountThresholdType: { tab: 'sales_inventory', label: 'نوع سقف الخصم' },
+  posMaxDiscountThresholdValue: { tab: 'sales_inventory', label: 'قيمة سقف الخصم' },
+  weightedBarcodeEnabled: { tab: 'sales_inventory', label: 'تفعيل باركود الميزان' },
+  weightedBarcodePrefix: { tab: 'sales_inventory', label: 'بادئة باركود الميزان' },
+  weightedBarcodeProductCodeLength: { tab: 'sales_inventory', label: 'طول كود الصنف بالميزان' },
+  weightedBarcodeWeightDigits: { tab: 'sales_inventory', label: 'خانات الوزن في باركود الميزان' },
+  weightedBarcodeWeightDecimals: { tab: 'sales_inventory', label: 'الخانات العشرية لوزن الميزان' },
+  loyaltyEnabled: { tab: 'sales_inventory', label: 'برنامج نقاط مكافآت العملاء' },
+  loyaltyPointsPer100Egp: { tab: 'sales_inventory', label: 'معدل اكتساب النقاط لكل 100 ج.م' },
+  loyaltyPointRedeemValue: { tab: 'sales_inventory', label: 'قيمة استبدال النقطة (ج.م)' },
+  loyaltyMinRedeemPoints: { tab: 'sales_inventory', label: 'الحد الأدنى للنقاط للاستبدال' },
+  loyaltyMaxDiscountPercentage: { tab: 'sales_inventory', label: 'أقصى نسبة خصم بالنقاط' },
+  printShowLoyaltyPoints: { tab: 'sales_inventory', label: 'إظهار رصيد النقاط في الفاتورة' },
 
+  // Modules Tab
+  manufacturingModuleEnabled: { tab: 'modules', label: 'موديول التصنيع والتجميع' },
+  importModuleEnabled: { tab: 'modules', label: 'موديول الاستيراد والشحن الدولي' },
+  comboModuleEnabled: { tab: 'modules', label: 'موديول باقات وعروض الأصناف' },
+  restaurantModuleEnabled: { tab: 'modules', label: 'موديول المطاعم والكافيهات' },
+  clothingModuleEnabled: { tab: 'modules', label: 'موديول الملابس والمقاسات والألوان' },
+  enableMobileStoreFeatures: { tab: 'modules', label: 'ميزات متجر الموبايل والإلكترونيات' },
+  enablePharmacyModule: { tab: 'modules', label: 'موديول الصيدليات وتواريخ الصلاحية' },
+  servicesModuleEnabled: { tab: 'modules', label: 'موديول مراكز الصيانة والخدمات' },
+  maintenanceProfile: { tab: 'modules', label: 'ملف الصيانة والتشغيل' },
+  storefrontModuleEnabled: { tab: 'modules', label: 'المتجر الإلكتروني والطلبات أونلاين' },
+  installmentsModuleEnabled: { tab: 'modules', label: 'موديول التقسيط وإدارة الديون' },
+  fixedAssetsModuleEnabled: { tab: 'modules', label: 'موديول الأصول الثابتة والإهلاك' },
+  taxDeclarationModuleEnabled: { tab: 'modules', label: 'موديول الإقرار الضريبي' },
+  deliveryFleetModuleEnabled: { tab: 'modules', label: 'موديول أسطول التوصيل والمناديب' },
+  enableEnterpriseFeatures: { tab: 'modules', label: 'الميزات المتقدمة للمؤسسات' },
+  technicianCommissionRate: { tab: 'modules', label: 'نسبة عمولة فنيي الصيانة' },
+
+  // Printing Tab
+  paperSize: { tab: 'printing', label: 'مقاس الورق' },
+  invoiceNumberingScheme: { tab: 'printing', label: 'نمط ترقيم الفواتير' },
+  invoiceFooter: { tab: 'printing', label: 'تذييل الفاتورة' },
+  invoiceQR: { tab: 'printing', label: 'رمز الاستجابة السريعة (QR)' },
+  posReceiptTheme: { tab: 'printing', label: 'تصميم وسِمة الإيصال' },
+  printNumberFormat: { tab: 'printing', label: 'لغة كتابة الأرقام' },
+  printShowLogo: { tab: 'printing', label: 'طباعة شعار المتجر' },
+  printShowDocumentType: { tab: 'printing', label: 'طباعة نوع المستند' },
+  printShowDocumentNumber: { tab: 'printing', label: 'طباعة رقم المستند' },
+  printShowOrderType: { tab: 'printing', label: 'طباعة نوع الطلب' },
+  printShowPhone: { tab: 'printing', label: 'طباعة رقم الهاتف' },
+  printShowAddress: { tab: 'printing', label: 'طباعة العنوان' },
+  printShowTaxNumber: { tab: 'printing', label: 'طباعة الرقم الضريبي' },
+  printShowCustomer: { tab: 'printing', label: 'طباعة بيانات العميل' },
+  printShowDeliveryCustomerDetails: { tab: 'printing', label: 'طباعة تفاصيل توصيل العميل' },
+  printShowCashier: { tab: 'printing', label: 'طباعة اسم الكاشير' },
+  printShowBranch: { tab: 'printing', label: 'طباعة اسم الفرع' },
+  printShowLocation: { tab: 'printing', label: 'طباعة مكان الاستلام' },
+  printShowTax: { tab: 'printing', label: 'طباعة تفاصيل الضريبة' },
+  printShowPaymentMethod: { tab: 'printing', label: 'طباعة طريقة الدفع' },
+  printShowPaymentBreakdown: { tab: 'printing', label: 'طباعة تفاصيل الدفعات' },
+  printShowItemSummary: { tab: 'printing', label: 'طباعة ملخص الأصناف' },
+  printShowItemCount: { tab: 'printing', label: 'طباعة عدد الأصناف' },
+  printShowPiecesCount: { tab: 'printing', label: 'طباعة إجمالي القطع' },
+  printShowDate: { tab: 'printing', label: 'طباعة التاريخ والوقت' },
+  printShowItemOffers: { tab: 'printing', label: 'طباعة عروض الأصناف' },
+  printShowDiscountBreakdown: { tab: 'printing', label: 'طباعة تفاصيل الخصومات' },
+  printShowSavingsBanner: { tab: 'printing', label: 'طباعة شريط التوفير' },
+  printShowInvoiceBarcode: { tab: 'printing', label: 'طباعة باركود الفاتورة' },
+  printShowFooter: { tab: 'printing', label: 'طباعة عبارة تذييل الفاتورة' },
+  printCompactReceipt: { tab: 'printing', label: 'تنسيق الإيصال المدمج' },
+  printDeliveryRepOnReceipt: { tab: 'printing', label: 'طباعة اسم مندوب التوصيل' },
+  printDualReceiptForOnlineDelivery: { tab: 'printing', label: 'طباعة نسختين لطلبات الدليفري' },
+  posShowCartMeta: { tab: 'printing', label: 'إظهار تفاصيل السلة الإضافية' },
+  posKitchenPrinterEnabled: { tab: 'printing', label: 'طابعة المطبخ' },
+  posKitchenPrinterAuto: { tab: 'printing', label: 'طباعة المطبخ التلقائية' },
+  posKitchenPrinterMode: { tab: 'printing', label: 'تنسيق طباعة المطبخ' },
+  posElectronCashierPrinter: { tab: 'printing', label: 'طابعة الكاشير الافتراضية' },
+  posElectronKitchenPrinter: { tab: 'printing', label: 'طابعة المطبخ الافتراضية' },
+
+  // Security Tab
+  managerPin: { tab: 'security', label: 'الرقم السري للمدير' },
+  autoBackup: { tab: 'security', label: 'النسخ الاحتياطي التلقائي' },
+};
 
 export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsMainFormProps) {
   const locale = useLocalePreference();
@@ -46,6 +159,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       autoBackup: 'on',
       accentColor: '#170c5c',
       logoData: '',
+      businessIndustry: 'general',
       currentBranchId: '',
       currentLocationId: '',
       manufacturingModuleEnabled: false,
@@ -54,6 +168,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       restaurantModuleEnabled: false,
       posShowCartMeta: false,
       printDeliveryRepOnReceipt: false,
+      storefrontModuleEnabled: true,
+      installmentsModuleEnabled: true,
+      fixedAssetsModuleEnabled: true,
+      taxDeclarationModuleEnabled: true,
+      deliveryFleetModuleEnabled: true,
       clothingModuleEnabled: false,
       enableMobileStoreFeatures: false,
       enablePharmacyModule: false,
@@ -69,6 +188,12 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       allowNegativeStockSales: false,
       allowZeroPurchaseCost: false,
       requireCashierShiftForSales: true,
+      loyaltyEnabled: true,
+      loyaltyPointsPer100Egp: 10,
+      loyaltyPointRedeemValue: 0.1,
+      loyaltyMinRedeemPoints: 50,
+      loyaltyMaxDiscountPercentage: 50,
+      printShowLoyaltyPoints: true,
       posMaxDiscountThresholdEnabled: false,
       posMaxDiscountThresholdType: 'percentage',
       posMaxDiscountThresholdValue: 15,
@@ -90,6 +215,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       printShowAddress: true,
       printShowTaxNumber: false,
       printShowCustomer: true,
+      printShowDeliveryCustomerDetails: true,
       printShowCashier: true,
       printShowBranch: true,
       printShowLocation: true,
@@ -227,6 +353,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       autoBackup: settings.autoBackup === 'off' ? 'off' : 'on',
       accentColor: settings.accentColor || '#170c5c',
       logoData: settings.logoData || '',
+      businessIndustry: ((settings as any)?.businessIndustry as any) || 'general',
       currentBranchId: settings.currentBranchId || '',
       currentLocationId: settings.currentLocationId || '',
       clothingModuleEnabled: clothingEnabled,
@@ -247,9 +374,20 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       restaurantModuleEnabled: settings.restaurantModuleEnabled === true,
       posShowCartMeta: settings.posShowCartMeta === true,
       printDeliveryRepOnReceipt: settings.printDeliveryRepOnReceipt === true,
+      storefrontModuleEnabled: settings.storefrontModuleEnabled !== false,
+      installmentsModuleEnabled: settings.installmentsModuleEnabled !== false,
+      fixedAssetsModuleEnabled: settings.fixedAssetsModuleEnabled !== false,
+      taxDeclarationModuleEnabled: settings.taxDeclarationModuleEnabled !== false,
+      deliveryFleetModuleEnabled: settings.deliveryFleetModuleEnabled !== false,
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
       requireCashierShiftForSales: settings.requireCashierShiftForSales !== false,
+      loyaltyEnabled: (settings as any)?.loyaltyEnabled !== false,
+      loyaltyPointsPer100Egp: Number((settings as any)?.loyaltyPointsPer100Egp ?? 10),
+      loyaltyPointRedeemValue: Number((settings as any)?.loyaltyPointRedeemValue ?? 0.1),
+      loyaltyMinRedeemPoints: Number((settings as any)?.loyaltyMinRedeemPoints ?? 50),
+      loyaltyMaxDiscountPercentage: Number((settings as any)?.loyaltyMaxDiscountPercentage ?? 50),
+      printShowLoyaltyPoints: (settings as any)?.printShowLoyaltyPoints !== false,
       posMaxDiscountThresholdEnabled: settings.posMaxDiscountThresholdEnabled === true,
       posMaxDiscountThresholdType: (settings.posMaxDiscountThresholdType as any) || 'percentage',
       posMaxDiscountThresholdValue: Number(settings.posMaxDiscountThresholdValue ?? 15),
@@ -361,67 +499,150 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
     setLocaleLanguage(watchedLanguage === 'en' ? 'en' : 'ar');
   }, [setLocaleLanguage, watchedLanguage]);
 
-  const submit = form.handleSubmit(async (values) => {
-    let branchIdToUse = String(values.currentBranchId || '').trim();
-    const locationIdToUse = String(values.currentLocationId || '').trim();
+  const navigateToFieldAndHighlight = (fieldKey: string) => {
+    const meta = SETTINGS_FIELD_METADATA[fieldKey];
+    const targetTab = meta ? meta.tab : 'general';
 
-    if (!branchIdToUse && branchQuery.trim()) {
-      const existingBranch = branches.find((b) => normalizeText(String(b.name || '')) === normalizeText(branchQuery));
-      if (existingBranch) {
-        branchIdToUse = String(existingBranch.id);
-      } else {
-        try {
-          // Fallback dynamic import if settingsApi is not at the top
-          const { settingsApi } = await import('@/features/settings/api/settings.api');
-          const res = await settingsApi.createBranch({ name: branchQuery.trim() });
-          const newId = res.branchId || res.branch?.id;
-          if (res.ok && newId) branchIdToUse = String(newId);
-        } catch (err) {
-          console.error(err);
+    setActiveTab(targetTab);
+
+    setTimeout(() => {
+      // 1. Search for input element by name, id or data-field
+      const input =
+        document.querySelector<HTMLElement>(`[name="${fieldKey}"]`) ||
+        document.getElementById(fieldKey) ||
+        document.querySelector<HTMLElement>(`#${fieldKey}`) ||
+        document.querySelector<HTMLElement>(`[data-field="${fieldKey}"]`);
+
+      let highlightTarget: HTMLElement | null = input;
+
+      if (input) {
+        // Walk up to find the enclosing card, label, or field row
+        let curr: HTMLElement | null = input.parentElement;
+        while (
+          curr &&
+          curr !== document.body &&
+          !curr.classList.contains('settings-two-col-grid') &&
+          !curr.classList.contains('settings-tab-content-wrapper') &&
+          !curr.classList.contains('document-prototype-section') &&
+          !curr.classList.contains('page-stack')
+        ) {
+          if (
+            curr.tagName === 'LABEL' ||
+            curr.style.border ||
+            curr.style.borderRadius ||
+            curr.classList.contains('field') ||
+            curr.classList.contains('form-group') ||
+            curr.classList.contains('form-row')
+          ) {
+            highlightTarget = curr;
+            break;
+          }
+          curr = curr.parentElement;
         }
       }
+
+      if (highlightTarget) {
+        highlightTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        document.querySelectorAll('.settings-error-highlight').forEach((el) => {
+          el.classList.remove('settings-error-highlight');
+        });
+
+        void highlightTarget.offsetWidth;
+        highlightTarget.classList.add('settings-error-highlight');
+
+        if (input && typeof input.focus === 'function') {
+          try {
+            input.focus({ preventScroll: true });
+          } catch {
+            // Ignore focus errors
+          }
+        }
+
+        setTimeout(() => {
+          highlightTarget?.classList.remove('settings-error-highlight');
+        }, 3600);
+      } else {
+        const wrapper = document.querySelector('.settings-tab-content-wrapper');
+        wrapper?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 120);
+  };
+
+  const submit = form.handleSubmit(
+    async (values) => {
+      let branchIdToUse = String(values.currentBranchId || '').trim();
+      const locationIdToUse = String(values.currentLocationId || '').trim();
+
+      if (!branchIdToUse && branchQuery.trim()) {
+        const existingBranch = branches.find((b) => normalizeText(String(b.name || '')) === normalizeText(branchQuery));
+        if (existingBranch) {
+          branchIdToUse = String(existingBranch.id);
+        } else {
+          try {
+            // Fallback dynamic import if settingsApi is not at the top
+            const { settingsApi } = await import('@/features/settings/api/settings.api');
+            const res = await settingsApi.createBranch({ name: branchQuery.trim() });
+            const newId = res.branchId || res.branch?.id;
+            if (res.ok && newId) branchIdToUse = String(newId);
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      }
+
+      values.currentBranchId = branchIdToUse;
+      values.currentLocationId = locationIdToUse;
+
+      const isBranchMissing = !String(values.currentBranchId || '').trim();
+      const isLocationMissing = !String(values.currentLocationId || '').trim();
+
+      if (isBranchMissing) {
+        form.setError('currentBranchId', { type: 'manual', message: 'يجب اختيار الفرع الرئيسي قبل حفظ الإعدادات.' });
+      }
+      
+      if (isLocationMissing) {
+        form.setError('currentLocationId', { type: 'manual', message: 'يجب اختيار مكان الاستلام الافتراضي قبل حفظ الإعدادات.' });
+      }
+
+      const missingCoreFields =
+        !String(values.storeName || '').trim() ||
+        !String(values.defaultPosMode || '').trim() ||
+        !String(values.paperSize || '').trim();
+
+      if (missingCoreFields) {
+        form.setError('storeName', {
+          type: 'manual',
+          message: form.formState.errors.storeName?.message || 'يرجى إكمال الحقول المطلوبة قبل حفظ الإعدادات.',
+        });
+      }
+
+      if (isBranchMissing || isLocationMissing || missingCoreFields) {
+        form.setError('root.serverError', { type: 'manual', message: 'يرجى إكمال الحقول المطلوبة قبل حفظ الإعدادات.' });
+        if (isBranchMissing) navigateToFieldAndHighlight('currentBranchId');
+        else if (isLocationMissing) navigateToFieldAndHighlight('currentLocationId');
+        else if (missingCoreFields) navigateToFieldAndHighlight('storeName');
+        return;
+      }
+
+      form.clearErrors('root.serverError');
+      mutation.mutate(values);
+    },
+    (errors) => {
+      // Auto navigate to the first invalid field and highlight it with glow
+      const errorKeys = Object.keys(errors).filter((k) => k !== 'root');
+      if (errorKeys.length > 0) {
+        navigateToFieldAndHighlight(errorKeys[0]);
+      }
     }
-
-
-
-    values.currentBranchId = branchIdToUse;
-    values.currentLocationId = locationIdToUse;
-
-    const isBranchMissing = !String(values.currentBranchId || '').trim();
-    const isLocationMissing = !String(values.currentLocationId || '').trim();
-
-    if (isBranchMissing) {
-      form.setError('currentBranchId', { type: 'manual', message: 'يجب اختيار الفرع الرئيسي قبل حفظ الإعدادات.' });
-    }
-    
-    if (isLocationMissing) {
-      form.setError('currentLocationId', { type: 'manual', message: 'يجب اختيار مكان الاستلام الافتراضي قبل حفظ الإعدادات.' });
-    }
-
-    const missingCoreFields =
-      !String(values.storeName || '').trim() ||
-      !String(values.defaultPosMode || '').trim() ||
-      !String(values.paperSize || '').trim();
-
-    if (missingCoreFields) {
-      form.setError('storeName', {
-        type: 'manual',
-        message: form.formState.errors.storeName?.message || 'يرجى إكمال الحقول المطلوبة قبل حفظ الإعدادات.',
-      });
-    }
-
-    if (isBranchMissing || isLocationMissing || missingCoreFields) {
-      form.setError('root.serverError', { type: 'manual', message: 'يرجى إكمال الحقول المطلوبة قبل حفظ الإعدادات.' });
-      return;
-    }
-
-    form.clearErrors('root.serverError');
-    mutation.mutate(values);
-  });
+  );
 
   const tabErrors = useMemo(() => {
     const errors = form.formState.errors;
-    const map: Record<string, string[]> = {
+    const map: Record<
+      'general' | 'sales_inventory' | 'modules' | 'printing' | 'security',
+      { fieldKey: string; label: string; message?: string }[]
+    > = {
       general: [],
       sales_inventory: [],
       modules: [],
@@ -429,43 +650,53 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       security: [],
     };
 
-    const fieldToTab: Record<string, { tab: string; label: string }> = {
-      storeName: { tab: 'general', label: 'اسم النشاط / المتجر' },
-      brandName: { tab: 'general', label: 'الاسم التجاري' },
-      phone: { tab: 'general', label: 'الهاتف' },
-      address: { tab: 'general', label: 'العنوان' },
-      currentBranchId: { tab: 'general', label: 'الفرع الرئيسي' },
-      currentLocationId: { tab: 'general', label: 'مكان الاستلام الافتراضي' },
-      accentColor: { tab: 'general', label: 'لون الواجهة' },
-      currency: { tab: 'general', label: 'العملة' },
-      timezone: { tab: 'general', label: 'المنطقة الزمنية' },
-      lowStockThreshold: { tab: 'sales_inventory', label: 'حد المخزون الأدنى' },
-      expiryAlertDays: { tab: 'sales_inventory', label: 'تنبيه قرب الصلاحية' },
-      stagnantProductDays: { tab: 'sales_inventory', label: 'تنبيه ركود الأصناف' },
-      taxNumber: { tab: 'sales_inventory', label: 'الرقم الضريبي' },
-      taxRate: { tab: 'sales_inventory', label: 'نسبة الضريبة' },
-      weightedBarcodePrefix: { tab: 'sales_inventory', label: 'بادئة باركود الميزان' },
-      managerPin: { tab: 'security', label: 'الرقم السري للمدير' },
-      autoBackup: { tab: 'security', label: 'النسخ الاحتياطي التلقائي' },
-      paperSize: { tab: 'printing', label: 'مقاس الورق' },
-      invoiceFooter: { tab: 'printing', label: 'تذييل الفاتورة' },
-    };
-
     for (const [field, err] of Object.entries(errors)) {
       if (!err || field === 'root') continue;
-      const meta = fieldToTab[field];
-      if (meta) {
-        map[meta.tab].push(meta.label);
-      } else {
-        map.general.push(field);
-      }
+      const meta = SETTINGS_FIELD_METADATA[field];
+      const label = meta ? meta.label : field;
+      const tab = meta ? meta.tab : 'general';
+      const rawMessage = (err as any)?.message;
+      const message = typeof rawMessage === 'string' && rawMessage.trim() ? rawMessage.trim() : undefined;
+
+      map[tab].push({
+        fieldKey: field,
+        label,
+        message,
+      });
     }
     return map;
   }, [form.formState.errors]);
 
   return (
-    <form id="settings-main-form" className="page-stack settings-core-form" dir="rtl" autoComplete="off" onSubmit={submit}>
-      
+    <form id="settings-main-form" className="page-stack settings-core-form" dir="rtl" autoComplete="off" onSubmit={submit} noValidate>
+      <style>{`
+        @keyframes settingsErrorGlowPulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7), inset 0 0 0 1px rgba(239, 68, 68, 0.5);
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+          }
+          50% {
+            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.25), inset 0 0 0 2px rgba(239, 68, 68, 0.8);
+            border-color: #dc2626 !important;
+            background-color: #fee2e2 !important;
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), inset 0 0 0 1px rgba(239, 68, 68, 0.5);
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+          }
+        }
+
+        .settings-error-highlight {
+          animation: settingsErrorGlowPulse 1.1s ease-in-out 3 !important;
+          border-color: #ef4444 !important;
+          outline: 2.5px solid #ef4444 !important;
+          outline-offset: 3px !important;
+          border-radius: 10px !important;
+          transition: all 0.25s ease-in-out !important;
+        }
+      `}</style>
 
         {/* الإشعارات والأخطاء */}
         <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تغييرات غير محفوظة" hint="احفظ التعديلات أو أعد ضبطها قبل مغادرة الشاشة." />
@@ -477,13 +708,34 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           </div>
         ) : null}
 
-        {/* التابات */}
+        {/* التابات وتنبيه الأخطاء التفاعلي */}
         {!form.formState.isValid && form.formState.isSubmitted && Object.keys(form.formState.errors).length > 0 && (
-          <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #f87171', color: '#b91c1c', borderRadius: 8, marginBottom: 14, fontSize: '0.85rem' }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>يرجى استكمال أو مراجعة الحقول التالية:</div>
-            <ul style={{ margin: 0, paddingInlineStart: 20 }}>
-              {Object.entries(tabErrors).map(([tabId, errs]) => {
-                if (!errs.length) return null;
+          <div
+            className="settings-validation-alert"
+            style={{
+              padding: '14px 18px',
+              background: '#fff5f5',
+              border: '1px solid #fca5a5',
+              borderInlineStart: '4px solid #ef4444',
+              borderRadius: '10px',
+              marginBottom: '16px',
+              fontSize: '0.86rem',
+              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.08)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ fontWeight: 800, color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.92rem' }}>
+                <span style={{ fontSize: '18px' }}>⚠️</span>
+                <span>توجد حقول تتطلب المراجعة أو استكمال البيانات قبل الحفظ ({Object.keys(form.formState.errors).filter(k => k !== 'root').length} حقول):</span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 600 }}>
+                💡 انقر على أي حقل أدناه للانتقال إليه مباشرة وتمييزه
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+              {Object.entries(tabErrors).map(([tabId, items]) => {
+                if (!items.length) return null;
                 const tabNames: Record<string, string> = {
                   general: 'عام',
                   sales_inventory: 'البيع والمخزون',
@@ -492,12 +744,65 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                   security: 'الأمان',
                 };
                 return (
-                  <li key={tabId} style={{ marginTop: 2 }}>
-                    <strong>تبويب &quot;{tabNames[tabId]}&quot;:</strong> {errs.join('، ')}
-                  </li>
+                  <div
+                    key={tabId}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #fecaca',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#7f1d1d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#dc2626' }} />
+                      <span>تبويب &quot;{tabNames[tabId] || tabId}&quot;:</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {items.map((item) => (
+                        <button
+                          key={item.fieldKey}
+                          type="button"
+                          onClick={() => navigateToFieldAndHighlight(item.fieldKey)}
+                          title="انقر للانتقال للحقل وتمييزه"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#fef2f2',
+                            border: '1px solid #f87171',
+                            borderRadius: '6px',
+                            padding: '4px 10px',
+                            fontSize: '0.8rem',
+                            color: '#b91c1c',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#fee2e2';
+                            e.currentTarget.style.borderColor = '#dc2626';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#fef2f2';
+                            e.currentTarget.style.borderColor = '#f87171';
+                          }}
+                        >
+                          <span>🎯 {item.label}</span>
+                          {item.message && item.message !== item.label ? (
+                            <span style={{ fontWeight: 500, color: '#991b1b', fontSize: '0.76rem' }}>
+                              ({item.message})
+                            </span>
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           </div>
         )}
         <div className="settings-tabs" style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px', overflowX: 'auto' }}>
@@ -514,7 +819,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               onClick={() => setActiveTab(tab.id as any)}
               style={{
                 background: activeTab === tab.id ? 'var(--primary, #0f172a)' : 'transparent',
-                color: activeTab === tab.id ? '#ffffff' : (tabErrors[tab.id]?.length ? '#ef4444' : '#64748b'),
+                color: activeTab === tab.id ? '#ffffff' : ((tabErrors as any)[tab.id]?.length ? '#ef4444' : '#64748b'),
                 border: 'none',
                 padding: '6px 16px',
                 borderRadius: '7px',
@@ -530,9 +835,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
               }}
             >
               <span>{tab.label}</span>
-              {tabErrors[tab.id]?.length > 0 ? (
+              {(tabErrors as any)[tab.id]?.length > 0 ? (
                 <span style={{ background: '#ef4444', color: '#fff', fontSize: '10px', borderRadius: '10px', padding: '1px 6px', fontWeight: 800 }}>
-                  {tabErrors[tab.id].length}
+                  {(tabErrors as any)[tab.id].length}
                 </span>
               ) : null}
             </button>

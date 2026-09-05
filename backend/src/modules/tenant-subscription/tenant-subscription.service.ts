@@ -114,22 +114,24 @@ export class TenantSubscriptionService {
       .execute()
       .catch(() => []);
 
-    const hasBasic = plans.some((p) => p.code === 'basic');
-    const hasPro = plans.some((p) => p.code === 'pro');
-    const hasEnterprise = plans.some((p) => p.code === 'enterprise');
+    const hasBasic = plans.some((p) => p.code?.toUpperCase() === 'BASIC');
+    const hasPro = plans.some((p) => p.code?.toUpperCase() === 'PRO');
+    const hasUltimate = plans.some((p) => p.code?.toUpperCase() === 'ULTIMATE' || p.code?.toLowerCase() === 'enterprise');
+    const hasOmnichannel = plans.some((p) => p.code?.toUpperCase() === 'OMNICHANNEL');
 
-    if (!hasBasic || !hasPro || !hasEnterprise) {
+    if (!hasBasic || !hasPro || !hasUltimate || !hasOmnichannel) {
       const now = new Date();
       const missingPlans = [];
       if (!hasBasic) {
         missingPlans.push({
-          code: 'basic',
-          name: 'الباقة الأساسية',
+          code: 'BASIC',
+          name: 'الباقة الأساسية (Basic POS)',
           price: 3500,
           currency: 'EGP',
           billing_period_months: 12,
           max_users: 2,
           max_branches: 1,
+          feature_plan_id: 'plan_basic',
           is_active: true,
           created_at: now,
           updated_at: now,
@@ -137,27 +139,44 @@ export class TenantSubscriptionService {
       }
       if (!hasPro) {
         missingPlans.push({
-          code: 'pro',
-          name: 'الباقة الاحترافية',
+          code: 'PRO',
+          name: 'الباقة الاحترافية (Professional)',
           price: 7500,
           currency: 'EGP',
           billing_period_months: 12,
-          max_users: 10,
+          max_users: 6,
           max_branches: 3,
+          feature_plan_id: 'plan_pro',
           is_active: true,
           created_at: now,
           updated_at: now,
         });
       }
-      if (!hasEnterprise) {
+      if (!hasUltimate) {
         missingPlans.push({
-          code: 'enterprise',
-          name: 'باقة المؤسسات والتصنيع',
+          code: 'ULTIMATE',
+          name: 'الباقة المتكاملة (Ultimate ERP)',
           price: 15000,
           currency: 'EGP',
           billing_period_months: 12,
-          max_users: 999,
-          max_branches: 999,
+          max_users: 15,
+          max_branches: 10,
+          feature_plan_id: 'plan_ultimate',
+          is_active: true,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+      if (!hasOmnichannel) {
+        missingPlans.push({
+          code: 'OMNICHANNEL',
+          name: 'باقة التجارة الشاملة (Omnichannel Enterprise)',
+          price: 24000,
+          currency: 'EGP',
+          billing_period_months: 12,
+          max_users: null,
+          max_branches: null,
+          feature_plan_id: 'plan_omnichannel',
           is_active: true,
           created_at: now,
           updated_at: now,
@@ -184,9 +203,10 @@ export class TenantSubscriptionService {
 
     if (plans.length === 0) {
       return [
-        { id: 1, code: 'basic', name: 'الباقة الأساسية', price: 3500, currency: 'EGP', billing_period_months: 12, max_users: 2, max_branches: 1 },
-        { id: 2, code: 'pro', name: 'الباقة الاحترافية', price: 7500, currency: 'EGP', billing_period_months: 12, max_users: 10, max_branches: 3 },
-        { id: 3, code: 'enterprise', name: 'باقة المؤسسات والتصنيع', price: 15000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999 },
+        { id: 1, code: 'basic', name: 'الباقة الأساسية', price: 3500, currency: 'EGP', billing_period_months: 12, max_users: 2, max_branches: 1, feature_plan_id: 'plan_basic' },
+        { id: 2, code: 'pro', name: 'الباقة الاحترافية', price: 7500, currency: 'EGP', billing_period_months: 12, max_users: 10, max_branches: 3, feature_plan_id: 'plan_pro' },
+        { id: 3, code: 'enterprise', name: 'باقة المؤسسات والتصنيع', price: 15000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, feature_plan_id: 'plan_ultimate' },
+        { id: 4, code: 'omnichannel', name: 'باقة التجارة الشاملة (Omnichannel)', price: 24000, currency: 'EGP', billing_period_months: 12, max_users: 999, max_branches: 999, feature_plan_id: 'plan_omnichannel' },
       ];
     }
 

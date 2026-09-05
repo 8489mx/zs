@@ -19,7 +19,7 @@ interface PosWorkspaceDerivedParams {
   openShiftRows: Array<{ id: string | number; docNo?: string; openedById?: string | number; openedByName?: string }>;
   authUserId?: string | number | null;
   authPermissions?: string[];
-  settings?: { taxRate?: number | string; taxMode?: string; allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown; posMaxDiscountThresholdEnabled?: boolean; posMaxDiscountThresholdType?: string; posMaxDiscountThresholdValue?: number } | null;
+  settings?: { taxRate?: number | string; taxMode?: string; allowNegativeStockSales?: unknown; allowSellingBelowStock?: unknown; posMaxDiscountThresholdEnabled?: boolean; posMaxDiscountThresholdType?: string; posMaxDiscountThresholdValue?: number; loyaltyPointRedeemValue?: number; loyaltyPointsPer100Egp?: number; loyaltyMinRedeemPoints?: number; loyaltyMaxDiscountPercentage?: number; loyaltyEnabled?: boolean } | null;
   heldDrafts: Array<unknown>;
   recentProductIds: string[];
   productFilter: PosProductFilter;
@@ -151,7 +151,8 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
       return sum + (item.qty * (item.price + modifiersTotal));
     }, 0);
     const manualDiscount = Math.max(0, Number(params.discount || 0));
-    const loyaltyDiscount = Math.max(0, Number(params.loyaltyPointsRedeemed || 0));
+    const pointRedeemValue = Number(params.settings?.loyaltyPointRedeemValue ?? 0.1);
+    const loyaltyDiscount = Math.max(0, Number((Number(params.loyaltyPointsRedeemed || 0) * pointRedeemValue).toFixed(2)));
     const discountValue = manualDiscount + loyaltyDiscount;
     const deliveryFee = Math.max(0, Number(params.deliveryFee || 0));
     const taxRate = Number(params.settings?.taxRate || 0);

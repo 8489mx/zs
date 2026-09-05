@@ -76,14 +76,25 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
           </button>
         </div>
 
-        {/* Current Balance Box */}
-        <div style={{ background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: '10px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#9d174d' }}>الرصيد الحالي للنقاط</div>
-            <div style={{ fontSize: '11.5px', color: '#be185d' }}>يمكن استبدال كل 100 نقطة بخصم مباشر في المبيعات</div>
+        {/* Summary Stats Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 12px' }}>
+            <div style={{ fontSize: '11px', color: '#166534', fontWeight: 700 }}>إجمالي النقاط المكتسبة</div>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: '#15803d', marginTop: '2px' }}>
+              +{logs.filter((l: any) => Number(l.points_change) > 0).reduce((s: number, l: any) => s + Number(l.points_change), 0).toLocaleString()}
+            </div>
           </div>
-          <div style={{ fontSize: '24px', fontWeight: 900, color: '#be185d' }}>
-            {currentBalance.toLocaleString('ar-EG')} نقطة
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 12px' }}>
+            <div style={{ fontSize: '11px', color: '#991b1b', fontWeight: 700 }}>إجمالي النقاط المستبدلة</div>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: '#b91c1c', marginTop: '2px' }}>
+              {logs.filter((l: any) => l.action_type === 'redeem').reduce((s: number, l: any) => s + Math.abs(Number(l.points_change)), 0).toLocaleString()}
+            </div>
+          </div>
+          <div style={{ background: '#fdf2f8', border: '1px solid #fbcfe8', borderRadius: '8px', padding: '10px 12px' }}>
+            <div style={{ fontSize: '11px', color: '#9d174d', fontWeight: 700 }}>الرصيد الفعلي المتاح</div>
+            <div style={{ fontSize: '18px', fontWeight: 900, color: '#be185d', marginTop: '2px' }}>
+              {currentBalance.toLocaleString()} نقطة
+            </div>
           </div>
         </div>
 
@@ -171,21 +182,38 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map((log: any) => (
-                    <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '6px 10px', color: '#64748b' }}>
-                        {new Date(log.created_at).toLocaleDateString('ar-EG')}
-                      </td>
-                      <td style={{ padding: '6px 10px' }}>
-                        {log.action_type === 'earn' ? 'اكتساب' : log.action_type === 'redeem' ? 'استبدال' : 'تعديل يدوي'}
-                      </td>
-                      <td style={{ padding: '6px 10px', fontWeight: 800, color: Number(log.points_change) > 0 ? '#166534' : '#b91c1c' }}>
-                        {Number(log.points_change) > 0 ? `+${log.points_change}` : log.points_change}
-                      </td>
-                      <td style={{ padding: '6px 10px', fontWeight: 700 }}>{log.balance_after}</td>
-                      <td style={{ padding: '6px 10px', color: '#64748b' }}>{log.notes || '-'}</td>
-                    </tr>
-                  ))}
+                  {logs.map((log: any) => {
+                    const actionBadge = (() => {
+                      switch (log.action_type) {
+                        case 'earn':
+                          return <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>اكتساب مشتريات</span>;
+                        case 'redeem':
+                          return <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>استبدال بخصم</span>;
+                        case 'return_clawback':
+                          return <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>خصم لمرتجع</span>;
+                        case 'return_refund':
+                          return <span style={{ background: '#e0e7ff', color: '#4338ca', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>رد نقاط مرتجع</span>;
+                        default:
+                          return <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>تعديل يدوي</span>;
+                      }
+                    })();
+
+                    return (
+                      <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '6px 10px', color: '#64748b' }}>
+                          {new Date(log.created_at).toLocaleDateString('ar-EG')}
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          {actionBadge}
+                        </td>
+                        <td style={{ padding: '6px 10px', fontWeight: 800, color: Number(log.points_change) > 0 ? '#166534' : '#b91c1c' }}>
+                          {Number(log.points_change) > 0 ? `+${log.points_change}` : log.points_change}
+                        </td>
+                        <td style={{ padding: '6px 10px', fontWeight: 700 }}>{log.balance_after}</td>
+                        <td style={{ padding: '6px 10px', color: '#64748b' }}>{log.notes || '-'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

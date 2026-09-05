@@ -145,6 +145,27 @@ export function StorefrontSuccessModal({
               <span>المطلوب دفعه:</span>
               <span>{activeOrder.totalAmount.toFixed(0)} ج.م</span>
             </div>
+
+            {(activeOrder as any).paymentStatus === 'paid' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  background: '#dcfce7',
+                  border: '1px solid #86efac',
+                  borderRadius: '8px',
+                  color: '#15803d',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  marginTop: '8px',
+                }}
+              >
+                <span>حالة السداد:</span>
+                <span>تم الدفع بالبطاقة البنكية بنجاح 💳</span>
+              </div>
+            )}
           </div>
         </div>
 

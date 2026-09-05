@@ -237,7 +237,7 @@ export class SaasAdminService {
         ownerLocked: Boolean(owner?.locked),
         ownerIsActive: owner ? Boolean(owner.isActive) : false,
         ownerUsername: owner?.username || '',
-        planName: isPlatform ? 'مالك المنظومة (غير مقيد)' : (sub?.plan_name || (row.plan_id === 'plan_ultimate' ? 'المتكاملة' : row.plan_id === 'plan_pro' ? 'المتقدمة' : row.plan_id === 'plan_starter' ? 'الأساسية' : 'المتكاملة')),
+        planName: isPlatform ? 'مالك المنظومة (غير مقيد)' : (sub?.plan_name || (row.plan_id === 'plan_omnichannel' ? 'التجارة الشاملة' : row.plan_id === 'plan_ultimate' ? 'المتكاملة' : row.plan_id === 'plan_pro' ? 'المتقدمة' : row.plan_id === 'plan_starter' ? 'الأساسية' : 'المتكاملة')),
         planId: row.plan_id || null,
         extraFeatures: Array.isArray(row.extra_features) ? row.extra_features : typeof row.extra_features === 'string' ? JSON.parse(row.extra_features) : [],
         subscriptionStatus: isPlatform ? 'active' : (sub?.sub_status || null),
@@ -320,7 +320,7 @@ export class SaasAdminService {
         lastLoginAt: owner?.last_login_at ? new Date(owner.last_login_at).toISOString() : null,
         ownerUsername: owner?.username || '',
         planId: tenant.plan_id || null,
-        planName: isPlatform ? 'مالك المنظومة (كامل الصلاحيات والأنظمة)' : (tenant.plan_id === 'plan_ultimate' ? 'المتكاملة' : tenant.plan_id === 'plan_pro' ? 'المتقدمة' : tenant.plan_id === 'plan_starter' ? 'الأساسية' : 'المتكاملة'),
+        planName: isPlatform ? 'مالك المنظومة (كامل الصلاحيات والأنظمة)' : (tenant.plan_id === 'plan_omnichannel' ? 'التجارة الشاملة' : tenant.plan_id === 'plan_ultimate' ? 'المتكاملة' : tenant.plan_id === 'plan_pro' ? 'المتقدمة' : tenant.plan_id === 'plan_starter' ? 'الأساسية' : 'المتكاملة'),
         isPlatform,
         extraFeatures: Array.isArray(tenant.extra_features) ? tenant.extra_features : typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [],
       },
@@ -400,13 +400,7 @@ export class SaasAdminService {
 
   async listFeaturePlans(auth: AuthContext): Promise<Record<string, unknown>[]> {
     this.assertPlatformAccess(auth);
-    const plans = await this.db.selectFrom('plans').selectAll().execute();
-    const planFeatures = await this.db.selectFrom('plan_features').selectAll().execute();
-    
-    return plans.map(p => ({
-      ...p,
-      features: planFeatures.filter(f => f.plan_id === p.id).map(f => f.feature_code)
-    }));
+    return this.developerListFeaturePlans();
   }
 
   async createPlan(body: CreateSaasPlanDto, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -900,8 +894,9 @@ export class SaasAdminService {
     };
   }
 
+
   async developerListFeaturePlans(): Promise<Record<string, unknown>[]> {
-    const plans = await this.db.selectFrom('plans').selectAll().execute();
+    const plans = await this.db.selectFrom('plans').selectAll().orderBy('price', 'asc').execute();
     const planFeatures = await this.db.selectFrom('plan_features').selectAll().execute();
     
     return plans.map(p => ({
@@ -947,6 +942,7 @@ export class SaasAdminService {
 
     if (Object.keys(updateData).length > 0) {
       await this.db.updateTable('tenants').set(updateData).where('id', '=', tenant.id).execute();
+      this.authCache.invalidateTenant(tenant.id);
       // No auth context for this automated action, passing null is handled by the audit log silently or we just mock auth.
       try {
         await this.audit.log('تفعيل مطور', `تم تفعيل الباقة والميزات محلياً بواسطة لوحة المطورين`, { id: 'developer', role: 'super_admin' } as unknown as AuthContext, { targetTenantId: tenant.id });

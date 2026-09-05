@@ -414,7 +414,7 @@ export class TrialTenantProvisioningService {
         `.execute(trx);
       }
 
-      const resolvedPlanName = saasPlan?.name || (featurePlanId === 'plan_ultimate' ? 'المتكاملة' : featurePlanId === 'plan_pro' ? 'المتقدمة' : featurePlanId === 'plan_starter' ? 'الأساسية' : 'المتكاملة');
+      const resolvedPlanName = saasPlan?.name || (featurePlanId === 'plan_omnichannel' ? 'التجارة الشاملة' : featurePlanId === 'plan_ultimate' ? 'المتكاملة' : featurePlanId === 'plan_pro' ? 'المتقدمة' : featurePlanId === 'plan_starter' ? 'الأساسية' : 'المتكاملة');
 
       return {
         tenantId,

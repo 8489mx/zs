@@ -124,20 +124,38 @@ export function StorefrontCustomerOrderCard({
           </span>
         </div>
 
-        <span
-          style={{
-            fontSize: '11.5px',
-            fontWeight: 700,
-            padding: '3px 10px',
-            borderRadius: '999px',
-            background: badge.bg,
-            color: badge.text,
-            border: `1px solid ${badge.border}`,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {badge.label}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {order.paymentStatus === 'paid' && (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: '999px',
+                background: '#dcfce7',
+                color: '#15803d',
+                border: '1px solid #86efac',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              مدفوع أونلاين 💳
+            </span>
+          )}
+          <span
+            style={{
+              fontSize: '11.5px',
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: '999px',
+              background: badge.bg,
+              color: badge.text,
+              border: `1px solid ${badge.border}`,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {badge.label}
+          </span>
+        </div>
       </div>
 
       {/* Live Tracking Stepper Bar (if not cancelled) */}

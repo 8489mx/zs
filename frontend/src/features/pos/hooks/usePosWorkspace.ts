@@ -380,6 +380,7 @@ export function usePosWorkspace() {
     barcodeFocusTick: state.barcodeFocusTick,
     customersQuery,
     settingsQuery,
+    settings: settingsQuery.data || null,
     branchesQuery,
     locationsQuery,
     productsQuery,

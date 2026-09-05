@@ -128,6 +128,14 @@ function StagnantStockIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function LoyaltyPointsIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
 const premiumCardStyle = {
   display: 'flex',
   alignItems: 'center',
@@ -510,6 +518,271 @@ export function SalesInventorySettingsTab({
             </div>
           ) : null}
         </div>
+      </FormSection>
+
+      {/* ===== برنامج نقاط وولاء العملاء ===== */}
+      <FormSection
+        title="برنامج نقاط ومكافآت ولاء العملاء (Customer Loyalty Program)"
+        description="تحفيز العملاء على الشراء المتكرر عبر منحهم نقاطاً مع كل فاتورة، وإمكانية استبدالها برصيد وخصم فوري في الفواتير التالية."
+      >
+        <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
+          {/* 1. Toggle Loyalty */}
+          <label
+            style={{
+              ...premiumCardStyle,
+              border: form.watch('loyaltyEnabled') ? '1px solid #10b981' : '1px solid #e2e8f0',
+              background: form.watch('loyaltyEnabled') ? '#f0fdf4' : '#ffffff',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ ...iconBadgeStyle, background: form.watch('loyaltyEnabled') ? '#dcfce7' : '#f8fafc', color: form.watch('loyaltyEnabled') ? '#15803d' : '#64748b' }}>
+                <LoyaltyPointsIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>تفعيل برنامج نقاط الولاء</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>احتساب نقاط تلقائياً للعميل عند البيع وإتاحة استبدالها في الكاشير</small>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              style={premiumCheckboxInputStyle}
+              {...form.register('loyaltyEnabled')}
+              disabled={disabled}
+            />
+          </label>
+
+          {/* 2. Print on Receipt */}
+          <label
+            style={{
+              ...premiumCardStyle,
+              border: form.watch('printShowLoyaltyPoints') ? '1px solid #10b981' : '1px solid #e2e8f0',
+              background: form.watch('printShowLoyaltyPoints') ? '#f0fdf4' : '#ffffff',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ ...iconBadgeStyle, background: '#fef3c7', color: '#d97706', borderColor: '#fde68a' }}>
+                <IssueModeDocIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إظهار رصيد النقاط في الفاتورة</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>طباعة النقاط المكتسبة والرصيد الإجمالي في الإيصالات الحرارية وفواتير A4</small>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              style={premiumCheckboxInputStyle}
+              {...form.register('printShowLoyaltyPoints')}
+              disabled={disabled}
+            />
+          </label>
+
+          {/* 3. Earning Rate */}
+          <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={{ ...iconBadgeStyle, background: '#ede9fe', color: '#6d28d9', borderColor: '#ddd6fe' }}>
+                  <LoyaltyPointsIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>معدل اكتساب النقاط</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>عدد النقاط المكتسبة لكل 100 جنيه مشتريات مسددة:</small>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <input
+                  className="purchase-prototype-field-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  {...form.register('loyaltyPointsPer100Egp')}
+                  disabled={disabled || !form.watch('loyaltyEnabled')}
+                  placeholder="10"
+                  style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+                />
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>نقطة</span>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+              {[
+                { label: '5 نقاط', val: 5 },
+                { label: '10 نقاط', val: 10 },
+                { label: '20 نقطة', val: 20 },
+                { label: '50 نقطة', val: 50 },
+              ].map((p) => {
+                const currentVal = Number(form.watch('loyaltyPointsPer100Egp') ?? 10);
+                const isSelected = currentVal === p.val;
+                return (
+                  <button
+                    key={p.val}
+                    type="button"
+                    onClick={() => form.setValue('loyaltyPointsPer100Egp', p.val, { shouldDirty: true, shouldValidate: true })}
+                    disabled={disabled || !form.watch('loyaltyEnabled')}
+                    style={{
+                      padding: '4px 2px',
+                      fontSize: '0.71rem',
+                      textAlign: 'center',
+                      borderRadius: '6px',
+                      border: isSelected ? '1.5px solid #6d28d9' : '1px solid #e2e8f0',
+                      background: isSelected ? '#f5f3ff' : '#f8fafc',
+                      color: isSelected ? '#5b21b6' : '#475569',
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4. Redemption Value */}
+          <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={{ ...iconBadgeStyle, background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' }}>
+                  <ZeroCostIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>قيمة النقطة عند الاستبدال</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>القيمة المالية للنقطة الواحدة كخصم بالجنيه:</small>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <input
+                  className="purchase-prototype-field-input"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  {...form.register('loyaltyPointRedeemValue')}
+                  disabled={disabled || !form.watch('loyaltyEnabled')}
+                  placeholder="0.10"
+                  style={{ width: '85px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+                />
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>ج.م</span>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '4px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+              {[
+                { label: '0.05 ج (5 قروش)', val: 0.05 },
+                { label: '0.10 ج (10 قروش)', val: 0.1 },
+                { label: '0.50 ج (نصف جنيه)', val: 0.5 },
+                { label: '1.00 ج (جنيه كامل)', val: 1 },
+              ].map((p) => {
+                const currentVal = Number(form.watch('loyaltyPointRedeemValue') ?? 0.1);
+                const isSelected = Math.abs(currentVal - p.val) < 0.001;
+                return (
+                  <button
+                    key={p.val}
+                    type="button"
+                    onClick={() => form.setValue('loyaltyPointRedeemValue', p.val, { shouldDirty: true, shouldValidate: true })}
+                    disabled={disabled || !form.watch('loyaltyEnabled')}
+                    style={{
+                      padding: '4px 2px',
+                      fontSize: '0.71rem',
+                      textAlign: 'center',
+                      borderRadius: '6px',
+                      border: isSelected ? '1.5px solid #b45309' : '1px solid #e2e8f0',
+                      background: isSelected ? '#fffbeb' : '#f8fafc',
+                      color: isSelected ? '#92400e' : '#475569',
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 5. Minimum Redeem Points */}
+          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ ...iconBadgeStyle, background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }}>
+                <LoyaltyPointsIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الحد الأدنى للنقاط للاستبدال</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>أقل رصيد نقاط يجب أن يمتلكه العميل ليتمكن من الخصم</small>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                className="purchase-prototype-field-input"
+                type="number"
+                min="0"
+                step="1"
+                {...form.register('loyaltyMinRedeemPoints')}
+                disabled={disabled || !form.watch('loyaltyEnabled')}
+                placeholder="50"
+                style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+              />
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>نقطة</span>
+            </div>
+          </div>
+
+          {/* 6. Max Discount Percentage */}
+          <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ ...iconBadgeStyle, background: '#fce7f3', color: '#be185d', borderColor: '#fbcfe8' }}>
+                <TaxCalcIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف الخصم بالنقاط من الفاتورة</strong>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>أقصى نسبة مئوية مسموح بخصمها من إجمالي الفاتورة عبر النقاط</small>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                className="purchase-prototype-field-input"
+                type="number"
+                min="1"
+                max="100"
+                step="1"
+                {...form.register('loyaltyMaxDiscountPercentage')}
+                disabled={disabled || !form.watch('loyaltyEnabled')}
+                placeholder="50"
+                style={{ width: '75px', height: '36px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1' }}
+              />
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Simulation Card */}
+        {form.watch('loyaltyEnabled') ? (
+          <div style={{
+            marginTop: '12px',
+            padding: '12px 16px',
+            borderRadius: '10px',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>💡</span>
+              <span style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 700 }}>
+                معاينة حية للمحرك: مشتريات بقيمة <strong>1,000 ج.م</strong> تمنح العميل{' '}
+                <strong style={{ color: '#6d28d9' }}>
+                  {Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10))} نقطة
+                </strong>{' '}
+                قيمتها{' '}
+                <strong style={{ color: '#059669' }}>
+                  {(Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)).toFixed(2)} ج.م
+                </strong>{' '}
+                خصم فوري في مشترياته القادمة (معدل استرجاع{' '}
+                <strong>
+                  {(((Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)) / 1000) * 100).toFixed(1)}%
+                </strong>).
+              </span>
+            </div>
+          </div>
+        ) : null}
       </FormSection>
 
       {/* ===== تنبيهات الصلاحية والأصناف الراكدة ===== */}

@@ -145,10 +145,6 @@ const router = createRouter([
         element: createLazyRoute(() => import('@/features/auth/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })))
       },
       {
-        path: 'qz',
-        element: createLazyRoute(() => import('@/features/pos/pages/ReceiptTestPage').then((module) => ({ default: module.ReceiptTestPage })))
-      },
-      {
         path: '*',
         element: createLazyRoute(() => import('@/features/not-found/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })))
       }

@@ -156,20 +156,24 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/qz': null,
 };
 
-export const routeFeatureMap: Record<string, string> = {
-  dashboard: 'reports',
-  '/': 'reports',
+export const routeFeatureMap: Record<string, string | null> = {
+  dashboard: null,
+  '/': null,
   catalog: 'catalog',
   products: 'catalog',
   'product-categories': 'catalog',
-  services: 'accounting',
+  services: 'catalog',
   sales: 'sales',
-  installments: 'sales',
-  'vat-declaration': 'sales',
+  quotations: 'sales',
+  '/quotations': 'sales',
+  installments: 'installments',
+  '/installments': 'installments',
+  'vat-declaration': 'vat_declaration',
+  '/vat-declaration': 'vat_declaration',
   pos: 'sales',
   returns: 'sales',
-  customers: 'accounting',
-  'pricing-center': 'accounting',
+  customers: 'sales',
+  'pricing-center': 'catalog',
   'cash-drawer': 'cashDrawer',
   treasury: 'cashDrawer',
   '/treasury': 'cashDrawer',
@@ -178,10 +182,12 @@ export const routeFeatureMap: Record<string, string> = {
   purchases: 'purchases',
   'purchases-new': 'purchases',
   'purchase-returns': 'purchases',
-  suppliers: 'accounting',
+  suppliers: 'purchases',
   inventory: 'inventory',
   'inventory-issue-orders': 'inventory',
   'inventory-warehouses': 'inventory',
+  'inventory-tree': 'inventory',
+  '/inventory-tree': 'inventory',
   reports: 'reports',
   'reports-overview': 'reports',
   'reports-sales': 'reports',
@@ -213,20 +219,23 @@ export const routeFeatureMap: Record<string, string> = {
   accounting: 'accounting',
   'accounting-accounts': 'accounting',
   'accounting-journal-entries': 'accounting',
-  'accounting-fixed-assets': 'accounting',
+  'accounting-fixed-assets': 'fixed_assets',
+  '/accounting-fixed-assets': 'fixed_assets',
+  '/accounting/fixed-assets': 'fixed_assets',
   'accounting-settings': 'accounting',
   'accounting-financial-summary': 'accounting',
   'accounting-receivables-payables': 'accounting',
   'accounting-cash-movement': 'accounting',
   'accounting-inventory-value': 'accounting',
   'delivery-reps': 'deliveryReps',
-  'accounts': 'accounting',
+  '/delivery-reps': 'deliveryReps',
+  accounts: 'accounting',
   'inventory-issue-order-new': 'inventory',
   'tax-dispatcher': 'taxIntegration',
-  'settings/reference': 'inventory',
-  'settings/tax-integration': 'accounting',
-  audit: 'accounting',
-  '/audit': 'accounting',
+  'settings/reference': null,
+  'settings/tax-integration': 'taxIntegration',
+  audit: 'reports',
+  '/audit': 'reports',
   'online-orders': 'storefront',
   '/online-orders': 'storefront',
   storefront: 'storefront',
@@ -337,14 +346,14 @@ export function getRouteFeatureRequirement(target: string) {
 }
 
 export function hasRequiredFeature(target: string): boolean {
-  const user = useAuthStore.getState().user;
-  if (isPlatformAdmin(user)) return true;
-
   const requiredFeature = getRouteFeatureRequirement(target);
   if (!requiredFeature) return true;
   
   const tenant = useAuthStore.getState().tenant;
   if (!tenant) return true;
+
+  // Backward compatibility if no plan and features are configured
+  if (!tenant.planId && (!tenant.features || tenant.features.length === 0)) return true;
   
   return tenant.features?.includes(requiredFeature) ?? false;
 }

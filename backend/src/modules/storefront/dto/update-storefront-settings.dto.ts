@@ -82,4 +82,32 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsString()
   slug?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  onlinePaymentEnabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  onlinePaymentProvider?: string;
+
+  @IsOptional()
+  @IsString()
+  paymobApiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  paymobIntegrationId?: string;
+
+  @IsOptional()
+  @IsString()
+  paymobIframeId?: string;
+
+  @IsOptional()
+  @IsString()
+  paymobHmacSecret?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  paymobTestMode?: boolean;
 }

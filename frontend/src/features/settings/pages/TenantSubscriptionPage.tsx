@@ -90,9 +90,10 @@ export function TenantSubscriptionPage() {
   const branchesLimit = usage.branches.max;
   const branchesPercent = branchesLimit ? Math.min(100, Math.round((usage.branches.current / branchesLimit) * 100)) : null;
 
-  const basicPlanObj = availablePlans.find((p: any) => p.code === 'basic') || availablePlans[0] || { id: 1, name: 'الباقة الأساسية', price: 3500, currency: 'EGP' };
-  const proPlanObj = availablePlans.find((p: any) => p.code === 'pro') || availablePlans[1] || availablePlans[0] || { id: 2, name: 'الباقة الاحترافية', price: 7500, currency: 'EGP' };
-  const enterprisePlanObj = availablePlans.find((p: any) => p.code === 'enterprise') || availablePlans[2] || proPlanObj || { id: 3, name: 'باقة المؤسسات والتصنيع', price: 15000, currency: 'EGP' };
+  const basicPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'basic') || availablePlans[0] || { id: 1, name: 'الباقة الأساسية', price: 3500, currency: 'EGP' };
+  const proPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'pro') || availablePlans[1] || availablePlans[0] || { id: 2, name: 'الباقة الاحترافية (Pro)', price: 7500, currency: 'EGP' };
+  const enterprisePlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'ultimate' || p.code?.toLowerCase() === 'enterprise') || availablePlans[2] || proPlanObj || { id: 3, name: 'الباقة المتكاملة (Ultimate ERP)', price: 15000, currency: 'EGP' };
+  const omnichannelPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'omnichannel') || availablePlans[3] || enterprisePlanObj || { id: 4, name: 'باقة التجارة الشاملة (Omnichannel Enterprise)', price: 24000, currency: 'EGP' };
 
   const handlePrintReceipt = (payment: TenantSubscriptionData['payments'][0]) => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -431,7 +432,7 @@ export function TenantSubscriptionPage() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
           
           {/* 1. Starter Plan */}
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fafafa', position: 'relative' }}>
@@ -440,13 +441,14 @@ export function TenantSubscriptionPage() {
               <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
                 {isAnnual ? '3,500' : '350'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
               </div>
-              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>مناسبة للمحلات الفردية والأنشطة الصغيرة</p>
+              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>مناسبة للمحلات الفردية ونقاط البيع السريعة</p>
               
               <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
                 <div>✓ نقطة بيع وكاشير سريع (POS)</div>
+                <div>✓ إدارة الأصناف والمنتجات والباركود</div>
+                <div>✓ ورديات العمل وتقفيل الكاشير</div>
+                <div>✓ صندوق النقدية والمصروفات اليومية</div>
                 <div>✓ حتى <strong>فرع واحد</strong> و <strong>2 مستخدمين</strong></div>
-                <div>✓ إدارة المخزون والمشتريات</div>
-                <div>✓ فواتير وتقارير يومية</div>
               </div>
             </div>
 
@@ -474,10 +476,10 @@ export function TenantSubscriptionPage() {
               
               <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
                 <div>✓ <strong>كل ميزات الأساسية</strong></div>
-                <div>✓ حتى <strong>3 فروع</strong> و <strong>10 مستخدمين</strong></div>
-                <div>✓ الحسابات العامة وقيود اليومية وشجرة الحسابات</div>
-                <div>✓ الفاتورة الضريبية وإرسال فواتير عبر واتساب</div>
-                <div>✓ شؤون الموظفين والمرتبات المتقدمة</div>
+                <div>✓ إدارة المشتريات والموردين الكاملة</div>
+                <div>✓ المخزون المتقدم وحركات الجرد والتسويات</div>
+                <div>✓ التقارير المتقدمة وسجل النشاط والتدقيق</div>
+                <div>✓ حتى <strong>3 فروع</strong> و <strong>6 مستخدمين</strong></div>
               </div>
             </div>
 
@@ -490,29 +492,66 @@ export function TenantSubscriptionPage() {
             </button>
           </div>
 
-          {/* 3. Enterprise Plan */}
+          {/* 3. Ultimate ERP Plan */}
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fafafa', position: 'relative' }}>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>باقة المؤسسات والتصنيع</div>
-              <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', margin: '8px 0 4px' }}>
-                {isAnnual ? '15,000' : '1,500'} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase' }}>الباقة المتكاملة (Ultimate ERP)</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
+                {isAnnual ? '15,000' : '1,500'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px' }}>للمصانع والشركات الكبرى ذات خطوط الإنتاج</p>
+              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للمؤسسات الكبرى، المصانع، والمحاسبة المتقدمة</p>
               
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px', color: '#334155' }}>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
                 <div>✓ <strong>كل ميزات الاحترافية</strong></div>
-                <div>✓ موديول <strong>التصنيع وتكاليف خطوط الإنتاج الكاملة</strong></div>
-                <div>✓ <strong>فروع ومستخدمين غير محدودين</strong></div>
-                <div>✓ دعم فني وتدريب مباشر</div>
+                <div>✓ شجرة الحسابات، القيود اليومية، ومراكز التكلفة</div>
+                <div>✓ إدارة وإهلاك الأصول الثابتة والتقسيط</div>
+                <div>✓ الفاتورة الإلكترونية والإقرار الضريبي</div>
+                <div>✓ شؤون الموظفين والمرتبات المتقدمة (HR)</div>
+                <div>✓ مناديب التوصيل، الشحن، ونقاط ولاء العملاء</div>
+                <div>✓ إدارة الصيانة وسيريال الأجهزة (IMEI)</div>
+                <div>✓ موديولات التصنيع، الاستيراد، الصيدليات، والمطاعم</div>
+                <div>✓ حتى <strong>10 فروع</strong> و <strong>15 مستخدماً</strong></div>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setSelectedPlanForUpgrade({ id: enterprisePlanObj.id, name: enterprisePlanObj.name, price: isAnnual ? Number(enterprisePlanObj.price) : Math.round(Number(enterprisePlanObj.price) / 10), currency: 'EGP' })}
-              style={{ marginTop: '20px', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 800, fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s' }}
+              style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
-              اختيار المؤسسات
+              اختيار المتكاملة
+            </button>
+          </div>
+
+          {/* 4. Omnichannel Enterprise Plan */}
+          <div style={{ border: '1.5px solid #d97706', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fffbeb', position: 'relative', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.1)' }}>
+            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: '#d97706', color: '#ffffff', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '12px' }}>
+              المنظومة الأقوى
+            </div>
+
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', textTransform: 'uppercase' }}>التجارة الشاملة (Omnichannel)</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
+                {isAnnual ? '24,000' : '2,400'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
+              </div>
+              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للمؤسسات التي تدير فروعاً ومتجراً إلكترونياً متكاملاً</p>
+              
+              <div style={{ borderTop: '1px solid #fde68a', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
+                <div>✓ <strong>كل ميزات الباقة المتكاملة (ERP) بالكامل</strong></div>
+                <div>✓ <strong>متجر إلكتروني متكامل للعملاء (Storefront)</strong></div>
+                <div>✓ استقبال ومعالجة طلبات الأونلاين الحية لحظياً</div>
+                <div>✓ ربط بوابات الدفع الإلكتروني (Paymob / XPay / Stripe)</div>
+                <div>✓ كتالوج الويب وإدارة العروض وتتبع الشحن</div>
+                <div>✓ <strong>فروع ومستخدمين غير محدودين</strong></div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedPlanForUpgrade({ id: omnichannelPlanObj.id, name: omnichannelPlanObj.name, price: isAnnual ? Number(omnichannelPlanObj.price) : Math.round(Number(omnichannelPlanObj.price) / 10), currency: 'EGP' })}
+              style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: 'none', background: '#d97706', color: '#ffffff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
+            >
+              ترقية للشاملة الآن
             </button>
           </div>
 

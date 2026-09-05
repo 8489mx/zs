@@ -17,8 +17,13 @@ export function useFeatureGate(featureCode: string): boolean {
     return true;
   }
 
-  // Ultimate plan includes all features
-  if (tenant.planId === 'plan_ultimate' || tenant.planId === 'ultimate') {
+  // Omnichannel enterprise plan includes all features
+  if (tenant.planId === 'plan_omnichannel' || tenant.planId === 'omnichannel') {
+    return true;
+  }
+
+  // Ultimate plan includes all advanced ERP features (except omnichannel storefront)
+  if ((tenant.planId === 'plan_ultimate' || tenant.planId === 'ultimate') && featureCode !== 'storefront') {
     return true;
   }
 

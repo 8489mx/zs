@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CartItem, CreateOnlineOrderResponse, StorefrontInfo, ValidateCouponResponse } from '../types/storefront.types';
+import { CartItem, CreateOnlineOrderResponse, StorefrontInfo, ValidateCouponResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
+import { StorefrontOnlinePaymentModal } from './StorefrontOnlinePaymentModal';
 
 const STOREFRONT_SAVED_CUSTOMER_KEY = 'zsystems.storefront.saved_customer';
 
@@ -80,7 +81,9 @@ export function StorefrontCheckoutModal({
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'instapay_wallet'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'instapay_wallet' | 'credit_card'>('cod');
+  const [paymentSession, setPaymentSession] = useState<StorefrontPaymentSessionResponse | null>(null);
+  const [createdOrderForPayment, setCreatedOrderForPayment] = useState<CreateOnlineOrderResponse | null>(null);
   const [rememberDevice, setRememberDevice] = useState(true);
   const [isDeviceMatched, setIsDeviceMatched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -364,6 +367,22 @@ export function StorefrontCheckoutModal({
           }
           localStorage.setItem(`zs_customer_phone_${tenantSlug}`, customerPhone.trim());
         } catch {}
+
+        if (paymentMethod === 'credit_card') {
+          try {
+            const session = await storefrontApi.createPaymentSession(tenantSlug, res.orderNumber);
+            setCreatedOrderForPayment(res);
+            setPaymentSession(session);
+            setLoading(false);
+            isSubmittingRef.current = false;
+            return;
+          } catch (sessionErr: any) {
+            console.error('Failed to initiate online payment session:', sessionErr);
+            onOrderSuccess(res);
+            return;
+          }
+        }
+
         onOrderSuccess(res);
       } else {
         throw new Error('تعذر إرسال الطلب لعدم اكتمال بيانات المتجر، يرجى تحديث الصفحة والمحاولة مجدداً.');
@@ -373,6 +392,19 @@ export function StorefrontCheckoutModal({
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
+    }
+  };
+
+  const handleOnlinePaymentSuccess = (paymentInfo: { orderNumber: string; transactionId: string }) => {
+    if (createdOrderForPayment && onOrderSuccess) {
+      const updatedOrder = {
+        ...createdOrderForPayment,
+        paymentStatus: 'paid',
+        gatewayTransactionId: paymentInfo.transactionId,
+      };
+      setPaymentSession(null);
+      setCreatedOrderForPayment(null);
+      onOrderSuccess(updatedOrder as any);
     }
   };
 
@@ -725,7 +757,13 @@ export function StorefrontCheckoutModal({
                 طريقة الدفع
               </label>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: info?.onlinePaymentEnabled ? 'repeat(auto-fit, minmax(130px, 1fr))' : '1fr 1fr',
+                  gap: '8px',
+                }}
+              >
                 {/* COD Option */}
                 <div
                   onClick={() => setPaymentMethod('cod')}
@@ -793,7 +831,68 @@ export function StorefrontCheckoutModal({
                     تحويل مسبق لحساب المتجر
                   </span>
                 </div>
+
+                {/* Credit Card Online Payment Option */}
+                {info?.onlinePaymentEnabled && (
+                  <div
+                    onClick={() => setPaymentMethod('credit_card')}
+                    style={{
+                      border: paymentMethod === 'credit_card' ? '2px solid #170e5e' : '1.5px solid #cbd5e1',
+                      background: paymentMethod === 'credit_card' ? '#f8fafc' : '#ffffff',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                        بطاقة بنكية 💳
+                      </span>
+                      <div
+                        style={{
+                          width: '13px',
+                          height: '13px',
+                          borderRadius: '50%',
+                          border: paymentMethod === 'credit_card' ? '4px solid #170e5e' : '1.5px solid #94a3b8',
+                          background: '#ffffff',
+                        }}
+                      />
+                    </div>
+                    <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
+                      فيزا / ماستركارد / ميزة
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Notice if credit_card is selected */}
+              {paymentMethod === 'credit_card' && (
+                <div
+                  style={{
+                    marginTop: '8px',
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    fontSize: '12px',
+                    color: '#0369a1',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}
+                >
+                  <div style={{ fontWeight: 800 }}>
+                    💳 دفع إلكتروني فوري وآمن:
+                  </div>
+                  <div style={{ color: '#0c4a6e', fontSize: '11px', lineHeight: '1.4' }}>
+                    سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب ({total.toFixed(0)} ج.م) ببطاقتك البنكية فور الضغط على إرسال الطلب.
+                  </div>
+                </div>
+              )}
 
               {/* Notice if instapay/wallet is selected */}
               {paymentMethod === 'instapay_wallet' && (
@@ -1144,6 +1243,24 @@ export function StorefrontCheckoutModal({
         </div>
       </form>
     </div>
+
+    {/* Online Payment Gateway Overlay */}
+    {paymentSession && createdOrderForPayment && tenantSlug && (
+      <StorefrontOnlinePaymentModal
+        isOpen={Boolean(paymentSession)}
+        session={paymentSession}
+        orderData={createdOrderForPayment}
+        tenantSlug={tenantSlug}
+        onSuccess={handleOnlinePaymentSuccess}
+        onClose={() => {
+          if (createdOrderForPayment && onOrderSuccess) {
+            onOrderSuccess(createdOrderForPayment);
+          }
+          setPaymentSession(null);
+          setCreatedOrderForPayment(null);
+        }}
+      />
+    )}
   </div>
 );
 }

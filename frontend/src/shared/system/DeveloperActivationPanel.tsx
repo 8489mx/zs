@@ -8,25 +8,56 @@ import { useAuthStore } from '@/stores/auth-store';
 import { isDesktopOfflineApp } from '@/app/router/access';
 
 const AVAILABLE_FEATURES = [
-  { id: 'catalog', name: 'المنتجات والأصناف' },
-  { id: 'sales', name: 'المبيعات ونقاط البيع' },
-  { id: 'sessions', name: 'ورديات العمل' },
-  { id: 'cashDrawer', name: 'صندوق الكاشير والخزينة' },
-  { id: 'purchases', name: 'المشتريات والموردين' },
-  { id: 'inventory', name: 'المخزون المتقدم والجرد' },
-  { id: 'reports', name: 'التقارير المتقدمة وسجل النشاط' },
-  { id: 'hr', name: 'الموارد البشرية والرواتب' },
-  { id: 'manufacturing', name: 'التصنيع والإنتاج' },
-  { id: 'accounting', name: 'الحسابات العامة وشجرة الحسابات' },
-  { id: 'deliveryReps', name: 'مناديب التوصيل' },
-  { id: 'taxIntegration', name: 'الربط الضريبي والفاتورة الإلكترونية' },
-  { id: 'import', name: 'الاستيراد والحاويات والشراكة' },
-  { id: 'pharmacy', name: 'الصيدليات والأدوية والروشتات' },
-  { id: 'maintenance', name: 'إدارة الصيانة والأجهزة' },
-  { id: 'restaurant', name: 'المطاعم والكافيهات والطاولات' },
-  { id: 'clothing', name: 'المتغيرات والمقاسات والألوان' },
-  { id: 'storefront', name: 'المتجر الإلكتروني وطلبات الأونلاين' },
+  // 1. الباقة الأساسية (4 ميزات)
+  { id: 'sales', name: 'المبيعات ونقاط البيع (POS)', planName: 'الأساسية', planBadgeBg: '#ecfdf5', planBadgeColor: '#047857' },
+  { id: 'catalog', name: 'المنتجات والأصناف', planName: 'الأساسية', planBadgeBg: '#ecfdf5', planBadgeColor: '#047857' },
+  { id: 'sessions', name: 'ورديات العمل والكاشير', planName: 'الأساسية', planBadgeBg: '#ecfdf5', planBadgeColor: '#047857' },
+  { id: 'cashDrawer', name: 'صندوق الكاشير والخزينة', planName: 'الأساسية', planBadgeBg: '#ecfdf5', planBadgeColor: '#047857' },
+
+  // 2. الباقة الاحترافية (3 ميزات إضافية)
+  { id: 'purchases', name: 'المشتريات والموردين', planName: 'الاحترافية', planBadgeBg: '#eff6ff', planBadgeColor: '#1d4ed8' },
+  { id: 'inventory', name: 'المخزون المتقدم والجرد', planName: 'الاحترافية', planBadgeBg: '#eff6ff', planBadgeColor: '#1d4ed8' },
+  { id: 'reports', name: 'التقارير المتقدمة وسجل النشاط', planName: 'الاحترافية', planBadgeBg: '#eff6ff', planBadgeColor: '#1d4ed8' },
+
+  // 3. الباقة المتكاملة (Ultimate ERP) (14 ميزة إضافية)
+  { id: 'hr', name: 'الموارد البشرية والرواتب', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'deliveryReps', name: 'مناديب التوصيل والشحن', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'loyalty', name: 'محرك نقاط وولاء العملاء', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'maintenance', name: 'إدارة الصيانة وتتبع السيريال (IMEI)', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'clothing', name: 'المتغيرات والمقاسات والألوان', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'restaurant', name: 'المطاعم والكافيهات والطاولات', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'accounting', name: 'الحسابات العامة وشجرة الحسابات', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'fixed_assets', name: 'إدارة وإهلاك الأصول الثابتة', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'installments', name: 'مبيعات وجدولة التقسيط', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'taxIntegration', name: 'الربط الضريبي والفاتورة الإلكترونية', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'vat_declaration', name: 'الإقرار الضريبي (ن10 و ZATCA)', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'manufacturing', name: 'التصنيع وقوائم المواد وأوامر الإنتاج', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'import', name: 'الاستيراد والشراكة والحاويات', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'pharmacy', name: 'الصيدليات والأدوية والبدائل والنواقص', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+
+  // 4. باقة التجارة الشاملة (Omnichannel Enterprise)
+  { id: 'storefront', name: 'المتجر الإلكتروني وطلبات الأونلاين', planName: 'التجارة الشاملة', planBadgeBg: '#fef3c7', planBadgeColor: '#b45309' },
 ];
+
+export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
+  plan_basic: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+  plan_pro: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+  plan_ultimate: [
+    'sales', 'catalog', 'sessions', 'cashDrawer',
+    'purchases', 'inventory', 'reports',
+    'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+    'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+    'manufacturing', 'import', 'pharmacy',
+  ],
+  plan_omnichannel: [
+    'sales', 'catalog', 'sessions', 'cashDrawer',
+    'purchases', 'inventory', 'reports',
+    'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+    'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+    'manufacturing', 'import', 'pharmacy',
+    'storefront',
+  ],
+};
 
 export function DeveloperActivationPanel() {
   const user = useAuthStore((s) => s.user);
@@ -65,9 +96,12 @@ export function DeveloperActivationPanel() {
   }, [user?.role]);
 
   const featurePlansQuery = useQuery({
-    queryKey: ['saas-feature-plans'],
+    queryKey: ['developer-feature-plans'],
     queryFn: () => http<any[]>('/api/developer/feature-plans', { skipUnauthorizedInterceptor: true }),
     enabled: open,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
   });
   const featurePlans = featurePlansQuery.data || [];
 
@@ -92,6 +126,10 @@ export function DeveloperActivationPanel() {
 
   if (!open || !isSuperAdmin) return null;
 
+  const selectedPlanFeatures = STANDARD_TIER_FEATURES[planId] 
+    || featurePlans.find(p => String(p.id) === planId)?.features 
+    || [];
+
   const toggleFeature = (featId: string) => {
     setExtraFeatures(prev => {
       const isBaseIncluded = selectedPlanFeatures.includes(featId);
@@ -114,10 +152,8 @@ export function DeveloperActivationPanel() {
     });
   };
 
-  const selectedPlanFeatures = featurePlans.find(p => String(p.id) === planId)?.features || [];
-
   return (
-    <DialogShell open={open} onClose={() => setOpen(false)} width="min(720px, 95vw)" zIndex={9999} ariaLabel="إعدادات ترخيص النظام">
+    <DialogShell open={open} onClose={() => setOpen(false)} width="min(760px, 95vw)" zIndex={9999} ariaLabel="إعدادات ترخيص النظام">
       <div style={{ padding: '24px 28px', direction: 'rtl', background: '#ffffff', borderRadius: '16px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9' }}>
@@ -274,7 +310,20 @@ export function DeveloperActivationPanel() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               <button
                 type="button"
-                onClick={() => setPlanId('')}
+                onClick={() => {
+                  if (planId !== '') {
+                    const currentActive = AVAILABLE_FEATURES
+                      .map(f => f.id)
+                      .filter(id => {
+                        const isBase = selectedPlanFeatures.includes(id);
+                        const isExcluded = extraFeatures.includes(`-${id}`);
+                        const isExtra = extraFeatures.includes(id);
+                        return (isBase && !isExcluded) || isExtra;
+                      });
+                    setExtraFeatures(currentActive);
+                  }
+                  setPlanId('');
+                }}
                 style={{
                   padding: '7px 16px',
                   borderRadius: '8px',
@@ -290,13 +339,21 @@ export function DeveloperActivationPanel() {
                 بدون باقة (مخصص)
               </button>
 
-              {featurePlans.map((p) => {
+              {(featurePlans.length > 0 ? featurePlans : [
+                { id: 'plan_basic', name: 'الأساسية' },
+                { id: 'plan_pro', name: 'الاحترافية' },
+                { id: 'plan_ultimate', name: 'المتكاملة' },
+                { id: 'plan_omnichannel', name: 'باقة التجارة الشاملة (Omnichannel Enterprise)' },
+              ]).map((p: any) => {
                 const isActive = String(p.id) === planId;
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setPlanId(String(p.id))}
+                    onClick={() => {
+                      setPlanId(String(p.id));
+                      setExtraFeatures([]); // Clear overrides so it strictly adopts this plan's exact features!
+                    }}
                     style={{
                       padding: '7px 16px',
                       borderRadius: '8px',
@@ -332,7 +389,7 @@ export function DeveloperActivationPanel() {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: '8px',
-              maxHeight: '36vh',
+              maxHeight: '42vh',
               overflowY: 'auto',
               padding: '2px',
             }}>
@@ -363,17 +420,28 @@ export function DeveloperActivationPanel() {
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = isChecked ? '#cbd5e1' : '#f1f5f9'; }}
                   >
                     {/* Feature Name & Mini Badge */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.86rem', fontWeight: 700, color: isChecked ? '#0f172a' : '#64748b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isChecked ? '#0f172a' : '#64748b' }}>
                         {feat.name}
                       </span>
+                      <span style={{
+                        background: feat.planBadgeBg,
+                        color: feat.planBadgeColor,
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        border: `1px solid ${feat.planBadgeColor}33`,
+                      }}>
+                        {feat.planName}
+                      </span>
                       {isBaseIncluded && isExcluded && (
-                        <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '0.68rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', border: '1px solid #fee2e2' }}>
+                        <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', border: '1px solid #fee2e2' }}>
                           مستثناة
                         </span>
                       )}
                       {!isBaseIncluded && isExtraIncluded && (
-                        <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.68rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', border: '1px solid #dbeafe' }}>
+                        <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', border: '1px solid #dbeafe' }}>
                           إضافية
                         </span>
                       )}

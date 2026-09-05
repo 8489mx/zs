@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
@@ -232,6 +233,61 @@ function LockIcon({ size = 12 }: { size?: number }) {
   );
 }
 
+function OnlineStorefrontIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+      <path d="M2 12h20" />
+      <path d="m9 9 3 3 6-6" />
+    </svg>
+  );
+}
+
+function InstallmentsIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="18" x="3" y="4" rx="2" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h18" />
+      <path d="m8 14 2 2 4-4" />
+    </svg>
+  );
+}
+
+function FixedAssetsIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18" />
+      <path d="M5 21V7l7-4 7 4v14" />
+      <path d="M9 10a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v11H9Z" />
+    </svg>
+  );
+}
+
+function TaxDeclarationIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="m9 15 2 2 4-4" />
+    </svg>
+  );
+}
+
+function DeliveryFleetIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+      <path d="M15 18H9" />
+      <path d="M19 18h2a1 1 0 0 0 1-1v-5l-3-4h-5v10h1" />
+      <circle cx="7" cy="18" r="2" />
+      <circle cx="17" cy="18" r="2" />
+    </svg>
+  );
+}
+
 const premiumCardTextStyle = {
   display: 'flex',
   flexDirection: 'column' as const,
@@ -256,6 +312,11 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const hasMaintenanceFeature = useHasFeature('maintenance') || isSuperAdmin;
   const hasPharmacyFeature = useHasFeature('pharmacy') || isSuperAdmin;
   const hasEnterpriseFeature = useHasFeature('accounting') || isSuperAdmin;
+  const hasStorefrontFeature = useHasFeature('storefront') || isSuperAdmin;
+  const hasInstallmentsFeature = useHasFeature('installments') || useHasFeature('accounting') || isSuperAdmin;
+  const hasFixedAssetsFeature = useHasFeature('fixed_assets') || useHasFeature('accounting') || isSuperAdmin;
+  const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || useHasFeature('taxIntegration') || isSuperAdmin;
+  const hasDeliveryFleetFeature = useHasFeature('deliveryReps') || isSuperAdmin;
 
   const isManufacturingActive = form.watch('manufacturingModuleEnabled');
   const isComboActive = form.watch('comboModuleEnabled');
@@ -271,11 +332,31 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const isWeightedActive = form.watch('weightedBarcodeEnabled');
   const weightedBarcodeEnabled = isWeightedActive;
   const isEnterpriseActive = form.watch('enableEnterpriseFeatures');
+  const isStorefrontActive = form.watch('storefrontModuleEnabled');
+  const isInstallmentsActive = form.watch('installmentsModuleEnabled');
+  const isFixedAssetsActive = form.watch('fixedAssetsModuleEnabled');
+  const isTaxDeclarationActive = form.watch('taxDeclarationModuleEnabled');
+  const isDeliveryFleetActive = form.watch('deliveryFleetModuleEnabled');
 
   const currentProfileKey = form.watch('maintenanceProfile') || 'mobile';
   const currentProfile = getMaintenanceProfile(currentProfileKey);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [upgradeModalInfo, setUpgradeModalInfo] = useState<{
+    open: boolean;
+    title: string;
+    planName: string;
+    description: string;
+  } | null>(null);
+
+  const handleLockedCardClick = (title: string, planName: string, description: string) => {
+    setUpgradeModalInfo({
+      open: true,
+      title,
+      planName,
+      description,
+    });
+  };
 
   const getCardStyle = (isActive: boolean, hasFeature: boolean) => ({
     display: 'flex' as const,
@@ -579,6 +660,171 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('enableEnterpriseFeatures')} disabled={disabled || !hasEnterpriseFeature} />
           </label>
+
+          {/* المتجر الإلكتروني وطلبات الأونلاين */}
+          <label 
+            style={getCardStyle(Boolean(isStorefrontActive), hasStorefrontFeature)}
+            onClick={(e) => {
+              if (!hasStorefrontFeature) {
+                e.preventDefault();
+                handleLockedCardClick(
+                  'المتجر الإلكتروني وطلبات الأونلاين',
+                  'باقة التجارة الشاملة (Omnichannel Enterprise)',
+                  'يتيح لك هذا الموديول ربط متجرك بمتجر إلكتروني متكامل للعملاء، واستقبال الطلبات أونلاين وتأكيد السداد ببوابات الدفع الإلكتروني وتتبع المناديب.'
+                );
+              }
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isStorefrontActive))}>
+                <OnlineStorefrontIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المتجر الإلكتروني وطلبات الأونلاين</strong>
+                  {!hasStorefrontFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px', fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> باقة التجارة الشاملة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل المتجر الإلكتروني، بوابات الدفع بالبطاقات (Paymob)، واستقبال ومتابعة طلبات الأونلاين</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('storefrontModuleEnabled')} disabled={disabled || !hasStorefrontFeature} />
+          </label>
+
+          {/* مبيعات وجدولة التقسيط */}
+          <label 
+            style={getCardStyle(Boolean(isInstallmentsActive), hasInstallmentsFeature)}
+            onClick={(e) => {
+              if (!hasInstallmentsFeature) {
+                e.preventDefault();
+                handleLockedCardClick(
+                  'مبيعات وجدولة التقسيط',
+                  'الباقة المتكاملة (Ultimate ERP)',
+                  'يتيح لك هذا الموديول إدارة عقود وأقساط العملاء، احتساب نسب الفوائد، وجدولة وتنبيهات الأقساط المستحقة والمتأخرة.'
+                );
+              }
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isInstallmentsActive))}>
+                <InstallmentsIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>مبيعات وجدولة التقسيط</strong>
+                  {!hasInstallmentsFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> الباقة المتكاملة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إدارة خطط التقسيط، عقود الأقساط، تتبع الأقساط المسددة والمتأخرة، وإشعارات الاستحقاق</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('installmentsModuleEnabled')} disabled={disabled || !hasInstallmentsFeature} />
+          </label>
+
+          {/* إدارة وإهلاك الأصول الثابتة */}
+          <label 
+            style={getCardStyle(Boolean(isFixedAssetsActive), hasFixedAssetsFeature)}
+            onClick={(e) => {
+              if (!hasFixedAssetsFeature) {
+                e.preventDefault();
+                handleLockedCardClick(
+                  'إدارة وإهلاك الأصول الثابتة',
+                  'الباقة المتكاملة (Ultimate ERP)',
+                  'يتيح لك هذا الموديول تسجيل الأصول والمعدات، احتساب الإهلاك التلقائي وقيود اليومية التلقائية في الحسابات العامة.'
+                );
+              }
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isFixedAssetsActive))}>
+                <FixedAssetsIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>إدارة وإهلاك الأصول الثابتة</strong>
+                  {!hasFixedAssetsFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> الباقة المتكاملة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>سجل الأصول، احتساب الإهلاك المحاسبي، والقيمة التخريدية والدفترية ومواقع الأصول</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('fixedAssetsModuleEnabled')} disabled={disabled || !hasFixedAssetsFeature} />
+          </label>
+
+          {/* الإقرار الضريبي والربط الإلكتروني */}
+          <label 
+            style={getCardStyle(Boolean(isTaxDeclarationActive), hasTaxDeclarationFeature)}
+            onClick={(e) => {
+              if (!hasTaxDeclarationFeature) {
+                e.preventDefault();
+                handleLockedCardClick(
+                  'نموذج الإقرار الضريبي وهيئة الزكاة',
+                  'الباقة المتكاملة (Ultimate ERP)',
+                  'يتيح لك هذا الموديول توليد إقرارات القيمة المضافة (نموذج 10 ومطابقة ZATCA) وحساب الفوارق الضريبية بدقة.'
+                );
+              }
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isTaxDeclarationActive))}>
+                <TaxDeclarationIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الإقرار الضريبي والربط الإلكتروني</strong>
+                  {!hasTaxDeclarationFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> الباقة المتكاملة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>توليد نموذج الإقرار الضريبي (ن10)، إقرارات هيئة الزكاة (ZATCA)، وتقارير ضريبة المخرجات والمدخلات</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('taxDeclarationModuleEnabled')} disabled={disabled || !hasTaxDeclarationFeature} />
+          </label>
+
+          {/* أسطول وتتبع المناديب */}
+          <label 
+            style={getCardStyle(Boolean(isDeliveryFleetActive), hasDeliveryFleetFeature)}
+            onClick={(e) => {
+              if (!hasDeliveryFleetFeature) {
+                e.preventDefault();
+                handleLockedCardClick(
+                  'أسطول وتتبع المناديب',
+                  'الباقة المتكاملة (Ultimate ERP)',
+                  'يتيح لك هذا الموديول إدارة مناديب التوصيل، توزيع خطوط السير، تسوية العهد النقدية، وتتبع المناديب مباشرة.'
+                );
+              }
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isDeliveryFleetActive))}>
+                <DeliveryFleetIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>أسطول وتتبع المناديب</strong>
+                  {!hasDeliveryFleetFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> الباقة المتكاملة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>إسناد الطلبات للمناديب، تتبع تسليم الشحنات، وعمولات مناديب التوصيل</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('deliveryFleetModuleEnabled')} disabled={disabled || !hasDeliveryFleetFeature} />
+          </label>
         </div>
 
         {enableMaintenance ? (
@@ -852,6 +1098,85 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </div>
         ) : null}
       </FormSection>
+
+      {/* مودال ترقية الباقة عند محاولة الوصول لموديول مقفول */}
+      <DialogShell
+        open={Boolean(upgradeModalInfo?.open)}
+        onClose={() => setUpgradeModalInfo(null)}
+        width="min(540px, 94vw)"
+        ariaLabel="ترقية الباقة لتفعيل الموديول"
+      >
+        <div style={{ padding: '24px 20px', textAlign: 'center' }} dir="rtl">
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: '#eff6ff',
+            color: '#1d4ed8',
+            border: '2px solid #bfdbfe',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            fontSize: '24px',
+            boxShadow: '0 4px 12px rgba(29, 78, 216, 0.12)'
+          }}>
+            <LockIcon size={22} />
+          </div>
+
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', margin: '0 0 8px' }}>
+            موديول {upgradeModalInfo?.title}
+          </h3>
+
+          <div style={{ display: 'inline-block', background: '#dbeafe', color: '#1e40af', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, marginBottom: '14px' }}>
+            ⭐ متاح حصرياً في {upgradeModalInfo?.planName}
+          </div>
+
+          <p style={{ fontSize: '0.86rem', color: '#475569', lineHeight: 1.6, margin: '0 0 24px', textAlign: 'center' }}>
+            {upgradeModalInfo?.description}
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+            <Link to="/settings/subscription" style={{ textDecoration: 'none' }}>
+              <button
+                type="button"
+                style={{
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  padding: '10px 24px',
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>⭐ ترقية الباقة الآن</span>
+              </button>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setUpgradeModalInfo(null)}
+              style={{
+                background: '#f1f5f9',
+                color: '#334155',
+                padding: '10px 20px',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                cursor: 'pointer'
+              }}
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      </DialogShell>
     </div>
   );
 }
