@@ -40,7 +40,6 @@
 | **استوديو وضبط صور الأصناف** | 🟢 | 100% | `StorefrontProductStudio.tsx`, `image-compressor.ts` | ضغط الصور، قص، ورفع ومعاينة مباشرة لصور الكتالوج والتصنيفات. |
 | **بوابات الدفع الإلكتروني المباشرة والتلقائية (Paymob & XPay & Mock Sandbox)** | 🟢 | 100% | `storefront-payment.service.ts`, `StorefrontPaymentGatewaysManager.tsx`, `StorefrontOnlinePaymentModal.tsx`, `storefront-public.controller.ts` | تكامل مع كبرى بوابات الدفع في مصر: **Paymob** و **إكس باي (XPay)** بخصم البطاقات البنكية (Visa / MasterCard / Meeza)، مع وضع محاكاة تجريبي تفاعلي (Sandbox Simulator)، وتأكيد السداد التلقائي الفوري عبر الـ Webhooks (توقيع HMAC لـ Paymob ومعالجة إشعارات XPay)، وإرسال إشعار الواتساب التلقائي فور السداد. |
 | **لوحة إدارة الطلبات للتاجر** | 🟢 | 100% | `MerchantOnlineOrdersPage.tsx`, `ConvertDeliveryModal.tsx` | متابعة الطلبات، الفلترة حسب الحالة، وتنزيل الطلب بنقرة واحدة في سلة الـ POS أو تحويله مباشرة لفاتورة دليفري مع مندوب. |
-| **التصفح بدون إنترنت والـ Offline-First للمتجر** | 🟢 | 100% | `PublicStorefrontPage.tsx`, `StorefrontCheckoutModal.tsx` | استمرار تصفح الكتالوج والأقسام والسلة بسلاسة كاملة عند انقطاع الإنترنت بالاعتماد على التخزين المحلي، مع شريط تنبيه أنيق لوضع عدم الاتصال، ومنع انهيار المتجر عند فشل اتصال السيرفر مع توجيه ذكي للعميل عند إتمام الطلب. |
 
 ---
 

@@ -386,10 +386,7 @@ export function PublicStorefrontPage() {
 
   const isHomepageMultiRow = selectedCategory === 'all' && !searchTerm.trim() && !onlyDeals && !onlyFavorites;
 
-  const hasCatalogData = Boolean(catalogQuery.data && Array.isArray(catalogQuery.data.products));
-  const hasInfoData = Boolean(infoQuery.data);
-
-  if ((catalogQuery.isLoading && !hasCatalogData) || (infoQuery.isLoading && !hasInfoData)) {
+  if (catalogQuery.isLoading || infoQuery.isLoading) {
     return (
       <div
         dir="rtl"
@@ -449,8 +446,8 @@ export function PublicStorefrontPage() {
     );
   }
 
-  // Only show unavailable if we have NO cached data and queries failed
-  if ((!hasCatalogData || !hasInfoData) && (catalogQuery.isError || infoQuery.isError || !infoQuery.data)) {
+  // If offline, connection error, or invalid link
+  if (catalogQuery.isError || infoQuery.isError || !infoQuery.data || !catalogQuery.data) {
     return (
       <div
         dir="rtl"
@@ -472,7 +469,7 @@ export function PublicStorefrontPage() {
           عفواً، المتجر غير متاح حالياً
         </h2>
         <p style={{ color: '#64748b', fontSize: '14px', maxWidth: '400px' }}>
-          تأكد من صحة الرابط أو تواصل مع إدارة المتجر لمزيد من التفاصيل.
+          تأكد من اتصالك بالإنترنت وصحة الرابط، أو تواصل مع إدارة المتجر لمزيد من التفاصيل.
         </p>
       </div>
     );
@@ -520,28 +517,6 @@ export function PublicStorefrontPage() {
         onGoHome={handleGoHome}
       />
 
-      {/* Offline Alert Strip - Only shown when browser is genuinely offline */}
-      {!isOnline && (
-        <div
-          dir="rtl"
-          style={{
-            background: '#fffbeb',
-            borderBottom: '1px solid #fde68a',
-            color: '#92400e',
-            padding: '8px 16px',
-            textAlign: 'center',
-            fontSize: '13px',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
-          <span>أنت تتصفح المتجر حالياً في وضع عدم الاتصال (أوفلاين) - البيانات المعروضة من آخر حفظ محلي.</span>
-        </div>
-      )}
 
       {/* Top Promotional Billboard Banner Carousel (Multi-image auto-sliding slideshow) */}
       {!searchTerm && ((info.bannerUrls && info.bannerUrls.length > 0) || info.bannerUrl) && (
