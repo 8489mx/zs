@@ -1,0 +1,471 @@
+Warning: Permanently added '92.5.178.54' (ED25519) to the list of known hosts.
+🚀 Connected to Oracle VPS successfully at Sat Sep  5 17:50:22 UTC 2026
+📂 TARGET_DIR is: /var/www/zsystems/app
+=== 1. Git update ===
+From github.com:8489mx/zs
+ * branch              main       -> FETCH_HEAD
+HEAD is now at 2c1d58d2 fix(migrations): prevent duplicate key violation in saas_plans during plan normalization
+=== 2. Locate .env and Check Configuration ===
+Found env file: /var/www/zsystems/app/backend/.env
+PORT in env file:
+NODE_ENV=production
+APP_MODE=SELF_CONTAINED
+APP_HOST=0.0.0.0
+APP_PORT=3000
+DATABASE_HOST=127.0.0.1
+DATABASE_PORT=5432
+=== 3. Clean and Build Backend ===
+
+> backend@1.1.31 migration:run
+> ts-node src/database/migrate.ts up
+
+
+> backend@1.1.31 build
+> nest build
+
+Files in dist:
+total 488
+drwxrwxr-x  7 ubuntu ubuntu   4096 Sep  5 17:52 .
+drwxrwxr-x 11 ubuntu ubuntu   4096 Sep  5 17:51 ..
+-rw-rw-r--  1 ubuntu ubuntu    173 Sep  5 17:52 app.module.d.ts
+-rw-rw-r--  1 ubuntu ubuntu   7378 Sep  5 17:52 app.module.js
+-rw-rw-r--  1 ubuntu ubuntu   2093 Sep  5 17:52 app.module.js.map
+drwxrwxr-x 14 ubuntu ubuntu   4096 Sep  5 17:52 common
+drwxrwxr-x  2 ubuntu ubuntu   4096 Sep  5 17:51 config
+drwxrwxr-x  8 ubuntu ubuntu   4096 Sep  5 17:52 core
+drwxrwxr-x  5 ubuntu ubuntu   4096 Sep  5 17:52 database
+-rw-rw-r--  1 ubuntu ubuntu     11 Sep  5 17:52 main.d.ts
+-rw-rw-r--  1 ubuntu ubuntu   9187 Sep  5 17:52 main.js
+-rw-rw-r--  1 ubuntu ubuntu   6460 Sep  5 17:52 main.js.map
+drwxrwxr-x 33 ubuntu ubuntu   4096 Sep  5 17:52 modules
+-rw-rw-r--  1 ubuntu ubuntu 429054 Sep  5 17:52 tsconfig.build.tsbuildinfo
+Files in dist/config:
+total 112
+drwxrwxr-x 2 ubuntu ubuntu 4096 Sep  5 17:51 .
+drwxrwxr-x 7 ubuntu ubuntu 4096 Sep  5 17:52 ..
+-rw-rw-r-- 1 ubuntu ubuntu  437 Sep  5 17:51 app-mode.d.ts
+-rw-rw-r-- 1 ubuntu ubuntu  630 Sep  5 17:51 app-mode.js
+-rw-rw-r-- 1 ubuntu ubuntu  460 Sep  5 17:51 app-mode.js.map
+-rw-rw-r-- 1 ubuntu ubuntu  581 Sep  5 17:51 app.config.d.ts
+-rw-rw-r-- 1 ubuntu ubuntu  499 Sep  5 17:51 app.config.js
+-rw-rw-r-- 1 ubuntu ubuntu  455 Sep  5 17:51 app.config.js.map
+-rw-rw-r-- 1 ubuntu ubuntu   44 Sep  5 17:51 config-access.module.d.ts
+-rw-rw-r-- 1 ubuntu ubuntu 1229 Sep  5 17:51 config-access.module.js
+-rw-rw-r-- 1 ubuntu ubuntu  382 Sep  5 17:51 config-access.module.js.map
+-rw-rw-r-- 1 ubuntu ubuntu  228 Sep  5 17:51 config-access.service.d.ts
+-rw-rw-r-- 1 ubuntu ubuntu 1561 Sep  5 17:51 config-access.service.js
+-rw-rw-r-- 1 ubuntu ubuntu  519 Sep  5 17:51 config-access.service.js.map
+-rw-rw-r-- 1 ubuntu ubuntu   41 Sep  5 17:51 config.module.d.ts
+-rw-rw-r-- 1 ubuntu ubuntu 1680 Sep  5 17:51 config.module.js
+-rw-rw-r-- 1 ubuntu ubuntu  522 Sep  5 17:51 config.module.js.map
+-rw-rw-r-- 1 ubuntu ubuntu  719 Sep  5 17:51 database.config.d.ts
+-rw-rw-r-- 1 ubuntu ubuntu 1162 Sep  5 17:51 database.config.js
+-rw-rw-r-- 1 ubuntu ubuntu  989 Sep  5 17:51 database.config.js.map
+-rw-rw-r-- 1 ubuntu ubuntu 4386 Sep  5 17:51 env.schema.d.ts
+-rw-rw-r-- 1 ubuntu ubuntu 9441 Sep  5 17:51 env.schema.js
+-rw-rw-r-- 1 ubuntu ubuntu 9062 Sep  5 17:51 env.schema.js.map
+=== 3.1 Clean and Build Frontend ===
+
+> zsystems-frontend@1.1.31 build
+> npm run repair:permissions && node ./node_modules/typescript/lib/tsc.js -b && node ./node_modules/vite/bin/vite.js build
+
+
+> zsystems-frontend@1.1.31 repair:permissions
+> node scripts/fix-binary-permissions.cjs
+
+[repair:permissions] done
+vite v7.3.1 building client environment for production...
+transforming...
+
+./brand/z-erp-approved-icon.png referenced in ./brand/z-erp-approved-icon.png didn't resolve at build time, it will remain unchanged to be resolved at runtime
+✓ 2160 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/registerSW.js                                                  0.13 kB
+dist/manifest.webmanifest                                           0.54 kB
+dist/index.html                                                     2.19 kB │ gzip:   0.77 kB
+dist/assets/index-B5LPEbDV.css                                    630.38 kB │ gzip:  86.49 kB
+dist/assets/chunks/user-directory-h_GUBFef.js                       0.12 kB │ gzip:   0.13 kB
+dist/assets/chunks/currencies-DD3pufIG.js                           0.21 kB │ gzip:   0.17 kB
+dist/assets/chunks/submit-button-Cq9LPGwX.js                        0.25 kB │ gzip:   0.21 kB
+dist/assets/chunks/tradein.api-F5g5iNYA.js                          0.31 kB │ gzip:   0.21 kB
+dist/assets/chunks/stats-grid-zl6Z9On1.js                           0.32 kB │ gzip:   0.23 kB
+dist/assets/chunks/work-orders.api-CR0Y2N2q.js                      0.34 kB │ gzip:   0.23 kB
+dist/assets/chunks/use-supplier-mutations-SJGTsfpa.js               0.34 kB │ gzip:   0.27 kB
+dist/assets/chunks/filter-chip-group-BQKGalYO.js                    0.35 kB │ gzip:   0.26 kB
+dist/assets/chunks/reference-data.api-Dp8bPmxi.js                   0.41 kB │ gzip:   0.21 kB
+dist/assets/chunks/product-serials.api-Ccz_FhOD.js                  0.41 kB │ gzip:   0.28 kB
+dist/assets/chunks/use-mutation-feedback-reset-DqRcSB6p.js          0.42 kB │ gzip:   0.32 kB
+dist/assets/chunks/use-is-mobile-CPULLz0D.js                        0.45 kB │ gzip:   0.29 kB
+dist/assets/chunks/loading-state-BQA_lLZ3.js                        0.49 kB │ gzip:   0.32 kB
+dist/assets/chunks/async-searchable-combobox-CyKDv71Z.js            0.54 kB │ gzip:   0.37 kB
+dist/assets/chunks/query-card-Dstagpvf.js                           0.58 kB │ gzip:   0.29 kB
+dist/assets/chunks/use-inventory-action-catalog-D2-rjW7W.js         0.62 kB │ gzip:   0.31 kB
+dist/assets/chunks/EditProductPage-Ct-k7QE8.js                      0.63 kB │ gzip:   0.36 kB
+dist/assets/chunks/ManufacturingLayout-DVU7Vpl1.js                  0.64 kB │ gzip:   0.44 kB
+dist/assets/chunks/NewProductPage-0ivkt2-D.js                       0.64 kB │ gzip:   0.37 kB
+dist/assets/chunks/vendor-state-UgMc1SQf.js                         0.66 kB │ gzip:   0.41 kB
+dist/assets/chunks/query-feedback-BMwKUM2E.js                       0.66 kB │ gzip:   0.40 kB
+dist/assets/chunks/maintenance.api-BnEnSTRE.js                      0.68 kB │ gzip:   0.28 kB
+dist/assets/chunks/NotFoundPage-BSsZySGs.js                         0.81 kB │ gzip:   0.51 kB
+dist/assets/chunks/catalog-Cn463LXD.js                              0.85 kB │ gzip:   0.39 kB
+dist/assets/chunks/ProductsPage-CRU_0P9g.js                         0.85 kB │ gzip:   0.46 kB
+dist/assets/chunks/pricing.api-D3ZSksdL.js                          0.94 kB │ gzip:   0.41 kB
+dist/assets/chunks/idempotency-2IdzJtHh.js                          1.01 kB │ gzip:   0.60 kB
+dist/assets/chunks/fashion-variants.utils-CAcAJYHY.js               1.09 kB │ gzip:   0.58 kB
+dist/assets/chunks/cash-drawer-i3jR3CiN.js                          1.30 kB │ gzip:   0.53 kB
+dist/assets/chunks/search-toolbar-M37PMZWh.js                       1.33 kB │ gzip:   0.61 kB
+dist/assets/chunks/pagination-controls-85jlY3TT.js                  1.34 kB │ gzip:   0.62 kB
+dist/assets/chunks/pharmacy.constants-NlYHmHeE.js                   1.37 kB │ gzip:   0.71 kB
+dist/assets/chunks/use-unsaved-changes-guard-Dbnzc9PH.js            1.50 kB │ gzip:   0.92 kB
+dist/assets/chunks/pos-offline-sync-Btg-WP6g.js                     1.50 kB │ gzip:   0.62 kB
+dist/assets/chunks/contracts-DXjJV-8Z.js                            1.70 kB │ gzip:   0.60 kB
+dist/assets/chunks/use-treasury-B9JioRGr.js                         1.81 kB │ gzip:   0.64 kB
+dist/assets/chunks/report-metric-card-DzIApMJQ.js                   1.83 kB │ gzip:   0.86 kB
+dist/assets/chunks/PosEditProductModal-C1uY-FIF.js                  1.88 kB │ gzip:   1.04 kB
+dist/assets/chunks/weighted-barcode-UTJzj14P.js                     2.03 kB │ gzip:   0.88 kB
+dist/assets/chunks/small-receipt-printer-BfeVQ1so.js                2.07 kB │ gzip:   1.04 kB
+dist/assets/chunks/sales-workspace.helpers-D1FURBQq.js              2.16 kB │ gzip:   1.07 kB
+dist/assets/chunks/catalog-yAdBAcQ2.js                              2.19 kB │ gzip:   0.61 kB
+dist/assets/chunks/employee-profile.helpers-2mxdxKRf.js             2.29 kB │ gzip:   1.00 kB
+dist/assets/chunks/delivery-reps.api-Dk95f72F.js                    2.30 kB │ gzip:   0.79 kB
+dist/assets/chunks/data-table-5r08w45y.js                           2.70 kB │ gzip:   1.32 kB
+dist/assets/chunks/ManufacturingSettingsPage-C4EWGm0q.js            2.73 kB │ gzip:   1.32 kB
+dist/assets/chunks/units-BnS9DZ95.js                                2.84 kB │ gzip:   1.08 kB
+dist/assets/chunks/accounting.api-CWzIaZTG.js                       2.95 kB │ gzip:   0.76 kB
+dist/assets/chunks/barcode-Dtlu7nhg.js                              3.12 kB │ gzip:   1.53 kB
+dist/assets/chunks/BomsListPage-BbyP0p2A.js                         3.53 kB │ gzip:   1.64 kB
+dist/assets/chunks/pdf-BYxnOlzU.js                                  3.73 kB │ gzip:   1.92 kB
+dist/assets/chunks/shipments.api-CXdxwLiR.js                        3.77 kB │ gzip:   0.76 kB
+dist/assets/chunks/useFirstRunSetupFlow-BoTTTXV5.js                 4.09 kB │ gzip:   1.61 kB
+dist/assets/chunks/GenericSubstitutesModal-BvfleNWO.js              4.12 kB │ gzip:   1.67 kB
+dist/assets/chunks/searchable-combobox-BsevEAEe.js                  4.42 kB │ gzip:   1.86 kB
+dist/assets/chunks/pos-printing-DRDWDqkj.js                         4.51 kB │ gzip:   1.52 kB
+dist/assets/chunks/EmployeeContractPrintPage-DMbRTGOj.js            4.72 kB │ gzip:   1.75 kB
+dist/assets/chunks/TreasuryPage-DaDdvZDa.js                         4.87 kB │ gzip:   2.04 kB
+dist/assets/chunks/purchases-workspace.helpers-CUHJjF8T.js          4.91 kB │ gzip:   2.06 kB
+dist/assets/chunks/AccountingCashMovementPage-BgVzLbx6.js           5.13 kB │ gzip:   1.99 kB
+dist/assets/chunks/BrandCombobox-rPedi-Mm.js                        5.27 kB │ gzip:   2.33 kB
+dist/assets/chunks/AccountingReceivablesPayablesPage-Dd_MzWtu.js    5.37 kB │ gzip:   2.04 kB
+dist/assets/chunks/ShipmentsManager-C2POTvl9.js                     5.37 kB │ gzip:   2.15 kB
+dist/assets/chunks/SupplierCredit-CHYybiG2.js                       5.38 kB │ gzip:   2.11 kB
+dist/assets/chunks/NewWorkOrderPage-CrqCnVn5.js                     5.40 kB │ gzip:   2.09 kB
+dist/assets/chunks/SerialLookupModal-B_L0ojef.js                    5.49 kB │ gzip:   2.13 kB
+dist/assets/chunks/DataTable-CjUjR5PZ.js                            5.53 kB │ gzip:   2.53 kB
+dist/assets/chunks/AccountingFinancialSummaryPage-Dqic7xGM.js       5.62 kB │ gzip:   1.99 kB
+dist/assets/chunks/page-header-CbZYLTKq.js                          5.77 kB │ gzip:   2.05 kB
+dist/assets/chunks/ManufacturingComponentsPage-Bp9QqgxO.js          5.79 kB │ gzip:   2.50 kB
+dist/assets/chunks/ProductBarcodeDialog-Cf-LKnPb.js                 5.81 kB │ gzip:   2.28 kB
+dist/assets/chunks/contracts-BTPj-7nz.js                            5.91 kB │ gzip:   1.89 kB
+dist/assets/chunks/AccountingJournalEntriesPage-Dt1YVvOH.js         6.23 kB │ gzip:   2.34 kB
+dist/assets/chunks/AccountingInventoryValuePage-CrKHmoCn.js         6.43 kB │ gzip:   2.39 kB
+dist/assets/chunks/treasury-page.helpers-Ddx6qSsK.js                6.84 kB │ gzip:   2.26 kB
+dist/assets/chunks/OfflineReleasesPage-Bv3ObRh5.js                  7.01 kB │ gzip:   2.59 kB
+dist/assets/chunks/SupplierPrototypePage-DlzogAI9.js                7.06 kB │ gzip:   1.98 kB
+dist/assets/chunks/WorkOrdersListPage-D7oQCHDh.js                   7.35 kB │ gzip:   2.93 kB
+dist/assets/chunks/DeliverySettlementModal-COhYIrmF.js              7.54 kB │ gzip:   2.81 kB
+dist/assets/chunks/TaxDispatcherPage-Bvw9Mt8s.js                    7.59 kB │ gzip:   3.02 kB
+dist/assets/chunks/ProductSerialsDialog-B0Rqsn8I.js                 7.65 kB │ gzip:   2.64 kB
+dist/assets/chunks/DoseStickerPrintModal-XyaI7dUp.js                7.77 kB │ gzip:   2.44 kB
+dist/assets/chunks/OwnerCompanionPage-67tgaJq6.js                   8.21 kB │ gzip:   2.54 kB
+dist/assets/chunks/TrialSignupPage-DFyMWYbt.js                      8.38 kB │ gzip:   2.83 kB
+dist/assets/chunks/LoginPage-6eA7NIKu.js                            8.39 kB │ gzip:   2.99 kB
+dist/assets/chunks/ImportWorkbench-CNDqZwiW.js                      9.02 kB │ gzip:   3.21 kB
+dist/assets/chunks/SaasDiagnosticsPage-DPIfpqLl.js                  9.13 kB │ gzip:   3.32 kB
+dist/assets/chunks/TaxIntegrationSection-kOPnII14.js                9.47 kB │ gzip:   3.17 kB
+dist/assets/chunks/HrOverviewPage-D_9dQF2Z.js                       9.58 kB │ gzip:   3.54 kB
+dist/assets/chunks/ScalePluExportModal-qbfPkK15.js                  9.65 kB │ gzip:   3.81 kB
+dist/assets/chunks/PharmacyIcons-dojZHjqH.js                        9.66 kB │ gzip:   1.87 kB
+dist/assets/chunks/EmployeesPage-D9oRe7s1.js                       10.33 kB │ gzip:   3.86 kB
+dist/assets/chunks/ProductIconPicker-tC7vLBWP.js                   10.54 kB │ gzip:   3.91 kB
+dist/assets/chunks/ProfilePage-CVNqaWjj.js                         10.66 kB │ gzip:   3.09 kB
+dist/assets/chunks/WarehousesGridPage-BFuLZDBg.js                  10.67 kB │ gzip:   3.84 kB
+dist/assets/chunks/BarcodePrintDialog-DSzlYd5O.js                  10.76 kB │ gzip:   3.50 kB
+dist/assets/chunks/AccountingAccountsPage-JvH9zFfV.js              10.77 kB │ gzip:   3.90 kB
+dist/assets/chunks/OwnerMobileDashboardPage-HaM0Oatf.js            11.52 kB │ gzip:   3.09 kB
+dist/assets/chunks/HrDocumentsPage-CAWhL7Ox.js                     11.72 kB │ gzip:   3.85 kB
+dist/assets/chunks/AccountingSettingsPage-CP0eRKn9.js              11.76 kB │ gzip:   3.76 kB
+dist/assets/chunks/inventory-printing-xd3HQf9w.js                  12.93 kB │ gzip:   3.75 kB
+dist/assets/chunks/ExpensesPage-D-zcKx0i.js                        13.49 kB │ gzip:   5.02 kB
+dist/assets/chunks/browser-Dbmg9Kuh.js                             13.58 kB │ gzip:   4.44 kB
+dist/assets/chunks/PharmacyClinicalServicesPage-CimhC9Aj.js        13.78 kB │ gzip:   3.39 kB
+dist/assets/chunks/EditBomPage-Rw5br9ya.js                         14.52 kB │ gzip:   4.37 kB
+dist/assets/chunks/NewBomPage-Bv4_1rBP.js                          14.65 kB │ gzip:   4.37 kB
+dist/assets/chunks/PharmacyBatchesExpiryPage-mo9cTWBW.js           15.34 kB │ gzip:   3.81 kB
+dist/assets/chunks/PharmacyDashboardPage-BwUfIHNv.js               15.71 kB │ gzip:   3.64 kB
+dist/assets/chunks/ShipmentDetailsPage-BW-S0xuD.js                 16.74 kB │ gzip:   4.94 kB
+dist/assets/chunks/PharmacyShortagesPage-DXzqxR7c.js               16.99 kB │ gzip:   4.09 kB
+dist/assets/chunks/WarehouseDetailsPage-CDStYJYz.js                17.46 kB │ gzip:   5.61 kB
+dist/assets/chunks/PharmacyPrescriptionsPage-2uP0dQIr.js           17.63 kB │ gzip:   4.14 kB
+dist/assets/chunks/DriverPortalPage-CBQopRlw.js                    17.79 kB │ gzip:   5.08 kB
+dist/assets/chunks/addons.api-BwFZTBNC.js                          17.84 kB │ gzip:   4.76 kB
+dist/assets/chunks/HrLeavesPage-DBsHeKHV.js                        18.09 kB │ gzip:   5.18 kB
+dist/assets/chunks/ProductCategoriesPage-BZGo32QG.js               18.24 kB │ gzip:   4.81 kB
+dist/assets/chunks/ImeiHistoryPage-Bg5W7tEK.js                     18.58 kB │ gzip:   4.86 kB
+dist/assets/chunks/PosSaleSuccessDialog-B_XjVnwY.js                18.71 kB │ gzip:   5.88 kB
+dist/assets/chunks/ProfitPool-BNxqbkcm.js                          19.76 kB │ gzip:   5.26 kB
+dist/assets/chunks/AccountingFixedAssetsPage-Bs-e_vtD.js           19.98 kB │ gzip:   4.97 kB
+dist/assets/chunks/VatDeclarationPage-CnnUkViB.js                  19.98 kB │ gzip:   4.23 kB
+dist/assets/chunks/EmployeeEditPage-BbtH2Zq4.js                    20.01 kB │ gzip:   4.34 kB
+dist/assets/chunks/HrAttendancePage-BPAxhT_h.js                    20.08 kB │ gzip:   5.69 kB
+dist/assets/chunks/EmployeeCreatePage-CCyIgezk.js                  20.85 kB │ gzip:   4.34 kB
+dist/assets/chunks/EditProductForm-CfmepQP3.js                     21.35 kB │ gzip:   6.17 kB
+dist/assets/chunks/QuotationsPage-CTYaNrnx.js                      21.47 kB │ gzip:   5.86 kB
+dist/assets/chunks/SaasPlansPage-CUp1i6pQ.js                       21.52 kB │ gzip:   4.55 kB
+dist/assets/chunks/SmartReorderPage-CDLEB2GA.js                    22.24 kB │ gzip:   5.76 kB
+dist/assets/chunks/HrAssetsPage-dw8mpBCS.js                        22.25 kB │ gzip:   6.02 kB
+dist/assets/chunks/SuppliersPage-DoXt0mbo.js                       22.46 kB │ gzip:   6.52 kB
+dist/assets/chunks/purify.es-CovBOfck.js                           22.58 kB │ gzip:   8.67 kB
+dist/assets/chunks/PricingCenterPage-DsoXa9Oq.js                   22.84 kB │ gzip:   5.64 kB
+dist/assets/chunks/FashionVariantsBuilder-BZaxOUHm.js              23.20 kB │ gzip:   5.83 kB
+dist/assets/chunks/NewIssueOrderPage-CVGi4Z_2.js                   24.30 kB │ gzip:   7.47 kB
+dist/assets/chunks/product-smart-matcher-CZs5p4mO.js               24.78 kB │ gzip:   8.61 kB
+dist/assets/chunks/ServicesPage-Bzny5L9l.js                        25.08 kB │ gzip:   8.62 kB
+dist/assets/chunks/MerchantOnlineOrdersPage-3pWBIiVm.js            26.71 kB │ gzip:   6.90 kB
+dist/assets/chunks/HrLoansPage-C1pqhqUc.js                         27.03 kB │ gzip:   7.25 kB
+dist/assets/chunks/AuditPage-BIGcJydG.js                           27.30 kB │ gzip:   8.28 kB
+dist/assets/chunks/DeliveryDriverMobilePage-CjAJ45Qk.js            27.99 kB │ gzip:   7.85 kB
+dist/assets/chunks/template-Cse2wL3R.js                            30.26 kB │ gzip:   8.32 kB
+dist/assets/chunks/NewProductForm-DqF0EfPD.js                      30.82 kB │ gzip:   8.93 kB
+dist/assets/chunks/InstallmentsPage-CHn0rOVT.js                    31.39 kB │ gzip:   6.75 kB
+dist/assets/chunks/InventoryTreePage-BoiN-1Z8.js                   31.72 kB │ gzip:   8.18 kB
+dist/assets/chunks/SalesPage-BwB0igIU.js                           33.32 kB │ gzip:  10.68 kB
+dist/assets/chunks/HrReportsPage-CvzyaVfH.js                       34.30 kB │ gzip:   6.37 kB
+dist/assets/chunks/FashionGroupEditorCard-tU7LvCsk.js              35.63 kB │ gzip:   8.93 kB
+dist/assets/chunks/storefront-photo-matcher-xYI0DMvf.js            35.92 kB │ gzip:  10.55 kB
+dist/assets/chunks/AccountsPage-BudCoIoS.js                        38.63 kB │ gzip:   9.92 kB
+dist/assets/chunks/CustomersPage-D5KE3_A2.js                       38.70 kB │ gzip:  10.35 kB
+dist/assets/chunks/vendor-query-CB33QBPw.js                        38.83 kB │ gzip:  11.49 kB
+dist/assets/chunks/EmployeeProfilePage-BDI08PQl.js                 40.16 kB │ gzip:   8.64 kB
+dist/assets/chunks/PharmacyDrugsDirectoryPage-Duvs4iZx.js          41.33 kB │ gzip:   8.95 kB
+dist/assets/chunks/TradeInPage-BuLbmDaM.js                         42.71 kB │ gzip:   9.38 kB
+dist/assets/chunks/product-svg-catalog-DAgy1DF8.js                 44.38 kB │ gzip:   9.57 kB
+dist/assets/chunks/HrSettingsPage-rZk3ohyZ.js                      44.60 kB │ gzip:   8.27 kB
+dist/assets/chunks/ReturnsPage-D4rr5rYc.js                         44.94 kB │ gzip:  12.90 kB
+dist/assets/chunks/HrPayrollPage-CxLsvl9B.js                       45.75 kB │ gzip:  10.58 kB
+dist/assets/chunks/ProductsWorkspace-ORjeFkF0.js                   48.76 kB │ gzip:  13.26 kB
+dist/assets/chunks/DashboardPage-CeV8CqC-.js                       52.49 kB │ gzip:  12.11 kB
+dist/assets/chunks/DeliveryRepsPage-DOwEJyMB.js                    52.78 kB │ gzip:  10.32 kB
+dist/assets/chunks/PurchasesPage-DUtALlxR.js                       52.99 kB │ gzip:  14.55 kB
+dist/assets/chunks/vendor-router-BEdff8k3.js                       89.99 kB │ gzip:  30.24 kB
+dist/assets/chunks/vendor-forms-BO8SGD9o.js                        99.41 kB │ gzip:  29.31 kB
+dist/assets/chunks/MaintenanceTicketsPage-Cg6RPeDE.js             101.57 kB │ gzip:  19.06 kB
+dist/assets/chunks/SaasTenantsPage-WlgHJWbP.js                    114.48 kB │ gzip:  23.87 kB
+dist/assets/chunks/InventoryPage-GuTDJQq2.js                      122.14 kB │ gzip:  30.58 kB
+dist/assets/chunks/ReportsPage-B6OUzU_9.js                        127.71 kB │ gzip:  28.48 kB
+dist/assets/chunks/CashDrawerPage-nuBNMzmZ.js                     128.10 kB │ gzip:  26.43 kB
+dist/assets/chunks/NewPurchaseOrderPage-BtEoJVE1.js               142.36 kB │ gzip:  44.53 kB
+dist/assets/chunks/index.es-1jjjbBTZ.js                           158.84 kB │ gzip:  53.05 kB
+dist/assets/chunks/PublicStorefrontPage-HY6K_JBK.js               161.84 kB │ gzip:  35.72 kB
+dist/assets/chunks/vendor-react-C-CGkqRI.js                       193.06 kB │ gzip:  60.57 kB
+dist/assets/chunks/vendor-html2canvas-DXEQVQnt.js                 201.04 kB │ gzip:  47.43 kB
+dist/assets/chunks/PosPage-BzcqQlp7.js                            272.08 kB │ gzip:  70.87 kB
+dist/assets/chunks/vendor-recharts-Dv2LOvcU.js                    373.19 kB │ gzip: 110.40 kB
+dist/assets/chunks/vendor-jspdf-10sFSXKl.js                       386.66 kB │ gzip: 126.69 kB
+dist/assets/chunks/vendor-xlsx-CNerDvZX.js                        429.19 kB │ gzip: 142.94 kB
+dist/assets/chunks/SettingsPage-CSLklkAp.js                       514.57 kB │ gzip: 107.40 kB
+dist/assets/index-DQiJZuCO.js                                     990.32 kB │ gzip: 264.32 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 48.66s
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+PWA v1.3.0
+mode      generateSW
+precache  190 entries (7817.38 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-835c8c05.js
+Frontend dist files count: 13
+=== 4. Test run main.js directly ===
+node:internal/modules/cjs/loader:1433
+  throw err;
+  ^
+
+Error: Cannot find module '/var/www/zsystems/app/frontend/dist/main.js'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+    at Function._load (node:internal/modules/cjs/loader:1216:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.23.2
+=== 5. Start with PM2 ===
+[PM2] Applying action deleteProcessId on app [all](ids: [ 0 ])
+[PM2] [zsystems-backend](0) ✓
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+host metrics | cpu: 99.9% | ram usage: 44.9% | lo: ⇓ 0.023mb/s ⇑ 0.023mb/s | enp0s6: ⇓ 0.001mb/s ⇑ 0.007mb/s | docker0: ⇓ 0.019mb/s ⇑ 0.001mb/s | veth5c35458: ⇓ 0.019mb/s ⇑ 0.001mb/s | disk: ⇓ 0.136mb/s ⇑ 0.045mb/s
+[PM2] Starting /var/www/zsystems/app/backend/dist/main.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬─────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ zsystems-backend    │ default     │ 1.1.31  │ fork    │ 177546   │ 0s     │ 0    │ online    │ 0%       │ 21.8mb   │ ubuntu   │ disabled │
+└────┴─────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+host metrics | cpu: 99.9% | ram usage: 44.9% | lo: ⇓ 0.023mb/s ⇑ 0.023mb/s | enp0s6: ⇓ 0.001mb/s ⇑ 0.007mb/s | docker0: ⇓ 0.019mb/s ⇑ 0.001mb/s | veth5c35458: ⇓ 0.019mb/s ⇑ 0.001mb/s | disk: ⇓ 0.136mb/s ⇑ 0.045mb/s
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/ubuntu/.pm2/dump.pm2
+=== 6. PM2 Status & Logs ===
+┌────┬─────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ zsystems-backend    │ default     │ 1.1.31  │ fork    │ 177546   │ 5s     │ 0    │ online    │ 0%       │ 182.6mb  │ ubuntu   │ disabled │
+└────┴─────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+host metrics | cpu: 99.9% | ram usage: 44.9% | lo: ⇓ 0.023mb/s ⇑ 0.023mb/s | enp0s6: ⇓ 0.001mb/s ⇑ 0.007mb/s | docker0: ⇓ 0.019mb/s ⇑ 0.001mb/s | veth5c35458: ⇓ 0.019mb/s ⇑ 0.001mb/s | disk: ⇓ 0.136mb/s ⇑ 0.045mb/s
+[TAILING] Tailing last 50 lines for [zsystems-backend] process (change the value with --lines option)
+/home/ubuntu/.pm2/logs/zsystems-backend-error.log last 50 lines:
+0|zsystems |     at Module._compile (node:internal/modules/cjs/loader:1781:14)
+0|zsystems |     at Object..js (node:internal/modules/cjs/loader:1913:10)
+0|zsystems |     at Module.load (node:internal/modules/cjs/loader:1505:32)
+0|zsystems |     at Function._load (node:internal/modules/cjs/loader:1309:12)
+0|zsystems |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:19) {
+0|zsystems |   code: 'MODULE_NOT_FOUND',
+0|zsystems |   requireStack: []
+0|zsystems | }
+0|zsystems | Error: Cannot find module '/var/www/zsystems/app/backend/dist/main.js'
+0|zsystems |     at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+0|zsystems |     at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+0|zsystems |     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+0|zsystems |     at Function._load (node:internal/modules/cjs/loader:1216:25)
+0|zsystems |     at Object.<anonymous> (/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js:33:23)
+0|zsystems |     at Module._compile (node:internal/modules/cjs/loader:1781:14)
+0|zsystems |     at Object..js (node:internal/modules/cjs/loader:1913:10)
+0|zsystems |     at Module.load (node:internal/modules/cjs/loader:1505:32)
+0|zsystems |     at Function._load (node:internal/modules/cjs/loader:1309:12)
+0|zsystems |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:19) {
+0|zsystems |   code: 'MODULE_NOT_FOUND',
+0|zsystems |   requireStack: []
+0|zsystems | }
+0|zsystems | Error: Cannot find module '/var/www/zsystems/app/backend/dist/main.js'
+0|zsystems |     at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+0|zsystems |     at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+0|zsystems |     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+0|zsystems |     at Function._load (node:internal/modules/cjs/loader:1216:25)
+0|zsystems |     at Object.<anonymous> (/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js:33:23)
+0|zsystems |     at Module._compile (node:internal/modules/cjs/loader:1781:14)
+0|zsystems |     at Object..js (node:internal/modules/cjs/loader:1913:10)
+0|zsystems |     at Module.load (node:internal/modules/cjs/loader:1505:32)
+0|zsystems |     at Function._load (node:internal/modules/cjs/loader:1309:12)
+0|zsystems |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:19) {
+0|zsystems |   code: 'MODULE_NOT_FOUND',
+0|zsystems |   requireStack: []
+0|zsystems | }
+0|zsystems | Error: Cannot find module '/var/www/zsystems/app/backend/dist/main.js'
+0|zsystems |     at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+0|zsystems |     at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+0|zsystems |     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+0|zsystems |     at Function._load (node:internal/modules/cjs/loader:1216:25)
+0|zsystems |     at Object.<anonymous> (/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js:33:23)
+0|zsystems |     at Module._compile (node:internal/modules/cjs/loader:1781:14)
+0|zsystems |     at Object..js (node:internal/modules/cjs/loader:1913:10)
+0|zsystems |     at Module.load (node:internal/modules/cjs/loader:1505:32)
+0|zsystems |     at Function._load (node:internal/modules/cjs/loader:1309:12)
+0|zsystems |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:19) {
+0|zsystems |   code: 'MODULE_NOT_FOUND',
+0|zsystems |   requireStack: []
+0|zsystems | }
+
+/home/ubuntu/.pm2/logs/zsystems-backend-out.log last 50 lines:
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/pharmacy/batches, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/pharmacy/prescriptions, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/pharmacy/prescriptions, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/pharmacy/shortages, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/pharmacy/shortages, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/pharmacy/shortages/:id/status, PATCH} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/pharmacy/clinical-services, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/pharmacy/clinical-services, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RoutesResolver"],"msg":"StorefrontMerchantController {/api/storefront/admin}:"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/orders, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/orders/:id, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/orders/:id/status, PATCH} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/orders/:id/convert-to-sale, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/orders/:id/prepare-pos, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/settings, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/settings, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/products/:id/image, PATCH} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/categories/:id/image, PATCH} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.756Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/coupons, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/coupons, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/coupons/:id, PUT} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/coupons/:id, DELETE} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/delivery-zones, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/delivery-zones, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/delivery-zones/:id, PUT} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/admin/delivery-zones/:id, DELETE} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RoutesResolver"],"msg":"StorefrontPublicController {/api/storefront}:"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/info, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/catalog, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/products/:productId/reviews, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/products/:productId/reviews, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/coupons/validate, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/orders, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/orders, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/orders/:orderNumber/cancel, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/orders/:orderNumber, PUT} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/orders/:orderNumber/payment-session, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/orders/:orderNumber/payment-status, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/:slug/orders/:orderNumber/mock-pay, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/webhooks/paymob, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/webhooks/paymob, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/webhooks/xpay, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/storefront/webhooks/xpay, GET} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RoutesResolver"],"msg":"AiCopilotController {/api/ai-copilot}:"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["RouterExplorer"],"msg":"Mapped {/api/ai-copilot/ask, POST} route"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["JobQueueService"],"msg":"JobQueueService initialized with interval loop"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["BootstrapAdminService"],"msg":"Bootstrap admin seeding is skipped because the system is already initialized"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["DiagnosticsSchedulerService"],"msg":"Starting automated monthly diagnostics scheduler (Scheduled day: 15th of every month)..."}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":["NestApplication"],"msg":"Nest application successfully started"}
+0|zsystems | {"level":30,"time":"2026-09-05T17:56:43.757Z","context":[],"msg":"API bootstrap complete on 0.0.0.0:3000"}
+
+=== 7. Check listening ports and test HTTP ===
+tcp   LISTEN 0      511              0.0.0.0:80         0.0.0.0:*    users:(("nginx",pid=171376,fd=5),("nginx",pid=23049,fd=5)) 
+tcp   LISTEN 0      511              0.0.0.0:443        0.0.0.0:*    users:(("nginx",pid=171376,fd=7),("nginx",pid=23049,fd=7)) 
+tcp   LISTEN 0      511              0.0.0.0:3000       0.0.0.0:*    users:(("node /var/www/z",pid=177546,fd=28))               
+tcp   LISTEN 0      4096           127.0.0.1:5432       0.0.0.0:*    users:(("docker-proxy",pid=5749,fd=7))                     
+tcp   LISTEN 0      511                 [::]:80            [::]:*    users:(("nginx",pid=171376,fd=6),("nginx",pid=23049,fd=6)) 
+tcp   LISTEN 0      511                 [::]:443           [::]:*    users:(("nginx",pid=171376,fd=8),("nginx",pid=23049,fd=8)) 
+*   Trying 127.0.0.1:3000...
+* Connected to 127.0.0.1 (127.0.0.1) port 3000
+> GET /api/activation/status HTTP/1.1
+> Host: 127.0.0.1:3000
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Vary: Origin, Accept-Encoding
+< Access-Control-Allow-Credentials: true
+< X-Content-Type-Options: nosniff
+< X-Frame-Options: DENY
+< Referrer-Policy: no-referrer
+< Permissions-Policy: camera=(), microphone=(), geolocation=()
+< Cross-Origin-Opener-Policy: same-origin
+< Cross-Origin-Resource-Policy: same-origin
+< Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
+< X-Permitted-Cross-Domain-Policies: none
+< Origin-Agent-Cluster: ?1
+< x-request-id: 6205780b-6434-413b-947c-869a81422a9a
+< Cache-Control: no-store
+< X-Request-Path: /api/activation/status
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 193
+< ETag: W/"c1-wns5WoBnC9eYFTLRKnkeE6z7wWQ"
+< Date: Sat, 05 Sep 2026 17:56:47 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+{ [193 bytes data]
+* Connection #0 to host 127.0.0.1 left intact
+{"deploymentMode":"server","activationRequired":false,"activated":true,"setupRequired":false,"machineId":"2420-EF01-6BF9-D888-4DB2-2A95","customerName":null,"activatedAt":null,"expiresAt":null}=== 8. Reload Nginx ===
+=== Execution completed at Sat Sep  5 17:56:47 UTC 2026 ===
