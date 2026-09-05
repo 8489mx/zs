@@ -101,11 +101,35 @@ export const migration = {
         price = EXCLUDED.price;
     `.execute(db);
 
-    // 8. Normalize codes of existing saas_plans if present
-    await sql`UPDATE saas_plans SET code = 'BASIC' WHERE LOWER(code) = 'basic'`.execute(db);
-    await sql`UPDATE saas_plans SET code = 'PRO' WHERE LOWER(code) = 'pro'`.execute(db);
-    await sql`UPDATE saas_plans SET code = 'ULTIMATE' WHERE LOWER(code) IN ('ultimate', 'enterprise')`.execute(db);
-    await sql`UPDATE saas_plans SET code = 'OMNICHANNEL' WHERE LOWER(code) = 'omnichannel'`.execute(db);
+    // 8. Safely re-link and clean up duplicate legacy saas_plans before normalizing
+    await sql`
+      UPDATE tenant_subscriptions
+      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'PRO' LIMIT 1)
+      WHERE plan_id IN (SELECT id FROM saas_plans WHERE code = 'pro');
+    `.execute(db);
+
+    await sql`
+      UPDATE tenant_subscriptions
+      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'BASIC' LIMIT 1)
+      WHERE plan_id IN (SELECT id FROM saas_plans WHERE code = 'basic');
+    `.execute(db);
+
+    await sql`
+      UPDATE tenant_subscriptions
+      SET plan_id = (SELECT id FROM saas_plans WHERE code = 'ULTIMATE' LIMIT 1)
+      WHERE plan_id IN (SELECT id FROM saas_plans WHERE code IN ('ultimate', 'enterprise'));
+    `.execute(db);
+
+    await sql`
+      DELETE FROM saas_plans
+      WHERE code IN ('basic', 'pro', 'enterprise', 'ultimate', 'omnichannel')
+        AND id NOT IN (SELECT id FROM saas_plans WHERE code IN ('BASIC', 'PRO', 'ULTIMATE', 'OMNICHANNEL'));
+    `.execute(db);
+
+    await sql`UPDATE saas_plans SET code = 'BASIC' WHERE LOWER(code) = 'basic' AND code != 'BASIC'`.execute(db);
+    await sql`UPDATE saas_plans SET code = 'PRO' WHERE LOWER(code) = 'pro' AND code != 'PRO'`.execute(db);
+    await sql`UPDATE saas_plans SET code = 'ULTIMATE' WHERE LOWER(code) IN ('ultimate', 'enterprise') AND code != 'ULTIMATE'`.execute(db);
+    await sql`UPDATE saas_plans SET code = 'OMNICHANNEL' WHERE LOWER(code) = 'omnichannel' AND code != 'OMNICHANNEL'`.execute(db);
 
     // 9. Upsert the 4 standardized production plans
     await sql`
