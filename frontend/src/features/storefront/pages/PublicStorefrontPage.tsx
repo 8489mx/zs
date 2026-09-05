@@ -112,6 +112,20 @@ export function PublicStorefrontPage() {
   });
   const [onlyFavorites, setOnlyFavorites] = useState(false);
 
+  // Network connection state
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const handleToggleFavorite = useCallback((productId: number) => {
     setFavoriteIds((prev) => {
       const next = new Set(prev);
@@ -416,7 +430,10 @@ export function PublicStorefrontPage() {
 
   const isHomepageMultiRow = selectedCategory === 'all' && !searchTerm.trim() && !onlyDeals && !onlyFavorites;
 
-  if (catalogQuery.isLoading || infoQuery.isLoading) {
+  const hasCatalogData = Boolean(catalogQuery.data && Array.isArray(catalogQuery.data.products));
+  const hasInfoData = Boolean(infoQuery.data);
+
+  if ((catalogQuery.isLoading && !hasCatalogData) || (infoQuery.isLoading && !hasInfoData)) {
     return (
       <div
         dir="rtl"
@@ -447,7 +464,37 @@ export function PublicStorefrontPage() {
     );
   }
 
-  if (catalogQuery.isError || !infoQuery.data) {
+  // If storefront is explicitly disabled by merchant
+  if (infoQuery.data && infoQuery.data.enabled === false) {
+    return (
+      <div
+        dir="rtl"
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f8fafc',
+          padding: '24px',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+          <IconStore size={48} color="#94a3b8" />
+        </div>
+        <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+          عفواً، المتجر متوقف حالياً
+        </h2>
+        <p style={{ color: '#64748b', fontSize: '14px', maxWidth: '400px' }}>
+          المتجر غير متاح لاستقبال الطلبات في الوقت الحالي. تواصل مع إدارة المتجر لمزيد من التفاصيل.
+        </p>
+      </div>
+    );
+  }
+
+  // Only show unavailable if we have NO cached data and queries failed
+  if ((!hasCatalogData || !hasInfoData) && (catalogQuery.isError || infoQuery.isError || !infoQuery.data)) {
     return (
       <div
         dir="rtl"
@@ -516,6 +563,29 @@ export function PublicStorefrontPage() {
         onOpenOrders={() => setIsMyOrdersOpen(true)}
         onGoHome={handleGoHome}
       />
+
+      {/* Offline Alert Strip */}
+      {(!isOnline || catalogQuery.isError || infoQuery.isError) && (
+        <div
+          dir="rtl"
+          style={{
+            background: '#fffbeb',
+            borderBottom: '1px solid #fde68a',
+            color: '#92400e',
+            padding: '8px 16px',
+            textAlign: 'center',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}
+        >
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+          <span>أنت تتصفح المتجر حالياً في وضع عدم الاتصال (أوفلاين) - البيانات المعروضة من آخر حفظ محلي.</span>
+        </div>
+      )}
 
       {/* Top Promotional Billboard Banner Carousel (Multi-image auto-sliding slideshow) */}
       {!searchTerm && ((info.bannerUrls && info.bannerUrls.length > 0) || info.bannerUrl) && (

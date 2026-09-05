@@ -388,7 +388,11 @@ export function StorefrontCheckoutModal({
         throw new Error('تعذر إرسال الطلب لعدم اكتمال بيانات المتجر، يرجى تحديث الصفحة والمحاولة مجدداً.');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'حدث خطأ أثناء تأكيد الطلب، يرجى المحاولة مرة أخرى');
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setErrorMsg('تعذر إرسال الطلب نظراً لعدم وجود اتصال بالإنترنت. يرجى التحقق من اتصالك بالشبكة ثم إعادة المحاولة.');
+      } else {
+        setErrorMsg(err.message || 'حدث خطأ أثناء تأكيد الطلب، يرجى المحاولة مرة أخرى');
+      }
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
