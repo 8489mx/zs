@@ -23,6 +23,44 @@ interface StorefrontCheckoutModalProps {
   }) => Promise<void>;
 }
 
+const EGYPT_PHONE_REGEX = /^01[0125]\d{8}$/;
+const VALID_EGYPT_PREFIXES = ['010', '011', '012', '015'];
+
+export function getEgyptianPhoneValidation(phone: string): { isValid: boolean; message: string; isComplete: boolean } {
+  const clean = phone.replace(/\D/g, '');
+  if (!clean) return { isValid: false, message: '', isComplete: false };
+  if (!clean.startsWith('01')) {
+    return { isValid: false, message: 'يجب أن يبدأ بـ 01', isComplete: false };
+  }
+  if (clean.length >= 3 && !VALID_EGYPT_PREFIXES.includes(clean.slice(0, 3))) {
+    return { isValid: false, message: 'كود شبكة غير صحيح (010, 011, 012, 015)', isComplete: false };
+  }
+  if (clean.length === 11 && EGYPT_PHONE_REGEX.test(clean)) {
+    return { isValid: true, message: '✓ رقم صحيح (11 رقم)', isComplete: true };
+  }
+  return { isValid: false, message: `متبقي ${11 - clean.length} أرقام`, isComplete: false };
+}
+
+export function getCustomerNameValidation(name: string): { isValid: boolean; message: string } {
+  const trimmed = name.trim();
+  if (!trimmed) return { isValid: false, message: '' };
+  const lettersCount = (trimmed.match(/[\p{L}\p{M}]/gu) || []).length;
+  if (trimmed.length < 3 || lettersCount < 3) {
+    return { isValid: false, message: 'الاسم يجب ألا يقل عن 3 أحرف' };
+  }
+  return { isValid: true, message: '✓ الاسم مكتمل' };
+}
+
+export function getCustomerAddressValidation(address: string): { isValid: boolean; message: string } {
+  const trimmed = address.trim();
+  if (!trimmed) return { isValid: false, message: '' };
+  const lettersCount = (trimmed.match(/[\p{L}\p{M}]/gu) || []).length;
+  if (trimmed.length < 5 || lettersCount < 3) {
+    return { isValid: false, message: 'العنوان يجب ألا يقل عن 5 أحرف بالتفصيل' };
+  }
+  return { isValid: true, message: '✓ العنوان واضح' };
+}
+
 export function StorefrontCheckoutModal({
   isOpen,
   onClose,
@@ -45,6 +83,22 @@ export function StorefrontCheckoutModal({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const isSubmittingRef = useRef(false);
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    scrollBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     // Always reset loading and error states whenever modal open state toggles
@@ -72,7 +126,7 @@ export function StorefrontCheckoutModal({
     const val = rawVal.replace(/\D/g, '').slice(0, 11);
     setCustomerPhone(val);
 
-    if (val.length === 11 && val.startsWith('01')) {
+    if (val.length === 11 && EGYPT_PHONE_REGEX.test(val)) {
       try {
         const saved = localStorage.getItem(STOREFRONT_SAVED_CUSTOMER_KEY);
         if (saved) {
@@ -96,6 +150,10 @@ export function StorefrontCheckoutModal({
   const deliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
   const total = subtotal + deliveryFee;
 
+  const phoneStatus = getEgyptianPhoneValidation(customerPhone);
+  const nameStatus = getCustomerNameValidation(customerName);
+  const addressStatus = getCustomerAddressValidation(customerAddress);
+
   const handleModalClose = () => {
     setLoading(false);
     setErrorMsg('');
@@ -108,21 +166,27 @@ export function StorefrontCheckoutModal({
     if (isSubmittingRef.current || loading) return;
 
     if (!editingOrderNumber && cartItems.length === 0) {
-      setErrorMsg('سلة المشتريات فارغة، يرجى إضافة أصناف إلى السلة أولاً.');
+      showError('سلة المشتريات فارغة، يرجى إضافة أصناف إلى السلة أولاً.');
       return;
     }
 
-    if (!customerName.trim()) {
-      setErrorMsg('يرجى إدخال اسم المستلم');
-      return;
-    }
     const cleanDigits = customerPhone.replace(/\D/g, '');
-    if (!cleanDigits.startsWith('01') || cleanDigits.length !== 11) {
-      setErrorMsg('يرجى إدخال رقم محمول مصري صحيح مكون من 11 رقماً يبدأ بـ 01 (مثال: 01012345678)');
+    if (!EGYPT_PHONE_REGEX.test(cleanDigits)) {
+      showError('يرجى إدخال رقم محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
       return;
     }
-    if (!customerAddress.trim()) {
-      setErrorMsg('يرجى إدخال عنوان التوصيل بالتفصيل');
+
+    const trimmedName = customerName.trim();
+    const nameLetters = (trimmedName.match(/[\p{L}\p{M}]/gu) || []).length;
+    if (trimmedName.length < 3 || nameLetters < 3) {
+      showError('يرجى إدخال اسم مستلم صحيح لا يقل عن 3 أحرف (مثال: علي، مازن، محمد)');
+      return;
+    }
+
+    const trimmedAddress = customerAddress.trim();
+    const addressLetters = (trimmedAddress.match(/[\p{L}\p{M}]/gu) || []).length;
+    if (trimmedAddress.length < 5 || addressLetters < 3) {
+      showError('يرجى إدخال عنوان توصيل واضح ومفصل لا يقل عن 5 أحرف (المنطقة، الشارع، رقم العقار)');
       return;
     }
 
@@ -220,12 +284,14 @@ export function StorefrontCheckoutModal({
         position: 'fixed',
         inset: 0,
         zIndex: 10000,
-        background: 'rgba(15, 23, 42, 0.6)',
+        background: 'rgba(15, 23, 42, 0.65)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '16px',
+        padding: '12px',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
         animation: 'fadeIn 0.2s ease',
       }}
       onClick={handleModalClose}
@@ -234,23 +300,30 @@ export function StorefrontCheckoutModal({
         style={{
           width: '100%',
           maxWidth: '480px',
+          maxHeight: 'min(92vh, calc(100dvh - 24px))',
           background: '#ffffff',
           borderRadius: '16px',
           boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
           overflow: 'hidden',
           position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          margin: 'auto',
+          border: '1px solid #e2e8f0',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
           style={{
-            padding: '18px 24px',
+            padding: '16px 20px',
             borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             background: '#ffffff',
+            flexShrink: 0,
+            zIndex: 10,
           }}
         >
           <div>
@@ -283,24 +356,45 @@ export function StorefrontCheckoutModal({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} style={{ padding: '20px 24px' }}>
-          {errorMsg && (
-            <div
-              style={{
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                fontSize: '13px',
-                color: '#991b1b',
-                marginBottom: '16px',
-              }}
-            >
-              {errorMsg}
-            </div>
-          )}
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Scrollable Fields Body */}
+          <div
+            ref={scrollBodyRef}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+              padding: '18px 20px',
+            }}
+          >
+            {errorMsg && (
+              <div
+                style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  color: '#991b1b',
+                  marginBottom: '16px',
+                }}
+              >
+                {errorMsg}
+              </div>
+            )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Field 1: Customer Phone (First field) */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -312,12 +406,10 @@ export function StorefrontCheckoutModal({
                     style={{
                       fontSize: '11px',
                       fontWeight: 700,
-                      color: customerPhone.length === 11 && customerPhone.startsWith('01') ? '#16a34a' : '#e11d48',
+                      color: phoneStatus.isValid ? '#16a34a' : '#e11d48',
                     }}
                   >
-                    {customerPhone.length === 11 && customerPhone.startsWith('01')
-                      ? '✓ رقم صحيح (11 رقم)'
-                      : `متبقي ${11 - customerPhone.length} رقم`}
+                    {phoneStatus.message}
                   </span>
                 )}
               </div>
@@ -334,8 +426,10 @@ export function StorefrontCheckoutModal({
                   padding: '10px 14px',
                   borderRadius: '10px',
                   border:
-                    customerPhone.length > 0 && (customerPhone.length !== 11 || !customerPhone.startsWith('01'))
-                      ? '1.5px solid #f87171'
+                    customerPhone.length > 0
+                      ? phoneStatus.isValid
+                        ? '1.5px solid #22c55e'
+                        : '1.5px solid #f87171'
                       : '1.5px solid #cbd5e1',
                   fontSize: '14px',
                   outline: 'none',
@@ -343,11 +437,9 @@ export function StorefrontCheckoutModal({
                   fontFamily: 'inherit',
                   direction: 'ltr',
                   textAlign: 'right',
+                  transition: 'border-color 0.2s ease',
                 }}
               />
-              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-                يجب إدخال 11 رقماً ويبدأ بـ 01 (فودافون / أورانج / اتصالات / وي)
-              </div>
 
               {/* Reassurance security badge if matched on this device */}
               {isDeviceMatched && (
@@ -406,16 +498,22 @@ export function StorefrontCheckoutModal({
                 required
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="مثال: أحمد محمد"
+                placeholder="مثال: علي محمد / مازن أحمد"
                 style={{
                   width: '100%',
                   padding: '10px 14px',
                   borderRadius: '10px',
-                  border: '1.5px solid #cbd5e1',
+                  border:
+                    customerName.length > 0
+                      ? nameStatus.isValid
+                        ? '1.5px solid #22c55e'
+                        : '1.5px solid #f87171'
+                      : '1.5px solid #cbd5e1',
                   fontSize: '14px',
                   outline: 'none',
                   background: '#f8fafc',
                   fontFamily: 'inherit',
+                  transition: 'border-color 0.2s ease',
                 }}
               />
             </div>
@@ -435,7 +533,12 @@ export function StorefrontCheckoutModal({
                   width: '100%',
                   padding: '9px 14px',
                   borderRadius: '10px',
-                  border: '1.5px solid #cbd5e1',
+                  border:
+                    customerAddress.length > 0
+                      ? addressStatus.isValid
+                        ? '1.5px solid #22c55e'
+                        : '1.5px solid #f87171'
+                      : '1.5px solid #cbd5e1',
                   fontSize: '13px',
                   outline: 'none',
                   background: '#f8fafc',
@@ -444,6 +547,7 @@ export function StorefrontCheckoutModal({
                   minHeight: '52px',
                   maxHeight: '64px',
                   lineHeight: '1.4',
+                  transition: 'border-color 0.2s ease',
                 }}
               />
             </div>
@@ -490,32 +594,30 @@ export function StorefrontCheckoutModal({
                   style={{
                     border: paymentMethod === 'cod' ? '2px solid #170e5e' : '1.5px solid #cbd5e1',
                     background: paymentMethod === 'cod' ? '#f8fafc' : '#ffffff',
-                    borderRadius: '10px',
-                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    gap: '2px',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                        الدفع عند الاستلام
-                      </span>
-                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                      الدفع عند الاستلام
+                    </span>
                     <div
                       style={{
-                        width: '14px',
-                        height: '14px',
+                        width: '13px',
+                        height: '13px',
                         borderRadius: '50%',
                         border: paymentMethod === 'cod' ? '4px solid #170e5e' : '1.5px solid #94a3b8',
                         background: '#ffffff',
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.3' }}>
+                  <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
                     الدفع نقداً للمندوب عند المعاينة
                   </span>
                 </div>
@@ -526,32 +628,30 @@ export function StorefrontCheckoutModal({
                   style={{
                     border: paymentMethod === 'instapay_wallet' ? '2px solid #170e5e' : '1.5px solid #cbd5e1',
                     background: paymentMethod === 'instapay_wallet' ? '#f8fafc' : '#ffffff',
-                    borderRadius: '10px',
-                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    gap: '2px',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                        إنستاباي / محفظة
-                      </span>
-                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                      إنستاباي / محفظة
+                    </span>
                     <div
                       style={{
-                        width: '14px',
-                        height: '14px',
+                        width: '13px',
+                        height: '13px',
                         borderRadius: '50%',
                         border: paymentMethod === 'instapay_wallet' ? '4px solid #170e5e' : '1.5px solid #94a3b8',
                         background: '#ffffff',
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.3' }}>
+                  <span style={{ fontSize: '10.5px', color: '#64748b', lineHeight: '1.2' }}>
                     تحويل مسبق لحساب المتجر
                   </span>
                 </div>
@@ -591,20 +691,20 @@ export function StorefrontCheckoutModal({
               style={{
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '12px 16px',
+                borderRadius: '8px',
+                padding: '8px 14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
             >
-              <div>
-                <span style={{ fontSize: '13px', color: '#64748b' }}>المبلغ الإجمالي للدفع:</span>
-                <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>المبلغ الإجمالي للدفع:</span>
+                <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>
                   ({subtotal.toFixed(0)} أصناف + {deliveryFee.toFixed(0)} توصيل)
-                </div>
+                </span>
               </div>
-              <span style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
+              <span style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
                 {total.toFixed(0)} ج.م
               </span>
             </div>
@@ -614,14 +714,14 @@ export function StorefrontCheckoutModal({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '8px',
                 cursor: 'pointer',
-                fontSize: '12.5px',
+                fontSize: '11px',
                 color: '#334155',
                 userSelect: 'none',
                 background: '#f8fafc',
-                padding: '10px 14px',
-                borderRadius: '10px',
+                padding: '7px 12px',
+                borderRadius: '8px',
                 border: '1px solid #e2e8f0',
               }}
             >
@@ -630,59 +730,72 @@ export function StorefrontCheckoutModal({
                 checked={rememberDevice}
                 onChange={(e) => setRememberDevice(e.target.checked)}
                 style={{
-                  width: '17px',
-                  height: '17px',
+                  width: '14px',
+                  height: '14px',
                   accentColor: '#170e5e',
                   cursor: 'pointer',
+                  flexShrink: 0,
                 }}
               />
-              <span style={{ fontWeight: 700, color: '#1e293b' }}>
+              <span style={{ fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap' }}>
                 تذكر بياناتي على هذا الجهاز لتسريع الطلب في المرات القادمة
               </span>
             </label>
           </div>
+        </div>
 
-          {/* Submit CTA */}
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                flex: 1,
-                padding: '13px 20px',
-                borderRadius: '10px',
-                background: '#0f172a',
-                color: '#ffffff',
-                fontSize: '15px',
-                fontWeight: 800,
-                border: 'none',
-                cursor: loading ? 'wait' : 'pointer',
-                boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {loading ? 'جاري الحفظ...' : editingOrderNumber ? 'حفظ تعديلات الطلب' : 'إرسال وتأكيد الطلب الآن'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              style={{
-                padding: '13px 18px',
-                borderRadius: '10px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#475569',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              إلغاء
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Sticky Bottom Actions Bar (Always visible & accessible on all screens) */}
+        <div
+          style={{
+            padding: '12px 20px',
+            borderTop: '1px solid #e2e8f0',
+            background: '#ffffff',
+            display: 'flex',
+            gap: '10px',
+            flexShrink: 0,
+            boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.04)',
+            zIndex: 10,
+          }}
+        >
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              flex: 1,
+              padding: '12px 20px',
+              borderRadius: '10px',
+              background: '#170e5e',
+              color: '#ffffff',
+              fontSize: '15px',
+              fontWeight: 800,
+              border: 'none',
+              cursor: loading ? 'wait' : 'pointer',
+              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.25)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {loading ? 'جاري الحفظ...' : editingOrderNumber ? 'حفظ تعديلات الطلب' : 'إرسال وتأكيد الطلب الآن'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            style={{
+              padding: '12px 18px',
+              borderRadius: '10px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#475569',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            إلغاء
+          </button>
+        </div>
+      </form>
     </div>
-  );
+  </div>
+);
 }

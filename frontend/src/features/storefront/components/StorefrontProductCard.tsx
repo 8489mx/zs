@@ -11,6 +11,8 @@ interface StorefrontProductCardProps {
   onUpdateQuantity: (productId: number, newQty: number) => void;
   isSmartDeal?: boolean;
   onOpenReviewModal?: (product: StorefrontProduct) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (productId: number) => void;
 }
 
 export const StorefrontProductCard = React.memo(function StorefrontProductCard({
@@ -21,11 +23,13 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   onUpdateQuantity,
   isSmartDeal,
   onOpenReviewModal,
+  isFavorite: isFavoriteProp,
+  onToggleFavorite: onToggleFavoriteProp,
 }: StorefrontProductCardProps) {
   const isOutOfStock = !product.inStock || product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(() => {
+  const [localFavorite, setLocalFavorite] = useState(() => {
     try {
       return localStorage.getItem(`zs_fav_${product.id}`) === 'true';
     } catch {
@@ -33,15 +37,21 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
     }
   });
 
+  const isFavorite = isFavoriteProp !== undefined ? isFavoriteProp : localFavorite;
+
   const toggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorite((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(`zs_fav_${product.id}`, String(next));
-      } catch {}
-      return next;
-    });
+    if (onToggleFavoriteProp) {
+      onToggleFavoriteProp(product.id);
+    } else {
+      setLocalFavorite((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem(`zs_fav_${product.id}`, String(next));
+        } catch {}
+        return next;
+      });
+    }
   };
 
   // Priority: 1. Merchant Uploaded Photo -> 2. Auto-Assigned Photographic Library
@@ -140,14 +150,31 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             border-radius: 8px !important;
             gap: 4px !important;
           }
+          .storefront-product-quick-add {
+            width: 24px !important;
+            height: 24px !important;
+            min-width: 24px !important;
+            min-height: 24px !important;
+            max-width: 24px !important;
+            max-height: 24px !important;
+            padding: 0 !important;
+            border-radius: 50% !important;
+            box-sizing: border-box !important;
+          }
           .storefront-product-stepper {
             padding: 2px !important;
             border-radius: 8px !important;
           }
           .storefront-product-stepper-btn {
-            width: 28px !important;
-            height: 28px !important;
-            font-size: 15px !important;
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            max-width: 32px !important;
+            max-height: 32px !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            font-size: 16px !important;
           }
           .storefront-product-stepper-count {
             font-size: 12.5px !important;
@@ -332,8 +359,14 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 position: 'absolute',
                 bottom: '8px',
                 left: '8px',
-                width: '24px',
-                height: '24px',
+                width: '28px',
+                height: '28px',
+                minWidth: '28px',
+                minHeight: '28px',
+                maxWidth: '28px',
+                maxHeight: '28px',
+                padding: 0,
+                boxSizing: 'border-box',
                 borderRadius: '50%',
                 background: '#170e5e',
                 color: '#ffffff',
@@ -355,7 +388,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 e.currentTarget.style.background = '#170e5e';
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -567,7 +600,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             <span>استفسر عن السعر</span>
           </a>
         ) : cartQuantity > 0 ? (
-          /* Dynamic Stepper Counter: [- count +] */
+          /* Dynamic Stepper Counter: [+ count -] in RTL */
           <div
             className="storefront-product-stepper"
             style={{
@@ -583,10 +616,17 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             <button
               className="storefront-product-stepper-btn"
               type="button"
-              onClick={() => onUpdateQuantity(product.id, cartQuantity - 1)}
+              onClick={() => onUpdateQuantity(product.id, cartQuantity + 1)}
+              title="زيادة الكمية"
               style={{
                 width: '36px',
                 height: '36px',
+                minWidth: '36px',
+                minHeight: '36px',
+                maxWidth: '36px',
+                maxHeight: '36px',
+                padding: 0,
+                boxSizing: 'border-box',
                 borderRadius: '8px',
                 background: 'rgba(255,255,255,0.18)',
                 color: '#ffffff',
@@ -597,9 +637,13 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                lineHeight: 1,
+                transition: 'background 0.15s ease',
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.28)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
             >
-              -
+              +
             </button>
             <span
               className="storefront-product-stepper-count"
@@ -616,10 +660,17 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             <button
               className="storefront-product-stepper-btn"
               type="button"
-              onClick={() => onUpdateQuantity(product.id, cartQuantity + 1)}
+              onClick={() => onUpdateQuantity(product.id, cartQuantity - 1)}
+              title="تقليل الكمية"
               style={{
                 width: '36px',
                 height: '36px',
+                minWidth: '36px',
+                minHeight: '36px',
+                maxWidth: '36px',
+                maxHeight: '36px',
+                padding: 0,
+                boxSizing: 'border-box',
                 borderRadius: '8px',
                 background: 'rgba(255,255,255,0.18)',
                 color: '#ffffff',
@@ -630,9 +681,13 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                lineHeight: 1,
+                transition: 'background 0.15s ease',
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.28)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
             >
-              +
+              -
             </button>
           </div>
         ) : (

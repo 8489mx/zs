@@ -86,6 +86,67 @@ export function PublicStorefrontPage() {
   const [reviewProduct, setReviewProduct] = useState<StorefrontProduct | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
+  // Favorites State (Persisted per slug)
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => {
+    const set = new Set<number>();
+    try {
+      const saved = localStorage.getItem(`zs_fav_ids_${cleanSlug}`);
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) {
+          arr.forEach((id: number) => set.add(Number(id)));
+        }
+      }
+      // Also scan legacy individual zs_fav_${id}
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('zs_fav_') && !key.startsWith('zs_fav_ids_')) {
+          if (localStorage.getItem(key) === 'true') {
+            const id = Number(key.replace('zs_fav_', ''));
+            if (!isNaN(id)) set.add(id);
+          }
+        }
+      }
+    } catch {}
+    return set;
+  });
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+
+  const handleToggleFavorite = useCallback((productId: number) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+        try { localStorage.removeItem(`zs_fav_${productId}`); } catch {}
+      } else {
+        next.add(productId);
+        try { localStorage.setItem(`zs_fav_${productId}`, 'true'); } catch {}
+      }
+      try {
+        localStorage.setItem(`zs_fav_ids_${cleanSlug}`, JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  }, [cleanSlug]);
+
+  const handleToggleFavorites = useCallback(() => {
+    setOnlyFavorites((prev) => {
+      const next = !prev;
+      if (next) {
+        setSelectedCategory('all');
+        setOnlyDeals(false);
+        setSearchTerm('');
+        setTimeout(() => {
+          const el = document.getElementById('storefront-products-section');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 50);
+      }
+      return next;
+    });
+  }, []);
+
   const handleOpenReviewModal = useCallback((product: StorefrontProduct) => {
     setReviewProduct(product);
     setIsReviewModalOpen(true);
@@ -95,10 +156,10 @@ export function PublicStorefrontPage() {
     catalogQuery.refetch();
   }, [catalogQuery]);
 
-  // Reset pagination when category or search changes
+  // Reset pagination when category, search, or filters change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
-  }, [selectedCategory, searchTerm, onlyDeals]);
+  }, [selectedCategory, searchTerm, onlyDeals, onlyFavorites]);
 
   // Cart State (Persisted per slug)
   const cartStorageKey = `zs_storefront_cart_${cleanSlug}`;
@@ -191,6 +252,7 @@ export function PublicStorefrontPage() {
     setSearchTerm('');
     setSelectedCategory('all');
     setOnlyDeals(false);
+    setOnlyFavorites(false);
     setInStockOnly(false);
     setSortBy('featured');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -273,6 +335,11 @@ export function PublicStorefrontPage() {
       list = dealsProducts;
     }
 
+    // Only favorites filter
+    if (onlyFavorites) {
+      list = list.filter((p) => favoriteIds.has(Number(p.id)));
+    }
+
     // Search filter
     if (searchTerm.trim()) {
       const q = searchTerm.trim().toLowerCase();
@@ -299,7 +366,7 @@ export function PublicStorefrontPage() {
     });
 
     return list;
-  }, [rawProducts, selectedCategory, inStockOnly, onlyDeals, searchTerm, sortBy]);
+  }, [rawProducts, selectedCategory, inStockOnly, onlyDeals, onlyFavorites, favoriteIds, dealsProducts, searchTerm, sortBy]);
 
   // Homepage curated top categories (Limit to Top 8 categories by product count)
   const topHomepageSections = useMemo(() => {
@@ -347,7 +414,7 @@ export function PublicStorefrontPage() {
     [cartItems]
   );
 
-  const isHomepageMultiRow = selectedCategory === 'all' && !searchTerm.trim() && !onlyDeals;
+  const isHomepageMultiRow = selectedCategory === 'all' && !searchTerm.trim() && !onlyDeals && !onlyFavorites;
 
   if (catalogQuery.isLoading || infoQuery.isLoading) {
     return (
@@ -469,16 +536,21 @@ export function PublicStorefrontPage() {
         onSelectCategory={(id) => {
           setSelectedCategory(id);
           setOnlyDeals(false);
+          setOnlyFavorites(false);
         }}
         onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
         onlyDeals={onlyDeals}
         onToggleDeals={() => {
           setOnlyDeals(!onlyDeals);
+          setOnlyFavorites(false);
           setSelectedCategory('all');
         }}
         inStockOnly={inStockOnly}
         onToggleInStock={() => setInStockOnly(!inStockOnly)}
         dealsCount={dealsProducts.length}
+        onlyFavorites={onlyFavorites}
+        onToggleFavorites={handleToggleFavorites}
+        favoritesCount={favoriteIds.size}
       />
 
       {/* Horizontal Circular Category Showcase (Top 10 + More) */}
@@ -629,6 +701,8 @@ export function PublicStorefrontPage() {
                       onUpdateQuantity={handleUpdateQuantity}
                       isSmartDeal={true}
                       onOpenReviewModal={handleOpenReviewModal}
+                      isFavorite={favoriteIds.has(product.id)}
+                      onToggleFavorite={handleToggleFavorite}
                     />
                   ))}
                 </div>
@@ -732,6 +806,8 @@ export function PublicStorefrontPage() {
                           onAddToCart={handleAddToCart}
                           onUpdateQuantity={handleUpdateQuantity}
                           onOpenReviewModal={handleOpenReviewModal}
+                          isFavorite={favoriteIds.has(product.id)}
+                          onToggleFavorite={handleToggleFavorite}
                         />
                       ))}
                     </div>
@@ -780,8 +856,8 @@ export function PublicStorefrontPage() {
             </div>
           </div>
         ) : (
-          /* CASE 2: Category View / Search View (with Pagination for high performance) */
-          <div>
+          /* CASE 2: Category View / Search View / Favorites View (with Pagination for high performance) */
+          <div id="storefront-products-section">
             {/* Filter & Sorting Controls Bar (Always strictly 1 line on all screens) */}
             <div
               className="storefront-filter-header"
@@ -805,6 +881,7 @@ export function PublicStorefrontPage() {
                 onClick={() => {
                   setSelectedCategory('all');
                   setOnlyDeals(false);
+                  setOnlyFavorites(false);
                   setSearchTerm('');
                 }}
                 title="العودة للصفحة الرئيسية"
@@ -872,6 +949,8 @@ export function PublicStorefrontPage() {
                   title={
                     searchTerm
                       ? `نتائج البحث عن "${searchTerm}"`
+                      : onlyFavorites
+                      ? 'المنتجات المفضلة'
                       : onlyDeals
                       ? 'العروض والتخفيضات'
                       : `${categories.find((c) => c.id === selectedCategory)?.name || 'القسم'}`
@@ -879,6 +958,8 @@ export function PublicStorefrontPage() {
                 >
                   {searchTerm
                     ? `بحث: "${searchTerm}"`
+                    : onlyFavorites
+                    ? 'المنتجات المفضلة'
                     : onlyDeals
                     ? 'العروض والتخفيضات'
                     : `${categories.find((c) => c.id === selectedCategory)?.name || 'القسم المختار'}`}
@@ -887,8 +968,9 @@ export function PublicStorefrontPage() {
                   style={{
                     fontSize: '10.5px',
                     fontWeight: 700,
-                    background: '#f0f3ff',
-                    color: '#170e5e',
+                    background: onlyFavorites ? '#fef2f2' : '#f0f3ff',
+                    color: onlyFavorites ? '#dc2626' : '#170e5e',
+                    border: onlyFavorites ? '1px solid #fecaca' : 'none',
                     padding: '2px 6px',
                     borderRadius: '5px',
                     flexShrink: 0,
@@ -901,15 +983,7 @@ export function PublicStorefrontPage() {
 
               {/* Compact Sorting Icon Button with Native Select Overlay */}
               <div
-                title={
-                  sortBy === 'price-asc'
-                    ? 'الترتيب: الأقل سعراً'
-                    : sortBy === 'price-desc'
-                    ? 'الترتيب: الأعلى سعراً'
-                    : sortBy === 'name'
-                    ? 'الترتيب: أبجدياً'
-                    : 'الترتيب: المتوفر أولاً'
-                }
+                title="ترتيب المنتجات"
                 style={{
                   position: 'relative',
                   display: 'inline-flex',
@@ -918,42 +992,19 @@ export function PublicStorefrontPage() {
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  border: sortBy !== 'featured' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                  background: sortBy !== 'featured' ? '#eff6ff' : '#f8fafc',
-                  color: '#170e5e',
-                  flexShrink: 0,
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  color: '#1e293b',
                   cursor: 'pointer',
+                  flexShrink: 0,
                   transition: 'all 0.15s ease',
                 }}
               >
-                {/* Sort SVG Icon */}
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M3 6h18M6 12h12M9 18h6" />
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="21" y1="6" x2="3" y2="6" />
+                  <line x1="17" y1="12" x2="7" y2="12" />
+                  <line x1="13" y1="18" x2="11" y2="18" />
                 </svg>
-
-                {/* Active Sort Indicator Dot */}
-                {sortBy !== 'featured' && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '4px',
-                      left: '4px',
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      background: '#2563eb',
-                    }}
-                  />
-                )}
 
                 {/* Invisible Native Select overlay for seamless mobile wheel / desktop picker */}
                 <select
@@ -962,7 +1013,8 @@ export function PublicStorefrontPage() {
                   aria-label="ترتيب المنتجات"
                   style={{
                     position: 'absolute',
-                    inset: 0,
+                    top: 0,
+                    left: 0,
                     width: '100%',
                     height: '100%',
                     opacity: 0,
@@ -992,33 +1044,51 @@ export function PublicStorefrontPage() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-                  <IconSearch size={36} color="#94a3b8" />
+                  {onlyFavorites ? (
+                    <svg
+                      width="44"
+                      height="44"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#f43f5e"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  ) : (
+                    <IconSearch size={36} color="#94a3b8" />
+                  )}
                 </div>
                 <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>
-                  لا توجد منتجات مطابقة
+                  {onlyFavorites ? 'قائمتك المفضلة فارغة حالياً' : 'لا توجد منتجات مطابقة'}
                 </h3>
                 <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#94a3b8' }}>
-                  جرب البحث باسم صنف آخر أو تصفح الأقسام الأخرى.
+                  {onlyFavorites
+                    ? 'اضغط على رمز القلب في أي منتج لإضافته إلى قائمتك المفضلة والوصول إليه بسرعة في أي وقت.'
+                    : 'جرب البحث باسم صنف آخر أو تصفح الأقسام الأخرى.'}
                 </p>
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedCategory('all');
                     setOnlyDeals(false);
+                    setOnlyFavorites(false);
                     setSearchTerm('');
                   }}
                   style={{
-                    padding: '6px 14px',
-                    borderRadius: '6px',
+                    padding: '8px 18px',
+                    borderRadius: '8px',
                     background: '#170e5e',
                     color: '#ffffff',
                     border: 'none',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
-                  العودة للصفحة الرئيسية
+                  {onlyFavorites ? 'تصفح جميع المنتجات' : 'العودة للصفحة الرئيسية'}
                 </button>
               </div>
             ) : (
@@ -1034,6 +1104,8 @@ export function PublicStorefrontPage() {
                       onUpdateQuantity={handleUpdateQuantity}
                       isSmartDeal={smartDealProductIds.has(product.id)}
                       onOpenReviewModal={handleOpenReviewModal}
+                      isFavorite={favoriteIds.has(product.id)}
+                      onToggleFavorite={handleToggleFavorite}
                     />
                   ))}
                 </div>

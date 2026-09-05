@@ -209,7 +209,7 @@ body,
     gap: 8px !important;
   }
 
-  :where(.btn, .button, button):not(.pos-workspace *, .pos-sale-success-modal-shell *, .pos-cart-qty-btn, .mobile-bottom-nav-item, .filter-chip-row *, .compact-actions *) {
+  :where(.btn, .button, button):not(.pos-workspace *, .pos-sale-success-modal-shell *, .pos-cart-qty-btn, .mobile-bottom-nav-item, .filter-chip-row *, .compact-actions *, .storefront-product-card *) {
     min-height: 36px;
     padding-inline: 12px;
     font-size: 13px;

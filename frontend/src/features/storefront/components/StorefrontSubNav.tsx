@@ -11,6 +11,9 @@ interface StorefrontSubNavProps {
   inStockOnly: boolean;
   onToggleInStock: () => void;
   dealsCount: number;
+  onlyFavorites?: boolean;
+  onToggleFavorites?: () => void;
+  favoritesCount?: number;
 }
 
 export function StorefrontSubNav({
@@ -23,6 +26,9 @@ export function StorefrontSubNav({
   inStockOnly,
   onToggleInStock,
   dealsCount,
+  onlyFavorites = false,
+  onToggleFavorites,
+  favoritesCount = 0,
 }: StorefrontSubNavProps) {
   const selectedCat = categories.find((c) => c.id === selectedCategoryId);
 
@@ -184,10 +190,104 @@ export function StorefrontSubNav({
             <IconCheckCircle size={14} color={inStockOnly ? '#16a34a' : '#94a3b8'} strokeWidth={2} />
             <span>المتوفر بالمخزن</span>
           </button>
+
+          {/* Favorites Filter Pill */}
+          {onToggleFavorites && (
+            <button
+              className="storefront-subnav-pill"
+              type="button"
+              onClick={onToggleFavorites}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: onlyFavorites ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
+                background: onlyFavorites ? '#fef2f2' : '#ffffff',
+                color: onlyFavorites ? '#dc2626' : '#334155',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill={onlyFavorites || favoritesCount > 0 ? '#ef4444' : 'none'}
+                stroke={onlyFavorites || favoritesCount > 0 ? '#ef4444' : '#94a3b8'}
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+              <span>المفضلة</span>
+              {favoritesCount > 0 && (
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    background: onlyFavorites ? '#ef4444' : '#fee2e2',
+                    color: onlyFavorites ? '#ffffff' : '#991b1b',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    fontWeight: 800,
+                  }}
+                >
+                  {favoritesCount}
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Right Side: Active Selection Breadcrumb / Reset */}
-        {selectedCat ? (
+        {onlyFavorites ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>التصفية:</span>
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 800,
+                color: '#dc2626',
+                background: '#fef2f2',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: '1px solid #fecaca',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+              <span>المفضلة ({favoritesCount})</span>
+            </span>
+            {onToggleFavorites && (
+              <button
+                type="button"
+                onClick={onToggleFavorites}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#ef4444',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <span>إلغاء</span>
+                <IconClose size={12} strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+        ) : selectedCat ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '12px', color: '#64748b' }}>القسم الحالي:</span>
             <span

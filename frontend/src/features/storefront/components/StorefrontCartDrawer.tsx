@@ -240,7 +240,8 @@ export function StorefrontCartDrawer({
                 >
                   <button
                     type="button"
-                    onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                    onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                    title="زيادة الكمية"
                     style={{
                       width: '26px',
                       height: '26px',
@@ -250,9 +251,13 @@ export function StorefrontCartDrawer({
                       fontSize: '14px',
                       fontWeight: 'bold',
                       color: '#334155',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0,
                     }}
                   >
-                    -
+                    +
                   </button>
                   <span
                     style={{
@@ -267,7 +272,8 @@ export function StorefrontCartDrawer({
                   </span>
                   <button
                     type="button"
-                    onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                    onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                    title="تقليل الكمية"
                     style={{
                       width: '26px',
                       height: '26px',
@@ -277,9 +283,13 @@ export function StorefrontCartDrawer({
                       fontSize: '14px',
                       fontWeight: 'bold',
                       color: '#334155',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0,
                     }}
                   >
-                    +
+                    -
                   </button>
                 </div>
               </div>

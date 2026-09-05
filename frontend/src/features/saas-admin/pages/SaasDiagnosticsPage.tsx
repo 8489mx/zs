@@ -73,7 +73,7 @@ export function SaasDiagnosticsPage() {
         <PageHeader
           title="سجلات التشخيص والدعم الفني"
           description="متابعة وتحميل حزم اللوجات والفحص المرفوعة تلقائياً ويدوياً من أجهزة العملاء لحل المشاكل استباقياً."
-          badge={<span className="nav-pill">{pagination?.totalItems || items.length} تقرير</span>}
+          badge={<span className="nav-pill">{pagination?.total || items.length} تقرير</span>}
           actions={
             <div className="actions compact-actions">
               <Button

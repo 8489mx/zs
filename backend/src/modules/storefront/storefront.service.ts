@@ -307,8 +307,22 @@ export class StorefrontService {
     }
 
     const cleanCustomerPhone = (dto.customerPhone || '').replace(/\D/g, '');
-    if (cleanCustomerPhone.length !== 11 || !cleanCustomerPhone.startsWith('01')) {
-      throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً يبدأ بـ 01 (مثال: 01012345678)');
+    if (!/^01[0125]\d{8}$/.test(cleanCustomerPhone)) {
+      throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
+    }
+
+    const cleanCustomerName = (dto.customerName || '').trim();
+    const nameLetters = (cleanCustomerName.match(/[\p{L}\p{M}]/gu) || []).length;
+    if (cleanCustomerName.length < 3 || nameLetters < 3) {
+      throw new BadRequestException('يرجى إدخال اسم مستلم صحيح لا يقل عن 3 أحرف (مثال: علي، مازن، محمد)');
+    }
+
+    const cleanCustomerAddress = (dto.customerAddress || '').trim();
+    if (cleanCustomerAddress) {
+      const addressLetters = (cleanCustomerAddress.match(/[\p{L}\p{M}]/gu) || []).length;
+      if (cleanCustomerAddress.length < 5 || addressLetters < 3) {
+        throw new BadRequestException('يرجى إدخال عنوان توصيل واضح ومفصل لا يقل عن 5 أحرف');
+      }
     }
 
     const minOrder = Number(settings.get('storefront_min_order') || 0);
@@ -606,6 +620,29 @@ export class StorefrontService {
 
     const deliveryFee = Number(settings.get('storefront_delivery_fee') || 0);
     const minOrder = Number(settings.get('storefront_min_order') || 0);
+
+    if (dto.customerPhone) {
+      const cleanCustomerPhone = dto.customerPhone.replace(/\D/g, '');
+      if (!/^01[0125]\d{8}$/.test(cleanCustomerPhone)) {
+        throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
+      }
+    }
+
+    if (dto.customerName) {
+      const cleanCustomerName = dto.customerName.trim();
+      const nameLetters = (cleanCustomerName.match(/[\p{L}\p{M}]/gu) || []).length;
+      if (cleanCustomerName.length < 3 || nameLetters < 3) {
+        throw new BadRequestException('يرجى إدخال اسم مستلم صحيح لا يقل عن 3 أحرف (مثال: علي، مازن، محمد)');
+      }
+    }
+
+    if (dto.customerAddress) {
+      const cleanCustomerAddress = dto.customerAddress.trim();
+      const addressLetters = (cleanCustomerAddress.match(/[\p{L}\p{M}]/gu) || []).length;
+      if (cleanCustomerAddress.length < 5 || addressLetters < 3) {
+        throw new BadRequestException('يرجى إدخال عنوان توصيل واضح ومفصل لا يقل عن 5 أحرف');
+      }
+    }
 
     const rawProductIds = dto.items.map((i) => Number(i.productId)).filter(Boolean);
     if (rawProductIds.length === 0) {

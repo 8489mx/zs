@@ -491,7 +491,6 @@ export function StorefrontHeader({
               }}
             >
               <PackageIcon size={19} />
-              <span className="storefront-action-label">طلباتي</span>
             </button>
           )}
 

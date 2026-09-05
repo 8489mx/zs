@@ -790,8 +790,6 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
   const cleanCat = (categoryName || '').trim();
   const combined = `${cleanTitle} ${cleanCat}`.toLowerCase();
 
-  let accentColor = '#170e5e'; // Deep Royal Navy
-  let badgeText = cleanCat || 'منتج أصلي معتمد';
   let iconMarkup = '';
 
   const isTech = /رام|ram|كابل|cable|كونفرت|وصل|صوت|usb|كمبيوتر|لابتوب|هارد|ماوس|كيبورد|شاش|الكترون|موبايل|شاحن|dvr|كامير|هيدفون|سماع|audio|hdmi|vga|otg/.test(combined);
@@ -799,8 +797,6 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
   const isFashion = /قميص|بنطلون|فستان|تيشيرت|حذاء|شنط|ملابس|كوتشي|جاكيت/.test(combined);
 
   if (isTech) {
-    accentColor = '#0284c7';
-    if (!cleanCat) badgeText = 'إلكترونيات وكمبيوتر';
     iconMarkup = `
       <rect x="42" y="30" width="116" height="74" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5" />
       <circle cx="100" cy="67" r="16" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="4 3" />
@@ -810,8 +806,6 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
       <path d="M42 52H32M42 82H32M158 52h10M158 82h10" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
     `;
   } else if (isSupermarket) {
-    accentColor = '#047857';
-    if (!cleanCat) badgeText = 'أغذية ومواد تموينية';
     iconMarkup = `
       <rect x="45" y="32" width="110" height="72" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2.5" />
       <path d="M65 50h70l-8 36H73l-8-36z" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linejoin="round" />
@@ -820,15 +814,11 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
       <path d="M85 50c0-8 6-14 15-14s15 6 15 14" fill="none" stroke="#a7f3d0" stroke-width="2.5" stroke-linecap="round" />
     `;
   } else if (isFashion) {
-    accentColor = '#7c3aed';
-    if (!cleanCat) badgeText = 'أزياء وملابس';
     iconMarkup = `
       <rect x="45" y="32" width="110" height="72" rx="14" fill="#3b0764" stroke="#c084fc" stroke-width="2.5" />
       <path d="M80 42l20 10 20-10 14 12-8 10-6-4v36H80V60l-6 4-8-10 14-12z" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linejoin="round" />
     `;
   } else {
-    accentColor = '#170e5e';
-    if (!cleanCat) badgeText = 'منتج معتمد';
     iconMarkup = `
       <rect x="45" y="32" width="110" height="72" rx="14" fill="#170e5e" stroke="#818cf8" stroke-width="2.5" />
       <path d="M45 58h110" stroke="#818cf8" stroke-width="2" stroke-dasharray="4 3" />
@@ -837,8 +827,6 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
       <path d="M96 32l3 3 6-6" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
     `;
   }
-
-  if (badgeText.length > 20) badgeText = badgeText.slice(0, 19) + '...';
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 155" width="100%" height="100%">
@@ -861,17 +849,10 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
       <circle cx="20" cy="135" r="2" fill="#cbd5e1" />
       <circle cx="180" cy="135" r="2" fill="#cbd5e1" />
 
-      <!-- Center Icon Group -->
-      <g filter="url(#glow)">
+      <!-- Center Icon Group (Cleanly centered) -->
+      <g filter="url(#glow)" transform="translate(0, 6)">
         ${iconMarkup}
       </g>
-      
-      <!-- Bottom Badge -->
-      <rect x="25" y="122" width="150" height="22" rx="11" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" />
-      <circle cx="40" cy="133" r="3.5" fill="${accentColor}" />
-      <text x="100" y="137" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="800" fill="${accentColor}" text-anchor="middle" direction="rtl">
-        ${badgeText}
-      </text>
     </svg>
   `.trim().replace(/\s+/g, ' ');
 
