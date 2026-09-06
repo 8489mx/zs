@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { deliveryRepsApi, type DeliveryRep } from '@/shared/api/delivery-reps.api';
@@ -110,9 +111,7 @@ export function ConvertDeliveryModal({
               fontWeight: 700,
               color: '#475569',
             }}
-          >
-            ✕
-          </button>
+          ><XIcon size={15} /></button>
         </div>
 
         {/* Body */}

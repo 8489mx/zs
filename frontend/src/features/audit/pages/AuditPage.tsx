@@ -23,6 +23,7 @@ import {
 } from '@/features/audit/lib/audit-activity-presenter';
 import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { AuditLog } from '@/types/domain';
+import { FileTextIcon, ShieldAlertIcon } from '@/shared/components/icons/AppIcons';
 import { CashierFraudRadarSection } from '../components/CashierFraudRadarSection';
 
 const auditFilterOptions = [
@@ -163,7 +164,7 @@ export function AuditPage() {
               transition: 'all 0.15s ease',
             }}
           >
-            <span>📋</span>
+            <FileTextIcon size={16} />
             <span>سجل العمليات والأنشطة العام</span>
           </button>
 
@@ -186,7 +187,7 @@ export function AuditPage() {
               transition: 'all 0.15s ease',
             }}
           >
-            <span>🕵️‍♂️</span>
+            <ShieldAlertIcon size={16} />
             <span>رادار كشف التلاعب ومنع الخسائر</span>
             <span
               style={{

@@ -45,8 +45,14 @@ export function SalesWorkspace() {
   const activeFilterLabel = getSalesViewFilterLabel(viewFilter);
   const totalItems = pagination?.totalItems || 0;
   const topCustomers = summary?.topCustomers || [];
-  const rangeStart = pagination?.rangeStart || 0;
-  const rangeEnd = pagination?.rangeEnd || 0;
+  const currentPage = pagination?.page || page;
+  const currentPageSize = pagination?.pageSize || pageSize;
+  const rangeStart = pagination?.rangeStart != null && pagination.rangeStart > 0
+    ? pagination.rangeStart
+    : (totalItems > 0 ? (currentPage - 1) * currentPageSize + 1 : 0);
+  const rangeEnd = pagination?.rangeEnd != null && pagination.rangeEnd > 0
+    ? pagination.rangeEnd
+    : (totalItems > 0 ? Math.min(currentPage * currentPageSize, totalItems) : 0);
   const printSettings = settingsQuery.data || null;
   const cashierOptions = useMemo(() => {
     const userOptions = (usersQuery.data || [])

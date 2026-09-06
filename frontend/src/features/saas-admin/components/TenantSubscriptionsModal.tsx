@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -267,9 +268,7 @@ export function TenantSubscriptionsModal({
               onClick={onClose}
               title="إغلاق"
               style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', fontSize: '16px' }}
-            >
-              ✕
-            </button>
+            ><XIcon size={15} /></button>
           </div>
         </div>
 

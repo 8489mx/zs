@@ -4,7 +4,7 @@ import { deliveryRepsApi, DeliveryRep, DeliveryOrder, SettleOrderPayload } from 
 import { Button } from '@/shared/ui/button';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
 import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
-import { BarcodeIcon, RefreshCwIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { BarcodeIcon, RefreshCwIcon, PrinterIcon, TruckIcon, PackageIcon, CheckIcon, ClockIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { VanSaleNewInvoiceModal } from '../components/VanSaleNewInvoiceModal';
 import { DeliverySettlementModal } from '../components/DeliverySettlementModal';
 
@@ -97,7 +97,7 @@ export function DeliveryDriverMobilePage() {
     setOfflineQueue(updated);
     localStorage.setItem('zs_driver_offline_queue', JSON.stringify(updated));
     setActiveSettleOrder(null);
-    alert('⚠️ تم حفظ تسليم الطلب محلياً بنجاح في وضع الأوفلاين! سيتم مزامنته تلقائياً فور عودة الإنترنت.');
+    alert('تم حفظ تسليم الطلب محلياً بنجاح في وضع الأوفلاين! سيتم مزامنته تلقائياً فور عودة الإنترنت.');
   };
 
   const syncOfflineQueue = async () => {
@@ -118,7 +118,7 @@ export function DeliveryDriverMobilePage() {
     setIsSyncingOffline(false);
     queryClient.invalidateQueries({ queryKey: ['driver-orders', selectedRepId] });
     if (remaining.length === 0) {
-      alert('تمت مزامنة جميع الشحنات المعلقة مع السيرفر بنجاح! ✓');
+      alert('تمت مزامنة جميع الشحنات المعلقة مع السيرفر بنجاح!');
     }
   };
 
@@ -136,7 +136,7 @@ export function DeliveryDriverMobilePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['driver-orders', selectedRepId] });
       setActiveSettleOrder(null);
-      alert('تم تأكيد تسليم وتحصيل الطلب بنجاح! ✅');
+      alert('تم تأكيد تسليم وتحصيل الطلب بنجاح!');
     },
     onError: (err: any, vars) => {
       if (!navigator.onLine || err?.message?.includes('Network') || err?.message?.includes('Failed to fetch')) {
@@ -149,10 +149,6 @@ export function DeliveryDriverMobilePage() {
     },
   });
 
-  const handleSelectRep = (id: number) => {
-    setSelectedRepId(id);
-    localStorage.setItem('zs_driver_rep_id', String(id));
-  };
 
   const handleCall = (phone?: string) => {
     if (!phone) return alert('رقم هاتف العميل غير متوفر');
@@ -240,7 +236,6 @@ export function DeliveryDriverMobilePage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#1e1b4b' }}>
-            <span style={{ fontSize: '18px' }}>📲</span>
             <div>
               <strong>تثبيت شاشة المندوب:</strong> شاشة كاملة وسرعة وصول بدون متصفح.
             </div>
@@ -281,7 +276,7 @@ export function DeliveryDriverMobilePage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#92400e' }}>
-            <span style={{ fontSize: '18px' }}>📦</span>
+            <PackageIcon size={18} color="#92400e" />
             <div>
               <strong>شحنات بانتظار المزامنة:</strong> لديك {offlineQueue.length} طلب سُلم أوفلاين.
             </div>
@@ -340,9 +335,10 @@ export function DeliveryDriverMobilePage() {
             <button
               type="button"
               onClick={() => setScannedCode('')}
-              style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
             >
-              ✕ إلغاء التصفية
+              <XIcon size={12} color="#ef4444" />
+              <span>إلغاء التصفية</span>
             </button>
           </div>
         )}
@@ -354,8 +350,21 @@ export function DeliveryDriverMobilePage() {
           </label>
           <select
             value={selectedRepId}
-            onChange={(e) => handleSelectRep(Number(e.target.value))}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff', fontWeight: 700 }}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setSelectedRepId(val);
+              localStorage.setItem('zs_driver_rep_id', String(val));
+            }}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              borderRadius: '8px',
+              border: '1.5px solid #cbd5e1',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#0f172a',
+              background: '#ffffff',
+            }}
           >
             {repsList.map((r) => (
               <option key={r.id} value={r.id}>
@@ -404,7 +413,7 @@ export function DeliveryDriverMobilePage() {
             boxShadow: '0 2px 4px rgba(23,14,94,0.15)',
           }}
         >
-          <span>🚚</span>
+          <TruckIcon size={16} color="#ffffff" />
           <span>+ بيع مباشر من السيارة (Van Sale)</span>
         </button>
       </div>
@@ -482,9 +491,22 @@ export function DeliveryDriverMobilePage() {
                       borderRadius: '6px',
                       background: isSettled ? '#dcfce7' : '#ffedd5',
                       color: isSettled ? '#166534' : '#c2410c',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    {isSettled ? '✓ تم التسليم والتحصيل' : '⏳ قيد التوصيل'}
+                    {isSettled ? (
+                      <>
+                        <CheckIcon size={12} color="#166534" />
+                        <span>تم التسليم والتحصيل</span>
+                      </>
+                    ) : (
+                      <>
+                        <ClockIcon size={12} color="#c2410c" />
+                        <span>قيد التوصيل</span>
+                      </>
+                    )}
                   </span>
                 </div>
 
@@ -589,13 +611,15 @@ export function DeliveryDriverMobilePage() {
                 {isSettled ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
                     {order.deliverySignature && (
-                      <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                        ✍️ توقيع العميل معتمد
+                      <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <CheckIcon size={11} color="#3730a3" />
+                        <span>توقيع العميل معتمد</span>
                       </span>
                     )}
                     {order.deliveryPhotoUrl && (
-                      <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                        📸 صورة إثبات التسليم مرفقة
+                      <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <CheckIcon size={11} color="#92400e" />
+                        <span>صورة إثبات التسليم مرفقة</span>
                       </span>
                     )}
                     {order.deliveryNotes && (
@@ -613,7 +637,7 @@ export function DeliveryDriverMobilePage() {
                   >
                     {settleMutation.isPending && activeSettleOrder?.id === order.id
                       ? 'جاري التأكيد...'
-                      : '✅ تسليم وتحصيل (توقيع وكاميرا أوفلاين)'}
+                      : 'تسليم وتحصيل (توقيع وكاميرا أوفلاين)'}
                   </Button>
                 )}
               </div>

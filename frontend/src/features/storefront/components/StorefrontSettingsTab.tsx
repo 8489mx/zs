@@ -8,6 +8,13 @@ import { StorefrontDeliveryZonesManager } from './StorefrontDeliveryZonesManager
 import { StorefrontPaymentGatewaysManager } from './StorefrontPaymentGatewaysManager';
 import { BostaSettingsCard } from './BostaSettingsCard';
 import { GccShippingSettingsCard } from './GccShippingSettingsCard';
+import {
+  CheckIcon,
+  XIcon,
+  LightbulbIcon,
+  TruckIcon,
+  Trash2Icon,
+} from '@/shared/components/icons/AppIcons';
 
 function parsePosition(posStr?: string): { x: number; y: number } {
   if (!posStr) return { x: 50, y: 50 };
@@ -230,7 +237,7 @@ export function StorefrontSettingsTab() {
       });
 
       setBannerCompressFeedback(
-        `✓ تم إضافة البنر بنجاح (${res.originalSizeKb}KB → ${res.compressedSizeKb}KB، وفر ${res.compressionRatio}%)`
+        `تم إضافة البنر بنجاح (${res.originalSizeKb}KB → ${res.compressedSizeKb}KB، وفر ${res.compressionRatio}%)`
       );
       setIsCompressingBanner(false);
       e.target.value = '';
@@ -361,7 +368,7 @@ export function StorefrontSettingsTab() {
               transition: 'background 0.1s',
             }}
           >
-            {copySuccess ? 'تم النسخ! ✓' : 'نسخ الرابط'}
+            {copySuccess ? 'تم النسخ' : 'نسخ الرابط'}
           </button>
           <a
             href={storeUrl}
@@ -426,7 +433,7 @@ export function StorefrontSettingsTab() {
             transition: 'all 0.15s ease',
           }}
         >
-          كوبونات الخصم والعروض 🏷️
+          كوبونات الخصم والعروض
         </button>
         <button
           type="button"
@@ -443,7 +450,7 @@ export function StorefrontSettingsTab() {
             transition: 'all 0.15s ease',
           }}
         >
-          مناطق وأسعار التوصيل 🚚
+          مناطق وأسعار التوصيل
         </button>
         <button
           type="button"
@@ -460,7 +467,7 @@ export function StorefrontSettingsTab() {
             transition: 'all 0.15s ease',
           }}
         >
-          بوابات الدفع الإلكتروني 💳
+          بوابات الدفع الإلكتروني
         </button>
         <button
           type="button"
@@ -494,7 +501,7 @@ export function StorefrontSettingsTab() {
             transition: 'all 0.15s ease',
           }}
         >
-          شحن بوسطة 📦
+          شحن بوسطة
         </button>
         <button
           type="button"
@@ -511,7 +518,7 @@ export function StorefrontSettingsTab() {
             transition: 'all 0.15s ease',
           }}
         >
-          شحن خليجي (أرامكس / سمسا) 🌍
+          شحن خليجي (أرامكس / سمسا)
         </button>
       </div>
 
@@ -527,9 +534,14 @@ export function StorefrontSettingsTab() {
             fontWeight: 700,
             marginBottom: '14px',
             textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
           }}
         >
-          ✓ تم حفظ وتحديث إعدادات المتجر الإلكتروني بنجاح!
+          <CheckIcon size={16} />
+          <span>تم حفظ وتحديث إعدادات المتجر الإلكتروني بنجاح!</span>
         </div>
       )}
 
@@ -595,7 +607,7 @@ export function StorefrontSettingsTab() {
                   <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
                     عنوان أو مقر المتجر:
                   </label>
-                  <span style={{ fontSize: '10.5px', color: '#64748b' }}>📍 يظهر كسطر فرعي بالهيدر</span>
+                  <span style={{ fontSize: '10.5px', color: '#64748b' }}>يظهر كسطر فرعي بالهيدر</span>
                 </div>
                 <input
                   type="text"
@@ -893,7 +905,7 @@ export function StorefrontSettingsTab() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px' }}>💡</span>
+                  <LightbulbIcon size={14} color="#170e5e" />
                   <span style={{ fontSize: '11px', color: '#170e5e', fontWeight: 600 }}>
                     هل تريد تحديد أسعار دليفري مختلفة لكل حي أو محافظة تخدمها؟
                   </span>
@@ -933,7 +945,7 @@ export function StorefrontSettingsTab() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <span>🚚</span>
+                      <TruckIcon size={15} color="#170e5e" />
                       <span>تفعيل الشحن المجاني التلقائي (Free Shipping Rule)</span>
                     </span>
                     <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '1px' }}>
@@ -1017,9 +1029,13 @@ export function StorefrontSettingsTab() {
                         fontWeight: 700,
                         cursor: 'pointer',
                         padding: '2px 6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
                       }}
                     >
-                      حذف الكل ✕
+                      <Trash2Icon size={12} color="#ef4444" />
+                      <span>حذف الكل</span>
                     </button>
                   )}
                 </div>
@@ -1124,8 +1140,7 @@ export function StorefrontSettingsTab() {
                               boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                             }}
                           >
-                            <span>✋</span>
-                            <span>اسحب الصورة بالماوس لضبط موضع الظهور (مثل فيسبوك)</span>
+                            <span>اسحب الصورة بالماوس لضبط موضع الظهور</span>
                           </div>
 
                           <div
@@ -1474,9 +1489,12 @@ export function StorefrontSettingsTab() {
                               fontWeight: 700,
                               cursor: 'pointer',
                               marginInlineStart: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                             }}
                           >
-                            ✕
+                            <XIcon size={12} color="#b91c1c" />
                           </button>
                         </div>
                       </div>

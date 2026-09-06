@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../api/dashboard.api';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/shared/ui/button';
+import { SmartphoneIcon, BellIcon } from '@/shared/components/icons/AppIcons';
 import type { DashboardTopItem } from '../api/dashboard.types';
 
 export function OwnerCompanionPage() {
@@ -65,7 +66,7 @@ export function OwnerCompanionPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '20px' }}>📲</span>
+            <SmartphoneIcon size={20} color="#4338ca" />
             <div>
               <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e1b4b' }}>تثبيت شاشة المتابعة على الهاتف</div>
               <div style={{ fontSize: '11px', color: '#4338ca' }}>وصول فوري وشاشة كاملة كأي تطبيق أندرويد/آيفون</div>
@@ -106,7 +107,7 @@ export function OwnerCompanionPage() {
           color: '#166534',
         }}
       >
-        <span style={{ fontSize: '18px' }}>🔔</span>
+        <BellIcon size={18} color="#166534" />
         <div>
           <strong>تنبيهات الواتساب الحية مفعلة:</strong> ستصلك إشعارات إغلاق الورديات والعجز/الزيادة وطلبات المتجر فورياً على هاتفك.
         </div>

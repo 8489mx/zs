@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bostaApi } from '../api/bosta.api';
 import { BostaSettings } from '../types/storefront.types';
 import { Button } from '@/shared/ui/button';
+import { PackageIcon } from '@/shared/components/icons/AppIcons';
 
 export function BostaSettingsCard() {
   const queryClient = useQueryClient();
@@ -75,11 +76,9 @@ export function BostaSettingsCard() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.4rem',
-              fontWeight: 800,
             }}
           >
-            📦
+            <PackageIcon size={22} color="#0284c7" />
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
@@ -232,7 +231,7 @@ export function BostaSettingsCard() {
 
       {savedSuccess && (
         <div style={{ background: '#ecfdf5', color: '#047857', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
-          ✓ تم حفظ وتحديث إعدادات بوسطة بنجاح!
+          تم حفظ وتحديث إعدادات بوسطة بنجاح!
         </div>
       )}
 

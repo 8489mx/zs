@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -231,9 +232,7 @@ export function LiveOrderNotificationBanner() {
               e.currentTarget.style.color = '#64748b';
               e.currentTarget.style.borderColor = '#e2e8f0';
             }}
-          >
-            ✕
-          </button>
+          ><XIcon size={15} /></button>
         </div>
       </div>
 

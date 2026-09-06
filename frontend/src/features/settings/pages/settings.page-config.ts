@@ -2,11 +2,11 @@ export type SettingsSectionKey = 'core' | 'demo-data' | 'daily-digest' | 'subscr
 
 const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
   { key: 'core', label: 'إعدادات النظام' },
-  { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط 🚀' },
-  { key: 'daily-digest', label: 'الملخص اليومي للمدير 🌙', adminOnly: true },
+  { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط' },
+  { key: 'daily-digest', label: 'الملخص اليومي للمدير', adminOnly: true },
   { key: 'subscription', label: 'الاشتراك والفوترة', adminOnly: true },
   { key: 'storefront', label: 'المتجر الإلكتروني', adminOnly: true },
-  { key: 'marketplaces', label: 'الربط مع أمازون ونون (Marketplaces) 🛒', adminOnly: true },
+  { key: 'marketplaces', label: 'الربط مع منصات أمازون ونون', adminOnly: true },
   { key: 'whatsapp', label: 'بوابة الواتساب السحابية', adminOnly: true },
   { key: 'reference', label: 'أماكن المخزون' },
   { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', offlineOnly: true, superAdminOnly: true },

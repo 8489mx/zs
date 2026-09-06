@@ -2,11 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
+import { useCreateLocationMutation } from '@/shared/hooks/use-location-mutations';
 import {
   inventoryReplenishmentApi,
   ReplenishmentSuggestionItem,
 } from '@/features/inventory/api/inventory-replenishment.api';
 import { ReplenishmentPickListPrintModal, PickListItem } from './ReplenishmentPickListPrintModal';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import {
+  SparklesIcon,
+  XIcon,
+  CheckCircleIcon,
+  AlertTriangleIcon,
+  LightbulbIcon,
+  CalendarIcon,
+  Trash2Icon,
+  RefreshCwIcon,
+} from '@/shared/components/icons/AppIcons';
 
 interface SmartReplenishmentModalProps {
   isOpen: boolean;
@@ -32,6 +44,20 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
+  // 1-Click Warehouse Creation
+  const createLocationMutation = useCreateLocationMutation((res) => {
+    locationsQuery.refetch().then((refetched) => {
+      const locs = refetched.data || [];
+      if (locs.length > 1) {
+        const createdId = res?.locationId ? Number(res.locationId) : null;
+        const newWarehouse = createdId ? locs.find((l: any) => Number(l.id) === createdId) : locs.find((l: any) => l.name?.includes('مستودع'));
+        if (newWarehouse) {
+          setFromLocationId(Number(newWarehouse.id));
+        }
+      }
+    });
+  });
+
   // Print Modal state
   const [printedTransfer, setPrintedTransfer] = useState<{
     docNo: string;
@@ -43,22 +69,32 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
   // Initialize source and destination locations when locations load
   useEffect(() => {
     if (locations.length > 0) {
-      if (!fromLocationId) {
-        // Look for main warehouse or first location
-        const warehouse = locations.find((l: any) => l.name?.includes('مستودع') || l.name?.includes('رئيسي') || l.code?.includes('MAIN')) || locations[0];
-        setFromLocationId(Number(warehouse.id));
+      let initialFrom = fromLocationId;
+      if (!initialFrom) {
+        const warehouse =
+          locations.find((l: any) => l.name?.includes('مستودع') || l.name?.includes('رئيسي') || l.code?.includes('MAIN')) ||
+          locations[0];
+        initialFrom = Number(warehouse.id);
+        setFromLocationId(initialFrom);
       }
+
       if (!toLocationId) {
-        if (defaultToLocationId) {
+        if (defaultToLocationId && Number(defaultToLocationId) !== Number(initialFrom)) {
           setToLocationId(Number(defaultToLocationId));
         } else {
-          // Look for shop/floor location
-          const shop = locations.find((l: any) => l.name?.includes('محل') || l.name?.includes('عرض') || l.name?.includes('فرع') || l.id !== locations[0].id) || locations[locations.length - 1];
-          setToLocationId(Number(shop.id));
+          // Choose a location different from the source if available
+          const other = locations.find((l: any) => Number(l.id) !== Number(initialFrom));
+          if (other) {
+            setToLocationId(Number(other.id));
+          } else {
+            setToLocationId(Number(locations[0].id));
+          }
         }
       }
     }
   }, [locations, defaultToLocationId, fromLocationId, toLocationId]);
+
+  const isSameLocation = Boolean(fromLocationId && toLocationId && fromLocationId === toLocationId);
 
   // Query suggestions from backend
   const suggestionsQuery = useQuery({
@@ -71,8 +107,10 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
   useEffect(() => {
     if (suggestionsQuery.data?.items) {
       setEditableItems(suggestionsQuery.data.items);
+    } else if (isSameLocation) {
+      setEditableItems([]);
     }
-  }, [suggestionsQuery.data]);
+  }, [suggestionsQuery.data, isSameLocation]);
 
   if (!isOpen) return null;
 
@@ -110,6 +148,11 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
   const handleApproveAndPrint = async () => {
     if (!fromLocationId || !toLocationId) {
       setStatusMessage({ type: 'error', text: 'يرجى اختيار المخزن المصدر وموقع المحل' });
+      return;
+    }
+
+    if (fromLocationId === toLocationId) {
+      setStatusMessage({ type: 'error', text: 'يجب اختيار مستودع مصدر مختلف عن صالة العرض' });
       return;
     }
 
@@ -167,47 +210,128 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
 
   return (
     <>
-      <div
-        dir="rtl"
-        className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
+      <DialogShell
+        open={isOpen}
+        onClose={onClose}
+        ariaLabel="محرك إمداد الأرفف الذكي"
+        width="min(1120px, 96vw)"
+        zIndex={10000}
       >
-        <div className="bg-[#f8fafc] rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
+        <div
+          dir="rtl"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: '380px',
+            maxHeight: '88vh',
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            overflow: 'hidden',
+          }}
+        >
           {/* Header */}
-          <div className="p-4 bg-white border-b border-slate-200 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xl shadow-xs">
-                ⚡
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#ffffff',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <SparklesIcon size={22} color="#170e5e" />
               </div>
               <div>
-                <h2 className="font-extrabold text-slate-800 text-lg flex items-center gap-2">
-                  <span>محرك إمداد الأرفف الذكي وتتبع المخازن الـ 7</span>
-                  <span className="bg-indigo-100 text-[#170e5e] text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                    تغطية 48 ساعة
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                    محرك إمداد الأرفف الذكي وتتبع المخازن
+                  </h2>
+                  <span
+                    style={{
+                      backgroundColor: '#eff6ff',
+                      color: '#1e40af',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #dbeafe',
+                    }}
+                  >
+                    تغطية {coverDays * 24} ساعة
                   </span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                </div>
+                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
                   فحص آلي لأرصدة كافة المخازن وتوجيه الصرف للحاجات المتوفرة فعلياً مع تنبيهات بمواعيد الشراء المطلوبة
                 </p>
               </div>
             </div>
+
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-700 text-xl p-1.5 leading-none rounded-lg hover:bg-slate-100 transition"
+              style={{
+                border: 'none',
+                background: '#f1f5f9',
+                borderRadius: '8px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748b',
+              }}
               aria-label="إغلاق"
             >
-              ✕
+              <XIcon size={16} />
             </button>
           </div>
 
           {/* Location & Coverage Controls Bar */}
-          <div className="p-4 bg-white border-b border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div
+            style={{
+              padding: '14px 20px',
+              backgroundColor: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '14px',
+              alignItems: 'flex-end',
+            }}
+          >
             <div>
-              <label className="block font-bold text-slate-700 mb-1">المستودع المصدر للصرف:</label>
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '12px', color: '#334155', marginBottom: '6px' }}>
+                المستودع المصدر للصرف:
+              </label>
               <select
                 value={fromLocationId}
                 onChange={(e) => setFromLocationId(Number(e.target.value))}
-                className="w-full h-9 rounded-lg border border-slate-300 bg-white px-3 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#170e5e]/20"
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  padding: '0 12px',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  color: '#0f172a',
+                  outline: 'none',
+                }}
               >
                 {locations.map((loc: any) => (
                   <option key={loc.id} value={loc.id}>
@@ -218,11 +342,24 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">موقع الوجهة (صالة عرض المحل):</label>
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '12px', color: '#334155', marginBottom: '6px' }}>
+                موقع الوجهة (صالة عرض المحل):
+              </label>
               <select
                 value={toLocationId}
                 onChange={(e) => setToLocationId(Number(e.target.value))}
-                className="w-full h-9 rounded-lg border border-slate-300 bg-white px-3 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#170e5e]/20"
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  padding: '0 12px',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  color: '#0f172a',
+                  outline: 'none',
+                }}
               >
                 {locations.map((loc: any) => (
                   <option key={loc.id} value={loc.id}>
@@ -233,22 +370,31 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">فترة تغطية المبيعات:</label>
-              <div className="flex gap-1.5">
+              <label style={{ display: 'block', fontWeight: 700, fontSize: '12px', color: '#334155', marginBottom: '6px' }}>
+                فترة تغطية المبيعات:
+              </label>
+              <div style={{ display: 'flex', gap: '6px' }}>
                 {[
                   { label: '24 ساعة (يوم)', days: 1 },
-                  { label: '48 ساعة (يومان) 🌟', days: 2 },
+                  { label: '48 ساعة (يومان)', days: 2 },
                   { label: '72 ساعة (3 أيام)', days: 3 },
                 ].map((opt) => (
                   <button
                     key={opt.days}
                     type="button"
                     onClick={() => setCoverDays(opt.days)}
-                    className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
-                      coverDays === opt.days
-                        ? 'bg-[#170e5e] text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
-                    }`}
+                    style={{
+                      flex: 1,
+                      height: '38px',
+                      borderRadius: '8px',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: coverDays === opt.days ? 'none' : '1px solid #cbd5e1',
+                      backgroundColor: coverDays === opt.days ? '#170e5e' : '#ffffff',
+                      color: coverDays === opt.days ? '#ffffff' : '#475569',
+                      transition: 'all 0.15s ease',
+                    }}
                   >
                     {opt.label}
                   </button>
@@ -257,202 +403,316 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
             </div>
           </div>
 
-          {/* Metric Strip */}
-          <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="font-bold text-slate-700">تحليل المنظومة:</span>
-              <span className="bg-red-50 text-red-700 font-semibold px-2 py-0.5 rounded border border-red-200">
-                🔴 {outOfStockCount} خلص بالمحل
-              </span>
-              <span className="bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded border border-amber-200">
-                🟡 {lowStockCount} قرب يخلص
-              </span>
-              <span className="bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded border border-blue-200">
-                🔵 {salesReplenishCount} تعويض مبيعات
-              </span>
-              {unavailableInSourceCount > 0 && (
-                <span className="bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded border border-slate-300">
-                  ⚪ {unavailableInSourceCount} غير متوفر بهذا المستودع (متاح ببدائل)
-                </span>
+          {/* Location Conflict Warning */}
+          {isSameLocation && (
+            <div
+              style={{
+                margin: '14px 20px 0',
+                padding: '16px 20px',
+                backgroundColor: '#fffbeb',
+                border: '1px solid #fef3c7',
+                borderRadius: '10px',
+                color: '#b45309',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                fontSize: '12.5px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangleIcon size={18} color="#b45309" />
+                <strong style={{ fontSize: '13px' }}>المستودع المصدر هو نفسه موقع صالة العرض:</strong>
+              </div>
+              <p style={{ margin: 0, fontSize: '12px', lineHeight: 1.5, color: '#92400e' }}>
+                {locations.length > 1
+                  ? 'يرجى اختيار موقعين مختلفين من القائمتين بالأعلى (مستودع التخزين وصالة المحل) لبدء التحليل واحتساب كميات النواقص.'
+                  : 'النظام يحتوي حالياً على موقع مخزن واحد فقط (صالة المحل). يتطلب محرك إمداد الأرفف الذكي وجود موقعين على الأقل لتوجيه أذون الصرف ونقل البضاعة من المستودع إلى الصالة.'}
+              </p>
+
+              {locations.length <= 1 && (
+                <div style={{ marginTop: '4px' }}>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() =>
+                      createLocationMutation.mutate({
+                        name: 'المستودع الرئيسي (تخزين)',
+                        code: 'WH-MAIN',
+                        locationType: 'internal_warehouse' as any,
+                      })
+                    }
+                    disabled={createLocationMutation.isPending}
+                    style={{
+                      backgroundColor: '#170e5e',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '12px',
+                      height: '36px',
+                      padding: '0 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <SparklesIcon size={14} color="#ffffff" />
+                    <span>
+                      {createLocationMutation.isPending
+                        ? 'جاري إنشاء المستودع الرئيسي...'
+                        : '+ إنشاء مستودع رئيسي بنقرة واحدة لتفعيل الإمداد'}
+                    </span>
+                  </Button>
+                </div>
               )}
             </div>
+          )}
 
-            <div className="flex items-center gap-3">
-              <span className="text-slate-500 font-medium">المطلوب سحبه:</span>
-              <span className="bg-white text-slate-900 font-extrabold px-3 py-1 rounded-lg border border-slate-200 shadow-2xs">
-                {activeValidItems.length} أصناف | {totalPieces} قطعة
-              </span>
+          {/* Metric Strip */}
+          {!isSameLocation && (
+            <div
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#ffffff',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+                fontSize: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, color: '#334155' }}>تحليل المنظومة:</span>
+                <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fee2e2', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
+                  {outOfStockCount} خلص بالمحل
+                </span>
+                <span style={{ backgroundColor: '#fffbeb', color: '#92400e', border: '1px solid #fef3c7', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
+                  {lowStockCount} قرب يخلص
+                </span>
+                <span style={{ backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #dbeafe', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
+                  {salesReplenishCount} تعويض مبيعات
+                </span>
+                {unavailableInSourceCount > 0 && (
+                  <span style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11.5px' }}>
+                    {unavailableInSourceCount} غير متوفر بهذا المستودع (متاح ببدائل)
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>المطلوب سحبه:</span>
+                <span style={{ backgroundColor: '#f8fafc', color: '#0f172a', fontWeight: 900, padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                  {activeValidItems.length} أصناف | {totalPieces} قطعة
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Table Container */}
-          <div className="p-6 overflow-y-auto flex-1">
+          {/* Table / Content Container */}
+          <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1, backgroundColor: '#f8fafc' }}>
             {suggestionsQuery.isLoading ? (
-              <div className="py-16 text-center text-slate-500">
-                <div className="inline-block animate-spin text-3xl mb-3">⏳</div>
-                <p className="font-bold text-sm">جاري احتساب مبيعات الـ 48 ساعة وفحص أرصدة كافة المخازن...</p>
+              <div style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>
+                <RefreshCwIcon size={28} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                <p style={{ fontWeight: 700, fontSize: '14px', margin: 0 }}>
+                  جاري احتساب مبيعات الـ {coverDays * 24} ساعة وفحص أرصدة كافة المخازن...
+                </p>
               </div>
             ) : suggestionsQuery.isError ? (
-              <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold text-center">
-                تعذر جلب مقترحات الإمداد، تأكد من اختلاف المستودع المصدر عن صالة المحل.
+              <div style={{ padding: '16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '8px', fontSize: '13px', fontWeight: 600, textAlign: 'center' }}>
+                تعذر جلب مقترحات الإمداد، تأكد من اتصال السيرفر واختلاف المستودع المصدر عن صالة المحل.
               </div>
-            ) : editableItems.length === 0 ? (
-              <div className="py-16 text-center bg-white rounded-xl border border-slate-200 p-8 shadow-xs">
-                <div className="text-4xl mb-2">🎉</div>
-                <h3 className="font-bold text-slate-800 text-base">الأرفف ممتلئة تماماً!</h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+            ) : isSameLocation ? null : editableItems.length === 0 ? (
+              <div style={{ padding: '50px 20px', textAlign: 'center', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <CheckCircleIcon size={38} color="#16a34a" style={{ margin: '0 auto 10px' }} />
+                <h3 style={{ margin: 0, fontWeight: 800, color: '#0f172a', fontSize: '16px' }}>الأرفف ممتلئة تماماً!</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
                   لا توجد أصناف ناقصة أو مباعة تتطلب تعويضاً من المستودع حالياً في صالة العرض المحددة.
                 </p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-                <table className="w-full border-collapse text-right text-xs">
+              <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12px' }}>
                   <thead>
-                    <tr className="bg-slate-50 text-slate-700 border-b border-slate-200 font-bold">
-                      <th className="p-3">حالة الصنف</th>
-                      <th className="p-3">اسم الصنف، الباركود، وبدائل المخازن</th>
-                      <th className="p-3 text-center">رصيد المحل</th>
-                      <th className="p-3 text-center">مبيعات {coverDays * 24}س</th>
-                      <th className="p-3 text-center">رصيد المستودع المختار</th>
-                      <th className="p-3 text-center w-48">الكمية المقترحة للصرف</th>
-                      <th className="p-3 text-center w-12">حذف</th>
+                    <tr style={{ backgroundColor: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0', fontWeight: 800 }}>
+                      <th style={{ padding: '10px 12px' }}>حالة الصنف</th>
+                      <th style={{ padding: '10px 12px' }}>اسم الصنف، الباركود، وبدائل المخازن</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>رصيد المحل</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>مبيعات {coverDays * 24}س</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center' }}>رصيد المستودع المختار</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center', width: '160px' }}>الكمية المقترحة للصرف</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center', width: '60px' }}>حذف</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody>
                     {editableItems.map((item) => (
                       <tr
                         key={item.productId}
-                        className={`transition-colors ${
-                          item.urgency === 'unavailable_in_source'
-                            ? 'bg-slate-50/60 opacity-80'
-                            : 'hover:bg-slate-50/70'
-                        }`}
+                        style={{
+                          borderBottom: '1px solid #f1f5f9',
+                          backgroundColor: item.urgency === 'unavailable_in_source' ? '#f8fafc' : '#ffffff',
+                        }}
                       >
-                        <td className="p-3">
+                        <td style={{ padding: '10px 12px' }}>
                           {item.urgency === 'unavailable_in_source' && (
-                            <span className="bg-slate-200 text-slate-700 text-[11px] font-bold px-2 py-0.5 rounded-full border border-slate-300">
+                            <span style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                               غير متاح بهذا المخزن
                             </span>
                           )}
                           {item.urgency === 'out_of_stock' && (
-                            <span className="bg-red-50 text-red-700 text-[11px] font-bold px-2 py-0.5 rounded-full border border-red-200">
+                            <span style={{ backgroundColor: '#fef2f2', color: '#991b1b', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #fee2e2' }}>
                               خلص بالمحل
                             </span>
                           )}
                           {item.urgency === 'low_stock' && (
-                            <span className="bg-amber-50 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                            <span style={{ backgroundColor: '#fffbeb', color: '#92400e', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #fef3c7' }}>
                               قرب يخلص
                             </span>
                           )}
                           {item.urgency === 'sales_replenish' && (
-                            <span className="bg-blue-50 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                            <span style={{ backgroundColor: '#eff6ff', color: '#1e40af', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', border: '1px solid #dbeafe' }}>
                               تعويض مبيعات
                             </span>
                           )}
                         </td>
 
-                        <td className="p-3">
-                          <div className="font-bold text-slate-900">{item.productName}</div>
+                        <td style={{ padding: '10px 12px' }}>
+                          <div style={{ fontWeight: 800, color: '#0f172a' }}>{item.productName}</div>
                           {item.barcode && (
-                            <div className="text-[11px] text-slate-500 font-mono mt-0.5">{item.barcode}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace', marginTop: '2px' }}>{item.barcode}</div>
                           )}
 
                           {/* Multi-Warehouse Alternative Indicator */}
                           {item.warehouseStock <= 0 && item.alternativeLocations && item.alternativeLocations.length > 0 && (
-                            <div className="text-[10px] text-emerald-800 bg-emerald-50 rounded-md px-2 py-0.5 mt-1 border border-emerald-200 inline-block font-semibold">
-                              💡 متوفر في مخازن أخرى: {item.alternativeLocations.map((a) => `${a.locationName} (${a.qty} ق)`).join(' | ')}
+                            <div style={{ fontSize: '10.5px', color: '#065f46', backgroundColor: '#f0fdf4', borderRadius: '6px', padding: '2px 8px', marginTop: '4px', border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                              <LightbulbIcon size={12} color="#059669" />
+                              <span>متوفر في مخازن أخرى: {item.alternativeLocations.map((a) => `${a.locationName} (${a.qty} ق)`).join(' | ')}</span>
                             </div>
                           )}
 
                           {item.warehouseStock <= 0 && (!item.alternativeLocations || item.alternativeLocations.length === 0) && (
-                            <div className="text-[10px] text-red-600 bg-red-50 rounded-md px-2 py-0.5 mt-1 border border-red-200 inline-block font-bold">
-                              🚨 نفد من كافة مخازن المؤسسة بالكامل!
+                            <div style={{ fontSize: '10.5px', color: '#b91c1c', backgroundColor: '#fef2f2', borderRadius: '6px', padding: '2px 8px', marginTop: '4px', border: '1px solid #fecaca', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                              <AlertTriangleIcon size={12} color="#dc2626" />
+                              <span>نفد من كافة مخازن المؤسسة بالكامل!</span>
                             </div>
                           )}
 
                           {/* Predictive Purchase Deadline */}
                           {item.recommendedPurchaseDeadline && (
-                            <div className="text-[10px] text-amber-800 bg-amber-50 rounded-md px-2 py-0.5 mt-1 border border-amber-200 block font-semibold">
-                              📅 تنبيه شراء: الرصيد يغطي {item.daysOfSupplyRemaining} أيام ➔ يُفضل الشراء قبل <b>{item.recommendedPurchaseDeadline}</b>
+                            <div style={{ fontSize: '10.5px', color: '#92400e', backgroundColor: '#fffbeb', borderRadius: '6px', padding: '2px 8px', marginTop: '4px', border: '1px solid #fef3c7', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                              <CalendarIcon size={12} color="#d97706" />
+                              <span>تنبيه شراء: الرصيد يغطي {item.daysOfSupplyRemaining} أيام - يُفضل الشراء قبل <b>{item.recommendedPurchaseDeadline}</b></span>
                             </div>
                           )}
                         </td>
 
-                        <td className="p-3 text-center font-bold text-slate-800">
+                        <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>
                           {item.currentShopStock <= 0 ? (
-                            <span className="text-red-600">0</span>
+                            <span style={{ color: '#dc2626' }}>0</span>
                           ) : (
                             item.currentShopStock
                           )}
                         </td>
 
-                        <td className="p-3 text-center font-bold text-indigo-700">
+                        <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, color: '#170e5e' }}>
                           {item.sold48h > 0 ? `${item.sold48h} ق` : '-'}
                         </td>
 
-                        <td className="p-3 text-center">
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                           <span
-                            className={`font-extrabold text-sm ${
-                              item.warehouseStock > 0 ? 'text-emerald-700' : 'text-red-500'
-                            }`}
+                            style={{
+                              fontWeight: 900,
+                              fontSize: '13px',
+                              color: item.warehouseStock > 0 ? '#16a34a' : '#ef4444',
+                            }}
                           >
                             {item.warehouseStock}
                           </span>
                           {item.totalEnterpriseStock > item.warehouseStock && (
-                            <div className="text-[10px] text-slate-400 font-medium">
+                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 500 }}>
                               (باقي المخازن: {item.totalEnterpriseStock - item.warehouseStock})
                             </div>
                           )}
                         </td>
 
-                        <td className="p-3 text-center">
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                           {item.warehouseStock <= 0 ? (
-                            <span className="text-[11px] text-slate-400 font-semibold">
+                            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
                               اختر مخزناً آخر للصرف
                             </span>
                           ) : (
-                            <>
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleQtyChange(item.productId, -1)}
-                                  className="w-7 h-7 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center border border-slate-300"
-                                >
-                                  -
-                                </button>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={item.warehouseStock}
-                                  value={item.suggestedQty}
-                                  onChange={(e) => handleQtyInput(item.productId, e.target.value)}
-                                  className="w-16 h-7 text-center rounded-md border border-slate-300 font-extrabold text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#170e5e]"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleQtyChange(item.productId, 1)}
-                                  className="w-7 h-7 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center border border-slate-300"
-                                >
-                                  +
-                                </button>
-                              </div>
-                              {item.cartonsCount && item.cartonName && (
-                                <div className="text-[10px] text-blue-600 font-bold mt-1">
-                                  ≈ {item.cartonsCount} {item.cartonName}
-                                </div>
-                              )}
-                            </>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleQtyChange(item.productId, -1)}
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #cbd5e1',
+                                  backgroundColor: '#f1f5f9',
+                                  color: '#334155',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                -
+                              </button>
+                              <input
+                                type="number"
+                                min="0"
+                                max={item.warehouseStock}
+                                value={item.suggestedQty}
+                                onChange={(e) => handleQtyInput(item.productId, e.target.value)}
+                                style={{
+                                  width: '60px',
+                                  height: '28px',
+                                  textAlign: 'center',
+                                  borderRadius: '6px',
+                                  border: '1px solid #cbd5e1',
+                                  fontWeight: 800,
+                                  fontSize: '13px',
+                                  color: '#0f172a',
+                                  backgroundColor: '#ffffff',
+                                  outline: 'none',
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleQtyChange(item.productId, 1)}
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #cbd5e1',
+                                  backgroundColor: '#f1f5f9',
+                                  color: '#334155',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                +
+                              </button>
+                            </div>
                           )}
                         </td>
 
-                        <td className="p-3 text-center">
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(item.productId)}
-                            className="text-slate-400 hover:text-red-600 transition-colors p-1"
-                            title="إزالة من الإذن"
+                            style={{
+                              border: 'none',
+                              background: 'transparent',
+                              color: '#94a3b8',
+                              cursor: 'pointer',
+                              padding: '4px',
+                            }}
+                            title="حذف من هذا الإذن"
                           >
-                            🗑️
+                            <Trash2Icon size={15} />
                           </button>
                         </td>
                       </tr>
@@ -463,52 +723,83 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
             )}
           </div>
 
-          {/* Footer Bar */}
-          <div className="p-4 bg-white border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="w-full md:w-1/2 flex items-center gap-2">
+          {/* Footer */}
+          <div
+            style={{
+              padding: '14px 20px',
+              backgroundColor: '#ffffff',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: '240px' }}>
               <input
                 type="text"
-                placeholder="ملاحظات اختيارية (مثال: إمداد وردية الصباح)..."
+                placeholder="ملاحظات إذن الصرف (اختياري)..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full h-9 rounded-lg border border-slate-300 px-3 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#170e5e]"
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  padding: '0 12px',
+                  fontSize: '12.5px',
+                  color: '#0f172a',
+                  outline: 'none',
+                }}
               />
             </div>
 
-            <div className="w-full md:w-auto flex items-center justify-end gap-2.5">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {statusMessage && (
                 <span
-                  className={`text-xs font-bold ${
-                    statusMessage.type === 'error' ? 'text-red-600' : 'text-emerald-600'
-                  }`}
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: statusMessage.type === 'error' ? '#fef2f2' : '#f0fdf4',
+                    color: statusMessage.type === 'error' ? '#dc2626' : '#16a34a',
+                    border: `1px solid ${statusMessage.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+                  }}
                 >
                   {statusMessage.text}
                 </span>
               )}
 
-              <Button variant="secondary" onClick={onClose} disabled={isSubmitting} className="px-4">
+              <Button variant="secondary" onClick={onClose} disabled={isSubmitting} style={{ padding: '0 16px', height: '38px' }}>
                 إلغاء
               </Button>
 
               <Button
                 variant="primary"
                 onClick={handleApproveAndPrint}
-                disabled={isSubmitting || activeValidItems.length === 0}
-                className="bg-[#170e5e] hover:bg-[#120b4c] text-white font-bold flex items-center gap-2 px-6 h-10 shadow-sm"
+                disabled={isSubmitting || activeValidItems.length === 0 || isSameLocation}
+                style={{
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  height: '38px',
+                  padding: '0 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: activeValidItems.length > 0 && !isSameLocation ? 'pointer' : 'not-allowed',
+                  opacity: activeValidItems.length > 0 && !isSameLocation ? 1 : 0.6,
+                }}
               >
-                {isSubmitting ? (
-                  <span>جاري الاعتماد والترحيل...</span>
-                ) : (
-                  <>
-                    <span>اعتماد إذن الصرف وطباعة أمر التحميل</span>
-                    <span>🚀</span>
-                  </>
-                )}
+                {isSubmitting ? 'جاري الاعتماد والترحيل...' : 'اعتماد إذن الصرف وطباعة أمر التحميل'}
               </Button>
             </div>
           </div>
         </div>
-      </div>
+      </DialogShell>
 
       {/* Printable Dialog */}
       {printedTransfer && (

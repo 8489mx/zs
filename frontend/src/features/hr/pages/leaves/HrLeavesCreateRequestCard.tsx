@@ -46,7 +46,7 @@ export function HrLeavesCreateRequestCard({
         <strong style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <FileTextIcon size={16} /> إضافة طلب إجازة جديد
         </strong>
-        <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>✕ إغلاق</Button>
+        <Button type="button" variant="secondary" onClick={onClose} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>إغلاق</Button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '10px' }}>

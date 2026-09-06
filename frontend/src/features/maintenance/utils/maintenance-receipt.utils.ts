@@ -95,7 +95,7 @@ export function printMaintenanceReceipt(ticket: MaintenanceTicket, settings?: Ap
         ` : ''}
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 900; border-top: 1px dashed #000; padding-top: 3px; margin-top: 2px;">
           <span>المتبقي:</span>
-          <span>${ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل ✓)' : `${remainingAmount.toFixed(2)} ج.م`}</span>
+          <span>${ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ج.م`}</span>
         </div>
       </div>
 
@@ -312,7 +312,7 @@ export async function exportMaintenanceReceiptPdf(ticket: MaintenanceTicket, set
         <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; border-top: 1px dashed #cbd5e1; padding-top: 5px; margin-top: 4px;">
           <span>المتبقي:</span>
           <span style="color: #16a34a;">
-            ${ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل ✓)' : `${remainingAmount.toFixed(2)} ج.م`}
+            ${ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ج.م`}
           </span>
         </div>
       </div>

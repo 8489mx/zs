@@ -21,6 +21,17 @@ export class StorefrontPublicController {
     return this.service.getStorefrontCatalog(slug);
   }
 
+  @Get(':slug/tables-qr')
+  getTablesQr(
+    @Param('slug') slug: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Headers('host') host?: string,
+  ) {
+    const baseUrl = host ? `http://${host}` : undefined;
+    return this.service.getTablesQrCodes(slug, Number(from || 1), Number(to || 20), baseUrl);
+  }
+
   @Post(':slug/products/:productId/reviews')
   submitProductReview(
     @Param('slug') slug: string,

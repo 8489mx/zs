@@ -7,6 +7,7 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Field } from '@/shared/ui/field';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { saasAdminApi, SaasPlan } from '../api/saas-admin.api';
 
 export function SaasPlansPage() {
@@ -160,7 +161,7 @@ export function SaasPlansPage() {
         {feedback && (
           <div className="success-box mb-4" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', padding: '12px 16px', borderRadius: '8px', fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{feedback}</span>
-            <button type="button" onClick={() => setFeedback('')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#065f46', fontWeight: 800 }}>✕</button>
+            <button type="button" onClick={() => setFeedback('')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#065f46', display: 'flex', alignItems: 'center' }}><XIcon size={16} /></button>
           </div>
         )}
 
@@ -336,9 +337,9 @@ export function SaasPlansPage() {
                 className="dialog-shell-close-btn"
                 onClick={() => setIsCreateModalOpen(false)}
                 title="إغلاق"
-                style={{ background: 'transparent', border: 'none', fontSize: '16px', cursor: 'pointer', color: '#64748b' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
               >
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -523,9 +524,9 @@ export function SaasPlansPage() {
                 className="dialog-shell-close-btn"
                 onClick={() => setEditingPlan(null)}
                 title="إغلاق"
-                style={{ background: 'transparent', border: 'none', fontSize: '16px', cursor: 'pointer', color: '#64748b' }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
               >
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
 

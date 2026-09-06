@@ -1,6 +1,7 @@
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { AlertTriangleIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -740,11 +741,12 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ fontWeight: 800, color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.92rem' }}>
-                <span style={{ fontSize: '18px' }}>⚠️</span>
+                <AlertTriangleIcon size={18} color="#dc2626" />
                 <span>توجد حقول تتطلب المراجعة أو استكمال البيانات قبل الحفظ ({Object.keys(form.formState.errors).filter(k => k !== 'root').length} حقول):</span>
               </div>
-              <span style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 600 }}>
-                💡 انقر على أي حقل أدناه للانتقال إليه مباشرة وتمييزه
+              <span style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <LightbulbIcon size={13} color="#b91c1c" />
+                <span>انقر على أي حقل أدناه للانتقال إليه مباشرة وتمييزه</span>
               </span>
             </div>
 
@@ -805,7 +807,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                             e.currentTarget.style.borderColor = '#f87171';
                           }}
                         >
-                          <span>🎯 {item.label}</span>
+                          <span>{item.label}</span>
                           {item.message && item.message !== item.label ? (
                             <span style={{ fontWeight: 500, color: '#991b1b', fontSize: '0.76rem' }}>
                               ({item.message})

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
-import { LightbulbIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -571,7 +571,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                   }}
                 >
                   <span>تغيير النشاط</span>
-                  <span style={{ fontSize: '10px', opacity: 0.7 }}>▾</span>
+                  <ChevronDownIcon size={13} color="#64748b" />
                 </button>
               </div>
             )}
@@ -874,7 +874,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                 }}
               >
                 <span>تغيير نشاط الصيانة والقالب</span>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>▾</span>
+                <ChevronDownIcon size={14} color="#64748b" />
               </button>
             </div>
 
@@ -958,7 +958,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                 onClick={() => setProfileModalOpen(false)}
                 style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: 34, height: 34, cursor: 'pointer', fontWeight: 800, color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease', flexShrink: 0 }}
               >
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -1023,12 +1023,10 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '11px',
-                            fontWeight: 900,
                             boxShadow: '0 2px 6px rgba(37, 99, 235, 0.4)',
                             flexShrink: 0
                           }}>
-                            ✓
+                            <CheckIcon size={12} color="#ffffff" />
                           </span>
                         )}
                       </div>
@@ -1128,8 +1126,9 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
             موديول {upgradeModalInfo?.title}
           </h3>
 
-          <div style={{ display: 'inline-block', background: '#dbeafe', color: '#1e40af', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, marginBottom: '14px' }}>
-            ⭐ متاح حصرياً في {upgradeModalInfo?.planName}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dbeafe', color: '#1e40af', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, marginBottom: '14px' }}>
+            <StarIcon size={14} color="#1e40af" />
+            <span>متاح حصرياً في {upgradeModalInfo?.planName}</span>
           </div>
 
           <p style={{ fontSize: '0.86rem', color: '#475569', lineHeight: 1.6, margin: '0 0 24px', textAlign: 'center' }}>
@@ -1155,7 +1154,8 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
                   gap: '6px'
                 }}
               >
-                <span>⭐ ترقية الباقة الآن</span>
+                <StarIcon size={14} color="#ffffff" />
+                <span>ترقية الباقة الآن</span>
               </button>
             </Link>
             <button

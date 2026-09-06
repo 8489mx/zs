@@ -127,11 +127,23 @@ const router = createRouter([
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },
   {
+    path: '/st/:slug/table/:tableNo',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
     path: '/store/:slug',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },
   {
+    path: '/store/:slug/table/:tableNo',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
     path: '/shop/:slug',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/table/:tableNo',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },
   {
@@ -143,12 +155,56 @@ const router = createRouter([
     element: <Navigate to="/driver" replace />,
   },
   {
+    path: '/van-sales',
+    element: createLazyRoute(() => import('@/features/delivery-reps/pages/VanSalesMobilePage')),
+  },
+  {
+    path: '/van',
+    element: <Navigate to="/van-sales" replace />,
+  },
+  {
     path: '/pos/customer-display',
     element: createLazyRoute(() => import('@/features/pos/pages/CustomerFacingDisplayPage').then((module) => ({ default: module.CustomerFacingDisplayPage }))),
   },
   {
     path: '/customer-display',
     element: <Navigate to="/pos/customer-display" replace />,
+  },
+  {
+    path: '/kds',
+    element: createLazyRoute(() => import('@/features/pos/pages/KitchenDisplayPage').then((module) => ({ default: module.KitchenDisplayPage }))),
+  },
+  {
+    path: '/kitchen',
+    element: <Navigate to="/kds" replace />,
+  },
+  {
+    path: '/signage',
+    element: createLazyRoute(() => import('@/features/pos/pages/DigitalSignagePage').then((module) => ({ default: module.DigitalSignagePage }))),
+  },
+  {
+    path: '/promo-board',
+    element: <Navigate to="/signage" replace />,
+  },
+  {
+    path: '/punch',
+    element: createLazyRoute(() => import('@/features/hr/pages/MobilePunchPage')),
+  },
+  {
+    path: '/attendance/punch',
+    element: <Navigate to="/punch" replace />,
+  },
+  {
+    path: '/portal',
+    element: createLazyRoute(() => import('@/features/hr/pages/EmployeePortalPage')),
+  },
+  {
+    path: '/employee-portal',
+    element: <Navigate to="/portal" replace />,
+  },
+  {
+    path: '/ess',
+    element: <Navigate to="/portal" replace />,
   },
   { path: '/login', element: <AppGateGuard expected="login"><LoginRoute /></AppGateGuard> },
   {

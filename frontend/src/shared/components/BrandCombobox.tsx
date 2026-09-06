@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { matchesArabic } from '@/lib/arabic-normalization';
 
@@ -340,9 +341,7 @@ export function BrandCombobox({
                         padding: '2px 4px',
                         borderRadius: '3px',
                       }}
-                    >
-                      ✕
-                    </button>
+                    ><XIcon size={15} /></button>
                   ) : null}
                 </div>
               );

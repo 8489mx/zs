@@ -3,6 +3,7 @@ import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { formatCurrency } from '@/lib/format';
 import { addDaysIsoDate, getOfferStatus, todayIsoDate } from './product-offer.utils';
+import { SparklesIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
 import type { Product, ProductOffer } from '@/types/domain';
 
 interface ProductOfferItemEditorTabProps {
@@ -287,7 +288,7 @@ export function ProductOfferItemEditorTab({
                   transition: 'all 0.15s ease'
                 }}
               >
-                <span>🎁</span>
+                <SparklesIcon size={13} color="#16a34a" />
                 <span>BOGO اشترِ X</span>
               </button>
             </div>
@@ -439,7 +440,10 @@ export function ProductOfferItemEditorTab({
                   checked={happyHourEnabled}
                   onChange={(e) => setHappyHourEnabled(e.target.checked)}
                 />
-                <span>⏰ تفعيل الساعات الذهبية ومواعيد محددة (Happy Hours)</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <ClockIcon size={14} color={happyHourEnabled ? '#92400e' : '#475569'} />
+                  <span>تفعيل الساعات الذهبية ومواعيد محددة (Happy Hours)</span>
+                </span>
               </label>
 
               {happyHourEnabled && (
@@ -808,7 +812,7 @@ export function ProductOfferItemEditorTab({
             const isBogo = offer.type === 'bogo';
             const minQ = Math.max(1, Number(offer.minQty || 1));
             const typeName = isBogo
-              ? '🎁 عرض BOGO'
+              ? 'عرض BOGO'
               : offer.type === 'bundle'
                 ? `باقة (${minQ} قطع)`
                 : offer.type === 'price'
@@ -877,7 +881,7 @@ export function ProductOfferItemEditorTab({
                     alignItems: 'center',
                     gap: 4
                   }}>
-                    <span>⏰</span>
+                    <ClockIcon size={12} color="#92400e" />
                     <span>
                       ساعات العرض: {offer.happyHourStart} إلى {offer.happyHourEnd}
                       {offer.daysOfWeek ? ` (${offer.daysOfWeek === '5,6' ? 'عطلة الأسبوع' : offer.daysOfWeek === '5' ? 'الجمعة فقط' : 'أيام العمل'})` : ' (يومياً)'}

@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { deliveryRepsApi, type DeliveryRep, type UpsertDeliveryRepPayload } from '@/shared/api/delivery-reps.api';
@@ -188,7 +189,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
         </Button>
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#1e293b' }}>
-            <span style={{ fontSize: '16px' }}>🛵</span>
+            
             <div>
               <div style={{ fontWeight: 700 }}>بوابة المندوب للموبايل:</div>
               <code style={{ fontSize: '11px', color: '#0369a1', direction: 'ltr', display: 'inline-block' }}>/driver</code>
@@ -241,9 +242,7 @@ export function DeliveryRepsList({ selectedRepId, onSelectRep }: { selectedRepId
               type="button" 
               onClick={closeModal} 
               style={{ background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '16px', cursor: 'pointer', color: '#64748b', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              ✕
-            </button>
+            ><XIcon size={15} /></button>
           </div>
 
           {/* Form Content */}

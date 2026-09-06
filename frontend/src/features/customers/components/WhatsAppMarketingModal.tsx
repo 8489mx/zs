@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { XIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { customersApi } from '@/shared/api/customers.api';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -59,9 +60,9 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
           <button
             type="button"
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', fontSize: '18px', color: '#64748b', cursor: 'pointer', padding: '4px 8px' }}
+            style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center' }}
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -143,7 +144,7 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
                     </td>
                     <td style={{ padding: '8px 12px' }}>
                       <span style={{ background: '#fdf2f8', color: '#be185d', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px' }}>
-                        ⭐ {c.loyaltyPoints}
+                        {c.loyaltyPoints} نقطة
                       </span>
                     </td>
                     <td style={{ padding: '8px 12px', textAlign: 'center' }}>
@@ -180,8 +181,9 @@ export function WhatsAppMarketingModal({ open, onClose }: WhatsAppMarketingModal
 
         {/* Footer Actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-          <Button variant="secondary" onClick={handleCopyAllPhones} disabled={customers.length === 0}>
-            {copiedAll ? '✓ تم نسخ جميع الأرقام!' : 'نسخ أرقام الهواتف للحملات'}
+          <Button variant="secondary" onClick={handleCopyAllPhones} disabled={customers.length === 0} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            {copiedAll && <CheckIcon size={14} color="#16a34a" />}
+            <span>{copiedAll ? 'تم نسخ جميع الأرقام!' : 'نسخ أرقام الهواتف للحملات'}</span>
           </Button>
 
           <Button variant="secondary" onClick={onClose}>

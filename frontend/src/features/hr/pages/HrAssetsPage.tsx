@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -201,7 +202,7 @@ export function HrAssetsPage() {
                   <strong style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{activeTab === 'cash' ? 'تسليم عهدة نقدية' : 'تسليم عهدة عينية'}</strong>
                   <small style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>{activeTab === 'cash' ? 'سجّل المبلغ والغرض. التسوية تتم لاحقًا من قائمة العهد النقدية.' : 'سجّل العهدة على الموظف الصحيح لمتابعتها في ملفه.'}</small>
                 </div>
-                <Button type="button" variant="secondary" onClick={() => setShowCreate(false)} style={{ padding: '2px 8px', fontSize: '0.8rem' }}>✕</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowCreate(false)} style={{ padding: '2px 8px', fontSize: '0.8rem' }}><XIcon size={15} /></Button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '12px' }}>

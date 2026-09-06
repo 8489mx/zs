@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import * as ZXingModule from 'html5-qrcode/third_party/zxing-js.umd.js';
@@ -568,9 +569,7 @@ export function CameraBarcodeScannerModal({
               className="z-scanner-btn-close"
               onClick={onClose}
               aria-label="إغلاق"
-            >
-              ✕
-            </button>
+            ><XIcon size={15} /></button>
           </div>
         </div>
 
@@ -630,7 +629,7 @@ export function CameraBarcodeScannerModal({
           {/* Success Toast Notification */}
           {lastScanned && (
             <div className="z-scanner-success-toast">
-              <span style={{ fontWeight: 800 }}>✓ تم المسح:</span>
+              <span style={{ fontWeight: 800 }}>تم المسح:</span>
               <strong style={{ marginInlineStart: '4px' }}>{lastScanned}</strong>
             </div>
           )}

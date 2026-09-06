@@ -235,7 +235,7 @@ export function ImeiHistoryPage() {
                       title="نسخ السيريال"
                       style={{ background: 'transparent', border: 'none', padding: 0, color: '#64748b', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
                     >
-                      {copiedText === activeSerial ? <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 700 }}>تم النسخ ✓</span> : <Icons.Copy />}
+                      {copiedText === activeSerial ? <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 700 }}>تم النسخ</span> : <Icons.Copy />}
                     </button>
                     {serialItem?.imei2 && <span style={{ color: '#64748b', marginInlineStart: '12px' }}>IMEI 2: {serialItem.imei2}</span>}
                   </div>

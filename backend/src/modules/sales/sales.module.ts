@@ -19,6 +19,8 @@ import { CustomerInstallmentsController } from './controllers/customer-installme
 import { CustomerInstallmentsService } from './services/customer-installments.service';
 import { CashierFraudRadarController } from './controllers/cashier-fraud-radar.controller';
 import { CashierFraudRadarService } from './services/cashier-fraud-radar.service';
+import { KdsController } from './controllers/kds.controller';
+import { KdsService } from './services/kds.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
@@ -28,6 +30,7 @@ import { CashierFraudRadarService } from './services/cashier-fraud-radar.service
     PosTerminalController,
     CustomerInstallmentsController,
     CashierFraudRadarController,
+    KdsController,
   ],
   providers: [
     SalesService,
@@ -39,6 +42,7 @@ import { CashierFraudRadarService } from './services/cashier-fraud-radar.service
     PosTerminalService,
     CustomerInstallmentsService,
     CashierFraudRadarService,
+    KdsService,
   ],
   exports: [
     SalesService,
@@ -47,6 +51,7 @@ import { CashierFraudRadarService } from './services/cashier-fraud-radar.service
     PosTerminalService,
     CustomerInstallmentsService,
     CashierFraudRadarService,
+    KdsService,
   ],
 })
 export class SalesModule {}

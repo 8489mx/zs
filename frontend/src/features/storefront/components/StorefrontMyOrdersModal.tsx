@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PackageIcon, ShoppingCartIcon } from '@/shared/components/icons/AppIcons';
+import { PackageIcon, ShoppingCartIcon, RefreshCwIcon, ClockIcon, XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontOrderDateGroupCard, DateGroupedOrders } from './StorefrontOrderDateGroupCard';
@@ -210,7 +210,7 @@ export function StorefrontMyOrdersModal({
                 fontFamily: 'inherit',
               }}
             >
-              <span style={{ fontSize: '13px' }}>{ordersQuery.isFetching ? '⏳' : '🔄'}</span>
+              {ordersQuery.isFetching ? <ClockIcon size={14} /> : <RefreshCwIcon size={14} />}
               <span>{ordersQuery.isFetching ? 'جاري التحديث...' : 'تحديث'}</span>
             </button>
 
@@ -227,11 +227,10 @@ export function StorefrontMyOrdersModal({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                fontWeight: 700,
                 color: '#64748b',
               }}
             >
-              ✕
+              <XIcon size={16} />
             </button>
           </div>
         </div>
@@ -281,9 +280,13 @@ export function StorefrontMyOrdersModal({
                 borderRadius: '6px',
                 fontSize: '12.5px',
                 fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              ⚠️ {actionError}
+              <AlertTriangleIcon size={15} color="#991b1b" />
+              <span>{actionError}</span>
             </div>
           )}
         </div>

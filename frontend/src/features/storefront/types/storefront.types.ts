@@ -97,6 +97,8 @@ export interface CreateOnlineOrderPayload {
   couponCode?: string;
   deliveryZoneId?: number;
   deliveryZoneName?: string;
+  orderType?: 'delivery' | 'dine_in';
+  tableNumber?: string;
 }
 
 export interface CreateOnlineOrderResponse {

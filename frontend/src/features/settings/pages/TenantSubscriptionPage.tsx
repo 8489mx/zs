@@ -3,6 +3,18 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { tenantSubscriptionApi, TenantSubscriptionData } from '../api/tenant-subscription.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
+
+function PlanFeatureItem({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#ecfdf5', color: '#059669', flexShrink: 0 }}>
+        <CheckIcon size={10} strokeWidth={3} />
+      </span>
+      <span>{children}</span>
+    </div>
+  );
+}
 
 export function TenantSubscriptionPage() {
   const [isAnnual, setIsAnnual] = useState(true);
@@ -191,9 +203,10 @@ export function TenantSubscriptionPage() {
           <button 
             type="button" 
             onClick={() => setRequestSuccessMessage(null)}
-            style={{ background: 'transparent', border: 'none', color: '#065f46', cursor: 'pointer', fontWeight: 800, fontSize: '14px' }}
+            style={{ background: 'transparent', border: 'none', color: '#065f46', cursor: 'pointer', fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            إغلاق ✕
+            <span>إغلاق</span>
+            <XIcon size={14} />
           </button>
         </div>
       )}
@@ -443,12 +456,12 @@ export function TenantSubscriptionPage() {
               </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>مناسبة للمحلات الفردية ونقاط البيع السريعة</p>
               
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
-                <div>✓ نقطة بيع وكاشير سريع (POS)</div>
-                <div>✓ إدارة الأصناف والمنتجات والباركود</div>
-                <div>✓ ورديات العمل وتقفيل الكاشير</div>
-                <div>✓ صندوق النقدية والمصروفات اليومية</div>
-                <div>✓ حتى <strong>فرع واحد</strong> و <strong>2 مستخدمين</strong></div>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
+                <PlanFeatureItem>نقطة بيع وكاشير سريع (POS)</PlanFeatureItem>
+                <PlanFeatureItem>إدارة الأصناف والمنتجات والباركود</PlanFeatureItem>
+                <PlanFeatureItem>ورديات العمل وتقفيل الكاشير</PlanFeatureItem>
+                <PlanFeatureItem>صندوق النقدية والمصروفات اليومية</PlanFeatureItem>
+                <PlanFeatureItem>حتى <strong>فرع واحد</strong> و <strong>2 مستخدمين</strong></PlanFeatureItem>
               </div>
             </div>
 
@@ -474,12 +487,12 @@ export function TenantSubscriptionPage() {
               </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للشركات المتوسطة وسلاسل الفروع وتجار الجملة</p>
               
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
-                <div>✓ <strong>كل ميزات الأساسية</strong></div>
-                <div>✓ إدارة المشتريات والموردين الكاملة</div>
-                <div>✓ المخزون المتقدم وحركات الجرد والتسويات</div>
-                <div>✓ التقارير المتقدمة وسجل النشاط والتدقيق</div>
-                <div>✓ حتى <strong>3 فروع</strong> و <strong>6 مستخدمين</strong></div>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
+                <PlanFeatureItem><strong>كل ميزات الأساسية</strong></PlanFeatureItem>
+                <PlanFeatureItem>إدارة المشتريات والموردين الكاملة</PlanFeatureItem>
+                <PlanFeatureItem>المخزون المتقدم وحركات الجرد والتسويات</PlanFeatureItem>
+                <PlanFeatureItem>التقارير المتقدمة وسجل النشاط والتدقيق</PlanFeatureItem>
+                <PlanFeatureItem>حتى <strong>3 فروع</strong> و <strong>6 مستخدمين</strong></PlanFeatureItem>
               </div>
             </div>
 
@@ -501,16 +514,16 @@ export function TenantSubscriptionPage() {
               </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للمؤسسات الكبرى، المصانع، والمحاسبة المتقدمة</p>
               
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
-                <div>✓ <strong>كل ميزات الاحترافية</strong></div>
-                <div>✓ شجرة الحسابات، القيود اليومية، ومراكز التكلفة</div>
-                <div>✓ إدارة وإهلاك الأصول الثابتة والتقسيط</div>
-                <div>✓ الفاتورة الإلكترونية والإقرار الضريبي</div>
-                <div>✓ شؤون الموظفين والمرتبات المتقدمة (HR)</div>
-                <div>✓ مناديب التوصيل، الشحن، ونقاط ولاء العملاء</div>
-                <div>✓ إدارة الصيانة وسيريال الأجهزة (IMEI)</div>
-                <div>✓ موديولات التصنيع، الاستيراد، الصيدليات، والمطاعم</div>
-                <div>✓ حتى <strong>10 فروع</strong> و <strong>15 مستخدماً</strong></div>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
+                <PlanFeatureItem><strong>كل ميزات الاحترافية</strong></PlanFeatureItem>
+                <PlanFeatureItem>شجرة الحسابات، القيود اليومية، ومراكز التكلفة</PlanFeatureItem>
+                <PlanFeatureItem>إدارة وإهلاك الأصول الثابتة والتقسيط</PlanFeatureItem>
+                <PlanFeatureItem>الفاتورة الإلكترونية والإقرار الضريبي</PlanFeatureItem>
+                <PlanFeatureItem>شؤون الموظفين والمرتبات المتقدمة (HR)</PlanFeatureItem>
+                <PlanFeatureItem>مناديب التوصيل، الشحن، ونقاط ولاء العملاء</PlanFeatureItem>
+                <PlanFeatureItem>إدارة الصيانة وسيريال الأجهزة (IMEI)</PlanFeatureItem>
+                <PlanFeatureItem>موديولات التصنيع، الاستيراد، الصيدليات، والمطاعم</PlanFeatureItem>
+                <PlanFeatureItem>حتى <strong>10 فروع</strong> و <strong>15 مستخدماً</strong></PlanFeatureItem>
               </div>
             </div>
 
@@ -536,13 +549,13 @@ export function TenantSubscriptionPage() {
               </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للمؤسسات التي تدير فروعاً ومتجراً إلكترونياً متكاملاً</p>
               
-              <div style={{ borderTop: '1px solid #fde68a', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#334155' }}>
-                <div>✓ <strong>كل ميزات الباقة المتكاملة (ERP) بالكامل</strong></div>
-                <div>✓ <strong>متجر إلكتروني متكامل للعملاء (Storefront)</strong></div>
-                <div>✓ استقبال ومعالجة طلبات الأونلاين الحية لحظياً</div>
-                <div>✓ ربط بوابات الدفع الإلكتروني (Paymob / XPay / Stripe)</div>
-                <div>✓ كتالوج الويب وإدارة العروض وتتبع الشحن</div>
-                <div>✓ <strong>فروع ومستخدمين غير محدودين</strong></div>
+              <div style={{ borderTop: '1px solid #fde68a', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
+                <PlanFeatureItem><strong>كل ميزات الباقة المتكاملة (ERP) بالكامل</strong></PlanFeatureItem>
+                <PlanFeatureItem><strong>متجر إلكتروني متكامل للعملاء (Storefront)</strong></PlanFeatureItem>
+                <PlanFeatureItem>استقبال ومعالجة طلبات الأونلاين الحية لحظياً</PlanFeatureItem>
+                <PlanFeatureItem>ربط بوابات الدفع الإلكتروني (Paymob / XPay / Stripe)</PlanFeatureItem>
+                <PlanFeatureItem>كتالوج الويب وإدارة العروض وتتبع الشحن</PlanFeatureItem>
+                <PlanFeatureItem><strong>فروع ومستخدمين غير محدودين</strong></PlanFeatureItem>
               </div>
             </div>
 
@@ -626,9 +639,10 @@ export function TenantSubscriptionPage() {
               <button
                 type="button"
                 onClick={() => setSelectedPlanForUpgrade(null)}
-                style={{ background: 'transparent', border: 'none', fontSize: '18px', color: '#64748b', cursor: 'pointer', padding: '4px 8px' }}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px 8px', display: 'inline-flex', alignItems: 'center' }}
+                aria-label="إغلاق"
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 

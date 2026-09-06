@@ -1,5 +1,5 @@
 import type { ProductRow } from './inventoryTree.types';
-import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { AlertTriangleIcon , XIcon } from '@/shared/components/icons/AppIcons';
 
 function ProductTreeRow({
   product,
@@ -102,9 +102,7 @@ function ProductTreeRow({
                   }}
                   style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: '12px', fontWeight: 'bold' }}
                   title="حذف هذا المخزن من الصنف"
-                >
-                  ✕
-                </button>
+                ><XIcon size={15} /></button>
               )}
             </div>
           ))

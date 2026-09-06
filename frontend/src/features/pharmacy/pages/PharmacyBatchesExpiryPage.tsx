@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -336,9 +337,7 @@ export default function PharmacyBatchesExpiryPage() {
                   type="button"
                   onClick={() => setModalOpen(false)}
                   style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
-                >
-                  ✕
-                </button>
+                ><XIcon size={16} /></button>
               </div>
 
               <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

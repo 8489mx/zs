@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StorefrontProduct, StorefrontReview } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
 import { IconStar, IconClose } from './StorefrontIcons';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
+import { CheckCircleIcon, AlertCircleIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontReviewModalProps {
   isOpen: boolean;
@@ -13,11 +14,11 @@ interface StorefrontReviewModalProps {
 }
 
 const RATING_LABELS: Record<number, string> = {
-  5: 'ممتاز جداً ⭐⭐⭐⭐⭐',
-  4: 'جيد جداً ⭐⭐⭐⭐',
-  3: 'جيد ⭐⭐⭐',
-  2: 'مقبول ⭐⭐',
-  1: 'سيء ⭐',
+  5: 'ممتاز جداً (5/5)',
+  4: 'جيد جداً (4/5)',
+  3: 'جيد (3/5)',
+  2: 'مقبول (2/5)',
+  1: 'سيء (1/5)',
 };
 
 export function StorefrontReviewModal({
@@ -153,7 +154,7 @@ export function StorefrontReviewModal({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>⭐</span>
+            <IconStar size={18} fill="#f59e0b" color="#f59e0b" />
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
               تقييم المنتج ومشاركة رأيك
             </h3>
@@ -319,10 +320,14 @@ export function StorefrontReviewModal({
                 color: '#166534',
                 fontSize: '12.5px',
                 fontWeight: 700,
-                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
               }}
             >
-              ✓ {successMessage}
+              <CheckCircleIcon size={16} color="#15803d" />
+              <span>{successMessage}</span>
             </div>
           )}
 
@@ -337,10 +342,14 @@ export function StorefrontReviewModal({
                 color: '#991b1b',
                 fontSize: '12.5px',
                 fontWeight: 700,
-                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
               }}
             >
-              ✕ {errorMessage}
+              <AlertCircleIcon size={16} color="#991b1b" />
+              <span>{errorMessage}</span>
             </div>
           )}
 
@@ -432,7 +441,7 @@ export function StorefrontReviewModal({
               if (!isSubmitting) e.currentTarget.style.background = '#170e5e';
             }}
           >
-            {isSubmitting ? 'جاري إرسال التقييم...' : 'إرسال التقييم ⭐'}
+            {isSubmitting ? 'جاري إرسال التقييم...' : 'إرسال التقييم'}
           </button>
         </form>
 
@@ -459,8 +468,9 @@ export function StorefrontReviewModal({
           >
             <span>آراء وتقييمات العملاء السابقة ({reviews.length})</span>
             {product.rating && product.rating > 0 ? (
-              <span style={{ color: '#f59e0b', fontSize: '12px' }}>
-                ★ {Number(product.rating).toFixed(1)} / 5
+              <span style={{ color: '#d97706', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <IconStar size={13} fill="#f59e0b" color="#f59e0b" />
+                <span>{Number(product.rating).toFixed(1)} / 5</span>
               </span>
             ) : null}
           </div>
@@ -481,7 +491,7 @@ export function StorefrontReviewModal({
                 border: '1px dashed #cbd5e1',
               }}
             >
-              لا توجد تقييمات مسجلة بعد لهذا المنتج. كن أول من يقيّمه وشارك رأيك! 🌟
+              لا توجد تقييمات مسجلة بعد لهذا المنتج. كن أول من يقيّمه وشارك رأيك!
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>

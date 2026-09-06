@@ -32,7 +32,7 @@ import { MobileBottomNav } from '@/shared/layout/MobileBottomNav';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { GlobalSearchModal } from '@/shared/components/GlobalSearchModal';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { SearchIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { SearchIcon, CheckCircleIcon , XIcon } from '@/shared/components/icons/AppIcons';
 import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
 import { prefetchAllRouteModules } from '@/app/router/lazy-route';
 import { prefetchRouteData } from '@/app/router/route-prefetch';
@@ -901,9 +901,7 @@ export function AppShell({ children }: PropsWithChildren) {
                         handleCloseSidebarSearch();
                       }
                     }}
-                  >
-                    ✕
-                  </button>
+                  ><XIcon size={15} /></button>
                 </>
               ) : (
                 !effectiveSidebarCollapsed && (

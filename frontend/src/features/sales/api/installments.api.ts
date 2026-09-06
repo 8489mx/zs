@@ -41,6 +41,7 @@ export interface CustomerInstallmentItem {
   status: 'pending' | 'partially_paid' | 'paid' | 'overdue';
   display_status?: 'pending' | 'partially_paid' | 'paid' | 'overdue';
   remaining_installment?: number;
+  remaining_amount?: number;
   paid_at: string | null;
   payment_method: string;
   receipt_no: string | null;

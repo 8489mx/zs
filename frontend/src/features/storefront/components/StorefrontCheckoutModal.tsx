@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { CartItem, CreateOnlineOrderResponse, StorefrontInfo, ValidateCouponResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
 import { StorefrontOnlinePaymentModal } from './StorefrontOnlinePaymentModal';
+import { UtensilsIcon, XIcon, CheckIcon, TagIcon, TruckIcon } from '@/shared/components/icons/AppIcons';
 
 const STOREFRONT_SAVED_CUSTOMER_KEY = 'zsystems.storefront.saved_customer';
 
@@ -12,6 +13,8 @@ interface StorefrontCheckoutModalProps {
   info?: StorefrontInfo;
   deliveryFee?: number;
   tenantSlug?: string;
+  tableNumber?: string | null;
+  orderType?: 'delivery' | 'dine_in';
   editingOrderNumber?: string;
   onEditSuccess?: (orderNumber: string) => void;
   onOrderSuccess?: (orderData: CreateOnlineOrderResponse) => void;
@@ -24,6 +27,8 @@ interface StorefrontCheckoutModalProps {
     couponCode?: string;
     deliveryZoneId?: number;
     deliveryZoneName?: string;
+    orderType?: 'delivery' | 'dine_in';
+    tableNumber?: string;
   }) => Promise<void>;
 }
 
@@ -40,7 +45,7 @@ export function getEgyptianPhoneValidation(phone: string): { isValid: boolean; m
     return { isValid: false, message: 'كود شبكة غير صحيح (010, 011, 012, 015)', isComplete: false };
   }
   if (clean.length === 11 && EGYPT_PHONE_REGEX.test(clean)) {
-    return { isValid: true, message: '✓ رقم صحيح (11 رقم)', isComplete: true };
+    return { isValid: true, message: 'رقم هاتف صحيح (11 رقم)', isComplete: true };
   }
   return { isValid: false, message: `متبقي ${11 - clean.length} أرقام`, isComplete: false };
 }
@@ -52,7 +57,7 @@ export function getCustomerNameValidation(name: string): { isValid: boolean; mes
   if (trimmed.length < 3 || lettersCount < 3) {
     return { isValid: false, message: 'الاسم يجب ألا يقل عن 3 أحرف' };
   }
-  return { isValid: true, message: '✓ الاسم مكتمل' };
+  return { isValid: true, message: 'الاسم مكتمل' };
 }
 
 export function getCustomerAddressValidation(address: string): { isValid: boolean; message: string } {
@@ -62,7 +67,7 @@ export function getCustomerAddressValidation(address: string): { isValid: boolea
   if (trimmed.length < 5 || lettersCount < 3) {
     return { isValid: false, message: 'العنوان يجب ألا يقل عن 5 أحرف بالتفصيل' };
   }
-  return { isValid: true, message: '✓ العنوان واضح' };
+  return { isValid: true, message: 'العنوان مكتمل' };
 }
 
 export function StorefrontCheckoutModal({
@@ -72,11 +77,14 @@ export function StorefrontCheckoutModal({
   info,
   deliveryFee: deliveryFeeProp,
   tenantSlug,
+  tableNumber,
+  orderType,
   editingOrderNumber,
   onEditSuccess,
   onOrderSuccess,
   onSubmitOrder,
 }: StorefrontCheckoutModalProps) {
+  const isDineIn = Boolean(tableNumber) || orderType === 'dine_in';
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -240,7 +248,7 @@ export function StorefrontCheckoutModal({
 
   // Coupon Free Shipping & Discount
   const isCouponFreeShipping = Boolean(appliedCoupon?.ok && appliedCoupon?.isFreeShipping);
-  const effectiveDeliveryFee = (isAutoFreeShipping || isCouponFreeShipping) ? 0 : rawDeliveryFee;
+  const effectiveDeliveryFee = (isDineIn || isAutoFreeShipping || isCouponFreeShipping) ? 0 : rawDeliveryFee;
 
   let discountAmount = 0;
   if (appliedCoupon?.ok && appliedCoupon.discountAmount) {
@@ -275,11 +283,13 @@ export function StorefrontCheckoutModal({
       return;
     }
 
-    const trimmedAddress = customerAddress.trim();
-    const addressLetters = (trimmedAddress.match(/[\p{L}\p{M}]/gu) || []).length;
-    if (trimmedAddress.length < 5 || addressLetters < 3) {
-      showError('يرجى إدخال عنوان توصيل واضح ومفصل لا يقل عن 5 أحرف (المنطقة، الشارع، رقم العقار)');
-      return;
+    const trimmedAddress = isDineIn ? `طاولة رقم ${tableNumber}` : customerAddress.trim();
+    if (!isDineIn) {
+      const addressLetters = (trimmedAddress.match(/[\p{L}\p{M}]/gu) || []).length;
+      if (trimmedAddress.length < 5 || addressLetters < 3) {
+        showError('يرجى إدخال عنوان توصيل واضح ومفصل لا يقل عن 5 أحرف (المنطقة، الشارع، رقم العقار)');
+        return;
+      }
     }
 
     isSubmittingRef.current = true;
@@ -335,23 +345,27 @@ export function StorefrontCheckoutModal({
         await onSubmitOrder({
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
-          customerAddress: customerAddress.trim(),
+          customerAddress: trimmedAddress,
           customerNotes: customerNotes.trim(),
           paymentMethod,
           couponCode: appliedCoupon?.ok ? appliedCoupon.code : undefined,
           deliveryZoneId: selectedZone ? selectedZone.id : undefined,
           deliveryZoneName: selectedZone ? selectedZone.name : undefined,
+          orderType: isDineIn ? 'dine_in' : 'delivery',
+          tableNumber: tableNumber || undefined,
         });
       } else if (tenantSlug && onOrderSuccess) {
         const payload = {
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
-          customerAddress: customerAddress.trim(),
+          customerAddress: trimmedAddress,
           customerNotes: customerNotes.trim(),
           paymentMethod,
           couponCode: appliedCoupon?.ok ? appliedCoupon.code : undefined,
           deliveryZoneId: selectedZone ? selectedZone.id : undefined,
           deliveryZoneName: selectedZone ? selectedZone.name : undefined,
+          orderType: isDineIn ? ('dine_in' as const) : ('delivery' as const),
+          tableNumber: tableNumber || undefined,
           items: cartItems.map((item) => ({
             productId: Number(item.product.id),
             quantity: Number(item.quantity) || 1,
@@ -485,7 +499,7 @@ export function StorefrontCheckoutModal({
               fontSize: '16px',
             }}
           >
-            ✕
+            <XIcon size={16} color="#64748b" strokeWidth={2} />
           </button>
         </div>
 
@@ -652,8 +666,8 @@ export function StorefrontCheckoutModal({
               />
             </div>
 
-            {/* Field: Delivery Zone Matrix Selector */}
-            {activeDeliveryZones.length > 0 && (
+            {/* Field: Delivery Zone Matrix Selector (Hidden for Dine-In) */}
+            {!isDineIn && activeDeliveryZones.length > 0 && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
@@ -661,7 +675,7 @@ export function StorefrontCheckoutModal({
                   </label>
                   {selectedZone?.estimatedTime && (
                     <span style={{ fontSize: '11px', color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1px 7px', borderRadius: '4px', fontWeight: 600 }}>
-                      ⏱️ التوصيل المتوقع: {selectedZone.estimatedTime}
+                      التوصيل المتوقع: {selectedZone.estimatedTime}
                     </span>
                   )}
                 </div>
@@ -692,39 +706,65 @@ export function StorefrontCheckoutModal({
               </div>
             )}
 
-            {/* Field 3: Customer Address */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                عنوان التوصيل بالتفصيل <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <textarea
-                required
-                rows={2}
-                value={customerAddress}
-                onChange={(e) => setCustomerAddress(e.target.value)}
-                placeholder="اسم الشارع، رقم العمارة، الطابق، الشقة، وعلامة مميزة (مثال: أمام مسجد التقوى / بجوار صيدلية...)"
+            {/* Field 3: Customer Address or Dine-In Table Badge */}
+            {isDineIn ? (
+              <div
                 style={{
-                  width: '100%',
-                  padding: '9px 14px',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
                   borderRadius: '10px',
-                  border:
-                    customerAddress.length > 0
-                      ? addressStatus.isValid
-                        ? '1.5px solid #22c55e'
-                        : '1.5px solid #f87171'
-                      : '1.5px solid #cbd5e1',
-                  fontSize: '13px',
-                  outline: 'none',
-                  background: '#f8fafc',
-                  fontFamily: 'inherit',
-                  resize: 'none',
-                  minHeight: '52px',
-                  maxHeight: '64px',
-                  lineHeight: '1.4',
-                  transition: 'border-color 0.2s ease',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
                 }}
-              />
-            </div>
+              >
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <UtensilsIcon size={20} color="#166534" strokeWidth={2} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#166534', fontSize: '13px' }}>
+                    طلب مباشر من الصالة / الكافيه
+                  </div>
+                  <div style={{ color: '#15803d', fontSize: '12px' }}>
+                    طاولة رقم: <strong>{tableNumber || 'غير محدد'}</strong> (لا حاجة لعنوان توصيل)
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                  عنوان التوصيل بالتفصيل <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  placeholder="اسم الشارع، رقم العمارة، الطابق، الشقة، وعلامة مميزة (مثال: أمام مسجد التقوى / بجوار صيدلية...)"
+                  style={{
+                    width: '100%',
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border:
+                      customerAddress.length > 0
+                        ? addressStatus.isValid
+                          ? '1.5px solid #22c55e'
+                          : '1.5px solid #f87171'
+                        : '1.5px solid #cbd5e1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    background: '#f8fafc',
+                    fontFamily: 'inherit',
+                    resize: 'none',
+                    minHeight: '52px',
+                    maxHeight: '64px',
+                    lineHeight: '1.4',
+                    transition: 'border-color 0.2s ease',
+                  }}
+                />
+              </div>
+            )}
 
             {/* Delivery Notes with rich examples */}
             <div>
@@ -854,7 +894,7 @@ export function StorefrontCheckoutModal({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
-                        بطاقة بنكية 💳
+                        بطاقة بنكية
                       </span>
                       <div
                         style={{
@@ -890,7 +930,7 @@ export function StorefrontCheckoutModal({
                   }}
                 >
                   <div style={{ fontWeight: 800 }}>
-                    💳 دفع إلكتروني فوري وآمن:
+                    دفع إلكتروني فوري وآمن:
                   </div>
                   <div style={{ color: '#0c4a6e', fontSize: '11px', lineHeight: '1.4' }}>
                     سيتم فتح بوابة الدفع الآمنة لسداد مبلغ الطلب ({total.toFixed(0)} ج.م) ببطاقتك البنكية فور الضغط على إرسال الطلب.
@@ -927,8 +967,8 @@ export function StorefrontCheckoutModal({
               )}
             </div>
 
-            {/* Automatic Free Shipping Callout */}
-            {info?.freeShippingEnabled && (
+            {/* Automatic Free Shipping Callout (Hidden for Dine-In) */}
+            {!isDineIn && info?.freeShippingEnabled && (
               <div>
                 {isAutoFreeShipping ? (
                   <div
@@ -945,7 +985,6 @@ export function StorefrontCheckoutModal({
                       fontWeight: 700,
                     }}
                   >
-                    <span>🎉</span>
                     <span>
                       مبروك! مشترياتك تجاوزت {freeShippingThreshold} ج.م وحصلت على شحن مجاني (توفير {rawDeliveryFee.toFixed(0)} ج.م).
                     </span>
@@ -965,7 +1004,7 @@ export function StorefrontCheckoutModal({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>🚚</span>
+                      <TruckIcon size={14} color="#0284c7" />
                       <span>
                         أضف بـ <strong style={{ color: '#0284c7' }}>{freeShippingRemaining.toFixed(0)} ج.م</strong> إضافية للحصول على شحن مجاني!
                       </span>
@@ -1001,8 +1040,9 @@ export function StorefrontCheckoutModal({
                   كود الخصم أو الكوبون (Promo Code):
                 </label>
                 {appliedCoupon?.ok && (
-                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>
-                    ✓ تم التطبيق
+                  <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <CheckIcon size={12} color="#16a34a" strokeWidth={2.5} />
+                    <span>تم التطبيق</span>
                   </span>
                 )}
               </div>
@@ -1020,7 +1060,7 @@ export function StorefrontCheckoutModal({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '14px' }}>🏷️</span>
+                    <TagIcon size={14} color="#166534" strokeWidth={2} />
                     <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#166534', fontSize: '12.5px' }}>
                       {appliedCoupon.code}
                     </span>
@@ -1041,7 +1081,7 @@ export function StorefrontCheckoutModal({
                       padding: '2px 4px',
                     }}
                   >
-                    إلغاء ✕
+                    إلغاء
                   </button>
                 </div>
               ) : (
@@ -1096,7 +1136,7 @@ export function StorefrontCheckoutModal({
                   </div>
                   {couponError && (
                     <span style={{ display: 'block', fontSize: '11px', color: '#dc2626', marginTop: '4px', fontWeight: 600 }}>
-                      ⚠️ {couponError}
+                      {couponError}
                     </span>
                   )}
                 </div>
@@ -1121,13 +1161,15 @@ export function StorefrontCheckoutModal({
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b' }}>
-                <span>خدمة التوصيل {selectedZone ? `(${selectedZone.name})` : ''}:</span>
-                {effectiveDeliveryFee === 0 ? (
+                <span>{isDineIn ? 'خدمة الصالة / الطاولة:' : `خدمة التوصيل ${selectedZone ? `(${selectedZone.name})` : ''}:`}</span>
+                {isDineIn ? (
+                  <strong style={{ color: '#16a34a' }}>مجاناً (طلب صالة)</strong>
+                ) : effectiveDeliveryFee === 0 ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     {rawDeliveryFee > 0 && (
                       <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{rawDeliveryFee.toFixed(0)} ج</span>
                     )}
-                    <strong style={{ color: '#16a34a' }}>مجاناً 🚚</strong>
+                    <strong style={{ color: '#16a34a' }}>توصيل مجاني</strong>
                   </div>
                 ) : (
                   <span style={{ fontWeight: 600, color: '#334155' }}>{effectiveDeliveryFee.toFixed(0)} ج.م</span>
@@ -1225,7 +1267,7 @@ export function StorefrontCheckoutModal({
               transition: 'all 0.15s ease',
             }}
           >
-            {loading ? 'جاري الحفظ...' : editingOrderNumber ? 'حفظ تعديلات الطلب' : 'إرسال وتأكيد الطلب الآن'}
+            {loading ? 'جاري الحفظ...' : editingOrderNumber ? 'حفظ تعديلات الطلب' : isDineIn ? `إرسال الطلب للمطبخ (طاولة ${tableNumber || ''})` : 'إرسال وتأكيد الطلب الآن'}
           </button>
           <button
             type="button"

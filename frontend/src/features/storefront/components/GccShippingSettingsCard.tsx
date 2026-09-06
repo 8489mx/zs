@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gccShippingApi, GccShippingSettings } from '../api/gcc-shipping.api';
 import { Button } from '@/shared/ui/button';
+import { TruckIcon, MapPinIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 export function GccShippingSettingsCard() {
   const queryClient = useQueryClient();
@@ -92,12 +93,10 @@ export function GccShippingSettingsCard() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.5rem',
-              fontWeight: 800,
               boxShadow: '0 2px 6px rgba(30,64,175,0.12)',
             }}
           >
-            🚚
+            <TruckIcon size={24} color="#1e40af" />
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
@@ -142,7 +141,7 @@ export function GccShippingSettingsCard() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.5rem' }}>🔴</span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#dc2626', display: 'inline-block', flexShrink: 0 }} />
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.95rem', color: isAramex ? '#991b1b' : '#0f172a' }}>
                 أرامكس (Aramex Express)
@@ -176,7 +175,7 @@ export function GccShippingSettingsCard() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.5rem' }}>🟡</span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#d97706', display: 'inline-block', flexShrink: 0 }} />
             <div>
               <div style={{ fontWeight: 800, fontSize: '0.95rem', color: !isAramex ? '#92400e' : '#0f172a' }}>
                 سمسا إكسبريس (SMSA Express)
@@ -230,7 +229,7 @@ export function GccShippingSettingsCard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', border: '1px solid #fecaca', background: '#fffafa', borderRadius: '14px', padding: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#991b1b' }}>
-              🔴 بيانات اعتماد حساب أرامكس (Aramex Credentials)
+              بيانات اعتماد حساب أرامكس (Aramex Credentials)
             </h4>
             <button
               type="button"
@@ -316,12 +315,12 @@ export function GccShippingSettingsCard() {
                 onChange={(e) => setFormData({ ...formData, aramexCountryCode: e.target.value })}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.86rem' }}
               >
-                <option value="SA">🇸🇦 المملكة العربية السعودية (SA)</option>
-                <option value="AE">🇦🇪 الإمارات العربية المتحدة (AE)</option>
-                <option value="KW">🇰🇼 الكويت (KW)</option>
-                <option value="QA">🇶🇦 قطر (QA)</option>
-                <option value="BH">🇧🇭 البحرين (BH)</option>
-                <option value="OM">🇴🇲 عُمان (OM)</option>
+                <option value="SA">المملكة العربية السعودية (SA)</option>
+                <option value="AE">الإمارات العربية المتحدة (AE)</option>
+                <option value="KW">الكويت (KW)</option>
+                <option value="QA">قطر (QA)</option>
+                <option value="BH">البحرين (BH)</option>
+                <option value="OM">عُمان (OM)</option>
               </select>
             </div>
           </div>
@@ -330,7 +329,7 @@ export function GccShippingSettingsCard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', border: '1px solid #fed7aa', background: '#fffdfa', borderRadius: '14px', padding: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#92400e' }}>
-              🟡 بيانات اعتماد سمسا إكسبريس (SMSA Express Credentials)
+              بيانات اعتماد سمسا إكسبريس (SMSA Express Credentials)
             </h4>
             <button
               type="button"
@@ -376,9 +375,12 @@ export function GccShippingSettingsCard() {
 
       {/* Warehouse Pickup Address in GCC */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', border: '1px solid #e2e8f0', background: '#f8fafc', borderRadius: '14px', padding: '18px' }}>
-        <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
-          📍 بيانات المستودع الخليجي لاستلام الطرود (Pickup Location)
-        </h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <MapPinIcon size={18} color="#170e5e" />
+          <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+            بيانات المستودع الخليجي لاستلام الطرود (Pickup Location)
+          </h4>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
           <div>
@@ -453,7 +455,7 @@ export function GccShippingSettingsCard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
         {savedSuccess ? (
           <div style={{ color: '#059669', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>✓</span>
+            <CheckIcon size={16} />
             <span>تم حفظ إعدادات الشحن الخليجي بنجاح!</span>
           </div>
         ) : (

@@ -106,3 +106,14 @@ export function openCustomerDisplayWindow(): Window | null {
     `width=${width},height=${height},left=${left},top=0,menubar=no,toolbar=no,location=no,status=no,resizable=yes`,
   );
 }
+
+export function openKitchenDisplayWindow(): Window | null {
+  if (typeof window === 'undefined') return null;
+  return window.open('/kds', 'KitchenDisplayWindow', 'menubar=no,toolbar=no,location=no,status=no,resizable=yes');
+}
+
+export function openDigitalSignageWindow(): Window | null {
+  if (typeof window === 'undefined') return null;
+  return window.open('/signage', 'DigitalSignageWindow', 'menubar=no,toolbar=no,location=no,status=no,resizable=yes');
+}
+

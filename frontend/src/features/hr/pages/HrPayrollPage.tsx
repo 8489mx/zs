@@ -1,3 +1,4 @@
+import { CheckIcon } from '@/shared/components/icons/AppIcons';
 import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -639,7 +640,7 @@ export function HrPayrollPage() {
                         }}
                         title={item.status}
                       >
-                        {item.ok ? '✓' : '•'} {item.title}
+                        {item.ok ? <CheckIcon size={13} color="#16a34a" /> : '•'} {item.title}
                       </span>
                     ))}
                   </div>

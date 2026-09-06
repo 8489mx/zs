@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useCallback, useEffect, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { formatCurrency } from '@/lib/format';
@@ -148,9 +149,7 @@ export function PosHeldDraftsDialog({
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#f1f5f9'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; }}
-          >
-            ✕
-          </button>
+          ><XIcon size={15} /></button>
         </div>
 
         {/* Keyboard Hints Bar */}

@@ -1,4 +1,4 @@
-﻿import { http } from '@/lib/http';
+import { http } from '@/lib/http';
 import { unwrapArray, unwrapEntity, type PaginationMeta } from '@/lib/api/contracts';
 import type { Product, Sale } from '@/types/domain';
 import { buildQueryString } from '@/lib/query-string';
@@ -50,15 +50,23 @@ export const salesApi = {
   list: async () => unwrapArray<Sale>(await http<Sale[] | { sales: Sale[] }>('/api/sales'), 'sales'),
   listPage: async (params: SalesListParams = {}) => {
     const response = await http<SalesListResponse>(`/api/sales${buildQueryString(params)}`);
+    const sales = Array.isArray(response.sales) ? response.sales : [];
+    const page = response.pagination?.page || params.page || 1;
+    const pageSize = response.pagination?.pageSize || params.pageSize || 30;
+    const totalItems = response.pagination?.totalItems ?? sales.length;
+    const totalPages = response.pagination?.totalPages || Math.max(1, Math.ceil(totalItems / pageSize));
+    const rangeStart = totalItems > 0 ? (page - 1) * pageSize + 1 : 0;
+    const rangeEnd = totalItems > 0 ? Math.min(page * pageSize, totalItems) : 0;
+
     return {
-      rows: Array.isArray(response.sales) ? response.sales : [],
-      pagination: response.pagination || {
-        page: 1,
-        pageSize: params.pageSize || 30,
-        totalItems: Array.isArray(response.sales) ? response.sales.length : 0,
-        totalPages: 1,
-        rangeStart: Array.isArray(response.sales) && response.sales.length ? 1 : 0,
-        rangeEnd: Array.isArray(response.sales) ? response.sales.length : 0,
+      rows: sales,
+      pagination: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+        rangeStart: response.pagination?.rangeStart != null && response.pagination.rangeStart > 0 ? response.pagination.rangeStart : rangeStart,
+        rangeEnd: response.pagination?.rangeEnd != null && response.pagination.rangeEnd > 0 ? response.pagination.rangeEnd : rangeEnd,
       },
       summary: response.summary || defaultSummary,
     };

@@ -6,35 +6,49 @@ import {
 } from '@/features/pos/lib/pos-customer-display-bridge';
 import { buildQrSvg } from '@/lib/qrcode';
 import { formatCurrency } from '@/lib/format';
+import {
+  TagIcon,
+  AwardIcon,
+  CreditCardIcon,
+  TruckIcon,
+  QrCodeIcon,
+  CheckIcon,
+  ReceiptIcon,
+  ShieldCheckIcon,
+  ShoppingCartIcon,
+  ClockIcon,
+  Maximize2Icon,
+  Minimize2Icon,
+} from '@/shared/components/icons/AppIcons';
 
 const DEFAULT_PROMOTIONS = [
   {
     id: 'promo-1',
-    title: 'عروض وخصومات حصرية',
-    subtitle: 'اكتشف عروضنا اليومية المتجددة على تشكيلة واسعة من الأصناف والمنتجات المختارة بعناية.',
-    badge: 'توفير مميز',
-    icon: '🏷️',
+    title: 'عروض وتخفيضات حصرية بالمعرض',
+    subtitle: 'اكتشف عروضنا اليومية المتجددة على تشكيلة واسعة من المنتجات المختارة بعناية بأفضل الأسعار التنافسية.',
+    badge: 'توفير استثنائي',
+    icon: <TagIcon size={26} color="#170e5e" />,
   },
   {
     id: 'promo-2',
-    title: 'برنامج ولاء العملاء',
-    subtitle: 'اجمع نقاطاً مع كل عملية شراء واستبدلها بخصومات مباشرة على فواتيرك القادمة فورياً.',
+    title: 'برنامج ولاء ومكافآت العملاء',
+    subtitle: 'اجمع نقاطاً مع كل فاتورة شراء واستبدلها بخصومات مالية فورية على مشترياتك القادمة.',
     badge: 'نقاط ومكافآت',
-    icon: '⭐',
+    icon: <AwardIcon size={26} color="#170e5e" />,
   },
   {
     id: 'promo-3',
     title: 'سداد إلكتروني فوري وسلس',
-    subtitle: 'ادفع بأمان وسرعة عبر تطبيق InstaPay أو المحافظ الإلكترونية بالمسح المباشر لرمز الـ QR.',
+    subtitle: 'ادفع بأمان وسرعة عبر تطبيق InstaPay أو المحافظ الإلكترونية وكروت الدفع البنكي.',
     badge: 'دفع ذكي',
-    icon: '📱',
+    icon: <CreditCardIcon size={26} color="#170e5e" />,
   },
   {
     id: 'promo-4',
     title: 'خدمة التوصيل السريع للمنازل',
-    subtitle: 'اطلب من خلال المتجر الإلكتروني أو الواتساب لتصلك طلباتك بأسرع وقت حتى باب بيتك.',
+    subtitle: 'اطلب من خلال المتجر الإلكتروني أو الواتساب لتصلك مشترياتك حتى باب بيتك بأسرع وقت.',
     badge: 'دليفري سريع',
-    icon: '🛵',
+    icon: <TruckIcon size={26} color="#170e5e" />,
   },
 ];
 
@@ -139,11 +153,24 @@ export function CustomerFacingDisplayPage() {
     });
   }, [payload.payment?.qrData]);
 
+  // Loyalty QR Code SVG for Idle Screen
+  const storefrontUrl = typeof window !== 'undefined' ? `${window.location.origin}/storefront` : '';
+  const loyaltyQrSvg = useMemo(() => {
+    return buildQrSvg(storefrontUrl || 'https://z-systems.app', {
+      size: 140,
+      quietZone: 1,
+      color: '#170e5e',
+      bgColor: '#ffffff',
+    });
+  }, [storefrontUrl]);
+
   // Determine latest added item key for visual feedback
   const latestItemKey = useMemo(() => {
     if (!payload.items || payload.items.length === 0) return null;
     return payload.items[payload.items.length - 1]?.id;
   }, [payload.items]);
+
+  const activePromo = DEFAULT_PROMOTIONS[promoIndex] || DEFAULT_PROMOTIONS[0];
 
   return (
     <div className="cfd-container" dir="rtl">
@@ -151,7 +178,7 @@ export function CustomerFacingDisplayPage() {
       <header className="cfd-header">
         <div className="cfd-brand-section">
           <div className="cfd-logo-badge" aria-hidden="true">
-            {payload.storeName?.trim()?.charAt(0)?.toUpperCase() || 'Z'}
+            <ShoppingCartIcon size={22} color="#ffffff" />
           </div>
           <div>
             <div className="cfd-store-name">{payload.storeName || 'مؤسستنا التجارية'}</div>
@@ -163,23 +190,10 @@ export function CustomerFacingDisplayPage() {
 
         <div className="cfd-header-meta">
           <div className="cfd-clock-badge">
-            <svg
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span>{currentTime}</span>
-            <span style={{ opacity: 0.4, margin: '0 4px' }}>|</span>
-            <span style={{ fontSize: '13px', fontWeight: 500 }}>{currentDate}</span>
+            <ClockIcon size={16} color="#170e5e" />
+            <span style={{ fontWeight: 800, color: '#170e5e', fontFamily: 'monospace' }}>{currentTime}</span>
+            <span style={{ opacity: 0.3, margin: '0 4px' }}>|</span>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{currentDate}</span>
           </div>
 
           <div className="cfd-status-pill">
@@ -194,21 +208,7 @@ export function CustomerFacingDisplayPage() {
             title={isFullscreen ? 'تصغير الشاشة' : 'ملء الشاشة'}
             aria-label="Toggle Fullscreen"
           >
-            {isFullscreen ? (
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="4 14 10 14 10 20" />
-                <polyline points="20 10 14 10 14 4" />
-                <line x1="14" y1="10" x2="21" y2="3" />
-                <line x1="3" y1="21" x2="10" y2="14" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 3 21 3 21 9" />
-                <polyline points="9 21 3 21 3 15" />
-                <line x1="21" y1="3" x2="14" y2="10" />
-                <line x1="3" y1="21" x2="10" y2="14" />
-              </svg>
-            )}
+            {isFullscreen ? <Minimize2Icon size={18} /> : <Maximize2Icon size={18} />}
           </button>
         </div>
       </header>
@@ -216,53 +216,135 @@ export function CustomerFacingDisplayPage() {
       {/* Main Screen Body */}
       <main className="cfd-main">
         {/* ====================================================
-            STATE 1: IDLE SCREEN (ترحيب وعروض المتجر)
+            STATE 1: IDLE SCREEN (ترحيب وعروض المتجر الفاخرة)
             ==================================================== */}
         {payload.status === 'idle' && (
           <div className="cfd-idle-view">
-            <div className="cfd-welcome-card">
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '16px',
-                  background: '#f1f5f9',
-                  fontSize: '32px',
-                  marginBottom: '16px',
-                }}
-              >
-                👋
-              </div>
-              <div className="cfd-welcome-title">أهلاً وسهلاً بكم في {payload.storeName}</div>
-              <div className="cfd-welcome-subtitle">
-                نسعد بخدمتكم وتوفير أفضل تجربة تسوق. تفضل بتقديم مشترياتك للكاشير وسيقوم بمسحها على الفور.
-              </div>
-            </div>
-
-            {/* Promotional Cards Grid */}
-            <div className="cfd-promo-grid">
-              {DEFAULT_PROMOTIONS.map((promo, idx) => (
-                <div
-                  key={promo.id}
-                  className="cfd-promo-card"
-                  style={{
-                    border: idx === promoIndex ? '1.5px solid #170e5e' : undefined,
-                    background: idx === promoIndex ? '#fdfdff' : undefined,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="cfd-promo-icon-wrap">{promo.icon}</div>
-                    <span className="cfd-promo-badge">{promo.badge}</span>
+            {/* Split Symmetrical 2-Column Luxury Layout */}
+            <div className="cfd-idle-grid">
+              {/* Right Column: Brand Welcome & Value Propositions */}
+              <div className="cfd-idle-hero-card">
+                {/* Welcome Store Showcase */}
+                <div className="cfd-idle-welcome-top">
+                  <div className="cfd-idle-avatar">
+                    <ShoppingCartIcon size={32} color="#ffffff" />
                   </div>
-                  <div className="cfd-promo-title">{promo.title}</div>
-                  <div className="cfd-promo-desc">{promo.subtitle}</div>
+                  <div>
+                    <h2 className="cfd-idle-headline">
+                      أهلاً وسهلاً بكم في {payload.storeName}
+                    </h2>
+                    <p className="cfd-idle-subheadline">
+                      نسعد بخدمتكم وتوفير أفضل تجربة تسوق. تفضل بتقديم مشترياتك للكاشير وسيقوم بمسحها على الفور.
+                    </p>
+                  </div>
                 </div>
-              ))}
+
+                {/* Rotating Value Proposition Deck */}
+                <div className="cfd-idle-feature-deck">
+                  <div className="cfd-feature-deck-header">
+                    <span className="cfd-feature-badge">{activePromo.badge}</span>
+                    <div className="cfd-feature-dots">
+                      {DEFAULT_PROMOTIONS.map((_, idx) => (
+                        <span
+                          key={idx}
+                          onClick={() => setPromoIndex(idx)}
+                          className={`cfd-feature-dot ${idx === promoIndex ? 'is-active' : ''}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="cfd-feature-deck-body">
+                    <div className="cfd-feature-icon-box">{activePromo.icon}</div>
+                    <div>
+                      <h3 className="cfd-feature-title">{activePromo.title}</h3>
+                      <p className="cfd-feature-desc">{activePromo.subtitle}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trust & Official Guarantee Badges */}
+                <div className="cfd-trust-strip">
+                  <div className="cfd-trust-item">
+                    <ReceiptIcon size={18} color="#170e5e" />
+                    <div>
+                      <div className="cfd-trust-title">فاتورة إلكترونية معتمدة</div>
+                      <div className="cfd-trust-sub">متوافقة ضريبياً وموثقة</div>
+                    </div>
+                  </div>
+
+                  <div className="cfd-trust-item">
+                    <ShieldCheckIcon size={18} color="#170e5e" />
+                    <div>
+                      <div className="cfd-trust-title">ضمان واستبدال فوري</div>
+                      <div className="cfd-trust-sub">جودة وأصالة معتمدة 100%</div>
+                    </div>
+                  </div>
+
+                  <div className="cfd-trust-item">
+                    <CreditCardIcon size={18} color="#170e5e" />
+                    <div>
+                      <div className="cfd-trust-title">سداد إلكتروني آمن</div>
+                      <div className="cfd-trust-sub">InstaPay وفيزا ومحافظ</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Left Column: Smart Interactive Customer Kiosk */}
+              <div className="cfd-idle-kiosk-card">
+                {/* QR Engagement Box */}
+                <div className="cfd-kiosk-qr-box">
+                  <div className="cfd-kiosk-header">
+                    <div className="cfd-kiosk-badge">
+                      <QrCodeIcon size={16} color="#170e5e" />
+                      <span>تفاعل رقمي ذكي</span>
+                    </div>
+                    <h3 className="cfd-kiosk-title">برنامج الولاء والخصومات</h3>
+                    <p className="cfd-kiosk-desc">
+                      امسح الرمز بهاتفك للانضمام لبرنامج نقاط العملاء وتلقي نسخة إلكترونية من فاتورتك عبر الواتساب فوراً.
+                    </p>
+                  </div>
+
+                  <div className="cfd-kiosk-qr-container">
+                    <div dangerouslySetInnerHTML={{ __html: loyaltyQrSvg }} />
+                  </div>
+
+                  <div className="cfd-kiosk-steps">
+                    <div className="cfd-kiosk-step">
+                      <span className="cfd-step-num">1</span>
+                      <span>افتح الكاميرا</span>
+                    </div>
+                    <div className="cfd-kiosk-step">
+                      <span className="cfd-step-num">2</span>
+                      <span>امسح الـ QR</span>
+                    </div>
+                    <div className="cfd-kiosk-step">
+                      <span className="cfd-step-num">3</span>
+                      <span>اجمع نقاطك</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Accepted Payment Gateways Box */}
+                <div className="cfd-kiosk-payments-box">
+                  <div className="cfd-payments-header">
+                    <CreditCardIcon size={16} color="#170e5e" />
+                    <span>وسائل الدفع المقبولة بصالة البيع</span>
+                  </div>
+
+                  <div className="cfd-payments-badges-grid">
+                    <div className="cfd-payment-chip instapay">InstaPay فوري</div>
+                    <div className="cfd-payment-chip cards">فيزا وماستركارد</div>
+                    <div className="cfd-payment-chip meeza">كروت ميزة</div>
+                    <div className="cfd-payment-chip wallets">المحافظ والموبايل كاش</div>
+                    <div className="cfd-payment-chip cash">نقداً بالجنيه المصري</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
+            {/* Bottom Footer Note */}
             <div className="cfd-footer-note">
               نظام المحاسبة ونقاط البيع السحابي Z-Systems • خدمة العملاء الرقمية المتطورة
             </div>
@@ -278,21 +360,7 @@ export function CustomerFacingDisplayPage() {
             <div className="cfd-cart-card">
               <div className="cfd-cart-header">
                 <div className="cfd-cart-header-title">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="22"
-                    height="22"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <circle cx="9" cy="21" r="1" />
-                    <circle cx="20" cy="21" r="1" />
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                  </svg>
+                  <ShoppingCartIcon size={20} color="#170e5e" />
                   <span>سلة المشتريات الحالية</span>
                   <span className="cfd-item-count-badge">
                     {payload.itemCount} {payload.itemCount === 1 ? 'صنف' : 'أصناف'}
@@ -301,10 +369,7 @@ export function CustomerFacingDisplayPage() {
 
                 {payload.customer && (
                   <div className="cfd-customer-pill">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
+                    <AwardIcon size={16} color="#047857" />
                     <span>عميلنا العزيز: {payload.customer.name}</span>
                     {typeof payload.customer.loyaltyPoints === 'number' && (
                       <span style={{ fontWeight: 800, color: '#047857' }}>
@@ -356,7 +421,7 @@ export function CustomerFacingDisplayPage() {
             {/* Left Column: Totals & Payment Summary */}
             <div className="cfd-summary-card">
               <div className="cfd-summary-section">
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', marginBottom: '8px' }}>
                   ملخص الحساب
                 </div>
 
@@ -392,12 +457,12 @@ export function CustomerFacingDisplayPage() {
                   <div className="cfd-payment-box">
                     <span className="cfd-payment-channel-badge">
                       {payload.payment?.channel === 'instapay'
-                        ? 'الدفع عبر InstaPay ⚡'
+                        ? 'الدفع عبر InstaPay'
                         : payload.payment?.channel === 'wallet'
-                        ? 'الدفع بالمحفظة الإلكترونية 📱'
+                        ? 'الدفع بالمحفظة الإلكترونية'
                         : payload.payment?.channel === 'card'
-                        ? 'الدفع بالبطاقة البنكية 💳'
-                        : 'الدفع نقداً 💵'}
+                        ? 'الدفع بالبطاقة البنكية'
+                        : 'الدفع نقداً'}
                     </span>
 
                     {qrSvg ? (
@@ -411,13 +476,13 @@ export function CustomerFacingDisplayPage() {
                     )}
 
                     {payload.payment?.paidAmount && payload.payment.paidAmount > 0 ? (
-                      <div style={{ width: '100%', borderTop: '1px solid #e9d5ff', paddingTop: '10px' }}>
+                      <div style={{ width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
                         <div className="cfd-summary-row" style={{ fontSize: '14px' }}>
                           <span>المدفوع:</span>
                           <span>{formatCurrency(payload.payment.paidAmount)}</span>
                         </div>
                         {payload.payment.change !== undefined && payload.payment.change > 0 && (
-                          <div className="cfd-summary-row" style={{ fontSize: '15px', fontWeight: 800, color: '#16a34a' }}>
+                          <div className="cfd-summary-row" style={{ fontSize: '16px', fontWeight: 900, color: '#16a34a' }}>
                             <span>المتبقي للعميل:</span>
                             <span>{formatCurrency(payload.payment.change)}</span>
                           </div>
@@ -442,12 +507,10 @@ export function CustomerFacingDisplayPage() {
           <div className="cfd-completed-view">
             <div className="cfd-completed-card">
               <div className="cfd-success-icon-wrap" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <CheckIcon size={40} color="#16a34a" strokeWidth={2.5} />
               </div>
 
-              <div className="cfd-completed-title">تمت عملية الشراء بنجاح! 💚</div>
+              <div className="cfd-completed-title">تمت عملية الشراء بنجاح!</div>
               <div className="cfd-completed-subtitle">
                 شكراً لتسوقكم معنا في {payload.storeName}. نسعد دائماً بخدمتكم ونتطلع لرؤيتكم قريباً!
               </div>
@@ -471,12 +534,12 @@ export function CustomerFacingDisplayPage() {
 
                   <div className="cfd-sale-meta-box">
                     <div className="cfd-sale-meta-label">طريقة السداد</div>
-                    <div className="cfd-sale-meta-val" style={{ fontSize: '16px' }}>نقداً / إلكتروني</div>
+                    <div className="cfd-sale-meta-val" style={{ fontSize: '15px' }}>نقداً / إلكتروني</div>
                   </div>
 
                   {payload.completedSale.change > 0 && (
                     <div className="cfd-sale-change-box">
-                      <div className="cfd-sale-meta-label" style={{ color: '#166534', fontSize: '15px' }}>
+                      <div className="cfd-sale-meta-label" style={{ color: '#166534', fontSize: '14px' }}>
                         المتبقي المسترد للعميل
                       </div>
                       <div className="cfd-sale-meta-val">
@@ -487,7 +550,7 @@ export function CustomerFacingDisplayPage() {
                 </div>
               )}
 
-              <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '10px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '14px' }}>
                 سيتم العودة للشاشة الرئيسية تلقائياً خلال ثوانٍ...
               </div>
             </div>
@@ -497,3 +560,4 @@ export function CustomerFacingDisplayPage() {
     </div>
   );
 }
+export default CustomerFacingDisplayPage;

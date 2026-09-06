@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { Button } from '@/shared/ui/button';
-import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { AlertTriangleIcon , XIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { pharmacyApi } from '../api/pharmacy.api';
@@ -448,9 +448,7 @@ export default function PharmacyDrugsDirectoryPage() {
                 type="button"
                 onClick={() => setIsModalOpen(false)}
                 style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
-              >
-                ✕
-              </button>
+              ><XIcon size={16} /></button>
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

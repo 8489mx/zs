@@ -683,7 +683,7 @@ export function GeneralSettingsTab({
                   </div>
                 )}
 
-                {branchStockSaved && <div style={{ color: '#16a34a', marginTop: '4px', fontSize: '0.75rem', fontWeight: 600 }}>✓ تم حفظ إعدادات مخزون البيع بنجاح.</div>}
+                {branchStockSaved && <div style={{ color: '#16a34a', marginTop: '4px', fontSize: '0.75rem', fontWeight: 600 }}>تم حفظ إعدادات مخزون البيع بنجاح.</div>}
                 {branchStockError && <div style={{ color: '#dc2626', marginTop: '4px', fontSize: '0.75rem', fontWeight: 600 }}>{branchStockError}</div>}
               </div>
             )}

@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
 import { importantManagerActions } from '@/features/dashboard/lib/manager-actions-ui';
 import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
-import { RocketIcon } from '@/shared/components/icons/AppIcons';
+import { RocketIcon, BellIcon, BellOffIcon } from '@/shared/components/icons/AppIcons';
 import { isAudioChimeEnabled, playNotificationChime, setAudioChimeEnabled } from '@/lib/audio-chime';
 
 function formatCompactAlert(alert: { title: string; message: string; domain: string; severity: string; metrics?: Record<string, unknown> }) {
@@ -31,15 +31,6 @@ function formatCompactAlert(alert: { title: string; message: string; domain: str
   }
 
   return { mainLabel, statusDetail };
-}
-
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M18 8.8a6 6 0 0 0-12 0c0 7-2.5 7-2.5 7h17s-2.5 0-2.5-7" />
-      <path d="M9.8 19a2.3 2.3 0 0 0 4.4 0" />
-    </svg>
-  );
 }
 
 export function ManagerNotificationsBell() {
@@ -221,7 +212,7 @@ export function ManagerNotificationsBell() {
               gap: '4px',
             }}
           >
-            <span>{soundEnabled ? '🔔' : '🔕'}</span>
+            {soundEnabled ? <BellIcon size={13} color="#1e40af" /> : <BellOffIcon size={13} color="#64748b" />}
             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: soundEnabled ? '#1e40af' : '#64748b' }}>
               {soundEnabled ? 'صوت' : 'صامت'}
             </span>

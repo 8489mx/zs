@@ -3,7 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { driverPortalApi, DeliveryOrder, SettleOrderPayload, DriverPortalUser } from '../api/delivery-reps.api';
 import { DeliverySettlementModal } from '../components/DeliverySettlementModal';
 import { Button } from '@/shared/ui/button';
-import { RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import {
+  RefreshCwIcon,
+  TruckIcon,
+  SmartphoneIcon,
+  PackageIcon,
+  UserIcon,
+  MapPinIcon,
+  MessageSquareIcon,
+  CheckIcon,
+} from '@/shared/components/icons/AppIcons';
 
 interface OfflineQueueItem {
   orderId: number;
@@ -17,24 +26,20 @@ interface OfflineQueueItem {
 export function DriverPortalPage() {
   const queryClient = useQueryClient();
 
-  // Driver Auth State
   const [driverUser, setDriverUser] = useState<DriverPortalUser | null>(() => {
     const session = driverPortalApi.getStoredSession();
     return session ? session.rep : null;
   });
 
-  // Login Form State
   const [phoneInput, setPhoneInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // App & Filter State
   const [statusFilter, setStatusFilter] = useState<'pending' | 'settled' | 'all'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSettleOrder, setActiveSettleOrder] = useState<DeliveryOrder | null>(null);
 
-  // Offline Queue State
   const [offlineQueue, setOfflineQueue] = useState<OfflineQueueItem[]>(() => {
     try {
       const saved = localStorage.getItem('zs_driver_offline_queue');
@@ -45,29 +50,26 @@ export function DriverPortalPage() {
   });
   const [isSyncingOffline, setIsSyncingOffline] = useState(false);
 
-  // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    const handler = (e: any) => {
+    const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   const handleInstallPwa = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
     }
   };
 
-  // Queries for Orders
   const { data: orders = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['driver-portal-orders', driverUser?.id, statusFilter],
     queryFn: () => driverPortalApi.getOrders(statusFilter === 'all' ? undefined : statusFilter),
@@ -75,7 +77,6 @@ export function DriverPortalPage() {
     refetchInterval: 25000,
   });
 
-  // Login Mutation
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -104,7 +105,6 @@ export function DriverPortalPage() {
     }
   };
 
-  // Offline Helpers
   const saveToOfflineQueue = (order: DeliveryOrder, payload?: SettleOrderPayload) => {
     const item: OfflineQueueItem = {
       orderId: order.id,
@@ -117,7 +117,7 @@ export function DriverPortalPage() {
     const updated = [item, ...offlineQueue];
     setOfflineQueue(updated);
     localStorage.setItem('zs_driver_offline_queue', JSON.stringify(updated));
-    alert('تم حفظ إثبات التسليم محلياً في وضع عدم الاتصال (Offline) وسيتم رفعه فور عودة الشبكة. ✓');
+    alert('تم حفظ إثبات التسليم محلياً في وضع عدم الاتصال (Offline) وسيتم رفعه فور عودة الشبكة.');
     setActiveSettleOrder(null);
   };
 
@@ -142,7 +142,7 @@ export function DriverPortalPage() {
     queryClient.invalidateQueries({ queryKey: ['driver-portal-orders'] });
 
     if (remaining.length === 0) {
-      alert('تمت مزامنة جميع الشحنات المعلقة مع السيرفر بنجاح! ✓');
+      alert('تمت مزامنة جميع الشحنات المعلقة مع السيرفر بنجاح!');
     }
   };
 
@@ -154,14 +154,13 @@ export function DriverPortalPage() {
     return () => window.removeEventListener('online', handleOnline);
   }, [offlineQueue]);
 
-  // Settle Mutation
   const settleMutation = useMutation({
     mutationFn: ({ saleId, payload }: { saleId: number; payload?: SettleOrderPayload }) =>
       driverPortalApi.settleOrder(saleId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['driver-portal-orders', driverUser?.id] });
       setActiveSettleOrder(null);
-      alert('تم تأكيد تسليم الشحنة بنجاح! ✅');
+      alert('تم تأكيد تسليم الشحنة بنجاح!');
     },
     onError: (err: any, vars) => {
       if (!navigator.onLine || err?.message?.includes('Network') || err?.message?.includes('Failed to fetch')) {
@@ -197,7 +196,6 @@ export function DriverPortalPage() {
     settleMutation.mutate({ saleId: activeSettleOrder.id, payload });
   };
 
-  // Filtered orders
   const filteredOrders = orders.filter((o) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -213,7 +211,6 @@ export function DriverPortalPage() {
   const pendingAmount = orders.filter((o) => !o.settledAt && o.deliveryStatus !== 'settled').reduce((sum, o) => sum + Number(o.total || 0), 0);
   const settledCount = orders.filter((o) => Boolean(o.settledAt) || o.deliveryStatus === 'settled').length;
 
-  // 1. Render Login Screen if not logged in
   if (!driverUser) {
     return (
       <div 
@@ -241,7 +238,6 @@ export function DriverPortalPage() {
             boxSizing: 'border-box'
           }}
         >
-          {/* Brand Icon */}
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <div 
               style={{ 
@@ -253,12 +249,11 @@ export function DriverPortalPage() {
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
-                fontSize: '32px',
                 marginBottom: '12px',
                 boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)'
               }}
             >
-              🛵
+              <TruckIcon size={32} color="#2563eb" />
             </div>
             <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 900, color: '#0f172a' }}>
               بوابة مندوب التوصيل
@@ -360,11 +355,10 @@ export function DriverPortalPage() {
                 opacity: isLoggingIn ? 0.7 : 1,
               }}
             >
-              {isLoggingIn ? 'جاري التحقق...' : 'تسجيل الدخول واستلام الشحنات 🚀'}
+              {isLoggingIn ? 'جاري التحقق...' : 'تسجيل الدخول واستلام الشحنات'}
             </button>
           </form>
 
-          {/* Quick Info */}
           <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
             <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
               منظومة Z-Systems اللوجستية لإدارة أساطيل الدليفري
@@ -394,7 +388,7 @@ export function DriverPortalPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#1e1b4b' }}>
-            <span style={{ fontSize: '18px' }}>📲</span>
+            <SmartphoneIcon size={18} color="#1e1b4b" />
             <div>
               <strong>تثبيت التطبيق على الموبايل:</strong> شاشة كاملة وسرعة وصول بدون متصفح.
             </div>
@@ -435,7 +429,7 @@ export function DriverPortalPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#92400e' }}>
-            <span style={{ fontSize: '18px' }}>📦</span>
+            <PackageIcon size={18} color="#92400e" />
             <div>
               <strong>شحنات بانتظار المزامنة:</strong> لديك {offlineQueue.length} شحنة سُلمت بدون نت.
             </div>
@@ -456,7 +450,7 @@ export function DriverPortalPage() {
               whiteSpace: 'nowrap',
             }}
           >
-            {isSyncingOffline ? 'جاري الرفع...' : 'مزامنة الآن ↻'}
+            {isSyncingOffline ? 'جاري الرفع...' : 'مزامنة الآن'}
           </button>
         </div>
       )}
@@ -486,10 +480,9 @@ export function DriverPortalPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '20px',
             }}
           >
-            🛵
+            <TruckIcon size={20} color="#2563eb" />
           </div>
           <div>
             <div style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>
@@ -503,6 +496,27 @@ export function DriverPortalPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => { window.location.href = '/van-sales'; }}
+            style={{
+              background: '#ecfdf5',
+              color: '#047857',
+              border: '1px solid #a7f3d0',
+              borderRadius: '7px',
+              padding: '6px 10px',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title="الانتقال إلى شاشة مبيعات سيارة الفان الميدانية"
+          >
+            <TruckIcon size={14} color="#047857" />
+            <span>مبيعات الفان</span>
+          </button>
           <Button
             variant="secondary"
             onClick={() => refetch()}
@@ -631,7 +645,9 @@ export function DriverPortalPage() {
 
         {!isLoading && filteredOrders.length === 0 && (
           <div style={{ padding: '36px 20px', textAlign: 'center', background: '#ffffff', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-            <div style={{ fontSize: '28px', marginBottom: '6px' }}>📦</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+              <PackageIcon size={32} color="#94a3b8" />
+            </div>
             <strong style={{ fontSize: '14px', color: '#0f172a' }}>لا توجد شحنات مطابقة</strong>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
               لا توجد أي طلبات حالياً تحت هذا القسم أو البحث
@@ -663,8 +679,9 @@ export function DriverPortalPage() {
                       طلب #{order.docNo || order.id}
                     </strong>
                     {isSettled ? (
-                      <span style={{ fontSize: '10px', fontWeight: 800, background: '#dcfce7', color: '#16a34a', padding: '2px 6px', borderRadius: '4px' }}>
-                        تم التسليم ✓
+                      <span style={{ fontSize: '10px', fontWeight: 800, background: '#dcfce7', color: '#16a34a', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <CheckIcon size={11} color="#16a34a" strokeWidth={2.5} />
+                        <span>تم التسليم</span>
                       </span>
                     ) : (
                       <span style={{ fontSize: '10px', fontWeight: 800, background: '#ffedd5', color: '#ea580c', padding: '2px 6px', borderRadius: '4px' }}>
@@ -672,17 +689,20 @@ export function DriverPortalPage() {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginTop: '4px' }}>
-                    👤 {order.customerName || 'عميل نقدي'}
+                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <UserIcon size={13} color="#64748b" />
+                    <span>{order.customerName || 'عميل نقدي'}</span>
                   </div>
                   {order.customerPhone && (
-                    <div style={{ fontSize: '12px', color: '#64748b', direction: 'ltr', textAlign: 'right', marginTop: '2px' }}>
-                      📞 {order.customerPhone}
+                    <div style={{ fontSize: '12px', color: '#64748b', direction: 'ltr', textAlign: 'right', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <SmartphoneIcon size={12} color="#64748b" />
+                      <span>{order.customerPhone}</span>
                     </div>
                   )}
                   {order.customerAddress && (
-                    <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
-                      📍 {order.customerAddress}
+                    <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <MapPinIcon size={12} color="#64748b" />
+                      <span>{order.customerAddress}</span>
                     </div>
                   )}
                 </div>
@@ -717,7 +737,8 @@ export function DriverPortalPage() {
                     gap: '4px',
                   }}
                 >
-                  📞 اتصال
+                  <SmartphoneIcon size={13} color="#0369a1" />
+                  <span>اتصال</span>
                 </button>
                 <button
                   type="button"
@@ -739,7 +760,8 @@ export function DriverPortalPage() {
                     gap: '4px',
                   }}
                 >
-                  💬 واتساب
+                  <MessageSquareIcon size={13} color="#15803d" />
+                  <span>واتساب</span>
                 </button>
                 <button
                   type="button"
@@ -761,7 +783,8 @@ export function DriverPortalPage() {
                     gap: '4px',
                   }}
                 >
-                  📍 الخريطة
+                  <MapPinIcon size={13} color="#c2410c" />
+                  <span>الخريطة</span>
                 </button>
               </div>
 
@@ -787,14 +810,17 @@ export function DriverPortalPage() {
                     gap: '6px',
                   }}
                 >
-                  ✍️ تأكيد التسليم مع إثبات وتوقيع العميل
+                  <span>تأكيد التسليم مع إثبات وتوقيع العميل</span>
                 </button>
               )}
 
               {isSettled && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#16a34a', background: '#f0fdf4', padding: '6px 10px', borderRadius: '6px' }}>
-                  <span>✓ تم تسليمها وتحصيل {Number(order.total || 0).toLocaleString('ar-EG')} ج.م</span>
-                  {order.deliverySignature && <span>✍️ موقّع</span>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckIcon size={12} color="#16a34a" strokeWidth={2.5} />
+                    <span>تم تسليمها وتحصيل {Number(order.total || 0).toLocaleString('ar-EG')} ج.م</span>
+                  </span>
+                  {order.deliverySignature && <span>موقّع</span>}
                 </div>
               )}
             </div>

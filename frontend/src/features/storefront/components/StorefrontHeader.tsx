@@ -1,6 +1,6 @@
 import { StorefrontInfo } from '../types/storefront.types';
 import { IconCheckCircle, IconSearch } from './StorefrontIcons';
-import { PackageIcon } from '@/shared/components/icons/AppIcons';
+import { PackageIcon , XIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontHeaderProps {
   info: StorefrontInfo;
@@ -381,9 +381,7 @@ export function StorefrontHeader({
                     padding: '4px 6px',
                     fontWeight: 700,
                   }}
-                >
-                  ✕
-                </button>
+                ><XIcon size={15} /></button>
               )}
               <button
                 className="storefront-search-btn"

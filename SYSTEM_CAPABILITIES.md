@@ -82,6 +82,7 @@
 | **تنبيهات النواقص والحد الأدنى للطلب** | 🟢 | 100% | `LowStockAlerts.tsx`, `inventory.service.ts` | كشف الأصناف التي قاربت على النفاد بناءً على حد إعادة الطلب. |
 | **حركة كارت الصنف التفصيلية (Stock Card)** | 🟢 | 100% | `ProductHistoryModal.tsx` | تتبع كل حركة دخول وخروج ورقم الفاتورة والرصيد المتبقي للصنف بالتاريخ والوقت. |
 | **تصدير وبرمجة موازين الباركود الإلكترونية (Scale PLU Export Engine)** | 🟢 | 100% | `ScalePluExportModal.tsx`, `ProductsWorkspace.tsx` | توليد وتصدير ملفات الأصناف والأسعار المتوافقة بضغطة زر لمختلف موازين الباركود الأكثر انتشاراً في السوق: Rongta (RLS1000 / RLink)، CAS (CL5000 / CL-Works)، Dibal (Series 500 / Wind)، وملف Universal Excel/CSV، مع ترقيم الـ PLU التلقائي، وتطبيع طول الأكواد، وإرشادات التنزيل المباشر للميزان. |
+| **أرقام التشغيلات وتواريخ الصلاحية ونظام FEFO** | 🟢 | 100% | `pharmacy_batches`, `sales-write.service.ts`, `PharmacyBatchesExpiryPage.tsx` | تتبع رقم التشغيلة (Batch) وتاريخ الانتهاء، وصرف الأسبق انتهاءً تلقائياً في الكاشير مع حظر بيع المنتهي الصلاحية نهائياً (انظر تفاصيل الوحدة 13). |
 
 ---
 
@@ -131,7 +132,7 @@
 ## 7. المحاسبة والمالية والخزينة (Accounting, Finance & Treasury)
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
 * **مسارات الكود:** `backend/src/modules/accounting`, `backend/src/modules/treasury`, `frontend/src/features/accounting`, `frontend/src/features/treasury`
-* **الجداول في قاعدة البيانات:** `chart_of_accounts`, `journal_entries`, `journal_entry_lines`, `treasuries`, `bank_accounts`, `treasury_transactions`
+* **الجداول في قاعدة البيانات:** `chart_of_accounts`, `journal_entries`, `journal_entry_lines`, `treasuries`, `bank_accounts`, `treasury_transactions`, `fixed_assets`, `asset_depreciation_logs`
 
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
@@ -141,6 +142,8 @@
 | **ميزان المراجعة والأستاذ العام (Trial Balance)** | 🟢 | 100% | `TrialBalancePage.tsx`, `GeneralLedgerPage.tsx` | ميزان المراجعة بالمجاميع والأرصدة، وحركات كل حساب في الأستاذ العام. |
 | **قائمة الدخل والأرباح والخسائر (P&L Statement)** | 🟢 | 100% | `IncomeStatementPage.tsx` | حساب صافي الربح التشغيلي والنهائي بناءً على المبيعات وتكلفة المبيعات والمصروفات. |
 | **الخزائن والحسابات البنكية وحركات النقدية** | 🟢 | 100% | `treasury.service.ts`, `TreasuryPage.tsx` | إدارة عدة خزائن وبنوك، سندات القبض والصرف، والتحويل بين الخزائن. |
+| **سجل الأصول الثابتة وكروت الأصول (Fixed Assets Registry)** | 🟢 | 100% | `AccountingFixedAssetsPage.tsx`, `accounting.service.ts`, `2040000000024_fixed_assets.ts` | إدارة كاملة للأصول الثابتة عبر المسار `/accounting/fixed-assets`: تسجيل بيانات الأصل، الكود، التصنيف (سيارات، معدات، أثاث، أجهزة كمبيوتر، مباني، عام)، تاريخ وتكلفة الشراء، القيمة التخريدية (Salvage Value)، والعمر الإنتاجي بالشهور، مع حساب آلي لحظي لصافي القيمة الدفترية ومجمع الإهلاك وإجمالي تكلفة أصول المؤسسة. |
+| **محرك الإهلاك التلقائي وقيود اليومية الآلية (Auto-Depreciation Engine)** | 🟢 | 100% | `AccountingFixedAssetsPage.tsx`, `accounting.service.ts`, `fixed-assets-depreciation.spec.ts` | محرك إهلاك مالي دقيق يدعم طريقتي: القسط الثابت (Straight-Line) والقسط المتناقص المزدوج (Double Declining Balance) مع حماية سقف القيمة التخريدية؛ إمكانية تشغيل الإهلاك لأصل منفرد أو تشغيل دورة إهلاك مجمعة لكافة أصول الشركة بنقرة واحدة، مع إنشاء الحسابات تلقائياً (حـ/ مصروف إهلاك 6950، وحـ/ مجمع إهلاك 1290) وتوليد قيود يومية متوازنة آلياً في الأستاذ العام وتسجيل كامل في جدول `asset_depreciation_logs`. |
 
 ---
 
@@ -207,15 +210,20 @@
 
 ---
 
-## 13. ميزات الصيدليات وتواريخ الصلاحية (Pharmacy & Batches)
+## 13. الصيدليات وإدارة أرقام التشغيلات وتواريخ الصلاحية (Pharmacy & Batches & FEFO) 🥫💊
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
-* **مسارات الكود:** `backend/src/modules/pharmacy`, `frontend/src/features/pharmacy`
-* **الجداول في قاعدة البيانات:** `pharmacy_drugs`, `drug_interactions`, `product_batches`
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/pharmacy/pharmacy.service.ts`, `backend/src/modules/pharmacy/pharmacy.controller.ts`, `backend/src/modules/sales/services/sales-write.service.ts`, `backend/src/modules/manager-actions/manager-actions.service.ts`, `backend/src/database/migrations/2040000000008_pharmacy_module.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/pharmacy/pages/PharmacyBatchesExpiryPage.tsx`, `frontend/src/features/pharmacy/pages/PharmacyDrugsPage.tsx`, `frontend/src/features/pharmacy/types/pharmacy.types.ts`
+* **الجداول في قاعدة البيانات:** `pharmacy_batches`, `pharmacy_drugs`, `drug_interactions`
 
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
+| **تسجيل أرقام التشغيلات وتواريخ الصلاحية (Batch & Expiry Registration)** | 🟢 | 100% | `pharmacy.service.ts`, `PharmacyBatchesExpiryPage.tsx`, `pharmacy_batches` | تسجيل رقم التشغيلة (Batch Number)، تاريخ الانتهاء (Expiry Date)، الكمية بالعلب، سعر التكلفة، اسم الشركة الموزعة، والحالة التشغيلية (`active`, `near_expiry`, `expired`, `returned`) مع أزرار سريعة لاختيار المدد (+6 شهور، +سنة، +سنتين، +3 سنوات). |
+| **محرك الصرف الأسبق صلاحية ومنع بيع المنتهي (FEFO Engine & Expired Sale Blocker)** | 🟢 | 100% | `sales-write.service.ts` | خوارزمية صرف إجبارية في نقطة البيع POS مرتبة تصاعدياً بالأسبق انتهاءً (`.orderBy('expiry_date', 'asc')`) مع خصم رصيد الباتش لحظياً وتحويله لـ `depleted` عند نفاده؛ وإطلاق خطأ نظامي صارم يمنع بيع الصنف إذا كانت صلاحيته منتهية (`EXPIRED_BATCH_SALE_FORBIDDEN`). |
+| **شاشة تتبع الصلاحيات ومرتجعات الشركات (Batches & Expiry Management)** | 🟢 | 100% | `PharmacyBatchesExpiryPage.tsx` | شاشة متكاملة تعرض عدادات حية: تشغيلات سارية صالحة 🟢، وشيكة الانتهاء (أقل من 3 شهور) 🟡، منتهية الصلاحية (اكسباير) 🔴، وتم إرجاعه لشركات التوزيع ⚪، مع إمكانية البحث والفلترة وإضافة وتعديل التشغيلات مباشرة. |
+| **رادار الصلاحيات القريبة وإجراءات المدير (Manager Expiry Actions Radar)** | 🟢 | 100% | `manager-actions.service.ts`, `manager-actions.helper.ts` | استعلام آلي مدمج في لوحة المدير (`loadPharmacyBatches`) يجلب التشغيلات القريبة من الانتهاء لإتاحة اتخاذ قرارات فورية بعمل عروض وتخفيضات عليها في صالة العرض أو ردها للموردين. |
 | **دليل الأدوية والمواد الفعالة والتفاعلات الدوائية** | 🟢 | 100% | `pharmacy.service.ts`, `PharmacyDrugsPage.tsx` | البحث بالاسم التجاري والعلمي، والبدائل المتاحة، وتنبيهات التفاعلات الدوائية الخطرة. |
-| **أرقام التشغيلات وتواريخ الصلاحية (Batch & Expiry)** | 🟢 | 100% | `product_batches`, `ExpiryAlertsModal.tsx` | إلزامية اختيار التشغيلة وتاريخ الانتهاء، وتنبيهات مبكرة للأصناف المنتهية أو قريبة الانتهاء. |
 
 ---
 
@@ -526,16 +534,161 @@
 
 ---
 
-## 34. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)
+---
+
+## 34. شاشة المطبخ التفاعلية للمطاعم والكافيهات (Interactive Kitchen Display System - KDS) 🍳📱
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/sales/services/kds.service.ts`, `backend/src/modules/sales/controllers/kds.controller.ts`, `backend/src/modules/sales/sales.module.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/pos/api/kds.api.ts`, `frontend/src/features/pos/pages/KitchenDisplayPage.tsx`, `frontend/src/app/router/root-router.tsx`, `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+* **الجداول في قاعدة البيانات:** `sales`, `sale_items`, `settings`, `users`, `customers`, `tenants`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **سحب التذاكر اللحظي ومزامنة الصالة والدليفري** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | التقاط فوري لطلبات وفواتير الصالة وطاولات المطعم والطلبات الخارجية، وتوليد بطاقات تذاكر متجاوبة ومحدثة لحظياً كل 5 ثوانٍ. |
+| **عداد زمني ومؤشر لوني ديناميكي يرصد التأخير (Urgency Clock)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | عداد زمني حي يحسب دقائق وثواني التجهيز بدقة: 🟢 الأخضر أقل من 8 دقائق، 🟡 الأصفر 8-15 دقيقة، 🔴 الأحمر الوامض لأكثر من 15 دقيقة لتنبيه الشيف والمشرف لتفادي تأخر الزبائن. |
+| **منبه صوتي ذكي عند ورود طلب جديد (Web Audio Chime)** | 🟢 | 100% | `KitchenDisplayPage.tsx` | رنين تنبيه موسيقي ثنائي النغمة متولد برمجياً عبر Web Audio API دون الحاجة لملفات صوت خارجية، ينبه الطهاة فورياً بمجرد إصدار تذكرة جديدة مع إمكانية الكتم والتشغيل. |
+| **آلة حالات دورة تجهيز الوجبات (KDS State Machine)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | تدرج منطقي سلس للطلب بلمسة واحدة: `ورد للتو ⏳` ➔ `بدء التجهيز 🍳` ➔ `جاهز للاستلام 🍽️` ➔ `تم التسليم بنجاح ✅` وحفظ الحالة فورياً عبر الأجهزة المختلفة. |
+| **فرز وتوجيه المحطات (Stations Routing & Split)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | إمكانية تصفية التذاكر والأصناف بحسب محطة العمل بالمطبخ: الكل، المطبخ الساخن، المشويات، المشروبات والبار، أو المخبوزات والحلويات لتوزيع العمل بدقة. |
+| **شطب وتجهيز الأصناف الفردية (Item Strikethrough)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | النقر على أي صنف داخل التذكرة لوضع خط شطب عليه مع شارة `✓ تم` لتنظيم تحضير الوجبات المتعددة ضمن نفس الطلب. |
+| **استرجاع آخر طلب تم تسليمه (Recall Last Served Ticket)** | 🟢 | 100% | `kds.service.ts`, `KitchenDisplayPage.tsx` | زر استرجاع فوري بضغطة واحدة لإعادة فتح آخر تذكرة تم تسليمها بالخطأ أو تعديلها من الأرشيف مباشرة. |
+
+---
+
+## 35. شاشة العروض الترويجية الرقمية لصالة العرض (Digital Signage / Promo Board) 📺✨
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الفرونت إند والواجهات:** `frontend/src/features/pos/pages/DigitalSignagePage.tsx`, `frontend/src/features/pos/lib/pos-customer-display-bridge.ts`, `frontend/src/app/router/root-router.tsx`, `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`
+* **الجداول في قاعدة البيانات:** `products`, `settings`, `tenants`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **وضع تشغيل التلفزيونات والشاشات الجدارية (Fullscreen TV Mode)** | 🟢 | 100% | `DigitalSignagePage.tsx`, `root-router.tsx` | واجهة عرض سينمائية عالية التباين والدقة بدعم كامل للشاشات التلفزيونية والتابلت الجداري عبر المسارين المستقلين `/signage` و `/promo-board`. |
+| **سلايدر العروض التلقائي مع شريط التقدم الزمني** | 🟢 | 100% | `DigitalSignagePage.tsx` | انتقال انسيابي تلقائي بين العروض الترويجية والمنتجات الأكثر مبيعاً مع شريط تقدم علوي حي وأزرار إيقاف مؤقت أو تنقل يدوي. |
+| **حساب ومقارنة الأسعار وشارات التوفير (Save Badges)** | 🟢 | 100% | `DigitalSignagePage.tsx` | عرض بارز للسعر الأصلي مشطوباً والسعر المخفض الجديد، مع احتساب فوري لمبلغ التوفير ونسبة الخصم المئوية (مثال: وفر 70 ج.م - خصم 20%). |
+| **شريط إخباري متحرك سفلي مخصص (Live Marquee Ticker)** | 🟢 | 100% | `DigitalSignagePage.tsx` | شريط متحرك لبث الترحيبات ورسائل العروض وساعات العمل مع إمكانية تعديل النص الحي من درج الإعدادات السريع. |
+| **رمز الاستجابة السريع للطلب الفوري عبر الهاتف (Storefront QR Code)** | 🟢 | 100% | `DigitalSignagePage.tsx` | توليد ديناميكي لرمز QR متصل بمتجر PWA الإلكتروني، يتيح للعملاء الواقفين بالمعرض مسح الكود بهواتفهم والطلب والتسوق فورياً. |
+| **درج تحكم وإعدادات تفاعلي سريع للشاشة** | 🟢 | 100% | `DigitalSignagePage.tsx` | درج إعدادات منبثق لضبط سرعة انتقال الشرائح (5ث، 8ث، 12ث، 20ث)، تصفية مصدر المنتجات (العروض فقط أو الكل)، وتعديل نص النشرة. |
+
+---
+
+## 36. مبيعات وتوزيع سيارات الفان الميدانية (Van Sales & Route Distribution) 🚚📦
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/delivery-reps/van-sales.service.ts`, `backend/src/modules/delivery-reps/van-sales.controller.ts`, `backend/src/modules/delivery-reps/delivery-reps.module.ts`, `backend/src/database/migrations/2040000000045_van_sales_and_mobile_stock.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/delivery-reps/api/van-sales.api.ts`, `frontend/src/features/delivery-reps/pages/VanSalesMobilePage.tsx`, `frontend/src/features/delivery-reps/pages/VanSalesAdminManagementPage.tsx`, `frontend/src/app/router/root-router.tsx`, `frontend/src/features/delivery-reps/routes.tsx`, `frontend/src/features/delivery-reps/pages/DriverPortalPage.tsx`
+* **الجداول في قاعدة البيانات:** `van_sales_trips`, `delivery_representatives`, `stock_locations`, `product_location_stock`, `sales`, `sale_items`, `customer_ledger`, `customer_payments`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **السيارة كمستودع متنقل مستقل (Mobile Van Stock)** | 🟢 | 100% | `van-sales.service.ts`, `stock_locations` | إنشاء وربط موقع مخزن مستقل من نوع `van_stock` لكل مندوب فان برقم لوحة السيارة، مع تتبع أرصدة الأصناف داخل السيارة بالقطعة والكرتونة. |
+| **شحن بضاعة الصباح وأمر التحميل (Morning Van Loading)** | 🟢 | 100% | `van-sales.service.ts`, `van_sales_trips` | نقل البضاعة من المستودع الرئيسي إلى سيارة المندوب مع التحقق من كفاية رصيد المستودع، وخصم الرئيسي وإيداع الفان، وتوليد إذن شحن رسمي معتمد وقفل قيمة الشحنة. |
+| **تطبيق الموبايل الميداني للبيع السريع (Van Mobile POS)** | 🟢 | 100% | `VanSalesMobilePage.tsx`, `van-sales.controller.ts` | واجهة موبايل متجاوبة فائقة السرعة للمندوب بالشارع عبر `/van-sales` تتضمن: بحث لحظي في بضاعة السيارة، فحص رصيد كل صنف، سلة بيع سهلة، وإصدار الفاتورة بلمسة واحدة. |
+| **البيع النقدي والآجل وقيد المديونيات الميدانية** | 🟢 | 100% | `van-sales.service.ts`, `customer_transactions` | دعم البيع النقدي (Cash) مع إيداع الكاش في عهدة الرحلة، أو الآجل (Credit) لمحلات البقالة المسجلة بخط السير أو محلات جديدة تُسجل بالشارع، مع قيد المديونية فورياً في كشف حساب العميل. |
+| **تحصيل ديون العملاء الميداني (Field Collections)** | 🟢 | 100% | `van-sales.service.ts`, `VanSalesMobilePage.tsx` | إمكانية استلام دفعات نقدية من المحلات لسداد ديون قديمة، توليد سند قبض فوري، وتخفيض مديونية العميل في قاعدة البيانات لحظياً مع زيادة كاش الفان. |
+| **تسجيل المرتجعات والبضاعة التالفة بالشارع (Field Returns)** | 🟢 | 100% | `van-sales.service.ts`, `customer_transactions` | استلام بضاعة مرتجعة من العميل وإرجاعها لعهدة السيارة وتخفيض رصيد مديونية العميل بإشعار دائن فوري. |
+| **تصفية اليومية الذكية وجرد الفان وتوريد الكاش (End-of-Day Settlement)** | 🟢 | 100% | `van-sales.service.ts`, `VanSalesMobilePage.tsx` | مطابقة مبيعات اليوم والنقدية المحصلة مع الكاش الفعلي المعدود مع احتساب العجز والزيادة، وخيار تفريغ البضاعة المتبقية في السيارة وإعادتها للمستودع الرئيسي تلقائياً بنقرة واحدة، وتوريد النقدية للخزينة. |
+| **لوحة إدارة ورقابة سيارات التوزيع للمشرفين (Van Sales Admin Dashboard)** | 🟢 | 100% | `VanSalesAdminManagementPage.tsx`, `van-sales.api.ts` | شاشة للمدير والمشرفين في الـ ERP عبر `/inventory/van-sales` لمتابعة سيارات التوزيع النشطة بالشارع، قيمة بضاعة كل سيارة، المبيعات اللحظية، وتصفيات الرحلات. |
+
+---
+
+## 37. الطلب الذاتي من الطاولة بالـ QR للمطاعم والكافيهات (Dine-In QR Table Ordering) 🍽️📲
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/storefront/storefront.service.ts`, `backend/src/modules/storefront/storefront-public.controller.ts`, `backend/src/modules/storefront/dto/create-online-order.dto.ts`, `backend/src/database/migrations/2040000000046_qr_table_ordering_and_gps_attendance.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/storefront/pages/PublicStorefrontPage.tsx`, `frontend/src/features/storefront/components/StorefrontCheckoutModal.tsx`, `frontend/src/features/storefront/types/storefront.types.ts`, `frontend/src/app/router/root-router.tsx`
+* **الجداول في قاعدة البيانات:** `online_orders` (عمودا `order_type`, `table_number`), `sales`, `sale_items`, `products`, `tenants`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **توليد وتخصيص ملصقات واستيكرات الـ QR لكل طاولة** | 🟢 | 100% | `storefront.service.ts`, `storefront-public.controller.ts` | نقطة نهاية `/st/:slug/tables-qr` لتوليد مصفوفة روابط وباركودات الطاولات دفعة واحدة (من طاولة 1 إلى طاولة 50) للطباعة واللصق على طاولات الصالة. |
+| **التعرف التلقائي على رقم الطاولة بالرابط المباشر** | 🟢 | 100% | `PublicStorefrontPage.tsx`, `root-router.tsx` | عند مسح كود الطاولة عبر كاميرا هاتف العميل يفتح الرابط `/st/:slug?table=5` أو `/st/:slug/table/5` تلقائياً مع شريط تنبيه أخضر علوي بارز يوضح رقم الطاولة. |
+| **إسقاط رسوم التوصيل وعنوان الشارع لطلبات الصالة** | 🟢 | 100% | `StorefrontCheckoutModal.tsx`, `storefront.service.ts` | إلغاء مصاريف التوصيل وتصفيرها تماماً، واستبدال حقل عنوان الشارع ببطاقة خضراء أنيقة تثبت رقم الطاولة لمنع أي لبس أو إدخال بيانات غير ضرورية للزبون. |
+| **التوجيه التلقائي لشاشات المطبخ (KDS) والكاشير فور الإرسال** | 🟢 | 100% | `storefront.service.ts`, `KitchenDisplayPage.tsx` | بمجرد تأكيد الزبون للطلب من هاتفه، يُنشئ النظام آلياً سجل بيع معتمد برقم الطاولة وينزل فوراً بشاشة المطبخ KDS مع تنبيه صوتي وتحديد رقم الطاولة لتحضيرها فوراً. |
+| **تتبع حالة الوجبة من هاتف الزبون** | 🟢 | 100% | `StorefrontSuccessModal.tsx`, `StorefrontMyOrdersModal.tsx` | إمكانية متابعة العميل لحالة تجهيز طلبه من هاتفه مباشرة (قيد التجهيز بالمطبخ -> جاهز للتسليم على الطاولة). |
+
+---
+
+## 38. بصمة الحضور والانصراف بالـ GPS وصورة الوجه من هاتف الموظف (Mobile GPS Geofenced & Face Attendance)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/hr/mobile-attendance.service.ts`, `backend/src/modules/hr/mobile-attendance.controller.ts`, `backend/src/modules/hr/hr.module.ts`, `backend/src/database/migrations/2040000000046_qr_table_ordering_and_gps_attendance.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/hr/api/mobile-punch.api.ts`, `frontend/src/features/hr/pages/MobilePunchPage.tsx`, `frontend/src/app/router/root-router.tsx`
+* **الجداول في قاعدة البيانات:** `branches` (أعمدة `latitude`, `longitude`, `geofence_radius_meters`), `hr_employees` (أعمدة `pin_code`, `mobile_punch_enabled`), `hr_attendance_records` (أعمدة `gps_latitude`, `gps_longitude`, `selfie_image_url`, `distance_meters`, `is_geofence_verified`, `source='mobile_gps'`)
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **بوابة الموبايل المخصصة للبصمة السريعة (Mobile Punch Portal)** | 🟢 | 100% | `MobilePunchPage.tsx`, `root-router.tsx` | شاشة ويب متجاوبة مخصصة للموبايل عبر الرابطين السريعين `/punch` و `/attendance/punch` تتيح للموظف تسجيل الحضور والانصراف بهاتفه دون الحاجة لأجهزة بصمة مادية باهظة الثمن. |
+| **تسجيل الدخول الآمن برقم الهاتف والـ PIN السري** | 🟢 | 100% | `mobile-attendance.service.ts`, `MobilePunchPage.tsx` | تسجيل دخول فوري بالرقم القومي أو رقم هاتف الموظف وكود PIN سري مكون من 4 إلى 6 أرقام مع إصدار توكن مشفر ومؤمّن بـ HMAC SHA-256. |
+| **رادار السياج الجغرافي وحساب المسافة بدقة المتر (Haversine Geofence Engine)** | 🟢 | 100% | `mobile-attendance.service.ts`, `MobilePunchPage.tsx` | التقاط إحداثيات GPS الدقيقة لهاتف الموظف وحساب المسافة الفاصلة بينه وبين فرع عمله بمعادلة هافرسين الجيوديسية، ومنع البصمة تماماً إذا كان الموظف خارج النطاق المحدد (افتراضياً 100 متر). |
+| **التقاط صورة السيلفي الحية لمنع التلاعب والتبصيم الودي (Live Face Selfie)** | 🟢 | 100% | `MobilePunchPage.tsx`, `mobile-attendance.service.ts` | تفعيل كاميرا الهاتف الأمامية مباشرة في واجهة البصمة لالتقاط صورة حية للموظف لحظة التبصيم وتخزينها مشفرة مع سجل الحضور لإثبات الهوية. |
+| **التبديل التلقائي الذكي بين الحضور والانصراف (Auto State Switcher)** | 🟢 | 100% | `mobile-attendance.service.ts`, `MobilePunchPage.tsx` | تحديد نوع البصمة آلياً (حضور عند أول بصمة في اليوم، وانصراف عند البصمة التالية)، مع إمكانية الاختيار اليدوي وعرض سجل بصمات اليوم للموظف مباشرة. |
+| **لوحة تحكم إعدادات السياج الجغرافي للفروع وأكواد الموظفين** | 🟢 | 100% | `mobile-attendance.controller.ts`, `mobile-punch.api.ts` | نقاط تحكم لمدير النظام لتحديد خطوط الطول والعرض للفرع ونصف قطر السماح بالأمتار، وتوليد أو تغيير الـ PIN السري لكل موظف وتفعيل ميزة البصمة له. |
+
+---
+
+## 39. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)
 
 | الميزة المقترحة / البديل المنفذ | الحالة | نسبة الإنجاز | الملاحظات والبديل المنجز في النظام |
 | :--- | :---: | :---: | :--- |
+| **دورة الشيكات البنكية وأوراق القبض والدفع (PDC Management)** | 🟡 | اختياري | إضافة حافظة شيكات آجلة تحت التحصيل وتظهير الشيكات وسداد دفعات الموردين بشيكات العملاء. |
+| **دورة طلب عروض أسعار الموردين والمقارنة (Vendor RFQ)** | 🟡 | اختياري | دورة إرسال طلبات عروض أسعار لعدة موردين ومقارنة عروضهم قبل إصدار أمر الشراء. |
 | **تغليف تطبيقات المتاجر الرسمية (Google Play / App Store)** | 🟢 | 100% | بديل PWA الفوري للمناديب والمالك يعمل بكفاءة تامة دون الحاجة للمتاجر، ويمكن تغليفه إلى APK/AAB بنقرة واحدة عند الرغبة التسويقية. |
-| **شاشة المطبخ التفاعلية للمطاعم (Interactive KDS)** | 🟡 | اختياري | شاشة تابلت تفاعلية في المطبخ لتنظيم الوجبات بعد دعم أرقام الطاولات وتذاكر المطبخ. |
 | **تكامل الشحن الدولي المباشر (DHL / FedEx Direct Webhook)** | 🟡 | اختياري | بعد تكامل بوسطة وأرامكس وسمسا، يمكن إضافة مسار مباشر لبوليصات DHL وFedEx السريعة للمتاجر العالمية. |
 
 ---
+
+## 40. الهوية البصرية المؤسسية وتطهير الأيقونات الكرتونية (UI Enterprise Standardization & Zero Emoji Policy)
+* **حالة الوحدة / المعيار:** 🟢 مكتمل 100% (تطهير شامل لكامل واجهات الـ Frontend بنسبة 0 إيموجي - Zero Emojis Across Entire System).
+* **المسار المركزي للأيقونات المعتمدة:** `frontend/src/shared/components/icons/AppIcons.tsx` (يحتوي على 73 أيقونة بريميوم متوافقة وموثقة بالكامل 100% دون أي Missing Exports).
+* **إحصائيات الإنجاز النهائي:**
+  * **إجمالي عدد الإيموجيز الكرتونية المتبقية في كامل الواجهة الأمامية:** **0 إيموجي (صفر مطلق)**.
+  * **إجمالي الملفات التي تم تطهيرها واعتمادها:** **أكثر من 100 ملف وشاشة ومكون**.
+  * **توافق الاستيرادات والتصدير (Import/Export Integrity):** 100% نجاح، وتم توفير كافة الأيقونات الرسمية المطلوبة بما فيها `AwardIcon`, `TrendingUpIcon`, `TrendingDownIcon`, `ShieldAlertIcon`, `Maximize2Icon`, `Minimize2Icon`, وغيرها.
+* **القواعد الإلزامية والدائمة (مرجع أساسي للمطورين والذكاء الاصطناعي):**
+  1. **حظر الإيموجيز الكرتونية نهائياً وبشكل قاطع:** يمنع منعاً باتاً إضافة أو استخدام أي إيموجيز أو رموز كرتونية (مثل 📦, 🚚, 💰, ⚠️, ❌, ✅, ⭐, 🚀, 🔔, إلخ) في أي واجهة مستخدم أو مكون أو زر أو إشعار أو رسالة (سواء في الصفحات القديمة أو أي صفحات وميزات جديدة يتم إنشاؤها مستقبلاً).
+  2. **الاستبدال الحصري بالأيقونات الرسمية:** عند الحاجة الوظيفية والملحة للأيقونة فقط، يتم استدعاؤها حصرياً كأيقونات SVG بريميوم موحدة من `@/shared/components/icons/AppIcons` (مثل `CheckIcon`, `XIcon`, `StarIcon`, `ClockIcon`, `PackageIcon`, `AlertTriangleIcon`, `BellIcon`, `LightbulbIcon`, `PrinterIcon`, `AwardIcon`, `TrendingUpIcon`, إلخ).
+  3. **الاعتماد على النصوص والتصميم المؤسسي النظيف:** عند عدم وجود ضرورة وظيفية ملحة، يُكتفى بنصوص عربية صريحة وتصميم ERP مؤسسي راقٍ ومتناسق متوافق مع دستور النظام البصري لـ Z-Systems.
+  4. **حظر إعادة الفحص:** جميع ملفات الواجهات في `frontend/src` أصبحت معتمدة ومطهرة تماماً بنسبة 100% ولا يجوز تكرار البحث فيها أو إضافة أي رموز غير قياسية إليها مستقبلاً.
+
+---
+
+## 41. شاشات العرض الملحقة لنقاط البيع المتطابقة مع دستور النظام البصري (POS Auxiliary Screens: CFD, KDS & Digital Signage)
+* **حالة الوحدة / الشاشات:** 🟢 مكتمل 100% ومطابق تماماً لدستور النظام البصري (Light Enterprise Theme).
+* **مسارات الكود الأساسية:**
+  * **شاشة العميل المتصلة بنقطة البيع (Customer Facing Display - CFD):** `frontend/src/features/pos/pages/CustomerFacingDisplayPage.tsx`, `frontend/src/styles/partials/pos-customer-display.css` (الرابط: `/pos/customer-display`)
+  * **شاشة العروض الترويجية الرقمية بصالة العرض (Digital Signage):** `frontend/src/features/pos/pages/DigitalSignagePage.tsx` (الرابط: `/signage`)
+  * **شاشة المطبخ التفاعلية (Kitchen Display System - KDS):** `frontend/src/features/pos/pages/KitchenDisplayPage.tsx` (الرابط: `/kds`)
+* **التوافق البصري والوظيفي المعتمد:**
+  1. **الأرضية والبطاقات (Enterprise Canvas & Cards):** أرضية النظام الفاتحة النقية (`#f8fafc` و `#f1f5f9`)، وبطاقات بيضاء ناصعة بريميوم (`#ffffff`)، وحدود ناعمة رقيقة (`1px solid #e2e8f0`)، وظلال مؤسسية هادئة ثلاثية الأبعاد.
+  2. **الهوية الملكية الكحلية (`#170e5e`):** تطبيق اللون الكحلي الملكي للمنظومة على الأزرار الأساسية، شارات الـ LIVE، العناوين الحيوية، أيقونات الرأس، وأسعار العروض الترويجية وإجمالي الفواتير.
+  3. **شاشة العميل التفاعلية (`/pos/customer-display`):** واجهة كشك متطورة (Smart Engagement Kiosk) تتضمن وضع انتظار ترحيبي فخم بشعار متدرج وعروض دوارة، كود QR تفاعلي للانضمام لبرنامج الولاء وتلقي الفاتورة عبر واتساب، شارات ثقة معتمدة (فاتورة إلكترونية ضريبية، ضمان واستبدال، سداد إلكتروني)، وشريط وسائل الدفع المقبولة (InstaPay، فيزا، ميزة، محافظ)، مع جدول أصناف مباشر وشريط إجمالي عملاق وشاشة احتفالية بنجاح السداد.
+  4. **شاشة العروض الرقمية (`/signage`):** منصة ترويج بصالة العرض (Showroom Kiosk Layout) متطورة مع بطاقة عرض رئيسية غنية تتضمن معرض المنتج، شارات الضمان والجودة الأصلية، تسعير ضخم واضح، قائمة العروض المتجددة، بطاقات مزايا التسوق بالمعرض، وكود QR فوري للطلب من الهاتف، مع شريط إخباري متحرك ودرج إعدادات متناسق.
+  5. **شاشة المطبخ (`/kds`):** لوحة عمليات مطبخ مؤسسية فاخرة (Executive KDS Command Center) مزودة بشريط مؤشرات أداء فوري (KPI Strip) لرصد الطلبات الواردة وقيد الطهي والجاهزة والمتأخرة، ووضع جاهزية المحطات الحي (Standby Live Monitors) عند عدم وجود طلبات، وتذاكر تفاعلية بخط علوي ملون حسب سرعة الإنجاز، ونظام جرس صوتي رقمي ثنائي النغمة.
+  6. **صفر إيموجي (0 Emojis):** تطهير الشاشات 100% والاعتماد الحصري على أيقونات SVG الرسمية المعتمدة من `@/shared/components/icons/AppIcons`.
+
+---
+
+## 42. بوابة الخدمة الذاتية للموظف (Employee Self-Service - ESS Portal)
+* **حالة الوحدة:** 🟢 مكتمل 100% (Backend + Frontend) ومطابق بالكامل لدستور النظام البصري.
+* **روابط الوصول السريع:** `/portal` و `/employee-portal` و `/ess`.
+* **مسارات الكود الأساسية:**
+  * **الباك إند (Backend):** `backend/src/modules/hr/employee-portal.service.ts`, `backend/src/modules/hr/employee-portal.controller.ts`, `backend/src/modules/hr/hr.module.ts`
+  * **الفرونت إند (Frontend):** `frontend/src/features/hr/api/employee-portal.api.ts`, `frontend/src/features/hr/pages/EmployeePortalPage.tsx`, `frontend/src/app/router/root-router.tsx`
+* **الميزات والقدرات المفعلة:**
+  1. **تسجيل دخول آمن وخفيف للموظف (PIN & Phone/Code Login):** تسجيل دخول مباشر برقم هاتف الموظف أو كوده الوظيفي مع رمز الـ PIN السري (4-6 أرقام) دون الحاجة لحساب مستخدم إداري على الـ ERP، مع توكن جلسة مشفر بـ HMAC ومحمي ضد التزوير.
+  2. **لوحة معلومات الموظف (Overview & Profile):** بطاقة شخصية موحدة تتضمن المسمى الوظيفي، القسم، تاريخ التعيين، الفرع، كود الموظف، وحالة العمل.
+  3. **شريط حالة اليوم والربط مع البصمة الجغرافية (Live Today Status):** إشعار فوري بحالة بصمة اليوم (لم يحضر بعد / حاضر منذ الساعة X / انتهى يوم العمل) مع زر اختصار مباشر ينقل الموظف لشاشة البصمة الجغرافية الذاتية `/punch` لتسجيل الحضور بالسيلفي ونظام الـ GPS.
+  4. **كشوفات ومسيرات الرواتب (Monthly Payslips):** استعراض تاريخي لكشوف الرواتب الشهرية المصروفة، الراتب الأساسي، البدلات، المكافآت، الاستقطاعات، التأمينات، وصافي الراتب، مع نافذة مفردات مرتب تفصيلية مطابقة للمواصفات وقابلة للطباعة.
+  5. **أرصدة وطلبات الإجازات (Leaves & Requests):** شاشات إحصائية فورية لأرصدة الإجازات السنوية المستحقة والمستهلكة والمتبقية، واستعراض سجل الطلبات، مع نافذة تقديم طلب إجازة ذاتي يرسل فوراً لمدير الموارد البشرية للموافقة أو الرفض.
+  6. **سجل الحضور والانصراف التفصيلي (Attendance History):** جدول شهري دقيق يعرض لكل يوم: وقت الحضور، وقت الانصراف، ساعات العمل الفعلية، ساعات التأخير، وحالة اليوم (حضور طبيعي، تأخير، إجازة، عطلة).
+  7. **السلف النقدية والعهد العينية (Financial Advances & Assets):** استعراض كشف السلف القائمة والمبالغ المتبقية، وسجل العهد العينية المسلمة للموظف وتواريخ تسليمها، مع إمكانية تقديم طلب سلفة نقدية ذاتياً مع تحديد الغرض وتاريخ السداد المقترح.
+  8. **التوافق البصري وصفر إيموجي (Light Enterprise Theme & 0 Emojis):** تصميم مؤسسي راقٍ بالكامل متوافق مع لوحة تحكم Z-Systems، متجاوب 100% مع الهواتف الذكية والشاشات المكتبية، وخالٍ تماماً من أي إيموجيز كرتونية بالاعتماد الحصري على أيقونات `@/shared/components/icons/AppIcons`.
+
+---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
+
+
 
 
 

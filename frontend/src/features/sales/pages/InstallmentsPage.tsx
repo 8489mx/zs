@@ -11,6 +11,7 @@ import {
 } from '@/features/sales/api/installments.api';
 import { customersApi } from '@/features/customers/api/customers.api';
 import { openWhatsAppChat, formatInstallmentReminderMessage } from '@/lib/whatsapp';
+import { MessageSquareIcon, CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
 
 const statusBadges: Record<string, { label: string; bg: string; color: string }> = {
   pending: { label: 'قيد الانتظار', bg: '#f1f5f9', color: '#475569' },
@@ -80,6 +81,17 @@ export function InstallmentsPage() {
       return res.installments || [];
     },
   });
+
+  const filteredSchedule = useMemo(() => {
+    const list = scheduleQuery.data || [];
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter((inst) =>
+      String(inst.plan_number || '').toLowerCase().includes(q) ||
+      String(inst.customer_name || '').toLowerCase().includes(q) ||
+      String(inst.customer_phone || '').toLowerCase().includes(q)
+    );
+  }, [scheduleQuery.data, searchQuery]);
 
   const plansQuery = useQuery({
     queryKey: ['installments-plans', searchQuery],
@@ -208,7 +220,7 @@ export function InstallmentsPage() {
       return;
     }
     const formattedDate = new Date(receiptData.paid_at).toLocaleDateString('ar-EG');
-    const message = `مرحباً أستاذ/ة *${receiptData.customer_name}*،\nتم استلام دفعة قسطكم بنجاح!\n🧾 رقم الإيصال: *#${receiptData.receipt_no}*\n💵 المبلغ المسدد: *${Number(receiptData.paid_amount).toLocaleString()} ج.م*\n📋 القسط: *#${receiptData.installment_number}*\n💳 طريقة الدفع: ${receiptData.payment_method}\n📅 التاريخ: ${formattedDate}\n\nشكراً لتعاملكم معنا! 🙏`;
+    const message = `مرحباً أستاذ/ة *${receiptData.customer_name}*،\nتم استلام دفعة قسطكم بنجاح!\n• رقم الإيصال: *#${receiptData.receipt_no}*\n• المبلغ المسدد: *${Number(receiptData.paid_amount).toLocaleString()} ج.م*\n• القسط: *#${receiptData.installment_number}*\n• طريقة الدفع: ${receiptData.payment_method}\n• التاريخ: ${formattedDate}\n\nشكراً لتعاملكم معنا!`;
     openWhatsAppChat(receiptData.customer_phone, message);
   };
 
@@ -304,7 +316,7 @@ export function InstallmentsPage() {
                   }}
                 >
                   <option value="all">كل الحالات</option>
-                  <option value="overdue">المتأخرة فقط ⚠️</option>
+                  <option value="overdue">المتأخرة فقط</option>
                   <option value="due_now">مستحقة اليوم أو قبل</option>
                   <option value="pending">غير مسددة</option>
                   <option value="paid">المسددة</option>
@@ -320,97 +332,94 @@ export function InstallmentsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '12px 16px' }}>القسط</th>
                   <th style={{ padding: '12px 16px' }}>رقم العقد</th>
                   <th style={{ padding: '12px 16px' }}>العميل</th>
+                  <th style={{ padding: '12px 16px' }}>رقم القسط</th>
                   <th style={{ padding: '12px 16px' }}>تاريخ الاستحقاق</th>
                   <th style={{ padding: '12px 16px' }}>قيمة القسط</th>
-                  <th style={{ padding: '12px 16px' }}>المسدد</th>
+                  <th style={{ padding: '12px 16px' }}>المبلغ المسدد</th>
+                  <th style={{ padding: '12px 16px' }}>المتبقي</th>
                   <th style={{ padding: '12px 16px' }}>الحالة</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>الإجراء</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>إجراء السداد والتذكير</th>
                 </tr>
               </thead>
               <tbody>
                 {scheduleQuery.isLoading ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
                       جاري تحميل جدول الأقساط...
                     </td>
                   </tr>
-                ) : (scheduleQuery.data || []).length === 0 ? (
+                ) : filteredSchedule.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                      لا توجد أقساط مطابقة للفلتر المحدد
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+                      لا توجد أقساط مطابقة للشروط المحددة
                     </td>
                   </tr>
                 ) : (
-                  (scheduleQuery.data || []).map((inst) => {
-                    const badge = statusBadges[inst.display_status || inst.status] || statusBadges.pending;
-                    const isFullyPaid = inst.status === 'paid';
-
+                  filteredSchedule.map((inst) => {
+                    const badge = statusBadges[inst.status] || { label: inst.status, bg: '#f1f5f9', color: '#475569' };
                     return (
                       <tr key={inst.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: '600', color: '#0f172a' }}>
-                          قسط #{inst.installment_number} {inst.installment_count ? `من ${inst.installment_count}` : ''}
-                        </td>
-                        <td style={{ padding: '12px 16px', color: '#475569', fontFamily: 'monospace' }}>
-                          {inst.plan_number || `#${inst.plan_id}`}
+                        <td style={{ padding: '12px 16px', fontWeight: '600' }}>
+                          <span style={{ color: '#170e5e', fontFamily: 'monospace' }}>{inst.plan_number}</span>
                         </td>
                         <td style={{ padding: '12px 16px' }}>
-                          <div style={{ fontWeight: '600', color: '#0f172a' }}>{inst.customer_name || 'عميل'}</div>
-                          <div style={{ fontSize: '12px', color: '#64748b' }}>{inst.customer_phone || ''}</div>
+                          <div style={{ fontWeight: '600', color: '#0f172a' }}>{inst.customer_name}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>{inst.customer_phone || '-'}</div>
                         </td>
-                        <td style={{ padding: '12px 16px', color: '#334155' }}>
-                          {new Date(inst.due_date).toLocaleDateString('ar-EG')}
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                            #{inst.installment_number}
+                          </span>
                         </td>
-                        <td style={{ padding: '12px 16px', fontWeight: '700', color: '#0f172a' }}>
+                        <td style={{ padding: '12px 16px', color: inst.status === 'overdue' ? '#dc2626' : '#0f172a', fontWeight: inst.status === 'overdue' ? '700' : 'normal' }}>
+                          {inst.due_date}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: '600' }}>
                           {formatCurrency(inst.amount)}
                         </td>
-                        <td style={{ padding: '12px 16px', color: '#166534', fontWeight: '600' }}>
+                        <td style={{ padding: '12px 16px', color: '#166534' }}>
                           {formatCurrency(inst.paid_amount)}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: 'bold', color: (inst.remaining_installment ?? inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0))) > 0 ? '#b91c1c' : '#166534' }}>
+                          {formatCurrency(inst.remaining_installment ?? inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0)))}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <span
                             style={{
-                              display: 'inline-block',
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              fontSize: '11px',
-                              fontWeight: '600',
                               backgroundColor: badge.bg,
                               color: badge.color,
+                              padding: '4px 10px',
+                              borderRadius: '20px',
+                              fontSize: '11px',
+                              fontWeight: '700',
                             }}
                           >
                             {badge.label}
                           </span>
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          {!isFullyPaid ? (
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
+                          {inst.status !== 'paid' ? (
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                               <Button
-                                onClick={() => openPayModal(inst)}
-                                style={{
-                                  backgroundColor: '#170e5e',
-                                  color: '#ffffff',
-                                  padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  border: 'none',
-                                  cursor: 'pointer',
+                                variant="primary"
+                                onClick={() => {
+                                  const rem = inst.remaining_installment ?? inst.remaining_amount ?? (Number(inst.amount) - Number(inst.paid_amount || 0));
+                                  setPayModalInstallment(inst);
+                                  setPayAmount(String(rem > 0 ? rem : inst.amount));
                                 }}
+                                style={{ padding: '4px 10px', fontSize: '12px' }}
                               >
-                                تحصيل القسط
+                                تحصيل دفعة
                               </Button>
                               <Button
                                 variant="secondary"
                                 onClick={() => handleSendInstallmentReminder(inst)}
                                 disabled={!inst.customer_phone}
                                 style={{
-                                  padding: '6px 10px',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
+                                  padding: '4px 8px',
+                                  fontSize: '11px',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '4px',
@@ -420,12 +429,14 @@ export function InstallmentsPage() {
                                 }}
                                 title={inst.customer_phone ? 'إرسال تذكير بموعد القسط عبر واتساب' : 'رقم الهاتف غير مسجل'}
                               >
-                                💬 تذكير
+                                <MessageSquareIcon size={13} />
+                                <span>تذكير</span>
                               </Button>
                             </div>
                           ) : (
-                            <span style={{ fontSize: '12px', color: '#166534', fontWeight: '600' }}>
-                              ✓ مسدد بالكامل {inst.receipt_no ? `(${inst.receipt_no})` : ''}
+                            <span style={{ fontSize: '12px', color: '#166534', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckIcon size={13} />
+                              <span>مسدد بالكامل {inst.receipt_no ? `(${inst.receipt_no})` : ''}</span>
                             </span>
                           )}
                         </td>
@@ -595,9 +606,9 @@ export function InstallmentsPage() {
               </h2>
               <button
                 onClick={() => setCreatePlanModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 
@@ -811,9 +822,9 @@ export function InstallmentsPage() {
               </h2>
               <button
                 onClick={() => setPayModalInstallment(null)}
-                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 
@@ -936,8 +947,8 @@ export function InstallmentsPage() {
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
             }}
           >
-            <div style={{ width: '48px', height: '48px', borderRadius: '24px', backgroundColor: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: '24px' }}>
-              ✓
+            <div style={{ width: '48px', height: '48px', borderRadius: '24px', backgroundColor: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <CheckIcon size={24} color="#16a34a" />
             </div>
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 6px 0' }}>
               تم التحصيل بنجاح!
@@ -1003,7 +1014,8 @@ export function InstallmentsPage() {
                   gap: '6px',
                 }}
               >
-                💬 إرسال واتساب
+                <MessageSquareIcon size={16} color="#ffffff" />
+                <span>إرسال واتساب</span>
               </Button>
               <Button
                 variant="secondary"
@@ -1053,9 +1065,9 @@ export function InstallmentsPage() {
               </div>
               <button
                 onClick={() => setSelectedPlanDetails(null)}
-                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 

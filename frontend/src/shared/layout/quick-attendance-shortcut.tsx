@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -342,9 +343,7 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                 type="button"
                 onClick={() => setSearch('')}
                 style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.9rem' }}
-              >
-                ✕
-              </button>
+              ><XIcon size={15} /></button>
             ) : null}
           </div>
 

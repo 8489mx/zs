@@ -11,6 +11,13 @@ import {
   SupplierReorderGroup,
   GenerateDraftOrdersPayload,
 } from '@/features/purchases/api/purchases.api';
+import {
+  SparklesIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  PackageIcon,
+  AlertTriangleIcon,
+} from '@/shared/components/icons/AppIcons';
 
 export function SmartReorderPage() {
   const navigate = useNavigate();
@@ -185,11 +192,12 @@ export function SmartReorderPage() {
             <div className="actions compact-actions" style={{ gap: '10px' }}>
               <Button
                 variant="primary"
-                style={{ backgroundColor: '#170e5e', borderColor: '#170e5e', color: '#ffffff', fontWeight: 600 }}
+                style={{ backgroundColor: '#170e5e', borderColor: '#170e5e', color: '#ffffff', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                 onClick={handleOpenBatchConfirm}
                 disabled={totalSelectedItemsCount === 0 || generateMutation.isPending}
               >
-                ⚡ توليد مسودات أوامر الشراء المحددة ({totalSelectedItemsCount})
+                <SparklesIcon size={16} color="#ffffff" />
+                <span>توليد مسودات أوامر الشراء المحددة ({totalSelectedItemsCount})</span>
               </Button>
               <Button variant="secondary" onClick={() => void refetch()} disabled={isLoading}>
                 تحديث التحليل
@@ -371,7 +379,9 @@ export function SmartReorderPage() {
               marginTop: '20px',
             }}
           >
-            <div style={{ fontSize: '36px', marginBottom: '12px' }}>🎉</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+              <CheckCircleIcon size={44} color="#16a34a" />
+            </div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
               المخزون في حالة ممتازة ومستقرة!
             </h3>
@@ -446,11 +456,20 @@ export function SmartReorderPage() {
                             </span>
                           ) : null}
                         </div>
-                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                          <span>⏱️ فترة التوريد: <strong>{group.leadTimeDays} أيام</strong></span>
-                          <span>📦 الأصناف المطلوبة: <strong>{group.itemsCount} صنف</strong></span>
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#64748b', marginTop: '4px', alignItems: 'center' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <ClockIcon size={13} color="#64748b" />
+                            <span>فترة التوريد: <strong>{group.leadTimeDays} أيام</strong></span>
+                          </span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <PackageIcon size={13} color="#64748b" />
+                            <span>الأصناف المطلوبة: <strong>{group.itemsCount} صنف</strong></span>
+                          </span>
                           {group.criticalCount > 0 ? (
-                            <span style={{ color: '#dc2626', fontWeight: 600 }}>⚠️ {group.criticalCount} أصناف حرجة/نافدة</span>
+                            <span style={{ color: '#dc2626', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <AlertTriangleIcon size={13} color="#dc2626" />
+                              <span>{group.criticalCount} أصناف حرجة/نافدة</span>
+                            </span>
                           ) : null}
                         </div>
                       </div>
@@ -705,7 +724,9 @@ export function SmartReorderPage() {
           showCloseButton={true}
         >
           <div className="dialog-card" style={{ padding: '24px', direction: 'rtl', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+              <CheckCircleIcon size={48} color="#16a34a" />
+            </div>
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#166534', marginBottom: '8px' }}>
               تم توليد مسودات أوامر الشراء بنجاح!
             </h3>

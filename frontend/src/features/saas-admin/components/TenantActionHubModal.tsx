@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SaasTenantRow } from '../api/saas-admin.api';
 
@@ -91,9 +92,7 @@ export function TenantActionHubModal({
             className="dialog-shell-close-btn"
             onClick={onClose}
             title="إغلاق"
-          >
-            ✕
-          </button>
+          ><XIcon size={15} /></button>
         </div>
 
         {/* Section 1: الاشتراكات والفوترة */}

@@ -8,6 +8,18 @@ import {
 import { OnlineOrderRecord } from '../types/storefront.types';
 import { formatCurrency } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
+import {
+  TruckIcon,
+  XIcon,
+  PackageIcon,
+  PrinterIcon,
+  RefreshCwIcon,
+  CheckIcon,
+  CreditCardIcon,
+  DollarSignIcon,
+  AlertTriangleIcon,
+  CopyIcon,
+} from '@/shared/components/icons/AppIcons';
 
 interface GccShipmentModalProps {
   order: OnlineOrderRecord;
@@ -35,7 +47,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
   const [weight, setWeight] = useState<number>(1.0);
   const [piecesCount, setPiecesCount] = useState<number>(1);
   const [description, setDescription] = useState(
-    `طلب متجر #${order.orderNumber} (${order.items?.map((i) => i.name).join('، ') || 'منتجات متنوعة'})`.slice(0, 100)
+    `طلب متجر #${order.orderNumber} (${order.items?.map((i: any) => i.name).join('، ') || 'منتجات متنوعة'})`.slice(0, 100)
   );
   const [codAmount, setCodAmount] = useState<number>(defaultCod);
   const [notes, setNotes] = useState(order.customerNotes || '');
@@ -127,7 +139,9 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.7rem' }}>🚚</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <TruckIcon size={20} color="#170e5e" />
+            </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                 شحن خليجي (أرامكس / سمسا إكسبريس)
@@ -154,7 +168,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
               fontWeight: 'bold',
             }}
           >
-            ✕
+            <XIcon size={18} />
           </button>
         </div>
 
@@ -176,7 +190,9 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   gap: '10px',
                 }}
               >
-                <div style={{ fontSize: '2.5rem' }}>📦</div>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PackageIcon size={32} color="#16a34a" />
+                </div>
                 <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>
                   {successResult
                     ? 'تم حجز وإصدار بوليصة الشحن بنجاح!'
@@ -222,9 +238,22 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                       fontWeight: 700,
                       cursor: 'pointer',
                       color: copySuccess ? '#16a34a' : '#475569',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    {copySuccess ? '✓ تم النسخ' : '📋 نسخ الرقم'}
+                    {copySuccess ? (
+                      <>
+                        <CheckIcon size={14} color="#16a34a" />
+                        <span>تم النسخ</span>
+                      </>
+                    ) : (
+                      <>
+                        <CopyIcon size={14} />
+                        <span>نسخ الرقم</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
@@ -238,9 +267,14 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                       fontWeight: 700,
                       padding: '10px',
                       borderRadius: '8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
                     }}
                   >
-                    🖨️ طباعة البوليصة (AWB 4×6)
+                    <PrinterIcon size={16} />
+                    <span>طباعة البوليصة (AWB 4×6)</span>
                   </Button>
 
                   <a
@@ -297,7 +331,10 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                       cursor: 'pointer',
                     }}
                   >
-                    {trackingQuery.isFetching ? 'جاري التحديث...' : '🔄 تحديث الحالة'}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <RefreshCwIcon size={12} className={trackingQuery.isFetching ? 'animate-spin' : ''} />
+                      <span>{trackingQuery.isFetching ? 'جاري التحديث...' : 'تحديث الحالة'}</span>
+                    </span>
                   </button>
                 </div>
 
@@ -337,7 +374,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                             fontSize: '12.5px',
                           }}
                         >
-                          <span style={{ color: '#16a34a', fontWeight: 800 }}>✓</span>
+                          <CheckIcon size={14} color="#16a34a" />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 700, color: '#0f172a' }}>{ev.state}</div>
                             {ev.description && <div style={{ color: '#64748b', fontSize: '11.5px' }}>{ev.description}</div>}
@@ -383,7 +420,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 800, color: '#dc2626', fontSize: '13px' }}>أرامكس (Aramex)</span>
-                      <span style={{ fontSize: '18px' }}>🔴</span>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
                     </div>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>
                       تغطية شاملة للمملكة، الإمارات، الكويت، وقطر
@@ -408,7 +445,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 800, color: '#ea580c', fontSize: '13px' }}>سمسا إكسبريس (SMSA)</span>
-                      <span style={{ fontSize: '18px' }}>🟠</span>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ea580c', display: 'inline-block' }} />
                     </div>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>
                       الناقل الأوسع انتشاراً داخل كافة محافظات وقرى السعودية
@@ -431,8 +468,18 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                 }}
               >
                 <div>
-                  <span style={{ fontWeight: 700, color: isPaidOnline ? '#065f46' : '#92400e' }}>
-                    {isPaidOnline ? '💳 مسدد إلكترونياً بالكامل (تاب / سترايب)' : '💵 دفع عند الاستلام (COD)'}
+                  <span style={{ fontWeight: 700, color: isPaidOnline ? '#065f46' : '#92400e', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    {isPaidOnline ? (
+                      <>
+                        <CreditCardIcon size={14} />
+                        <span>مسدد إلكترونياً بالكامل (تاب / سترايب)</span>
+                      </>
+                    ) : (
+                      <>
+                        <DollarSignIcon size={14} />
+                        <span>دفع عند الاستلام (COD)</span>
+                      </>
+                    )}
                   </span>
                   <span style={{ margin: '0 6px', color: '#94a3b8' }}>•</span>
                   <span style={{ color: '#64748b' }}>إجمالي الفاتورة: {formatCurrency(order.totalAmount)}</span>
@@ -663,9 +710,13 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                     color: '#991b1b',
                     fontSize: '12.5px',
                     fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                   }}
                 >
-                  ⚠️ حدث خطأ أثناء إنشاء الشحنة: {(shipMutation.error as any)?.message || 'يرجى مراجعة إعدادات الشحن وبيانات العنوان'}
+                  <AlertTriangleIcon size={16} />
+                  <span>حدث خطأ أثناء إنشاء الشحنة: {(shipMutation.error as any)?.message || 'يرجى مراجعة إعدادات الشحن وبيانات العنوان'}</span>
                 </div>
               )}
             </>
@@ -741,7 +792,7 @@ export function GccShipmentModal({ order, onClose, onSuccess }: GccShipmentModal
                   <span>جاري حجز البوليصة والربط مع {carrier === 'aramex' ? 'أرامكس' : 'سمسا'}...</span>
                 ) : (
                   <span>
-                    تأكيد وإصدار بوليصة {carrier === 'aramex' ? 'أرامكس' : 'سمسا'} 🚀
+                    تأكيد وإصدار بوليصة {carrier === 'aramex' ? 'أرامكس' : 'سمسا'}
                   </span>
                 )}
               </button>

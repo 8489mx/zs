@@ -11,6 +11,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
 
 import { systemAlert } from '@/shared/components/system-alert';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 
 export function TaxDispatcherPage() {
   const invoicesQuery = useQuery({
@@ -109,7 +110,7 @@ export function TaxDispatcherPage() {
           onClick={() => handleInspectZatca(inv)}
           style={{ height: '30px', fontSize: '11px', padding: '0 8px' }}
         >
-          فحص ZATCA 🇸🇦
+          فحص ZATCA
         </Button>
       )
     }
@@ -174,24 +175,24 @@ export function TaxDispatcherPage() {
           </div>
         )}
 
-        {/* ZATCA Phase 2 Modal */}
+        {/* Inspect ZATCA Modal */}
         {selectedZatcaModal.open && (
           <div style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.5)',
+            backgroundColor: 'rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            padding: '16px'
+            padding: '20px'
           }}>
             <div style={{
-              background: '#ffffff',
+              background: '#fff',
               borderRadius: '12px',
               padding: '24px',
-              maxWidth: '600px',
               width: '100%',
+              maxWidth: '850px',
               boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
               display: 'flex',
               flexDirection: 'column',
@@ -201,14 +202,15 @@ export function TaxDispatcherPage() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                  🇸🇦 فحص حزمة الفاتورة (ZATCA Phase 2) - #{selectedZatcaModal.invoiceNo}
+                  فحص حزمة الفاتورة (ZATCA Phase 2) - #{selectedZatcaModal.invoiceNo}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setSelectedZatcaModal({ open: false, loading: false })}
-                  style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+                  aria-label="إغلاق"
                 >
-                  ✕
+                  <XIcon size={16} />
                 </button>
               </div>
 

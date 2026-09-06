@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
@@ -383,9 +384,7 @@ export function PosWorkspaceMainContent({
                           onClick={() => onRequestLineDelete(item.lineKey)}
                           title="حذف الصنف"
                           aria-label="حذف"
-                        >
-                          ✕
-                        </button>
+                        ><XIcon size={15} /></button>
                       </div>
                     );
                   })}

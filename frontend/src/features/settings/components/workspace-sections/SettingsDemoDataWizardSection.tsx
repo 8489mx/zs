@@ -3,6 +3,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { demoDataApi, type SeedDemoDataResult } from '@/features/settings/api/demo-data.api';
 import { Button } from '@/shared/ui/button';
+import {
+  RocketIcon,
+  PackageIcon,
+  ReceiptIcon,
+  TagIcon,
+  RefreshCwIcon,
+  SparklesIcon,
+  ShieldCheckIcon,
+  Trash2Icon,
+  CheckCircleIcon,
+  ShoppingCartIcon,
+  BarChartIcon,
+  XIcon,
+} from '@/shared/components/icons/AppIcons';
 
 export function SettingsDemoDataWizardSection() {
   const navigate = useNavigate();
@@ -126,7 +140,7 @@ export function SettingsDemoDataWizardSection() {
               boxShadow: '0 4px 12px rgba(23, 14, 94, 0.18)',
             }}
           >
-            🚀
+            <RocketIcon size={24} color="#ffffff" />
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
@@ -175,9 +189,15 @@ export function SettingsDemoDataWizardSection() {
                 gap: '8px',
               }}
             >
-              <span>📦 {status?.productCount || 0} صنف مسجل</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <PackageIcon size={14} />
+                <span>{status?.productCount || 0} صنف مسجل</span>
+              </span>
               <span style={{ color: '#cbd5e1' }}>|</span>
-              <span>🧾 {status?.saleCount || 0} فاتورة</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <ReceiptIcon size={14} />
+                <span>{status?.saleCount || 0} فاتورة</span>
+              </span>
             </div>
           )}
         </div>
@@ -201,9 +221,9 @@ export function SettingsDemoDataWizardSection() {
           <span>{notification.message}</span>
           <button
             onClick={() => setNotification(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: 'inherit' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'inherit' }}
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
       )}
@@ -330,8 +350,14 @@ export function SettingsDemoDataWizardSection() {
                     color: '#64748b',
                   }}
                 >
-                  <span>🏷️ {act.productCount} صنفاً متكاملاً</span>
-                  <span>📂 {act.categoryCount} تصنيفات</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <TagIcon size={13} />
+                    <span>{act.productCount} صنفاً متكاملاً</span>
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <PackageIcon size={13} />
+                    <span>{act.categoryCount} تصنيفات</span>
+                  </span>
                 </div>
               </div>
             );
@@ -488,9 +514,15 @@ export function SettingsDemoDataWizardSection() {
             }}
           >
             {seedMutation.isPending ? (
-              <>⏳ جاري ملء النظام بالبيانات (5 ثوانٍ)...</>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <RefreshCwIcon size={16} className="animate-spin" />
+                <span>جاري ملء النظام بالبيانات (5 ثوانٍ)...</span>
+              </span>
             ) : (
-              <>⚡ استيراد بيانات النشاط فورياً بنقرة واحدة</>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <SparklesIcon size={16} />
+                <span>استيراد بيانات النشاط فورياً بنقرة واحدة</span>
+              </span>
             )}
           </Button>
         </div>
@@ -549,6 +581,9 @@ export function SettingsDemoDataWizardSection() {
             fontSize: '0.86rem',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = '#ffe4e6';
@@ -557,7 +592,8 @@ export function SettingsDemoDataWizardSection() {
             e.currentTarget.style.background = '#fff1f2';
           }}
         >
-          🧹 تفريغ ومسح البيانات التجريبية فقط
+          <Trash2Icon size={16} />
+          <span>تفريغ ومسح البيانات التجريبية فقط</span>
         </button>
       </div>
 
@@ -603,7 +639,7 @@ export function SettingsDemoDataWizardSection() {
                   fontSize: '20px',
                 }}
               >
-                🔐
+                <ShieldCheckIcon size={20} />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
@@ -734,7 +770,7 @@ export function SettingsDemoDataWizardSection() {
                   fontSize: '20px',
                 }}
               >
-                🧹
+                <Trash2Icon size={20} />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
@@ -852,7 +888,7 @@ export function SettingsDemoDataWizardSection() {
                 fontSize: '34px',
               }}
             >
-              🎉
+              <CheckCircleIcon size={36} color="#10b981" />
             </div>
 
             <div>
@@ -914,7 +950,10 @@ export function SettingsDemoDataWizardSection() {
                   width: '100%',
                 }}
               >
-                🛒 تجربة شاشة الكاشير السريعة (POS)
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <ShoppingCartIcon size={16} />
+                  <span>تجربة شاشة الكاشير السريعة (POS)</span>
+                </span>
               </Button>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
@@ -932,7 +971,10 @@ export function SettingsDemoDataWizardSection() {
                     cursor: 'pointer',
                   }}
                 >
-                  📊 لوحة التحكم والتحليلات
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <BarChartIcon size={15} />
+                    <span>لوحة التحكم والتحليلات</span>
+                  </span>
                 </button>
 
                 <button
@@ -949,7 +991,10 @@ export function SettingsDemoDataWizardSection() {
                     cursor: 'pointer',
                   }}
                 >
-                  📦 مراجعة الأصناف والمخزون
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <PackageIcon size={15} />
+                    <span>مراجعة الأصناف والمخزون</span>
+                  </span>
                 </button>
               </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { CartItem, CreateOnlineOrderResponse, StorefrontProduct, StorefrontCategory, StorefrontInfo, OnlineOrderRecord } from '../types/storefront.types';
@@ -16,12 +16,15 @@ import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel
 import { StorefrontMyOrdersModal } from '../components/StorefrontMyOrdersModal';
 import { StorefrontReviewModal } from '../components/StorefrontReviewModal';
 import { IconFlame, IconFolder, IconSearch, IconArrowUpRight, IconStore } from '../components/StorefrontIcons';
+import { UtensilsIcon } from '@/shared/components/icons/AppIcons';
 
 const ITEMS_PER_PAGE = 24;
 const arCollator = new Intl.Collator('ar', { sensitivity: 'base' });
 
 export function PublicStorefrontPage() {
-  const { slug } = useParams<{ slug?: string }>();
+  const { slug, tableNo } = useParams<{ slug?: string; tableNo?: string }>();
+  const [searchParams] = useSearchParams();
+  const tableParam = (tableNo || searchParams.get('table') || '').trim();
   const cleanSlug = String(slug || 'default').trim();
 
   // Queries for live Storefront data (Always fresh from server)
@@ -516,6 +519,49 @@ export function PublicStorefrontPage() {
         onOpenOrders={() => setIsMyOrdersOpen(true)}
         onGoHome={handleGoHome}
       />
+
+      {/* Dine-In QR Table Banner */}
+      {tableParam && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, #15803d, #16a34a)',
+            color: '#ffffff',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 40,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <UtensilsIcon size={18} color="#ffffff" strokeWidth={2} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '13.5px' }}>
+                أهلاً بك! أنت تطلب الآن مباشرة من <strong>طاولة رقم ({tableParam})</strong>
+              </div>
+              <div style={{ fontSize: '11px', opacity: 0.9 }}>
+                اختر وجبتك وأرسل الطلب، وسيقوم المطبخ بتحضيره وتقديمه لطاولتك فوراً
+              </div>
+            </div>
+          </div>
+          <div
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+            }}
+          >
+            طلب صالة
+          </div>
+        </div>
+      )}
 
 
       {/* Top Promotional Billboard Banner Carousel (Multi-image auto-sliding slideshow) */}
@@ -1182,6 +1228,8 @@ export function PublicStorefrontPage() {
         deliveryFee={info.deliveryFee}
         tenantSlug={cleanSlug}
         editingOrderNumber={editingOrderNumber}
+        orderType={tableParam ? 'dine_in' : 'delivery'}
+        tableNumber={tableParam || undefined}
         onEditSuccess={() => {
           setIsCheckoutOpen(false);
           setEditingOrderNumber(undefined);

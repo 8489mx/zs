@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { productsApi } from '@/features/products/api/products.api';
 import { getWeightedBarcodeConfig } from '@/features/pos/lib/weighted-barcode';
+import { ScaleIcon, XIcon, LinkIcon, LightbulbIcon, DownloadIcon } from '@/shared/components/icons/AppIcons';
 import type { Product } from '@/types/domain';
 
 export type ScalePreset = 'rongta' | 'cas' | 'dibal' | 'general';
@@ -201,8 +202,9 @@ export function ScalePluExportModal({
       <div className="page-stack" style={{ padding: '8px' }} dir="rtl">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 'bold' }}>
-              ⚖️ تصدير ملف موازين الباركود الإلكترونية (PLU Export)
+            <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ScaleIcon size={20} color="#170e5e" />
+              <span>تصدير ملف موازين الباركود الإلكترونية (PLU Export)</span>
             </h2>
             <p className="muted small" style={{ margin: '4px 0 0 0' }}>
               توليد ملفات الأصناف والأسعار المتوافقة مع برامج موازين الباركود (Rongta, CAS, Dibal) لبرمجتها بضغطة زر.
@@ -211,17 +213,18 @@ export function ScalePluExportModal({
           <button
             type="button"
             onClick={onClose}
-            style={{ border: 'none', background: 'transparent', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="إغلاق"
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
 
         {/* Integration Note with POS */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px', fontSize: '0.85em', color: '#334155' }}>
-          <div style={{ fontWeight: 'bold', color: '#170e5e', marginBottom: '4px' }}>
-            🔗 الربط مع نقاط البيع (POS):
+          <div style={{ fontWeight: 'bold', color: '#170e5e', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <LinkIcon size={14} color="#170e5e" />
+            <span>الربط مع نقاط البيع (POS):</span>
           </div>
           النظام مهيأ لاستقبال الباركود الموزون الذي يبدأ بـ <strong>{scaleConfig.prefix}</strong>، مع كود صنف بطول <strong>{scaleConfig.productCodeLength}</strong> أرقام، و <strong>{scaleConfig.weightDigits}</strong> خانات للوزن. عند قراءة باركود الملصق المطبوع من الميزان سيتعرف الكاشير فوراً على الصنف ويحسب الوزن والسعر تلقائياً.
         </div>
@@ -302,8 +305,11 @@ export function ScalePluExportModal({
         </div>
 
         {/* Operational Instructions */}
-        <div style={{ fontSize: '0.8em', color: '#64748b', background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
-          💡 <strong>طريقة التنزيل للميزان:</strong> قم بتحميل ملف الـ CSV ثم افتح برنامج الميزان (مثل RLS1000 Tool أو CL-Works)، اختر <strong>Import PLU</strong> وحدد الملف المحمل، ثم اضغط <strong>Download to Scale</strong> لإرسال جميع الأصناف والأسعار إلى شاشة الميزان وأزرار الاختصار السريع.
+        <div style={{ fontSize: '0.8em', color: '#64748b', background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+          <LightbulbIcon size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <strong>طريقة التنزيل للميزان:</strong> قم بتحميل ملف الـ CSV ثم افتح برنامج الميزان (مثل RLS1000 Tool أو CL-Works)، اختر <strong>Import PLU</strong> وحدد الملف المحمل، ثم اضغط <strong>Download to Scale</strong> لإرسال جميع الأصناف والأسعار إلى شاشة الميزان وأزرار الاختصار السريع.
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -317,9 +323,10 @@ export function ScalePluExportModal({
           <Button
             onClick={handleExportCsv}
             disabled={pluRows.length === 0}
-            style={{ background: '#170e5e', color: '#ffffff' }}
+            style={{ background: '#170e5e', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            تحميل ملف CSV للميزان 📥
+            <DownloadIcon size={15} color="#ffffff" />
+            <span>تحميل ملف CSV للميزان</span>
           </Button>
         </div>
       </div>

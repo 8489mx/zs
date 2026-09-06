@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/shared/ui/button';
+import { BellIcon, XIcon } from '@/shared/components/icons/AppIcons';
 
 interface PosOnlineOrderFloatingAlertProps {
   orderCount: number;
@@ -60,7 +61,7 @@ export function PosOnlineOrderFloatingAlert({
           flexShrink: 0,
         }}
       >
-        🔔
+        <BellIcon size={18} color="#1d4ed8" />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -119,10 +120,13 @@ export function PosOnlineOrderFloatingAlert({
             cursor: 'pointer',
             padding: '4px',
             lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
           title="إغلاق التنبيه"
         >
-          ✕
+          <XIcon size={14} />
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { compressImage, CompressionResult } from '@/shared/utils/image-compressor';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontProductStudioProps {
   slug: string;
@@ -64,7 +65,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
 
       setUploadFeedback((prev) => ({
         ...prev,
-        [productId]: `✓ تم ضغط الصورة (${result.originalSizeKb}KB → ${result.compressedSizeKb}KB)`,
+        [productId]: `تم ضغط الصورة (${result.originalSizeKb}KB ← ${result.compressedSizeKb}KB)`,
       }));
 
       await updateImageMutation.mutateAsync({ id: productId, imageUrl: result.dataUrl });
@@ -102,7 +103,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
 
       setCatUploadFeedback((prev) => ({
         ...prev,
-        [categoryId]: `✓ تم الضغط (${result.originalSizeKb}KB → ${result.compressedSizeKb}KB)`,
+        [categoryId]: `تم الضغط (${result.originalSizeKb}KB ← ${result.compressedSizeKb}KB)`,
       }));
 
       await updateCatImageMutation.mutateAsync({ id: categoryId, imageUrl: result.dataUrl });
@@ -384,7 +385,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                               borderRadius: '4px',
                             }}
                           >
-                            صورة مخصصة ✓
+                            صورة مخصصة
                           </div>
                         ) : (
                           <div
@@ -420,14 +421,13 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                               borderRadius: '4px',
                               width: '22px',
                               height: '22px',
-                              fontSize: '11px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                             }}
                           >
-                            ✕
+                            <XIcon size={12} />
                           </button>
                         )}
                       </div>
@@ -576,7 +576,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                         border: cat.imageUrl ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
                       }}
                     >
-                      {cat.imageUrl ? 'صورة مخصصة ✓' : 'صورة تلقائية'}
+                      {cat.imageUrl ? 'صورة مخصصة' : 'صورة تلقائية'}
                     </span>
                   </div>
 
@@ -671,12 +671,13 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                           background: '#fff1f2',
                           border: '1px solid #fecdd3',
                           color: '#e11d48',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
                           cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
                       >
-                        ✕
+                        <XIcon size={14} />
                       </button>
                     )}
                   </div>

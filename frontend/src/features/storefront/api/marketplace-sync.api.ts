@@ -70,7 +70,7 @@ export const marketplaceSyncApi = {
     });
   },
 
-  deleteMapping: async (id: string): Promise<{ ok: boolean }> => {
+  deleteMapping: async (id: string | number): Promise<{ ok: boolean }> => {
     return http<{ ok: boolean }>(`/api/storefront/marketplaces/mappings/${id}`, {
       method: 'DELETE',
     });
@@ -88,5 +88,38 @@ export const marketplaceSyncApi = {
       method: 'POST',
       body: JSON.stringify({ marketplace }),
     });
+  },
+
+  getAmazonConfig: async (): Promise<AmazonConfig> => {
+    const cfg = await marketplaceSyncApi.getConfig();
+    return cfg.amazon;
+  },
+
+  getNoonConfig: async (): Promise<NoonConfig> => {
+    const cfg = await marketplaceSyncApi.getConfig();
+    return cfg.noon;
+  },
+
+  listMappings: async (): Promise<MarketplaceSkuMapping[]> => {
+    return marketplaceSyncApi.getMappings();
+  },
+
+  addMapping: async (payload: any): Promise<MarketplaceSkuMapping> => {
+    return marketplaceSyncApi.saveMapping(payload);
+  },
+
+  syncStock: async (marketplace?: any): Promise<{ synced: number }> => {
+    const res = await marketplaceSyncApi.syncInventory(marketplace);
+    return { synced: res.syncedCount };
+  },
+
+  simulateIncomingOrder: async (marketplace: 'amazon' | 'noon'): Promise<{ marketplace: string; marketplaceOrderId: string; customerName: string; quantity: number }> => {
+    const res = await marketplaceSyncApi.simulateOrder(marketplace);
+    return {
+      marketplace,
+      marketplaceOrderId: res.orderNumber || String(res.orderId),
+      customerName: 'عميل المنصة (محاكاة)',
+      quantity: 1,
+    };
   },
 };

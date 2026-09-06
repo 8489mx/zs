@@ -87,7 +87,7 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
         `- *الصافي بعد الخصم:* ${netTotal.toFixed(2)} ج.م`,
       ] : []),
       ...(advancePaid > 0 ? [`- *المدفوع مقدماً (عربون):* ${advancePaid.toFixed(2)} ج.م`] : []),
-      `- *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م ${ticket.status === 'delivered' ? '(خالص بالكامل ✓)' : ''}`,
+      `- *المتبقي عند الاستلام:* ${remaining.toFixed(2)} ج.م ${ticket.status === 'delivered' ? '(خالص بالكامل)' : ''}`,
       `----------------------------------------`,
       `- *تم إرفاق إيصال الاستلام الرسمي بصيغة PDF.*`,
       ``,
@@ -289,7 +289,7 @@ export function MaintenanceReceiptModal({ open, ticket, settings, onClose }: Mai
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, borderTop: '1px dashed #cbd5e1', paddingTop: '4px', marginTop: '4px' }}>
                 <span>المتبقي:</span>
                 <span style={{ color: '#16a34a' }}>
-                  {ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل ✓)' : `${remainingAmount.toFixed(2)} ج.م`}
+                  {ticket.status === 'delivered' ? '0.00 ج.م (خالص بالكامل)' : `${remainingAmount.toFixed(2)} ج.م`}
                 </span>
               </div>
             </div>

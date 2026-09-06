@@ -3,6 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency, formatDateTimeArabic } from '@/lib/format';
 import {
+  RefreshCwIcon,
+  AlertTriangleIcon,
+  ShieldCheckIcon,
+  CheckCircleIcon,
+} from '@/shared/components/icons/AppIcons';
+import {
   cashierFraudRadarApi,
   type CashierRiskProfile,
   type FraudRadarEventItem,
@@ -246,9 +252,10 @@ export function CashierFraudRadarSection() {
           <Button
             variant="secondary"
             onClick={handleRefresh}
-            style={{ fontSize: '13px', padding: '6px 14px' }}
+            style={{ fontSize: '13px', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            تحديث الرادار 🔄
+            <RefreshCwIcon size={14} />
+            <span>تحديث الرادار</span>
           </Button>
         </div>
       </div>
@@ -268,7 +275,7 @@ export function CashierFraudRadarSection() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '24px' }}>🚨</span>
+            <AlertTriangleIcon size={24} color="#9f1239" />
             <div>
               <div style={{ fontWeight: 800, color: '#9f1239', fontSize: '14px' }}>
                 تنبيه رادار الرقابة: تم رصد {summary.highRiskCashiersCount} كاشير في دائرة الخطر المرتفع!
@@ -289,7 +296,7 @@ export function CashierFraudRadarSection() {
               border: '1px solid #fecdd3',
             }}
           >
-            نظام التنبيه التلقائي: نشط ✅
+            نظام التنبيه التلقائي: نشط
           </span>
         </div>
       ) : (
@@ -304,7 +311,7 @@ export function CashierFraudRadarSection() {
             gap: '12px',
           }}
         >
-          <span style={{ fontSize: '20px' }}>🛡️</span>
+          <ShieldCheckIcon size={20} color="#166534" />
           <div>
             <div style={{ fontWeight: 700, color: '#166534', fontSize: '13.5px' }}>
               الوضع الرقابي مستقر وآمن
@@ -351,7 +358,7 @@ export function CashierFraudRadarSection() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: '12.5px', color: '#b91c1c', fontWeight: 600 }}>كاشيرات في دائرة الخطر 🔴</div>
+          <div style={{ fontSize: '12.5px', color: '#b91c1c', fontWeight: 600 }}>كاشيرات في دائرة الخطر</div>
           <div style={{ fontSize: '26px', fontWeight: 900, color: '#b91c1c', marginTop: '6px' }}>
             {summary?.highRiskCashiersCount ?? 0}
           </div>
@@ -369,7 +376,7 @@ export function CashierFraudRadarSection() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 600 }}>كاشيرات تحت الملاحظة 🟡</div>
+          <div style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 600 }}>كاشيرات تحت الملاحظة</div>
           <div style={{ fontSize: '26px', fontWeight: 900, color: '#b45309', marginTop: '6px' }}>
             {summary?.mediumRiskCashiersCount ?? 0}
           </div>
@@ -387,7 +394,7 @@ export function CashierFraudRadarSection() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: '12.5px', color: '#0f766e', fontWeight: 600 }}>الخسائر المرصودة / المحمية 💰</div>
+          <div style={{ fontSize: '12.5px', color: '#0f766e', fontWeight: 600 }}>الخسائر المرصودة / المحمية</div>
           <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f766e', marginTop: '6px' }}>
             {formatCurrency(summary?.estimatedProtectedLoss ?? 0)} ج.م
           </div>
@@ -613,7 +620,9 @@ export function CashierFraudRadarSection() {
                 border: '1px dashed #cbd5e1',
               }}
             >
-              <div style={{ fontSize: '24px', marginBottom: '6px' }}>✨</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                <CheckCircleIcon size={24} color="#16a34a" />
+              </div>
               <div style={{ fontWeight: 700, fontSize: '13px', color: '#475569' }}>
                 لا توجد عمليات مشبوهة مسجلة
               </div>

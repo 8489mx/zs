@@ -365,7 +365,7 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
               {storeCreditBalance ? <span><b>رصيد المتجر</b>{formatCurrency(storeCreditBalance)}</span> : null}
               {customerSummary?.loyaltyPoints ? (
                 <span style={{ color: '#b45309', fontWeight: 'bold' }}>
-                  <b>نقاط الولاء</b>⭐ {customerSummary.loyaltyPoints.toLocaleString()} نقطة
+                  <b>نقاط الولاء</b>{customerSummary.loyaltyPoints.toLocaleString()} نقطة
                 </span>
               ) : null}
               {customerSummary ? (

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { customersApi } from '@/shared/api/customers.api';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import type { Customer } from '@/types/domain';
 
 interface CustomerLoyaltyModalProps {
@@ -61,7 +62,7 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              ⭐ رصيد نقاط الولاء: {customer.name}
+              رصيد نقاط الولاء: {customer.name}
             </h3>
             <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
               إدارة وتعديل رصيد النقاط واستعراض سجل الحركات المكتسبة والمستبدلة.
@@ -72,7 +73,7 @@ export function CustomerLoyaltyModal({ customer, onClose }: CustomerLoyaltyModal
             onClick={onClose}
             style={{ background: 'transparent', border: 'none', fontSize: '18px', color: '#64748b', cursor: 'pointer', padding: '4px 8px' }}
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
 

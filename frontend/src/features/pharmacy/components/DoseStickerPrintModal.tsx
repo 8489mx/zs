@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useRef } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
@@ -69,9 +70,7 @@ export function DoseStickerPrintModal({ open, onClose, drugName = '', customerNa
             type="button"
             onClick={onClose}
             style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
-          >
-            ✕
-          </button>
+          ><XIcon size={16} /></button>
         </div>
 
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

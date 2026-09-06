@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { ClientPortal } from '@/shared/components/ClientPortal';
+import { CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
 
 export function formatGregorianDate(dateInput?: string | number | Date | null, withTime = false): string {
   if (!dateInput) return 'غير محدد';
@@ -392,7 +393,10 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                         <div className="system-release-details">
                           <div className="system-release-version-row">
                             <span className="system-release-version-num">الإصدار {currentRelease.version}</span>
-                            <span className="system-release-tag-active">✓ الإصدار الحالي المستقر</span>
+                            <span className="system-release-tag-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckIcon size={12} />
+                              <span>الإصدار الحالي المستقر</span>
+                            </span>
                           </div>
                           <div className="system-release-date">
                             <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
@@ -547,7 +551,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     setTimeout(() => setCopiedPasscode(false), 2000);
                   }}
                 >
-                  {copiedPasscode ? '✓ تم النسخ بنجاح!' : 'نسخ كود التفعيل'}
+                  {copiedPasscode ? 'تم النسخ بنجاح' : 'نسخ كود التفعيل'}
                 </Button>
                 <Button variant="secondary" onClick={() => { setRevealedPasscode(null); setCopiedPasscode(false); }}>إغلاق</Button>
               </div>
@@ -596,7 +600,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       setTimeout(() => setCopiedReleaseVersion(null), 2000);
                     }}
                   >
-                    {copiedReleaseVersion === selectedRelease.version ? '✓ تم النسخ' : 'نسخ الكود'}
+                    {copiedReleaseVersion === selectedRelease.version ? 'تم النسخ' : 'نسخ الكود'}
                   </Button>
                 </div>
               )}
@@ -678,7 +682,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                     }}
                     title="إغلاق"
                   >
-                    ✕
+                    <XIcon size={14} />
                   </button>
                 </div>
 
@@ -908,7 +912,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                       }}
                       title="إغلاق"
                     >
-                      ✕
+                      <XIcon size={14} />
                     </button>
                   )}
                 </div>
@@ -1062,7 +1066,7 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                             fontSize: '11.5px',
                             fontWeight: isActive || isDone ? 800 : 600
                           }}>
-                            <div style={{ fontSize: '12px', marginBottom: '2px' }}>{isDone ? '✓' : st.stepNum}</div>
+                            <div style={{ fontSize: '12px', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isDone ? <CheckIcon size={12} /> : st.stepNum}</div>
                             <div>{st.label}</div>
                           </div>
                         );

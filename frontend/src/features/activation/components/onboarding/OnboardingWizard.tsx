@@ -1,3 +1,4 @@
+import { CheckIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -73,7 +74,7 @@ export function OnboardingWizard() {
               <div className="wizard-progress-bar-fill" style={{ width: `${((step - 1) / (stepsCount - 1)) * 100}%` }} />
               {[1, 2, 3].map((num) => (
                 <div key={num} className={`wizard-step-node ${step === num ? 'active' : step > num ? 'completed' : ''}`}>
-                  {step > num ? '✓' : num}
+                  {step > num ? <CheckIcon size={14} color="#ffffff" /> : num}
                 </div>
               ))}
             </div>

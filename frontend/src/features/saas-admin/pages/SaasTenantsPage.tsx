@@ -22,6 +22,7 @@ import { TenantSubscriptionsModal } from '../components/TenantSubscriptionsModal
 import { TenantWelcomeShareModal } from '../components/TenantWelcomeShareModal';
 import { TenantActionHubModal } from '../components/TenantActionHubModal';
 import { EditTenantSlugModal } from '../components/EditTenantSlugModal';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 
 type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner' | 'delete';
 type SaasTenantsResponse = { tenants: SaasTenantRow[] };
@@ -485,8 +486,9 @@ export function SaasTenantsPage() {
                   </div>
                 </div>
               </div>
-              <button type="button" className="saas-close-action-btn" onClick={() => setOwnerResetResult(null)}>
-                إغلاق ✕
+              <button type="button" className="saas-close-action-btn" onClick={() => setOwnerResetResult(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <XIcon size={14} />
+                <span>إغلاق</span>
               </button>
             </div>
           </div>
@@ -859,7 +861,7 @@ export function SaasTenantsPage() {
                 onClick={() => { setIsCreateOpen(false); setCreateResult(null); }}
                 title="إغلاق"
               >
-                ✕
+                <XIcon size={14} />
               </button>
             </div>
 
@@ -1205,7 +1207,7 @@ export function SaasTenantsPage() {
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
                 إعادة كلمة مرور مالك النسخة
               </h3>
-              <button type="button" className="dialog-shell-close-btn" onClick={() => setResetTenant(null)}>✕</button>
+              <button type="button" className="dialog-shell-close-btn" onClick={() => setResetTenant(null)}><XIcon size={14} /></button>
             </div>
             <p className="muted small" style={{ marginBottom: '14px' }}>
               النسخة المستهدفة: <strong>{resetTenant.name}</strong>
@@ -1272,7 +1274,7 @@ export function SaasTenantsPage() {
                 onClick={() => setUpgradeTenant(null)}
                 style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b' }}
               >
-                ✕
+                <XIcon size={14} />
               </button>
             </div>
             <div className="stack gap-12">
@@ -1371,7 +1373,7 @@ export function SaasTenantsPage() {
                 onClick={() => setRenewTenant(null)}
                 style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b' }}
               >
-                ✕
+                <XIcon size={14} />
               </button>
             </div>
             <div className="stack gap-12">
@@ -1469,7 +1471,7 @@ export function SaasTenantsPage() {
                 onClick={() => setRecordPaymentTenant(null)}
                 style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b' }}
               >
-                ✕
+                <XIcon size={14} />
               </button>
             </div>
             <div className="stack gap-12">

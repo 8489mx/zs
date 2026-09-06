@@ -124,7 +124,7 @@ function CustomerList({ rows }: { rows: DashboardCollectionItem[] }) {
 }
 
 function SupplierList({ rows }: { rows: DashboardPartnerItem[] }) {
-  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#15803d', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.84rem', fontWeight: 600 }}>لا توجد مديونيات مستحقة للموردين حالياً ✓</div>;
+  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#15803d', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.84rem', fontWeight: 600 }}>لا توجد مديونيات مستحقة للموردين حالياً</div>;
 
   return (
     <div className="manager-overview-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>

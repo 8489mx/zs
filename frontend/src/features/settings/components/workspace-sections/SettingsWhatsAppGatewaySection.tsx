@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
-import { MessageSquareIcon } from '@/shared/components/icons/AppIcons';
+import { MessageSquareIcon, SparklesIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
 
 export interface WhatsAppGatewayConfig {
   enabled: boolean;
@@ -85,7 +85,7 @@ export function SettingsWhatsAppGatewaySection() {
       }),
     onSuccess: (res) => {
       if (res.success) {
-        setFeedback({ kind: 'success', message: '✅ وصل الاختبار بنجاح إلى هاتفك! البوابة تعمل وجاهزة.' });
+        setFeedback({ kind: 'success', message: 'وصل الاختبار بنجاح إلى هاتفك! البوابة تعمل وجاهزة.' });
       } else {
         setFeedback({ kind: 'error', message: res.message || 'فشل إرسال رسالة الاختبار. تأكد من البيانات والاشتراك.' });
       }
@@ -112,7 +112,7 @@ export function SettingsWhatsAppGatewaySection() {
       }),
     onSuccess: () => {
       refetchAiConfig();
-      setAiFeedback({ kind: 'success', message: '✅ تم حفظ مفتاح Google Gemini API بنجاح!' });
+      setAiFeedback({ kind: 'success', message: 'تم حفظ مفتاح Google Gemini API بنجاح!' });
       setCustomApiKey('');
       setTimeout(() => setAiFeedback(null), 3500);
     },
@@ -129,9 +129,9 @@ export function SettingsWhatsAppGatewaySection() {
       }),
     onSuccess: (res) => {
       if (res.success) {
-        setAiFeedback({ kind: 'success', message: `✅ ${res.message}` });
+        setAiFeedback({ kind: 'success', message: res.message });
       } else {
-        setAiFeedback({ kind: 'error', message: `❌ ${res.message}` });
+        setAiFeedback({ kind: 'error', message: res.message });
       }
     },
     onError: (err: any) => {
@@ -145,7 +145,7 @@ export function SettingsWhatsAppGatewaySection() {
     {
       id: 'welcome',
       sender: 'bot',
-      text: 'أهلاً بك يا فندم! 🌟 مرحباً بك في المتجر، اكتب أي استفسار عن المنتجات أو الأسعار لتجربة الرد الفوري المولد بالذكاء الاصطناعي.',
+      text: 'أهلاً بك يا فندم! مرحباً بك في المتجر، اكتب أي استفسار عن المنتجات أو الأسعار لتجربة الرد الفوري المولد بالذكاء الاصطناعي.',
       time: 'الآن',
       engine: 'gemini_llm',
     },
@@ -237,7 +237,7 @@ export function SettingsWhatsAppGatewaySection() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '18px' }}>⚡</span>
+                <SparklesIcon size={18} color="#2563eb" />
               </div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
                 محرك الذكاء الاصطناعي المجاني (Google Gemini 1.5 Flash Engine)
@@ -252,7 +252,7 @@ export function SettingsWhatsAppGatewaySection() {
                   fontWeight: 800,
                 }}
               >
-                {aiConfig?.hasApiKey ? '⚡ Gemini Flash متصل ونشط' : '🛡️ يعمل بالمحرك المحلي المدمج'}
+                {aiConfig?.hasApiKey ? 'Gemini Flash متصل ونشط' : 'يعمل بالمحرك المحلي المدمج'}
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
@@ -316,14 +316,17 @@ export function SettingsWhatsAppGatewaySection() {
                 onClick={() => testAiKeyMutation.mutate(customApiKey.trim() || undefined)}
                 style={{ fontSize: '12.5px', padding: '8px 16px', fontWeight: 800, height: '38px' }}
               >
-                {testAiKeyMutation.isPending ? 'جاري فحص الاتصال...' : '⚡ فحص الاتصال بـ Gemini Flash'}
+                {testAiKeyMutation.isPending ? 'جاري فحص الاتصال...' : 'فحص الاتصال بـ Gemini Flash'}
               </Button>
             </div>
           </div>
 
           {/* Quick Guide Card */}
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#1e40af', lineHeight: 1.6 }}>
-            💡 <strong>كيف تحصل على مفتاحك المجاني 100% في 30 ثانية وبدون أي بطاقة بنكية؟</strong><br />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+              <LightbulbIcon size={15} color="#1d4ed8" />
+              <strong>كيف تحصل على مفتاحك المجاني 100% في 30 ثانية وبدون أي بطاقة بنكية؟</strong>
+            </div>
             1. افتح منصة جوجل الرسمية: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', fontWeight: 800, textDecoration: 'underline' }}>Google AI Studio (اضغط هنا)</a>.<br />
             2. سجل بحساب Gmail الخاص بك، واضغط على <strong>Create API key</strong> ثم انسخ المفتاح والصقه في الخانة أعلاه.<br />
             3. جوجل تمنحك آلاف الطلبات اليومية <strong>مجاناً تماماً (0$)</strong>.
@@ -361,7 +364,7 @@ export function SettingsWhatsAppGatewaySection() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '18px' }}>🤖</span>
+                <MessageSquareIcon size={18} color="#15803d" />
               </div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
                 بوت واتساب التفاعلي لخدمة ومبيعات العملاء (Conversational AI Bot)
@@ -428,11 +431,11 @@ export function SettingsWhatsAppGatewaySection() {
                 onClick={handleCopyWebhook}
                 style={{ fontSize: '11.5px', padding: '7px 12px', whiteSpace: 'nowrap' }}
               >
-                {copiedWebhook ? '✅ تم النسخ!' : 'نسخ الرابط'}
+                {copiedWebhook ? 'تم النسخ!' : 'نسخ الرابط'}
               </Button>
             </div>
             <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
-              ✓ يدعم كود المحاكاة، UltraMsg، GreenAPI، و Meta Cloud API بنظام Webhook تلقائي موحد.
+              يدعم كود المحاكاة، UltraMsg، GreenAPI، و Meta Cloud API بنظام Webhook تلقائي موحد.
             </span>
           </div>
 
@@ -474,7 +477,7 @@ export function SettingsWhatsAppGatewaySection() {
         <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '14px', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: '18px' }}>💬</span>
+              <MessageSquareIcon size={18} color="#059669" />
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a' }}>
@@ -520,10 +523,10 @@ export function SettingsWhatsAppGatewaySection() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '18px',
+                  color: '#ffffff',
                 }}
               >
-                🤖
+                <MessageSquareIcon size={18} />
               </div>
               <div>
                 <div style={{ fontSize: '13.5px', fontWeight: 800 }}>مساعد المتجر الذكي (WhatsApp AI Bot)</div>
@@ -585,7 +588,7 @@ export function SettingsWhatsAppGatewaySection() {
                     <span>{msg.time}</span>
                     {msg.engine && (
                       <span style={{ color: msg.engine === 'gemini_llm' ? '#2563eb' : '#059669', fontWeight: 700 }}>
-                        ({msg.engine === 'gemini_llm' ? '⚡ Gemini 1.5' : '🛡️ Smart Local'})
+                        ({msg.engine === 'gemini_llm' ? 'Gemini 1.5' : 'Smart Local'})
                       </span>
                     )}
                   </div>
@@ -594,7 +597,7 @@ export function SettingsWhatsAppGatewaySection() {
             })}
             {simulateMutation.isPending && (
               <div style={{ alignSelf: 'flex-start', background: '#ffffff', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', color: '#64748b' }}>
-                جاري التفكير وصياغة الرد بالذكاء الاصطناعي... ⏳
+                جاري التفكير وصياغة الرد بالذكاء الاصطناعي...
               </div>
             )}
           </div>
@@ -656,7 +659,7 @@ export function SettingsWhatsAppGatewaySection() {
               onClick={() => handleSendSim()}
               style={{ background: '#075e54', fontSize: '12px', padding: '8px 16px', fontWeight: 800 }}
             >
-              إرسال 🚀
+              إرسال
             </Button>
           </div>
         </div>

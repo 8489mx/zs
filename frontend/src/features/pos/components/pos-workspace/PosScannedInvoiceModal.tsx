@@ -211,7 +211,7 @@ export function PosScannedInvoiceModal({
 
         {printSuccess ? (
           <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#dcfce7', color: '#15803d', fontSize: '13.5px', fontWeight: 700, textAlign: 'center', border: '1px solid #bbf7d0' }}>
-            ✓ تم إرسال أمر طباعة الإيصال بنجاح!
+            تم إرسال أمر طباعة الإيصال بنجاح!
           </div>
         ) : null}
 

@@ -1,7 +1,7 @@
 import { Fragment, useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
-import { FileTextIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
+import { FileTextIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
@@ -254,12 +254,13 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              fontWeight: 700,
               color: 'inherit',
               padding: '0 4px',
+              display: 'inline-flex',
+              alignItems: 'center',
             }}
           >
-            ✕
+            <XIcon size={14} />
           </button>
         </div>
       )}
@@ -300,13 +301,13 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                   border: 'none',
                   color: '#94a3b8',
                   cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 700,
                   padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
                 title="مسح البحث"
               >
-                ✕
+                <XIcon size={14} />
               </button>
             )}
           </div>
@@ -338,10 +339,11 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
               <Button
                 variant="secondary"
                 onClick={() => setSelectedCategoryId('')}
-                style={{ height: '38px', padding: '0 10px', fontSize: '12px' }}
+                style={{ height: '38px', padding: '0 10px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 title="إلغاء تصفية القسم"
               >
-                ✕ إلغاء
+                <XIcon size={13} />
+                <span>إلغاء</span>
               </Button>
             )}
           </div>
@@ -800,9 +802,9 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                 <button
                   type="button"
                   onClick={() => setActiveNoteModal(null)}
-                  style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}
+                  style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
                 >
-                  ✕
+                  <XIcon size={14} />
                 </button>
               </div>
 

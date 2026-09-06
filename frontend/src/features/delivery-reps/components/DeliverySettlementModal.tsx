@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { DeliveryOrder, SettleOrderPayload } from '../api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
+import { XIcon, Trash2Icon, CameraIcon, MapPinIcon } from '@/shared/components/icons/AppIcons';
 
 interface DeliverySettlementModalProps {
   order: DeliveryOrder | null;
@@ -218,7 +219,7 @@ export function DeliverySettlementModal({
               justifyContent: 'center',
             }}
           >
-            ✕
+            <XIcon size={16} color="#ffffff" />
           </button>
         </div>
 
@@ -251,7 +252,7 @@ export function DeliverySettlementModal({
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
               <label style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e293b' }}>
-                ✍️ توقيع العميل باللمس (اختياري):
+                توقيع العميل باللمس (اختياري):
               </label>
               {hasSignature && (
                 <button
@@ -264,9 +265,13 @@ export function DeliverySettlementModal({
                     fontSize: '11px',
                     fontWeight: 700,
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
                   }}
                 >
-                  مسح التوقيع ✕
+                  <Trash2Icon size={12} color="#dc2626" />
+                  <span>مسح التوقيع</span>
                 </button>
               )}
             </div>
@@ -321,7 +326,7 @@ export function DeliverySettlementModal({
           {/* Section 2: Camera Photo Proof */}
           <div>
             <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
-              📸 صورة إثبات التسليم (اختياري):
+              صورة إثبات التسليم (اختياري):
             </label>
 
             <input
@@ -361,9 +366,13 @@ export function DeliverySettlementModal({
                     fontSize: '11px',
                     fontWeight: 700,
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
                   }}
                 >
-                  حذف الصورة ✕
+                  <Trash2Icon size={12} color="#ffffff" />
+                  <span>حذف الصورة</span>
                 </button>
               </div>
             ) : (
@@ -386,7 +395,7 @@ export function DeliverySettlementModal({
                   gap: '8px',
                 }}
               >
-                <span>📷</span>
+                <CameraIcon size={16} />
                 <span>التقاط صورة إثبات التسليم بالكاميرا</span>
               </button>
             )}
@@ -427,7 +436,7 @@ export function DeliverySettlementModal({
                 gap: '6px',
               }}
             >
-              <span>📍</span>
+              <MapPinIcon size={13} color="#059669" />
               <span>تم رصد إحداثيات الموقع الحالي: ({coords.lat}, {coords.lng})</span>
             </div>
           )}
@@ -466,7 +475,7 @@ export function DeliverySettlementModal({
               borderRadius: '10px',
             }}
           >
-            {isSubmitting ? 'جاري التأكيد...' : 'تأكيد التسليم والتحصيل ✓'}
+            {isSubmitting ? 'جاري التأكيد...' : 'تأكيد التسليم والتحصيل'}
           </Button>
         </div>
       </div>

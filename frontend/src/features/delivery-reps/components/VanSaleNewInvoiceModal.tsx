@@ -8,9 +8,20 @@ import { productsApi } from '@/features/products/api/products.api';
 import { customersApi } from '@/features/customers/api/customers.api';
 import { salesApi } from '@/features/sales/api/sales.api';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
-import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 import { openWhatsAppChat, formatInvoiceShareMessage } from '@/lib/whatsapp';
+import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 import type { Product, Customer } from '@/types/domain';
+import {
+  CheckCircleIcon,
+  PrinterIcon,
+  MessageSquareIcon,
+  TruckIcon,
+  XIcon,
+  BarcodeIcon,
+  DollarSignIcon,
+  FileTextIcon,
+  Trash2Icon,
+} from '@/shared/components/icons/AppIcons';
 
 interface VanSaleItem {
   product: Product;
@@ -265,7 +276,9 @@ export function VanSaleNewInvoiceModal({
         {completedSale ? (
           /* Success Screen */
           <div style={{ textAlign: 'center', padding: '16px 8px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🎉</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+              <CheckCircleIcon size={48} color="#16a34a" />
+            </div>
             <h3 style={{ margin: '0 0 4px 0', color: '#166534', fontWeight: 'bold' }}>
               تم إصدار الفاتورة وحفظها بنجاح!
             </h3>
@@ -277,17 +290,19 @@ export function VanSaleNewInvoiceModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '320px', margin: '0 auto' }}>
               <Button
                 onClick={handlePrintReceipt}
-                style={{ background: '#170e5e', color: '#fff', padding: '12px', fontSize: '1.05em' }}
+                style={{ background: '#170e5e', color: '#fff', padding: '12px', fontSize: '1.05em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
-                🖨️ طباعة الإيصال الفوري (بلوتوث)
+                <PrinterIcon size={18} color="#fff" />
+                <span>طباعة الإيصال الفوري (بلوتوث)</span>
               </Button>
 
               {completedSale.customerPhone && (
                 <Button
                   onClick={handleSendWhatsAppReceipt}
-                  style={{ background: '#16a34a', color: '#fff', padding: '12px', fontSize: '1.05em' }}
+                  style={{ background: '#16a34a', color: '#fff', padding: '12px', fontSize: '1.05em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
-                  💬 إرسال الفاتورة عبر واتساب
+                  <MessageSquareIcon size={18} color="#fff" />
+                  <span>إرسال الفاتورة عبر واتساب</span>
                 </Button>
               )}
 
@@ -301,17 +316,19 @@ export function VanSaleNewInvoiceModal({
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 'bold' }}>
-                  🚚 بيع مباشر من السيارة (Van Sale)
+                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <TruckIcon size={18} color="#170e5e" />
+                  <span>بيع مباشر من السيارة (Van Sale)</span>
                 </h3>
                 <span className="muted small">المندوب: {repName || 'المندوب الحسابي'}</span>
               </div>
               <button
                 type="button"
                 onClick={handleResetModal}
-                style={{ border: 'none', background: 'transparent', fontSize: '1.3rem', cursor: 'pointer', color: '#64748b' }}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
+                title="إغلاق"
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 
@@ -381,9 +398,10 @@ export function VanSaleNewInvoiceModal({
               <Button
                 variant="secondary"
                 onClick={() => setScannerOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '9px 14px' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px' }}
               >
-                📷 مسح باركود
+                <BarcodeIcon size={16} />
+                <span>مسح باركود</span>
               </Button>
             </div>
 
@@ -463,9 +481,10 @@ export function VanSaleNewInvoiceModal({
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(idx)}
-                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444' }}
+                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center' }}
+                        title="حذف الصنف"
                       >
-                        ✕
+                        <Trash2Icon size={14} color="#ef4444" />
                       </button>
                     </div>
                   </div>
@@ -479,9 +498,15 @@ export function VanSaleNewInvoiceModal({
                 <Button
                   variant={paymentMethod === 'cash' ? 'primary' : 'secondary'}
                   onClick={() => setPaymentMethod('cash')}
-                  style={paymentMethod === 'cash' ? { background: '#166534', color: '#fff' } : undefined}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    ...(paymentMethod === 'cash' ? { background: '#166534', color: '#fff' } : {}),
+                  }}
                 >
-                  💵 كاش نقدي
+                  <DollarSignIcon size={14} />
+                  <span>كاش نقدي</span>
                 </Button>
                 <Button
                   variant={paymentMethod === 'credit' ? 'primary' : 'secondary'}
@@ -492,9 +517,15 @@ export function VanSaleNewInvoiceModal({
                     }
                     setPaymentMethod('credit');
                   }}
-                  style={paymentMethod === 'credit' ? { background: '#d97706', color: '#fff' } : undefined}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    ...(paymentMethod === 'credit' ? { background: '#d97706', color: '#fff' } : {}),
+                  }}
                 >
-                  📝 آجل (حساب)
+                  <FileTextIcon size={14} />
+                  <span>آجل (حساب)</span>
                 </Button>
               </div>
 
@@ -516,7 +547,7 @@ export function VanSaleNewInvoiceModal({
                 disabled={cart.length === 0 || createSaleMutation.isPending}
                 style={{ background: '#170e5e', color: '#fff', minWidth: '160px' }}
               >
-                {createSaleMutation.isPending ? 'جاري الحفظ...' : 'تأكيد وحفظ الفاتورة ✓'}
+                {createSaleMutation.isPending ? 'جاري الحفظ...' : 'تأكيد وحفظ الفاتورة'}
               </Button>
             </div>
 

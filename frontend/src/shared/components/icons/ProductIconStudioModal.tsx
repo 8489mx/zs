@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -210,9 +211,7 @@ export function ProductIconStudioModal({
             fontSize: '12px',
             transition: 'background 0.15s ease',
           }}
-        >
-          ✕
-        </button>
+        ><XIcon size={15} /></button>
       </div>
 
       <div style={{ padding: '16px 22px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -265,9 +264,7 @@ export function ProductIconStudioModal({
               type="button"
               onClick={() => setStatusMessage(null)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, color: 'inherit', padding: '0 4px' }}
-            >
-              ✕
-            </button>
+            ><XIcon size={15} /></button>
           </div>
         )}
 

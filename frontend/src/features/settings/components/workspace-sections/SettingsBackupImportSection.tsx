@@ -346,7 +346,7 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
               {loading ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
             </Button>
             <Button type="button" variant="primary" onClick={handleSyncNow} disabled={!canManage || syncing || loading} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
-              {syncing ? 'جاري الرفع...' : 'نسخ احتياطي سحابي الآن ☁️'}
+              {syncing ? 'جاري الرفع...' : 'نسخ احتياطي سحابي الآن'}
             </Button>
           </div>
         </div>
@@ -471,7 +471,7 @@ function DemoDataSandboxCard() {
                 transition: 'all 0.15s ease',
               }}
             >
-              معالج الأنشطة التجريبية 🚀
+              معالج الأنشطة التجريبية
             </Button>
 
             <Button

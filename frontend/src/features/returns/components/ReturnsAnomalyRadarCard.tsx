@@ -262,7 +262,7 @@ export function ReturnsAnomalyRadarCard({
                           }}
                           title="نسخ توقيت البيع والمرتجع لمطابقة الكاميرات"
                         >
-                          {copiedId === row.record.id ? 'تم النسخ ✓' : 'نسخ للكاميرا'}
+                          {copiedId === row.record.id ? 'تم النسخ' : 'نسخ للكاميرا'}
                         </Button>
                         {onSelectReturn && (
                           <Button

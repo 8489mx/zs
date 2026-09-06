@@ -4,7 +4,7 @@ import { customersApi } from '@/shared/api/customers.api';
 import { posApi } from '@/features/pos/api/pos.api';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { CreditCardIcon } from '@/shared/components/icons/AppIcons';
+import { CreditCardIcon, StarIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { DeliveryRep } from '@/shared/api/delivery-reps.api';
 
@@ -277,7 +277,10 @@ export function PosCheckoutCustomerSection({
           }}>
             {(pos.loyaltyPointsRedeemed || 0) > 0 ? (
               <>
-                <span>⭐ تم استبدال <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} نقطة</strong> بخصم <strong>{discountInCurrency.toLocaleString()} ج.م</strong> ✓</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <StarIcon size={14} color="#059669" />
+                  <span>تم استبدال <strong>{(pos.loyaltyPointsRedeemed || 0).toLocaleString()} نقطة</strong> بخصم <strong>{discountInCurrency.toLocaleString()} ج.م</strong></span>
+                </span>
                 <Button
                   type="button"
                   variant="secondary"
@@ -298,7 +301,10 @@ export function PosCheckoutCustomerSection({
               </>
             ) : (
               <>
-                <span>⭐ رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {totalValueInCurrency.toLocaleString()} ج.م خصم)</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <StarIcon size={14} color="#b45309" />
+                  <span>رصيد نقاط الولاء: <strong>{loyaltyPoints.toLocaleString()} نقطة</strong> (تساوي {totalValueInCurrency.toLocaleString()} ج.م خصم)</span>
+                </span>
                 {loyaltyPoints < minPoints ? (
                   <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600 }}>
                     (الحد الأدنى للاستبدال: {minPoints} نقطة)
@@ -582,11 +588,12 @@ export function PosCheckoutPaymentSection({
                 onClick={handleDispatchTerminal}
                 style={{ minHeight: '32px', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}
               >
-                إرسال للجهاز ➔
+                إرسال للجهاز
               </Button>
             ) : terminalSession.status === 'approved' ? (
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>
-                ✓ معتمد ({terminalSession.approvalCode})
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <CheckIcon size={14} color="#16a34a" />
+                <span>معتمد ({terminalSession.approvalCode})</span>
               </span>
             ) : (
               <Button

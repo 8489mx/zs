@@ -56,4 +56,13 @@ export class CreateOnlineOrderDto {
   @IsOptional()
   @IsString()
   deliveryZoneName?: string;
+
+  @IsOptional()
+  @IsString()
+  orderType?: string;
+
+  @IsOptional()
+  @IsString()
+  tableNumber?: string;
 }
+

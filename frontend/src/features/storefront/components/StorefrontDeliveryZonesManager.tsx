@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { StorefrontDeliveryZone, CreateDeliveryZonePayload } from '../types/storefront.types';
+import {
+  TruckIcon,
+  SparklesIcon,
+  BuildingIcon,
+  MapPinIcon,
+  ClockIcon,
+  CheckIcon,
+  XIcon,
+  AlertTriangleIcon,
+} from '@/shared/components/icons/AppIcons';
 
 export function StorefrontDeliveryZonesManager() {
   const queryClient = useQueryClient();
@@ -190,7 +200,7 @@ export function StorefrontDeliveryZonesManager() {
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '18px' }}>🚚</span>
+            <TruckIcon size={18} color="#170e5e" />
             <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
               تسعير التوصيل الذكي حسب المناطق والمحافظات (Shipping Zones Matrix)
             </h2>
@@ -205,11 +215,11 @@ export function StorefrontDeliveryZonesManager() {
                 border: activeZonesCount > 0 ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
               }}
             >
-              {activeZonesCount > 0 ? `${activeZonesCount} منطقة نشطة` : 'لا توجد مناطق نشطة'}
+              {activeZonesCount} مناطق نشطة
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
-            حدد رسوم توصيل مخصصة لكل حي أو محافظة تخدمها. عند إتمام الطلب، سيختار العميل منطقته وتُحسب رسوم التوصيل والإجمالي تلقائياً وبدقة.
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+            حدد تكلفة التوصيل الدقيقة ومواعيد الوصول التقديرية لكل حي أو محافظة تخدمها، مع دعم التوصيل المجاني فوق حد معين.
           </p>
         </div>
 
@@ -217,34 +227,30 @@ export function StorefrontDeliveryZonesManager() {
           type="button"
           onClick={handleOpenCreateModal}
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 16px',
-            borderRadius: '6px',
+            padding: '8px 18px',
+            borderRadius: '8px',
             background: '#170e5e',
             color: '#ffffff',
             border: 'none',
             fontSize: '12.5px',
             fontWeight: 700,
             cursor: 'pointer',
-            boxShadow: '0 1px 3px rgba(23, 14, 94, 0.2)',
-            transition: 'background 0.15s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 2px 4px rgba(23, 14, 94, 0.2)',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#110a47')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#170e5e')}
         >
-          <span>+</span>
-          <span>إضافة منطقة توصيل جديدة</span>
+          <span>+ إضافة منطقة توصيل</span>
         </button>
       </div>
 
-      {/* Quick 1-Click Preset Templates Banner */}
+      {/* Quick Presets Banner */}
       <div
         style={{
           background: '#f8fafc',
-          borderRadius: '10px',
-          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          border: '1px dashed #cbd5e1',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -254,7 +260,7 @@ export function StorefrontDeliveryZonesManager() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '15px' }}>⚡</span>
+          <SparklesIcon size={16} color="#170e5e" />
           <div>
             <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', display: 'block' }}>
               قوالب تسعير سريعة بضغطة زر واحدة:
@@ -281,13 +287,13 @@ export function StorefrontDeliveryZonesManager() {
               cursor: isApplyingPreset ? 'wait' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '6px',
               transition: 'all 0.1s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#170e5e')}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
           >
-            <span>🏘️</span>
+            <BuildingIcon size={14} />
             <span>قالب دليفري محلي (أحياء قريبة / متوسطة / بعيدة)</span>
           </button>
 
@@ -306,13 +312,13 @@ export function StorefrontDeliveryZonesManager() {
               cursor: isApplyingPreset ? 'wait' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '6px',
               transition: 'all 0.1s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#170e5e')}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#cbd5e1')}
           >
-            <span>🇪🇬</span>
+            <TruckIcon size={14} />
             <span>قالب شحن محافظات (القاهرة / الإسكندرية / القناة / الصعيد)</span>
           </button>
         </div>
@@ -349,18 +355,17 @@ export function StorefrontDeliveryZonesManager() {
         >
           <div
             style={{
-              width: '48px',
-              height: '48px',
+              width: '44px',
+              height: '44px',
               borderRadius: '50%',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '22px',
             }}
           >
-            📍
+            <MapPinIcon size={20} color="#170e5e" />
           </div>
           <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
             لم تقم بإضافة مناطق توصيل مخصصة بعد
@@ -397,9 +402,13 @@ export function StorefrontDeliveryZonesManager() {
                 fontSize: '12px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              ⚡ تطبيق قالب سريع
+              <SparklesIcon size={14} />
+              <span>تطبيق قالب سريع</span>
             </button>
           </div>
         </div>
@@ -453,7 +462,7 @@ export function StorefrontDeliveryZonesManager() {
                 >
                   {/* Zone Name */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px' }}>📍</span>
+                    <MapPinIcon size={14} color="#64748b" />
                     <span
                       style={{
                         fontSize: '12.5px',
@@ -506,9 +515,13 @@ export function StorefrontDeliveryZonesManager() {
                           padding: '2px 8px',
                           borderRadius: '4px',
                           border: '1px solid #e2e8f0',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
                         }}
                       >
-                        ⏱️ {zone.estimatedTime}
+                        <ClockIcon size={12} />
+                        <span>{zone.estimatedTime}</span>
                       </span>
                     ) : (
                       <span style={{ fontSize: '11px', color: '#94a3b8' }}>غير محدد</span>
@@ -539,7 +552,10 @@ export function StorefrontDeliveryZonesManager() {
                       }}
                       title="انقر لتغيير حالة التفعيل"
                     >
-                      {isZoneActive ? '✓ نشطة' : '✕ معطلة'}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        {isZoneActive ? <CheckIcon size={12} /> : <XIcon size={12} />}
+                        <span>{isZoneActive ? 'نشطة' : 'معطلة'}</span>
+                      </span>
                     </button>
                   </div>
 
@@ -630,7 +646,7 @@ export function StorefrontDeliveryZonesManager() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>🚚</span>
+                <TruckIcon size={18} color="#170e5e" />
                 <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
                   {editingZone ? 'تعديل منطقة التوصيل' : 'إضافة منطقة توصيل جديدة'}
                 </h3>
@@ -641,13 +657,14 @@ export function StorefrontDeliveryZonesManager() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '18px',
                   color: '#64748b',
                   cursor: 'pointer',
                   padding: '2px 6px',
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 
@@ -664,9 +681,13 @@ export function StorefrontDeliveryZonesManager() {
                     fontSize: '12px',
                     fontWeight: 700,
                     marginBottom: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  ⚠️ {actionError}
+                  <AlertTriangleIcon size={15} />
+                  <span>{actionError}</span>
                 </div>
               )}
 

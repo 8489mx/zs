@@ -343,31 +343,33 @@ export class StorefrontService {
       throw new BadRequestException('المتجر الإلكتروني متوقف حالياً عن استقبال الطلبات');
     }
 
+    const isDineIn = dto.orderType === 'dine_in' || Boolean(dto.tableNumber);
+
     const cleanCustomerPhone = (dto.customerPhone || '').replace(/\D/g, '');
-    if (!/^01[0125]\d{8}$/.test(cleanCustomerPhone)) {
+    if (!isDineIn && !/^01[0125]\d{8}$/.test(cleanCustomerPhone)) {
       throw new BadRequestException('يرجى إدخال رقم هاتف محمول مصري صحيح مكون من 11 رقماً ويبدأ بـ (010، 011، 012، 015)');
     }
 
-    const cleanCustomerName = (dto.customerName || '').trim();
+    const cleanCustomerName = (dto.customerName || (isDineIn ? `عميل طاولة ${dto.tableNumber}` : '')).trim();
     const nameLetters = (cleanCustomerName.match(/[\p{L}\p{M}]/gu) || []).length;
     if (cleanCustomerName.length < 3 || nameLetters < 3) {
       throw new BadRequestException('يرجى إدخال اسم مستلم صحيح لا يقل عن 3 أحرف (مثال: علي، مازن، محمد)');
     }
 
-    const cleanCustomerAddress = (dto.customerAddress || '').trim();
-    if (cleanCustomerAddress) {
+    const cleanCustomerAddress = isDineIn ? `طاولة رقم ${dto.tableNumber}` : (dto.customerAddress || '').trim();
+    if (!isDineIn && cleanCustomerAddress) {
       const addressLetters = (cleanCustomerAddress.match(/[\p{L}\p{M}]/gu) || []).length;
       if (cleanCustomerAddress.length < 5 || addressLetters < 3) {
         throw new BadRequestException('يرجى إدخال عنوان توصيل واضح ومفصل لا يقل عن 5 أحرف');
       }
     }
 
-    const minOrder = Number(settings.get('storefront_min_order') || 0);
-    let deliveryFee = Number(settings.get('storefront_delivery_fee') || 0);
+    const minOrder = isDineIn ? 0 : Number(settings.get('storefront_min_order') || 0);
+    let deliveryFee = isDineIn ? 0 : Number(settings.get('storefront_delivery_fee') || 0);
     let deliveryZoneId: number | null = null;
     let deliveryZoneName: string | null = null;
 
-    if (dto.deliveryZoneId) {
+    if (!isDineIn && dto.deliveryZoneId) {
       const zone = await this.db
         .selectFrom('storefront_delivery_zones')
         .selectAll()
@@ -546,15 +548,15 @@ export class StorefrontService {
     const seq = String(nextSeq).padStart(4, '0');
     const orderNumber = `ON-${datePrefix}-${seq}`;
 
-    const insertedOrder = await this.db
+    const insertedOrder = await (this.db as any)
       .insertInto('online_orders')
       .values({
         tenant_id: tenant.id,
         account_id: accountId,
         order_number: orderNumber,
-        customer_name: dto.customerName.trim(),
-        customer_phone: dto.customerPhone.trim(),
-        customer_address: (dto.customerAddress || '').trim(),
+        customer_name: cleanCustomerName,
+        customer_phone: (dto.customerPhone || '').trim(),
+        customer_address: cleanCustomerAddress,
         customer_notes: (dto.customerNotes || '').trim(),
         items_json: JSON.stringify(validatedItems),
         subtotal,
@@ -568,10 +570,70 @@ export class StorefrontService {
         payment_method: dto.paymentMethod || 'cod',
         payment_status: 'pending',
         branch_id: branchId,
+        order_type: isDineIn ? 'dine_in' : 'delivery',
+        table_number: dto.tableNumber ? String(dto.tableNumber).trim() : null,
         sale_id: null,
       })
       .returning(['id', 'order_number', 'total_amount', 'created_at'])
       .executeTakeFirstOrThrow();
+
+    // Auto-create sale for Dine-In so it flows directly to KDS
+    if (isDineIn) {
+      try {
+        const insertedSale = await (this.db as any)
+          .insertInto('sales')
+          .values({
+            tenant_id: tenant.id,
+            account_id: accountId,
+            doc_no: orderNumber,
+            customer_name: cleanCustomerName,
+            payment_type: dto.paymentMethod || 'cash',
+            payment_channel: dto.paymentMethod || 'cash',
+            subtotal,
+            total: totalAmount,
+            paid_amount: 0,
+            status: 'posted',
+            note: `طلب ذاتي من الطاولة (${dto.tableNumber}) بالـ QR 📲`,
+            branch_id: branchId,
+            order_type: 'dine_in',
+            table_number: String(dto.tableNumber).trim(),
+            created_at: now,
+            updated_at: now,
+          })
+          .returning(['id'])
+          .executeTakeFirst();
+
+        if (insertedSale?.id) {
+          const sid = Number(insertedSale.id);
+          for (const it of validatedItems) {
+            await (this.db as any)
+              .insertInto('sale_items')
+              .values({
+                tenant_id: tenant.id,
+                account_id: accountId,
+                sale_id: sid,
+                product_id: it.productId,
+                product_name: it.name,
+                qty: it.quantity,
+                unit_price: it.unitPrice,
+                line_total: it.total,
+                unit_name: 'قطعة',
+                unit_multiplier: 1,
+                notes: it.notes || '',
+              })
+              .execute();
+          }
+
+          await (this.db as any)
+            .updateTable('online_orders')
+            .set({ sale_id: sid })
+            .where('id', '=', insertedOrder.id)
+            .execute();
+        }
+      } catch {
+        // Non-blocking catch
+      }
+    }
 
     // Non-blocking auto WhatsApp notification via gateway if enabled
     if (this.whatsappService) {
@@ -1953,4 +2015,32 @@ export class StorefrontService {
 
     return { ok: true, id };
   }
+
+  async getTablesQrCodes(slug: string, fromTable: number = 1, toTable: number = 20, baseUrl?: string) {
+    const tenant = await this.getTenantBySlug(slug);
+    const origin = baseUrl || process.env.APP_URL || 'http://localhost:5173';
+    const start = Math.max(1, Number(fromTable || 1));
+    const end = Math.min(100, Math.max(start, Number(toTable || 20)));
+
+    const tables = [];
+    for (let i = start; i <= end; i++) {
+      const qrUrl = `${origin}/st/${slug}?table=${i}`;
+      tables.push({
+        tableNumber: i,
+        tableName: `طاولة ${i}`,
+        url: qrUrl,
+        slug,
+        tenantName: tenant.business_name,
+      });
+    }
+
+    return {
+      ok: true,
+      slug,
+      tenantName: tenant.business_name,
+      totalTables: tables.length,
+      tables,
+    };
+  }
 }
+

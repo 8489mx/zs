@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { saasAdminApi, SaasTenantRow, TenantTimelineEvent } from '../api/saas-admin.api';
 import { formatDate } from '@/lib/format';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 
 interface TenantDetailsModalProps {
   tenantId: string | null;
@@ -114,9 +115,9 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
             className="dialog-shell-close-btn"
             onClick={onClose}
             title="إغلاق"
-            style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', fontSize: '16px' }}
+            style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b' }}
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -156,7 +157,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                         onClick={() => copyText('slug', tenant.slug)}
                         style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '11px', padding: '1px 4px', fontWeight: 700 }}
                       >
-                        {copiedKey === 'slug' ? '✓ تم' : 'نسخ'}
+                        {copiedKey === 'slug' ? 'تم النسخ' : 'نسخ'}
                       </button>
                     </div>
                   </div>
@@ -178,7 +179,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                           onClick={() => copyText('username', tenant.ownerUsername || '')}
                           style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '11px', padding: '1px 4px', fontWeight: 700 }}
                         >
-                          {copiedKey === 'username' ? '✓ تم' : 'نسخ'}
+                          {copiedKey === 'username' ? 'تم النسخ' : 'نسخ'}
                         </button>
                       )}
                     </div>
@@ -214,7 +215,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                           onClick={() => copyText('email', tenant.ownerEmail || '')}
                           style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: '11px', padding: '1px 4px', fontWeight: 700 }}
                         >
-                          {copiedKey === 'email' ? '✓ تم' : 'نسخ'}
+                          {copiedKey === 'email' ? 'تم النسخ' : 'نسخ'}
                         </button>
                       )}
                     </div>
@@ -255,7 +256,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                     <span style={{ color: '#64748b' }}>نهاية الصلاحية:</span>
                     {isPlatform ? (
                       <strong style={{ color: '#059669', fontWeight: 800, fontSize: '12.5px' }}>
-                        دائمة مدى الحياة (Lifetime ♾️)
+                        دائمة مدى الحياة (Lifetime)
                       </strong>
                     ) : (
                       <strong style={{ color: '#0f172a' }}>
@@ -268,7 +269,7 @@ export function TenantDetailsModal({ tenantId, onClose, onOpenActionHub }: Tenan
                     <span style={{ color: '#64748b' }}>الأيام المتبقية:</span>
                     {isPlatform ? (
                       <span style={{ fontWeight: 800, color: '#059669', fontSize: '12.5px' }}>
-                        غير محدودة بأجل ♾️
+                        غير محدودة بأجل (مستمر)
                       </span>
                     ) : (
                       <span style={{ fontWeight: 700, color: (tenant.trialDaysRemaining ?? 0) > 0 ? '#15803d' : '#b91c1c' }}>

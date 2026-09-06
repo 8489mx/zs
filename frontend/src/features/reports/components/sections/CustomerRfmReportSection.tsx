@@ -6,13 +6,14 @@ import { Field } from '@/shared/ui/field';
 import { DataTable } from '@/shared/ui/data-table';
 import { formatCurrency } from '@/lib/format';
 import { downloadExcelFile } from '@/lib/browser';
+import { DownloadIcon, MessageSquareIcon } from '@/shared/components/icons/AppIcons';
 
 const segmentBadges: Record<CustomerRfmSegment, { label: string; bg: string; color: string; desc: string }> = {
-  champions: { label: 'أبطال / VIP 🌟', bg: '#fef3c7', color: '#92400e', desc: 'أعلى إنفاق وشراء متكرر حديث' },
-  loyal: { label: 'عملاء مخلصون 💎', bg: '#e0f2fe', color: '#0369a1', desc: 'شراء منتظم ومستقر' },
-  promising: { label: 'عملاء جدد / واعدون 🚀', bg: '#dcfce7', color: '#166534', desc: 'أولى عمليات الشراء حديثاً' },
-  at_risk: { label: 'في خطر الفقدان ⚠️', bg: '#fee2e2', color: '#b91c1c', desc: 'انقطعوا منذ 60-120 يوم' },
-  lost: { label: 'منقطعون 💤', bg: '#f1f5f9', color: '#475569', desc: 'لم يزوروا المتجر منذ أكثر من 120 يوم' },
+  champions: { label: 'أبطال / VIP', bg: '#fef3c7', color: '#92400e', desc: 'أعلى إنفاق وشراء متكرر حديث' },
+  loyal: { label: 'عملاء مخلصون', bg: '#e0f2fe', color: '#0369a1', desc: 'شراء منتظم ومستقر' },
+  promising: { label: 'عملاء جدد / واعدون', bg: '#dcfce7', color: '#166534', desc: 'أولى عمليات الشراء حديثاً' },
+  at_risk: { label: 'في خطر الفقدان', bg: '#fee2e2', color: '#b91c1c', desc: 'انقطعوا منذ 60-120 يوم' },
+  lost: { label: 'منقطعون', bg: '#f1f5f9', color: '#475569', desc: 'لم يزوروا المتجر منذ أكثر من 120 يوم' },
 };
 
 export function CustomerRfmReportSection() {
@@ -120,7 +121,7 @@ export function CustomerRfmReportSection() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 'bold' }}>
-              👥 تحليل سلوك العملاء ومصفوفة الولاء (Customer RFM Analysis)
+              تحليل سلوك العملاء ومصفوفة الولاء (Customer RFM Analysis)
             </h2>
             <p className="muted small" style={{ margin: '4px 0 0 0' }}>
               تصنيف العملاء تلقائياً استناداً لمعدل التكرار (Frequency)، الحداثة (Recency)، والقيمة المنفقة (Monetary) لاستهدافهم تسويقياً.
@@ -130,9 +131,10 @@ export function CustomerRfmReportSection() {
             <Button
               onClick={handleExportExcel}
               disabled={filteredItems.length === 0}
-              style={{ background: '#170e5e', color: '#ffffff' }}
+              style={{ background: '#170e5e', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              تصدير بيانات الحملات (Excel) 📥
+              <DownloadIcon size={14} color="#ffffff" />
+              <span>تصدير بيانات الحملات (Excel)</span>
             </Button>
           </div>
         </div>
@@ -155,19 +157,19 @@ export function CustomerRfmReportSection() {
           </div>
 
           <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px' }}>
-            <div style={{ fontSize: '0.8em', color: '#92400e' }}>أبطال و VIP 🌟</div>
+            <div style={{ fontSize: '0.8em', color: '#92400e' }}>أبطال و VIP</div>
             <div style={{ fontSize: '1.35em', fontWeight: 'bold', color: '#78350f' }}>{summary?.championsCount || 0}</div>
             <div style={{ fontSize: '0.75em', color: '#92400e', marginTop: '2px' }}>أعلى قيمة وتكرار</div>
           </div>
 
           <div style={{ background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px' }}>
-            <div style={{ fontSize: '0.8em', color: '#0369a1' }}>عملاء مخلصون 💎</div>
+            <div style={{ fontSize: '0.8em', color: '#0369a1' }}>عملاء مخلصون</div>
             <div style={{ fontSize: '1.35em', fontWeight: 'bold', color: '#075985' }}>{summary?.loyalCount || 0}</div>
             <div style={{ fontSize: '0.75em', color: '#0369a1', marginTop: '2px' }}>شراء دوري ثابت</div>
           </div>
 
           <div style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px' }}>
-            <div style={{ fontSize: '0.8em', color: '#991b1b' }}>في خطر الفقدان ⚠️</div>
+            <div style={{ fontSize: '0.8em', color: '#991b1b' }}>في خطر الفقدان</div>
             <div style={{ fontSize: '1.35em', fontWeight: 'bold', color: '#7f1d1d' }}>{summary?.atRiskCount || 0}</div>
             <div style={{ fontSize: '0.75em', color: '#991b1b', marginTop: '2px' }}>انقطعوا لأكثر من شهرين</div>
           </div>
@@ -317,10 +319,11 @@ export function CustomerRfmReportSection() {
               <Button
                 variant="secondary"
                 onClick={() => handleSendWhatsApp(r)}
-                style={{ padding: '4px 8px', fontSize: '11px', gap: '4px' }}
+                style={{ padding: '4px 8px', fontSize: '11px', gap: '4px', display: 'inline-flex', alignItems: 'center' }}
                 disabled={!r.phone}
               >
-                واتساب 💬
+                <MessageSquareIcon size={12} color="#16a34a" />
+                <span>واتساب</span>
               </Button>
             ),
           },

@@ -66,7 +66,7 @@ export function ProductsWorkspace() {
                 </Button>
               )}
               <Button variant="secondary" onClick={() => setScalePluOpen(true)}>
-                موازين الباركود (PLU) ⚖️
+                موازين الباركود (PLU)
               </Button>
               <Button variant="secondary" onClick={controller.resetProductsView}>إعادة ضبط</Button>
               <Button variant="secondary" onClick={controller.exportProductsCsv}>تصدير</Button>

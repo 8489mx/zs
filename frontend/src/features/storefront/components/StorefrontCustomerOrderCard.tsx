@@ -1,5 +1,16 @@
 import { useState } from 'react';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
+import { 
+  CheckIcon, 
+  XIcon, 
+  TruckIcon, 
+  MapPinIcon, 
+  MessageSquareIcon, 
+  SmartphoneIcon, 
+  ShoppingCartIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
+} from '@/shared/components/icons/AppIcons';
 
 interface StorefrontCustomerOrderCardProps {
   order: OnlineOrderRecord;
@@ -10,10 +21,10 @@ interface StorefrontCustomerOrderCardProps {
 }
 
 const TRACKING_STEPS = [
-  { id: 'pending', label: 'تم الاستلام', icon: '📝', desc: 'تم تسجيل طلبك بنجاح وفي انتظار الاعتماد' },
-  { id: 'processing', label: 'جاري التجهيز', icon: '📦', desc: 'يتم تجهيز وتغليف المنتجات في المتجر' },
-  { id: 'shipped', label: 'مع المندوب', icon: '🛵', desc: 'خرج للتوصيل إلى عنوانك الآن' },
-  { id: 'delivered', label: 'تم التسليم', icon: '✅', desc: 'تم تسليم الطلب بنجاح' },
+  { id: 'pending', label: 'تم الاستلام', desc: 'تم تسجيل طلبك بنجاح وفي انتظار الاعتماد' },
+  { id: 'processing', label: 'جاري التجهيز', desc: 'يتم تجهيز وتغليف المنتجات في المتجر' },
+  { id: 'shipped', label: 'مع المندوب', desc: 'خرج للتوصيل إلى عنوانك الآن' },
+  { id: 'delivered', label: 'تم التسليم', desc: 'تم تسليم الطلب بنجاح' },
 ];
 
 function getStepIndex(status: string): number {
@@ -41,11 +52,11 @@ function getStatusBadge(status: string) {
     case 'processing':
       return { label: 'جاري التجهيز في المتجر', bg: '#e0f2fe', text: '#0369a1', border: '#bae6fd' };
     case 'shipped':
-      return { label: 'خرج للتوصيل مع المندوب 🛵', bg: '#faf5ff', text: '#6b21a8', border: '#d8b4fe' };
+      return { label: 'خرج للتوصيل مع المندوب', bg: '#faf5ff', text: '#6b21a8', border: '#d8b4fe' };
     case 'delivered':
-      return { label: 'تم التسليم ومكتمل ✓', bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' };
+      return { label: 'تم التسليم ومكتمل', bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' };
     case 'cancelled':
-      return { label: 'طلب ملغي ✕', bg: '#fef2f2', text: '#991b1b', border: '#fecaca' };
+      return { label: 'طلب ملغي', bg: '#fef2f2', text: '#991b1b', border: '#fecaca' };
     default:
       return { label: status, bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' };
   }
@@ -60,9 +71,8 @@ export function StorefrontCustomerOrderCard({
 }: StorefrontCustomerOrderCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const badge = getStatusBadge(order.status);
-  const isCancelled = order.status === 'cancelled';
   const isPending = order.status === 'pending' && !order.saleId;
-  const currentStep = getStepIndex(order.status);
+  const currentStepIndex = getStepIndex(order.status);
 
   const orderTimeStr = new Date(order.createdAt).toLocaleTimeString('ar-EG', {
     hour: '2-digit',
@@ -138,7 +148,7 @@ export function StorefrontCustomerOrderCard({
                 whiteSpace: 'nowrap',
               }}
             >
-              مدفوع أونلاين 💳
+              مدفوع أونلاين
             </span>
           )}
           <span
@@ -158,16 +168,8 @@ export function StorefrontCustomerOrderCard({
         </div>
       </div>
 
-      {/* Live Tracking Stepper Bar (if not cancelled) */}
-      {!isCancelled ? (
-        <div
-          style={{
-            background: '#f8fafc',
-            borderRadius: '12px',
-            padding: '14px 12px 10px',
-            border: '1px solid #f1f5f9',
-          }}
-        >
+      {order.status !== 'cancelled' ? (
+        <div style={{ padding: '8px 0 12px' }}>
           <div
             style={{
               display: 'flex',
@@ -176,47 +178,40 @@ export function StorefrontCustomerOrderCard({
               position: 'relative',
             }}
           >
-            {/* Connecting Background Line */}
             <div
               style={{
                 position: 'absolute',
-                top: '16px',
-                right: '12%',
-                left: '12%',
+                top: '15px',
+                left: '20px',
+                right: '20px',
                 height: '3px',
                 background: '#e2e8f0',
                 zIndex: 1,
               }}
             >
-              {/* Active Progress Line */}
               <div
                 style={{
                   height: '100%',
-                  width: `${(currentStep / (TRACKING_STEPS.length - 1)) * 100}%`,
-                  background: currentStep === 3 ? '#10b981' : '#170e5e',
+                  background: '#170e5e',
+                  width: `${(currentStepIndex / (TRACKING_STEPS.length - 1)) * 100}%`,
                   transition: 'width 0.4s ease',
                 }}
               />
             </div>
 
-            {/* Stepper Nodes */}
             {TRACKING_STEPS.map((step, idx) => {
-              const isPassed = idx < currentStep;
-              const isCurrent = idx === currentStep;
-
-              let circleBg = '#ffffff';
-              let circleBorder = '#cbd5e1';
-              let circleColor = '#94a3b8';
-
-              if (isPassed) {
-                circleBg = '#10b981';
-                circleBorder = '#10b981';
-                circleColor = '#ffffff';
-              } else if (isCurrent) {
-                circleBg = '#170e5e';
-                circleBorder = '#170e5e';
-                circleColor = '#ffffff';
-              }
+              const isPassed = idx < currentStepIndex;
+              const isCurrent = idx === currentStepIndex;
+              const circleColor = isCurrent
+                ? '#170e5e'
+                : isPassed
+                ? '#16a34a'
+                : '#94a3b8';
+              const circleBg = isCurrent
+                ? '#f0f3ff'
+                : isPassed
+                ? '#dcfce7'
+                : '#ffffff';
 
               return (
                 <div
@@ -225,9 +220,10 @@ export function StorefrontCustomerOrderCard({
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    zIndex: 2,
-                    width: '24%',
                     textAlign: 'center',
+                    flex: 1,
+                    position: 'relative',
+                    zIndex: 2,
                   }}
                 >
                   <div
@@ -236,11 +232,11 @@ export function StorefrontCustomerOrderCard({
                       height: '32px',
                       borderRadius: '50%',
                       background: circleBg,
-                      border: `2px solid ${circleBorder}`,
+                      border: `2px solid ${circleColor}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: isPassed ? '13px' : '14px',
+                      fontSize: '12px',
                       fontWeight: 800,
                       color: circleColor,
                       boxShadow: isCurrent
@@ -250,14 +246,13 @@ export function StorefrontCustomerOrderCard({
                       marginBottom: '6px',
                     }}
                   >
-                    {isPassed ? '✓' : step.icon}
+                    {isPassed ? <CheckIcon size={13} strokeWidth={3} /> : idx + 1}
                   </div>
                   <span
                     style={{
                       fontSize: '11px',
                       fontWeight: isCurrent ? 800 : 600,
                       color: isCurrent ? '#170e5e' : isPassed ? '#166534' : '#64748b',
-                      lineHeight: '1.2',
                     }}
                   >
                     {step.label}
@@ -267,14 +262,11 @@ export function StorefrontCustomerOrderCard({
                       style={{
                         fontSize: '9.5px',
                         fontWeight: 700,
-                        color: currentStep === 3 ? '#059669' : '#170e5e',
+                        color: '#2563eb',
                         marginTop: '2px',
-                        background: currentStep === 3 ? '#d1fae5' : '#e0e7ff',
-                        padding: '1px 5px',
-                        borderRadius: '4px',
                       }}
                     >
-                      {currentStep === 3 ? 'مكتمل' : 'الحالي'}
+                      (الوضع الحالي)
                     </span>
                   )}
                 </div>
@@ -282,25 +274,23 @@ export function StorefrontCustomerOrderCard({
             })}
           </div>
 
-          {/* Current Step Description Callout */}
           <div
             style={{
-              marginTop: '12px',
-              paddingTop: '8px',
-              borderTop: '1px dashed #e2e8f0',
+              marginTop: '14px',
+              padding: '8px 12px',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              fontSize: '11.5px',
-              color: '#475569',
+              flexWrap: 'wrap',
+              gap: '6px',
             }}
           >
-            <span>
-              الحالة الآن:{' '}
-              <strong style={{ color: '#0f172a' }}>
-                {TRACKING_STEPS[currentStep]?.desc}
-              </strong>
-            </span>
+            <div style={{ fontSize: '11.5px', color: '#475569' }}>
+              <strong>الحالة الآن:</strong> {TRACKING_STEPS[currentStepIndex]?.desc}
+            </div>
             {storeInquiryUrl && (
               <a
                 href={storeInquiryUrl}
@@ -313,17 +303,16 @@ export function StorefrontCustomerOrderCard({
                   fontSize: '11px',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '3px',
+                  gap: '4px',
                 }}
               >
+                <MessageSquareIcon size={13} />
                 <span>استفسار واتساب</span>
-                <span>💬</span>
               </a>
             )}
           </div>
         </div>
       ) : (
-        /* Cancelled Banner */
         <div
           style={{
             background: '#fef2f2',
@@ -337,7 +326,7 @@ export function StorefrontCustomerOrderCard({
             gap: '8px',
           }}
         >
-          <span>✕</span>
+          <XIcon size={16} />
           <span>
             تم إلغاء هذا الطلب. إذا كان لديك أي استفسار، يرجى التواصل مع إدارة المتجر مباشرة.
           </span>
@@ -370,10 +359,9 @@ export function StorefrontCustomerOrderCard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '18px',
               }}
             >
-              🛵
+              <TruckIcon size={20} color="#7e22ce" />
             </div>
             <div>
               <div style={{ fontSize: '11px', color: '#6b21a8', fontWeight: 700 }}>
@@ -403,8 +391,8 @@ export function StorefrontCustomerOrderCard({
                   textDecoration: 'none',
                 }}
               >
+                <SmartphoneIcon size={13} />
                 <span>اتصال</span>
-                <span>📞</span>
               </a>
               <a
                 href={`https://wa.me/${repPhoneClean}?text=${encodeURIComponent(
@@ -425,8 +413,8 @@ export function StorefrontCustomerOrderCard({
                   textDecoration: 'none',
                 }}
               >
+                <MessageSquareIcon size={13} />
                 <span>واتساب</span>
-                <span>💬</span>
               </a>
             </div>
           )}
@@ -450,7 +438,7 @@ export function StorefrontCustomerOrderCard({
         >
           {order.customerAddress && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '13px' }}>📍</span>
+              <MapPinIcon size={13} color="#170e5e" />
               <span style={{ fontWeight: 600 }}>العنوان:</span>
               <span style={{ color: '#0f172a' }}>{order.customerAddress}</span>
               {order.deliveryZoneName && (
@@ -463,16 +451,20 @@ export function StorefrontCustomerOrderCard({
                     fontSize: '11px',
                     fontWeight: 700,
                     border: '1px solid #d8e0fc',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
                   }}
                 >
-                  📍 {order.deliveryZoneName}
+                  <MapPinIcon size={11} />
+                  <span>{order.deliveryZoneName}</span>
                 </span>
               )}
             </div>
           )}
           {order.customerNotes && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '13px' }}>💬</span>
+              <MessageSquareIcon size={13} color="#64748b" />
               <span style={{ fontWeight: 600 }}>ملاحظاتك:</span>
               <span style={{ color: '#0f172a' }}>{order.customerNotes}</span>
             </div>
@@ -501,11 +493,12 @@ export function StorefrontCustomerOrderCard({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>🛒</span>
+            <ShoppingCartIcon size={14} color="#170e5e" />
             <span>تفاصيل الأصناف ({order.items.length} منتجات)</span>
           </div>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>
-            {showDetails ? 'إخفاء التفاصيل ▲' : 'عرض التفاصيل ▼'}
+          <span style={{ fontSize: '11px', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>{showDetails ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}</span>
+            {showDetails ? <ChevronUpIcon size={13} /> : <ChevronDownIcon size={13} />}
           </span>
         </button>
 
@@ -556,7 +549,7 @@ export function StorefrontCustomerOrderCard({
                 }}
               >
                 <span>خدمة التوصيل {order.deliveryZoneName ? `(${order.deliveryZoneName})` : ''}:</span>
-                <span>مجاناً 🚚</span>
+                <span>مجاناً</span>
               </div>
             ) : (
               <div

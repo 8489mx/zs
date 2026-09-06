@@ -1,4 +1,5 @@
 import { CreateOnlineOrderResponse } from '../types/storefront.types';
+import { PackageIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontSuccessModalProps {
   order?: CreateOnlineOrderResponse | null;
@@ -114,7 +115,7 @@ export function StorefrontSuccessModal({
             {activeOrder.deliveryFee === 0 ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontSize: '12.5px' }}>
                 <span>خدمة التوصيل {activeOrder.deliveryZoneName ? `(${activeOrder.deliveryZoneName})` : ''}:</span>
-                <span style={{ fontWeight: 700 }}>مجاناً 🚚</span>
+                <span style={{ fontWeight: 700 }}>مجاناً</span>
               </div>
             ) : (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '12.5px' }}>
@@ -163,7 +164,7 @@ export function StorefrontSuccessModal({
                 }}
               >
                 <span>حالة السداد:</span>
-                <span>تم الدفع بالبطاقة البنكية بنجاح 💳</span>
+                <span>تم الدفع بالبطاقة البنكية بنجاح</span>
               </div>
             )}
           </div>
@@ -193,8 +194,8 @@ export function StorefrontSuccessModal({
               transition: 'all 0.15s ease',
             }}
           >
+            <PackageIcon size={16} color="#ffffff" />
             <span>تتبع حالة الطلب في (طلباتي)</span>
-            <span>📦</span>
           </button>
         )}
 

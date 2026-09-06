@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import type { ProductUnit } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
 import { UnitCombobox } from '@/shared/components/UnitCombobox';
@@ -230,9 +231,7 @@ export function ProductUnitsEditor({ units, onChange, disabled = false, title = 
                     disabled={disabled}
                     className="unit-delete-btn"
                     title="حذف هذه الوحدة"
-                  >
-                    ✕
-                  </button>
+                  ><XIcon size={15} /></button>
                 </div>
               )}
             </div>

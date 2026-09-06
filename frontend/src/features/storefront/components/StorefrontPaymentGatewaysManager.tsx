@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
+import { 
+  CreditCardIcon, 
+  GlobeIcon, 
+  BuildingIcon, 
+  SparklesIcon, 
+  CheckCircleIcon, 
+  AlertCircleIcon, 
+  LinkIcon, 
+  LightbulbIcon 
+} from '@/shared/components/icons/AppIcons';
 
 export function StorefrontPaymentGatewaysManager() {
   const queryClient = useQueryClient();
@@ -168,10 +178,9 @@ export function StorefrontPaymentGatewaysManager() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '22px',
             }}
           >
-            💳
+            <CreditCardIcon size={24} color="#170e5e" />
           </div>
           <div>
             <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
@@ -247,7 +256,8 @@ export function StorefrontPaymentGatewaysManager() {
             gap: '8px',
           }}
         >
-          ✓ تم حفظ إعدادات بوابة الدفع الإلكتروني بنجاح!
+          <CheckCircleIcon size={18} color="#15803d" />
+          <span>تم حفظ إعدادات بوابة الدفع الإلكتروني بنجاح!</span>
         </div>
       )}
 
@@ -261,9 +271,13 @@ export function StorefrontPaymentGatewaysManager() {
             borderRadius: '12px',
             fontSize: '13.5px',
             fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
           }}
         >
-          ✕ {saveError}
+          <AlertCircleIcon size={18} color="#991b1b" />
+          <span>{saveError}</span>
         </div>
       )}
 
@@ -313,7 +327,7 @@ export function StorefrontPaymentGatewaysManager() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '22px' }}>🇸🇦</span>
+                <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'tap' ? '#15803d' : '#64748b'} />
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>تاب (Tap GCC)</div>
                   <div style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700 }}>مدى / KNET / Apple Pay</div>
@@ -337,7 +351,7 @@ export function StorefrontPaymentGatewaysManager() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '22px' }}>🌍</span>
+                <GlobeIcon size={22} color={formState.onlinePaymentProvider === 'stripe' ? '#2563eb' : '#64748b'} />
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>سترايب (Stripe)</div>
                   <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: 700 }}>بطاقات عالمية & Apple</div>
@@ -361,7 +375,7 @@ export function StorefrontPaymentGatewaysManager() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '22px' }}>🏦</span>
+                <BuildingIcon size={22} color={formState.onlinePaymentProvider === 'paymob' ? '#170e5e' : '#64748b'} />
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Paymob</div>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>فيزا / ماستركارد</div>
@@ -385,7 +399,7 @@ export function StorefrontPaymentGatewaysManager() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '22px' }}>💳</span>
+                <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'xpay' ? '#170e5e' : '#64748b'} />
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>إكس باي (XPay)</div>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>بطاقات وفوري</div>
@@ -409,7 +423,7 @@ export function StorefrontPaymentGatewaysManager() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span style={{ fontSize: '22px' }}>🧪</span>
+                <SparklesIcon size={22} color={formState.onlinePaymentProvider === 'mock' ? '#170e5e' : '#64748b'} />
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Sandbox Mock</div>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>محاكي تجريبي</div>
@@ -549,7 +563,7 @@ export function StorefrontPaymentGatewaysManager() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>🔗</span>
+                <LinkIcon size={16} color="#15803d" />
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#15803d' }}>
                   رابط إشعار العمليات الفوري (Tap Webhook URL)
                 </div>
@@ -607,7 +621,7 @@ export function StorefrontPaymentGatewaysManager() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>🔗</span>
+                <LinkIcon size={16} color="#1d4ed8" />
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#1d4ed8' }}>
                   رابط إشعار العمليات الفوري (Stripe Webhook URL)
                 </div>
@@ -665,7 +679,7 @@ export function StorefrontPaymentGatewaysManager() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>🔗</span>
+                <LinkIcon size={16} color="#0369a1" />
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#0369a1' }}>
                   رابط إشعار العمليات الفوري (Paymob Webhook URL)
                 </div>
@@ -723,7 +737,7 @@ export function StorefrontPaymentGatewaysManager() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>🔗</span>
+                <LinkIcon size={16} color="#15803d" />
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#15803d' }}>
                   رابط إشعار العمليات الفوري (XPay Webhook URL)
                 </div>
@@ -785,13 +799,13 @@ export function StorefrontPaymentGatewaysManager() {
             <>
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '18px' }}>🇸🇦</span>
+                  <CreditCardIcon size={18} color="#170e5e" />
                   <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                     مفاتيح بوابة تاب للمدفوعات (Tap Payments GCC)
                   </h4>
                 </div>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  تدعم بطاقات مدى السعودية 🇸🇦، شبكة كي نت الكويتية 🇰🇼، بطاقات ناباس القطرية 🇶🇦، وبطاقات بنفت 🇧🇭، وApple Pay 🍎 بالكامل.
+                  تدعم بطاقات مدى السعودية، شبكة كي نت الكويتية، بطاقات ناباس القطرية، وبطاقات بنفت، وApple Pay بالكامل.
                 </span>
               </div>
 
@@ -851,7 +865,7 @@ export function StorefrontPaymentGatewaysManager() {
             <>
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '18px' }}>🌍</span>
+                  <GlobeIcon size={18} color="#170e5e" />
                   <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                     مفاتيح بوابة سترايب (Stripe Global Payments)
                   </h4>
@@ -1103,8 +1117,9 @@ export function StorefrontPaymentGatewaysManager() {
 
           {formState.onlinePaymentProvider === 'mock' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 0' }}>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                🧪 وضع المحاكاة التجريبي نشط
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <SparklesIcon size={16} color="#64748b" />
+                <span>وضع المحاكاة التجريبي نشط</span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: '1.6', margin: 0 }}>
                 هذا الوضع مخصص لتجربة ومحاكاة عمليات الدفع بالبطاقات محلياً بدون إدخال أي مفاتيح بنكية حقيقية. سيتمكن زوار المتجر من تجربة إدخال بطاقة وهمية والحصول على تأكيد السداد وإشعار الواتساب التلقائي فوراً.
@@ -1121,9 +1136,15 @@ export function StorefrontPaymentGatewaysManager() {
               fontSize: '12px',
               color: '#475569',
               lineHeight: '1.4',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
             }}
           >
-            💡 في حال تفعيل <strong>وضع التجربة (Sandbox / Staging)</strong> وعدم إدخال مفاتيح حية، سيوفر المتجر تلقائياً تجربة دفع بطاقة تجريبية متكاملة لضمان فحص دورة الشراء بالكامل.
+            <LightbulbIcon size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              في حال تفعيل <strong>وضع التجربة (Sandbox / Staging)</strong> وعدم إدخال مفاتيح حية، سيوفر المتجر تلقائياً تجربة دفع بطاقة تجريبية متكاملة لضمان فحص دورة الشراء بالكامل.
+            </div>
           </div>
         </div>
       </div>

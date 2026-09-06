@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CreateOnlineOrderResponse, StorefrontPaymentSessionResponse } from '../types/storefront.types';
 import { storefrontApi } from '../api/storefront.api';
+import { ShieldCheckIcon, XIcon, AlertCircleIcon, CreditCardIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontOnlinePaymentModalProps {
   isOpen: boolean;
@@ -130,7 +131,9 @@ export function StorefrontOnlinePaymentModal({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '20px' }}>🔒</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShieldCheckIcon size={20} color="#ffffff" />
+            </div>
             <div>
               <div style={{ fontSize: '14px', fontWeight: 800 }}>
                 {isLiveIframe ? `بوابة الدفع الآمنة (${providerLabel})` : `بوابة الدفع الإلكتروني (${providerLabel} - تجريبي)`}
@@ -156,7 +159,7 @@ export function StorefrontOnlinePaymentModal({
               justifyContent: 'center',
             }}
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -172,9 +175,13 @@ export function StorefrontOnlinePaymentModal({
                 borderRadius: '10px',
                 fontSize: '12.5px',
                 fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}
             >
-              ✕ {errorMsg}
+              <AlertCircleIcon size={16} />
+              <span>{errorMsg}</span>
             </div>
           )}
 
@@ -206,9 +213,20 @@ export function StorefrontOnlinePaymentModal({
                     fontSize: '13.5px',
                     fontWeight: 800,
                     cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  {loading ? 'جاري التحقق...' : 'تأكيد إتمام السداد الآن ✓'}
+                  {loading ? (
+                    'جاري التحقق...'
+                  ) : (
+                    <>
+                      <span>تأكيد إتمام السداد الآن</span>
+                      <CheckIcon size={16} />
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -247,9 +265,9 @@ export function StorefrontOnlinePaymentModal({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
                   <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', opacity: 0.9 }}>
                     {session.provider === 'tap'
-                      ? '🇸🇦 TAP GCC • تجريبي'
+                      ? 'TAP GCC • تجريبي'
                       : session.provider === 'stripe'
-                      ? '🌍 STRIPE • تجريبي'
+                      ? 'STRIPE • تجريبي'
                       : session.provider === 'xpay'
                       ? 'XPAY • تجريبي'
                       : 'BANK CARD • تجريبي'}
@@ -308,7 +326,7 @@ export function StorefrontOnlinePaymentModal({
                       cursor: 'pointer',
                     }}
                   >
-                    🇸🇦 مدى (Mada)
+                    مدى (Mada)
                   </button>
                   <button
                     type="button"
@@ -328,7 +346,7 @@ export function StorefrontOnlinePaymentModal({
                       cursor: 'pointer',
                     }}
                   >
-                    🇰🇼 كي نت (KNET)
+                    كي نت (KNET)
                   </button>
                   <button
                     type="button"
@@ -348,7 +366,7 @@ export function StorefrontOnlinePaymentModal({
                       cursor: 'pointer',
                     }}
                   >
-                    🍎 Apple Pay
+                    Apple Pay
                   </button>
                 </div>
               )}
@@ -371,9 +389,13 @@ export function StorefrontOnlinePaymentModal({
                       fontWeight: 700,
                       color: '#1d4ed8',
                       cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
                     }}
                   >
-                    💳 بطاقة سترايب تجريبية (4242)
+                    <CreditCardIcon size={14} />
+                    <span>بطاقة سترايب تجريبية (4242)</span>
                   </button>
                 </div>
               )}
@@ -390,7 +412,7 @@ export function StorefrontOnlinePaymentModal({
                   lineHeight: '1.4',
                 }}
               >
-                🧪 <strong>محاكي السداد الإلكتروني:</strong> يمكنك الضغط فوراً على زر الدفع التجريبي لاختبار تأكيد الطلب وتحديث حالة الفاتورة تلقائياً.
+                <strong>محاكي السداد الإلكتروني:</strong> يمكنك الضغط فوراً على زر الدفع التجريبي لاختبار تأكيد الطلب وتحديث حالة الفاتورة تلقائياً.
               </div>
 
               {/* Card Inputs */}
@@ -503,7 +525,14 @@ export function StorefrontOnlinePaymentModal({
                   marginTop: '4px',
                 }}
               >
-                {loading ? 'جاري معالجة الدفع...' : `دفع فوري تجريبي (${totalAmount.toFixed(0)} ${currencyLabel}) ✓`}
+                {loading ? (
+                  'جاري معالجة الدفع...'
+                ) : (
+                  <>
+                    <span>دفع فوري تجريبي ({totalAmount.toFixed(0)} {currencyLabel})</span>
+                    <CheckIcon size={16} />
+                  </>
+                )}
               </button>
             </div>
           )}

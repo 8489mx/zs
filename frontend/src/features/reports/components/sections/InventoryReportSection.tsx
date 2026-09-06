@@ -58,7 +58,7 @@ export function InventoryReportSection({
             onClick={() => onInventoryFilterChange(isDeadStock ? 'attention' : 'dead')}
             style={isDeadStock ? { background: '#170e5e', color: '#fff' } : undefined}
           >
-            {isDeadStock ? 'العودة للمخزون الحرج' : 'تحليل المخزون الراكد ⚠️'}
+            {isDeadStock ? 'العودة للمخزون الحرج' : 'تحليل المخزون الراكد'}
           </Button>
           <Button variant="secondary" onClick={() => void exportLowStock()} disabled={!summary?.totalItems}>
             {isDeadStock ? 'تصدير الراكد Excel' : 'تصدير Excel'}
@@ -97,7 +97,7 @@ export function InventoryReportSection({
             </div>
           </div>
           <div style={{ fontSize: '0.85em', color: '#475569', lineHeight: 1.6 }}>
-            💡 <strong>توصية تشغيلية:</strong> تم تصفية الأصناف التي تمتلك أرصدة موجبة ولم تسجل أي حركة بيع معتمدة منذ <strong>{deadStockDays}</strong> يوم فأكثر. يُنصح بعمل عروض مجمعة (Bundles) أو خصومات تصفية لتسييل رأس المال وإعادة تدويره.
+            <strong>توصية تشغيلية:</strong> تم تصفية الأصناف التي تمتلك أرصدة موجبة ولم تسجل أي حركة بيع معتمدة منذ <strong>{deadStockDays}</strong> يوم فأكثر. يُنصح بعمل عروض مجمعة (Bundles) أو خصومات تصفية لتسييل رأس المال وإعادة تدويره.
           </div>
         </div>
       ) : (

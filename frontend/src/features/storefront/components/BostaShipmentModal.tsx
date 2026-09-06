@@ -4,6 +4,16 @@ import { bostaApi, BostaShipmentResult } from '../api/bosta.api';
 import { OnlineOrderRecord } from '../types/storefront.types';
 import { formatCurrency } from '@/lib/format';
 import { Button } from '@/shared/ui/button';
+import {
+  PackageIcon,
+  XIcon,
+  CheckCircleIcon,
+  PrinterIcon,
+  CreditCardIcon,
+  DollarSignIcon,
+  AlertTriangleIcon,
+  TruckIcon,
+} from '@/shared/components/icons/AppIcons';
 
 interface BostaShipmentModalProps {
   order: OnlineOrderRecord;
@@ -95,7 +105,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '1.6rem' }}>📦</span>
+            <PackageIcon size={24} color="#170e5e" />
             <div>
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
                 شحن الطلب عبر بوسطة (Bosta Express)
@@ -121,7 +131,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
               fontWeight: 'bold',
             }}
           >
-            ✕
+            <XIcon size={14} />
           </button>
         </div>
 
@@ -142,7 +152,7 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                 gap: '12px',
               }}
             >
-              <span style={{ fontSize: '3rem' }}>🎉</span>
+              <CheckCircleIcon size={48} color="#16a34a" />
               <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#166534' }}>
                 تم إنشاء وتوثيق شحنة بوسطة بنجاح!
               </h4>
@@ -176,9 +186,14 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                     fontWeight: 700,
                     padding: '10px',
                     borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
                   }}
                 >
-                  🖨️ طباعة بوليصة الشحن (AWB)
+                  <PrinterIcon size={16} color="#ffffff" />
+                  <span>طباعة بوليصة الشحن (AWB)</span>
                 </Button>
                 <Button
                   variant="secondary"
@@ -206,8 +221,18 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                 }}
               >
                 <div>
-                  <span style={{ fontWeight: 700, color: isPaidOnline ? '#065f46' : '#92400e' }}>
-                    {isPaidOnline ? '💳 مسدد إلكترونياً بالكامل' : '💵 دفع عند الاستلام (COD)'}
+                  <span style={{ fontWeight: 700, color: isPaidOnline ? '#065f46' : '#92400e', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    {isPaidOnline ? (
+                      <>
+                        <CreditCardIcon size={16} color="#065f46" />
+                        <span>مسدد إلكترونياً بالكامل</span>
+                      </>
+                    ) : (
+                      <>
+                        <DollarSignIcon size={16} color="#92400e" />
+                        <span>دفع عند الاستلام (COD)</span>
+                      </>
+                    )}
                   </span>
                   <span style={{ margin: '0 6px', color: '#94a3b8' }}>•</span>
                   <span style={{ color: '#64748b' }}>إجمالي الفاتورة: {formatCurrency(order.totalAmount)}</span>
@@ -372,9 +397,13 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                     padding: '10px 14px',
                     fontSize: '0.82rem',
                     color: '#991b1b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                   }}
                 >
-                  ⚠️ {(shipMutation.error as any)?.message || 'تعذر إنشاء الشحنة في بوسطة.'}
+                  <AlertTriangleIcon size={16} color="#dc2626" />
+                  <span>{(shipMutation.error as any)?.message || 'تعذر إنشاء الشحنة في بوسطة.'}</span>
                 </div>
               )}
             </>
@@ -416,7 +445,14 @@ export function BostaShipmentModal({ order, onClose, onSuccess }: BostaShipmentM
                 gap: '8px',
               }}
             >
-              {shipMutation.isPending ? 'جاري إنشاء الشحنة...' : '🚀 إنشاء شحنة بوسطة وتوليد البوليصة'}
+              {shipMutation.isPending ? (
+                'جاري إنشاء الشحنة...'
+              ) : (
+                <>
+                  <TruckIcon size={16} color="#ffffff" />
+                  <span>إنشاء شحنة بوسطة وتوليد البوليصة</span>
+                </>
+              )}
             </Button>
           </div>
         )}

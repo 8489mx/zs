@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
+import { TrendingUpIcon, XIcon, CheckIcon, TagIcon, SparklesIcon, MessageSquareIcon } from '@/shared/components/icons/AppIcons';
 import {
   marginProtectionApi,
   type MarginProtectionAnalysisResponse,
@@ -163,7 +164,9 @@ export function MarginProtectionModal({
         {/* Header */}
         <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-3">
-            <span className="text-3xl p-2 bg-amber-100 rounded-xl">📈</span>
+            <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
+              <TrendingUpIcon size={22} />
+            </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-bold text-slate-900 text-lg">
@@ -181,10 +184,10 @@ export function MarginProtectionModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-xl p-1.5 leading-none rounded-lg hover:bg-slate-100 transition"
+            className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition flex items-center justify-center"
             aria-label="إغلاق"
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -260,7 +263,7 @@ export function MarginProtectionModal({
                       />
                     </th>
                     <th className="p-3">اسم الصنف والباركود</th>
-                    <th className="p-3 text-center">التكلفة (قديم ➔ جديد)</th>
+                    <th className="p-3 text-center">التكلفة (السابقة ← الجديدة)</th>
                     <th className="p-3 text-center">سعر البيع الحالي</th>
                     <th className="p-3 text-center">الهامش الحالي</th>
                     <th className="p-3 text-center bg-blue-50/50">السعر المقترح للكاشير</th>
@@ -295,7 +298,7 @@ export function MarginProtectionModal({
                           <span className="text-slate-400 line-through text-[11px]">
                             {formatCurrency(item.previousCost)}
                           </span>
-                          <span className="mx-1.5 text-slate-400">➔</span>
+                          <span className="mx-1.5 text-slate-400">←</span>
                           <span className="font-bold text-slate-800">
                             {formatCurrency(item.newCost)}
                           </span>
@@ -350,7 +353,7 @@ export function MarginProtectionModal({
           {successMessage && (
             <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
               <span>{successMessage}</span>
-              <span>✓</span>
+              <CheckIcon size={16} color="#16a34a" />
             </div>
           )}
         </div>
@@ -384,7 +387,8 @@ export function MarginProtectionModal({
               onChange={(e) => setNotifyOwner(e.target.checked)}
               className="rounded border-slate-300 accent-[#170e5e]"
             />
-            <span>إرسال تقرير بالأسعار المحدثة على واتساب المالك 📲</span>
+            <MessageSquareIcon size={14} color="#16a34a" />
+            <span>إرسال تقرير بالأسعار المحدثة على واتساب المالك</span>
           </label>
 
           <div className="flex items-center gap-2">
@@ -394,8 +398,8 @@ export function MarginProtectionModal({
               disabled={!selectedProductIds.size}
               className="font-bold text-xs flex items-center gap-1.5 px-4 h-9"
             >
+              <TagIcon size={14} />
               <span>طباعة ملصقات الأسعار للأرفف</span>
-              <span>🏷️</span>
             </Button>
 
             <Button
@@ -413,8 +417,8 @@ export function MarginProtectionModal({
               disabled={applying || !selectedProductIds.size}
               className="bg-[#170e5e] hover:bg-[#120b4c] text-white font-bold text-xs px-6 h-9 flex items-center gap-1.5 shadow-sm"
             >
+              <SparklesIcon size={14} />
               <span>{applying ? 'جاري التحديث...' : `تحديث أسعار ${selectedProductIds.size} صنفاً في الكاشير`}</span>
-              <span>🚀</span>
             </Button>
           </div>
         </div>

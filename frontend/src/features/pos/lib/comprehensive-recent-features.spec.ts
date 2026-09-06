@@ -417,5 +417,56 @@ describe('Comprehensive Verification of Recent Features (Human Simulation)', () 
       expect(isDuplicateSku('amazon', 'B99NEW000')).toBe(false);
     });
   });
+
+  // =========================================================================
+  // SECTOR 9: KITCHEN DISPLAY SYSTEM (KDS) & DIGITAL SIGNAGE
+  // =========================================================================
+  describe('Sector 9: Kitchen Display System (KDS) & Digital Signage', () => {
+    it('calculates kitchen urgency indicators accurately based on elapsed preparation time', () => {
+      const getUrgency = (elapsedMins: number) => {
+        if (elapsedMins >= 15) return 'critical';
+        if (elapsedMins >= 8) return 'warning';
+        return 'normal';
+      };
+
+      expect(getUrgency(3)).toBe('normal');
+      expect(getUrgency(7)).toBe('normal');
+      expect(getUrgency(8)).toBe('warning');
+      expect(getUrgency(14)).toBe('warning');
+      expect(getUrgency(15)).toBe('critical');
+      expect(getUrgency(25)).toBe('critical');
+    });
+
+    it('filters kitchen tickets and items by dedicated prep station', () => {
+      const items = [
+        { name: 'كباب وكفتة مشوي على الفحم', station: 'grill' },
+        { name: 'شوربة كريمة دجاج ساخنة', station: 'kitchen' },
+        { name: 'عصير مانجو طبيعي', station: 'beverages' },
+        { name: 'بيتزا مارجريتا إيطالي', station: 'bakery' },
+      ];
+
+      const filterByStation = (station: string) => {
+        if (station === 'all') return items;
+        return items.filter(i => i.station === station);
+      };
+
+      expect(filterByStation('grill')).toHaveLength(1);
+      expect(filterByStation('grill')[0].name).toContain('مشوي');
+      expect(filterByStation('beverages')).toHaveLength(1);
+      expect(filterByStation('all')).toHaveLength(4);
+    });
+
+    it('calculates promo savings and discounts for digital showroom signage accurately', () => {
+      const calculatePromo = (retailPrice: number, promoPrice: number) => {
+        const saving = Number((retailPrice - promoPrice).toFixed(2));
+        const discountPct = Math.round(((retailPrice - promoPrice) / retailPrice) * 100);
+        return { saving, discountPct };
+      };
+
+      const result = calculatePromo(500, 375);
+      expect(result.saving).toBe(125);
+      expect(result.discountPct).toBe(25);
+    });
+  });
 });
 

@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/format';
 import { SupplierBalanceScheduleCard } from '@/features/accounts/components/SupplierBalanceScheduleCard';
 import { CustomerBalanceInvoicesCard } from '@/features/accounts/components/CustomerBalanceInvoicesCard';
 import type { Customer, Supplier } from '@/types/domain';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 
 function BuildingOfficeIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
   return (
@@ -285,7 +286,7 @@ export function SupplierQuickPaymentDialog() {
               onClick={closeDialog}
               aria-label="إغلاق النافذة"
             >
-              ✕
+              <XIcon size={16} />
             </button>
           </div>
 
@@ -370,11 +371,6 @@ export function SupplierQuickPaymentDialog() {
                           <button
                             type="button"
                             className="quick-searchable-clear"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleClearSupplier();
-                            }}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -383,7 +379,7 @@ export function SupplierQuickPaymentDialog() {
                             title="إلغاء اختيار المورد ومسح البحث"
                             aria-label="مسح البحث"
                           >
-                            ✕
+                            <XIcon size={12} />
                           </button>
                         ) : null}
                       </div>
@@ -447,7 +443,8 @@ export function SupplierQuickPaymentDialog() {
                           gap: '4px',
                         }}
                       >
-                        ✕ ترك المورد
+                        <XIcon size={12} />
+                        <span>ترك المورد</span>
                       </button>
                     </div>
                   ) : null}
@@ -560,7 +557,7 @@ export function SupplierQuickPaymentDialog() {
                             title="إلغاء اختيار العميل ومسح البحث"
                             aria-label="مسح البحث"
                           >
-                            ✕
+                            <XIcon size={12} />
                           </button>
                         ) : null}
                       </div>
@@ -624,7 +621,8 @@ export function SupplierQuickPaymentDialog() {
                           gap: '4px',
                         }}
                       >
-                        ✕ ترك العميل
+                        <XIcon size={12} />
+                        <span>ترك العميل</span>
                       </button>
                     </div>
                   ) : null}

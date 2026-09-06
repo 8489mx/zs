@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -183,9 +184,7 @@ export function PriceStockCheckerModal({
                   className="price-checker-clear-btn"
                   onClick={() => setQuery('')}
                   aria-label="مسح"
-                >
-                  ✕
-                </button>
+                ><XIcon size={15} /></button>
               )}
             </div>
 

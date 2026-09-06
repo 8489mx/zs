@@ -59,7 +59,7 @@ function BulkActionBar({
         onClick={onClear}
         style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#94a3b8', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
       >
-        ✕ إلغاء
+        إلغاء
       </button>
     </div>
   );

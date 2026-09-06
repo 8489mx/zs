@@ -695,7 +695,7 @@ function renderLoyaltySummary(options: {
   return `
     <section class="invoice-card invoice-loyalty-card${options.compact ? ' compact' : ''}" style="margin: 4px 0; padding: 5px 7px; border: 1px dashed #000; border-radius: 4px; font-size: ${options.compact ? '9.5px' : '11px'}; color: #000; line-height: 1.4;">
       <div style="font-weight: 800; border-bottom: 1px dotted #cbd5e1; padding-bottom: 2px; margin-bottom: 2px; display: flex; justify-content: space-between;">
-        <span>⭐ برنامج نقاط ومكافآت الولاء</span>
+        <span>برنامج نقاط ومكافآت الولاء</span>
       </div>
       ${earned > 0 ? `
         <div style="display: flex; justify-content: space-between;">

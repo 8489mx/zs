@@ -5,7 +5,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import { vatDeclarationApi, type VatDeclarationData } from '@/features/sales/api/vat-declaration.api';
-import { PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { PrinterIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 
 export function VatDeclarationPage() {
   const [country, setCountry] = useState<'EG' | 'SA'>('EG');
@@ -103,7 +103,7 @@ export function VatDeclarationPage() {
                 variant="secondary"
                 onClick={copyAllSummary}
               >
-                {copiedKey === 'all_summary' ? 'تم نسخ الملخص ✓' : 'نسخ الأرقام للتقديم'}
+                {copiedKey === 'all_summary' ? 'تم نسخ الملخص' : 'نسخ الأرقام للتقديم'}
               </Button>
               <Button
                 variant="primary"
@@ -120,13 +120,24 @@ export function VatDeclarationPage() {
         {/* KPI Cards Grid */}
         <StatsGrid items={stats} />
 
-        <section className="document-prototype-section">
-          {/* Control Filter Bar */}
-          <div style={{ paddingBottom: '16px', borderBottom: '1px solid #f1f5f9', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          {/* Country Selection */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>نظام الإقرار:</span>
+        {/* Filter Controls (Country & Period) */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+            backgroundColor: '#ffffff',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            marginTop: '16px',
+            marginBottom: '20px',
+          }}
+        >
+          {/* Country Tabs */}
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={() => setCountry('EG')}
               style={{
@@ -143,7 +154,7 @@ export function VatDeclarationPage() {
                 gap: '6px',
               }}
             >
-              <span>🇪🇬</span> نموذج 10 (مصلحة الضرائب المصرية 14%)
+              <span>نموذج 10 (مصلحة الضرائب المصرية 14%)</span>
             </button>
             <button
               onClick={() => setCountry('SA')}
@@ -161,7 +172,7 @@ export function VatDeclarationPage() {
                 gap: '6px',
               }}
             >
-              <span>🇸🇦</span> إقرار القيمة المضافة (ZATCA السعودية 15%)
+              <span>إقرار القيمة المضافة (ZATCA السعودية 15%)</span>
             </button>
           </div>
 
@@ -208,7 +219,6 @@ export function VatDeclarationPage() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Official Form Presentation Card (Printable Section) */}
       <div
@@ -227,8 +237,8 @@ export function VatDeclarationPage() {
             <div>
               <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>
                 {country === 'EG'
-                  ? '🇪🇬 جمهورية مصر العربية - مصلحة الضرائب المصرية'
-                  : '🇸🇦 المملكة العربية السعودية - هيئة الزكاة والضريبة والجمارك (ZATCA)'}
+                  ? 'جمهورية مصر العربية - مصلحة الضرائب المصرية'
+                  : 'المملكة العربية السعودية - هيئة الزكاة والضريبة والجمارك (ZATCA)'}
               </div>
               <div style={{ fontSize: '14px', fontWeight: '600', color: '#475569', marginTop: '2px' }}>
                 {country === 'EG'
@@ -276,9 +286,9 @@ export function VatDeclarationPage() {
                 <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                   <button
                     onClick={() => copyToClipboard(data?.output_tax.standard_rated_tax || 0, 'out_std')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer' }}
+                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {copiedKey === 'out_std' ? '✓' : 'نسخ'}
+                    {copiedKey === 'out_std' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
                   </button>
                 </td>
               </tr>
@@ -295,9 +305,9 @@ export function VatDeclarationPage() {
                 <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                   <button
                     onClick={() => copyToClipboard(data?.output_tax.zero_rated_base || 0, 'out_zero')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer' }}
+                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {copiedKey === 'out_zero' ? '✓' : 'نسخ'}
+                    {copiedKey === 'out_zero' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
                   </button>
                 </td>
               </tr>
@@ -328,9 +338,9 @@ export function VatDeclarationPage() {
                 <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                   <button
                     onClick={() => copyToClipboard(data?.output_tax.returns_tax || 0, 'out_ret')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer' }}
+                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {copiedKey === 'out_ret' ? '✓' : 'نسخ'}
+                    {copiedKey === 'out_ret' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
                   </button>
                 </td>
               </tr>
@@ -349,9 +359,9 @@ export function VatDeclarationPage() {
                 <td style={{ padding: '12px', textAlign: 'center' }}>
                   <button
                     onClick={() => copyToClipboard(data?.output_tax.total_output_vat || 0, 'out_tot')}
-                    style={{ background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '11px', padding: '3px 8px', cursor: 'pointer' }}
+                    style={{ background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '11px', padding: '3px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {copiedKey === 'out_tot' ? '✓' : 'نسخ'}
+                    {copiedKey === 'out_tot' ? <CheckIcon size={12} color="#ffffff" /> : 'نسخ'}
                   </button>
                 </td>
               </tr>
@@ -391,9 +401,9 @@ export function VatDeclarationPage() {
                 <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                   <button
                     onClick={() => copyToClipboard(data?.input_tax.standard_rated_tax || 0, 'in_std')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer' }}
+                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {copiedKey === 'in_std' ? '✓' : 'نسخ'}
+                    {copiedKey === 'in_std' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
                   </button>
                 </td>
               </tr>
@@ -424,9 +434,9 @@ export function VatDeclarationPage() {
                 <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                   <button
                     onClick={() => copyToClipboard(data?.input_tax.returns_tax || 0, 'in_ret')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer' }}
+                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {copiedKey === 'in_ret' ? '✓' : 'نسخ'}
+                    {copiedKey === 'in_ret' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
                   </button>
                 </td>
               </tr>
@@ -445,9 +455,9 @@ export function VatDeclarationPage() {
                 <td style={{ padding: '12px', textAlign: 'center' }}>
                   <button
                     onClick={() => copyToClipboard(data?.input_tax.total_input_vat || 0, 'in_tot')}
-                    style={{ background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '11px', padding: '3px 8px', cursor: 'pointer' }}
+                    style={{ background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '11px', padding: '3px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {copiedKey === 'in_tot' ? '✓' : 'نسخ'}
+                    {copiedKey === 'in_tot' ? <CheckIcon size={12} color="#ffffff" /> : 'نسخ'}
                   </button>
                 </td>
               </tr>
@@ -508,9 +518,19 @@ export function VatDeclarationPage() {
                 fontSize: '13px',
                 border: 'none',
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              {copiedKey === 'net_vat' ? 'تم النسخ ✓' : 'نسخ الصافي'}
+              {copiedKey === 'net_vat' ? (
+                <>
+                  <CheckIcon size={14} color="#ffffff" />
+                  <span>تم النسخ</span>
+                </>
+              ) : (
+                'نسخ الصافي'
+              )}
             </button>
           </div>
         </div>
@@ -549,7 +569,6 @@ export function VatDeclarationPage() {
           </div>
         </div>
       </div>
-      </section>
     </main>
   </div>
   );

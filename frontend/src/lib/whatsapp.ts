@@ -61,11 +61,11 @@ export function formatInstallmentReminderMessage({
 
   return `${storeHeader}مرحباً أستاذ/ة *${customerName}*،
 نود تذكيركم بموعد استحقاق الدفعة القادمة:
-📋 *${installmentText}* ${planNumber ? `(خطة: ${planNumber})` : ''}
-💰 المبلغ المستحق: *${Number(amount).toLocaleString()} ج.م*
-📅 تاريخ الاستحقاق: *${formattedDate}*
+- *${installmentText}* ${planNumber ? `(خطة: ${planNumber})` : ''}
+- المبلغ المستحق: *${Number(amount).toLocaleString()} ج.م*
+- تاريخ الاستحقاق: *${formattedDate}*
 
-نشكركم على التزامكم ويسعدنا دائماً خدمتكم! 🙏`;
+نشكركم على التزامكم ويسعدنا دائماً خدمتكم!`;
 }
 
 export function formatInvoiceShareMessage({
@@ -88,9 +88,9 @@ export function formatInvoiceShareMessage({
   const greeting = customerName ? `مرحباً أستاذ/ة *${customerName}*،\n` : 'مرحباً عميلنا العزيز،\n';
 
   return `${storeHeader}${greeting}شكراً لتسوقكم معنا! تفاصيل الفاتورة:
-🧾 رقم الفاتورة: *#${docNo}*
-📅 التاريخ: ${formattedDate}
-${itemsCount ? `📦 عدد الأصناف: ${itemsCount}\n` : ''}💵 الإجمالي: *${Number(total).toLocaleString()} ج.م*
+- رقم الفاتورة: *#${docNo}*
+- التاريخ: ${formattedDate}
+${itemsCount ? `- عدد الأصناف: ${itemsCount}\n` : ''}- الإجمالي: *${Number(total).toLocaleString()} ج.م*
 
-نتطلع لزيارتكم مجدداً! ✨`;
+نتطلع لزيارتكم مجدداً!`;
 }

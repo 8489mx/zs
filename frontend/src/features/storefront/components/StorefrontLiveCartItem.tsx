@@ -1,3 +1,4 @@
+import { Trash2Icon } from '@/shared/components/icons/AppIcons';
 import { CartItem } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 
@@ -145,7 +146,7 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
             padding: 0,
           }}
         >
-          {item.quantity === 1 ? '🗑' : '−'}
+          {item.quantity === 1 ? <Trash2Icon size={13} /> : '−'}
         </button>
       </div>
     </div>

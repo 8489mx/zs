@@ -202,12 +202,14 @@ export class SalesQueryService {
     const page = Math.max(1, Number(query.page || 1));
     const pageSize = Math.min(100, Math.max(1, Number(query.pageSize || 30)));
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const rangeStart = totalItems > 0 ? (page - 1) * pageSize + 1 : 0;
+    const rangeEnd = totalItems > 0 ? Math.min(page * pageSize, totalItems) : 0;
 
     const hydratedSales = await this.hydrateSales(baseSales, auth);
 
     return {
       sales: hydratedSales,
-      pagination: { page, pageSize, totalItems, totalPages },
+      pagination: { page, pageSize, totalItems, totalPages, rangeStart, rangeEnd },
       summary,
       scope,
     };

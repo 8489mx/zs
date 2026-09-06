@@ -4,6 +4,7 @@ import { Field } from '@/shared/ui/field';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 
 import { mergeFashionTokens, splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
+import { CheckIcon, PlusIcon, XIcon } from '@/shared/components/icons/AppIcons';
 
 export type VariantTemplateType = 'fashion' | 'scents' | 'sizes' | 'custom';
 
@@ -418,8 +419,10 @@ export function FashionVariantsBuilder({
                       disabled={disabled}
                       onClick={() => togglePrimaryPreset(val)}
                       className={`variant-preset-chip ${isSelected ? 'is-active' : ''}`.trim()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
-                      {isSelected ? '✓ ' : '+ '}{val}
+                      {isSelected ? <CheckIcon size={11} /> : <PlusIcon size={11} />}
+                      <span>{val}</span>
                     </button>
                   );
                 })}
@@ -453,8 +456,10 @@ export function FashionVariantsBuilder({
                       disabled={disabled}
                       onClick={() => toggleSecondaryPreset(preset.values)}
                       className={`variant-preset-chip ${isSelected ? 'is-active' : ''}`.trim()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
-                      {isSelected ? '✓ ' : '+ '}{preset.label}
+                      {isSelected ? <CheckIcon size={11} /> : <PlusIcon size={11} />}
+                      <span>{preset.label}</span>
                     </button>
                   );
                 })}
@@ -472,8 +477,10 @@ export function FashionVariantsBuilder({
                       disabled={disabled}
                       onClick={() => toggleSecondaryPreset([val])}
                       className={`variant-preset-chip ${isSelected ? 'is-active' : ''}`.trim()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
-                      {isSelected ? '✓ ' : '+ '}{val}
+                      {isSelected ? <CheckIcon size={11} /> : <PlusIcon size={11} />}
+                      <span>{val}</span>
                     </button>
                   );
                 })}
@@ -491,8 +498,10 @@ export function FashionVariantsBuilder({
                       disabled={disabled}
                       onClick={() => toggleSecondaryPreset([val])}
                       className={`variant-preset-chip ${isSelected ? 'is-active' : ''}`.trim()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
-                      {isSelected ? '✓ ' : '+ '}{val}
+                      {isSelected ? <CheckIcon size={11} /> : <PlusIcon size={11} />}
+                      <span>{val}</span>
                     </button>
                   );
                 })}
@@ -747,11 +756,9 @@ export function FashionVariantsBuilder({
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: 'pointer',
-                          fontWeight: 700,
-                          fontSize: '0.85rem'
                         }}
                       >
-                        ✕
+                        <XIcon size={12} />
                       </button>
                     </td>
                   </tr>

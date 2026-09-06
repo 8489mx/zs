@@ -5,7 +5,7 @@ import {
   ProductIcon,
 } from './product-svg-catalog';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { SearchIcon } from './AppIcons';
+import { SearchIcon, XIcon } from './AppIcons';
 
 interface ProductIconPickerProps {
   value?: string | null;
@@ -119,7 +119,7 @@ export function ProductIconPicker({
             zIndex: 2,
           }}
         >
-          ✕
+          <XIcon size={10} />
         </button>
       )}
 
@@ -138,9 +138,9 @@ export function ProductIconPicker({
           <button
             type="button"
             onClick={() => setIsOpen(false)}
-            style={{ border: 'none', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 800 }}
+            style={{ border: 'none', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            ✕
+            <XIcon size={14} />
           </button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '12px 16px 20px' }}>
@@ -194,9 +194,12 @@ export function ProductIconPicker({
                   fontSize: '13px',
                   fontWeight: 700,
                   padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                ✕
+                <XIcon size={12} />
               </button>
             )}
           </div>

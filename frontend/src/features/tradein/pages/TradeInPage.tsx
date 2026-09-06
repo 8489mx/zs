@@ -10,6 +10,7 @@ import { tradeInApi, type UpsertTradeInPayload } from '../api/tradein.api';
 import { TradeInDisclaimerModal } from '../components/TradeInDisclaimerModal';
 import { BrandCombobox } from '@/shared/components/BrandCombobox';
 import { getMaintenanceProfile } from '@/features/maintenance/constants/maintenance-profiles';
+import { CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import type { TradeInTransaction } from '@/types/domain-models/tradein';
 
 // Premium Minimal Vector SVG Icons (StrokeWidth 1.75)
@@ -453,7 +454,7 @@ export function TradeInPage() {
                             style={{ background: 'transparent', border: 'none', padding: 0, color: '#475569', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontFamily: 'monospace' }}
                           >
                             <span dir="ltr">{t.sellerNationalId}</span>
-                            {copiedId === t.sellerNationalId ? <span style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 700 }}>✓</span> : <Icons.Copy />}
+                            {copiedId === t.sellerNationalId ? <CheckIcon size={12} color="#16a34a" /> : <Icons.Copy />}
                           </button>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', color: '#64748b', marginTop: '1px' }}>
@@ -464,7 +465,7 @@ export function TradeInPage() {
                             style={{ background: 'transparent', border: 'none', padding: 0, color: '#64748b', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontFamily: 'monospace' }}
                           >
                             <span dir="ltr">{t.sellerPhone}</span>
-                            {copiedId === t.sellerPhone ? <span style={{ fontSize: '0.65rem', color: '#16a34a', fontWeight: 700 }}>✓</span> : <Icons.Copy />}
+                            {copiedId === t.sellerPhone ? <CheckIcon size={12} color="#16a34a" /> : <Icons.Copy />}
                           </button>
                         </div>
                       </td>
@@ -608,10 +609,10 @@ export function TradeInPage() {
                   <button
                     type="button"
                     onClick={() => setCreateModalOpen(false)}
-                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
                     title="إغلاق"
                   >
-                    ✕
+                    <XIcon size={16} />
                   </button>
                 </div>
 
@@ -781,7 +782,7 @@ export function TradeInPage() {
                                   boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
                                 }}
                               >
-                                {isSelected ? '✓ ' : ''}
+                                {isSelected && <CheckIcon size={12} color="currentColor" />}
                                 {meta.label}
                               </button>
                             );

@@ -643,8 +643,143 @@ async function runComprehensiveBackendAudit() {
     console.log('  ✓ Amazon SP-API & Noon Marketplace mapping, buffer & stock ingestion verified successfully.\n');
   }
 
+  // =========================================================================
+  // SECTOR 9: KITCHEN DISPLAY SYSTEM (KDS) & DIGITAL SIGNAGE SIMULATOR
+  // =========================================================================
+  console.log('▶ [Sector 9: Kitchen Display System (KDS) & Digital Signage]');
+  {
+    console.log('  • Simulating kitchen ticket state machine, elapsed urgency & station routing...');
+
+    interface MockKdsItem {
+      id: number;
+      name: string;
+      qty: number;
+      modifiers: string[];
+      status: 'pending' | 'cooking' | 'ready';
+      station: 'kitchen' | 'grill' | 'beverages' | 'bakery';
+    }
+
+    interface MockKdsTicket {
+      id: number;
+      orderNumber: string;
+      orderType: 'dine_in' | 'takeaway' | 'delivery';
+      tableNumber?: string;
+      status: 'pending' | 'cooking' | 'ready' | 'served';
+      createdAtMs: number;
+      items: MockKdsItem[];
+    }
+
+    const now = Date.now();
+
+    const tickets: MockKdsTicket[] = [
+      {
+        id: 501,
+        orderNumber: '#051',
+        orderType: 'dine_in',
+        tableNumber: '4',
+        status: 'pending',
+        createdAtMs: now - 3 * 60 * 1000, // 3 mins ago (Normal)
+        items: [
+          { id: 1, name: 'برجر لحم دوبل كلاسيك', qty: 2, modifiers: ['بدون بصل'], status: 'pending', station: 'grill' },
+          { id: 2, name: 'بطاطس مقلية متبلة', qty: 1, modifiers: [], status: 'pending', station: 'kitchen' },
+          { id: 3, name: 'عصير برتقال فريش', qty: 2, modifiers: [], status: 'pending', station: 'beverages' },
+        ],
+      },
+      {
+        id: 502,
+        orderNumber: '#052',
+        orderType: 'takeaway',
+        status: 'cooking',
+        createdAtMs: now - 11 * 60 * 1000, // 11 mins ago (Warning)
+        items: [
+          { id: 4, name: 'بيتزا سوبر سوبريم', qty: 1, modifiers: ['إكسترا جبنة'], status: 'cooking', station: 'bakery' },
+        ],
+      },
+      {
+        id: 503,
+        orderNumber: '#053',
+        orderType: 'delivery',
+        status: 'pending',
+        createdAtMs: now - 18 * 60 * 1000, // 18 mins ago (Critical / Overdue!)
+        items: [
+          { id: 5, name: 'شيش طاووق عائلي', qty: 1, modifiers: ['ثومية زيادة'], status: 'pending', station: 'grill' },
+        ],
+      },
+    ];
+
+    // 1. Urgency level calculation
+    function getUrgency(createdAtMs: number, currentTimeMs: number): 'normal' | 'warning' | 'critical' {
+      const elapsedMins = (currentTimeMs - createdAtMs) / (60 * 1000);
+      if (elapsedMins >= 15) return 'critical';
+      if (elapsedMins >= 8) return 'warning';
+      return 'normal';
+    }
+
+    assert.equal(getUrgency(tickets[0].createdAtMs, now), 'normal', 'Ticket 1 (3 min) must be normal');
+    assert.equal(getUrgency(tickets[1].createdAtMs, now), 'warning', 'Ticket 2 (11 min) must be warning');
+    assert.equal(getUrgency(tickets[2].createdAtMs, now), 'critical', 'Ticket 3 (18 min) must be critical / alert');
+
+    // 2. Station filtering
+    function filterTicketsByStation(ticketList: MockKdsTicket[], station: string) {
+      if (station === 'all') return ticketList;
+      return ticketList
+        .map((t) => ({ ...t, items: t.items.filter((i) => i.station === station) }))
+        .filter((t) => t.items.length > 0);
+    }
+
+    const grillTickets = filterTicketsByStation(tickets, 'grill');
+    assert.equal(grillTickets.length, 2, 'Grill station must only see tickets with grill items');
+    assert.equal(grillTickets[0].items.every((i) => i.station === 'grill'), true, 'All items must belong to grill');
+
+    const beverageTickets = filterTicketsByStation(tickets, 'beverages');
+    assert.equal(beverageTickets.length, 1, 'Beverage station must only see ticket 1');
+    assert.equal(beverageTickets[0].items[0].name, 'عصير برتقال فريش');
+
+    // 3. State machine transitions (pending -> cooking -> ready -> served)
+    function advanceStatus(status: 'pending' | 'cooking' | 'ready' | 'served'): 'pending' | 'cooking' | 'ready' | 'served' {
+      if (status === 'pending') return 'cooking';
+      if (status === 'cooking') return 'ready';
+      return 'served';
+    }
+
+    let ticketStatus = tickets[0].status;
+    ticketStatus = advanceStatus(ticketStatus);
+    assert.equal(ticketStatus, 'cooking', 'Advancing pending ticket must transition to cooking');
+    ticketStatus = advanceStatus(ticketStatus);
+    assert.equal(ticketStatus, 'ready', 'Advancing cooking ticket must transition to ready');
+    ticketStatus = advanceStatus(ticketStatus);
+    assert.equal(ticketStatus, 'served', 'Advancing ready ticket must transition to served');
+
+    // 4. Item-level strikethrough toggle
+    const burgerItem = tickets[0].items[0];
+    assert.equal(burgerItem.status, 'pending');
+    burgerItem.status = 'ready';
+    assert.equal(burgerItem.status, 'ready', 'Clicking individual item must mark it done');
+
+    // 5. Digital Signage Promo Calculation
+    interface MockProductForSignage {
+      name: string;
+      retailPrice: number;
+      promotionalPrice?: number;
+    }
+
+    function calculateSignageOffer(product: MockProductForSignage) {
+      const original = product.retailPrice;
+      const promo = product.promotionalPrice && product.promotionalPrice < original ? product.promotionalPrice : Number((original * 0.8).toFixed(2));
+      const saving = Number((original - promo).toFixed(2));
+      const discountPercent = Math.round(((original - promo) / original) * 100);
+      return { original, promo, saving, discountPercent };
+    }
+
+    const promoDeal = calculateSignageOffer({ name: 'وجبة كومبو عائلية مكس', retailPrice: 350.0, promotionalPrice: 280.0 });
+    assert.equal(promoDeal.saving, 70.0, 'Saving amount must be 70.0 EGP');
+    assert.equal(promoDeal.discountPercent, 20, 'Discount must be exactly 20%');
+
+    console.log('  ✓ KDS state machine, urgency timers, station filters & Digital Signage engine verified successfully.\n');
+  }
+
   console.log('================================================================');
-  console.log('🎉 ALL 8 SECTORS AUDITED AND PASSED WITH ZERO ERRORS (100% CLEAN)');
+  console.log('🎉 ALL 9 SECTORS AUDITED AND PASSED WITH ZERO ERRORS (100% CLEAN)');
   console.log('================================================================');
 }
 

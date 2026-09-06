@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
-import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { AlertTriangleIcon, CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { useSettingsQuery, useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -687,7 +687,10 @@ export function MaintenanceTicketsPage() {
                             >
                               <span dir="ltr">{t.customerPhone}</span>
                               {copiedPhone === t.customerPhone ? (
-                                <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 700 }}>تم النسخ ✓</span>
+                                <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                  <CheckIcon size={11} color="#16a34a" />
+                                  <span>تم النسخ</span>
+                                </span>
                               ) : (
                                 <Icons.Copy />
                               )}
@@ -761,11 +764,17 @@ export function MaintenanceTicketsPage() {
                                 )}
                                 <span style={{ color: '#cbd5e1' }}>•</span>
                                 {isDelivered ? (
-                                  <span style={{ color: '#16a34a', fontWeight: 700 }}>خالص ✓</span>
+                                  <span style={{ color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                    <CheckIcon size={12} color="#16a34a" />
+                                    <span>خالص</span>
+                                  </span>
                                 ) : remaining > 0 ? (
                                   <span style={{ color: '#b45309', fontWeight: 700 }}>متبقي: {remaining.toFixed(0)}</span>
                                 ) : (
-                                  <span style={{ color: '#16a34a', fontWeight: 700 }}>خالص ✓</span>
+                                  <span style={{ color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                    <CheckIcon size={12} color="#16a34a" />
+                                    <span>خالص</span>
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -914,10 +923,10 @@ export function MaintenanceTicketsPage() {
                   <button
                     type="button"
                     onClick={() => setCreateModalOpen(false)}
-                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
                     title="إغلاق"
                   >
-                    ✕
+                    <XIcon size={14} />
                   </button>
                 </div>
 
@@ -1383,9 +1392,9 @@ export function MaintenanceTicketsPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedTicket(null)}
-                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.9rem', fontWeight: 700 }}
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
                   >
-                    ✕
+                    <XIcon size={14} />
                   </button>
                 </div>
               </div>
@@ -1583,11 +1592,12 @@ export function MaintenanceTicketsPage() {
                           <td style={{ padding: '7px 10px', textAlign: 'center' }}>
                             <button
                               type="button"
-                              style={{ color: '#9f1239', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}
+                              style={{ color: '#9f1239', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                               onClick={() => removePartMutation.mutate({ ticketId: selectedTicket.id, partId: p.id })}
                               title="إلغاء وإرجاع للمخزن"
                             >
-                              ✕ إرجاع
+                              <XIcon size={12} color="#9f1239" />
+                              <span>إرجاع</span>
                             </button>
                           </td>
                         </tr>
@@ -1691,8 +1701,9 @@ export function MaintenanceTicketsPage() {
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '3px', fontWeight: 600 }}>
-                        ✓ تم السداد والتحصيل في الخزينة بالكامل
+                      <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckIcon size={12} color="#16a34a" />
+                        <span>تم السداد والتحصيل في الخزينة بالكامل</span>
                         {advancePaid > 0 ? ` (مقدم: ${advancePaid.toFixed(2)} ج.م + عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)` : ` (المحصل عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)`}
                       </div>
                       {discountInfo.amount > 0 && (
@@ -1709,8 +1720,9 @@ export function MaintenanceTicketsPage() {
                           0.00 <span style={{ fontSize: '0.75rem' }}>ج.م (خالص)</span>
                         </strong>
                       </div>
-                      <span style={{ padding: '6px 12px', borderRadius: '6px', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.85rem', border: '1px solid #dcfce7' }}>
-                        ✓ تم تسليم الجهاز
+                      <span style={{ padding: '6px 12px', borderRadius: '6px', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.85rem', border: '1px solid #dcfce7', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckIcon size={13} color="#166534" />
+                        <span>تم تسليم الجهاز</span>
                       </span>
                     </div>
                   </div>
@@ -1721,8 +1733,9 @@ export function MaintenanceTicketsPage() {
                 return (
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                     <div>
-                      <div style={{ fontSize: '0.825rem', color: isUnrep ? '#9f1239' : '#475569', fontWeight: 700 }}>
-                        {isUnrep ? '✕ تعذر إصلاح الجهاز (تم إلغاء رسوم الصيانة)' : '✕ تم إلغاء تذكرة الصيانة'}
+                      <div style={{ fontSize: '0.825rem', color: isUnrep ? '#9f1239' : '#475569', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <XIcon size={13} color={isUnrep ? '#9f1239' : '#475569'} />
+                        <span>{isUnrep ? 'تعذر إصلاح الجهاز (تم إلغاء رسوم الصيانة)' : 'تم إلغاء تذكرة الصيانة'}</span>
                       </div>
                       {advancePaid > 0 ? (
                         <div style={{ fontSize: '0.78rem', color: '#c2410c', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1772,7 +1785,7 @@ export function MaintenanceTicketsPage() {
                       disabled={updateStatusMutation.isPending}
                       style={{ padding: '7px 18px', fontWeight: 700, fontSize: '0.85rem' }}
                     >
-                      ✓ تسليم الجهاز والتحصيل
+                      تسليم الجهاز والتحصيل
                     </Button>
                   </div>
                 </div>
@@ -1813,9 +1826,9 @@ export function MaintenanceTicketsPage() {
                 <button
                   type="button"
                   onClick={() => setSettlementTicket(null)}
-                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontWeight: 700 }}
+                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
                 >
-                  ✕
+                  <XIcon size={14} />
                 </button>
               </div>
 
@@ -1913,7 +1926,7 @@ export function MaintenanceTicketsPage() {
                         disabled={updateStatusMutation.isPending}
                         style={{ padding: '7px 20px', fontWeight: 700, fontSize: '0.85rem' }}
                       >
-                        {updateStatusMutation.isPending ? 'جاري التحصيل...' : '✓ تأكيد التحصيل والتسليم النهائي'}
+                        {updateStatusMutation.isPending ? 'جاري التحصيل...' : 'تأكيد التحصيل والتسليم النهائي'}
                       </Button>
                     </div>
                   </>

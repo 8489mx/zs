@@ -1,3 +1,4 @@
+import { CheckIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
@@ -140,7 +141,7 @@ export function PosRecentSalesReprintModal({
             alignItems: 'center',
             gap: '8px',
           }}>
-            <span>✓</span>
+            <CheckIcon size={14} color="#16a34a" />
             <span>{feedbackMessage}</span>
           </div>
         ) : null}

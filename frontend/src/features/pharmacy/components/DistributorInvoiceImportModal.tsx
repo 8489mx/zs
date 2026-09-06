@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { ClipboardIcon } from '@/shared/components/icons/AppIcons';
+import { ClipboardIcon , XIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { pharmacyApi } from '../api/pharmacy.api';
 import { IconPlus, IconTrash, IconCheck } from './PharmacyIcons';
@@ -164,9 +164,7 @@ export function DistributorInvoiceImportModal({
             type="button"
             onClick={onClose}
             style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
-          >
-            ✕
-          </button>
+          ><XIcon size={16} /></button>
         </div>
 
         {statusMessage && (

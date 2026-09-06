@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -114,9 +115,7 @@ export function UpdateTenantPlanModal({ tenant, onClose, onSuccess }: UpdateTena
             className="dialog-shell-close-btn"
             onClick={onClose}
             title="إغلاق"
-          >
-            ✕
-          </button>
+          ><XIcon size={15} /></button>
         </div>
 
         <div className="space-y-6">

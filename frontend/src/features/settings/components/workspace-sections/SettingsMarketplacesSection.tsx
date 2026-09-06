@@ -6,7 +6,19 @@ import {
   marketplaceSyncApi,
   AmazonConfig,
   NoonConfig,
+  MarketplaceSkuMapping,
 } from '@/features/storefront/api/marketplace-sync.api';
+import {
+  CheckIcon,
+  AlertTriangleIcon,
+  PackageIcon,
+  ShoppingCartIcon,
+  RefreshCwIcon,
+  ReceiptIcon,
+  LinkIcon,
+  XIcon,
+  PlusIcon,
+} from '@/shared/components/icons/AppIcons';
 
 export const SettingsMarketplacesSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'amazon' | 'noon' | 'inventory' | 'orders'>('amazon');
@@ -57,109 +69,102 @@ export const SettingsMarketplacesSection: React.FC = () => {
   });
 
   // Queries
-  const configQuery = useQuery({
-    queryKey: ['marketplaces-config'],
-    queryFn: marketplaceSyncApi.getConfig,
+  const amazonQuery = useQuery({
+    queryKey: ['marketplace-amazon-config'],
+    queryFn: marketplaceSyncApi.getAmazonConfig,
+  });
+
+  const noonQuery = useQuery({
+    queryKey: ['marketplace-noon-config'],
+    queryFn: marketplaceSyncApi.getNoonConfig,
   });
 
   const mappingsQuery = useQuery({
-    queryKey: ['marketplaces-mappings'],
-    queryFn: marketplaceSyncApi.getMappings,
+    queryKey: ['marketplace-mappings'],
+    queryFn: () => marketplaceSyncApi.listMappings(),
   });
 
   useEffect(() => {
-    if (configQuery.data) {
-      setAmazonCfg(configQuery.data.amazon);
-      setNoonCfg(configQuery.data.noon);
-    }
-  }, [configQuery.data]);
+    if (amazonQuery.data) setAmazonCfg(amazonQuery.data as AmazonConfig);
+  }, [amazonQuery.data]);
+
+  useEffect(() => {
+    if (noonQuery.data) setNoonCfg(noonQuery.data as NoonConfig);
+  }, [noonQuery.data]);
 
   // Mutations
   const saveMutation = useMutation({
-    mutationFn: marketplaceSyncApi.saveConfig,
+    mutationFn: (data: { amazon?: Partial<AmazonConfig>; noon?: Partial<NoonConfig> }) =>
+      marketplaceSyncApi.saveConfig(data),
     onSuccess: () => {
       setSaveSuccess(true);
-      void configQuery.refetch();
       setTimeout(() => setSaveSuccess(false), 3000);
+      amazonQuery.refetch();
+      noonQuery.refetch();
     },
   });
 
   const testMutation = useMutation({
-    mutationFn: (target: 'amazon' | 'noon') => marketplaceSyncApi.testConnection(target),
+    mutationFn: (marketplace: 'amazon' | 'noon') => marketplaceSyncApi.testConnection(marketplace),
     onSuccess: (res) => setTestResult(res),
-    onError: (err: any) => setTestResult({ success: false, message: err?.message || 'فشل الاتصال بالمنصة' }),
+    onError: (err: any) =>
+      setTestResult({ success: false, message: err?.message || 'تعذر الاتصال بالمنصة' }),
   });
 
   const syncMutation = useMutation({
-    mutationFn: (target?: 'amazon' | 'noon') => marketplaceSyncApi.syncInventory(target),
-    onSuccess: () => {
-      void mappingsQuery.refetch();
+    mutationFn: (marketplace?: string) => marketplaceSyncApi.syncStock(marketplace),
+    onSuccess: (res: any) => {
+      alert(`تمت مزامنة المخزون بنجاح: ${res.synced} صنف متزامن.`);
+      mappingsQuery.refetch();
     },
-  });
-
-  const addMappingMutation = useMutation({
-    mutationFn: marketplaceSyncApi.saveMapping,
-    onSuccess: () => {
-      setShowAddModal(false);
-      setNewMapping({ productId: 0, marketplace: 'amazon', marketplaceSku: '', marketplaceTitle: '', customPrice: '', syncStock: true });
-      void mappingsQuery.refetch();
-    },
-  });
-
-  const deleteMappingMutation = useMutation({
-    mutationFn: marketplaceSyncApi.deleteMapping,
-    onSuccess: () => void mappingsQuery.refetch(),
+    onError: (err: any) => alert(err?.message || 'فشلت المزامنة'),
   });
 
   const simulateOrderMutation = useMutation({
-    mutationFn: (m: 'amazon' | 'noon') => marketplaceSyncApi.simulateOrder(m),
-    onSuccess: (res) => {
-      setSimulatedOrderInfo(`تم بنجاح سحب طلب ${res.orderNumber} وحجز 1 قطعة من [${res.reservedProductName}] وتحديث المخزون بنجاح!`);
-      void mappingsQuery.refetch();
+    mutationFn: (marketplace: 'amazon' | 'noon') => marketplaceSyncApi.simulateIncomingOrder(marketplace),
+    onSuccess: (res: any) => {
+      setSimulatedOrderInfo(`تم استلام وحجز طلب ${res.marketplace.toUpperCase()} برقم ${res.marketplaceOrderId} للعميل ${res.customerName}! الرصيد المحجوز: ${res.quantity} قطع.`);
+      mappingsQuery.refetch();
     },
+    onError: (err: any) => alert(err?.message || 'فشلت محاكاة الطلب'),
   });
 
-  const mappings = mappingsQuery.data || [];
-  const syncedCount = mappings.filter((m) => m.status === 'synced').length;
+  const addMappingMutation = useMutation({
+    mutationFn: (payload: any) => marketplaceSyncApi.addMapping(payload),
+    onSuccess: () => {
+      setShowAddModal(false);
+      setNewMapping({
+        productId: 0,
+        marketplace: 'amazon',
+        marketplaceSku: '',
+        marketplaceTitle: '',
+        customPrice: '',
+        syncStock: true,
+      });
+      mappingsQuery.refetch();
+    },
+    onError: (err: any) => alert(err?.message || 'فشل حفظ الربط'),
+  });
+
+  const deleteMappingMutation = useMutation({
+    mutationFn: (id: number | string) => marketplaceSyncApi.deleteMapping(id),
+    onSuccess: () => mappingsQuery.refetch(),
+    onError: (err: any) => alert(err?.message || 'فشل الحذف'),
+  });
+
+  const mappings: MarketplaceSkuMapping[] = mappingsQuery.data || [];
+  const syncedCount = mappings.filter((m: MarketplaceSkuMapping) => m.status === 'synced').length;
 
   return (
-    <div dir="rtl" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Header Card */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
-          padding: '20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} dir="rtl">
+      {/* Header Info */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-              الربط والمزامنة مع منصات التجارة الخارجية (Amazon & Noon)
-            </h3>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                background: '#eff6ff',
-                color: '#1d4ed8',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                border: '1px solid #bfdbfe',
-              }}
-            >
-              Omnichannel Sync
-            </span>
-          </div>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+            الربط مع الماركت بليس ومنافذ البيع الخارجية (Marketplaces Integration)
+          </h3>
           <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-            تحديث أرصدة المخزون تلقائياً على أمازون ونون لمنع البيع الزائد (Overselling)، وسحب الطلبات الواردة وحجز أصنافها فورياً.
+            مزامنة المخزون وسحب الطلبات آلياً مع منصات أمازون (Amazon SP-API) ونون (Noon Marketplace API).
           </p>
         </div>
 
@@ -173,9 +178,13 @@ export const SettingsMarketplacesSection: React.FC = () => {
               border: '1px solid #bbf7d0',
               fontSize: '13px',
               fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            تم حفظ الإعدادات بنجاح! ✅
+            <CheckIcon size={14} color="#15803d" strokeWidth={2.5} />
+            <span>تم حفظ الإعدادات بنجاح!</span>
           </span>
         ) : null}
       </div>
@@ -208,7 +217,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
             transition: 'all 0.15s ease',
           }}
         >
-          <span>📦</span>
+          <PackageIcon size={15} />
           <span>أمازون (Amazon SP-API)</span>
           {amazonCfg.enabled ? (
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
@@ -233,7 +242,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
             transition: 'all 0.15s ease',
           }}
         >
-          <span>🟡</span>
+          <ShoppingCartIcon size={15} />
           <span>نون (Noon Marketplace)</span>
           {noonCfg.enabled ? (
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
@@ -258,7 +267,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
             transition: 'all 0.15s ease',
           }}
         >
-          <span>🔄</span>
+          <RefreshCwIcon size={15} />
           <span>مركز مزامنة المخزون والأكواد</span>
           <span
             style={{
@@ -292,7 +301,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
             transition: 'all 0.15s ease',
           }}
         >
-          <span>🛒</span>
+          <ReceiptIcon size={15} />
           <span>سحب ومحاكاة الطلبات الخارجية</span>
         </button>
       </div>
@@ -313,8 +322,12 @@ export const SettingsMarketplacesSection: React.FC = () => {
             fontWeight: 600,
           }}
         >
-          <div>
-            <span>{testResult.success ? '✅ ' : '⚠️ '}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {testResult.success ? (
+              <CheckIcon size={16} color="#15803d" strokeWidth={2.5} />
+            ) : (
+              <AlertTriangleIcon size={16} color="#b91c1c" />
+            )}
             <span>{testResult.message}</span>
             {testResult.accountName ? <span style={{ marginRight: '8px', opacity: 0.85 }}>({testResult.accountName})</span> : null}
           </div>
@@ -471,7 +484,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
               onClick={() => testMutation.mutate('amazon')}
               disabled={testMutation.isPending}
             >
-              {testMutation.isPending ? 'جاري الفحص...' : 'فحص واختبار الاتصال ⚡'}
+              {testMutation.isPending ? 'جاري الفحص...' : 'فحص واختبار الاتصال'}
             </Button>
             <Button
               variant="primary"
@@ -479,7 +492,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
               disabled={saveMutation.isPending}
               style={{ background: '#170e5e', color: '#ffffff' }}
             >
-              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات أمازون 💾'}
+              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات أمازون'}
             </Button>
           </div>
         </div>
@@ -634,7 +647,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
               onClick={() => testMutation.mutate('noon')}
               disabled={testMutation.isPending}
             >
-              {testMutation.isPending ? 'جاري الفحص...' : 'فحص واختبار الاتصال ⚡'}
+              {testMutation.isPending ? 'جاري الفحص...' : 'فحص واختبار الاتصال'}
             </Button>
             <Button
               variant="primary"
@@ -642,7 +655,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
               disabled={saveMutation.isPending}
               style={{ background: '#170e5e', color: '#ffffff' }}
             >
-              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات نون 💾'}
+              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات نون'}
             </Button>
           </div>
         </div>
@@ -667,21 +680,21 @@ export const SettingsMarketplacesSection: React.FC = () => {
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-              <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 600 }}>الأصناف المتزامنة بنجاح 🟢</div>
+              <div style={{ fontSize: '12px', color: '#15803d', fontWeight: 600 }}>الأصناف المتزامنة بنجاح</div>
               <div style={{ fontSize: '24px', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
                 {syncedCount}
               </div>
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-              <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: 600 }}>أصناف على أمازون 📦</div>
+              <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: 600 }}>أصناف على أمازون</div>
               <div style={{ fontSize: '24px', fontWeight: 800, color: '#0369a1', marginTop: '4px' }}>
                 {mappings.filter((m) => m.marketplace === 'amazon').length}
               </div>
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-              <div style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>أصناف على نون 🟡</div>
+              <div style={{ fontSize: '12px', color: '#b45309', fontWeight: 600 }}>أصناف على نون</div>
               <div style={{ fontSize: '24px', fontWeight: 800, color: '#b45309', marginTop: '4px' }}>
                 {mappings.filter((m) => m.marketplace === 'noon').length}
               </div>
@@ -717,14 +730,15 @@ export const SettingsMarketplacesSection: React.FC = () => {
                   onClick={() => syncMutation.mutate(undefined)}
                   disabled={syncMutation.isPending || !mappings.length}
                 >
-                  {syncMutation.isPending ? 'جاري المزامنة...' : 'مزامنة المخزون الآن ⚡'}
+                  {syncMutation.isPending ? 'جاري المزامنة...' : 'مزامنة المخزون الآن'}
                 </Button>
                 <Button
                   variant="primary"
                   onClick={() => setShowAddModal(true)}
-                  style={{ background: '#170e5e', color: '#ffffff' }}
+                  style={{ background: '#170e5e', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                 >
-                  ربط صنف جديد (Add SKU) ➕
+                  <PlusIcon size={14} />
+                  <span>ربط صنف جديد (Add SKU)</span>
                 </Button>
               </div>
             </div>
@@ -744,7 +758,9 @@ export const SettingsMarketplacesSection: React.FC = () => {
                   color: '#64748b',
                 }}
               >
-                <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔗</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                  <LinkIcon size={32} color="#94a3b8" />
+                </div>
                 <div style={{ fontWeight: 700, fontSize: '14px', color: '#334155' }}>لم يتم ربط أي أصناف حتى الآن</div>
                 <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
                   اضغط على «ربط صنف جديد» لإدخال كود الصنف على أمازون (ASIN) أو نون (Partner SKU) وتفعيل حماية المخزون.
@@ -774,12 +790,14 @@ export const SettingsMarketplacesSection: React.FC = () => {
                         </td>
                         <td style={{ padding: '12px' }}>
                           {m.marketplace === 'amazon' ? (
-                            <span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11px' }}>
-                              📦 أمازون
+                            <span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <PackageIcon size={12} color="#92400e" />
+                              <span>أمازون</span>
                             </span>
                           ) : (
-                            <span style={{ background: '#fef9c3', color: '#854d0e', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11px' }}>
-                              🟡 نون
+                            <span style={{ background: '#fef9c3', color: '#854d0e', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <ShoppingCartIcon size={12} color="#854d0e" />
+                              <span>نون</span>
                             </span>
                           )}
                         </td>
@@ -802,9 +820,13 @@ export const SettingsMarketplacesSection: React.FC = () => {
                               borderRadius: '6px',
                               fontSize: '11px',
                               fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
                             }}
                           >
-                            متزامن وآمن ✅
+                            <CheckIcon size={11} color="#15803d" strokeWidth={2.5} />
+                            <span>متزامن وآمن</span>
                           </span>
                         </td>
                         <td style={{ padding: '12px', fontSize: '11.5px', color: '#64748b' }}>
@@ -816,7 +838,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
                             onClick={() => deleteMappingMutation.mutate(m.id)}
                             style={{ fontSize: '11px', padding: '3px 8px' }}
                           >
-                            إلغاء الربط 🗑️
+                            إلغاء الربط
                           </Button>
                         </td>
                       </tr>
@@ -867,7 +889,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
                 alignItems: 'center',
               }}
             >
-              <div>🎉 {simulatedOrderInfo}</div>
+              <div>{simulatedOrderInfo}</div>
               <Button
                 variant="secondary"
                 onClick={() => setSimulatedOrderInfo(null)}
@@ -898,7 +920,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>📦</span>
+                <PackageIcon size={20} color="#170e5e" />
                 <span style={{ fontWeight: 800, fontSize: '14.5px', color: '#0f172a' }}>
                   محاكاة طلب جديد من سوق أمازون (Amazon Order)
                 </span>
@@ -913,7 +935,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
                   disabled={simulateOrderMutation.isPending}
                   style={{ background: '#170e5e', color: '#ffffff', width: '100%' }}
                 >
-                  {simulateOrderMutation.isPending ? 'جاري المحاكاة والحجز...' : 'اختبار سحب طلب أمازون 🧪'}
+                  {simulateOrderMutation.isPending ? 'جاري المحاكاة والحجز...' : 'اختبار سحب طلب أمازون'}
                 </Button>
               </div>
             </div>
@@ -931,7 +953,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>🟡</span>
+                <ShoppingCartIcon size={20} color="#b45309" />
                 <span style={{ fontWeight: 800, fontSize: '14.5px', color: '#0f172a' }}>
                   محاكاة طلب جديد من منصة نون (Noon Direct Order)
                 </span>
@@ -946,7 +968,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
                   disabled={simulateOrderMutation.isPending}
                   style={{ background: '#170e5e', color: '#ffffff', width: '100%' }}
                 >
-                  {simulateOrderMutation.isPending ? 'جاري المحاكاة والحجز...' : 'اختبار سحب طلب نون 🧪'}
+                  {simulateOrderMutation.isPending ? 'جاري المحاكاة والحجز...' : 'اختبار سحب طلب نون'}
                 </Button>
               </div>
             </div>
@@ -989,9 +1011,9 @@ export const SettingsMarketplacesSection: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer', color: '#94a3b8' }}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 
@@ -1074,7 +1096,7 @@ export const SettingsMarketplacesSection: React.FC = () => {
                 disabled={addMappingMutation.isPending}
                 style={{ background: '#170e5e', color: '#ffffff' }}
               >
-                {addMappingMutation.isPending ? 'جاري الحفظ...' : 'حفظ وتفعيل الربط 🔗'}
+                {addMappingMutation.isPending ? 'جاري الحفظ...' : 'حفظ وتفعيل الربط'}
               </Button>
             </div>
           </div>

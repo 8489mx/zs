@@ -59,7 +59,7 @@ export function InventoryWorkspaceHeader({
                 borderColor: '#a7f3d0',
               }}
             >
-              ⚡ إمداد الأرفف الذكي
+              إمداد الأرفف الذكي
             </Button>
             <Button variant="secondary" onClick={onReset}>إعادة ضبط</Button>
             <Button variant="secondary" onClick={onCopySummary}>نسخ</Button>

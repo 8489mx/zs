@@ -484,7 +484,7 @@ export function DashboardExecutiveHero({
               </div>
             ) : (
               <strong className="dashboard-hero-kpi-value" style={{ fontSize: '0.92rem', color: isDark ? '#4ade80' : '#16a34a', fontWeight: 700 }}>
-                مستقر ✓
+                مستقر
               </strong>
             )}
           </div>

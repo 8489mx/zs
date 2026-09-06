@@ -17,7 +17,12 @@ import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
 import { APP_NETWORK_STATE_EVENT } from '@/features/pos/lib/pos-offline-sync';
-import { openCustomerDisplayWindow } from '@/features/pos/lib/pos-customer-display-bridge';
+import {
+  openCustomerDisplayWindow,
+  openKitchenDisplayWindow,
+  openDigitalSignageWindow,
+} from '@/features/pos/lib/pos-customer-display-bridge';
+import { UtensilsIcon, LaptopIcon, SparklesIcon } from '@/shared/components/icons/AppIcons';
 
 interface PosWorkspaceHeaderProps {
   pos: PosWorkspaceState;
@@ -294,7 +299,43 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
               <line x1="8" y1="21" x2="16" y2="21" />
               <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
-            <span>شاشة العميل 🖥️</span>
+            <span>شاشة العميل</span>
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={openKitchenDisplayWindow}
+            title="فتح شاشة المطبخ التفاعلية (Kitchen Display System - KDS)"
+            style={{
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#c2410c',
+              backgroundColor: '#fff7ed',
+              borderColor: '#fed7aa',
+            }}
+          >
+            <UtensilsIcon size={15} color="#c2410c" />
+            <span>شاشة المطبخ</span>
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={openDigitalSignageWindow}
+            title="فتح شاشة العروض الترويجية الرقمية للشاشات التلفزيونية (Digital Signage)"
+            style={{
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#0369a1',
+              backgroundColor: '#f0f9ff',
+              borderColor: '#bae6fd',
+            }}
+          >
+            <LaptopIcon size={15} color="#0369a1" />
+            <span>شاشة العروض</span>
           </Button>
           <Button
             type="button"
@@ -311,7 +352,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
               borderColor: '#a7f3d0',
             }}
           >
-            <span>⚡</span>
+            <SparklesIcon size={14} color="#047857" />
             <span>إمداد الأرفف الذكي</span>
           </Button>
           {pos.ownOpenShift ? (

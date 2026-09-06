@@ -1091,7 +1091,20 @@
 .sales-register-card .table-wrap,
 .returns-register-card .table-wrap {
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  max-height: clamp(400px, calc(100vh - 280px), 740px);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.sales-register-card .table-wrap th,
+.returns-register-card .table-wrap th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8fafc;
+  box-shadow: 0 1px 0 #e2e8f0;
 }
 
 .sales-selected-card .empty-state,

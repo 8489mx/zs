@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
+import { SparklesIcon, XIcon } from '@/shared/components/icons/AppIcons';
 
 export function SmartDemoOnboardingBanner() {
   const navigate = useNavigate();
@@ -80,10 +81,9 @@ export function SmartDemoOnboardingBanner() {
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            fontSize: '20px',
           }}
         >
-          🚀
+          <SparklesIcon size={20} color="#170e5e" />
         </div>
 
         <div>
@@ -131,7 +131,7 @@ export function SmartDemoOnboardingBanner() {
             boxShadow: '0 2px 8px rgba(23, 14, 94, 0.2)',
           }}
         >
-          اختيار النشاط عبر المعالج 🚀
+          اختيار النشاط عبر المعالج
         </Button>
 
         <button
@@ -169,6 +169,9 @@ export function SmartDemoOnboardingBanner() {
             fontSize: '12px',
             lineHeight: 1,
             transition: 'all 0.15s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.color = '#0f172a';
@@ -179,7 +182,7 @@ export function SmartDemoOnboardingBanner() {
             e.currentTarget.style.borderColor = '#e2e8f0';
           }}
         >
-          ✕
+          <XIcon size={14} />
         </button>
       </div>
 

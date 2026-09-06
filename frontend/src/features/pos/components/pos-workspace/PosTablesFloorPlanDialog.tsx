@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
+import { XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import type { HeldPosDraftSummary } from '@/features/pos/components/pos-cart-panel/posCartPanel.types';
 
 interface PosTablesFloorPlanDialogProps {
@@ -95,9 +96,9 @@ export function PosTablesFloorPlanDialog({
           <button
             type="button"
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', fontSize: '18px', color: '#64748b', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -136,8 +137,9 @@ export function PosTablesFloorPlanDialog({
         </div>
 
         {isTransferring && (
-          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#c2410c', fontWeight: 700 }}>
-            ⚠️ وضع النقل نشط: اضغط الآن على الطاولة الجديدة التي ترغب في نقل طلب الطاولة ({currentTableNumber}) إليها.
+          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#c2410c', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <AlertTriangleIcon size={14} color="#c2410c" />
+            <span>وضع النقل نشط: اضغط الآن على الطاولة الجديدة التي ترغب في نقل طلب الطاولة ({currentTableNumber}) إليها.</span>
           </div>
         )}
 

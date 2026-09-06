@@ -12,7 +12,14 @@ import { printPostedSaleReceipt } from '@/lib/pos-printing';
 import type { Sale } from '@/types/domain';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
-import { PackageIcon } from '@/shared/components/icons/AppIcons';
+import {
+  PackageIcon,
+  TruckIcon,
+  CheckIcon,
+  XIcon,
+  MapPinIcon,
+  AlertTriangleIcon,
+} from '@/shared/components/icons/AppIcons';
 
 export function MerchantOnlineOrdersPage() {
   const navigate = useNavigate();
@@ -70,11 +77,11 @@ export function MerchantOnlineOrdersPage() {
   const handleLoadToPos = async (orderId: number) => {
     const targetOrder = orders.find((o) => o.id === orderId);
     if (targetOrder?.status === 'cancelled') {
-      alert('⚠️ هذا الطلب تم إلغاؤه من قبل العميل ولا يمكن تنزيله في السلة.');
+      alert('هذا الطلب تم إلغاؤه من قبل العميل ولا يمكن تنزيله في السلة.');
       return;
     }
     if (targetOrder?.saleId) {
-      alert(`⚠️ هذا الطلب تم تحويله لفاتورة مسبقاً (فاتورة #${targetOrder.saleId}).`);
+      alert(`هذا الطلب تم تحويله لفاتورة مسبقاً (فاتورة #${targetOrder.saleId}).`);
       return;
     }
 
@@ -136,7 +143,7 @@ export function MerchantOnlineOrdersPage() {
                 onClick={handleCopyLink}
                 style={{ fontWeight: 700, fontSize: '13px', padding: '6px 14px' }}
               >
-                {copySuccess ? 'تم نسخ الرابط! ✓' : 'نسخ رابط المتجر'}
+                {copySuccess ? 'تم نسخ الرابط!' : 'نسخ رابط المتجر'}
               </Button>
               <a
                 href={storeUrl}
@@ -326,7 +333,10 @@ export function MerchantOnlineOrdersPage() {
                               display: 'inline-block',
                             }}
                           >
-                            📍 {order.deliveryZoneName}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <MapPinIcon size={12} color="#170e5e" />
+                              <span>{order.deliveryZoneName}</span>
+                            </span>
                           </div>
                         )}
                       </td>
@@ -409,7 +419,7 @@ export function MerchantOnlineOrdersPage() {
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <span style={{ color: '#059669', fontWeight: 800 }}>✓</span>
+                              <CheckIcon size={13} color="#059669" strokeWidth={2.5} />
                               <span>فاتورة #{order.saleId}</span>
                             </span>
                           ) : (
@@ -466,7 +476,7 @@ export function MerchantOnlineOrdersPage() {
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <span>🛵</span>
+                              <TruckIcon size={13} color="#ffffff" />
                               <span>تسليم للمندوب</span>
                             </button>
                           ) : order.status === 'shipped' ? (
@@ -494,7 +504,7 @@ export function MerchantOnlineOrdersPage() {
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <span>✓</span>
+                              <CheckIcon size={13} color="#ffffff" strokeWidth={2.5} />
                               <span>تم التسليم</span>
                             </button>
                           ) : order.bostaTrackingNumber ? (
@@ -520,7 +530,7 @@ export function MerchantOnlineOrdersPage() {
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <span>📦</span>
+                              <PackageIcon size={13} color="#e11d48" />
                               <span>بوسطة #{order.bostaTrackingNumber}</span>
                             </button>
                           ) : (order.gccTrackingNumber || order.gcc_tracking_number) ? (
@@ -546,7 +556,7 @@ export function MerchantOnlineOrdersPage() {
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <span>🚚</span>
+                              <TruckIcon size={13} color={(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c'} />
                               <span>{(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? 'أرامكس' : 'سمسا'} #{order.gccTrackingNumber || order.gcc_tracking_number}</span>
                             </button>
                           ) : !order.saleId && order.status !== 'cancelled' ? (
@@ -575,7 +585,6 @@ export function MerchantOnlineOrdersPage() {
                                   padding: '0 2px',
                                 }}
                               >
-                                <span>⚡</span>
                                 <span>دليفري</span>
                               </button>
                               <button
@@ -596,13 +605,13 @@ export function MerchantOnlineOrdersPage() {
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  gap: '1px',
+                                  gap: '2px',
                                   boxShadow: '0 1px 2px rgba(225,29,72,0.2)',
                                   boxSizing: 'border-box',
                                   padding: '0 2px',
                                 }}
                               >
-                                <span>📦</span>
+                                <PackageIcon size={12} color="#ffffff" />
                                 <span>بوسطة</span>
                               </button>
                               <button
@@ -623,13 +632,13 @@ export function MerchantOnlineOrdersPage() {
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  gap: '1px',
+                                  gap: '2px',
                                   boxShadow: '0 1px 2px rgba(234,88,12,0.2)',
                                   boxSizing: 'border-box',
                                   padding: '0 2px',
                                 }}
                               >
-                                <span>🚚</span>
+                                <TruckIcon size={12} color="#ffffff" />
                                 <span>خليجي</span>
                               </button>
                             </div>
@@ -651,7 +660,7 @@ export function MerchantOnlineOrdersPage() {
                                 boxSizing: 'border-box',
                               }}
                             >
-                              <span>✓</span>
+                              <CheckIcon size={13} color="#059669" strokeWidth={2.5} />
                               <span>مكتمل</span>
                             </div>
                           ) : (
@@ -805,7 +814,7 @@ export function MerchantOnlineOrdersPage() {
                   color: '#64748b',
                 }}
               >
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -854,9 +863,13 @@ export function MerchantOnlineOrdersPage() {
                         background: '#f0f3ff',
                         color: '#170e5e',
                         border: '1px solid #d8e0fc',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
                       }}
                     >
-                      📍 {selectedOrder.deliveryZoneName}
+                      <MapPinIcon size={12} color="#170e5e" />
+                      <span>{selectedOrder.deliveryZoneName}</span>
                     </span>
                   </div>
                 )}
@@ -898,7 +911,6 @@ export function MerchantOnlineOrdersPage() {
                     marginTop: '4px',
                   }}
                 >
-                  <span>⚡</span>
                   <span>أوتوميشن فوري: عند التحويل يتم تسجيل هذا العميل تلقائياً، وإصدار فاتورة دليفري، وخصم المخزون.</span>
                 </div>
               </div>
@@ -955,8 +967,9 @@ export function MerchantOnlineOrdersPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '13px', color: '#e11d48' }}>
-                      📦 شحنة بوسطة إكسبريس (Bosta)
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13px', color: '#e11d48' }}>
+                      <PackageIcon size={15} color="#e11d48" />
+                      <span>شحنة بوسطة إكسبريس (Bosta)</span>
                     </div>
                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
                       رقم التتبع: #{selectedOrder.bostaTrackingNumber}
@@ -996,8 +1009,9 @@ export function MerchantOnlineOrdersPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '13px', color: (selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c' }}>
-                      🚚 شحنة {(selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? 'أرامكس (Aramex)' : 'سمسا إكسبريس (SMSA)'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, fontSize: '13px', color: (selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c' }}>
+                      <TruckIcon size={15} color={(selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c'} />
+                      <span>شحنة {(selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? 'أرامكس (Aramex)' : 'سمسا إكسبريس (SMSA)'}</span>
                     </div>
                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
                       رقم التتبع: #{selectedOrder.gccTrackingNumber || selectedOrder.gcc_tracking_number}
@@ -1046,7 +1060,7 @@ export function MerchantOnlineOrdersPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                   <span>رسوم التوصيل {selectedOrder.deliveryZoneName ? `(${selectedOrder.deliveryZoneName})` : ''}:</span>
                   {selectedOrder.deliveryFee === 0 ? (
-                    <span style={{ fontWeight: 700, color: '#16a34a' }}>مجاناً 🚚</span>
+                    <span style={{ fontWeight: 700, color: '#16a34a' }}>مجاناً</span>
                   ) : (
                     <span style={{ fontWeight: 600 }}>{selectedOrder.deliveryFee.toFixed(0)} ج</span>
                   )}
@@ -1130,9 +1144,14 @@ export function MerchantOnlineOrdersPage() {
                     borderRadius: '8px',
                     fontWeight: 700,
                     fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  ⚠️ هذا الطلب تم إلغاؤه من قبل العميل
+                  <AlertTriangleIcon size={14} color="#991b1b" />
+                  <span>هذا الطلب تم إلغاؤه من قبل العميل</span>
                 </div>
               ) : selectedOrder.saleId ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
@@ -1145,9 +1164,14 @@ export function MerchantOnlineOrdersPage() {
                       borderRadius: '8px',
                       fontWeight: 700,
                       fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
                     }}
                   >
-                    ✓ تم إصدار فاتورة دليفري رقم #{selectedOrder.saleId}
+                    <CheckIcon size={14} color="#166534" strokeWidth={2.5} />
+                    <span>تم إصدار فاتورة دليفري رقم #{selectedOrder.saleId}</span>
                   </div>
                   {selectedOrder.status === 'processing' && (
                     <button
@@ -1169,7 +1193,7 @@ export function MerchantOnlineOrdersPage() {
                         gap: '6px',
                       }}
                     >
-                      <span>🛵</span>
+                      <TruckIcon size={14} color="#ffffff" />
                       <span>تسليم للمندوب (خرج للتوصيل)</span>
                     </button>
                   )}
@@ -1193,7 +1217,7 @@ export function MerchantOnlineOrdersPage() {
                         gap: '6px',
                       }}
                     >
-                      <span>✓</span>
+                      <CheckIcon size={14} color="#ffffff" strokeWidth={2.5} />
                       <span>تأكيد استلام العميل (تم التسليم بنجاح)</span>
                     </button>
                   )}
@@ -1251,7 +1275,6 @@ export function MerchantOnlineOrdersPage() {
                       gap: '6px',
                     }}
                   >
-                    <span>⚡</span>
                     <span>دليفري داخلي</span>
                   </button>
 
@@ -1278,7 +1301,7 @@ export function MerchantOnlineOrdersPage() {
                       gap: '6px',
                     }}
                   >
-                    <span>📦</span>
+                    <PackageIcon size={14} color="#ffffff" />
                     <span>شحن بوسطة</span>
                   </button>
 
@@ -1305,7 +1328,7 @@ export function MerchantOnlineOrdersPage() {
                       gap: '6px',
                     }}
                   >
-                    <span>🚚</span>
+                    <TruckIcon size={14} color="#ffffff" />
                     <span>شحن خليجي</span>
                   </button>
                 </div>

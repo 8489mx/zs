@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
-import { PaperclipIcon } from '@/shared/components/icons/AppIcons';
+import { PaperclipIcon , XIcon } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
@@ -292,7 +292,7 @@ export function PurchaseOrderHeaderSection(props: HeaderSectionProps) {
                   <PaperclipIcon size={14} color="#64748b" /> {att.fileName}
                 </span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>({(att.fileSize / 1024).toFixed(0)} KB)</span>
-                <button type="button" onClick={() => props.onRemoveAttachment(index)} style={{ color: 'var(--danger-color)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}>✕</button>
+                <button type="button" onClick={() => props.onRemoveAttachment(index)} style={{ color: 'var(--danger-color)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}><XIcon size={15} /></button>
               </div>
             ))}
           </div>

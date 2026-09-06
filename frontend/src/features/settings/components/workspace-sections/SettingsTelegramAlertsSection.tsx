@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
+import { BellIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
 
 interface TelegramSettings {
   enabled: boolean;
@@ -106,8 +107,9 @@ export function SettingsTelegramAlertsSection() {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>حالة سيرفر أوراكل VPS</span>
-            <span style={{ padding: '2px 8px', fontSize: '0.72rem', borderRadius: '12px', background: '#ecfdf5', color: '#047857', fontWeight: 700 }}>
-              🟢 Live & Ready
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 8px', fontSize: '0.72rem', borderRadius: '12px', background: '#ecfdf5', color: '#047857', fontWeight: 700 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+              Live & Ready
             </span>
           </div>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
@@ -176,11 +178,10 @@ export function SettingsTelegramAlertsSection() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem',
                 fontWeight: 800,
               }}
             >
-              🔔
+              <BellIcon size={22} color="#0284c7" />
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
@@ -264,8 +265,9 @@ export function SettingsTelegramAlertsSection() {
 
         {/* Footer Actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-            💡 يمكنك أيضاً ضبط المتغيرات في ملف <code>.env</code> عبر <code>TELEGRAM_BOT_TOKEN</code> و <code>TELEGRAM_CHAT_ID</code>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b' }}>
+            <LightbulbIcon size={15} color="#64748b" />
+            <span>يمكنك أيضاً ضبط المتغيرات في ملف <code>.env</code> عبر <code>TELEGRAM_BOT_TOKEN</code> و <code>TELEGRAM_CHAT_ID</code></span>
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -275,7 +277,7 @@ export function SettingsTelegramAlertsSection() {
               disabled={testMutation.isPending}
               style={{ padding: '9px 16px', borderRadius: '8px', fontWeight: 600 }}
             >
-              {testMutation.isPending ? 'جاري الإرسال...' : '🧪 إرسال تنبيه اختباري'}
+              {testMutation.isPending ? 'جاري الإرسال...' : 'إرسال تنبيه اختباري'}
             </Button>
             <Button
               onClick={() => {

@@ -1,5 +1,7 @@
 import React, { useRef } from 'react';
 import { Button } from '@/shared/ui/button';
+import { PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 export interface PickListItem {
   productId: number;
@@ -97,75 +99,126 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
             }
             th {
               background-color: #f1f5f9;
-              font-weight: 700;
-              color: #334155;
+              font-weight: bold;
             }
-            .check-col {
-              width: 40px;
+            .checkbox-cell {
+              width: 30px;
               text-align: center;
             }
-            .check-box-square {
-              display: inline-block;
+            .box {
               width: 16px;
               height: 16px;
-              border: 1.5px solid #64748b;
-              border-radius: 3px;
-            }
-            .qty-pill {
-              font-size: 14px;
-              font-weight: 800;
-              color: #0f172a;
-            }
-            .unit-badge {
+              border: 1px solid #64748b;
               display: inline-block;
-              font-size: 11px;
-              color: #2563eb;
-              font-weight: 600;
-              margin-inline-start: 4px;
             }
             .summary-bar {
               display: flex;
               justify-content: space-between;
-              background: #f8fafc;
-              border: 1px dashed #94a3b8;
-              border-radius: 8px;
-              padding: 12px 16px;
-              font-weight: 700;
+              background-color: #f8fafc;
+              border: 1px dashed #cbd5e1;
+              padding: 10px 14px;
+              border-radius: 6px;
+              font-weight: bold;
               margin-bottom: 30px;
             }
-            .signatures-grid {
+            .signatures {
               display: grid;
               grid-template-columns: 1fr 1fr;
               gap: 40px;
-              margin-top: 30px;
-              border-top: 1px solid #e2e8f0;
-              padding-top: 20px;
-            }
-            .sig-box {
+              margin-top: 40px;
               text-align: center;
             }
             .sig-line {
-              margin-top: 40px;
-              border-bottom: 1px dashed #64748b;
+              border-bottom: 1px dashed #94a3b8;
+              height: 40px;
+              margin-top: 10px;
             }
             @media print {
               body { margin: 0; }
-              .no-print { display: none !important; }
+              @page { margin: 1cm; size: A4 portrait; }
             }
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
+          <div class="header-box">
+            <div>
+              <h1 class="title">أمر صرف وتجهيز بضاعة للمحل</h1>
+              <div style="font-size: 12px; color: #64748b; margin-top: 4px;">كشف نقل معتمد - منظومة Z-Systems</div>
+            </div>
+            <div style="font-family: monospace; font-size: 14px; font-weight: bold; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
+              ${docNo}
+            </div>
+          </div>
+
+          <div class="meta-grid">
+            <div><strong>المستودع المصدر:</strong> ${fromLocationName}</div>
+            <div><strong>صالة عرض المحل (الوجهة):</strong> ${toLocationName}</div>
+            <div><strong>تاريخ وأمر الإذن:</strong> ${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</div>
+            <div><strong>المشرف المسؤول:</strong> ${createdByName}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th class="checkbox-cell">تم</th>
+                <th style="width: 35px; text-align: center;">#</th>
+                <th>اسم الصنف والباركود</th>
+                <th style="text-align: center; width: 110px;">الكمية المطلوبة</th>
+                <th style="text-align: center; width: 140px;">التعبئة والكراتين</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items
+                .map(
+                  (item, idx) => `
+                <tr>
+                  <td class="checkbox-cell"><span class="box"></span></td>
+                  <td style="text-align: center; font-family: monospace;">${idx + 1}</td>
+                  <td>
+                    <div style="font-weight: bold;">${item.productName}</div>
+                    ${item.barcode ? `<div style="font-size: 11px; color: #64748b; font-family: monospace;">${item.barcode}</div>` : ''}
+                  </td>
+                  <td style="text-align: center; font-weight: bold; font-size: 14px;">
+                    ${item.qty} <span style="font-size: 11px; font-weight: normal;">قطعة</span>
+                  </td>
+                  <td style="text-align: center;">
+                    ${
+                      item.cartonsCount && item.cartonName
+                        ? `<strong>${item.cartonsCount}</strong> ${item.cartonName}`
+                        : '-'
+                    }
+                  </td>
+                </tr>
+              `,
+                )
+                .join('')}
+            </tbody>
+          </table>
+
+          <div class="summary-bar">
+            <span>إجمالي الأصناف: ${items.length} صنف</span>
+            <span style="color: #170e5e;">إجمالي عدد القطع: ${items.reduce((s, it) => s + it.qty, 0)} قطعة</span>
+          </div>
+
+          <div class="signatures">
+            <div>
+              <div>توقيع مسؤول المستودع (المُسلِّم)</div>
+              <div class="sig-line"></div>
+            </div>
+            <div>
+              <div>توقيع المستلم (العامل / الكاشير)</div>
+              <div class="sig-line"></div>
+            </div>
+          </div>
         </body>
       </html>
     `);
+
     printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   };
 
   const totalPieces = items.reduce((sum, it) => sum + it.qty, 0);
@@ -174,111 +227,170 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
   const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div
-      dir="rtl"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto"
+    <DialogShell
+      open={isOpen}
+      onClose={onClose}
+      ariaLabel="أمر تحميل وصرف بضاعة للمستودع"
+      width="min(860px, 96vw)"
+      zIndex={10001}
     >
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div
+        dir="rtl"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '88vh',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          overflow: 'hidden',
+        }}
+      >
         {/* Header Modal Bar */}
-        <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🖨️</span>
+        <div
+          style={{
+            padding: '16px 20px',
+            backgroundColor: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <PrinterIcon size={20} color="#170e5e" />
+            </div>
             <div>
-              <h3 className="font-bold text-slate-800 text-base">أمر تحميل وصرف بضاعة للمستودع</h3>
-              <p className="text-xs text-slate-500">إذن معتمد رسمي رقم #{docNo}</p>
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '16px', color: '#0f172a' }}>
+                أمر تحميل وصرف بضاعة للمستودع
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
+                إذن معتمد رسمي رقم #{docNo}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Button
               variant="primary"
               onClick={handlePrint}
-              className="bg-[#170e5e] hover:bg-[#120b4c] text-white font-semibold flex items-center gap-1.5 px-4"
+              style={{
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '0 16px',
+                height: '36px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
+              <PrinterIcon size={16} color="#ffffff" />
               <span>طباعة فورية للعامل</span>
-              <span>🖨️</span>
             </Button>
-            <Button variant="secondary" onClick={onClose} className="px-3">
+            <Button variant="secondary" onClick={onClose} style={{ padding: '0 14px', height: '36px' }}>
               إغلاق
             </Button>
           </div>
         </div>
 
         {/* Printable Paper Content */}
-        <div className="p-6 overflow-y-auto flex-1 bg-slate-100/50">
+        <div style={{ padding: '20px', overflowY: 'auto', flex: 1, backgroundColor: '#f1f5f9' }}>
           <div
             ref={printAreaRef}
-            className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-slate-800"
+            style={{
+              backgroundColor: '#ffffff',
+              padding: '24px',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              color: '#0f172a',
+            }}
           >
-            <div className="header-box flex justify-between items-center border-b-2 border-slate-900 pb-3 mb-4">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '12px', marginBottom: '16px' }}>
               <div>
-                <h1 className="text-xl font-extrabold text-[#170e5e] m-0">أمر صرف وتجهيز بضاعة للمحل</h1>
-                <p className="text-xs text-slate-500 mt-1">كشف نقل معتمد - منظومة Z-Systems</p>
+                <h1 style={{ fontSize: '18px', fontWeight: 900, color: '#170e5e', margin: 0 }}>
+                  أمر صرف وتجهيز بضاعة للمحل
+                </h1>
+                <p style={{ fontSize: '11px', color: '#64748b', margin: '3px 0 0' }}>كشف نقل معتمد - منظومة Z-Systems</p>
               </div>
-              <div className="text-left font-mono">
-                <span className="bg-slate-100 text-slate-800 px-3 py-1 rounded-md text-sm font-bold border border-slate-300">
+              <div style={{ fontFamily: 'monospace' }}>
+                <span style={{ backgroundColor: '#f1f5f9', color: '#0f172a', padding: '4px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 800, border: '1px solid #cbd5e1' }}>
                   {docNo}
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4 text-xs">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '12px' }}>
               <div>
-                <span className="text-slate-500">من المستودع المصدر: </span>
-                <span className="font-bold text-slate-800">{fromLocationName}</span>
+                <span style={{ color: '#64748b' }}>من المستودع المصدر: </span>
+                <strong style={{ color: '#0f172a' }}>{fromLocationName}</strong>
               </div>
               <div>
-                <span className="text-slate-500">إلى صالة المحل: </span>
-                <span className="font-bold text-slate-800">{toLocationName}</span>
+                <span style={{ color: '#64748b' }}>إلى صالة المحل: </span>
+                <strong style={{ color: '#0f172a' }}>{toLocationName}</strong>
               </div>
               <div>
-                <span className="text-slate-500">التاريخ والوقت: </span>
-                <span className="font-semibold text-slate-700">{dateStr} - {timeStr}</span>
+                <span style={{ color: '#64748b' }}>التاريخ والوقت: </span>
+                <span style={{ fontWeight: 600, color: '#334155' }}>{dateStr} - {timeStr}</span>
               </div>
               <div>
-                <span className="text-slate-500">المشرف المعتمد: </span>
-                <span className="font-semibold text-slate-700">{createdByName}</span>
+                <span style={{ color: '#64748b' }}>المشرف المعتمد: </span>
+                <span style={{ fontWeight: 600, color: '#334155' }}>{createdByName}</span>
               </div>
             </div>
 
-            <div className="overflow-x-auto mb-4">
-              <table className="w-full border-collapse border border-slate-300 text-right text-xs">
+            <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '12px' }}>
                 <thead>
-                  <tr className="bg-slate-100 text-slate-700">
-                    <th className="border border-slate-300 p-2 w-10 text-center">تم</th>
-                    <th className="border border-slate-300 p-2 w-10 text-center">#</th>
-                    <th className="border border-slate-300 p-2">اسم الصنف والباركود</th>
-                    <th className="border border-slate-300 p-2 text-center">الكمية المطلوبة بدقة</th>
-                    <th className="border border-slate-300 p-2 text-center">التعبئة المقترحة</th>
+                  <tr style={{ backgroundColor: '#f8fafc', color: '#334155' }}>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', width: '40px', textAlign: 'center' }}>تم</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', width: '36px', textAlign: 'center' }}>#</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px' }}>اسم الصنف والباركود</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', width: '120px' }}>الكمية المطلوبة بدقة</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', width: '130px' }}>التعبئة المقترحة</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, idx) => (
-                    <tr key={item.productId} className="hover:bg-slate-50/50">
-                      <td className="border border-slate-300 p-2 text-center">
-                        <div className="inline-block w-4 h-4 border border-slate-400 rounded-sm" />
+                    <tr key={item.productId} style={{ borderBottom: '1px solid #cbd5e1' }}>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-block', width: '16px', height: '16px', border: '1.5px solid #64748b', borderRadius: '3px' }} />
                       </td>
-                      <td className="border border-slate-300 p-2 text-center font-mono text-slate-500">
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', fontFamily: 'monospace', color: '#64748b' }}>
                         {idx + 1}
                       </td>
-                      <td className="border border-slate-300 p-2">
-                        <div className="font-bold text-slate-900">{item.productName}</div>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
+                        <div style={{ fontWeight: 800, color: '#0f172a' }}>{item.productName}</div>
                         {item.barcode && (
-                          <div className="text-[11px] text-slate-500 font-mono">{item.barcode}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace', marginTop: '2px' }}>{item.barcode}</div>
                         )}
                       </td>
-                      <td className="border border-slate-300 p-2 text-center">
-                        <span className="font-extrabold text-sm text-slate-900">
-                          {item.qty}
-                        </span>{' '}
-                        <span className="text-[11px] text-slate-500">قطعة</span>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center' }}>
+                        <strong style={{ fontSize: '14px', color: '#0f172a' }}>{item.qty}</strong>{' '}
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>قطعة</span>
                       </td>
-                      <td className="border border-slate-300 p-2 text-center">
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center' }}>
                         {item.cartonsCount && item.cartonName ? (
-                          <span className="bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded text-[11px] border border-blue-200">
+                          <span style={{ backgroundColor: '#eff6ff', color: '#1e40af', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', fontSize: '11px', border: '1px solid #dbeafe' }}>
                             {item.cartonsCount} {item.cartonName}
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-[11px]">-</span>
+                          <span style={{ color: '#94a3b8', fontSize: '11px' }}>-</span>
                         )}
                       </td>
                     </tr>
@@ -287,24 +399,24 @@ export const ReplenishmentPickListPrintModal: React.FC<ReplenishmentPickListPrin
               </table>
             </div>
 
-            <div className="flex justify-between items-center bg-slate-50 border border-dashed border-slate-300 rounded-lg p-3 font-bold text-xs mb-6">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '10px 14px', fontWeight: 800, fontSize: '12px', marginBottom: '24px' }}>
               <span>إجمالي الأصناف: {items.length} صنف</span>
-              <span className="text-[#170e5e] text-sm">إجمالي القطع المنصرفة: {totalPieces} قطعة</span>
+              <span style={{ color: '#170e5e', fontSize: '13px' }}>إجمالي القطع المنصرفة: {totalPieces} قطعة</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-8 border-t border-slate-200 pt-4 text-xs">
-              <div className="text-center">
-                <span className="text-slate-600 font-semibold">توقيع مسؤول المستودع (المُسلِّم)</span>
-                <div className="mt-8 border-b border-dashed border-slate-400 mx-8" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', fontSize: '12px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ color: '#475569', fontWeight: 700 }}>توقيع مسؤول المستودع (المُسلِّم)</span>
+                <div style={{ marginTop: '30px', borderBottom: '1px dashed #94a3b8', marginInline: '20px' }} />
               </div>
-              <div className="text-center">
-                <span className="text-slate-600 font-semibold">توقيع المستلم (العامل / الكاشير)</span>
-                <div className="mt-8 border-b border-dashed border-slate-400 mx-8" />
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ color: '#475569', fontWeight: 700 }}>توقيع المستلم (العامل / الكاشير)</span>
+                <div style={{ marginTop: '30px', borderBottom: '1px dashed #94a3b8', marginInline: '20px' }} />
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </DialogShell>
   );
 };

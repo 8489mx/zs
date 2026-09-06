@@ -66,10 +66,10 @@ export function getPurchaseColumns() {
                 }}
               >
                 {purchase.matchedStatus === 'matched'
-                  ? '✓ مطابقة ثلاثية كاملة'
+                  ? 'مطابقة ثلاثية كاملة'
                   : purchase.matchedStatus === 'partial'
-                  ? '◷ مطابقة واستلام جزئي'
-                  : '⏳ بانتظار استلام البضاعة'}
+                  ? 'مطابقة واستلام جزئي'
+                  : 'بانتظار استلام البضاعة'}
               </span>
             )}
           </div>

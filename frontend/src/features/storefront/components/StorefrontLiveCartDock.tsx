@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
 import { StorefrontLiveCartPill } from './StorefrontLiveCartPill';
+import { Trash2Icon, XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 
 function formatArabicItems(count: number): string {
   if (count === 1) return 'صنف واحد';
@@ -259,7 +260,7 @@ export function StorefrontLiveCartDock({
               }}
               title="تفريغ السلة بالكامل"
             >
-              🗑️
+              <Trash2Icon size={15} />
             </button>
 
             <button
@@ -268,7 +269,7 @@ export function StorefrontLiveCartDock({
               onClick={onClose}
               title="تصغير ومتابعة التسوق"
             >
-              ✕
+              <XIcon size={16} />
             </button>
           </div>
         </div>
@@ -314,7 +315,7 @@ export function StorefrontLiveCartDock({
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
             <span>مصاريف التوصيل:</span>
             <span style={{ fontWeight: 700, color: deliveryFee > 0 ? '#0f172a' : '#166534' }}>
-              {deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ج.م` : 'توصيل مجاني ⚡'}
+              {deliveryFee > 0 ? `${deliveryFee.toFixed(0)} ج.م` : 'توصيل مجاني'}
             </span>
           </div>
 
@@ -329,10 +330,14 @@ export function StorefrontLiveCartDock({
                 color: '#c2410c',
                 fontWeight: 700,
                 marginTop: '4px',
-                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
               }}
             >
-              ⚠️ الحد الأدنى للطلب هو {minOrder} ج (متبقي {(minOrder - subtotal).toFixed(0)} ج)
+              <AlertTriangleIcon size={14} color="#c2410c" />
+              <span>الحد الأدنى للطلب هو {minOrder} ج (متبقي {(minOrder - subtotal).toFixed(0)} ج)</span>
             </div>
           )}
 

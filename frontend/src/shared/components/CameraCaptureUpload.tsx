@@ -104,7 +104,7 @@ export function CameraCaptureUpload({
                 onClick={handleClear}
                 aria-label="حذف المرفق"
               >
-                ✕ حذف
+                حذف
               </button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -270,9 +271,7 @@ function QuickProductModalContent({ isOpen, onClose, initialName = '', itemType,
               onClick={onClose}
               style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', width: '34px', height: '34px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '1rem', fontWeight: 700, transition: 'all 0.15s ease' }}
               title="إغلاق"
-            >
-              ✕
-            </button>
+            ><XIcon size={15} /></button>
           </div>
 
           {itemType === 'service' ? (

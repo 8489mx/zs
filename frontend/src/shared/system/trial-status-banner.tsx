@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
@@ -149,9 +150,7 @@ export function TrialStatusBanner() {
           onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.65')}
           aria-label="إغلاق"
-        >
-          ✕
-        </button>
+        ><XIcon size={15} /></button>
       </div>
     </div>
   );

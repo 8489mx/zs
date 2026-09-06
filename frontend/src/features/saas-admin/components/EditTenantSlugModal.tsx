@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -65,9 +66,7 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
               تعديل الرابط الفريد لنشاط: {tenant.businessName || tenant.ownerName}
             </p>
           </div>
-          <button type="button" className="dialog-shell-close-btn" onClick={onClose} title="إغلاق">
-            ✕
-          </button>
+          <button type="button" className="dialog-shell-close-btn" onClick={onClose} title="إغلاق"><XIcon size={15} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -119,7 +118,7 @@ export function EditTenantSlugModal({ tenant, onClose, onSuccess }: EditTenantSl
         )}
 
         <div className="p-3 bg-amber-50 text-amber-800 text-xs rounded-xl border border-amber-200 leading-relaxed">
-          ⚠️ <strong>تنبيه:</strong> تغيير المعرّف سيؤدي إلى تغيير رابط المتجر الإلكتروني للعميل فوراً. أي روابط قديمة أرسلها العميل لزبائنه ستحتاج إلى التحديث للرابط الجديد.
+          <strong>تنبيه:</strong> تغيير المعرّف سيؤدي إلى تغيير رابط المتجر الإلكتروني للعميل فوراً. أي روابط قديمة أرسلها العميل لزبائنه ستحتاج إلى التحديث للرابط الجديد.
         </div>
 
         <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">

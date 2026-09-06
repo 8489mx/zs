@@ -208,7 +208,7 @@ export function OfflineReleasesPage() {
                             disabled={promoteMutation.isPending}
                             onClick={() => promoteMutation.mutate(release.id)}
                           >
-                            ✓ اعتماد كنسخة مستقرة
+                            اعتماد كنسخة مستقرة
                           </Button>
                         )}
                         {release.isActive && (

@@ -113,7 +113,7 @@ export function FeatureGate({
               cursor: 'pointer',
             }}
           >
-            ⭐ ترقية الباقة الآن
+            ترقية الباقة الآن
           </Button>
         </Link>
         <Link to="/dashboard">

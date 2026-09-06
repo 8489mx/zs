@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 
@@ -104,9 +105,7 @@ export function StorefrontCartDrawer({
               color: '#64748b',
               fontSize: '16px',
             }}
-          >
-            ✕
-          </button>
+          ><XIcon size={15} /></button>
         </div>
 
         {/* Drawer Body: Cart Items */}

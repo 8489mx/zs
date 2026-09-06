@@ -6,6 +6,7 @@ import { ConvertDeliveryModal } from '@/features/storefront/components/ConvertDe
 import { loadOnlineOrderIntoPosCart } from '@/features/storefront/lib/storefront-pos-loader';
 import type { OnlineOrderRecord } from '@/features/storefront/types/storefront.types';
 import { Button } from '@/shared/ui/button';
+import { CheckCircleIcon, XIcon } from '@/shared/components/icons/AppIcons';
 
 interface PosOnlineOrdersModalProps {
   isOpen: boolean;
@@ -119,7 +120,7 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
               fontWeight: 700,
             }}
           >
-            ✕
+            <XIcon size={16} />
           </button>
         </div>
 
@@ -131,7 +132,9 @@ export function PosOnlineOrdersModal({ isOpen, onClose }: PosOnlineOrdersModalPr
             </div>
           ) : orders.length === 0 ? (
             <div style={{ padding: '50px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '36px', marginBottom: '10px' }}>✨</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                <CheckCircleIcon size={38} color="#10b981" />
+              </div>
               <h4 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
                 لا توجد أوردرات جديدة معلقة
               </h4>

@@ -1,3 +1,4 @@
+import { CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { OnlineOrderRecord, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontCustomerOrderCard } from './StorefrontCustomerOrderCard';
 
@@ -59,7 +60,7 @@ export function StorefrontOrderDateGroupCard({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '15px' }}>📅</span>
+          <CalendarIcon size={15} color="#170e5e" />
           <span style={{ fontWeight: 800, fontSize: '13.5px', color: '#0f172a' }}>
             {group.label}
           </span>

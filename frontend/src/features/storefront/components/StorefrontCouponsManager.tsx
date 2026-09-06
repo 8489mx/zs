@@ -2,6 +2,15 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { StorefrontCoupon, CreateCouponPayload } from '../types/storefront.types';
+import {
+  TagIcon,
+  SparklesIcon,
+  ShoppingCartIcon,
+  CopyIcon,
+  CheckIcon,
+  TruckIcon,
+  XIcon,
+} from '@/shared/components/icons/AppIcons';
 
 export function StorefrontCouponsManager() {
   const queryClient = useQueryClient();
@@ -171,7 +180,7 @@ export function StorefrontCouponsManager() {
               {coupons.length}
             </div>
           </div>
-          <span style={{ fontSize: '24px' }}>🏷️</span>
+          <TagIcon size={24} color="#170e5e" />
         </div>
 
         {/* Stat 2: Active Coupons */}
@@ -193,7 +202,7 @@ export function StorefrontCouponsManager() {
               {activeCount}
             </div>
           </div>
-          <span style={{ fontSize: '24px' }}>⚡</span>
+          <SparklesIcon size={24} color="#15803d" />
         </div>
 
         {/* Stat 3: Total Orders Used */}
@@ -215,7 +224,7 @@ export function StorefrontCouponsManager() {
               {totalUses}
             </div>
           </div>
-          <span style={{ fontSize: '24px' }}>🛒</span>
+          <ShoppingCartIcon size={24} color="#170e5e" />
         </div>
       </div>
 
@@ -282,7 +291,9 @@ export function StorefrontCouponsManager() {
           </div>
         ) : coupons.length === 0 ? (
           <div style={{ padding: '48px 20px', textAlign: 'center', color: '#64748b' }}>
-            <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}>🏷️</span>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+              <TagIcon size={40} color="#94a3b8" />
+            </div>
             <h4 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
               لا توجد كوبونات خصم حالياً
             </h4>
@@ -363,9 +374,19 @@ export function StorefrontCouponsManager() {
                               fontSize: '12px',
                               color: copiedCode === coupon.code ? '#16a34a' : '#64748b',
                               padding: '2px 4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
                             }}
                           >
-                            {copiedCode === coupon.code ? '✓ منسوخ' : '📋'}
+                            {copiedCode === coupon.code ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: '#16a34a', fontSize: '11px', fontWeight: 700 }}>
+                                <CheckIcon size={12} color="#16a34a" />
+                                <span>منسوخ</span>
+                              </span>
+                            ) : (
+                              <CopyIcon size={13} color="#64748b" />
+                            )}
                           </button>
                         </div>
                       </td>
@@ -383,8 +404,9 @@ export function StorefrontCouponsManager() {
                           </span>
                         )}
                         {coupon.discountType === 'free_shipping' && (
-                          <span style={{ color: '#6d28d9', background: '#ede9fe', padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700 }}>
-                            شحن مجاني 🚚
+                          <span style={{ color: '#6d28d9', background: '#ede9fe', padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <TruckIcon size={12} color="#6d28d9" />
+                            <span>شحن مجاني</span>
                           </span>
                         )}
                       </td>
@@ -573,10 +595,9 @@ export function StorefrontCouponsManager() {
                   justifyContent: 'center',
                   cursor: 'pointer',
                   color: '#64748b',
-                  fontSize: '14px',
                 }}
               >
-                ✕
+                <XIcon size={14} />
               </button>
             </div>
 
@@ -679,9 +700,14 @@ export function StorefrontCouponsManager() {
                         border: formDiscountType === 'free_shipping' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
                         background: formDiscountType === 'free_shipping' ? '#f0f3ff' : '#ffffff',
                         color: formDiscountType === 'free_shipping' ? '#170e5e' : '#475569',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
                       }}
                     >
-                      شحن مجاني 🚚
+                      <TruckIcon size={13} color={formDiscountType === 'free_shipping' ? '#170e5e' : '#475569'} />
+                      <span>شحن مجاني</span>
                     </button>
                   </div>
                 </div>

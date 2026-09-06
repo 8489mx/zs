@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import type { ProductRow } from './inventoryTree.types';
@@ -20,7 +21,7 @@ function ModalHeader({ title, onClose }: { title: string; onClose: () => void })
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
       <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>{title}</h2>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: 'var(--text-secondary, #666)' }}>✕</button>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: 'var(--text-secondary, #666)' }}><XIcon size={15} /></button>
     </div>
   );
 }

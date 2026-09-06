@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { AlertTriangleIcon , XIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { pharmacyApi, MasterDrugItem } from '../api/pharmacy.api';
 import { IconSparkles, IconSearch, IconCheck } from './PharmacyIcons';
@@ -120,9 +120,7 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
               type="button"
               onClick={onClose}
               style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
-            >
-              ✕
-            </button>
+            ><XIcon size={16} /></button>
           </div>
         </div>
 

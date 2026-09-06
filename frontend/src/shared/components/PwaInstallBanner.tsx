@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SmartphoneIcon } from '@/shared/components/icons/AppIcons';
+import { SmartphoneIcon , XIcon } from '@/shared/components/icons/AppIcons';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -158,9 +158,7 @@ export function PwaInstallBanner() {
             padding: '4px',
             lineHeight: 1,
           }}
-        >
-          ✕
-        </button>
+        ><XIcon size={15} /></button>
       </div>
 
       {showIOSTip && (

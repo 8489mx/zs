@@ -1,3 +1,4 @@
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation,  } from '@tanstack/react-query';
 import { http } from '@/lib/http';
@@ -249,9 +250,7 @@ export function DeveloperActivationPanel() {
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#f1f5f9'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; }}
-          >
-            ✕
-          </button>
+          ><XIcon size={15} /></button>
         </div>
 
         {/* Alerts */}

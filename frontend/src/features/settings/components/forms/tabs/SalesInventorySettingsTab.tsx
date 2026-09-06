@@ -1,3 +1,4 @@
+import { LightbulbIcon } from '@/shared/components/icons/AppIcons';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
@@ -889,7 +890,7 @@ export function SalesInventorySettingsTab({
             gap: '12px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>💡</span>
+              <LightbulbIcon size={18} color="#2563eb" />
               <span style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 700 }}>
                 معاينة حية للمحرك: مشتريات بقيمة <strong>1,000 ج.م</strong> تمنح العميل{' '}
                 <strong style={{ color: '#6d28d9' }}>

@@ -6,7 +6,7 @@ import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { useAuthStore } from '@/stores/auth-store';
-import { Trash2Icon } from '@/shared/components/icons/AppIcons';
+import { Trash2Icon , XIcon } from '@/shared/components/icons/AppIcons';
 
 export function QuotationsPage() {
   const queryClient = useQueryClient();
@@ -457,9 +457,7 @@ export function QuotationsPage() {
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
                 style={{ background: 'transparent', border: 'none', fontSize: '18px', color: '#64748b', cursor: 'pointer', padding: '4px 8px' }}
-              >
-                ✕
-              </button>
+              ><XIcon size={15} /></button>
             </div>
 
             {/* Customer Details */}
@@ -579,9 +577,7 @@ export function QuotationsPage() {
                               type="button"
                               onClick={() => handleRemoveItem(idx)}
                               style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }}
-                            >
-                              ✕
-                            </button>
+                            ><XIcon size={15} /></button>
                           )}
                         </td>
                       </tr>
