@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Inject, ServiceUnavailableException } from '@nestjs/common';
+import { Controller, Get, Post, Inject, ServiceUnavailableException, UseGuards } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { DatabaseMaintenanceService } from './db-maintenance.service';
 import { TelegramAlertsService } from '../alerts/telegram-alerts.service';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
+import { SuperAdminRoleGuard } from '../auth/guards/super-admin-role.guard';
 
 type HealthPayload = {
   status: string;
@@ -141,6 +143,7 @@ export class HealthController {
   }
 
   @Post('optimize-db')
+  @UseGuards(SessionAuthGuard, SuperAdminRoleGuard)
   async runDatabaseOptimization(): Promise<Record<string, unknown>> {
     try {
       const results = await this.maintenanceService.runFullOptimization();

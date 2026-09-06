@@ -6,7 +6,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
 import { useAuthStore } from '@/stores/auth-store';
-import { isDesktopOfflineApp } from '@/app/router/access';
+import { isDesktopOfflineApp, isPlatformAdmin } from '@/app/router/access';
 
 const AVAILABLE_FEATURES = [
   // 1. الباقة الأساسية (4 ميزات)
@@ -63,7 +63,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
 export function DeveloperActivationPanel() {
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = isPlatformAdmin(user);
   const [open, setOpen] = useState(false);
   
   const [masterPassword, setMasterPassword] = useState('');
@@ -82,10 +82,10 @@ export function DeveloperActivationPanel() {
     }
   }, [open, tenant]);
 
-  // Listen for Ctrl+Alt+Shift+L (Exclusively for Super Admin)
+  // Listen for Ctrl+Alt+Shift+L (Exclusively for Platform Super Admin)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (user?.role !== 'super_admin') return;
+      if (!isPlatformAdmin(user)) return;
       if (e.ctrlKey && e.altKey && e.shiftKey && (e.code === 'KeyL' || e.key.toLowerCase() === 'l')) {
         e.preventDefault();
         e.stopPropagation();
@@ -94,7 +94,7 @@ export function DeveloperActivationPanel() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [user?.role]);
+  }, [user]);
 
   const featurePlansQuery = useQuery({
     queryKey: ['developer-feature-plans'],

@@ -13,6 +13,7 @@ import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenant
 import { TrialTenantProvisioningService } from './trial-tenant-provisioning.service';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
+import { SettingsDemoDataService } from '../settings/services/settings-demo-data.service';
 
 type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
 
@@ -24,6 +25,7 @@ export class SaasAdminService {
     private readonly provisioning: TrialTenantProvisioningService,
     private readonly configService: ConfigService,
     private readonly sessionService: SessionService,
+    private readonly demoDataService: SettingsDemoDataService,
     private readonly authCache: AuthCacheService = new AuthCacheService(),
   ) {}
 
@@ -1083,6 +1085,24 @@ export class SaasAdminService {
 
   async buildLoginPayload(auth: AuthContext): Promise<Record<string, unknown>> {
     return this.sessionService.buildLoginPayload(auth);
+  }
+
+  async seedTenantDemo(
+    tenantId: string,
+    body: { activityType?: string; wipeExisting?: boolean; seedSales?: boolean; seedOnlineOrders?: boolean },
+    auth: AuthContext,
+  ) {
+    this.assertPlatformAccess(auth);
+    const tenant = await this.getTenantForMutation(tenantId);
+    this.assertNotPlatformTenantTarget(tenant.id);
+    return this.demoDataService.seedTenantDemoData(tenant.id, body, auth);
+  }
+
+  async wipeTenantData(tenantId: string, superAdminPassword: string, auth: AuthContext) {
+    this.assertPlatformAccess(auth);
+    const tenant = await this.getTenantForMutation(tenantId);
+    this.assertNotPlatformTenantTarget(tenant.id);
+    return this.demoDataService.wipeTenantData(tenant.id, superAdminPassword, auth);
   }
 }
 

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { demoDataApi, type SeedDemoDataResult } from '@/features/settings/api/demo-data.api';
 import { Button } from '@/shared/ui/button';
+import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 import {
   RocketIcon,
   PackageIcon,
@@ -41,10 +43,12 @@ function getActivityIcon(key: string, isSelected: boolean) {
 export function SettingsDemoDataWizardSection() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const isPlatform = isPlatformAdmin(user);
 
   // State
   const [selectedActivityKey, setSelectedActivityKey] = useState<string>('supermarket');
-  const [wipeExisting, setWipeExisting] = useState<boolean>(true);
+  const [wipeExisting, setWipeExisting] = useState<boolean>(isPlatform);
   const [seedSales, setSeedSales] = useState<boolean>(true);
   const [seedOnlineOrders, setSeedOnlineOrders] = useState<boolean>(true);
   const [password, setPassword] = useState<string>('');
@@ -119,6 +123,10 @@ export function SettingsDemoDataWizardSection() {
   // Handle Main Start Action
   const handleStartSeed = () => {
     setErrorMessage(null);
+    if (!isPlatform && status && !status.isEmpty) {
+      setErrorMessage('المتجر يحتوي على بيانات نشطة بالفعل. لتصفير المتجر والبدء الفعلي، يرجى مراجعة إدارة المنصة (السوبر أدمن).');
+      return;
+    }
     // If database is not empty and user requested wiping existing data, we must ask for password
     if (status && !status.isEmpty && wipeExisting) {
       setShowPasswordModal(true);
@@ -419,34 +427,36 @@ export function SettingsDemoDataWizardSection() {
             gap: '14px',
           }}
         >
-          {/* Option: Wipe Existing */}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '12px',
-              padding: '12px 14px',
-              borderRadius: '10px',
-              border: '1px solid #e2e8f0',
-              background: wipeExisting ? '#f8fafc' : '#ffffff',
-              cursor: 'pointer',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={wipeExisting}
-              onChange={(e) => setWipeExisting(e.target.checked)}
-              style={{ marginTop: '3px', accentColor: '#170e5e', width: '16px', height: '16px' }}
-            />
-            <div>
-              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>
-                تصفير البيانات السابقة واستبدالها بنظافة
-              </span>
-              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                ينصح به للمتاجر الجديدة للبدء ببيانات متسقة تماماً (يتطلب كلمة المرور في حال وجود أصناف سابقة).
-              </p>
-            </div>
-          </label>
+          {/* Option: Wipe Existing (Super Admin only) */}
+          {isPlatform && (
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                background: wipeExisting ? '#fef2f2' : '#ffffff',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={wipeExisting}
+                onChange={(e) => setWipeExisting(e.target.checked)}
+                style={{ marginTop: '3px', accentColor: '#dc2626', width: '16px', height: '16px' }}
+              />
+              <div>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#991b1b' }}>
+                  تصفير البيانات السابقة واستبدالها بنظافة (صلاحية السوبر أدمن)
+                </span>
+                <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                  يتطلب إدخال كلمة مرور السوبر أدمن لتأكيد تفريغ كافة البيانات القديمة للنسخة.
+                </p>
+              </div>
+            </label>
+          )}
 
           {/* Option: Historical Sales */}
           <label
@@ -507,55 +517,86 @@ export function SettingsDemoDataWizardSection() {
           </label>
         </div>
 
-        {/* Primary Action Button */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '14px',
-            borderTop: '1px solid #f1f5f9',
-            paddingTop: '18px',
-          }}
-        >
-          <div style={{ fontSize: '0.86rem', color: '#475569' }}>
-            النشاط المحدد: <strong style={{ color: '#170e5e' }}>{selectedActivity?.name || selectedActivityKey}</strong> ({(selectedActivity?.productCount ?? selectedActivity?.productsCount ?? 0)} صنفاً)
-          </div>
-
-          <Button
-            type="button"
-            disabled={seedMutation.isPending}
-            onClick={handleStartSeed}
+        {/* Primary Action Button or Active Store Notice */}
+        {!isPlatform && status && !status.isEmpty ? (
+          <div
             style={{
-              background: '#170e5e',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '0.96rem',
-              padding: '12px 28px',
-              borderRadius: '10px',
-              border: 'none',
-              cursor: 'pointer',
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: '12px',
+              padding: '14px 18px',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.25)',
-              transition: 'all 0.15s ease',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginTop: '12px',
             }}
           >
-            {seedMutation.isPending ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <RefreshCwIcon size={16} className="animate-spin" />
-                <span>جاري ملء النظام بالبيانات (5 ثوانٍ)...</span>
-              </span>
-            ) : (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <SparklesIcon size={16} />
-                <span>استيراد بيانات النشاط فورياً بنقرة واحدة</span>
-              </span>
-            )}
-          </Button>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', color: '#170e5e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldCheckIcon size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>
+                  المتجر قيد التشغيل الفعلي ويحتوي على بيانات مسجلة ({status.productCount} صنف و {status.saleCount} فاتورة)
+                </strong>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  لحماية بيانات متجرك من التداخل، تم قفل استيراد البيانات التجريبية. لتصفير المتجر وإعادته فارغاً للبدء الفعلي، يرجى التواصل مع إدارة المنصة (السوبر أدمن).
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '14px',
+              borderTop: '1px solid #f1f5f9',
+              paddingTop: '18px',
+            }}
+          >
+            <div style={{ fontSize: '0.86rem', color: '#475569' }}>
+              النشاط المحدد: <strong style={{ color: '#170e5e' }}>{selectedActivity?.name || selectedActivityKey}</strong> ({(selectedActivity?.productCount ?? selectedActivity?.productsCount ?? 0)} صنفاً)
+            </div>
+
+            <Button
+              type="button"
+              disabled={seedMutation.isPending}
+              onClick={handleStartSeed}
+              style={{
+                background: '#170e5e',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.96rem',
+                padding: '12px 28px',
+                borderRadius: '10px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 4px 14px rgba(23, 14, 94, 0.25)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {seedMutation.isPending ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <RefreshCwIcon size={16} className="animate-spin" />
+                  <span>جاري ملء النظام بالبيانات (5 ثوانٍ)...</span>
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <SparklesIcon size={16} />
+                  <span>استيراد بيانات النشاط فورياً بنقرة واحدة</span>
+                </span>
+              )}
+            </Button>
+          </div>
+        )}
 
         {errorMessage && (
           <div
@@ -574,58 +615,60 @@ export function SettingsDemoDataWizardSection() {
         )}
       </div>
 
-      {/* ─── Clean Demo Wipe & Safe Reset Zone ──────────────────────────────────── */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '16px',
-          padding: '22px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-        }}
-      >
-        <div>
-          <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-            تفريغ البيانات التجريبية وبدء العمل الفعلي (Clean Production Reset)
-          </h4>
-          <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b', maxWidth: '650px', lineHeight: 1.5 }}>
-            عند الانتهاء من تجربة وفحص النظام ورغبتك في بدء العمل الحقيقي، يمكنك مسح كافة الأصناف والفواتير التجريبية بأمان دون التأثير على إعداداتك أو مستخدميك.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowClearModal(true)}
+      {/* ─── Clean Demo Wipe & Safe Reset Zone (Super Admin only) ────────────────── */}
+      {isPlatform && (
+        <div
           style={{
-            background: '#fff1f2',
-            color: '#be123c',
-            border: '1px solid #fecdd3',
-            borderRadius: '10px',
-            padding: '10px 20px',
-            fontWeight: 800,
-            fontSize: '0.86rem',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            display: 'inline-flex',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '22px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+            display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '8px',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#ffe4e6';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#fff1f2';
+            flexWrap: 'wrap',
+            gap: '16px',
           }}
         >
-          <Trash2Icon size={16} />
-          <span>تفريغ ومسح البيانات التجريبية فقط</span>
-        </button>
-      </div>
+          <div>
+            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+              تفريغ البيانات التجريبية وبدء العمل الفعلي (Clean Production Reset)
+            </h4>
+            <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b', maxWidth: '650px', lineHeight: 1.5 }}>
+              عند الانتهاء من تجربة وفحص النظام ورغبتك في بدء العمل الحقيقي، يمكنك مسح كافة الأصناف والفواتير التجريبية بأمان دون التأثير على إعداداتك أو مستخدميك.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowClearModal(true)}
+            style={{
+              background: '#fff1f2',
+              color: '#be123c',
+              border: '1px solid #fecdd3',
+              borderRadius: '10px',
+              padding: '10px 20px',
+              fontWeight: 800,
+              fontSize: '0.86rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#ffe4e6';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#fff1f2';
+            }}
+          >
+            <Trash2Icon size={16} />
+            <span>تفريغ ومسح البيانات التجريبية فقط</span>
+          </button>
+        </div>
+      )}
 
       {/* ─── Modal: Confirmation Password when DB is not empty ──────────────────── */}
       {showPasswordModal && (
@@ -758,8 +801,8 @@ export function SettingsDemoDataWizardSection() {
         </div>
       )}
 
-      {/* ─── Modal: Clear Demo Data ─────────────────────────────────────────────── */}
-      {showClearModal && (
+      {/* ─── Modal: Clear Demo Data (Super Admin Only) ─────────────────────────── */}
+      {isPlatform && showClearModal && (
         <div
           style={{
             position: 'fixed',

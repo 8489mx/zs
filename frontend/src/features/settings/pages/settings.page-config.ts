@@ -14,7 +14,7 @@ const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: b
   { key: 'system-updates', label: 'الإصدارات والتحديثات', offlineOnly: true },
   { key: 'backup', label: 'النسخ والاستيراد' },
   { key: 'tax-integration', label: 'الضرائب والفاتورة الإلكترونية', adminOnly: true },
-  { key: 'monitoring', label: 'المراقبة ورصد السيرفر (APM)', adminOnly: true },
+  { key: 'monitoring', label: 'المراقبة ورصد السيرفر (APM)', superAdminOnly: true },
 ];
 
 export const settingsSections = allSections.filter(s => s.key !== 'lan-network' || (typeof window !== 'undefined' && !!(window as any).electronRuntime));

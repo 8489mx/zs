@@ -22,6 +22,8 @@ import { TenantSubscriptionsModal } from '../components/TenantSubscriptionsModal
 import { TenantWelcomeShareModal } from '../components/TenantWelcomeShareModal';
 import { TenantActionHubModal } from '../components/TenantActionHubModal';
 import { EditTenantSlugModal } from '../components/EditTenantSlugModal';
+import { SeedTenantDemoModal } from '../components/SeedTenantDemoModal';
+import { WipeTenantDataModal } from '../components/WipeTenantDataModal';
 import { XIcon } from '@/shared/components/icons/AppIcons';
 
 type TenantActionKey = 'activate' | 'suspend' | 'expire' | 'unlockOwner' | 'delete';
@@ -198,6 +200,8 @@ export function SaasTenantsPage() {
 
   const [detailsTenantId, setDetailsTenantId] = useState<string | null>(null);
   const [actionHubTenant, setActionHubTenant] = useState<SaasTenantRow | null>(null);
+  const [seedDemoTenant, setSeedDemoTenant] = useState<SaasTenantRow | null>(null);
+  const [wipeDataTenant, setWipeDataTenant] = useState<SaasTenantRow | null>(null);
 
   const plansQuery = useQuery({
     queryKey: ['saas-plans'],
@@ -1651,6 +1655,14 @@ export function SaasTenantsPage() {
               tenantActionMutation.mutate({ action: 'delete', tenantId: id });
             }
           }}
+          onSeedDemo={(r) => {
+            setActionHubTenant(null);
+            setSeedDemoTenant(r);
+          }}
+          onWipeData={(r) => {
+            setActionHubTenant(null);
+            setWipeDataTenant(r);
+          }}
         />
       )}
 
@@ -1661,6 +1673,28 @@ export function SaasTenantsPage() {
           onSuccess={(msg) => {
             setFeedback(msg);
             setEditingSlugTenant(null);
+          }}
+        />
+      )}
+
+      {seedDemoTenant && (
+        <SeedTenantDemoModal
+          tenant={seedDemoTenant}
+          onClose={() => setSeedDemoTenant(null)}
+          onSuccess={(msg) => {
+            setFeedback(msg);
+            setSeedDemoTenant(null);
+          }}
+        />
+      )}
+
+      {wipeDataTenant && (
+        <WipeTenantDataModal
+          tenant={wipeDataTenant}
+          onClose={() => setWipeDataTenant(null)}
+          onSuccess={(msg) => {
+            setFeedback(msg);
+            setWipeDataTenant(null);
           }}
         />
       )}

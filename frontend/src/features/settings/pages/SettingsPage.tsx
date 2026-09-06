@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { SettingsSectionContent } from '@/features/settings/pages/SettingsSectionContent';
 import { isSettingsSection, settingsSections, settingsStandaloneLinks, type SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
@@ -10,6 +11,8 @@ import { downloadSettingsTemplate, exportSettingsData, getSettingsSectionDescrip
 import { useSettingsPageController } from '@/features/settings/pages/useSettingsPageController';
 import type { BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
+import { demoDataApi } from '@/features/settings/api/demo-data.api';
 
 export function SettingsPage() {
   const { section } = useParams<{ section?: string }>();
@@ -25,11 +28,22 @@ export function SettingsPage() {
 
   const sectionConfig = settingsSections.find(s => s.key === section) || settingsStandaloneLinks.find(s => s.to.endsWith(section || ''));
   const deploymentMode = useAuthStore((state) => state.activationStatus?.deploymentMode);
+  const currentUser = useAuthStore((state) => state.user);
+
+  const demoStatusQuery = useQuery({
+    queryKey: ['demo-data', 'status'],
+    queryFn: () => demoDataApi.getStatus(),
+    staleTime: 30_000,
+    enabled: section === 'demo-data' && !isPlatformAdmin(currentUser),
+  });
   
   if (!isSettingsSection(section) && !sectionConfig) return <Navigate to="/settings/core" replace />;
-  if (sectionConfig?.superAdminOnly && page.currentUserRole !== 'super_admin') return <Navigate to="/settings/core" replace />;
+  if (sectionConfig?.superAdminOnly && !isPlatformAdmin(currentUser)) return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.adminOnly && page.currentUserRole !== 'super_admin' && page.currentUserRole !== 'admin') return <Navigate to="/settings/core" replace />;
   if (sectionConfig?.offlineOnly && deploymentMode !== 'desktop' && !import.meta.env.DEV) return <Navigate to="/settings/core" replace />;
+  if (resolvedSection === 'demo-data' && !isPlatformAdmin(currentUser) && demoStatusQuery.data && !demoStatusQuery.data.isEmpty) {
+    return <Navigate to="/settings/core" replace />;
+  }
 
   return (
     <SettingsPageShell

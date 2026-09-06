@@ -146,4 +146,22 @@ export class SaasAdminController {
       loginPayload: await this.service.buildLoginPayload(result.auth),
     };
   }
+
+  @Post('tenants/:id/seed-demo')
+  seedTenantDemo(
+    @Param('id') id: string,
+    @Body() body: { activityType?: string; wipeExisting?: boolean; seedSales?: boolean; seedOnlineOrders?: boolean },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.seedTenantDemo(id, body, req.authContext!);
+  }
+
+  @Post('tenants/:id/wipe-data')
+  wipeTenantData(
+    @Param('id') id: string,
+    @Body() body: { superAdminPassword?: string },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.service.wipeTenantData(id, body?.superAdminPassword || '', req.authContext!);
+  }
 }

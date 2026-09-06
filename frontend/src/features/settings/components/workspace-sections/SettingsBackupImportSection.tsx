@@ -6,6 +6,7 @@ import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench'
 import { SnapshotList, type BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import { settingsApi, type BackupConfigResponse } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 
 
 export interface BackupConfigQueryState {
@@ -357,7 +358,8 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
 
 function DemoDataSandboxCard() {
   const navigate = useNavigate();
-  const isSuperAdmin = useAuthStore((s) => s.user?.role === 'super_admin');
+  const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = isPlatformAdmin(user);
   const [modalMode, setModalMode] = useState<'seed' | 'wipe' | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -441,7 +443,7 @@ function DemoDataSandboxCard() {
                   </span>
                 ) : (
                   <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#334155', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
-                    سوبر أدمن فقط
+                    منصة الإدارة فقط
                   </span>
                 )}
                 <span style={{ fontSize: '0.72rem', background: '#f8fafc', color: '#64748b', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
@@ -829,7 +831,7 @@ export function SettingsBackupImportSection({
   onExportData,
 }: SettingsBackupImportSectionProps) {
   const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = isPlatformAdmin(user);
   const [isSnapshotsOpen, setIsSnapshotsOpen] = useState(false);
   const summaryPairs = formatSummaryPairs(backupResult);
   const resolvedFolder = backupFolderPathDraft || backupConfigQuery.data?.folderPath || backupConfigQuery.data?.defaultFolderPath || 'D:\\ZS Backups';
@@ -1058,7 +1060,7 @@ export function SettingsBackupImportSection({
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>استعادة من ملف</span>
                     <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                      خاص بالسوبر أدمن
+                      خاص بمنصة الإدارة
                     </span>
                   </div>
                 )}
@@ -1112,11 +1114,11 @@ export function SettingsBackupImportSection({
       {/* Cloud S3 Backup Card */}
       <CloudBackupSettingsCard canManage={canManageBackups} />
 
-      {/* Demo Data Engine & Factory Reset Card (Super Admin only) */}
+      {/* Demo Data Engine & Factory Reset Card */}
       <DemoDataSandboxCard />
 
-      {/* Database Maintenance Strip */}
-      <DatabaseOptimizationCard canManage={canManageBackups} />
+      {/* Database Maintenance Strip (Platform Admin only) */}
+      {isSuperAdmin && <DatabaseOptimizationCard canManage={canManageBackups} />}
 
       {/* Import / Export Workbench 2x2 Grid */}
       <QueryCard

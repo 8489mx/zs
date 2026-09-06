@@ -148,7 +148,7 @@ export function SettingsTelegramAlertsSection() {
             {metrics?.environment || 'production'}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
-            إصدار النواة: {metrics?.nodeVersion || process.version || 'v20+'}
+            إصدار النواة: {metrics?.nodeVersion || 'v20+'}
           </div>
         </div>
       </div>

@@ -80,6 +80,7 @@ export class SettingsAdminController {
   }
 
   @Post('demo-data/clear')
+  @UseGuards(SuperAdminRoleGuard)
   clearDemoData(@Body() body: { password?: string }, @Req() req: RequestWithAuth) {
     return this.demoDataService.clearDemoData(body?.password || '', req.authContext!);
   }

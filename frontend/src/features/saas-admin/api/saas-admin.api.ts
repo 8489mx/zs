@@ -173,5 +173,17 @@ export const saasAdminApi = {
     http<{ success: boolean; message: string }>(`/api/saas-admin/diagnostics/${id}`, {
       method: 'DELETE',
     }),
+
+  // ─── Tenant Data Lifecycle ───────────────────────────────────────────────
+  seedTenantDemo: (id: string, payload: { activityType: string; wipeExisting?: boolean; seedSales?: boolean; seedOnlineOrders?: boolean }) =>
+    http<{ ok: boolean; message: string; activity?: string; productsCount?: number; salesCount?: number; onlineOrdersCount?: number }>(
+      `/api/saas-admin/tenants/${encodeURIComponent(id)}/seed-demo`,
+      { method: 'POST', body: JSON.stringify(payload) },
+    ),
+  wipeTenantData: (id: string, payload: { superAdminPassword: string }) =>
+    http<{ ok: boolean; message: string }>(
+      `/api/saas-admin/tenants/${encodeURIComponent(id)}/wipe-data`,
+      { method: 'POST', body: JSON.stringify(payload) },
+    ),
 };
 

@@ -51,7 +51,7 @@ import { AiCopilotModule } from '../ai-copilot/ai-copilot.module';
     WhatsAppGatewayService,
     DailyDigestService,
   ],
-  exports: [SettingsService, WhatsAppGatewayService, DailyDigestService, CloudBackupService, SettingsSupportService],
+  exports: [SettingsService, WhatsAppGatewayService, DailyDigestService, CloudBackupService, SettingsSupportService, SettingsDemoDataService],
 })
 export class SettingsModule {}
 
