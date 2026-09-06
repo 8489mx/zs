@@ -378,15 +378,19 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  fontSize: '11.5px',
+                  gap: '6px',
+                  fontSize: '11px',
                   color: '#059669',
                   fontWeight: 700,
                   lineHeight: '1.2',
                 }}
               >
                 <span style={{ fontSize: '8px', lineHeight: 1, color: '#10b981' }}>●</span>
-                <span>متصل بقاعدة بيانات منشأتك مباشرة</span>
+                <span>متصل بالبيانات الحية</span>
+                <span style={{ color: '#cbd5e1' }}>|</span>
+                <span style={{ background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '4px', fontSize: '10.5px' }}>
+                  ⚡ مدعوم بـ Google Gemini Flash
+                </span>
               </div>
             </div>
           </div>

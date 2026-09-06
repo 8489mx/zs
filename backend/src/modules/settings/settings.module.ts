@@ -15,12 +15,14 @@ import { OfflineReleasesAdminController,
     OfflineUpdatesProtectedController } from './controllers/offline-releases.controller';
 import { OfflineReleasesService } from './services/offline-releases.service';
 
-import { WhatsAppGatewayController } from './controllers/whatsapp-gateway.controller';
+import { WhatsAppGatewayController, WhatsAppPublicWebhookController } from './controllers/whatsapp-gateway.controller';
 import { WhatsAppGatewayService } from './services/whatsapp-gateway.service';
 import { CloudBackupService } from './services/cloud-backup.service';
 import { DiagnosticsSchedulerService } from './services/diagnostics-scheduler.service';
+import { AiCopilotModule } from '../ai-copilot/ai-copilot.module';
 
 @Module({
+  imports: [AiCopilotModule],
   controllers: [
     SettingsController,
     SettingsAdminController,
@@ -28,6 +30,7 @@ import { DiagnosticsSchedulerService } from './services/diagnostics-scheduler.se
     SettingsSupportController,
     SettingsImportController,
     WhatsAppGatewayController,
+    WhatsAppPublicWebhookController,
     OfflineReleasesAdminController,
     OfflineUpdatesPublicController,
     OfflineUpdatesProtectedController,

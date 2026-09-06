@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../../database/kysely';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { AiCopilotService } from '../../ai-copilot/ai-copilot.service';
 
 export interface WhatsAppConfig {
   enabled: boolean;
@@ -14,12 +15,17 @@ export interface WhatsAppConfig {
   autoSendInvoice: boolean;
   autoSendOnlineOrder: boolean;
   invoiceTemplate?: string;
+  aiBotEnabled?: boolean;
+  aiBotPrompt?: string;
+  aiBotWelcomeMessage?: string;
+  aiBotOffHoursOnly?: boolean;
 }
 
 @Injectable()
 export class WhatsAppGatewayService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly aiCopilotService: AiCopilotService,
   ) {}
 
   async getConfig(actor: AuthContext): Promise<WhatsAppConfig> {
@@ -50,6 +56,10 @@ export class WhatsAppGatewayService {
       autoSendOnlineOrder: map.get('whatsapp_gateway_auto_order') === true,
       invoiceTemplate: map.get('whatsapp_gateway_invoice_template') ||
         'مرحباً بك يا {customerName} في {businessName}، يسعدنا تسوقك معنا! يمكنك استعراض فاتورتك رقم #{invoiceNo} بقيمة {totalAmount} ج.م عبر الرابط التالي: {invoiceLink}',
+      aiBotEnabled: map.get('whatsapp_gateway_ai_bot_enabled') === true,
+      aiBotPrompt: map.get('whatsapp_gateway_ai_bot_prompt') || '',
+      aiBotWelcomeMessage: map.get('whatsapp_gateway_ai_bot_welcome') || '',
+      aiBotOffHoursOnly: map.get('whatsapp_gateway_ai_bot_off_hours') === true,
     };
   }
 
@@ -67,6 +77,10 @@ export class WhatsAppGatewayService {
     if (payload.autoSendInvoice !== undefined) updates.push({ key: 'whatsapp_gateway_auto_invoice', val: payload.autoSendInvoice });
     if (payload.autoSendOnlineOrder !== undefined) updates.push({ key: 'whatsapp_gateway_auto_order', val: payload.autoSendOnlineOrder });
     if (payload.invoiceTemplate !== undefined) updates.push({ key: 'whatsapp_gateway_invoice_template', val: payload.invoiceTemplate });
+    if (payload.aiBotEnabled !== undefined) updates.push({ key: 'whatsapp_gateway_ai_bot_enabled', val: payload.aiBotEnabled });
+    if (payload.aiBotPrompt !== undefined) updates.push({ key: 'whatsapp_gateway_ai_bot_prompt', val: payload.aiBotPrompt });
+    if (payload.aiBotWelcomeMessage !== undefined) updates.push({ key: 'whatsapp_gateway_ai_bot_welcome', val: payload.aiBotWelcomeMessage });
+    if (payload.aiBotOffHoursOnly !== undefined) updates.push({ key: 'whatsapp_gateway_ai_bot_off_hours', val: payload.aiBotOffHoursOnly });
 
     for (const item of updates) {
       await sql`
@@ -366,5 +380,101 @@ export class WhatsAppGatewayService {
 
     void this.sendRawMessage(tenantId, merchantPhone, msg).catch(() => undefined);
     return { success: true };
+  }
+
+  async handleInboundWebhook(payload: any, queryTenantId?: string): Promise<{
+    handled: boolean;
+    reply?: string;
+    to?: string;
+    engine?: string;
+    message?: string;
+  }> {
+    let fromPhone = '';
+    let messageText = '';
+    let instanceId = '';
+
+    // 1. Detect provider payload structure
+    // UltraMsg format
+    if (payload?.event_type === 'message_received' && payload?.data) {
+      fromPhone = String(payload.data.from || '');
+      messageText = String(payload.data.body || '');
+      instanceId = String(payload.instanceId || '');
+    }
+    // GreenAPI format
+    else if (payload?.typeWebhook === 'incomingMessageReceived') {
+      messageText = String(payload?.messageData?.textMessageData?.textMessage || payload?.messageData?.extendedTextMessageData?.text || '');
+      fromPhone = String(payload?.senderData?.sender || '');
+      instanceId = String(payload?.instanceData?.idInstance || '');
+    }
+    // Meta Cloud API format
+    else if (payload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
+      const msg = payload.entry[0].changes[0].value.messages[0];
+      fromPhone = String(msg.from || '');
+      messageText = String(msg.text?.body || '');
+    }
+    // Generic direct / simulator format
+    else if (payload?.phone && (payload?.message || payload?.text || payload?.question)) {
+      fromPhone = String(payload.phone || '');
+      messageText = String(payload.message || payload.text || payload.question || '');
+    }
+
+    if (!messageText.trim() || !fromPhone.trim()) {
+      return { handled: false, message: 'لا توجد بيانات رسالة أو رقم هاتف في الطلب' };
+    }
+
+    fromPhone = fromPhone.replace('@c.us', '').replace('@s.whatsapp.net', '').replace(/[^0-9]/g, '');
+
+    // 2. Resolve Tenant
+    let resolvedTenantId = queryTenantId;
+    if (!resolvedTenantId && instanceId) {
+      const setting = await this.db
+        .selectFrom('settings')
+        .select('tenant_id')
+        .where('key', '=', 'whatsapp_gateway_instance_id')
+        .where(sql`value::text`, 'like', `%${instanceId}%`)
+        .executeTakeFirst();
+      if (setting?.tenant_id) {
+        resolvedTenantId = setting.tenant_id;
+      }
+    }
+
+    if (!resolvedTenantId) {
+      const firstActive = await this.db
+        .selectFrom('tenants')
+        .select('id')
+        .where('status', '=', 'active')
+        .limit(1)
+        .executeTakeFirst();
+      resolvedTenantId = firstActive?.id;
+    }
+
+    if (!resolvedTenantId) {
+      return { handled: false, message: 'تعذر تحديد حساب المنشأة' };
+    }
+
+    // 3. Check if bot is enabled
+    const cfg = await this.getRawConfig(resolvedTenantId);
+    if (!cfg.whatsapp_gateway_ai_bot_enabled) {
+      return { handled: false, message: 'بوت الذكاء الاصطناعي التفاعلي غير مفعل في إعدادات المنشأة' };
+    }
+
+    // 4. Generate AI reply
+    const botResult = await this.aiCopilotService.generateSalesBotReply({
+      question: messageText,
+      tenantId: resolvedTenantId,
+      customerPhone: fromPhone,
+    });
+
+    // 5. Send message back to customer via WhatsApp if valid phone and not simulated
+    if (botResult?.reply && fromPhone.length >= 8 && payload?.simulate !== true) {
+      void this.sendRawMessage(resolvedTenantId, fromPhone, botResult.reply).catch(() => undefined);
+    }
+
+    return {
+      handled: true,
+      reply: botResult.reply,
+      to: fromPhone,
+      engine: botResult.engine,
+    };
   }
 }

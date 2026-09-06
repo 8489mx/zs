@@ -342,8 +342,8 @@ export class AiCopilotService {
       topProductsMonth: topMonthlyRows.map((p) => ({ name: p.product_name, qty: Number(p.total_qty) })),
     };
 
-    // 2. Try Generative AI (Gemini) if API key is present
-    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.AI_COPILOT_API_KEY;
+    // 2. Try Generative AI (Gemini 1.5 Flash) if API key is present
+    const geminiApiKey = await this.getEffectiveGeminiApiKey(tenantId);
     if (geminiApiKey && geminiApiKey.trim()) {
       try {
         const llmResponse = await this.askGemini(question, snapshot, geminiApiKey.trim());
@@ -387,39 +387,65 @@ ${JSON.stringify(snapshot, null, 2)}
   "suggestedQuestions": ["سؤال 1", "سؤال 2", "سؤال 3"]
 }`;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const candidateModels = [
+      'gemini-3.6-flash',
+      'gemini-3.7-flash',
+      'gemini-3.8-flash',
+      'gemini-3.5-flash',
+      'gemini-flash-latest',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-2.0-flash-exp',
+      'gemini-1.5-flash',
+      'gemini-pro',
+    ];
 
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.3,
+    for (const model of candidateModels) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 7000);
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
           },
-        }),
-      });
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.3,
+            },
+          }),
+        });
 
-      if (!res.ok) return null;
-      const data = await res.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) return null;
+        if (!res.ok) {
+          if (res.status === 404) continue;
+          return null;
+        }
 
-      const parsed = JSON.parse(rawText);
-      return {
-        answer: parsed.answer || rawText,
-        suggestedQuestions: Array.isArray(parsed.suggestedQuestions) && parsed.suggestedQuestions.length > 0
-          ? parsed.suggestedQuestions
-          : ['مبيعات وأرباح اليوم', 'أكثر العملاء مديونية', 'الأصناف الحرجة في المخزن'],
-      };
-    } finally {
-      clearTimeout(timeout);
+        const data = await res.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) continue;
+
+        const parsed = JSON.parse(rawText);
+        return {
+          answer: parsed.answer || rawText,
+          suggestedQuestions: Array.isArray(parsed.suggestedQuestions) && parsed.suggestedQuestions.length > 0
+            ? parsed.suggestedQuestions
+            : ['مبيعات وأرباح اليوم', 'أكثر العملاء مديونية', 'الأصناف الحرجة في المخزن'],
+        };
+      } catch {
+        // try next candidate model
+      } finally {
+        clearTimeout(timeout);
+      }
     }
+    return null;
   }
 
   private runLocalAnalyticsEngine(q: string, s: any): CopilotResponse {
@@ -619,5 +645,426 @@ ${JSON.stringify(snapshot, null, 2)}
       metrics: s,
       engine: 'local_analytics',
     };
+  }
+
+  async getEffectiveGeminiApiKey(tenantId: string): Promise<string | null> {
+    try {
+      const row = await this.db
+        .selectFrom('settings')
+        .select('value')
+        .where('tenant_id', '=', tenantId)
+        .where('key', '=', 'gemini_api_key')
+        .executeTakeFirst();
+
+      if (row && row.value) {
+        let val: any = row.value;
+        try {
+          val = JSON.parse(val);
+        } catch {
+          // string
+        }
+        if (typeof val === 'string' && val.trim().length > 5) {
+          return val.trim();
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Failed to read tenant gemini key: ${err?.message || err}`);
+    }
+
+    const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.AI_COPILOT_API_KEY;
+    if (envKey && envKey.trim().length > 5) {
+      return envKey.trim();
+    }
+    return null;
+  }
+
+  async getConfig(actor: AuthContext): Promise<{
+    hasApiKey: boolean;
+    isCustomKey: boolean;
+    maskedKey: string;
+    engine: 'gemini_llm' | 'local_analytics';
+    model: string;
+  }> {
+    const { tenantId } = requireTenantScope(actor);
+    const customRow = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'gemini_api_key')
+      .executeTakeFirst();
+
+    let customKey: string | null = null;
+    if (customRow?.value) {
+      try {
+        customKey = JSON.parse(customRow.value);
+      } catch {
+        customKey = customRow.value;
+      }
+    }
+
+    const effectiveKey = await this.getEffectiveGeminiApiKey(tenantId);
+    const hasKey = !!(effectiveKey && effectiveKey.trim());
+    const isCustom = !!(customKey && typeof customKey === 'string' && customKey.trim().length > 5);
+
+    let masked = '';
+    if (effectiveKey && effectiveKey.length > 8) {
+      masked = `${effectiveKey.slice(0, 4)}••••${effectiveKey.slice(-4)}`;
+    }
+
+    return {
+      hasApiKey: hasKey,
+      isCustomKey: isCustom,
+      maskedKey: masked,
+      engine: hasKey ? 'gemini_llm' : 'local_analytics',
+      model: 'Google Gemini 3.6 Flash (المجاني الفائق)',
+    };
+  }
+
+  async saveConfig(payload: { geminiApiKey?: string }, actor: AuthContext): Promise<{ ok: boolean }> {
+    const { tenantId, accountId } = requireTenantScope(actor);
+    const keyVal = (payload.geminiApiKey || '').trim();
+
+    if (keyVal) {
+      await sql`
+        INSERT INTO settings (key, value, tenant_id, account_id)
+        VALUES ('gemini_api_key', ${JSON.stringify(keyVal)}, ${tenantId}, ${accountId})
+        ON CONFLICT (tenant_id, key)
+        DO UPDATE SET value = EXCLUDED.value, account_id = EXCLUDED.account_id
+      `.execute(this.db);
+    } else {
+      await this.db
+        .deleteFrom('settings')
+        .where('tenant_id', '=', tenantId)
+        .where('key', '=', 'gemini_api_key')
+        .execute();
+    }
+
+    return { ok: true };
+  }
+
+  async testGeminiKey(apiKey?: string, actor?: AuthContext): Promise<{ success: boolean; message: string; model?: string }> {
+    let keyToTest = (apiKey || '').trim();
+    if (!keyToTest && actor) {
+      const { tenantId } = requireTenantScope(actor);
+      keyToTest = (await this.getEffectiveGeminiApiKey(tenantId)) || '';
+    }
+
+    if (!keyToTest) {
+      return { success: false, message: 'لم يتم توفير مفتاح Gemini لاختباره' };
+    }
+
+    // 1. First, ask Google directly which models are active for this specific key
+    let detectedModel: string | null = null;
+    let listError: string | null = null;
+
+    for (const apiVer of ['v1beta', 'v1']) {
+      try {
+        const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models`, {
+          headers: { 'x-goog-api-key': keyToTest },
+        });
+
+        const listData = await listRes.json().catch(() => ({}));
+        if (listRes.ok && Array.isArray(listData?.models)) {
+          const flash = listData.models.find(
+            (m: any) =>
+              m.supportedGenerationMethods?.includes('generateContent') &&
+              (m.name?.includes('flash') || m.displayName?.toLowerCase()?.includes('flash')),
+          );
+          const anyGen = listData.models.find((m: any) => m.supportedGenerationMethods?.includes('generateContent'));
+          const chosen = flash || anyGen;
+          if (chosen?.name) {
+            detectedModel = chosen.name.replace(/^models\//, '');
+            break;
+          }
+        } else if (listData?.error?.message) {
+          listError = listData.error.message;
+        }
+      } catch (err: any) {
+        listError = err?.message || String(err);
+      }
+    }
+
+    // 2. Candidate models prioritizing high-performance active flash models
+    const candidateModels = [
+      'gemini-3.6-flash',
+      'gemini-3.7-flash',
+      'gemini-3.8-flash',
+      'gemini-3.5-flash',
+      'gemini-flash-latest',
+      ...(detectedModel ? [detectedModel] : []),
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash-8b',
+      'gemini-2.0-flash-exp',
+      'gemini-1.5-pro',
+      'gemini-1.5-flash',
+      'gemini-pro',
+    ];
+    const uniqueModels = Array.from(new Set(candidateModels));
+
+    let lastError = listError || '';
+
+    for (const model of uniqueModels) {
+      for (const apiVer of ['v1beta', 'v1']) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 7000);
+
+        try {
+          // Pass key in header (official standard for new AQ. keys)
+          const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': keyToTest,
+            },
+            signal: controller.signal,
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'Respond with OK' }] }],
+              generationConfig: { maxOutputTokens: 10 },
+            }),
+          });
+
+          if (res.ok) {
+            return {
+              success: true,
+              message: `تم الاتصال بنموذج Google (${model}) بنجاح وفاعلية!`,
+              model,
+            };
+          }
+
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData?.error?.message || `HTTP ${res.status}`;
+          lastError = errMsg;
+
+          if (errMsg.includes('API_KEY_SERVICE_BLOCKED')) {
+            return {
+              success: false,
+              message: 'المفتاح محظور (API_KEY_SERVICE_BLOCKED): يرجى في صفحة Google AI Studio الضغط على "Create API key in new project" لإنشاء مفتاح في مشروع جديد غير مقيد.',
+            };
+          }
+
+          if (res.status !== 404 && !errMsg.toLowerCase().includes('not found')) {
+            // Not a missing model error, move to next or return
+            break;
+          }
+        } catch (err: any) {
+          lastError = err?.message || String(err);
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+    }
+
+    return { success: false, message: `فشل الاتصال بجوجل: ${lastError}` };
+  }
+
+  async generateSalesBotReply(params: {
+    question: string;
+    tenantId: string;
+    customerPhone?: string;
+  }): Promise<{ reply: string; matchedProducts: any[]; engine: 'gemini_llm' | 'local_smart' }> {
+    const { question, tenantId } = params;
+    const q = (question || '').trim();
+
+    // 1. Get tenant business info
+    const tenant = await this.db
+      .selectFrom('tenants')
+      .select(['business_name', 'slug', 'custom_domain'])
+      .where('id', '=', tenantId)
+      .executeTakeFirst();
+
+    const businessName = tenant?.business_name || 'متجرنا';
+    const storefrontUrl = tenant?.custom_domain
+      ? `https://${tenant.custom_domain}`
+      : tenant?.slug
+        ? `https://zsystems.app/store/${tenant.slug}`
+        : undefined;
+
+    // 2. Read custom bot prompt & currency
+    const promptRow = await this.db
+      .selectFrom('settings')
+      .select('value')
+      .where('tenant_id', '=', tenantId)
+      .where('key', '=', 'whatsapp_gateway_ai_bot_prompt')
+      .executeTakeFirst();
+
+    let customPrompt = '';
+    if (promptRow?.value) {
+      try { customPrompt = JSON.parse(promptRow.value); } catch { customPrompt = promptRow.value; }
+    }
+
+    // 3. Fetch active catalog products
+    const rawProducts = await this.db
+      .selectFrom('products')
+      .select(['id', 'name', 'retail_price', 'stock_qty', 'color', 'size'])
+      .where('tenant_id', '=', tenantId)
+      .where('is_active', '=', true)
+      .orderBy('stock_qty', 'desc')
+      .limit(60)
+      .execute();
+
+    const products = rawProducts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: Number(p.retail_price || 0),
+      stock: Number(p.stock_qty || 0),
+      color: p.color,
+      size: p.size,
+    }));
+
+    // Find relevant matched products for frontend UI or metadata
+    const matchedProducts = products.filter((p) => {
+      const words = p.name.toLowerCase().split(/\s+/);
+      const qLower = q.toLowerCase();
+      return words.some((w) => w.length > 2 && qLower.includes(w)) || qLower.includes(p.name.toLowerCase());
+    });
+
+    const apiKey = await this.getEffectiveGeminiApiKey(tenantId);
+    if (apiKey) {
+      try {
+        const geminiReply = await this.askGeminiSalesBot(
+          q,
+          products,
+          {
+            name: businessName,
+            currency: 'ج.م',
+            storefrontUrl,
+            customPrompt,
+          },
+          apiKey,
+        );
+
+        if (geminiReply && geminiReply.trim()) {
+          return {
+            reply: geminiReply.trim(),
+            matchedProducts: matchedProducts.slice(0, 5),
+            engine: 'gemini_llm',
+          };
+        }
+      } catch (err: any) {
+        this.logger.warn(`Gemini sales bot failed, falling back to local: ${err?.message || err}`);
+      }
+    }
+
+    // Fallback to local smart sales responder
+    const localReply = this.runLocalSalesResponder(
+      q,
+      products,
+      {
+        name: businessName,
+        currency: 'ج.م',
+        storefrontUrl,
+      },
+    );
+
+    return {
+      reply: localReply,
+      matchedProducts: matchedProducts.slice(0, 5),
+      engine: 'local_smart',
+    };
+  }
+
+  private async askGeminiSalesBot(
+    customerMessage: string,
+    products: Array<{ name: string; price: number; stock: number; color?: string | null; size?: string | null }>,
+    businessInfo: { name: string; currency: string; storefrontUrl?: string; customPrompt?: string },
+    apiKey: string,
+  ): Promise<string | null> {
+    const catalogText = products.slice(0, 45).map((p, idx) =>
+      `${idx + 1}. ${p.name} | السعر: ${p.price} ${businessInfo.currency} | المتوفر بالمخزن: ${p.stock > 0 ? p.stock + ' قطعة' : 'غير متوفر حالياً'}${p.color ? ' | اللون: ' + p.color : ''}${p.size ? ' | المقاس: ' + p.size : ''}`
+    ).join('\n');
+
+    const prompt = `أنت المساعد الذكي لمبيعات وخدمة عملاء متجر "${businessInfo.name}".
+مهمتك: الرد على استفسار الزبون على تطبيق واتساب بأسلوب لطيف ومحترف باللهجة العربية/المصرية السلسة والمحترمة.
+
+قواعدك الصارمة:
+1. اعتمد فقط على قائمة المنتجات والأسعار المتاحة بالمخزن أدناه:
+${catalogText}
+
+2. إذا سأل العميل عن منتج متاح، اذكر سعره بدقة وتوفر المخزون، وشجعه على الشراء${businessInfo.storefrontUrl ? ` مع رابط المتجر: ${businessInfo.storefrontUrl}` : ''}.
+3. إذا سأل عن منتج غير موجود أو كميته 0، اعتذر بلطف ولباقة واقترح أقرب بديل إن وجد من القائمة.
+4. حافظ على ردود مختصرة ومناسبة للواتساب (بين 2 إلى 4 أسطر)، مريحة للقراءة وبإيموجيز لطيفة غير مبالغ فيها.
+5. لا تؤلف منتجات أو أسعار غير موجودة في القائمة.
+${businessInfo.customPrompt ? `تعليمات التاجر الإضافية: ${businessInfo.customPrompt}` : ''}
+
+رسالة العميل الواردة:
+"${customerMessage}"
+
+اكتب الرد النهائي الموجه للعميل مباشرة دون مقدمات أو شروحات إضافية.`;
+
+    const candidateModels = [
+      'gemini-3.6-flash',
+      'gemini-3.7-flash',
+      'gemini-3.8-flash',
+      'gemini-3.5-flash',
+      'gemini-flash-latest',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-2.0-flash-exp',
+      'gemini-1.5-flash',
+      'gemini-pro',
+    ];
+
+    for (const model of candidateModels) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.4,
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          if (res.status === 404) continue;
+          return null;
+        }
+
+        const data = await res.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) return rawText.trim();
+      } catch {
+        // try next
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    return null;
+  }
+
+  private runLocalSalesResponder(
+    customerMessage: string,
+    products: Array<{ name: string; price: number; stock: number }>,
+    businessInfo: { name: string; currency: string; storefrontUrl?: string },
+  ): string {
+    const q = (customerMessage || '').toLowerCase();
+    const matched = products.filter((p) => {
+      const words = p.name.toLowerCase().split(/\s+/);
+      return words.some((w) => w.length > 2 && q.includes(w)) || q.includes(p.name.toLowerCase());
+    });
+
+    if (matched.length > 0) {
+      const top = matched.slice(0, 3);
+      const itemsList = top
+        .map((p) => `• *${p.name}*: سعره ${p.price} ${businessInfo.currency} (${p.stock > 0 ? `متوفر ${p.stock} قطعة` : 'غير متوفر حالياً'})`)
+        .join('\n');
+      return `أهلاً بك يا فندم في ${businessInfo.name}! 🌟\n\nبخصوص استفسارك، إليك المنتجات المتوفرة:\n${itemsList}\n\n${businessInfo.storefrontUrl ? `تقدر تطلب أونلاين مباشرة عبر متجرنا: ${businessInfo.storefrontUrl}\n` : ''}لو محتاج أي مساعدة في الطلب أنا تحت أمرك!`;
+    }
+
+    return `أهلاً بك في ${businessInfo.name}! 🌟\nسعداء بتواصلك معنا. يمكنك استعراض كافة منتجاتنا وأحدث العروض والأسعار عبر المتجر:\n${businessInfo.storefrontUrl || 'متجرنا الإلكتروني'}\n\nأو يمكنك توضيح اسم الصنف المطلوب وسأوافيك بتفاصيله فوراً!`;
   }
 }

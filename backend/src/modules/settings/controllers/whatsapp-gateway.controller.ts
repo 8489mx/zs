@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
+import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { WhatsAppGatewayService, WhatsAppConfig } from '../services/whatsapp-gateway.service';
 
 @Controller('api/settings/whatsapp')
@@ -28,6 +29,19 @@ export class WhatsAppGatewayController {
     return this.whatsappService.sendTestMessage(phone, req.authContext!);
   }
 
+  @Post('simulate-bot')
+  @RequirePermissions('canManageSettings')
+  simulateBot(
+    @Body('question') question: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    const { tenantId } = requireTenantScope(req.authContext!);
+    return this.whatsappService.handleInboundWebhook(
+      { phone: '01000000000', question, simulate: true },
+      tenantId,
+    );
+  }
+
   @Post('send-invoice/:saleId')
   @RequirePermissions('sales')
   sendInvoice(
@@ -37,3 +51,24 @@ export class WhatsAppGatewayController {
     return this.whatsappService.sendInvoiceNotification(saleId, req.authContext!);
   }
 }
+
+@Controller('api/whatsapp')
+export class WhatsAppPublicWebhookController {
+  constructor(private readonly whatsappService: WhatsAppGatewayService) {}
+
+  @Get('webhook')
+  verifyWebhook(@Query('hub.challenge') challenge: string) {
+    return challenge || 'OK';
+  }
+
+  @Post('webhook')
+  handleWebhook(@Body() body: any, @Query('tenantId') tenantId?: string) {
+    return this.whatsappService.handleInboundWebhook(body, tenantId);
+  }
+
+  @Post('webhook/:tenantId')
+  handleTenantWebhook(@Param('tenantId') tenantId: string, @Body() body: any) {
+    return this.whatsappService.handleInboundWebhook(body, tenantId);
+  }
+}
+
