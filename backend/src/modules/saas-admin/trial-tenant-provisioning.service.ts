@@ -6,6 +6,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { DEFAULT_TRIAL_DAYS } from './trial.constants';
 import { formatBranchStockLocationName } from '../../common/utils/branch-stock.util';
+import { SUPER_ADMIN_PERMISSIONS } from '../../core/auth/constants/super-admin-permissions';
 
 export type TrialTenantProvisioningInput = {
   slug?: string;
@@ -142,35 +143,7 @@ export class TrialTenantProvisioningService {
   }
 
   private defaultPermissions(): string[] {
-    return [
-      'dashboard',
-      'products',
-      'sales',
-      'purchases',
-      'inventory',
-      'suppliers',
-      'customers',
-      'accounts',
-      'returns',
-      'reports',
-      'audit',
-      'treasury',
-      'services',
-      'settings',
-      'cashDrawer',
-      'canPrint',
-      'canDiscount',
-      'canEditPrice',
-      'canViewProfit',
-      'canDelete',
-      'canEditInvoices',
-      'canAdjustInventory',
-      'canManageBranchStock',
-      'canManageSettings',
-      'canManageUsers',
-      'canEditUsers',
-      'canManageBackups',
-    ];
+    return [...SUPER_ADMIN_PERMISSIONS];
   }
 
   private trialDaysRemaining(trialEndsAt: Date): number {
@@ -343,14 +316,14 @@ export class TrialTenantProvisioningService {
         .where('id', '=', branchId)
         .execute();
 
-      // 3. Create Super Admin User with default branch
+      // 3. Create Tenant Admin User with default branch
       const user = await trx
         .insertInto('users')
         .values({
           username,
           password_hash: passwordRecord.hash,
           password_salt: passwordRecord.salt,
-          role: 'super_admin',
+          role: 'admin',
           is_active: true,
           permissions_json: JSON.stringify(this.defaultPermissions()),
           default_branch_id: branchId,

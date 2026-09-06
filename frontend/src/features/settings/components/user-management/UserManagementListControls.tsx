@@ -2,6 +2,8 @@ import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { USER_ROLE_TEMPLATES } from '@/features/settings/components/user-management.shared';
 import type { UserBulkAction } from '@/features/settings/hooks/useUserManagementController';
+import { isPlatformAdmin } from '@/app/router/access';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function UserManagementQuickActions({
   setupMode,
@@ -125,11 +127,13 @@ export function UserManagementStatsFilters({
   onUserSearchChange: (value: string) => void;
   onUserFilterChange: (value: 'all' | 'super-admins' | 'admins' | 'cashiers' | 'inactive' | 'locked') => void;
 }) {
+  const isPlatform = isPlatformAdmin(useAuthStore.getState().user);
+
   return (
     <>
       <div className="stats-grid settings-users-stats-grid" style={{ marginBottom: 8 }}>
         <div className="stat-card"><span>الإجمالي</span><strong>{summary.totalItems}</strong></div>
-        <div className="stat-card"><span>السوبر أدمن</span><strong>{summary.superAdmins}</strong></div>
+        {isPlatform ? <div className="stat-card"><span>السوبر أدمن</span><strong>{summary.superAdmins}</strong></div> : null}
         <div className="stat-card"><span>مديرو النظام</span><strong>{summary.admins}</strong></div>
         <div className="stat-card"><span>الكاشير</span><strong>{summary.cashiers}</strong></div>
         <div className="stat-card"><span>الموقوفون</span><strong>{summary.inactive}</strong></div>
@@ -141,7 +145,7 @@ export function UserManagementStatsFilters({
         <div className="filter-chip-row" style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
           {[
             ['all', 'الكل'],
-            ['super-admins', 'السوبر أدمن'],
+            ...(isPlatform ? [['super-admins', 'السوبر أدمن']] : []),
             ['admins', 'مديرو النظام'],
             ['cashiers', 'الكاشير'],
             ['inactive', 'الموقوفون'],

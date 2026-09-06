@@ -3,6 +3,8 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { PASSWORD_MIN_LENGTH_HINT } from '@/config/security';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { formatDateTime } from '@/features/settings/components/user-management.shared';
+import { isPlatformAdmin } from '@/app/router/access';
+import { useAuthStore } from '@/stores/auth-store';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -140,7 +142,7 @@ export function UserManagementEditorCard({
           >
             <option value="cashier">كاشير (مستخدم مبيعات وتشغيل)</option>
             <option value="admin">مدير / مالك المنشأة (كامل صلاحيات المنشأة)</option>
-            {currentUserRole === 'super_admin' ? <option value="super_admin">سوبر أدمن (إدارة المنصة المركزية)</option> : null}
+            {isPlatformAdmin(useAuthStore.getState().user) ? <option value="super_admin">سوبر أدمن (إدارة المنصة المركزية)</option> : null}
           </select>
         </div>
 

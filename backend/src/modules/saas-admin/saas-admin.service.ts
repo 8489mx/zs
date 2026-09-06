@@ -31,14 +31,10 @@ export class SaasAdminService {
     if (auth.role !== 'super_admin') {
       throw new ForbiddenException('غير مسموح: هذه الشاشة مخصصة لمسؤول المنصة فقط.');
     }
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || '').trim();
+    const platformTenantId = this.getPlatformTenantId();
     const tenantId = String(auth.tenantId || '').trim();
-    
-    if (process.env.NODE_ENV !== 'production' || !platformTenantId) {
-      return;
-    }
 
-    const isAllowedTenant = tenantId === 'default' || tenantId === platformTenantId || tenantId === 'dev-tenant';
+    const isAllowedTenant = tenantId === 'default' || tenantId === 'dev-tenant' || (platformTenantId && tenantId === platformTenantId);
     if (!tenantId || !isAllowedTenant) {
       throw new ForbiddenException('غير مسموح: هذه الشاشة مخصصة لمسؤول المنصة فقط.');
     }
@@ -273,7 +269,7 @@ export class SaasAdminService {
       .selectFrom('users')
       .select(['id', 'username', 'last_login_at'])
       .where('tenant_id', '=', tenantId)
-      .where('role', '=', 'super_admin')
+      .where('role', 'in', ['admin', 'super_admin'])
       .orderBy('created_at', 'asc')
       .executeTakeFirst();
 

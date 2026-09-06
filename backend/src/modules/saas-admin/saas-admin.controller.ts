@@ -1,12 +1,13 @@
 import { Body, Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
+import { SuperAdminRoleGuard } from '../../core/auth/guards/super-admin-role.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { ActivateTenantDto, CreateTrialTenantDto, ExtendTrialDto, ListSaasTenantsQueryDto, ResetOwnerPasswordDto, TenantStatusActionDto, RenewTenantDto, CreateSaasPlanDto, UpdateSaasPlanDto, RecordPaymentDto, UpdateTenantPlanDto, UpdateTenantSlugDto } from './dto/saas-admin.dto';
 import { SaasAdminService } from './saas-admin.service';
 
 @Controller('api/saas-admin')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, SuperAdminRoleGuard)
 export class SaasAdminController {
   constructor(private readonly service: SaasAdminService) {}
 

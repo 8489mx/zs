@@ -188,7 +188,7 @@ async function main() {
       `INSERT INTO users
        (username, password_hash, password_salt, role, is_active, permissions_json, default_branch_id, display_name, failed_login_count, locked_until, last_login_at, must_change_password, tenant_id, account_id)
        VALUES
-       ($1, $2, $3, 'super_admin', true, $4, NULL, $5, 0, NULL, NULL, true, $6, $7)`,
+       ($1, $2, $3, 'admin', true, $4, NULL, $5, 0, NULL, NULL, true, $6, $7)`,
       [username, passwordRecord.hash, passwordRecord.salt, defaultPermissions(), ownerName, tenantId, accountId],
     );
 

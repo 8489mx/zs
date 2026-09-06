@@ -302,7 +302,7 @@ export function isDesktopOfflineApp(): boolean {
 export function isPlatformAdmin(user: AuthUser | null | undefined) {
   if (isDesktopOfflineApp()) return false;
   if (!user) return false;
-  if (user.role === 'super_admin') return true;
+  if (user.role !== 'super_admin') return false;
 
   const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || 'default').trim();
   const tenantId = String(user?.tenantId || '').trim();
@@ -346,7 +346,7 @@ export function getRouteFeatureRequirement(target: string) {
 }
 
 export function hasRequiredFeature(target: string, user?: AuthUser | null): boolean {
-  if (user?.role === 'super_admin') return true;
+  if (isPlatformAdmin(user)) return true;
 
   const requiredFeature = getRouteFeatureRequirement(target);
   if (!requiredFeature) return true;
@@ -366,14 +366,14 @@ export function canAccessPath(user: AuthUser | null | undefined, target: string)
     if (isDesktopOfflineApp()) return false;
     return isPlatformAdmin(user);
   }
-  if (user?.role === 'super_admin') return true;
+  if (isPlatformAdmin(user)) return true;
   if (!hasRequiredFeature(target, user)) return false;
   return hasAnyPermission(user, getRoutePermissionRequirement(target));
 }
 
 export function canAccessNavigationItem(user: AuthUser | null | undefined, item: NavigationItemDefinition) {
   if (item.platformOnly) return isPlatformAdmin(user);
-  if (user?.role === 'super_admin') return true;
+  if (isPlatformAdmin(user)) return true;
   if (!hasRequiredFeature(item.to, user) || (item.key && !hasRequiredFeature(item.key, user))) return false;
   return hasAnyPermission(user, getRoutePermissionRequirement(item.key || item.to));
 }

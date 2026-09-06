@@ -11,10 +11,14 @@ export class SuperAdminRoleGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    if (auth.role !== 'super_admin') {
-      throw new ForbiddenException('Only SaaS Super Admin can access this resource');
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
+    const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(auth.tenantId || '').trim());
+
+    if (auth.role !== 'super_admin' || !isPlatformTenant) {
+      throw new ForbiddenException('Only SaaS Platform Super Admin can access this resource');
     }
 
     return true;
   }
 }
+

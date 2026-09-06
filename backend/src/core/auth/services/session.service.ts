@@ -202,12 +202,16 @@ export class SessionService {
     if (row.locked_until && row.locked_until > new Date()) return null;
     const tenantContext = this.resolveUserTenantContext(row);
     try { await this.assertTenantLoginAllowed(tenantContext.tenantId); } catch { return null; }
-    const permissions = row.role === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(row.permissions_json)])) : safeJsonArray(row.permissions_json);
-    const auth: AuthContext = { userId: row.user_id, sessionId: row.session_id, username: row.username, role: row.role, permissions, planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
+    const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
+    const effectiveRole = (row.role === 'super_admin' && !isPlatformTenant) ? 'admin' : row.role;
+    const permissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(row.permissions_json)])) : safeJsonArray(row.permissions_json);
+    const auth: AuthContext = { userId: row.user_id, sessionId: row.session_id, username: row.username, role: effectiveRole, permissions, planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
 
     // Cache the resolved auth context!
     this.authCache.setSession(sessionId, auth);
     return auth;
+
   }
 
   async authenticate(identifier: string, password: string, meta?: { ipAddress?: string; userAgent?: string }): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
@@ -245,7 +249,7 @@ export class SessionService {
         ])
         .where(sql<string>`LOWER(COALESCE(t.owner_email, ''))`, '=', normalized.toLowerCase())
         .where('u.is_active', '=', true)
-        .where('u.role', '=', 'super_admin')
+        .where('u.role', 'in', ['admin', 'super_admin'])
         .orderBy('u.id', 'asc')
         .execute();
 
@@ -301,9 +305,11 @@ export class SessionService {
       userSecurityUpdates.password_salt = upgradedPassword.salt;
     }
     await this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute();
-    await this.audit.log('تسجيل الدخول', `نجاح تسجيل الدخول للمستخدم ${user.username}`, { userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId }, { targetTenantId: tenantContext.tenantId });
-    const userPermissions = user.role === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : safeJsonArray(user.permissions_json);
-    return { sessionId, expiresAt, auth: { userId: user.id, sessionId, username: user.username, role: user.role, permissions: userPermissions, ...tenantContext } };
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
+    const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
+    const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : user.role;
+    const userPermissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : safeJsonArray(user.permissions_json);
+    return { sessionId, expiresAt, auth: { userId: user.id, sessionId, username: user.username, role: effectiveRole, permissions: userPermissions, ...tenantContext } };
   }
 
   async logout(sessionId: string, auth?: AuthContext): Promise<void> {
@@ -351,8 +357,12 @@ export class SessionService {
     const branchIds = branchRows.map((row) => String(row.branch_id || '').trim()).filter(Boolean);
     const defaultBranchId = user.default_branch_id ? String(user.default_branch_id) : '';
     if (defaultBranchId && !branchIds.includes(defaultBranchId)) branchIds.push(defaultBranchId);
-    const effectivePermissions = user.role === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : (safeJsonArray(user.permissions_json) || auth.permissions);
-    return { id: Number(user.id), username: String(user.username || auth.username), role: String(user.role || auth.role), permissions: effectivePermissions, displayName: String(user.display_name || user.username || auth.username), branchIds, defaultBranchId, ...this.resolveUserTenantContext(user), mustChangePassword: Boolean(user.must_change_password), passwordHash: String(user.password_hash || ''), passwordSalt: String(user.password_salt || '') };
+    const userTenantContext = this.resolveUserTenantContext(user);
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
+    const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(userTenantContext.tenantId || '').trim());
+    const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : String(user.role || auth.role);
+    const effectivePermissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : (safeJsonArray(user.permissions_json) || auth.permissions);
+    return { id: Number(user.id), username: String(user.username || auth.username), role: effectiveRole, permissions: effectivePermissions, displayName: String(user.display_name || user.username || auth.username), branchIds, defaultBranchId, ...userTenantContext, mustChangePassword: Boolean(user.must_change_password), passwordHash: String(user.password_hash || ''), passwordSalt: String(user.password_salt || '') };
   }
 
   async buildLoginPayload(auth: AuthContext): Promise<Record<string, unknown>> {
@@ -387,7 +397,7 @@ export class SessionService {
     const defaultUsername = (this.configService.get<string>('DEFAULT_ADMIN_USERNAME') || 'admin').trim();
     const defaultPassword = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD') || 'ChangeMe123!';
     const defaultPasswordCheck = await verifyPassword(defaultPassword, profile.passwordHash, profile.passwordSalt);
-    const usingDefaultAdminPassword = profile.role === 'super_admin' && profile.username.toLowerCase() === defaultUsername.toLowerCase() && defaultPasswordCheck.valid;
+    const usingDefaultAdminPassword = ['super_admin', 'admin'].includes(profile.role) && profile.username.toLowerCase() === defaultUsername.toLowerCase() && defaultPasswordCheck.valid;
     
     const taxSettings = await this.db.selectFrom('tenant_tax_settings').select(['is_active']).where('tenant_id', '=', tenantId).where('provider', '=', 'ETA_EGYPT').executeTakeFirst();
     const isEtaActive = taxSettings ? Boolean(taxSettings.is_active) : false;

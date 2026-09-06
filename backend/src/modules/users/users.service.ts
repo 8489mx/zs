@@ -144,7 +144,11 @@ export class UsersService {
     await this.ensureUniqueUsername(payload.username, actor);
     assertStrongPassword(payload.password);
 
-    if (actor.role !== 'super_admin') {
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
+    const isPlatformTenant = scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
+    const isPlatformAdmin = actor.role === 'super_admin' && isPlatformTenant;
+
+    if (!isPlatformAdmin) {
       const activeUsers = await this.db.selectFrom('users').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
       const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features']).where('id', '=', scope.tenantId).executeTakeFirst();
       
@@ -157,6 +161,11 @@ export class UsersService {
       }
     }
 
+    let effectiveRole = payload.role;
+    if (effectiveRole === 'super_admin' && !isPlatformTenant) {
+      effectiveRole = 'admin';
+    }
+
     const passwordRecord = await createPasswordRecord(payload.password);
     const result = await this.db
       .insertInto('users')
@@ -164,7 +173,7 @@ export class UsersService {
         username: payload.username.trim(),
         password_hash: passwordRecord.hash,
         password_salt: passwordRecord.salt,
-        role: payload.role,
+        role: effectiveRole,
         is_active: payload.isActive !== false,
         permissions_json: JSON.stringify(payload.permissions ?? []),
         display_name: payload.name?.trim() || payload.username.trim(),
@@ -200,9 +209,18 @@ export class UsersService {
 
     await this.ensureUniqueUsername(payload.username, actor, id);
 
+    const scope = this.scope(actor);
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
+    const isPlatformTenant = scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
+
+    let effectiveRole = payload.role;
+    if (effectiveRole === 'super_admin' && !isPlatformTenant) {
+      effectiveRole = 'admin';
+    }
+
     const updates: Record<string, unknown> = {
       username: payload.username.trim(),
-      role: payload.role,
+      role: effectiveRole,
       is_active: payload.isActive !== false,
       permissions_json: JSON.stringify(payload.permissions ?? []),
       display_name: payload.name?.trim() || payload.username.trim(),

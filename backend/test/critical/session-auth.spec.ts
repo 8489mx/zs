@@ -290,8 +290,33 @@ async function run(): Promise<void> {
 
   await service.changePassword(auth, password, '1');
   await service.changePassword(auth, '1', 'AdminEvenStronger123!');
+
+  // Verify that any user belonging to a non-platform tenant CAN NEVER have super_admin role
+  const tenantUser: UserRow = {
+    id: 99,
+    username: 'tenant_owner',
+    display_name: 'Tenant Owner',
+    password_hash: hashPassword(password, salt),
+    password_salt: salt,
+    role: 'super_admin',
+    permissions_json: '["sales"]',
+    is_active: true,
+    locked_until: null,
+    failed_login_count: 0,
+    tenant_id: 'tenant-customer-99',
+    account_id: 'account-99',
+  };
+  db.users.push(tenantUser);
+  const tenantLogin = await service.authenticate('tenant_owner', password);
+  assert.ok(tenantLogin);
+  assert.equal(tenantLogin!.auth.role, 'admin', 'Session auth.role for non-platform tenant MUST be admin, never super_admin');
+  const tenantPayload = await service.buildLoginPayload(tenantLogin!.auth);
+  assert.equal((tenantPayload.user as any).role, 'admin', 'Login payload for non-platform tenant MUST have role admin');
+  const tenantMe = await service.buildMePayload(tenantLogin!.auth);
+  assert.equal((tenantMe.user as any).role, 'admin', 'Me payload for non-platform tenant MUST have role admin');
 }
 
 run().then(() => {
   console.log('session-auth.spec: ok');
 });
+

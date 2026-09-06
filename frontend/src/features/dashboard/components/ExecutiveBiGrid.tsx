@@ -50,11 +50,25 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
   const paymentBreakdown = useMemo(() => {
     const cashIn = Number(summary?.treasury?.cashIn || 0);
     const gross = Number(summary?.sales?.total || 0);
-    const cashVal = cashIn > 0 ? Math.min(cashIn, gross) : (gross > 0 ? gross * 0.65 : 100);
+
+    if (gross <= 0 && cashIn <= 0) {
+      return {
+        hasData: false,
+        total: 0,
+        items: [
+          { name: 'نقدي (كاش)', value: 0, color: PAYMENT_COLORS.cash, percentage: 0 },
+          { name: 'بطاقات وماكينات POS', value: 0, color: PAYMENT_COLORS.card, percentage: 0 },
+          { name: 'متجر وبوابات إلكترونية', value: 0, color: PAYMENT_COLORS.online, percentage: 0 },
+          { name: 'مبيعات آجلة (ذمم)', value: 0, color: PAYMENT_COLORS.credit, percentage: 0 },
+        ],
+      };
+    }
+
+    const cashVal = cashIn > 0 ? Math.min(cashIn, gross) : 0;
     const remaining = Math.max(0, gross - cashVal);
-    const cardVal = remaining > 0 ? remaining * 0.60 : (gross > 0 ? gross * 0.20 : 50);
-    const onlineVal = remaining > 0 ? remaining * 0.25 : (gross > 0 ? gross * 0.10 : 25);
-    const creditVal = remaining > 0 ? remaining * 0.15 : (gross > 0 ? gross * 0.05 : 15);
+    const cardVal = remaining > 0 ? remaining * 0.60 : 0;
+    const onlineVal = remaining > 0 ? remaining * 0.25 : 0;
+    const creditVal = remaining > 0 ? remaining * 0.15 : 0;
 
     const data = [
       { name: 'نقدي (كاش)', value: cashVal, color: PAYMENT_COLORS.cash },
@@ -64,10 +78,14 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
     ];
 
     const sumValues = data.reduce((acc, item) => acc + item.value, 0);
-    return data.map((item) => ({
-      ...item,
-      percentage: sumValues > 0 ? Math.round((item.value / sumValues) * 100) : 0,
-    }));
+    return {
+      hasData: sumValues > 0,
+      total: sumValues,
+      items: data.map((item) => ({
+        ...item,
+        percentage: sumValues > 0 ? Math.round((item.value / sumValues) * 100) : 0,
+      })),
+    };
   }, [summary]);
 
   // 4. تجهيز بيانات مساهمة أعلى الفئات / الأصناف في الربحية
@@ -218,97 +236,122 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          {!paymentBreakdown.hasData ? (
             <div
               style={{
-                width: '140px',
-                height: '140px',
-                margin: '0 auto',
-                direction: 'ltr',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative',
+                padding: '28px 16px',
+                textAlign: 'center',
+                gap: '8px',
+                background: '#f8fafc',
+                borderRadius: '10px',
+                border: '1px dashed #cbd5e1',
+                margin: 'auto 0',
               }}
             >
-              <PieChart width={140} height={140}>
-                <Pie
-                  key={isChartMounted ? 'donut-anim-ready' : 'donut-anim-init'}
-                  data={isChartMounted ? paymentBreakdown : []}
-                  dataKey="value"
-                  nameKey="name"
-                  cx={70}
-                  cy={70}
-                  innerRadius={40}
-                  outerRadius={65}
-                  paddingAngle={3}
-                  startAngle={90}
-                  endAngle={-270}
-                  isAnimationActive={true}
-                  animationBegin={100}
-                  animationDuration={1300}
-                  animationEasing="ease-out"
-                >
-                  {paymentBreakdown.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const item = payload[0].payload;
-                    return (
-                      <div
-                        dir="rtl"
-                        style={{
-                          background: '#ffffff',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px',
-                          padding: '6px 10px',
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
-                          fontSize: '0.76rem',
-                        }}
-                      >
-                        <div style={{ fontWeight: 700, color: item.color }}>{item.name}</div>
-                        <div style={{ color: '#0f172a', marginTop: '2px' }}>
-                          {formatCurrency(item.value)} ({item.percentage}%)
+              <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#475569' }}>
+                لا توجد عمليات بيع أو تحصيل مسجلة بعد
+              </span>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', maxWidth: '300px', lineHeight: 1.5 }}>
+                ستظهر نسب مساهمة طرق الدفع والتحصيل (نقدي، بطاقات، متجر، آجل) هنا فور إتمام المبيعات.
+              </span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div
+                style={{
+                  width: '140px',
+                  height: '140px',
+                  margin: '0 auto',
+                  direction: 'ltr',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                }}
+              >
+                <PieChart width={140} height={140}>
+                  <Pie
+                    key={isChartMounted ? 'donut-anim-ready' : 'donut-anim-init'}
+                    data={isChartMounted ? paymentBreakdown.items : []}
+                    dataKey="value"
+                    nameKey="name"
+                    cx={70}
+                    cy={70}
+                    innerRadius={40}
+                    outerRadius={65}
+                    paddingAngle={3}
+                    startAngle={90}
+                    endAngle={-270}
+                    isAnimationActive={true}
+                    animationBegin={100}
+                    animationDuration={1300}
+                    animationEasing="ease-out"
+                  >
+                    {paymentBreakdown.items.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const item = payload[0].payload;
+                      return (
+                        <div
+                          dir="rtl"
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+                            fontSize: '0.76rem',
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, color: item.color }}>{item.name}</div>
+                          <div style={{ color: '#0f172a', marginTop: '2px' }}>
+                            {formatCurrency(item.value)} ({item.percentage}%)
+                          </div>
                         </div>
-                      </div>
-                    );
-                  }}
-                />
-              </PieChart>
-            </div>
+                      );
+                    }}
+                  />
+                </PieChart>
+              </div>
 
-            {/* دليل الألوان والأرقام (Legend List) */}
-            <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {paymentBreakdown.map((item) => (
-                <div
-                  key={item.name}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    background: '#f8fafc',
-                    border: '1px solid #f1f5f9',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
-                    <span style={{ fontSize: '0.78rem', color: '#334155', fontWeight: 600 }}>{item.name}</span>
+              {/* دليل الألوان والأرقام (Legend List) */}
+              <div style={{ flex: '1 1 180px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {paymentBreakdown.items.map((item) => (
+                  <div
+                    key={item.name}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      background: '#f8fafc',
+                      border: '1px solid #f1f5f9',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
+                      <span style={{ fontSize: '0.78rem', color: '#334155', fontWeight: 600 }}>{item.name}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{formatCurrency(item.value)}</strong>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#e2e8f0', padding: '1px 5px', borderRadius: '8px' }}>
+                        {item.percentage}%
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{formatCurrency(item.value)}</strong>
-                    <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#e2e8f0', padding: '1px 5px', borderRadius: '8px' }}>
-                      {item.percentage}%
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* الكارت 2: مؤشرات مساهمة الأصناف والقطاعات الأكثر ربحية (مع الحفاظ الدائم على توازن العمودين) */}
