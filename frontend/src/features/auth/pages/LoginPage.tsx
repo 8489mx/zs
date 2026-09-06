@@ -218,6 +218,27 @@ export function LoginPage() {
 
             <div className="login-signup-link">
               <p>ليس لديك حساب؟ <Link to="/trial">ابدأ تجربة مجانية الآن</Link></p>
+              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #e2e8f0' }}>
+                <Link
+                  to="/hub"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    color: '#170e5e',
+                    textDecoration: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <span>دليل بوابات الموظفين والمناديب (Launchpad)</span>
+                  <span>←</span>
+                </Link>
+              </div>
             </div>
 
           </div>

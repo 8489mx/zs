@@ -251,20 +251,28 @@ export default function EmployeePortalPage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '24px',
+          padding: '16px',
         }}
       >
-        <div
-          style={{
-            maxWidth: '440px',
-            width: '100%',
-            backgroundColor: '#ffffff',
-            borderRadius: '20px',
-            border: '1px solid #e2e8f0',
-            padding: '36px 32px',
-            boxShadow: '0 8px 30px -4px rgba(15, 23, 42, 0.08)',
-          }}
-        >
+        <style>{`
+          .portal-login-card {
+            max-width: 440px;
+            width: 100%;
+            background-color: #ffffff;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            padding: 36px 32px;
+            box-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.08);
+            box-sizing: border-box;
+          }
+          @media (max-width: 480px) {
+            .portal-login-card {
+              padding: 24px 18px;
+              border-radius: 16px;
+            }
+          }
+        `}</style>
+        <div className="portal-login-card">
           {/* Logo & Brand Header */}
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <div
@@ -425,6 +433,7 @@ export default function EmployeePortalPage() {
   return (
     <div
       dir="rtl"
+      className="portal-root"
       style={{
         minHeight: '100vh',
         backgroundColor: '#f8fafc',
@@ -434,23 +443,350 @@ export default function EmployeePortalPage() {
         flexDirection: 'column',
       }}
     >
+      <style>{`
+        .portal-header {
+          background-color: #ffffff;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 14px 28px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 16px;
+          position: sticky;
+          top: 0;
+          z-index: 30;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+        .portal-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .portal-nav {
+          background-color: #ffffff;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 0 28px;
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .portal-nav::-webkit-scrollbar {
+          display: none;
+        }
+        .portal-alert {
+          margin: 16px 28px 0;
+          background-color: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          border-radius: 12px;
+          padding: 12px 18px;
+          color: #166534;
+          font-size: 13px;
+          font-weight: 800;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .portal-main {
+          flex: 1;
+          padding: 24px 28px;
+          max-width: 1280px;
+          width: 100%;
+          margin: 0 auto;
+          box-sizing: border-box;
+        }
+        .portal-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+        }
+        .portal-kpi-card {
+          background-color: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+        .portal-kpi-card .kpi-icon-box {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .portal-tab-label-full {
+          display: inline;
+        }
+        .portal-tab-label-short {
+          display: none;
+        }
+        .portal-two-col-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+          gap: 20px;
+        }
+        .portal-contract-card {
+          background-color: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          padding: 24px;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+        }
+        .portal-contract-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .contract-item {
+          background-color: #f8fafc;
+          border: 1px solid #f1f5f9;
+          border-radius: 12px;
+          padding: 10px 14px;
+        }
+        .contract-item-label {
+          display: block;
+          color: #64748b;
+          font-weight: 700;
+          font-size: 12px;
+          margin-bottom: 3px;
+        }
+        .contract-item-value {
+          font-weight: 800;
+          color: #0f172a;
+          font-size: 13px;
+          word-break: break-word;
+        }
+        .portal-quick-card {
+          background-color: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+        }
+        .portal-payslip-card {
+          background-color: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 18px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02);
+        }
+        .portal-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .portal-modal-card {
+          max-height: 90vh;
+          overflow-y: auto;
+          box-sizing: border-box;
+        }
+
+        @media (max-width: 1024px) {
+          .portal-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .portal-tab-label-full {
+            display: none !important;
+          }
+          .portal-tab-label-short {
+            display: inline !important;
+          }
+          .portal-header {
+            padding: 12px 16px !important;
+            gap: 12px !important;
+          }
+          .portal-header-actions {
+            width: 100%;
+            display: flex;
+            gap: 8px;
+          }
+          .portal-header-actions > * {
+            flex: 1;
+            justify-content: center;
+            text-align: center;
+          }
+          .portal-nav {
+            padding: 0 4px !important;
+            gap: 0 !important;
+            overflow-x: hidden !important;
+            display: flex !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .portal-nav button {
+            flex: 1 1 0px !important;
+            min-width: 0 !important;
+            padding: 10px 2px !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 4px !important;
+            font-size: 11.5px !important;
+            white-space: nowrap !important;
+            text-align: center !important;
+          }
+          .portal-nav button svg {
+            width: 16px !important;
+            height: 16px !important;
+          }
+          .portal-alert {
+            margin: 12px 16px 0 !important;
+          }
+          .portal-main {
+            padding: 16px 14px !important;
+          }
+          .portal-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+          .portal-kpi-card {
+            padding: 14px 12px !important;
+            border-radius: 14px !important;
+          }
+          .portal-kpi-card .kpi-title {
+            font-size: 11.5px !important;
+          }
+          .portal-kpi-card .kpi-value {
+            font-size: 17px !important;
+          }
+          .portal-kpi-card .kpi-sub {
+            font-size: 10.5px !important;
+            line-height: 1.3 !important;
+          }
+          .portal-kpi-card .kpi-icon-box {
+            width: 30px !important;
+            height: 30px !important;
+            border-radius: 8px !important;
+          }
+          .portal-two-col-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .portal-contract-card {
+            padding: 16px 14px !important;
+            border-radius: 14px !important;
+          }
+          .portal-contract-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .contract-item {
+            padding: 8px 10px !important;
+            border-radius: 9px !important;
+          }
+          .contract-item-label {
+            font-size: 10.5px !important;
+          }
+          .contract-item-value {
+            font-size: 12px !important;
+          }
+          .portal-quick-card {
+            padding: 16px 14px !important;
+            border-radius: 14px !important;
+          }
+          .portal-payslip-card {
+            padding: 14px 16px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          .portal-payslip-total {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding-top: 10px !important;
+            border-top: 1px solid #f1f5f9 !important;
+            text-align: right !important;
+          }
+          .portal-section-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          .portal-section-header button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .portal-nav button {
+            padding: 9px 1px !important;
+            font-size: 10.5px !important;
+            gap: 3px !important;
+          }
+          .portal-nav button svg {
+            width: 15px !important;
+            height: 15px !important;
+          }
+          .portal-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+          }
+          .portal-kpi-card {
+            padding: 12px 10px !important;
+            border-radius: 12px !important;
+          }
+          .portal-kpi-card .kpi-title {
+            font-size: 11px !important;
+          }
+          .portal-kpi-card .kpi-value {
+            font-size: 16px !important;
+          }
+          .portal-kpi-card .kpi-sub {
+            font-size: 10px !important;
+          }
+          .portal-kpi-card .kpi-icon-box {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 8px !important;
+          }
+          .portal-contract-card {
+            padding: 14px 10px !important;
+          }
+          .portal-contract-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 6px !important;
+          }
+          .contract-item {
+            padding: 7px 8px !important;
+          }
+          .contract-item-label {
+            font-size: 10px !important;
+          }
+          .contract-item-value {
+            font-size: 11.5px !important;
+          }
+          .portal-quick-card {
+            padding: 14px 10px !important;
+          }
+          .portal-modal-card {
+            padding: 20px 16px !important;
+          }
+        }
+      `}</style>
       {/* 1. Header Bar */}
-      <header
-        style={{
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '14px 28px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
-        }}
-      >
+      <header className="portal-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div
             style={{
@@ -492,7 +828,7 @@ export default function EmployeePortalPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="portal-header-actions">
           <a
             href="/punch"
             style={{
@@ -534,22 +870,13 @@ export default function EmployeePortalPage() {
       </header>
 
       {/* 2. Navigation Tabs */}
-      <nav
-        style={{
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '0 28px',
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-        }}
-      >
+      <nav className="portal-nav">
         {[
-          { key: 'overview', label: 'نظرة عامة', icon: <UsersIcon size={16} /> },
-          { key: 'payslips', label: 'مسيرات الرواتب', icon: <ReceiptIcon size={16} /> },
-          { key: 'leaves', label: 'الإجازات والأذونات', icon: <CalendarIcon size={16} /> },
-          { key: 'attendance', label: 'سجل الحضور', icon: <ClockIcon size={16} /> },
-          { key: 'loans', label: 'السلف والعهد', icon: <CreditCardIcon size={16} /> },
+          { key: 'overview', label: 'نظرة عامة', shortLabel: 'نظرة عامة', icon: <UsersIcon size={16} /> },
+          { key: 'payslips', label: 'مسيرات الرواتب', shortLabel: 'الرواتب', icon: <ReceiptIcon size={16} /> },
+          { key: 'leaves', label: 'الإجازات والأذونات', shortLabel: 'الإجازات', icon: <CalendarIcon size={16} /> },
+          { key: 'attendance', label: 'سجل الحضور', shortLabel: 'الحضور', icon: <ClockIcon size={16} /> },
+          { key: 'loans', label: 'السلف والعهد', shortLabel: 'السلف', icon: <CreditCardIcon size={16} /> },
         ].map((tab) => {
           const isActive = activeTab === tab.key;
           return (
@@ -563,8 +890,9 @@ export default function EmployeePortalPage() {
                 gap: '8px',
                 padding: '14px 18px',
                 border: 'none',
-                background: 'none',
+                background: isActive ? 'rgba(23, 14, 94, 0.04)' : 'transparent',
                 borderBottom: isActive ? '3px solid #170e5e' : '3px solid transparent',
+                borderRadius: '8px 8px 0 0',
                 color: isActive ? '#170e5e' : '#64748b',
                 fontWeight: isActive ? 900 : 700,
                 fontSize: '14px',
@@ -573,8 +901,11 @@ export default function EmployeePortalPage() {
                 transition: 'all 0.15s ease',
               }}
             >
-              <span style={{ color: isActive ? '#170e5e' : '#94a3b8' }}>{tab.icon}</span>
-              <span>{tab.label}</span>
+              <span style={{ color: isActive ? '#170e5e' : '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                {tab.icon}
+              </span>
+              <span className="portal-tab-label-full">{tab.label}</span>
+              <span className="portal-tab-label-short">{tab.shortLabel}</span>
             </button>
           );
         })}
@@ -582,231 +913,195 @@ export default function EmployeePortalPage() {
 
       {/* Success Alert Banner */}
       {successMsg && (
-        <div
-          style={{
-            margin: '16px 28px 0',
-            backgroundColor: '#f0fdf4',
-            border: '1px solid #bbf7d0',
-            borderRadius: '12px',
-            padding: '12px 18px',
-            color: '#166534',
-            fontSize: '13px',
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
+        <div className="portal-alert">
           <CheckCircleIcon size={18} color="#166534" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, padding: '24px 28px', maxWidth: '1280px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <main className="portal-main">
         {/* ==========================================
             TAB 1: OVERVIEW DASHBOARD
             ========================================== */}
         {activeTab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* KPI Metric Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <div className="portal-kpi-grid">
               {/* Today's Punch */}
-              <div
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                }}
-              >
+              <div className="portal-kpi-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>بصمة اليوم</span>
+                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>بصمة اليوم</span>
                   <div
+                    className="kpi-icon-box"
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
                       backgroundColor: dashboard?.todayAttendance?.hasCheckedIn ? '#f0fdf4' : '#fffbeb',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
                     }}
                   >
-                    <ClockIcon size={18} color={dashboard?.todayAttendance?.hasCheckedIn ? '#16a34a' : '#d97706'} />
+                    <ClockIcon size={16} color={dashboard?.todayAttendance?.hasCheckedIn ? '#16a34a' : '#d97706'} />
                   </div>
                 </div>
-                <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-                  {dashboard?.todayAttendance?.hasCheckedIn
-                    ? `حضور: ${dashboard.todayAttendance.checkInTime}`
-                    : 'لم تسجل حضور اليوم'}
+                <div className="kpi-value" style={{ display: 'flex', alignItems: 'center' }}>
+                  {dashboard?.todayAttendance?.hasCheckedIn ? (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: '#f0fdf4',
+                        color: '#166534',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '8px',
+                        padding: '4px 10px',
+                        fontSize: '13px',
+                        fontWeight: 800,
+                      }}
+                    >
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }} />
+                      حضور: {dashboard.todayAttendance.checkInTime}
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: '#fffbeb',
+                        color: '#92400e',
+                        border: '1px solid #fde68a',
+                        borderRadius: '8px',
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                      }}
+                    >
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+                      لم تسجل اليوم
+                    </span>
+                  )}
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                <div className="kpi-sub" style={{ fontSize: '11.5px', color: '#64748b', marginTop: '6px' }}>
                   {dashboard?.todayAttendance?.hasCheckedOut
                     ? `انصراف: ${dashboard.todayAttendance.checkOutTime}`
-                    : 'متاح تسجيل الانصراف عند نهاية الوردية'}
+                    : dashboard?.todayAttendance?.hasCheckedIn
+                    ? 'تسجيل الانصراف بنهاية اليوم'
+                    : 'تسجيل الحضور عبر GPS'}
                 </div>
               </div>
 
               {/* Leave Balance */}
-              <div
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                }}
-              >
+              <div className="portal-kpi-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>رصيد الإجازات المتبقي</span>
+                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>رصيد الإجازات</span>
                   <div
+                    className="kpi-icon-box"
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
                       backgroundColor: '#eff6ff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
                     }}
                   >
-                    <CalendarIcon size={18} color="#2563eb" />
+                    <CalendarIcon size={16} color="#2563eb" />
                   </div>
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 900, color: '#170e5e' }}>
-                  {dashboard?.leaveBalances?.[0]?.remainingDays || 21} <span style={{ fontSize: '14px', fontWeight: 700 }}>يوم</span>
+                <div className="kpi-value" style={{ fontSize: '22px', fontWeight: 900, color: '#170e5e', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span>{dashboard?.leaveBalances?.[0]?.remainingDays ?? 21}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>يوم</span>
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                  إجازة سنوية واعتيادية مدفوعة
+                <div className="kpi-sub" style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+                  إجازة سنوية واعتيادية
                 </div>
               </div>
 
               {/* Latest Net Salary */}
-              <div
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                }}
-              >
+              <div className="portal-kpi-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>آخر راتب شهري</span>
+                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>آخر راتب شهري</span>
                   <div
+                    className="kpi-icon-box"
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
                       backgroundColor: '#f0fdf4',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
                     }}
                   >
-                    <ReceiptIcon size={18} color="#16a34a" />
+                    <ReceiptIcon size={16} color="#16a34a" />
                   </div>
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 900, color: '#16a34a' }}>
+                <div className="kpi-value" style={{ fontSize: '20px', fontWeight: 900, color: '#16a34a' }}>
                   {dashboard?.latestPayslip ? formatCurrency(dashboard.latestPayslip.netPay) : 'قيد المعالجة'}
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                  {dashboard?.latestPayslip ? `صافي مستحق شهر ${dashboard.latestPayslip.period}` : 'مسير الرواتب المعتمد'}
+                <div className="kpi-sub" style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+                  {dashboard?.latestPayslip ? `مستحق شهر ${dashboard.latestPayslip.period}` : 'مسير الرواتب المعتمد'}
                 </div>
               </div>
 
               {/* Month Work Hours */}
-              <div
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                }}
-              >
+              <div className="portal-kpi-card">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>ساعات عمل هذا الشهر</span>
+                  <span className="kpi-title" style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>ساعات هذا الشهر</span>
                   <div
+                    className="kpi-icon-box"
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
                       backgroundColor: '#f1f5f9',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
                     }}
                   >
-                    <ClockIcon size={18} color="#170e5e" />
+                    <ClockIcon size={16} color="#170e5e" />
                   </div>
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>
-                  {dashboard?.monthSummary?.totalWorkHours || 0} <span style={{ fontSize: '14px', fontWeight: 700 }}>ساعة</span>
+                <div className="kpi-value" style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span>{dashboard?.monthSummary?.totalWorkHours || 0}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>ساعة</span>
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                  خلال {dashboard?.monthSummary?.daysPresent || 0} يوم حضور فعلي
+                <div className="kpi-sub" style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+                  خلال {dashboard?.monthSummary?.daysPresent || 0} يوم حضور
                 </div>
               </div>
             </div>
 
             {/* Profile & Quick Actions Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '20px' }}>
+            <div className="portal-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '20px' }}>
               {/* Employee Contract & Details Card */}
-              <div
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '18px',
-                  padding: '24px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                }}
-              >
-                <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+              <div className="portal-contract-card">
+                <h3 style={{ margin: '0 0 14px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                   بيانات العقد والوظيفة الرسمية
                 </h3>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13px' }}>
-                  <div>
-                    <span style={{ color: '#64748b', fontWeight: 600 }}>القسم / الإدارة:</span>
-                    <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                      {dashboard?.profile?.departmentName || '-'}
+                <div className="portal-contract-grid">
+                  <div className="contract-item">
+                    <span className="contract-item-label">القسم / الإدارة:</span>
+                    <div className="contract-item-value">
+                      {dashboard?.profile?.departmentName || 'غير محدد'}
                     </div>
                   </div>
 
-                  <div>
-                    <span style={{ color: '#64748b', fontWeight: 600 }}>المسمى الوظيفي:</span>
-                    <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                      {dashboard?.profile?.positionName || '-'}
+                  <div className="contract-item">
+                    <span className="contract-item-label">المسمى الوظيفي:</span>
+                    <div className="contract-item-value">
+                      {dashboard?.profile?.positionName || 'غير محدد'}
                     </div>
                   </div>
 
-                  <div>
-                    <span style={{ color: '#64748b', fontWeight: 600 }}>فرع العمل:</span>
-                    <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
-                      {dashboard?.profile?.branchName || '-'}
+                  <div className="contract-item">
+                    <span className="contract-item-label">فرع العمل:</span>
+                    <div className="contract-item-value">
+                      {dashboard?.profile?.branchName || 'الفرع الرئيسي'}
                     </div>
                   </div>
 
-                  <div>
-                    <span style={{ color: '#64748b', fontWeight: 600 }}>تاريخ التعيين:</span>
-                    <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                  <div className="contract-item">
+                    <span className="contract-item-label">تاريخ التعيين:</span>
+                    <div className="contract-item-value">
                       {dashboard?.profile?.hireDate || 'مسجل بالنظام'}
                     </div>
                   </div>
 
-                  <div>
-                    <span style={{ color: '#64748b', fontWeight: 600 }}>الراتب الأساسي التعاقدي:</span>
-                    <div style={{ fontWeight: 800, color: '#170e5e', marginTop: '2px' }}>
+                  <div className="contract-item">
+                    <span className="contract-item-label">الراتب التعاقدي:</span>
+                    <div className="contract-item-value" style={{ color: '#170e5e', fontWeight: 900 }}>
                       {dashboard?.profile?.baseSalary ? formatCurrency(dashboard.profile.baseSalary) : 'محدد بالمسير'}
                     </div>
                   </div>
 
-                  <div>
-                    <span style={{ color: '#64748b', fontWeight: 600 }}>بدل السكن والانتقال:</span>
-                    <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                  <div className="contract-item">
+                    <span className="contract-item-label">بدل السكن والانتقال:</span>
+                    <div className="contract-item-value" style={{ fontWeight: 800 }}>
                       {formatCurrency((dashboard?.profile?.housingAllowance || 0) + (dashboard?.profile?.transportAllowance || 0))}
                     </div>
                   </div>
@@ -814,18 +1109,7 @@ export default function EmployeePortalPage() {
               </div>
 
               {/* Quick Self-Service Actions */}
-              <div
-                style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '18px',
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                }}
-              >
+              <div className="portal-quick-card">
                 <div>
                   <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
                     خدمات الموظف السريعة
@@ -841,6 +1125,7 @@ export default function EmployeePortalPage() {
                     onClick={() => setShowLeaveModal(true)}
                     style={{
                       padding: '12px',
+                      minHeight: '44px',
                       borderRadius: '10px',
                       backgroundColor: '#170e5e',
                       color: '#ffffff',
@@ -852,6 +1137,7 @@ export default function EmployeePortalPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
+                      boxShadow: '0 2px 6px rgba(23, 14, 94, 0.15)',
                     }}
                   >
                     <PlusIcon size={16} color="#ffffff" />
@@ -863,10 +1149,11 @@ export default function EmployeePortalPage() {
                     onClick={() => setShowAdvanceModal(true)}
                     style={{
                       padding: '12px',
+                      minHeight: '44px',
                       borderRadius: '10px',
-                      backgroundColor: '#f8fafc',
-                      color: '#170e5e',
-                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#ffffff',
+                      color: '#1e293b',
+                      border: '1.5px solid #cbd5e1',
                       fontSize: '13px',
                       fontWeight: 800,
                       cursor: 'pointer',
@@ -874,6 +1161,7 @@ export default function EmployeePortalPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
                     }}
                   >
                     <CreditCardIcon size={16} color="#170e5e" />
@@ -884,10 +1172,11 @@ export default function EmployeePortalPage() {
                     href="/punch"
                     style={{
                       padding: '12px',
+                      minHeight: '44px',
                       borderRadius: '10px',
                       backgroundColor: '#eff6ff',
                       color: '#1d4ed8',
-                      border: '1px solid #bfdbfe',
+                      border: '1.5px solid #bfdbfe',
                       fontSize: '13px',
                       fontWeight: 800,
                       textDecoration: 'none',
@@ -895,6 +1184,7 @@ export default function EmployeePortalPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
+                      boxShadow: '0 1px 3px rgba(37, 99, 235, 0.06)',
                     }}
                   >
                     <SmartphoneIcon size={16} color="#1d4ed8" />
@@ -946,6 +1236,7 @@ export default function EmployeePortalPage() {
                 {payslips.map((slip) => (
                   <div
                     key={slip.id}
+                    className="portal-payslip-card"
                     onClick={() => setSelectedPayslip(slip)}
                     style={{
                       backgroundColor: '#ffffff',
@@ -971,6 +1262,7 @@ export default function EmployeePortalPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          flexShrink: 0,
                         }}
                       >
                         <ReceiptIcon size={22} color="#16a34a" />
@@ -985,7 +1277,7 @@ export default function EmployeePortalPage() {
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'left' }}>
+                    <div className="portal-payslip-total" style={{ textAlign: 'left' }}>
                       <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>صافي الراتب المستحق</span>
                       <div style={{ fontSize: '20px', fontWeight: 900, color: '#16a34a' }}>
                         {formatCurrency(slip.netPay)}
@@ -1003,7 +1295,7 @@ export default function EmployeePortalPage() {
             ========================================== */}
         {activeTab === 'leaves' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="portal-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
                   أرصدة وطلبات الإجازات
@@ -1218,7 +1510,7 @@ export default function EmployeePortalPage() {
             ========================================== */}
         {activeTab === 'loans' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="portal-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
                   السلف النقدية والعهد العينية
@@ -1400,6 +1692,7 @@ export default function EmployeePortalPage() {
           }}
         >
           <div
+            className="portal-modal-card"
             style={{
               backgroundColor: '#ffffff',
               borderRadius: '18px',
@@ -1572,6 +1865,7 @@ export default function EmployeePortalPage() {
           }}
         >
           <div
+            className="portal-modal-card"
             style={{
               backgroundColor: '#ffffff',
               borderRadius: '18px',
@@ -1725,6 +2019,7 @@ export default function EmployeePortalPage() {
           }}
         >
           <div
+            className="portal-modal-card"
             style={{
               backgroundColor: '#ffffff',
               borderRadius: '20px',

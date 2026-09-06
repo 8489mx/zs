@@ -206,6 +206,26 @@ const router = createRouter([
     path: '/ess',
     element: <Navigate to="/portal" replace />,
   },
+  {
+    path: '/hub',
+    element: createLazyRoute(() => import('@/features/portals-hub/pages/PortalsHubPage')),
+  },
+  {
+    path: '/portals',
+    element: <Navigate to="/hub" replace />,
+  },
+  {
+    path: '/apps',
+    element: <Navigate to="/hub" replace />,
+  },
+  {
+    path: '/launchpad',
+    element: <Navigate to="/hub" replace />,
+  },
+  {
+    path: '/owner',
+    element: <Navigate to="/owner-companion" replace />,
+  },
   { path: '/login', element: <AppGateGuard expected="login"><LoginRoute /></AppGateGuard> },
   {
     path: '/',

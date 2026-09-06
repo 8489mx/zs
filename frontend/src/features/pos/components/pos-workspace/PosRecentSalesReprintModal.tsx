@@ -1,7 +1,6 @@
-import { CheckIcon } from '@/shared/components/icons/AppIcons';
+import { CheckIcon, FileTextIcon, PrinterIcon, RefreshCwIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { formatCurrency } from '@/lib/format';
 import { formatDateTime, formatSalePaymentText } from '@/lib/pos-printing/shared';
@@ -97,189 +96,273 @@ export function PosRecentSalesReprintModal({
       onClose={onClose}
       width="min(860px, calc(100vw - 32px))"
       zIndex={90}
-      ariaLabel="إعادة طباعة الفواتير"
+      ariaLabel="إعادة طباعة الفواتير والريسيت"
       shellClassName="pos-recent-reprint-dialog-shell"
     >
-      <Card
-        title="إعادة طباعة الفواتير"
-        className="dialog-card pos-recent-reprint-card"
+      <div
+        dir="rtl"
         style={{
-          maxHeight: 'calc(100vh - 40px)',
+          background: '#ffffff',
+          borderRadius: '16px',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #e2e8f0',
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          boxSizing: 'border-box',
-          padding: '18px 20px',
-          direction: 'rtl',
+          maxHeight: 'calc(100vh - 48px)',
         }}
       >
-        {/* Header summary & shortcut hint */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-              إعادة طباعة الفواتير والريسيت
-            </h3>
-            <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
-              اضغط <b>F9</b> مرة أخرى لطباعة آخر فاتورة مباشرة، أو اختر من آخر 5 فواتير بالأسفل
-            </p>
+        {/* 1. Modal Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 22px',
+          borderBottom: '1px solid #f1f5f9',
+          background: '#ffffff',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: '#eff6ff',
+              border: '1px solid #dbeafe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#170e5e',
+              flexShrink: 0,
+            }}>
+              <PrinterIcon size={20} color="#170e5e" />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                إعادة طباعة الفواتير والريسيت
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
+                اضغط <kbd style={{ padding: '2px 6px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>F9</kbd> لطباعة آخر فاتورة مباشرة، أو اختر من آخر 5 فواتير
+              </p>
+            </div>
           </div>
-          <Button type="button" variant="secondary" onClick={onClose} style={{ minHeight: '32px', fontSize: '12px' }}>
-            إغلاق (Esc)
-          </Button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            title="إغلاق النافذة (Esc)"
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '8px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#64748b',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#f1f5f9';
+              e.currentTarget.style.color = '#0f172a';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.color = '#64748b';
+            }}
+          >
+            <XIcon size={16} />
+          </button>
         </div>
 
-        {feedbackMessage ? (
+        {/* Feedback Alert */}
+        {feedbackMessage && (
           <div style={{
-            background: '#ecfdf5',
-            color: '#065f46',
-            border: '1px solid #a7f3d0',
+            margin: '12px 22px 0',
+            padding: '10px 16px',
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
             borderRadius: '8px',
-            padding: '8px 14px',
+            color: '#166534',
             fontSize: '13px',
             fontWeight: 700,
-            marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
           }}>
-            <CheckIcon size={14} color="#16a34a" />
+            <CheckIcon size={16} color="#16a34a" />
             <span>{feedbackMessage}</span>
           </div>
-        ) : null}
+        )}
 
-        {/* Action 1: Top Hero Banner for Fast Last Sale Reprint (F9) */}
+        {/* 2. Scrollable Body Content */}
         <div style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          color: '#ffffff',
-          borderRadius: '10px',
-          padding: '14px 18px',
-          marginBottom: '18px',
+          padding: '18px 22px',
+          overflowY: 'auto',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: 'column',
           gap: '16px',
-          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ background: '#3b82f6', color: '#fff', fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
-                اختصار سريع F9
-              </span>
-              <span style={{ fontSize: '15px', fontWeight: 800 }}>طباعة آخر فاتورة تم إتمامها</span>
-            </div>
-            {lastSale ? (
-              <div style={{ fontSize: '13px', color: '#cbd5e1', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <span>رقم: <b>#{lastSale.docNo || lastSale.id}</b></span>
-                <span>•</span>
-                <span>العميل: <b>{lastSale.customerName || 'عميل نقدي'}</b></span>
-                <span>•</span>
-                <span>الإجمالي: <b style={{ color: '#38bdf8' }}>{formatCurrency(Number(lastSale.total || 0))}</b></span>
-                <span>•</span>
-                <span>{formatSalePaymentText(lastSale.paymentType, lastSale.paymentChannel, lastSale.paidAmount, lastSale.total)}</span>
+          {/* Action 1: Top Hero Highlight Card for Fast Last Sale Reprint (F9) */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1.5px solid #cbd5e1',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.3px',
+                }}>
+                  اختصار سريع F9
+                </span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                  طباعة آخر فاتورة تم إتمامها
+                </span>
               </div>
-            ) : (
-              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
-                لا توجد فاتورة أخيرة في الجلسة الحالية
-              </p>
-            )}
+
+              {lastSale ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: '#475569' }}>
+                  <span>رقم: <strong style={{ fontFamily: 'monospace', color: '#0f172a', background: '#e2e8f0', padding: '1px 6px', borderRadius: '4px' }}>#{lastSale.docNo || lastSale.id}</strong></span>
+                  <span style={{ color: '#cbd5e1' }}>•</span>
+                  <span>العميل: <strong style={{ color: '#0f172a' }}>{lastSale.customerName || 'عميل نقدي'}</strong></span>
+                  <span style={{ color: '#cbd5e1' }}>•</span>
+                  <span>الإجمالي: <strong style={{ color: '#170e5e', fontSize: '14px', fontWeight: 900 }}>{formatCurrency(Number(lastSale.total || 0))}</strong></span>
+                  <span style={{ color: '#cbd5e1' }}>•</span>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    background: lastSale.paymentType === 'credit' ? '#fef2f2' : '#f0fdf4',
+                    color: lastSale.paymentType === 'credit' ? '#dc2626' : '#16a34a',
+                    border: `1px solid ${lastSale.paymentType === 'credit' ? '#fecaca' : '#bbf7d0'}`,
+                  }}>
+                    {formatSalePaymentText(lastSale.paymentType, lastSale.paymentChannel, lastSale.paidAmount, lastSale.total, lastSale.orderType)}
+                  </span>
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>
+                  لا توجد فاتورة مبيعات مسجلة في الجلسة الحالية حتى الآن
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              disabled={!lastSale}
+              onClick={handleReprintLast}
+              style={{
+                background: lastSale ? '#170e5e' : '#94a3b8',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                fontSize: '13px',
+                fontWeight: 800,
+                cursor: lastSale ? 'pointer' : 'not-allowed',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: lastSale ? '0 2px 8px rgba(23, 14, 94, 0.25)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { if (lastSale) e.currentTarget.style.background = '#110a47'; }}
+              onMouseLeave={(e) => { if (lastSale) e.currentTarget.style.background = '#170e5e'; }}
+            >
+              <PrinterIcon size={16} color="#ffffff" />
+              <span>طباعة آخر فاتورة (F9)</span>
+            </button>
           </div>
 
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleReprintLast}
-            disabled={!lastSale}
-            style={{
-              minHeight: '44px',
-              padding: '0 20px',
-              fontSize: '14px',
-              fontWeight: 800,
-              background: '#3b82f6',
-              border: 'none',
-              borderRadius: '8px',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.4)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 6 2 18 2 18 9"/>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-              <rect x="6" y="14" width="12" height="8"/>
-            </svg>
-            <span>طباعة آخر فاتورة (F9)</span>
-          </Button>
-        </div>
+          {/* Action 2: Recent 5 Sales List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileTextIcon size={16} color="#475569" />
+                <span>آخر 5 فواتير مبيعات (لإعادة طباعة ريسيت العميل عند طلبه):</span>
+              </h4>
 
-        {/* Action 2: Recent 5 Sales List */}
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
-              </svg>
-              <span>آخر 5 فواتير مبيعات (لإعادة طباعة ريسيت العميل عند طلبه):</span>
-            </h4>
-            {loading ? (
-              <span style={{ fontSize: '11px', color: '#64748b' }}>جاري التحديث...</span>
-            ) : (
               <button
                 type="button"
+                disabled={loading}
                 onClick={() => void fetchRecentSales()}
-                style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#2563eb',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
               >
-                ↻ تحديث القائمة
+                <RefreshCwIcon size={13} color="#2563eb" />
+                <span>{loading ? 'جاري التحديث...' : 'تحديث القائمة'}</span>
               </button>
-            )}
-          </div>
+            </div>
 
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            background: '#ffffff',
-          }}>
-            {loading && recentSales.length === 0 ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                جاري تحميل آخر الفواتير...
-              </div>
-            ) : recentSales.length === 0 ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                لا توجد فواتير مبيعات سابقة مسجلة.
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: '1px', background: '#e2e8f0' }}>
-                {recentSales.map((saleItem, index) => {
+            <div style={{
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              background: '#ffffff',
+              overflow: 'hidden',
+            }}>
+              {loading && recentSales.length === 0 ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                  جاري تحميل آخر الفواتير...
+                </div>
+              ) : recentSales.length === 0 ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                  لا توجد فواتير مبيعات سابقة مسجلة.
+                </div>
+              ) : (
+                recentSales.map((saleItem, index) => {
                   const isTopLast = lastSale && (saleItem.id === lastSale.id || saleItem.docNo === lastSale.docNo);
                   return (
                     <div
                       key={saleItem.id || saleItem.docNo || index}
                       style={{
                         background: isTopLast ? '#f0f9ff' : '#ffffff',
-                        padding: '12px 16px',
+                        borderBottom: index < recentSales.length - 1 ? '1px solid #f1f5f9' : 'none',
+                        padding: '13px 18px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        gap: '12px',
+                        gap: '16px',
+                        transition: 'background 0.15s ease',
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = isTopLast ? '#e0f2fe' : '#f8fafc'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = isTopLast ? '#f0f9ff' : '#ffffff'; }}
                     >
                       {/* Sale info */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <span style={{
                             fontFamily: 'monospace',
                             fontWeight: 800,
-                            fontSize: '14px',
+                            fontSize: '13px',
                             color: '#0f172a',
                             background: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
                             padding: '2px 8px',
-                            borderRadius: '4px',
+                            borderRadius: '6px',
                           }}>
                             #{saleItem.docNo || saleItem.id}
                           </span>
@@ -297,25 +380,25 @@ export function PosRecentSalesReprintModal({
                           </span>
 
                           {saleItem.orderType === 'delivery' && (
-                            <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '9999px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
                               دليفري
                             </span>
                           )}
 
                           {isTopLast && (
-                            <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#dbeafe', color: '#1e40af' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '9999px', background: '#dbeafe', color: '#1e40af', border: '1px solid #bfdbfe' }}>
                               آخر فاتورة
                             </span>
                           )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', gap: '10px', fontSize: '12px', color: '#64748b', marginTop: '2px', flexWrap: 'wrap' }}>
                           <span>العميل: <strong style={{ color: '#334155' }}>{saleItem.customerName || 'عميل نقدي'}</strong></span>
-                          <span>•</span>
+                          <span style={{ color: '#cbd5e1' }}>•</span>
                           <span>الوقت: <b>{formatDateTime(saleItem.date || saleItem.createdAt)}</b></span>
                           {saleItem.items && (
                             <>
-                              <span>•</span>
+                              <span style={{ color: '#cbd5e1' }}>•</span>
                               <span>الأصناف: <b>{saleItem.items.length} صنف</b></span>
                             </>
                           )}
@@ -323,61 +406,125 @@ export function PosRecentSalesReprintModal({
                       </div>
 
                       {/* Total and Print actions */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div style={{ textAlign: 'left', minWidth: '100px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                        <div style={{ textAlign: 'left', minWidth: '90px' }}>
                           <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>السعر النهائي</span>
                           <strong style={{ fontSize: '16px', color: '#0f172a', fontWeight: 900 }}>
                             {formatCurrency(Number(saleItem.total || 0))}
                           </strong>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <Button
+                        {/* Segmented button group for Receipt and A4 */}
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          overflow: 'hidden',
+                          background: '#ffffff',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                        }}>
+                          <button
                             type="button"
-                            variant="primary"
                             onClick={() => handlePrintSale(saleItem, 'receipt')}
+                            title="طباعة إيصال حراري (ريسيت)"
                             style={{
-                              minHeight: '36px',
-                              padding: '0 12px',
+                              background: '#ffffff',
+                              color: '#170e5e',
+                              border: 'none',
+                              padding: '7px 12px',
                               fontSize: '12px',
                               fontWeight: 700,
-                              borderRadius: '6px',
+                              cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '6px',
+                              transition: 'all 0.15s ease',
+                              borderInlineEnd: '1px solid #e2e8f0',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#f8fafc';
+                              e.currentTarget.style.color = '#110a47';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#ffffff';
+                              e.currentTarget.style.color = '#170e5e';
                             }}
                           >
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 6 2 18 2 18 9"/>
-                              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                              <rect x="6" y="14" width="12" height="8"/>
-                            </svg>
+                            <PrinterIcon size={14} color="#170e5e" />
                             <span>طباعة ريسيت</span>
-                          </Button>
-                          <Button
+                          </button>
+
+                          <button
                             type="button"
-                            variant="secondary"
                             onClick={() => handlePrintSale(saleItem, 'a4')}
                             title="طباعة فاتورة A4"
                             style={{
-                              minHeight: '36px',
-                              padding: '0 10px',
+                              background: '#ffffff',
+                              color: '#475569',
+                              border: 'none',
+                              padding: '7px 10px',
                               fontSize: '12px',
-                              borderRadius: '6px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#f1f5f9';
+                              e.currentTarget.style.color = '#0f172a';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#ffffff';
+                              e.currentTarget.style.color = '#475569';
                             }}
                           >
                             A4
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     </div>
                   );
-                })}
-              </div>
-            )}
+                })
+              )}
+            </div>
           </div>
         </div>
-      </Card>
+
+        {/* 3. Modal Footer */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 22px',
+          background: '#f8fafc',
+          borderTop: '1px solid #e2e8f0',
+          fontSize: '12px',
+          color: '#64748b',
+          marginTop: 'auto',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>اختصارات لوحة المفاتيح:</span>
+            <kbd style={{ padding: '2px 6px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>F9</kbd>
+            <span>طباعة سريعة</span>
+            <span style={{ color: '#cbd5e1' }}>•</span>
+            <kbd style={{ padding: '2px 6px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>Esc</kbd>
+            <span>إغلاق النافذة</span>
+          </div>
+
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            style={{
+              minHeight: '32px',
+              fontSize: '12px',
+              padding: '0 16px',
+            }}
+          >
+            إغلاق
+          </Button>
+        </div>
+      </div>
     </DialogShell>
   );
 }
