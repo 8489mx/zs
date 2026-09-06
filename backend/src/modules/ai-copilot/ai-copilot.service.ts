@@ -369,21 +369,23 @@ export class AiCopilotService {
     snapshot: Record<string, unknown>,
     apiKey: string,
   ): Promise<{ answer: string; suggestedQuestions: string[] } | null> {
-    const prompt = `أنت (زاد AI)، المستشار التجاري والمالي الذكي المدمج في نظام إدارة المنشآت Z-Systems.
-لديك البيانات الحالية المباشرة لنشاط التاجر:
+    const prompt = `أنت (زاد AI)، المساعد والمستشار التجاري والمالي الذكي لنظام إدارة المنشآت Z-Systems.
+لديك البيانات الحالية المباشرة لنشاط المنشأة كمرجع لك عند الحاجة:
 ${JSON.stringify(snapshot, null, 2)}
 
-المطلوب:
-1. أجب عن سؤال المستخدم الآتي بأسلوب احترافي وودود باللغة العربية (مصرية مهذبة أو فصحى مبسطة).
-2. استند في إجابتك للأرقام الفعلية المتاحة في البيانات أعلاه.
-3. قدم نصيحة تجارية ذكية وقابلة للتطبيق بناءً على السؤال.
-4. اقترح 3 أسئلة تالية ذات صلة يمكن للمستخدم طرحها.
+قواعدك الصارمة جداً:
+1. أجب «على قد السؤال بالضبط» وبإيجاز شديد ومباشر (من سطر إلى 3 أسطر كحد أقصى).
+2. ممنوع نهائياً سرد تقرير شامل أو استعراض أقسام وأرقام لم يطلبها المستخدم (مثل رصيد الخزينة أو المخزون أو الموردين دفعة واحدة)!
+3. إذا سأل المستخدم عن بند محدد فقط (مثل: المبيعات، أو الخزينة، أو ديون العملاء)، أجب عن ذلك البند بالتحديد فقط بالأرقام المتاحة دون زيادة.
+4. إذا كان السؤال دردشة أو تعليقاً أو تحية أو سؤالاً شخصياً عنك (مثل: "هو انت ai؟" أو "ينفع ترد عليا؟" أو "رد على قد السؤال")، أجب بروح ذكية ومرحة وموجزة في سطر واحد دون سرد أي أرقام أو بيانات من النظام!
+5. تحدث باللغة العربية بأسلوب راقٍ ومهذب (لهجة مصرية مبسطة أو فصحى يسيرة).
+6. اقترح فقط 3 أسئلة تالية قصيرة ومركزة تناسب نفس موضوع السؤال المطروح فقط.
 
 السؤال: "${question}"
 
 أجب بصيغة JSON فقط بهذا الشكل:
 {
-  "answer": "نص الإجابة المفصل والمنسق بنقاط واضحة وتنسيق markdown",
+  "answer": "الإجابة المباشرة والموجزة على قد السؤال تماماً",
   "suggestedQuestions": ["سؤال 1", "سؤال 2", "سؤال 3"]
 }`;
 
@@ -432,13 +434,22 @@ ${JSON.stringify(snapshot, null, 2)}
         const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!rawText) continue;
 
-        const parsed = JSON.parse(rawText);
-        return {
-          answer: parsed.answer || rawText,
-          suggestedQuestions: Array.isArray(parsed.suggestedQuestions) && parsed.suggestedQuestions.length > 0
-            ? parsed.suggestedQuestions
-            : ['مبيعات وأرباح اليوم', 'أكثر العملاء مديونية', 'الأصناف الحرجة في المخزن'],
-        };
+        try {
+          const cleanJson = rawText.replace(/```json\s*/i, '').replace(/```\s*$/i, '').trim();
+          const parsed = JSON.parse(cleanJson);
+          const ans = parsed.answer || parsed.response || parsed.reply || parsed.text || rawText;
+          return {
+            answer: typeof ans === 'string' ? ans : JSON.stringify(ans),
+            suggestedQuestions: Array.isArray(parsed.suggestedQuestions) && parsed.suggestedQuestions.length > 0
+              ? parsed.suggestedQuestions
+              : ['مبيعات وأرباح اليوم', 'أكثر العملاء مديونية', 'الأصناف الحرجة في المخزن'],
+          };
+        } catch {
+          return {
+            answer: rawText,
+            suggestedQuestions: ['مبيعات وأرباح اليوم', 'أكثر العملاء مديونية', 'الأصناف الحرجة في المخزن'],
+          };
+        }
       } catch {
         // try next candidate model
       } finally {

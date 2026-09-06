@@ -31,14 +31,6 @@ const PAYMENT_COLORS = {
 export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }: ExecutiveBiGridProps) {
   const [timeframe, setTimeframe] = useState<'7d' | '30d'>('7d');
 
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-2xl p-8 border border-slate-200 text-center text-slate-400">
-        جاري تحميل التحليلات البيانية الذكية...
-      </div>
-    );
-  }
-
   const { summary, trends } = overviewData;
   const profitSummary = managerData?.profitSummary;
   const salesLast30 = managerData?.salesLast30;
@@ -144,6 +136,14 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
       marginPercent: 25,
     }));
   }, [managerData, overviewData.topToday]);
+
+  if (isLoading) {
+    return (
+      <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8' }}>
+        جاري تحميل التحليلات البيانية الذكية...
+      </div>
+    );
+  }
 
   return (
     <section className="executive-bi-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
