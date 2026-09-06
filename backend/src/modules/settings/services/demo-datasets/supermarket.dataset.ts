@@ -3,7 +3,7 @@ import { DemoActivityDataset } from './types';
 export const supermarketDataset: DemoActivityDataset = {
   key: 'supermarket',
   name: 'سوبرماركت ومواد غذائية',
-  icon: '🛒',
+  icon: 'shopping-cart',
   tagline: 'هايبر ماركت، بقالة، ميني ماركت، مواد تموينية ومجمدات',
   description: 'يملأ النظام بتشكيلة واقعية من السلع الاستهلاكية، الألبان، المعلبات، المنظفات، والمشروبات مع فواتير بيع يومية سريعة.',
   categories: [

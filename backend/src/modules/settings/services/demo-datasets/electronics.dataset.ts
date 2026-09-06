@@ -3,7 +3,7 @@ import { DemoActivityDataset } from './types';
 export const electronicsDataset: DemoActivityDataset = {
   key: 'electronics_mobile',
   name: 'إلكترونيات وموبايل وصيانة',
-  icon: '📱',
+  icon: 'smartphone',
   tagline: 'محلات الموبايل، الإلكترونيات، الإكسسوارات، وقطع غيار الصيانة',
   description: 'يملأ النظام بهواتف ذكية، شواحن أصلية، كابلات، سماعات، جرابات، سكرينات، مع خدمات صيانة وشاشات.',
   categories: [

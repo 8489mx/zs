@@ -6,6 +6,7 @@ import {
   Tooltip,
 } from 'recharts';
 import { formatCurrency } from '@/lib/format';
+import { BarChartIcon } from '@/shared/components/icons/AppIcons';
 import type { DashboardOverviewPayload, DashboardManagerOverviewPayload } from '@/features/dashboard/api/dashboard.types';
 
 interface ExecutiveBiGridProps {
@@ -310,34 +311,35 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
           </div>
         </div>
 
-        {/* الكارت 2: مؤشرات مساهمة الأصناف والقطاعات الأكثر ربحية - 3 في سطر */}
-        {profitDrivers.length > 0 && (
-          <div
-            style={{
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '14px',
-              padding: '16px 20px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
-                  أعلى القطاعات مساهمة في الإيرادات والربحية
-                </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                  حجم العائد ومجمل الربح التقديري لكل قطاع تجاري
-                </p>
-              </div>
-              <span style={{ fontSize: '0.72rem', color: '#170e5e', background: '#e0e7ff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
-                تحليلات النشاط
-              </span>
+        {/* الكارت 2: مؤشرات مساهمة الأصناف والقطاعات الأكثر ربحية (مع الحفاظ الدائم على توازن العمودين) */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '14px',
+            padding: '16px 20px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            minHeight: '220px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
+                أعلى القطاعات مساهمة في الإيرادات والربحية
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                حجم العائد ومجمل الربح التقديري لكل قطاع تجاري
+              </p>
             </div>
+            <span style={{ fontSize: '0.72rem', color: '#170e5e', background: '#e0e7ff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
+              تحليلات النشاط
+            </span>
+          </div>
 
+          {profitDrivers.length > 0 ? (
             <div
               style={{
                 display: 'grid',
@@ -385,8 +387,32 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '24px 16px',
+                background: '#f8fafc',
+                borderRadius: '10px',
+                border: '1px dashed #cbd5e1',
+                textAlign: 'center',
+                gap: '8px',
+              }}
+            >
+              <BarChartIcon size={24} color="#94a3b8" />
+              <p style={{ margin: 0, fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>
+                لا توجد مبيعات مسجلة للقطاعات بعد
+              </p>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', maxWidth: '340px', lineHeight: 1.4 }}>
+                ستظهر القطاعات والمنتجات الأكثر ربحية هنا تلقائياً بمجرد تسجيل فواتير بيع أو تجربة باقة النشاط.
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

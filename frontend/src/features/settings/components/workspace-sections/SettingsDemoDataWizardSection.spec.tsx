@@ -16,7 +16,7 @@ vi.mock('@/features/settings/api/demo-data.api', () => ({
       {
         key: 'supermarket',
         name: 'سوبرماركت ومواد غذائية',
-        icon: '🛒',
+        icon: 'shopping-cart',
         tagline: 'هايبر ماركت، بقالة، ميني ماركت',
         description: 'يملأ النظام بتشكيلة واقعية من السلع الاستهلاكية',
         categoriesCount: 6,
@@ -26,7 +26,7 @@ vi.mock('@/features/settings/api/demo-data.api', () => ({
       {
         key: 'fashion',
         name: 'أزياء وملابس وأحذية',
-        icon: '👗',
+        icon: 'tag',
         tagline: 'محلات ملابس، أحذية، حقائب، واكسسوارات',
         description: 'يملأ النظام بأصناف الموضة والمقاسات والألوان',
         categoryCount: 5,

@@ -3,7 +3,7 @@ import { DemoActivityDataset } from './types';
 export const cafeDataset: DemoActivityDataset = {
   key: 'cafe_restaurant',
   name: 'كافيه ومطعم ومشروبات',
-  icon: '☕',
+  icon: 'utensils',
   tagline: 'كوفي شوب، مطاعم وجبات، حلويات ومخبوزات، عصائر ومشروبات',
   description: 'يملأ النظام بقائمة مميزة من المشروبات الساخنة والباردة، القهوة المختصة، الساندوتشات، الحلويات، مع تفعيل سرعة مبيعات الكاشير.',
   categories: [

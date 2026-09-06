@@ -3,7 +3,7 @@ import { DemoActivityDataset } from './types';
 export const fashionDataset: DemoActivityDataset = {
   key: 'fashion',
   name: 'ملابس وأزياء وأحذية',
-  icon: '👔',
+  icon: 'tag',
   tagline: 'محلات الملابس، البراندات، الأحذية، العبايات، والإكسسوارات',
   description: 'يملأ النظام بتشكيلة أنيقة من الملابس الرجالي والحريمي، الجينزات، القمصان، الأحذية، مع تفعيل المقاسات والألوان.',
   categories: [

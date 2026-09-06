@@ -3,7 +3,7 @@ import { DemoActivityDataset } from './types';
 export const pharmacyDataset: DemoActivityDataset = {
   key: 'pharmacy',
   name: 'صيدلية ومستحضرات تجميل',
-  icon: '💊',
+  icon: 'shield-check',
   tagline: 'صيدليات، مخازن أدوية، مستحضرات تجميل وعناية بالبشرة، ومستلزمات طبية',
   description: 'يملأ النظام بأدوية شائعة، فيتامينات ومكملات غذائية، عناية بالبشرة والشعر، مستلزمات طبية، وحليب ورعاية أطفال.',
   categories: [
