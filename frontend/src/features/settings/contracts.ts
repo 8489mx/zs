@@ -133,10 +133,14 @@ export function buildBranchPayload(values: BranchFormOutput) {
 }
 
 export function buildLocationPayload(values: LocationFormOutput) {
-  return {
+  const branchId = cleanText(values.branchId);
+  const payload: { name: string; code: string; locationType: string; branchId?: number } = {
     name: cleanText(values.name),
     code: cleanText(values.code),
-    branchId: cleanText(values.branchId) || '',
-    locationType: values.locationType || 'internal_warehouse'
+    locationType: values.locationType || 'internal_warehouse',
   };
+  if (branchId && branchId !== '0' && !Number.isNaN(Number(branchId))) {
+    payload.branchId = Number(branchId);
+  }
+  return payload;
 }

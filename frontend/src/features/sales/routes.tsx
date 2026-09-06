@@ -16,6 +16,8 @@ export const salesRouteModule: FeatureRouteModule = {
     { key: 'installments', label: 'مبيعات التقسيط', to: '/installments' },
     { key: 'online-orders', label: 'طلبات الأونلاين', to: '/online-orders' },
     { key: 'tax-dispatcher', label: 'الضرائب (ETA)', to: '/tax-dispatcher' },
-    { key: 'vat-declaration', label: 'الإقرار الضريبي (ن10 و ZATCA)', to: '/vat-declaration' }
+    { key: 'vat-declaration', label: 'الإقرار الضريبي (ن10 و ZATCA)', to: '/vat-declaration' },
+    { key: 'kds', label: 'شاشة المطبخ (KDS)', to: '/kds' },
+    { key: 'signage', label: 'شاشات العروض والأسعار', to: '/signage' }
   ]
 };

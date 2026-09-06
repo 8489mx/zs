@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -18,9 +19,57 @@ void cashDrawerRegressionMarkers;
 export function CashDrawerPage() {
   const { user } = useAuthStore();
   const isAdmin = isAdminUser(user);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [activeForm, setActiveForm] = useState<'open' | 'movement' | 'close' | null>(null);
   const controller = useCashDrawerPageController();
+  const hasAutoOpenedRef = useRef(false);
+
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (!action) {
+      hasAutoOpenedRef.current = false;
+      return;
+    }
+
+    if (hasAutoOpenedRef.current) return;
+
+    if (action === 'close' || action === 'close-shift') {
+      const explicitShiftId = searchParams.get('shiftId');
+      const targetShiftId = explicitShiftId || controller.myOpenShift?.id || (controller.isManagerReviewer ? controller.openOptions[0]?.id : '');
+
+      if (targetShiftId) {
+        controller.closeForm.setValue('shiftId', String(targetShiftId));
+        setActiveForm('close');
+        hasAutoOpenedRef.current = true;
+      } else if (!controller.query.isLoading) {
+        if (controller.openOptions.length > 0) {
+          controller.closeForm.setValue('shiftId', String(controller.openOptions[0].id));
+        }
+        setActiveForm('close');
+        hasAutoOpenedRef.current = true;
+      }
+    } else if (action === 'open') {
+      setActiveForm('open');
+      hasAutoOpenedRef.current = true;
+    } else if (action === 'movement') {
+      const explicitShiftId = searchParams.get('shiftId');
+      const targetShiftId = explicitShiftId || controller.myOpenShift?.id || (controller.isManagerReviewer ? controller.openOptions[0]?.id : '');
+      if (targetShiftId) {
+        controller.movementForm.setValue('shiftId', String(targetShiftId));
+      }
+      setActiveForm('movement');
+      hasAutoOpenedRef.current = true;
+    }
+  }, [
+    searchParams,
+    controller.myOpenShift?.id,
+    controller.openOptions,
+    controller.isManagerReviewer,
+    controller.query.isLoading,
+    controller.closeForm,
+    controller.movementForm,
+  ]);
 
   const handleOpenForm = (form: 'open' | 'movement' | 'close') => {
     controller.openMutation.reset();
@@ -39,6 +88,12 @@ export function CashDrawerPage() {
     controller.movementMutation.reset();
     controller.closeMutation.reset();
     setActiveForm(null);
+    if (searchParams.get('action')) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      nextParams.delete('shiftId');
+      setSearchParams(nextParams, { replace: true });
+    }
   };
 
   const movementType = controller.confirmAction?.kind === 'movement' ? controller.confirmAction.values.type : '';

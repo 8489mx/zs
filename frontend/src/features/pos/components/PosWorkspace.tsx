@@ -492,11 +492,13 @@ export function PosWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pos.canShowLastSaleActions, pos.lastSale, pos.settingsQuery.data?.posKitchenPrinterEnabled, pos.settingsQuery.data?.posKitchenPrinterAuto]);
 
+  const isServicesActive = pos.settingsQuery.data?.servicesModuleEnabled === true || Boolean(pos.settingsQuery.data?.enableMobileStoreFeatures);
+
   usePosWorkspaceKeyboardShortcuts({
     pos,
     focusBarcodeEntry,
     onOpenNewProduct: () => handleOpenNewProduct(),
-    onOpenQuickService: () => setQuickServiceOpen(true),
+    onOpenQuickService: isServicesActive ? () => setQuickServiceOpen(true) : undefined,
     printCurrentDraft,
     onRequestClearCart: requestClearCart,
     onRequestLineDelete: requestLineDelete,
@@ -514,7 +516,7 @@ export function PosWorkspace() {
         onModeChange={setPosMode}
         onFocusSearch={focusBarcodeEntry}
         onOpenNewProduct={() => handleOpenNewProduct()}
-        onOpenQuickService={() => setQuickServiceOpen(true)}
+        onOpenQuickService={isServicesActive ? () => setQuickServiceOpen(true) : undefined}
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenSerialLookup={() => setSerialLookupOpen(true)}

@@ -13,7 +13,13 @@ export class LocationPayloadDto {
   code?: string;
 
   @IsOptional()
-  @Transform(({ value }) => (value === '' || value == null ? undefined : value))
+  @Transform(({ value }) => {
+    if (value === '' || value == null || value === 0 || value === '0') {
+      return undefined;
+    }
+    const parsed = Number(value);
+    return Number.isNaN(parsed) || parsed < 1 ? undefined : parsed;
+  })
   @IsInt()
   @Min(1)
   branchId?: number;

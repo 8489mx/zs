@@ -59,6 +59,8 @@ const iconToneMap: Record<string, IconTone> = {
   quotations: { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
   'delivery-reps': { bg: 'linear-gradient(135deg, #fef3c7, #fef08a)', border: '#fde047', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.22)' },
   pos: { bg: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)', border: '#d8b4fe', fg: '#7e22ce', glow: 'rgba(168, 85, 247, 0.22)' },
+  kds: { bg: 'linear-gradient(135deg, #fff7ed, #ffedd5)', border: '#fed7aa', fg: '#c2410c', glow: 'rgba(234, 88, 12, 0.22)' },
+  signage: { bg: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', border: '#bae6fd', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
   'online-orders': { bg: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', border: '#6ee7b7', fg: '#059669', glow: 'rgba(16, 185, 129, 0.22)' },
   'cash-drawer': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#a16207', glow: 'rgba(245, 158, 11, 0.24)' },
   purchases: { bg: 'linear-gradient(135deg, #cffafe, #a5f3fc)', border: '#67e8f9', fg: '#0f766e', glow: 'rgba(6, 182, 212, 0.22)' },
@@ -130,6 +132,8 @@ const iconPathMap: Record<string, string> = {
   'pharmacy-clinical': 'M22 12h-4l-3 9L9 3l-3 9H2',
   dashboard: 'M4 11h16M6 9l6-5 6 5v10H6V9z',
   pos: 'M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4',
+  kds: 'M18 2v8a3 3 0 0 1-3 3h-1v9h-2v-9H7a3 3 0 0 1-3-3V2h2v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2h2z',
+  signage: 'M2 3h20v14H2V3zm6 18h8m-4-4v4',
   'online-orders': 'M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6M9 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   'cash-drawer': 'M3 10h18v10H3V10zm3-6h12v4H6V4zm6 9v2m-4 0h8',
   sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
@@ -345,10 +349,14 @@ export function AppShell({ children }: PropsWithChildren) {
       // 1. Sales & Customers
       'sales',
       'quotations',
+      'installments',
       'returns',
       'customers',
       'delivery-reps',
+      'kds',
+      'signage',
       'tax-dispatcher',
+      'vat-declaration',
 
       // 2. Purchases & Suppliers
       'purchases-new',
@@ -430,6 +438,8 @@ export function AppShell({ children }: PropsWithChildren) {
       'tax-dispatcher': 'الفاتورة الإلكترونية',
       installments: 'مبيعات التقسيط',
       'vat-declaration': 'الإقرار الضريبي (ن10 و ZATCA)',
+      kds: 'شاشة المطبخ (KDS)',
+      signage: 'شاشات العروض الترويجية',
       'purchases-new': 'إنشاء فاتورة شراء',
       purchases: 'سجل فواتير المشتريات',
       'purchase-returns': 'مرتجعات المشتريات',
@@ -499,6 +509,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'vat-declaration' && !isSuperAdminUser && (settings?.taxDeclarationModuleEnabled === false || !hasFeature('vat_declaration'))) return false;
         if (item.key === 'accounting-fixed-assets' && !isSuperAdminUser && (settings?.fixedAssetsModuleEnabled === false || !hasFeature('fixed_assets'))) return false;
         if (item.key === 'delivery-reps' && !isSuperAdminUser && (settings?.deliveryFleetModuleEnabled === false || !hasFeature('deliveryReps'))) return false;
+        if (item.key === 'kds' && !isSuperAdminUser && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
 
         // Purchases gating (Bypassed for Super Admin):
         if (!isSuperAdminUser && (item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers') && !hasFeature('purchases')) return false;
@@ -532,7 +543,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     const hasAccounting = isSuperAdminUser || !tenant?.features || tenant.features.includes('accounting');
     return [
-      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'quotations', 'installments', 'returns', 'customers', 'delivery-reps', 'tax-dispatcher', 'vat-declaration'], iconKey: 'sales' },
+      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['sales', 'quotations', 'installments', 'returns', 'customers', 'delivery-reps', 'kds', 'signage', 'tax-dispatcher', 'vat-declaration'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-new', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
       { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'pricing-center', 'inventory-warehouses', 'inventory-tree', 'inventory', 'inventory-issue-orders', 'inventory-issue-order-new', 'services'], iconKey: 'inventory' },
       { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-accounts', 'accounting-journal-entries', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
