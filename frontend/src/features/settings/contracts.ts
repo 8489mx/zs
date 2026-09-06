@@ -54,6 +54,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     restaurantModuleEnabled: values.restaurantModuleEnabled === true,
     posShowCartMeta: values.posShowCartMeta === true,
     printDeliveryRepOnReceipt: values.printDeliveryRepOnReceipt === true,
+    posModuleEnabled: values.posModuleEnabled !== false,
     storefrontModuleEnabled: values.storefrontModuleEnabled !== false,
     installmentsModuleEnabled: values.installmentsModuleEnabled !== false,
     fixedAssetsModuleEnabled: values.fixedAssetsModuleEnabled !== false,

@@ -37,6 +37,7 @@ export const settingsFormSchema = z.object({
   ]).optional().default('general'),
   currentBranchId: z.string().optional(),
   currentLocationId: z.string().optional(),
+  posModuleEnabled: z.boolean().default(true),
   manufacturingModuleEnabled: z.boolean().default(false),
   importModuleEnabled: z.boolean().default(false),
   comboModuleEnabled: z.boolean().default(false),

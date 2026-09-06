@@ -49,6 +49,7 @@ export interface AppSettings {
   posReceiptTheme?: 'boxed' | 'classic' | 'ultra-compact' | string;
   printNumberFormat?: 'arabic' | 'english' | string;
   printDualReceiptForOnlineDelivery?: boolean;
+  posModuleEnabled?: boolean;
   manufacturingModuleEnabled?: boolean;
   importModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;
