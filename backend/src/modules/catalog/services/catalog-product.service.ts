@@ -36,7 +36,7 @@ type ProductRow = {
 };
 
 type ProductWriteExecutor = Kysely<Database> | Transaction<Database>;
-type ProductOfferColumnCapabilities = { hasMinQty: boolean };
+type ProductOfferColumnCapabilities = { hasMinQty: boolean; hasAdvancedPromotions: boolean };
 type ProductOfferReadRow = {
   id: number;
   product_id: number;
@@ -45,6 +45,12 @@ type ProductOfferReadRow = {
   start_date: string | null;
   end_date: string | null;
   min_qty?: string | number | null;
+  bogo_buy_qty?: string | number | null;
+  bogo_get_qty?: string | number | null;
+  bogo_discount_percent?: string | number | null;
+  happy_hour_start?: string | null;
+  happy_hour_end?: string | null;
+  days_of_week?: string | null;
 };
 
 type ProductCountRow = {
@@ -140,9 +146,12 @@ export class CatalogProductService {
         .execute(this.db)
         .then((result) => {
           const columns = new Set(result.rows.map((row) => String(row.column_name || '').toLowerCase()));
-          return { hasMinQty: columns.has('min_qty') };
+          return {
+            hasMinQty: columns.has('min_qty'),
+            hasAdvancedPromotions: columns.has('bogo_buy_qty'),
+          };
         })
-        .catch(() => ({ hasMinQty: false }));
+        .catch(() => ({ hasMinQty: false, hasAdvancedPromotions: false }));
     }
     return this.productOfferColumnCapabilitiesPromise;
   }
@@ -612,23 +621,21 @@ export class CatalogProductService {
 
   private async fetchProductOffers(productIds: number[], hasMinQty: boolean, actor: AuthContext): Promise<Map<string, Record<string, unknown>[]>> {
     if (!productIds.length) return new Map();
-    const offers = hasMinQty
-      ? await this.db
-          .selectFrom('product_offers')
-          .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date', 'min_qty'])
-          .where('is_active', '=', true)
-          .where('product_id', 'in', productIds)
-          .where(this.tenantPredicate(actor))
-          .orderBy('id', 'desc')
-          .execute() as ProductOfferReadRow[]
-      : await this.db
-          .selectFrom('product_offers')
-          .select(['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date'])
-          .where('is_active', '=', true)
-          .where('product_id', 'in', productIds)
-          .where(this.tenantPredicate(actor))
-          .orderBy('id', 'desc')
-          .execute() as ProductOfferReadRow[];
+    const capabilities = await this.getProductOfferColumnCapabilities();
+    const selectCols: any[] = ['id', 'product_id', 'offer_type', 'value', 'start_date', 'end_date'];
+    if (capabilities.hasMinQty) selectCols.push('min_qty');
+    if (capabilities.hasAdvancedPromotions) {
+      selectCols.push('bogo_buy_qty', 'bogo_get_qty', 'bogo_discount_percent', 'happy_hour_start', 'happy_hour_end', 'days_of_week');
+    }
+
+    const offers = await this.db
+      .selectFrom('product_offers')
+      .select(selectCols)
+      .where('is_active', '=', true)
+      .where('product_id', 'in', productIds)
+      .where(this.tenantPredicate(actor))
+      .orderBy('id', 'desc')
+      .execute() as ProductOfferReadRow[];
 
     return this.mapOffersByProduct(offers);
   }
@@ -640,11 +647,25 @@ export class CatalogProductService {
       if (!offersByProduct.has(key)) offersByProduct.set(key, []);
       offersByProduct.get(key)!.push({
         id: String(offer.id),
-        type: offer.offer_type === 'bundle' ? 'bundle' : offer.offer_type === 'price' ? 'price' : offer.offer_type === 'fixed' ? 'fixed' : 'percent',
+        type: offer.offer_type === 'bogo'
+          ? 'bogo'
+          : offer.offer_type === 'bundle'
+          ? 'bundle'
+          : offer.offer_type === 'price'
+          ? 'price'
+          : offer.offer_type === 'fixed'
+          ? 'fixed'
+          : 'percent',
         value: Number(offer.value || 0),
         minQty: Math.max(1, Number(offer.min_qty || 1)),
         from: this.normalizeDateOnly(offer.start_date),
         to: this.normalizeDateOnly(offer.end_date),
+        bogoBuyQty: offer.bogo_buy_qty ? Number(offer.bogo_buy_qty) : null,
+        bogoGetQty: offer.bogo_get_qty ? Number(offer.bogo_get_qty) : null,
+        bogoDiscountPercent: offer.bogo_discount_percent != null ? Number(offer.bogo_discount_percent) : 100,
+        happyHourStart: offer.happy_hour_start || null,
+        happyHourEnd: offer.happy_hour_end || null,
+        daysOfWeek: offer.days_of_week || null,
       });
     }
     return offersByProduct;
@@ -1086,13 +1107,27 @@ export class CatalogProductService {
 
     const offers: NormalizedProductOffer[] = (payload.offers || [])
       .map((offer): NormalizedProductOffer => ({
-        type: offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
+        type: offer.type === 'bogo'
+          ? 'bogo'
+          : offer.type === 'bundle'
+          ? 'bundle'
+          : offer.type === 'price'
+          ? 'price'
+          : offer.type === 'fixed'
+          ? 'fixed'
+          : 'percent',
         value: Number(offer.value || 0),
         minQty: Math.max(1, Number(offer.minQty || 1)),
         from: offer.from || null,
         to: offer.to || null,
+        bogoBuyQty: (offer as any).bogoBuyQty ? Number((offer as any).bogoBuyQty) : ((offer as any).bogo_buy_qty ? Number((offer as any).bogo_buy_qty) : null),
+        bogoGetQty: (offer as any).bogoGetQty ? Number((offer as any).bogoGetQty) : ((offer as any).bogo_get_qty ? Number((offer as any).bogo_get_qty) : null),
+        bogoDiscountPercent: (offer as any).bogoDiscountPercent != null ? Number((offer as any).bogoDiscountPercent) : ((offer as any).bogo_discount_percent != null ? Number((offer as any).bogo_discount_percent) : 100),
+        happyHourStart: (offer as any).happyHourStart || (offer as any).happy_hour_start || null,
+        happyHourEnd: (offer as any).happyHourEnd || (offer as any).happy_hour_end || null,
+        daysOfWeek: (offer as any).daysOfWeek || (offer as any).days_of_week || null,
       }))
-      .filter((offer) => offer.value > 0);
+      .filter((offer) => offer.value > 0 || offer.type === 'bogo');
 
     const customerPrices = (payload.customerPrices || [])
       .map((entry) => ({ customerId: Number(entry.customerId || 0), price: Number(entry.price || 0) }))
@@ -1343,28 +1378,27 @@ export class CatalogProductService {
     }
 
     for (const offer of payload.offers) {
+      const offerData: any = {
+        product_id: productId,
+        offer_type: offer.type,
+        value: offer.value || (offer.type === 'bogo' ? (offer.bogoDiscountPercent ?? 100) : 0),
+        start_date: offer.from,
+        end_date: offer.to,
+        is_active: true,
+        ...this.tenantFields(actor),
+      };
       if (offerCapabilities.hasMinQty) {
-        await db.insertInto('product_offers').values({
-          product_id: productId,
-          offer_type: offer.type,
-          value: offer.value,
-          min_qty: offer.minQty,
-          start_date: offer.from,
-          end_date: offer.to,
-          is_active: true,
-          ...this.tenantFields(actor),
-        }).execute();
-      } else {
-        await db.insertInto('product_offers').values({
-          product_id: productId,
-          offer_type: offer.type === 'price' ? 'fixed' : offer.type,
-          value: offer.value,
-          start_date: offer.from,
-          end_date: offer.to,
-          is_active: true,
-          ...this.tenantFields(actor),
-        }).execute();
+        offerData.min_qty = offer.minQty;
       }
+      if (offerCapabilities.hasAdvancedPromotions) {
+        offerData.bogo_buy_qty = offer.bogoBuyQty || null;
+        offerData.bogo_get_qty = offer.bogoGetQty || null;
+        offerData.bogo_discount_percent = offer.bogoDiscountPercent ?? 100;
+        offerData.happy_hour_start = offer.happyHourStart || null;
+        offerData.happy_hour_end = offer.happyHourEnd || null;
+        offerData.days_of_week = offer.daysOfWeek || null;
+      }
+      await db.insertInto('product_offers').values(offerData).execute();
     }
 
     for (const price of payload.customerPrices) {

@@ -10,8 +10,8 @@ export interface ProductUnit {
 
 export interface ProductOffer {
   id?: string;
-  type?: 'percent' | 'fixed' | 'price' | 'bundle';
-  offer_type?: 'percent' | 'fixed' | 'price' | 'bundle';
+  type?: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo';
+  offer_type?: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo';
   value: number | string;
   minQty?: number;
   min_qty?: number | string | null;
@@ -19,6 +19,18 @@ export interface ProductOffer {
   to?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  bogoBuyQty?: number | null;
+  bogo_buy_qty?: number | string | null;
+  bogoGetQty?: number | null;
+  bogo_get_qty?: number | string | null;
+  bogoDiscountPercent?: number | null;
+  bogo_discount_percent?: number | string | null;
+  happyHourStart?: string | null;
+  happy_hour_start?: string | null;
+  happyHourEnd?: string | null;
+  happy_hour_end?: string | null;
+  daysOfWeek?: string | null;
+  days_of_week?: string | null;
 }
 
 export interface ProductCustomerPrice {

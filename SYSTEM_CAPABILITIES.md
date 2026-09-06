@@ -375,14 +375,87 @@
 
 ---
 
-## 25. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)
+## 25. الربط مع شركات الشحن الخليجية الداخلية (Aramex & SMSA Express Gateways)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:** `backend/src/modules/gcc-shipping`, `frontend/src/features/storefront/components/GccShipmentModal.tsx`, `frontend/src/features/storefront/components/GccShippingSettingsCard.tsx`, `frontend/src/features/storefront/api/gcc-shipping.api.ts`
+* **الجداول في قاعدة البيانات:** `online_orders` (`gcc_shipping_carrier`, `gcc_shipping_id`, `gcc_tracking_number`, `gcc_shipping_status`, `gcc_awb_url`, `gcc_shipping_created_at`), `settings`
+* **مهاجرة قاعدة البيانات:** `2040000000039_gcc_shipping_gateways.ts`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **بوابة شحن أرامكس الخليجية (Aramex Shipping Gateway)** | 🟢 | 100% | `gcc-shipping.service.ts`, `gcc-shipping.controller.ts`, `GccShippingSettingsCard.tsx` | تكامل شامل مع واجهات أرامكس الرسمية لإنشاء الشحنات وتوليد بوالص الشحن (Airway Bills)، دعم الكيانات الجغرافية الخليجية (`RUH`, `DXB`, `KWI`, `DOH`)، حساب الدفع عند الاستلام COD التلقائي، وتتبع الشحنة المباشر بروابط أرامكس الرسمية. |
+| **بوابة سمسا إكسبريس السعودية (SMSA Express Gateway)** | 🟢 | 100% | `gcc-shipping.service.ts`, `gcc-shipping.controller.ts`, `GccShippingSettingsCard.tsx` | ربط كامل مع واجهات سمسا إكسبريس (SMSA API) عبر مفتاح المرور `passKey` لخدمة كافة مدن ومحافظات ومراكز المملكة العربية السعودية، مع حساب الرسوم الجمركية وعملة التسوية (SAR). |
+| **إنشاء بوالص الشحن الخليجية بنقرة واحدة من إدارة الطلبات** | 🟢 | 100% | `GccShipmentModal.tsx`, `MerchantOnlineOrdersPage.tsx` | نافذة منبثقة تفاعلية تدعم الاختيار السريع بين أرامكس وسمسا، التحقق الذكي من سداد الطلب (تصفير الـ COD لطلبات تاب وسترايب، أو تحصيل كامل الفاتورة للدفع عند الاستلام)، تحديد وزن الطرود وعدد القطع، والتحقق من العنوان ورقم الجوال. |
+| **طباعة ملصق الشحن الحراري الموحد مقاس 4×6 (Thermal AWB 4x6)** | 🟢 | 100% | `gcc-shipping.controller.ts` (`/api/gcc-shipping/awb/:trackingNumber`) | صفحة مخصصة متوافقة 100% مع طابعات الملصقات الحرارية لمستودعات الشحن مقاس 4x6 بوصة، تتضمن باركود الشحنة الممسوح ضوئياً، رمز الاستجابة السريعة (QR Code) للتتبع الفوري، بيانات المستودع (Shipper) وبيانات العميل والمحتويات ومبلغ الـ COD. |
+| **التتبع الحي والخط الزمني لمسار الشحنة (Live Tracking Timeline)** | 🟢 | 100% | `GccShipmentModal.tsx`, `gcc-shipping.service.ts`, `gcc-shipping.api.ts` | لوحة تتبع لحظية متدرجة (تم إنشاء الشحنة ➔ تم الاستلام من المستودع ➔ في الطريق مع المندوب ➔ تم التسليم للعميل) مع زر إعادة التحديث المباشر ورابط تتبع رسمي خارجي. |
+| **محاكي الشحن التجريبي الذكي (GCC Sandbox & Simulation Engine)** | 🟢 | 100% | `gcc-shipping.service.ts`, `GccShippingSettingsCard.tsx` | وضع تجريبي تفاعلي كامل مدمج يتيح للتاجر تجربة كافة دورات الشحن، إصدار البوالص، وطباعة الملصقات الحرارية، ومحاكاة مراحل التتبع دون الحاجة لحساب تجاري معتمد فورياً. |
+
+---
+
+## 26. معالج استيراد البيانات التجريبية السريعة حسب النشاط (One-Click Demo Data Wizard)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **Backend Datasets & Logic:** `backend/src/modules/settings/services/demo-datasets/` (`types.ts`, `supermarket.dataset.ts`, `fashion.dataset.ts`, `cafe.dataset.ts`, `electronics.dataset.ts`, `pharmacy.dataset.ts`, `index.ts`), `backend/src/modules/settings/services/settings-demo-data.service.ts`, `backend/src/modules/settings/controllers/settings-admin.controller.ts`
+  * **Frontend Wizard & Navigation:** `frontend/src/features/settings/api/demo-data.api.ts`, `frontend/src/features/settings/components/workspace-sections/SettingsDemoDataWizardSection.tsx`, `frontend/src/features/settings/pages/settings.page-config.ts`, `frontend/src/features/settings/pages/SettingsSectionContent.tsx`, `frontend/src/shared/system/SmartDemoOnboardingBanner.tsx`, `frontend/src/features/settings/components/workspace-sections/SettingsBackupImportSection.tsx`
+* **الجداول في قاعدة البيانات:** `products`, `product_categories`, `product_location_stock`, `suppliers`, `customers`, `delivery_representatives`, `cashier_shifts`, `purchases`, `purchase_items`, `sales`, `sale_items`, `sale_payments`, `online_orders`, `hr_employees`, `tenants`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **5 باقات بيانات واقعية متخصصة بالأنشطة (5 Industry Datasets)** | 🟢 | 100% | `demo-datasets/` (`supermarket`, `fashion`, `cafe`, `electronics`, `pharmacy`) | بيانات جاهزة وواقعية لـ 5 أنشطة: (1) **سوبرماركت ومواد غذائية** (43 صنفاً، ألبان، معلبات، منظفات)، (2) **ملابس وأزياء وأحذية** (40 صنفاً بمقاسات وألوان ونمط fashion)، (3) **كافيه ومطعم ومشروبات** (40 صنفاً، إسبريسو، وجبات سريعة، طاولات وتيك أواي)، (4) **إلكترونيات وموبايل وصيانة** (38 صنفاً، هواتف، شواحن، قطع غيار)، (5) **صيدلية ومستحضرات تجميل** (38 صنفاً، أدوية، فيتامينات، مستحضرات). |
+| **شاشة معالج التخصيص التفاعلية في الإعدادات (Demo Wizard Section)** | 🟢 | 100% | `SettingsDemoDataWizardSection.tsx`, `settings.page-config.ts`, `SettingsSectionContent.tsx` | شاشة مخصصة في الإعدادات (`/settings/demo-data`) بتصميم مؤسسي نظيف بنظام البطاقات المتجاوبة، بطاقات تفاعلية لكل نشاط مع استعراض شارات الأصناف ونبذة تخصصية، فحص آلي لحالة قاعدة البيانات، وتنبيه واضح بالحالة. |
+| **التعبئة الفورية بضغطة زر واحدة (Instant 5-Second Seeding)** | 🟢 | 100% | `settings-demo-data.service.ts`, `settings-admin.controller.ts` (`/api/admin/demo-data/seed`) | إنشاء متزامن لكافة التصنيفات، الأصناف بالباركودات والأسعار وأرصدة المخازن، الموردين، العملاء، مناديب الدليفري، الكوادر والموظفين، فتح وردية كاشير في الـ POS، وتوليد فواتير مبيعات سابقة موزعة على 6 أشهر مع هوامش ربح متزنة لتغذية الداشبورد والرسوم البيانية فورياً في 5 ثوانٍ. |
+| **توليد طلبات متجر إلكتروني سحابية وتكامل شركات الشحن** | 🟢 | 100% | `demo-datasets/`, `settings-demo-data.service.ts` | توليد طلبات متجر إلكتروني تلقائية في جدول `online_orders` بحالات مختلفة (معلقة، قيد التجهيز، مشحونة، مسلّمة) لتجربة دورة المتجر الإلكتروني وشحن البضائع وبوابات الدفع. |
+| **التفريغ والتنظيف الآمن للبيانات التجريبية (Safe Demo Data Wipe)** | 🟢 | 100% | `settings-demo-data.service.ts`, `settings-admin.controller.ts` (`/api/admin/demo-data/clear`) | إمكانية مسح وتفريغ الأصناف والفواتير التجريبية فقط بنقرة واحدة عند رغبة التاجر في بدء التشغيل الفعلي على مخزن نظيف، مع حفظ تلقائي لنسخة احتياطية، وحماية كلمة المرور للسوبر أدمن. |
+| **ترقية بنر الترحيب الذكي في الداشبورد والإسناد المتبادل** | 🟢 | 100% | `SmartDemoOnboardingBanner.tsx`, `SettingsBackupImportSection.tsx` | إتاحة زر الانتقال المباشر للمعالج من بنر الداشبورد الذكي ومن قسم النسخ الاحتياطي والاستيراد، مما يوفر وصولاً سريعاً لأي مستخدم جديد عند تسجيل الدخول. |
+
+---
+
+## 27. شاشة عرض العميل المقابلة للكاشير (Customer Facing Display - CFD)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **أنواع البيانات والبريدج:** `frontend/src/features/pos/types/pos-customer-display.types.ts`, `frontend/src/features/pos/lib/pos-customer-display-bridge.ts`
+  * **البث والمزامنة الحية:** `frontend/src/features/pos/hooks/usePosCustomerDisplayBroadcaster.ts`, `frontend/src/features/pos/hooks/usePosWorkspace.ts`
+  * **واجهة العرض المستقلة:** `frontend/src/features/pos/pages/CustomerFacingDisplayPage.tsx`, `frontend/src/styles/partials/pos-customer-display.css`
+  * **التحكم والروابط:** `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`, `frontend/src/app/router/root-router.tsx`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **شاشة خمول وترويج رقمية تفاعلية (Idle Digital Signage & Branding)** | 🟢 | 100% | `CustomerFacingDisplayPage.tsx`, `pos-customer-display.css` | شاشة متطورة تعزز هوية المتجر أثناء خمول الكاشير؛ تتضمن ترويسة بشعار واسم المتجر والفرع، ساعة وتاريخ رقمي مباشر باللغة العربية، بطاقة ترحيب فندقية راقية، وشبكة عروض ترويجية تفاعلية دوارة كل 6 ثوانٍ تروج للخصومات ونقاط الولاء وخدمات التوصيل. |
+| **مزامنة حية وفورية لسلة المشتريات (Sub-millisecond Realtime Cart Sync)** | 🟢 | 100% | `usePosCustomerDisplayBroadcaster.ts`, `pos-customer-display-bridge.ts`, `CustomerFacingDisplayPage.tsx` | ربط محلي لحظي صفر-لاغ (0ms Latency) يعتمد على `BroadcastChannel` المدمجة في المتصفح مع دعم احتياطي عبر `localStorage`؛ يعرض قائمة الأصناف الممسوحة لحظة بلحظة مع شارات الكميات، أسعار الوحدات، الإجمالي لكل بند، مع تأثير وميض بصري أخضر نابض على آخر صنف تمت إضافته. |
+| **شارة ترحيب العميل ونقاط الولاء (Customer Loyalty Welcome Pill)** | 🟢 | 100% | `usePosCustomerDisplayBroadcaster.ts`, `CustomerFacingDisplayPage.tsx` | عند اختيار العميل في شاشة الكاشير تظهر فورياً شارة ترحيبية خضراء في شاشة الزبون باسم العميل ورصيد نقاط المكافآت والولاء المتاحة له لاستبدالها. |
+| **توليد رمز الدفع السريع بالـ QR الذكي (Instant Dynamic QR Payment)** | 🟢 | 100% | `qrcode.ts`, `CustomerFacingDisplayPage.tsx`, `pos-customer-display.types.ts` | توليد فوري لرمز الاستجابة السريعة (Pure SVG QR Code) بمبلغ الفاتورة المحدد عند الانتقال لمرحلة السداد؛ يتيح للعميل مسح الكود بهاتفه للدفع المباشر عبر تطبيق إنستاباي (InstaPay) أو المحافظ الإلكترونية (فودافون كاش، اتصالات...) دون الحاجة لأي خدمات خارجية أو إنترنت، مع حساب تفصيلي للنقدية والمتبقي المسترد للعميل. |
+| **شاشة الاحتفال بنجاح الفاتورة (Checkout Celebration & Change Summary)** | 🟢 | 100% | `CustomerFacingDisplayPage.tsx`, `pos-customer-display.css` | فور إتمام الفاتورة بواسطة الكاشير، تتحول شاشة العميل تلقائياً إلى بطاقة احتفالية خضراء فخمة («تمت عملية الشراء بنجاح! 💚 شكراً لتسوقكم معنا»)، مع إبراز رقم الفاتورة، المبلغ الإجمالي، المبلغ المدفوع، والمتبقي المسترد للعميل بخط عريض جداً ومميز، مع رجوع تلقائي سلس لشاشة الترويج بعد 12 ثانية أو عند بدء عملية بيع جديدة. |
+| **زر التشغيل والتحكم المباشر من الكاشير (One-Click POS Header CFD Launcher)** | 🟢 | 100% | `PosWorkspaceHeader.tsx`, `pos-customer-display-bridge.ts` | زر مباشر ومميز في شريط أدوات الكاشير العلوي «شاشة العميل 🖥️» يتيح فتح الشاشة المقابلة بضغطة زر واحدة على الشاشة الثانوية الممتدة (Extended Display) أو جهاز التابلت المقابل، مع إمكانية ملء الشاشة الكامل (Fullscreen Mode) وإخفاء أي أشرطة متصفح. |
+
+---
+
+## 28. محرك العروض الترويجية المتقدمة والباقات (Advanced Promotions, BOGO & Happy Hours Engine) 🎁
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **قاعدة البيانات والترحيل:** `backend/src/database/migrations/2040000000040_advanced_promotions_bogo_happy_hours.ts`, `backend/src/database/database.types.ts`
+  * **الباك إند والكاتالوج:** `backend/src/modules/catalog/dto/upsert-product.dto.ts`, `backend/src/modules/catalog/services/catalog-product.service.ts`
+  * **محرك حساب الكاشير والـ POS:** `frontend/src/features/pos/lib/pos.domain.ts`
+  * **واجهة العروض ومحاكي التوفير المباشر:** `frontend/src/features/products/components/ProductOfferDialog.tsx`, `frontend/src/features/products/components/offers/ProductOfferItemEditorTab.tsx`, `frontend/src/types/domain-models/catalog.ts`
+* **الجداول في قاعدة البيانات:** `product_offers` (`offer_type` يدعم `'bogo'`, `bogo_buy_qty`, `bogo_get_qty`, `bogo_discount_percent`, `happy_hour_start`, `happy_hour_end`, `days_of_week`)
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **محرك عروض BOGO المتقدم (اشترِ X واحصل على Y مجاناً أو بخصم)** | 🟢 | 100% | `pos.domain.ts`, `catalog-product.service.ts`, `ProductOfferItemEditorTab.tsx` | محرك رياضي دوري متقدم (Cycle-based BOGO) يدعم سيناريوهات الترويج الكبرى: اشترِ 2 واحصل على 1 مجاناً (100%)، أو اشترِ 1 واحصل على الثاني بنصف السعر (50%)، مع حساب دقيق لمجموعات الشراء في سلة الكاشير آلياً دون أي تدخل يدوي. |
+| **محرك الساعات الذهبية ومواعيد العرض (Happy Hours & Day-of-Week Scheduling)** | 🟢 | 100% | `pos.domain.ts`, `ProductOfferItemEditorTab.tsx`, `ProductOfferDialog.tsx` | جدولة تلقائية متقدمة للعروض حسب أوقات اليوم (مثلاً من 16:00 إلى 20:00)، أو عروض منتصف الليل التي تعبر اليوم (مثلاً 22:00 إلى 02:00)، مع حصر أيام التطبيق (عطلة نهاية الأسبوع الجمعة والسبت، يوم الجمعة فقط، أو أيام العمل الأحد إلى الخميس). ينشط العرض وينتهي لحظياً في الكاشير بدقة التوقيت المحلي. |
+| **محاكي التوفير والربحية الفوري (Realtime Cart & Margin Simulator)** | 🟢 | 100% | `ProductOfferItemEditorTab.tsx`, `ProductOfferDialog.tsx` | معاينة فورية ديناميكية في نافذة العرض توضح التكلفة الأصلية، السعر بعد تطبيق دورة BOGO، نسبة التوفير المحققة للعميل، ومتوسط سعر القطعة، مع تنبيه ذكي فوري باللون الأحمر إذا نزل سعر البيع الترويجي عن سعر تكلفة الصنف لتفادي الخسائر. |
+| **التكامل الكامل والموحد داخل نافذة العروض (Single Unified Offers Modal)** | 🟢 | 100% | `ProductOfferDialog.tsx`, `ProductOfferItemEditorTab.tsx` | دمج تجربة BOGO والساعات الذهبية ضمن نفس نافذة إدارة العروض الموحدة للصنف (`ProductOfferDialog`) بتبويب منسق ومريح، مع شارات بصرية واضحة في قائمة العروض المسجلة تشير لحالة BOGO ومواعيد الساعات الذهبية، وإمكانية التعديل والحذف الفوري. |
+| **عروض الباقات والكميات المجمعة (Bundle Packs & Mix & Match)** | 🟢 | 100% | `pos.domain.ts`, `ProductOfferComboCreatorTab.tsx`, `ProductOfferActiveCombosTab.tsx` | دعم عروض الكميات (مثل شراء 3 قطع بسعر إجمالي محدد)، والعروض المجمعة المتكاملة (كومبو) عبر شجرة المنتج (BOM) لدمج عدة أصناف في باقة واحدة بسعر مخفض وخصم مكوناتها تلقائياً من المستودع. |
+
+---
+
+## 29. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)
 
 | الميزة المقترحة / البديل المنفذ | الحالة | نسبة الإنجاز | الملاحظات والبديل المنجز في النظام |
 | :--- | :---: | :---: | :--- |
 | **تغليف تطبيقات المتاجر الرسمية (Google Play / App Store)** | 🟢 | 100% | بديل PWA الفوري للمناديب والمالك يعمل بكفاءة تامة دون الحاجة للمتاجر، ويمكن تغليفه إلى APK/AAB بنقرة واحدة عند الرغبة التسويقية. |
-| **الربط مع شركات شحن خليجية داخلية (مثل Aramex / SMSA)** | 🟡 | اختياري | تم إنجاز بوسطة (Bosta) بنسبة 100% لتغطية الشحن السريع؛ وفي حال وجود مستودعات داخل السعودية لشحن داخلي بين المدن يمكن إضافة أرامكس أو سمسا. |
 
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
+
 
 

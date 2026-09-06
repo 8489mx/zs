@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
 import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench';
@@ -355,6 +356,7 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
 }
 
 function DemoDataSandboxCard() {
+  const navigate = useNavigate();
   const isSuperAdmin = useAuthStore((s) => s.user?.role === 'super_admin');
   const [modalMode, setModalMode] = useState<'seed' | 'wipe' | null>(null);
   const [password, setPassword] = useState('');
@@ -455,16 +457,7 @@ function DemoDataSandboxCard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <Button
               type="button"
-              disabled={mutation.isPending}
-              onClick={() => {
-                setFeedback(null);
-                if (isEmpty) {
-                  mutation.mutate({ mode: 'seed', pass: '' });
-                } else {
-                  setPassword('');
-                  setModalMode('seed');
-                }
-              }}
+              onClick={() => navigate('/settings/demo-data')}
               style={{
                 fontSize: '0.85rem',
                 padding: '9px 18px',
@@ -478,7 +471,34 @@ function DemoDataSandboxCard() {
                 transition: 'all 0.15s ease',
               }}
             >
-              {mutation.isPending && isEmpty ? 'جاري السكب...' : 'ملء النظام ببيانات تجريبية كاملة'}
+              معالج الأنشطة التجريبية 🚀
+            </Button>
+
+            <Button
+              type="button"
+              disabled={mutation.isPending}
+              onClick={() => {
+                setFeedback(null);
+                if (isEmpty) {
+                  mutation.mutate({ mode: 'seed', pass: '' });
+                } else {
+                  setPassword('');
+                  setModalMode('seed');
+                }
+              }}
+              style={{
+                fontSize: '0.85rem',
+                padding: '9px 16px',
+                background: '#f8fafc',
+                color: '#334155',
+                fontWeight: 700,
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {mutation.isPending && isEmpty ? 'جاري السكب...' : 'ملء سريع (سوبرماركت)'}
             </Button>
 
             {isSuperAdmin && (

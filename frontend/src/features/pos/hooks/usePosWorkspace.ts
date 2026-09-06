@@ -11,6 +11,7 @@ import { usePosWorkspaceMutations } from '@/features/pos/hooks/usePosWorkspaceMu
 import { usePosWorkspaceState } from '@/features/pos/hooks/usePosWorkspaceState';
 import { usePosOperationalContext } from '@/features/pos/hooks/usePosOperationalContext';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
+import { usePosCustomerDisplayBroadcaster } from '@/features/pos/hooks/usePosCustomerDisplayBroadcaster';
 import { useAuthStore } from '@/stores/auth-store';
 
 const posReferenceStaleTime = 45_000;
@@ -158,6 +159,33 @@ export function usePosWorkspace() {
     discountApprovalSecret: state.discountApprovalSecret,
     setDiscountApprovalSecret: state.setDiscountApprovalSecret,
     settings: settingsQuery.data || null,
+  });
+
+  const authStoreName = useAuthStore((entry) => entry.storeName);
+
+  const activeCustomer = (customersQuery.data || []).find((c) => String(c.id) === String(state.customerId));
+  const activeCustomerInfo = activeCustomer ? {
+    name: activeCustomer.name,
+    phone: (activeCustomer as any).phone,
+    loyaltyPoints: (activeCustomer as any).loyaltyPoints,
+  } : (state.quickCustomerName ? {
+    name: state.quickCustomerName,
+    phone: state.quickCustomerPhone,
+    loyaltyPoints: 0,
+  } : null);
+
+  usePosCustomerDisplayBroadcaster({
+    cart: state.cart,
+    totals: derived.totals,
+    customer: activeCustomerInfo,
+    paymentType: state.paymentType,
+    paymentChannel: state.paymentChannel,
+    paidAmount,
+    changeAmount: derived.changeAmount,
+    lastSale: state.lastSale,
+    postSaleSaleKey: state.postSaleSaleKey,
+    storeName: authStoreName || (settingsQuery.data as any)?.storeName,
+    branchName: derived.currentBranch?.name,
   });
 
   const handleSetOrderType = useCallback((next: string | ((current: string) => string)) => {

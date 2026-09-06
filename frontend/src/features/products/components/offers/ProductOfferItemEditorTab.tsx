@@ -7,8 +7,8 @@ import type { Product, ProductOffer } from '@/types/domain';
 
 interface ProductOfferItemEditorTabProps {
   product: Product;
-  offerType: 'percent' | 'fixed' | 'price' | 'bundle';
-  setOfferType: (type: 'percent' | 'fixed' | 'price' | 'bundle') => void;
+  offerType: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo';
+  setOfferType: (type: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo') => void;
   offerValue: string;
   setOfferValue: (val: string) => void;
   offerStartDate: string;
@@ -17,6 +17,20 @@ interface ProductOfferItemEditorTabProps {
   setOfferEndDate: (d: string) => void;
   minQty: number;
   setMinQty: (n: number) => void;
+  bogoBuyQty: number;
+  setBogoBuyQty: (n: number) => void;
+  bogoGetQty: number;
+  setBogoGetQty: (n: number) => void;
+  bogoDiscountPercent: number;
+  setBogoDiscountPercent: (n: number) => void;
+  happyHourEnabled: boolean;
+  setHappyHourEnabled: (b: boolean) => void;
+  happyHourStart: string;
+  setHappyHourStart: (s: string) => void;
+  happyHourEnd: string;
+  setHappyHourEnd: (s: string) => void;
+  daysOfWeek: string;
+  setDaysOfWeek: (s: string) => void;
   editingIndex: number | null;
   selectedOffersTab: 'active' | 'expired' | 'all';
   setSelectedOffersTab: (tab: 'active' | 'expired' | 'all') => void;
@@ -49,6 +63,20 @@ export function ProductOfferItemEditorTab({
   setOfferEndDate,
   minQty,
   setMinQty,
+  bogoBuyQty,
+  setBogoBuyQty,
+  bogoGetQty,
+  setBogoGetQty,
+  bogoDiscountPercent,
+  setBogoDiscountPercent,
+  happyHourEnabled,
+  setHappyHourEnabled,
+  happyHourStart,
+  setHappyHourStart,
+  happyHourEnd,
+  setHappyHourEnd,
+  daysOfWeek,
+  setDaysOfWeek,
   editingIndex,
   selectedOffersTab,
   setSelectedOffersTab,
@@ -116,11 +144,11 @@ export function ProductOfferItemEditorTab({
           {/* Segmented Type Selector */}
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
-              نوع الخصم
+              نوع العرض والخصم
             </label>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(5, 1fr)',
               gap: 4,
               background: '#f1f5f9',
               padding: 3,
@@ -132,8 +160,8 @@ export function ProductOfferItemEditorTab({
                 style={{
                   border: 'none',
                   borderRadius: 6,
-                  padding: '7px 4px',
-                  fontSize: '0.8rem',
+                  padding: '7px 2px',
+                  fontSize: '0.78rem',
                   fontWeight: offerType === 'percent' ? 700 : 500,
                   color: offerType === 'percent' ? '#1e293b' : '#64748b',
                   background: offerType === 'percent' ? '#ffffff' : 'transparent',
@@ -142,16 +170,16 @@ export function ProductOfferItemEditorTab({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
+                  gap: 3,
                   transition: 'all 0.15s ease'
                 }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="19" y1="5" x2="5" y2="19" />
                   <circle cx="6.5" cy="6.5" r="2.5" />
                   <circle cx="17.5" cy="17.5" r="2.5" />
                 </svg>
-                نسبة مئوية
+                نسبة %
               </button>
 
               <button
@@ -160,8 +188,8 @@ export function ProductOfferItemEditorTab({
                 style={{
                   border: 'none',
                   borderRadius: 6,
-                  padding: '7px 4px',
-                  fontSize: '0.8rem',
+                  padding: '7px 2px',
+                  fontSize: '0.78rem',
                   fontWeight: offerType === 'fixed' ? 700 : 500,
                   color: offerType === 'fixed' ? '#1e293b' : '#64748b',
                   background: offerType === 'fixed' ? '#ffffff' : 'transparent',
@@ -170,11 +198,11 @@ export function ProductOfferItemEditorTab({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
+                  gap: 3,
                   transition: 'all 0.15s ease'
                 }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                   <line x1="7" y1="7" x2="7.01" y2="7" />
                 </svg>
@@ -187,8 +215,8 @@ export function ProductOfferItemEditorTab({
                 style={{
                   border: 'none',
                   borderRadius: 6,
-                  padding: '7px 4px',
-                  fontSize: '0.8rem',
+                  padding: '7px 2px',
+                  fontSize: '0.78rem',
                   fontWeight: offerType === 'price' ? 700 : 500,
                   color: offerType === 'price' ? '#1e293b' : '#64748b',
                   background: offerType === 'price' ? '#ffffff' : 'transparent',
@@ -197,11 +225,11 @@ export function ProductOfferItemEditorTab({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
+                  gap: 3,
                   transition: 'all 0.15s ease'
                 }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
                   <path d="M12 18V6" />
@@ -218,8 +246,8 @@ export function ProductOfferItemEditorTab({
                 style={{
                   border: 'none',
                   borderRadius: 6,
-                  padding: '7px 4px',
-                  fontSize: '0.8rem',
+                  padding: '7px 2px',
+                  fontSize: '0.78rem',
                   fontWeight: offerType === 'bundle' ? 700 : 500,
                   color: offerType === 'bundle' ? '#1e293b' : '#64748b',
                   background: offerType === 'bundle' ? '#ffffff' : 'transparent',
@@ -228,53 +256,154 @@ export function ProductOfferItemEditorTab({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
+                  gap: 3,
                   transition: 'all 0.15s ease'
                 }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                 </svg>
-                باقة / كمية
+                باقة كميات
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOfferType('bogo')}
+                style={{
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '7px 2px',
+                  fontSize: '0.78rem',
+                  fontWeight: offerType === 'bogo' ? 700 : 500,
+                  color: offerType === 'bogo' ? '#15803d' : '#64748b',
+                  background: offerType === 'bogo' ? '#dcfce7' : 'transparent',
+                  boxShadow: offerType === 'bogo' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span>🎁</span>
+                <span>BOGO اشترِ X</span>
               </button>
             </div>
           </div>
 
           {/* Inputs */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* Row: Value & Min Qty */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 10 }}>
-              <Field label={
-                offerType === 'percent'
-                  ? 'نسبة الخصم (%)'
-                  : offerType === 'fixed'
-                    ? 'قيمة الخصم للقطعة (ج.م)'
-                    : offerType === 'bundle'
-                      ? 'إجمالي سعر الباقة (ج.م)'
-                      : 'سعر القطعة بالعرض (ج.م)'
-              }>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  placeholder={offerType === 'percent' ? 'مثال: 20' : offerType === 'fixed' ? 'مثال: 15' : offerType === 'bundle' ? 'مثال: 500' : 'مثال: 80'}
-                  value={offerValue}
-                  onChange={(event) => setOfferValue(event.target.value)}
-                  style={{ fontWeight: 600 }}
-                />
-              </Field>
+            {offerType === 'bogo' ? (
+              <div style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <Field label="اشترِ كمية (X) *">
+                    <input
+                      type="number"
+                      min="1"
+                      value={bogoBuyQty}
+                      onChange={(e) => setBogoBuyQty(Math.max(1, Number(e.target.value || 1)))}
+                      style={{ fontWeight: 700 }}
+                    />
+                  </Field>
+                  <Field label="واحصل على كمية (Y) *">
+                    <input
+                      type="number"
+                      min="1"
+                      value={bogoGetQty}
+                      onChange={(e) => setBogoGetQty(Math.max(1, Number(e.target.value || 1)))}
+                      style={{ fontWeight: 700 }}
+                    />
+                  </Field>
+                </div>
+                <Field label="نسبة الخصم على الكمية الإضافية Y (%)">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={bogoDiscountPercent}
+                      onChange={(e) => setBogoDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value || 100))))}
+                      style={{ fontWeight: 700, width: '70px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBogoDiscountPercent(100)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: bogoDiscountPercent === 100 ? '#166534' : '#ffffff',
+                        color: bogoDiscountPercent === 100 ? '#ffffff' : '#334155',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: 6,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      100% (مجاناً تماماً)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBogoDiscountPercent(50)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: bogoDiscountPercent === 50 ? '#166534' : '#ffffff',
+                        color: bogoDiscountPercent === 50 ? '#ffffff' : '#334155',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: 6,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      50% (نصف السعر)
+                    </button>
+                  </div>
+                </Field>
+              </div>
+            ) : (
+              /* Row: Value & Min Qty */
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 10 }}>
+                <Field label={
+                  offerType === 'percent'
+                    ? 'نسبة الخصم (%)'
+                    : offerType === 'fixed'
+                      ? 'قيمة الخصم للقطعة (ج.م)'
+                      : offerType === 'bundle'
+                        ? 'إجمالي سعر الباقة (ج.م)'
+                        : 'سعر القطعة بالعرض (ج.م)'
+                }>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder={offerType === 'percent' ? 'مثال: 20' : offerType === 'fixed' ? 'مثال: 15' : offerType === 'bundle' ? 'مثال: 500' : 'مثال: 80'}
+                    value={offerValue}
+                    onChange={(event) => setOfferValue(event.target.value)}
+                    style={{ fontWeight: 600 }}
+                  />
+                </Field>
 
-              <Field label={offerType === 'bundle' ? 'عدد قطع الباقة *' : 'الكمية الأدنى'}>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={minQty}
-                  onChange={(event) => setMinQty(Math.max(1, Number(event.target.value || 1)))}
-                />
-              </Field>
-            </div>
+                <Field label={offerType === 'bundle' ? 'عدد قطع الباقة *' : 'الكمية الأدنى'}>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={minQty}
+                    onChange={(event) => setMinQty(Math.max(1, Number(event.target.value || 1)))}
+                  />
+                </Field>
+              </div>
+            )}
 
             {/* Row: Dates on a single line */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -294,6 +423,57 @@ export function ProductOfferItemEditorTab({
                   onChange={(event) => setOfferEndDate(event.target.value)}
                 />
               </Field>
+            </div>
+
+            {/* Happy Hours / Scheduling Card */}
+            <div style={{
+              background: happyHourEnabled ? '#fffbeb' : '#f8fafc',
+              border: happyHourEnabled ? '1px solid #fde68a' : '1px solid #e2e8f0',
+              borderRadius: 8,
+              padding: '8px 12px',
+              transition: 'all 0.2s ease',
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: happyHourEnabled ? '#92400e' : '#475569' }}>
+                <input
+                  type="checkbox"
+                  checked={happyHourEnabled}
+                  onChange={(e) => setHappyHourEnabled(e.target.checked)}
+                />
+                <span>⏰ تفعيل الساعات الذهبية ومواعيد محددة (Happy Hours)</span>
+              </label>
+
+              {happyHourEnabled && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 8, marginTop: 8 }}>
+                  <Field label="من الساعة">
+                    <input
+                      type="time"
+                      value={happyHourStart}
+                      onChange={(e) => setHappyHourStart(e.target.value)}
+                      style={{ fontSize: '12px' }}
+                    />
+                  </Field>
+                  <Field label="إلى الساعة">
+                    <input
+                      type="time"
+                      value={happyHourEnd}
+                      onChange={(e) => setHappyHourEnd(e.target.value)}
+                      style={{ fontSize: '12px' }}
+                    />
+                  </Field>
+                  <Field label="أيام التطبيق">
+                    <select
+                      value={daysOfWeek}
+                      onChange={(e) => setDaysOfWeek(e.target.value)}
+                      style={{ fontSize: '12px' }}
+                    >
+                      <option value="">كل أيام الأسبوع</option>
+                      <option value="5,6">الجمعة والسبت فقط (العطلة)</option>
+                      <option value="5">يوم الجمعة فقط</option>
+                      <option value="0,1,2,3,4">أيام العمل (الأحد - الخميس)</option>
+                    </select>
+                  </Field>
+                </div>
+              )}
             </div>
 
             {/* Duration Shortcuts on Single Line */}
@@ -406,7 +586,7 @@ export function ProductOfferItemEditorTab({
             </div>
 
             {/* Real-time Simulator Card */}
-            {numValue > 0 && retailPrice > 0 ? (
+            {(numValue > 0 || (offerType === 'bogo' && bogoBuyQty > 0 && bogoGetQty > 0)) && retailPrice > 0 ? (
               <div style={{
                 background: '#f0fdf4',
                 border: '1px solid #bbf7d0',
@@ -419,7 +599,11 @@ export function ProductOfferItemEditorTab({
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                     </svg>
-                    {offerType === 'bundle' ? `معاينة الباقة (${minQty} قطع):` : 'معاينة السعر في الكاشير:'}
+                    {offerType === 'bundle'
+                      ? `معاينة الباقة (${minQty} قطع):`
+                      : offerType === 'bogo'
+                        ? `معاينة عرض BOGO (${bogoBuyQty + bogoGetQty} قطع: اشترِ ${bogoBuyQty} واحصل على ${bogoGetQty} ${bogoDiscountPercent === 100 ? 'مجاناً' : `بخصم ${bogoDiscountPercent}%`}):`
+                        : 'معاينة السعر في الكاشير:'}
                   </span>
                   <span style={{ fontSize: '0.74rem', background: '#16a34a', color: '#ffffff', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
                     وفرت {simulatedSavingsPercent.toFixed(0)}%
@@ -428,15 +612,29 @@ export function ProductOfferItemEditorTab({
 
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                   <span style={{ textDecoration: 'line-through', color: '#64748b', fontSize: '0.85rem' }}>
-                    {formatCurrency(offerType === 'bundle' ? retailPrice * minQty : retailPrice)}
+                    {formatCurrency(
+                      offerType === 'bundle'
+                        ? retailPrice * minQty
+                        : offerType === 'bogo'
+                          ? retailPrice * (bogoBuyQty + bogoGetQty)
+                          : retailPrice
+                    )}
                   </span>
                   <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15803d' }}>
-                    {formatCurrency(offerType === 'bundle' ? numValue : simulatedEffectivePrice)}
+                    {formatCurrency(
+                      offerType === 'bundle'
+                        ? numValue
+                        : offerType === 'bogo'
+                          ? Math.max(0, (retailPrice * (bogoBuyQty + bogoGetQty)) - simulatedSavings)
+                          : simulatedEffectivePrice
+                    )}
                   </span>
                   <span style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 500 }}>
                     {offerType === 'bundle' 
                       ? `(سعر القطعة داخل الباقة: ${formatCurrency(simulatedEffectivePrice)} · توفير ${formatCurrency(simulatedSavings)})`
-                      : `(توفير ${formatCurrency(simulatedSavings)})`
+                      : offerType === 'bogo'
+                        ? `(متوسط سعر القطعة: ${formatCurrency(simulatedEffectivePrice)} · توفير ${formatCurrency(simulatedSavings)})`
+                        : `(توفير ${formatCurrency(simulatedSavings)})`
                     }
                   </span>
                 </div>
@@ -462,7 +660,7 @@ export function ProductOfferItemEditorTab({
             <Button
               type="button"
               onClick={() => void saveOffer()}
-              disabled={mutation.isPending || !offerValue}
+              disabled={mutation.isPending || (offerType === 'bogo' ? !(bogoBuyQty > 0 && bogoGetQty > 0) : !offerValue)}
               style={{
                 flex: 1,
                 background: '#1e293b',
@@ -607,9 +805,22 @@ export function ProductOfferItemEditorTab({
           {visibleOffersList.length ? visibleOffersList.map(({ offer, originalIndex }) => {
             const status = getOfferStatus(offer);
             const isCurrentlyEditing = editingIndex === originalIndex;
+            const isBogo = offer.type === 'bogo';
             const minQ = Math.max(1, Number(offer.minQty || 1));
-            const typeName = offer.type === 'bundle' ? `باقة (${minQ} قطع)` : offer.type === 'price' ? 'سعر محدد' : offer.type === 'fixed' ? 'خصم مبلغ' : 'خصم نسبة';
-            const valText = offer.type === 'percent' ? `${offer.value}%` : `${formatCurrency(Number(offer.value || 0))}`;
+            const typeName = isBogo
+              ? '🎁 عرض BOGO'
+              : offer.type === 'bundle'
+                ? `باقة (${minQ} قطع)`
+                : offer.type === 'price'
+                  ? 'سعر محدد'
+                  : offer.type === 'fixed'
+                    ? 'خصم مبلغ'
+                    : 'خصم نسبة';
+            const valText = isBogo
+              ? `اشترِ ${offer.bogoBuyQty || 1} واحصل على ${offer.bogoGetQty || 1} ${Number(offer.bogoDiscountPercent ?? 100) === 100 ? 'مجاناً' : `بخصم ${offer.bogoDiscountPercent}%`}`
+              : offer.type === 'percent'
+                ? `${offer.value}%`
+                : `${formatCurrency(Number(offer.value || 0))}`;
 
             return (
               <div
@@ -623,20 +834,22 @@ export function ProductOfferItemEditorTab({
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>
                       {typeName}: {valText}
                     </strong>
-                    <span style={{
-                      background: '#f1f5f9',
-                      color: '#475569',
-                      padding: '1px 5px',
-                      borderRadius: 4,
-                      fontSize: '0.72rem',
-                      fontWeight: 600
-                    }}>
-                      {minQ > 1 ? `من ${minQ} قطع` : 'من أول قطعة'}
-                    </span>
+                    {!isBogo && (
+                      <span style={{
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        fontSize: '0.72rem',
+                        fontWeight: 600
+                      }}>
+                        {minQ > 1 ? `من ${minQ} قطع` : 'من أول قطعة'}
+                      </span>
+                    )}
                   </div>
                   <span style={{
                     background: status.bg,
@@ -650,6 +863,27 @@ export function ProductOfferItemEditorTab({
                     {status.label}
                   </span>
                 </div>
+
+                {offer.happyHourStart && offer.happyHourEnd && (
+                  <div style={{
+                    fontSize: '0.72rem',
+                    color: '#92400e',
+                    background: '#fef3c7',
+                    border: '1px solid #fde68a',
+                    borderRadius: 4,
+                    padding: '2px 6px',
+                    marginBottom: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    <span>⏰</span>
+                    <span>
+                      ساعات العرض: {offer.happyHourStart} إلى {offer.happyHourEnd}
+                      {offer.daysOfWeek ? ` (${offer.daysOfWeek === '5,6' ? 'عطلة الأسبوع' : offer.daysOfWeek === '5' ? 'الجمعة فقط' : 'أيام العمل'})` : ' (يومياً)'}
+                    </span>
+                  </div>
+                )}
 
                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

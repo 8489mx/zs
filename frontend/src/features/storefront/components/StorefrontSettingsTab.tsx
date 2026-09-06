@@ -7,6 +7,7 @@ import { StorefrontCouponsManager } from './StorefrontCouponsManager';
 import { StorefrontDeliveryZonesManager } from './StorefrontDeliveryZonesManager';
 import { StorefrontPaymentGatewaysManager } from './StorefrontPaymentGatewaysManager';
 import { BostaSettingsCard } from './BostaSettingsCard';
+import { GccShippingSettingsCard } from './GccShippingSettingsCard';
 
 function parsePosition(posStr?: string): { x: number; y: number } {
   if (!posStr) return { x: 50, y: 50 };
@@ -27,7 +28,7 @@ function parsePosition(posStr?: string): { x: number; y: number } {
 
 export function StorefrontSettingsTab() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images' | 'bosta'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images' | 'bosta' | 'gcc-shipping'>('settings');
   const [copySuccess, setCopySuccess] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [bannerCompressFeedback, setBannerCompressFeedback] = useState('');
@@ -494,6 +495,23 @@ export function StorefrontSettingsTab() {
           }}
         >
           شحن بوسطة 📦
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('gcc-shipping')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            border: activeTab === 'gcc-shipping' ? '1px solid #170e5e' : '1px solid #e2e8f0',
+            background: activeTab === 'gcc-shipping' ? '#170e5e' : '#ffffff',
+            color: activeTab === 'gcc-shipping' ? '#ffffff' : '#475569',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          شحن خليجي (أرامكس / سمسا) 🌍
         </button>
       </div>
 
@@ -1581,6 +1599,9 @@ export function StorefrontSettingsTab() {
 
       {/* Tab 6: Bosta Shipping Gateway */}
       {activeTab === 'bosta' && <BostaSettingsCard />}
+
+      {/* Tab 7: GCC Shipping Gateways (Aramex & SMSA Express) */}
+      {activeTab === 'gcc-shipping' && <GccShippingSettingsCard />}
     </div>
   );
 }

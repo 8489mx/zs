@@ -149,6 +149,18 @@ export interface OnlineOrderRecord {
   bostaStatus?: string | null;
   bostaAwbUrl?: string | null;
   bostaCreatedAt?: string | null;
+  gccShippingCarrier?: 'aramex' | 'smsa' | string | null;
+  gccShippingId?: string | null;
+  gccTrackingNumber?: string | null;
+  gccShippingStatus?: string | null;
+  gccAwbUrl?: string | null;
+  gccShippingCreatedAt?: string | null;
+  gcc_shipping_carrier?: 'aramex' | 'smsa' | string | null;
+  gcc_shipping_id?: string | null;
+  gcc_tracking_number?: string | null;
+  gcc_shipping_status?: string | null;
+  gcc_awb_url?: string | null;
+  gcc_shipping_created_at?: string | null;
   createdAt: string;
   updatedAt?: string;
   items: Array<{

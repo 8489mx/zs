@@ -422,11 +422,17 @@ export interface ProductOfferTable {
   account_id: ColumnType<string, string | undefined, string | undefined>;
   id: Generated<number>;
   product_id: number;
-  offer_type: 'percent' | 'fixed' | 'price' | 'bundle';
+  offer_type: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo';
   value: number;
   min_qty: ColumnType<number, number | undefined, number>;
   start_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   end_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  bogo_buy_qty?: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  bogo_get_qty?: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  bogo_discount_percent?: ColumnType<number | null, number | null | undefined, number | null | undefined>;
+  happy_hour_start?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  happy_hour_end?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  days_of_week?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
@@ -2144,6 +2150,12 @@ export interface OnlineOrderTable {
   bosta_status?: string | null;
   bosta_awb_url?: string | null;
   bosta_created_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
+  gcc_shipping_carrier?: string | null;
+  gcc_shipping_id?: string | null;
+  gcc_tracking_number?: string | null;
+  gcc_shipping_status?: string | null;
+  gcc_awb_url?: string | null;
+  gcc_shipping_created_at?: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }

@@ -5,6 +5,7 @@ import { storefrontApi } from '../api/storefront.api';
 import { OnlineOrderRecord } from '../types/storefront.types';
 import { ConvertDeliveryModal } from '../components/ConvertDeliveryModal';
 import { BostaShipmentModal } from '../components/BostaShipmentModal';
+import { GccShipmentModal } from '../components/GccShipmentModal';
 import { loadOnlineOrderIntoPosCart } from '../lib/storefront-pos-loader';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
 import { printPostedSaleReceipt } from '@/lib/pos-printing';
@@ -20,6 +21,7 @@ export function MerchantOnlineOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OnlineOrderRecord | null>(null);
   const [deliveryModalOrder, setDeliveryModalOrder] = useState<OnlineOrderRecord | null>(null);
   const [bostaModalOrder, setBostaModalOrder] = useState<OnlineOrderRecord | null>(null);
+  const [gccModalOrder, setGccModalOrder] = useState<OnlineOrderRecord | null>(null);
   const [loadingPosOrderId, setLoadingPosOrderId] = useState<number | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
@@ -519,10 +521,36 @@ export function MerchantOnlineOrdersPage() {
                               }}
                             >
                               <span>📦</span>
-                              <span>بوليصة #{order.bostaTrackingNumber}</span>
+                              <span>بوسطة #{order.bostaTrackingNumber}</span>
+                            </button>
+                          ) : (order.gccTrackingNumber || order.gcc_tracking_number) ? (
+                            <button
+                              type="button"
+                              onClick={() => setGccModalOrder(order)}
+                              title="عرض تتبع وطباعة بوليصة الشحن الخليجي"
+                              style={{
+                                width: '100%',
+                                height: '32px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                borderRadius: '7px',
+                                background: (order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? '#fef2f2' : '#fff7ed',
+                                color: (order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c',
+                                border: `1px solid ${(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? '#fecaca' : '#fed7aa'}`,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                boxSizing: 'border-box',
+                              }}
+                            >
+                              <span>🚚</span>
+                              <span>{(order.gccShippingCarrier || order.gcc_shipping_carrier) === 'aramex' ? 'أرامكس' : 'سمسا'} #{order.gccTrackingNumber || order.gcc_tracking_number}</span>
                             </button>
                           ) : !order.saleId && order.status !== 'cancelled' ? (
-                            <div style={{ display: 'flex', gap: '4px', width: '100%' }}>
+                            <div style={{ display: 'flex', gap: '3px', width: '100%' }}>
                               <button
                                 type="button"
                                 onClick={() => setDeliveryModalOrder(order)}
@@ -530,7 +558,7 @@ export function MerchantOnlineOrdersPage() {
                                 style={{
                                   flex: 1,
                                   height: '32px',
-                                  fontSize: '11px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
                                   borderRadius: '7px',
                                   background: '#170e5e',
@@ -541,9 +569,10 @@ export function MerchantOnlineOrdersPage() {
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  gap: '2px',
+                                  gap: '1px',
                                   boxShadow: '0 1px 2px rgba(23,14,94,0.2)',
                                   boxSizing: 'border-box',
+                                  padding: '0 2px',
                                 }}
                               >
                                 <span>⚡</span>
@@ -556,7 +585,7 @@ export function MerchantOnlineOrdersPage() {
                                 style={{
                                   flex: 1,
                                   height: '32px',
-                                  fontSize: '11px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
                                   borderRadius: '7px',
                                   background: '#e11d48',
@@ -567,13 +596,41 @@ export function MerchantOnlineOrdersPage() {
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  gap: '2px',
+                                  gap: '1px',
                                   boxShadow: '0 1px 2px rgba(225,29,72,0.2)',
                                   boxSizing: 'border-box',
+                                  padding: '0 2px',
                                 }}
                               >
                                 <span>📦</span>
                                 <span>بوسطة</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setGccModalOrder(order)}
+                                title="شحن خليجي عبر أرامكس أو سمسا"
+                                style={{
+                                  flex: 1,
+                                  height: '32px',
+                                  fontSize: '10.5px',
+                                  fontWeight: 700,
+                                  borderRadius: '7px',
+                                  background: '#ea580c',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  whiteSpace: 'nowrap',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '1px',
+                                  boxShadow: '0 1px 2px rgba(234,88,12,0.2)',
+                                  boxSizing: 'border-box',
+                                  padding: '0 2px',
+                                }}
+                              >
+                                <span>🚚</span>
+                                <span>خليجي</span>
                               </button>
                             </div>
                           ) : order.status === 'delivered' ? (
@@ -883,6 +940,92 @@ export function MerchantOnlineOrdersPage() {
                 ))}
               </div>
 
+              {/* Bosta Shipping Info Card */}
+              {selectedOrder.bostaTrackingNumber && (
+                <div
+                  style={{
+                    background: '#fff1f2',
+                    border: '1px solid #fecdd3',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '13px', color: '#e11d48' }}>
+                      📦 شحنة بوسطة إكسبريس (Bosta)
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      رقم التتبع: #{selectedOrder.bostaTrackingNumber}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`/api/bosta/awb/${selectedOrder.bostaDeliveryId || selectedOrder.bostaTrackingNumber}`, '_blank')}
+                    style={{
+                      background: '#e11d48',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    طباعة البوليصة AWB
+                  </button>
+                </div>
+              )}
+
+              {/* GCC Shipping Info Card */}
+              {(selectedOrder.gccTrackingNumber || selectedOrder.gcc_tracking_number) && (
+                <div
+                  style={{
+                    background: (selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? '#fef2f2' : '#fff7ed',
+                    border: `1px solid ${(selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? '#fecaca' : '#fed7aa'}`,
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '13px', color: (selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? '#dc2626' : '#ea580c' }}>
+                      🚚 شحنة {(selectedOrder.gccShippingCarrier || selectedOrder.gcc_shipping_carrier) === 'aramex' ? 'أرامكس (Aramex)' : 'سمسا إكسبريس (SMSA)'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      رقم التتبع: #{selectedOrder.gccTrackingNumber || selectedOrder.gcc_tracking_number}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ord = selectedOrder;
+                      setSelectedOrder(null);
+                      setGccModalOrder(ord);
+                    }}
+                    style={{
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    عرض التتبع والطباعة
+                  </button>
+                </div>
+              )}
+
               {/* Cost Breakdown */}
               <div
                 style={{
@@ -1138,6 +1281,33 @@ export function MerchantOnlineOrdersPage() {
                     <span>📦</span>
                     <span>شحن بوسطة</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ord = selectedOrder;
+                      setSelectedOrder(null);
+                      setGccModalOrder(ord);
+                    }}
+                    style={{
+                      flex: 1,
+                      background: '#ea580c',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>🚚</span>
+                    <span>شحن خليجي</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -1150,6 +1320,18 @@ export function MerchantOnlineOrdersPage() {
         <BostaShipmentModal
           order={bostaModalOrder}
           onClose={() => setBostaModalOrder(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
+            setSelectedOrder(null);
+          }}
+        />
+      )}
+
+      {/* GCC Courier Express Modal (Aramex / SMSA) */}
+      {gccModalOrder && (
+        <GccShipmentModal
+          order={gccModalOrder}
+          onClose={() => setGccModalOrder(null)}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['storefront-admin-orders'] });
             setSelectedOrder(null);

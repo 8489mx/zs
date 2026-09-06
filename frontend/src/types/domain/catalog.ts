@@ -10,13 +10,19 @@ export interface ProductUnit {
 
 export interface ProductOffer {
   id?: string;
-  type: 'percent' | 'fixed' | 'price' | 'bundle';
+  type: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo';
   value: number;
   minQty?: number;
   from?: string | null;
   to?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  bogoBuyQty?: number | null;
+  bogoGetQty?: number | null;
+  bogoDiscountPercent?: number | null;
+  happyHourStart?: string | null;
+  happyHourEnd?: string | null;
+  daysOfWeek?: string | null;
 }
 
 export interface ProductCustomerPrice {

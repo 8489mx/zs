@@ -40,12 +40,12 @@ class ProductUnitDto {
 }
 
 class ProductOfferDto {
-  @IsIn(['percent', 'fixed', 'price', 'bundle'])
-  type!: 'percent' | 'fixed' | 'price' | 'bundle';
+  @IsIn(['percent', 'fixed', 'price', 'bundle', 'bogo'])
+  type!: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo';
 
   @Type(() => Number)
   @IsNumber()
-  @Min(0.01)
+  @Min(0)
   value!: number;
 
   @IsOptional()
@@ -61,6 +61,36 @@ class ProductOfferDto {
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   to?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  bogoBuyQty?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  bogoGetQty?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  bogoDiscountPercent?: number;
+
+  @IsOptional()
+  @IsString()
+  happyHourStart?: string;
+
+  @IsOptional()
+  @IsString()
+  happyHourEnd?: string;
+
+  @IsOptional()
+  @IsString()
+  daysOfWeek?: string;
 }
 
 class ProductCustomerPriceDto {
@@ -269,11 +299,17 @@ export type NormalizedProductUnit = {
 };
 
 export type NormalizedProductOffer = {
-  type: 'percent' | 'fixed' | 'price' | 'bundle';
+  type: 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo';
   value: number;
   minQty: number;
   from: string | null;
   to: string | null;
+  bogoBuyQty?: number | null;
+  bogoGetQty?: number | null;
+  bogoDiscountPercent?: number | null;
+  happyHourStart?: string | null;
+  happyHourEnd?: string | null;
+  daysOfWeek?: string | null;
 };
 
 export type NormalizedProductCustomerPrice = {

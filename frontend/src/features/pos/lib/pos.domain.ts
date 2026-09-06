@@ -64,14 +64,53 @@ function todayLocalIsoDate() {
   return `${year}-${month}-${day}`;
 }
 
-function getOfferType(offer: ProductOffer): 'percent' | 'fixed' | 'price' | 'bundle' {
-  if (offer.type === 'bundle' || offer.offer_type === 'bundle') return 'bundle';
-  if (offer.type === 'price' || offer.offer_type === 'price') return 'price';
-  if (offer.type === 'fixed' || offer.offer_type === 'fixed') return 'fixed';
+function getOfferType(offer: ProductOffer): 'percent' | 'fixed' | 'price' | 'bundle' | 'bogo' {
+  if (offer.type === 'bogo' || (offer as any).offer_type === 'bogo') return 'bogo';
+  if (offer.type === 'bundle' || (offer as any).offer_type === 'bundle') return 'bundle';
+  if (offer.type === 'price' || (offer as any).offer_type === 'price') return 'price';
+  if (offer.type === 'fixed' || (offer as any).offer_type === 'fixed') return 'fixed';
   return 'percent';
 }
 
-function getOfferAppliedPrice(basePrice: number, offer: ProductOffer, qty = 1) {
+export function isOfferHappyHourActive(offer: ProductOffer, now = new Date()): boolean {
+  // 1. Day of week check
+  const days = offer.daysOfWeek || (offer as any).days_of_week;
+  if (days && String(days).trim()) {
+    const allowedDays = String(days).split(',').map((d) => Number(d.trim())).filter((d) => !Number.isNaN(d));
+    if (allowedDays.length > 0) {
+      const currentDay = now.getDay(); // 0: Sunday, ..., 5: Friday, 6: Saturday
+      if (!allowedDays.includes(currentDay)) {
+        return false;
+      }
+    }
+  }
+
+  // 2. Time range check (HH:mm)
+  const start = offer.happyHourStart || (offer as any).happy_hour_start;
+  const end = offer.happyHourEnd || (offer as any).happy_hour_end;
+  if (start && end && String(start).trim() && String(end).trim()) {
+    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+    const [startH, startM] = String(start).split(':').map(Number);
+    const [endH, endM] = String(end).split(':').map(Number);
+    const startTotalMinutes = (startH || 0) * 60 + (startM || 0);
+    const endTotalMinutes = (endH || 0) * 60 + (endM || 0);
+
+    if (startTotalMinutes <= endTotalMinutes) {
+      if (currentTotalMinutes < startTotalMinutes || currentTotalMinutes > endTotalMinutes) {
+        return false;
+      }
+    } else {
+      // Overnight range
+      if (currentTotalMinutes < startTotalMinutes && currentTotalMinutes > endTotalMinutes) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+export function getOfferAppliedPrice(basePrice: number, offer: ProductOffer, qty = 1) {
   const type = getOfferType(offer);
   const offerVal = Number(offer.value || 0);
   if (type === 'percent') return roundMoney(Math.max(0, basePrice - ((basePrice * offerVal) / 100)));
@@ -86,14 +125,35 @@ function getOfferAppliedPrice(basePrice: number, offer: ProductOffer, qty = 1) {
     const total = (bundles * offerVal) + (remainder * basePrice);
     return roundMoney(total / normalizedQty);
   }
+  if (type === 'bogo') {
+    const buyQty = Math.max(1, Number(offer.bogoBuyQty ?? (offer as any).bogo_buy_qty ?? 1));
+    const getQty = Math.max(1, Number(offer.bogoGetQty ?? (offer as any).bogo_get_qty ?? 1));
+    const discountPercent = Math.min(100, Math.max(0, Number(offer.bogoDiscountPercent ?? (offer as any).bogo_discount_percent ?? (offerVal || 100))));
+    const normalizedQty = Math.max(1, qty);
+    const cycle = buyQty + getQty;
+    if (normalizedQty < cycle) return roundMoney(basePrice);
+
+    const fullCycles = Math.floor(normalizedQty / cycle);
+    const remainder = normalizedQty % cycle;
+    const discountedUnits = (fullCycles * getQty) + Math.max(0, remainder - buyQty);
+    const discountPerUnit = (basePrice * discountPercent) / 100;
+    const totalDiscount = discountedUnits * discountPerUnit;
+    const totalLinePrice = Math.max(0, (normalizedQty * basePrice) - totalDiscount);
+    return roundMoney(totalLinePrice / normalizedQty);
+  }
   return roundMoney(basePrice);
 }
 
 function getOfferMinQty(offer: ProductOffer) {
-  return Math.max(1, Number(offer.minQty ?? offer.min_qty ?? 1));
+  if (offer.type === 'bogo' || (offer as any).offer_type === 'bogo') {
+    const buyQty = Math.max(1, Number(offer.bogoBuyQty ?? (offer as any).bogo_buy_qty ?? 1));
+    const getQty = Math.max(1, Number(offer.bogoGetQty ?? (offer as any).bogo_get_qty ?? 1));
+    return buyQty + getQty;
+  }
+  return Math.max(1, Number(offer.minQty ?? (offer as any).min_qty ?? 1));
 }
 
-function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) {
+function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1, now = new Date()) {
   if (priceType === 'wholesale') return null;
   const today = todayLocalIsoDate();
   const basePrice = Number(product.retailPrice || 0);
@@ -102,7 +162,16 @@ function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1) 
     const from = normalizeDateOnly(offer.from || offer.start_date || '');
     const to = normalizeDateOnly(offer.to || offer.end_date || '');
     const minQty = getOfferMinQty(offer);
-    return (!from || from <= today) && (!to || to >= today) && normalizedQty >= minQty;
+    
+    const isDateValid = (!from || from <= today) && (!to || to >= today);
+    if (!isDateValid) return false;
+
+    const isQtyValid = normalizedQty >= minQty;
+    if (!isQtyValid) return false;
+
+    if (!isOfferHappyHourActive(offer, now)) return false;
+
+    return true;
   });
 
   if (!applicableOffers.length) return null;

@@ -142,6 +142,14 @@ const router = createRouter([
     path: '/driver-portal',
     element: <Navigate to="/driver" replace />,
   },
+  {
+    path: '/pos/customer-display',
+    element: createLazyRoute(() => import('@/features/pos/pages/CustomerFacingDisplayPage').then((module) => ({ default: module.CustomerFacingDisplayPage }))),
+  },
+  {
+    path: '/customer-display',
+    element: <Navigate to="/pos/customer-display" replace />,
+  },
   { path: '/login', element: <AppGateGuard expected="login"><LoginRoute /></AppGateGuard> },
   {
     path: '/',

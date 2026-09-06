@@ -16,6 +16,7 @@ import { dispatchPosChromeToggle, dispatchPosFullscreenToggle } from '@/features
 import { ZErpIcon } from '@/shared/components/z-erp-brand';
 import { usePosOfflineSync } from '@/features/pos/hooks/usePosOfflineSync';
 import { APP_NETWORK_STATE_EVENT } from '@/features/pos/lib/pos-offline-sync';
+import { openCustomerDisplayWindow } from '@/features/pos/lib/pos-customer-display-bridge';
 
 interface PosWorkspaceHeaderProps {
   pos: PosWorkspaceState;
@@ -273,6 +274,26 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           </Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosChromeToggle(); }}>القائمة F10</Button>
           <Button type="button" variant="secondary" onClick={() => { dispatchPosFullscreenToggle(); }}>ملء الشاشة F11</Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={openCustomerDisplayWindow}
+            title="فتح شاشة عرض العميل المقابلة (Customer Facing Display)"
+            style={{
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#170e5e',
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+            <span>شاشة العميل 🖥️</span>
+          </Button>
           {pos.ownOpenShift ? (
             <Link to="/cash-drawer">
               <Button type="button" variant="secondary" className="pos-close-shift-btn">

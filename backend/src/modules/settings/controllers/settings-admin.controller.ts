@@ -69,9 +69,19 @@ export class SettingsAdminController {
     return this.demoDataService.getDemoDataStatus(req.authContext!);
   }
 
+  @Get('demo-data/activities')
+  getDemoActivities() {
+    return this.demoDataService.listActivities();
+  }
+
   @Post('demo-data/seed')
-  seedDemoData(@Body() body: { password?: string }, @Req() req: RequestWithAuth) {
-    return this.demoDataService.seedComprehensiveDemoData(body?.password || '', req.authContext!);
+  seedDemoData(@Body() body: any, @Req() req: RequestWithAuth) {
+    return this.demoDataService.seedComprehensiveDemoData(body || {}, req.authContext!);
+  }
+
+  @Post('demo-data/clear')
+  clearDemoData(@Body() body: { password?: string }, @Req() req: RequestWithAuth) {
+    return this.demoDataService.clearDemoData(body?.password || '', req.authContext!);
   }
 
   @Post('demo-data/wipe')

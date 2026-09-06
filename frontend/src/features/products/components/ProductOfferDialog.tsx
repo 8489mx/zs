@@ -32,11 +32,18 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilter, setSearchFilter] = useState<SearchFilterKey>('all');
   
-  const [offerType, setOfferType] = useState<'percent' | 'fixed' | 'price' | 'bundle'>('percent');
+  const [offerType, setOfferType] = useState<'percent' | 'fixed' | 'price' | 'bundle' | 'bogo'>('percent');
   const [offerValue, setOfferValue] = useState('');
   const [offerStartDate, setOfferStartDate] = useState(todayIsoDate);
   const [offerEndDate, setOfferEndDate] = useState('');
   const [minQty, setMinQty] = useState(1);
+  const [bogoBuyQty, setBogoBuyQty] = useState(2);
+  const [bogoGetQty, setBogoGetQty] = useState(1);
+  const [bogoDiscountPercent, setBogoDiscountPercent] = useState(100);
+  const [happyHourEnabled, setHappyHourEnabled] = useState(false);
+  const [happyHourStart, setHappyHourStart] = useState('16:00');
+  const [happyHourEnd, setHappyHourEnd] = useState('20:00');
+  const [daysOfWeek, setDaysOfWeek] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [selectedOffersTab, setSelectedOffersTab] = useState<'active' | 'expired' | 'all'>('active');
 
@@ -489,40 +496,63 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
   let simulatedSavings = 0;
   let simulatedSavingsPercent = 0;
 
-  if (numValue > 0 && retailPrice > 0) {
-    if (offerType === 'percent') {
+  if (retailPrice > 0) {
+    if (offerType === 'percent' && numValue > 0) {
       simulatedSavingsPercent = Math.min(100, Math.max(0, numValue));
       simulatedSavings = (retailPrice * simulatedSavingsPercent) / 100;
       simulatedEffectivePrice = Math.max(0, retailPrice - simulatedSavings);
-    } else if (offerType === 'fixed') {
+    } else if (offerType === 'fixed' && numValue > 0) {
       simulatedSavings = Math.min(retailPrice, numValue);
       simulatedEffectivePrice = Math.max(0, retailPrice - simulatedSavings);
       simulatedSavingsPercent = (simulatedSavings / retailPrice) * 100;
-    } else if (offerType === 'price') {
+    } else if (offerType === 'price' && numValue > 0) {
       simulatedEffectivePrice = Math.max(0, numValue);
       simulatedSavings = Math.max(0, retailPrice - simulatedEffectivePrice);
       simulatedSavingsPercent = (simulatedSavings / retailPrice) * 100;
-    } else if (offerType === 'bundle') {
+    } else if (offerType === 'bundle' && numValue > 0) {
       const bundleQty = Math.max(1, Number(minQty || 1));
       const totalOrigPrice = retailPrice * bundleQty;
       const bundlePrice = numValue;
       simulatedEffectivePrice = bundleQty > 0 ? (bundlePrice / bundleQty) : retailPrice;
       simulatedSavings = Math.max(0, totalOrigPrice - bundlePrice);
       simulatedSavingsPercent = totalOrigPrice > 0 ? (simulatedSavings / totalOrigPrice) * 100 : 0;
+    } else if (offerType === 'bogo') {
+      const buyQ = Math.max(1, Number(bogoBuyQty || 1));
+      const getQ = Math.max(1, Number(bogoGetQty || 1));
+      const discPct = Math.min(100, Math.max(0, Number(bogoDiscountPercent ?? 100)));
+      const cycleTotalQty = buyQ + getQ;
+      const totalOrigPrice = retailPrice * cycleTotalQty;
+      simulatedSavings = getQ * retailPrice * (discPct / 100);
+      const discountedCycleTotal = Math.max(0, totalOrigPrice - simulatedSavings);
+      simulatedEffectivePrice = cycleTotalQty > 0 ? (discountedCycleTotal / cycleTotalQty) : retailPrice;
+      simulatedSavingsPercent = totalOrigPrice > 0 ? (simulatedSavings / totalOrigPrice) * 100 : 0;
     }
   }
 
   async function saveOffer() {
     if (!activeProduct) return;
-    const value = Number(offerValue || 0);
-    if (!(value > 0)) return;
+    const isBogo = offerType === 'bogo';
+    const value = isBogo ? Number(bogoDiscountPercent || 100) : Number(offerValue || 0);
+    if (!isBogo && !(value > 0)) return;
+    if (isBogo && (!(bogoBuyQty > 0) || !(bogoGetQty > 0))) return;
+
+    const calculatedMinQty = isBogo
+      ? Math.max(1, (Number(bogoBuyQty) || 1) + (Number(bogoGetQty) || 1))
+      : Math.max(1, Number(minQty || 1));
+
     const nextOffer: ProductOffer = {
       id: editingIndex != null ? offers[editingIndex]?.id : `${Date.now()}`,
       type: offerType,
       value,
-      minQty: Math.max(1, Number(minQty || 1)),
+      minQty: calculatedMinQty,
       from: offerStartDate || todayIsoDate(),
       to: offerEndDate || null,
+      bogoBuyQty: isBogo ? Number(bogoBuyQty) || 1 : undefined,
+      bogoGetQty: isBogo ? Number(bogoGetQty) || 1 : undefined,
+      bogoDiscountPercent: isBogo ? Number(bogoDiscountPercent) || 100 : undefined,
+      happyHourStart: happyHourEnabled && happyHourStart ? happyHourStart : null,
+      happyHourEnd: happyHourEnabled && happyHourEnd ? happyHourEnd : null,
+      daysOfWeek: happyHourEnabled && daysOfWeek ? daysOfWeek : null,
     };
     const nextOffers = editingIndex != null
       ? offers.map((offer, index) => (index === editingIndex ? nextOffer : offer))
@@ -551,11 +581,35 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
     const offer = offers[originalIndex];
     if (!offer) return;
     setEditingIndex(originalIndex);
-    setOfferType(offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent');
+    setOfferType(
+      offer.type === 'bogo'
+        ? 'bogo'
+        : offer.type === 'bundle'
+          ? 'bundle'
+          : offer.type === 'price'
+            ? 'price'
+            : offer.type === 'fixed'
+              ? 'fixed'
+              : 'percent'
+    );
     setOfferValue(String(Number(offer.value || 0)));
     setOfferStartDate(String(offer.from || todayIsoDate()));
     setOfferEndDate(String(offer.to || ''));
     setMinQty(Math.max(1, Number(offer.minQty || 1)));
+    setBogoBuyQty(Number(offer.bogoBuyQty || 2));
+    setBogoGetQty(Number(offer.bogoGetQty || 1));
+    setBogoDiscountPercent(offer.bogoDiscountPercent != null ? Number(offer.bogoDiscountPercent) : 100);
+    if (offer.happyHourStart && offer.happyHourEnd) {
+      setHappyHourEnabled(true);
+      setHappyHourStart(offer.happyHourStart);
+      setHappyHourEnd(offer.happyHourEnd);
+      setDaysOfWeek(offer.daysOfWeek || '');
+    } else {
+      setHappyHourEnabled(false);
+      setHappyHourStart('16:00');
+      setHappyHourEnd('20:00');
+      setDaysOfWeek('');
+    }
   }
 
   function resetForm() {
@@ -565,6 +619,13 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
     setOfferStartDate(todayIsoDate());
     setOfferEndDate('');
     setMinQty(1);
+    setBogoBuyQty(2);
+    setBogoGetQty(1);
+    setBogoDiscountPercent(100);
+    setHappyHourEnabled(false);
+    setHappyHourStart('16:00');
+    setHappyHourEnd('20:00');
+    setDaysOfWeek('');
   }
 
   if (!open) return null;
@@ -846,6 +907,20 @@ export function ProductOfferDialog({ open, product: initialProduct, onClose, onS
             setOfferEndDate={setOfferEndDate}
             minQty={minQty}
             setMinQty={setMinQty}
+            bogoBuyQty={bogoBuyQty}
+            setBogoBuyQty={setBogoBuyQty}
+            bogoGetQty={bogoGetQty}
+            setBogoGetQty={setBogoGetQty}
+            bogoDiscountPercent={bogoDiscountPercent}
+            setBogoDiscountPercent={setBogoDiscountPercent}
+            happyHourEnabled={happyHourEnabled}
+            setHappyHourEnabled={setHappyHourEnabled}
+            happyHourStart={happyHourStart}
+            setHappyHourStart={setHappyHourStart}
+            happyHourEnd={happyHourEnd}
+            setHappyHourEnd={setHappyHourEnd}
+            daysOfWeek={daysOfWeek}
+            setDaysOfWeek={setDaysOfWeek}
             editingIndex={editingIndex}
             selectedOffersTab={selectedOffersTab}
             setSelectedOffersTab={setSelectedOffersTab}

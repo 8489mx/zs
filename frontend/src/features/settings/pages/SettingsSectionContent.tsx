@@ -13,6 +13,7 @@ import { TenantSubscriptionPage } from '@/features/settings/pages/TenantSubscrip
 import { StorefrontSettingsTab } from '@/features/storefront/components/StorefrontSettingsTab';
 import { SettingsWhatsAppGatewaySection } from '@/features/settings/components/workspace-sections/SettingsWhatsAppGatewaySection';
 import { SettingsTelegramAlertsSection } from '@/features/settings/components/workspace-sections/SettingsTelegramAlertsSection';
+import { SettingsDemoDataWizardSection } from '@/features/settings/components/workspace-sections/SettingsDemoDataWizardSection';
 
 type QueryState = { isLoading: boolean; isError: boolean; error?: unknown; isSuccess?: boolean; data?: unknown };
 
@@ -48,6 +49,7 @@ interface SettingsSectionContentProps extends SharedSettingsSectionProps {
 
 export function SettingsSectionContent({ section, ...props }: SettingsSectionContentProps) {
   if (section === 'core') return renderCoreSection(props);
+  if (section === 'demo-data') return <SettingsDemoDataWizardSection />;
   if (section === 'subscription') return <TenantSubscriptionPage />;
   if (section === 'storefront') return <StorefrontSettingsTab />;
   if (section === 'whatsapp') return <SettingsWhatsAppGatewaySection />;
