@@ -22,6 +22,7 @@ import { SalesQueryService } from './sales-query.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway.service';
+import { CashierFraudRadarService } from './cashier-fraud-radar.service';
 
 @Injectable()
 export class SalesWriteService {
@@ -37,6 +38,7 @@ export class SalesWriteService {
     private readonly accountingPosting: AccountingPostingService,
     private readonly idempotency: IdempotencyService,
     @Optional() private readonly whatsappService?: WhatsAppGatewayService,
+    @Optional() private readonly fraudRadarService?: CashierFraudRadarService,
   ) {}
 
   private shouldLogCheckoutTimings(): boolean {
@@ -476,6 +478,9 @@ export class SalesWriteService {
   }
 
   async logPosAuditEvent(payload: PosAuditEventDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = requireTenantScope(auth);
+    let detailInfo = '';
+
     if (payload.eventType === 'cart_remove') {
       const detailsParts = [
         `تم حذف عنصر من السلة بواسطة ${auth.username}`,
@@ -487,16 +492,29 @@ export class SalesWriteService {
         payload.note ? `ملاحظة: ${payload.note}` : '',
       ].filter(Boolean);
       await this.audit.log('حدث أمني - حذف عنصر من السلة', detailsParts.join(' | '), auth);
-      return { ok: true };
+      detailInfo = payload.productName ? `${payload.productName} (كمية: ${payload.qty || 1})` : (payload.note || 'حذف صنف من السلة');
+    } else {
+      const cancelDetailsParts = [
+        `تم إلغاء/حذف فاتورة قبل الإرسال بواسطة ${auth.username}`,
+        typeof payload.total === 'number' ? `الإجمالي: ${payload.total}` : '',
+        typeof payload.cartItemsCount === 'number' ? `عدد العناصر: ${payload.cartItemsCount}` : '',
+        payload.note ? `ملاحظة: ${payload.note}` : '',
+      ].filter(Boolean);
+      await this.audit.log('حدث أمني - إلغاء/حذف فاتورة', cancelDetailsParts.join(' | '), auth);
+      detailInfo = `إلغاء فاتورة بقيمة ${payload.total || 0} ج.م`;
     }
 
-    const cancelDetailsParts = [
-      `تم إلغاء/حذف فاتورة قبل الإرسال بواسطة ${auth.username}`,
-      typeof payload.total === 'number' ? `الإجمالي: ${payload.total}` : '',
-      typeof payload.cartItemsCount === 'number' ? `عدد العناصر: ${payload.cartItemsCount}` : '',
-      payload.note ? `ملاحظة: ${payload.note}` : '',
-    ].filter(Boolean);
-    await this.audit.log('حدث أمني - إلغاء/حذف فاتورة', cancelDetailsParts.join(' | '), auth);
+    // Trigger proactive fraud radar anomaly check in the background
+    if (this.fraudRadarService) {
+      this.fraudRadarService.checkAndAlertAnomaly(
+        scope.tenantId,
+        auth.userId,
+        auth.username,
+        payload.eventType,
+        detailInfo,
+      ).catch((err) => this.logger.warn(`Fraud radar anomaly check error: ${err?.message}`));
+    }
+
     return { ok: true };
   }
 

@@ -17,10 +17,18 @@ import { PosTerminalService } from './services/pos-terminal.service';
 
 import { CustomerInstallmentsController } from './controllers/customer-installments.controller';
 import { CustomerInstallmentsService } from './services/customer-installments.service';
+import { CashierFraudRadarController } from './controllers/cashier-fraud-radar.controller';
+import { CashierFraudRadarService } from './services/cashier-fraud-radar.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
-  controllers: [SalesController, QuotationsController, PosTerminalController, CustomerInstallmentsController],
+  controllers: [
+    SalesController,
+    QuotationsController,
+    PosTerminalController,
+    CustomerInstallmentsController,
+    CashierFraudRadarController,
+  ],
   providers: [
     SalesService,
     SalesAuthorizationService,
@@ -30,8 +38,16 @@ import { CustomerInstallmentsService } from './services/customer-installments.se
     QuotationsService,
     PosTerminalService,
     CustomerInstallmentsService,
+    CashierFraudRadarService,
   ],
-  exports: [SalesService, SalesFinanceService, QuotationsService, PosTerminalService, CustomerInstallmentsService],
+  exports: [
+    SalesService,
+    SalesFinanceService,
+    QuotationsService,
+    PosTerminalService,
+    CustomerInstallmentsService,
+    CashierFraudRadarService,
+  ],
 })
 export class SalesModule {}
 

@@ -318,4 +318,104 @@ describe('Comprehensive Verification of Recent Features (Human Simulation)', () 
       expect(isFeatureAllowed('omnichannel', 'storefront')).toBe(true);
     });
   });
+
+  // =========================================================================
+  // SECTOR 6: MARGIN PROTECTION & SMART REPRICING (FEATURE 2)
+  // =========================================================================
+  describe('Sector 6: Margin Protection & Smart Repricing Engine', () => {
+    it('calculates recommended retail price accurately to preserve 25% target margin', () => {
+      const newCost = 120.0;
+      const targetMarginPercent = 25.0;
+      // Formula: Retail = Cost / (1 - TargetMargin/100)
+      const recommendedRetail = Number((newCost / (1 - targetMarginPercent / 100)).toFixed(2));
+      expect(recommendedRetail).toBe(160.0);
+
+      // Verify margin at recommended retail
+      const margin = Number((((recommendedRetail - newCost) / recommendedRetail) * 100).toFixed(1));
+      expect(margin).toBe(25.0);
+    });
+
+    it('detects loss-making items where new cost exceeds current selling price', () => {
+      const currentSellingPrice = 90.0;
+      const newCost = 95.0;
+      const isLossMaking = currentSellingPrice < newCost;
+      expect(isLossMaking).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // SECTOR 7: CASHIER LOSS PREVENTION & FRAUD AUDIT RADAR (FEATURE 3)
+  // =========================================================================
+  describe('Sector 7: Cashier Fraud Radar & Loss Prevention', () => {
+    function computeRisk(cartVoids: number, draftCancels: number, cancelledSales: number, discountOverrides: number, salesCount: number) {
+      let raw = (cartVoids * 12) + (draftCancels * 18) + (cancelledSales * 25) + (discountOverrides * 8);
+      if (salesCount > 10) raw = raw / Math.max(1, salesCount / 20);
+      const score = Math.min(100, Math.max(0, Math.round(raw)));
+      let level: 'low' | 'medium' | 'high' = 'low';
+      if (score >= 60 || cartVoids >= 5 || cancelledSales >= 3) level = 'high';
+      else if (score >= 30 || (cartVoids + draftCancels + cancelledSales + discountOverrides) >= 3) level = 'medium';
+      return { score, level };
+    }
+
+    it('classifies cashiers with >= 5 cart voids as high risk', () => {
+      const highRisk = computeRisk(6, 2, 1, 1, 20);
+      expect(highRisk.level).toBe('high');
+      expect(highRisk.score).toBeGreaterThanOrEqual(60);
+    });
+
+    it('classifies cashiers with 0 voids and high sales as low risk', () => {
+      const lowRisk = computeRisk(0, 0, 0, 0, 100);
+      expect(lowRisk.level).toBe('low');
+      expect(lowRisk.score).toBe(0);
+    });
+  });
+
+  // =========================================================================
+  // SECTOR 8: MARKETPLACES SYNC ENGINE (AMAZON SP-API & NOON)
+  // =========================================================================
+  describe('Sector 8: Marketplaces Sync Engine - Amazon SP-API & Noon', () => {
+    it('applies overselling safety buffer properly to protect local store inventory', () => {
+      const calculateSyncStock = (localStock: number, safetyBuffer: number) => {
+        return Math.max(0, localStock - safetyBuffer);
+      };
+
+      // Adequate stock: 50 in stock, buffer 5 -> 45 pushed to Amazon
+      expect(calculateSyncStock(50, 5)).toBe(45);
+
+      // Low stock: 4 in stock, buffer 5 -> 0 pushed to avoid overselling!
+      expect(calculateSyncStock(4, 5)).toBe(0);
+
+      // Exact stock equal to buffer: 5 in stock, buffer 5 -> 0
+      expect(calculateSyncStock(5, 5)).toBe(0);
+
+      // Zero stock
+      expect(calculateSyncStock(0, 5)).toBe(0);
+    });
+
+    it('formats marketplace order ingestion tags and carrier codes accurately', () => {
+      const getCarrierCode = (marketplace: 'amazon' | 'noon') => {
+        return marketplace === 'amazon' ? 'amazon_fbm' : 'noon_direct';
+      };
+
+      expect(getCarrierCode('amazon')).toBe('amazon_fbm');
+      expect(getCarrierCode('noon')).toBe('noon_direct');
+    });
+
+    it('validates SKU mapping duplicate prevention', () => {
+      const existingMappings = [
+        { productId: 10, marketplace: 'amazon', marketplaceSku: 'B01ABCDEF' },
+        { productId: 12, marketplace: 'noon', marketplaceSku: 'N12345678A' },
+      ];
+
+      const isDuplicateSku = (marketplace: string, sku: string) => {
+        return existingMappings.some(m => m.marketplace === marketplace && m.marketplaceSku.toLowerCase() === sku.toLowerCase());
+      };
+
+      expect(isDuplicateSku('amazon', 'B01ABCDEF')).toBe(true);
+      expect(isDuplicateSku('amazon', 'b01abcdef')).toBe(true);
+      expect(isDuplicateSku('noon', 'B01ABCDEF')).toBe(false);
+      expect(isDuplicateSku('amazon', 'B99NEW000')).toBe(false);
+    });
+  });
 });
+

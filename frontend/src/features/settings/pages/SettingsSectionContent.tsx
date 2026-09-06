@@ -15,6 +15,7 @@ import { SettingsWhatsAppGatewaySection } from '@/features/settings/components/w
 import { SettingsTelegramAlertsSection } from '@/features/settings/components/workspace-sections/SettingsTelegramAlertsSection';
 import { SettingsDemoDataWizardSection } from '@/features/settings/components/workspace-sections/SettingsDemoDataWizardSection';
 import { SettingsDailyDigestSection } from '@/features/settings/components/workspace-sections/SettingsDailyDigestSection';
+import { SettingsMarketplacesSection } from '@/features/settings/components/workspace-sections/SettingsMarketplacesSection';
 
 type QueryState = { isLoading: boolean; isError: boolean; error?: unknown; isSuccess?: boolean; data?: unknown };
 
@@ -54,6 +55,7 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
   if (section === 'daily-digest') return <SettingsDailyDigestSection />;
   if (section === 'subscription') return <TenantSubscriptionPage />;
   if (section === 'storefront') return <StorefrontSettingsTab />;
+  if (section === 'marketplaces') return <SettingsMarketplacesSection />;
   if (section === 'whatsapp') return <SettingsWhatsAppGatewaySection />;
   if (section === 'reference') return renderReferenceSection(props);
   if (section === 'backup') return renderBackupSection(props);

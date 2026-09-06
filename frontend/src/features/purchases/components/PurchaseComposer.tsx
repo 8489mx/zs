@@ -12,7 +12,7 @@ import { usePurchaseComposerController } from '@/features/purchases/components/p
 import { PurchaseLineComposer } from '@/features/purchases/components/purchase-composer/PurchaseLineComposer';
 import { PurchaseItemsList } from '@/features/purchases/components/purchase-composer/PurchaseItemsList';
 import { PurchaseTotals } from '@/features/purchases/components/purchase-composer/PurchaseTotals';
-import { PurchaseRepricingDialog } from '@/features/purchases/components/PurchaseRepricingDialog';
+import { MarginProtectionModal } from '@/features/purchases/components/MarginProtectionModal';
 import { PurchaseQuickCreateDialog } from '@/features/purchases/components/purchase-composer/PurchaseQuickCreateDialog';
 
 interface PurchaseComposerProps {
@@ -123,9 +123,9 @@ export function PurchaseComposer({ products, suppliers, categories, branches, lo
         </form>
       </QueryFeedback>
 
-      <PurchaseRepricingDialog
-        open={Boolean(repricingInsights)}
-        insights={repricingInsights}
+      <MarginProtectionModal
+        open={Boolean(repricingInsights?.purchaseId)}
+        purchaseId={repricingInsights?.purchaseId || 0}
         onClose={() => actions.setRepricingInsights(null)}
       />
 

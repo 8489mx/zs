@@ -1,4 +1,4 @@
-export type SettingsSectionKey = 'core' | 'demo-data' | 'daily-digest' | 'subscription' | 'storefront' | 'whatsapp' | 'reference' | 'backup' | 'users' | 'system-updates' | 'lan-network' | 'tax-integration' | 'monitoring';
+export type SettingsSectionKey = 'core' | 'demo-data' | 'daily-digest' | 'subscription' | 'storefront' | 'marketplaces' | 'whatsapp' | 'reference' | 'backup' | 'users' | 'system-updates' | 'lan-network' | 'tax-integration' | 'monitoring';
 
 const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
   { key: 'core', label: 'إعدادات النظام' },
@@ -6,6 +6,7 @@ const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: b
   { key: 'daily-digest', label: 'الملخص اليومي للمدير 🌙', adminOnly: true },
   { key: 'subscription', label: 'الاشتراك والفوترة', adminOnly: true },
   { key: 'storefront', label: 'المتجر الإلكتروني', adminOnly: true },
+  { key: 'marketplaces', label: 'الربط مع أمازون ونون (Marketplaces) 🛒', adminOnly: true },
   { key: 'whatsapp', label: 'بوابة الواتساب السحابية', adminOnly: true },
   { key: 'reference', label: 'أماكن المخزون' },
   { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', offlineOnly: true, superAdminOnly: true },

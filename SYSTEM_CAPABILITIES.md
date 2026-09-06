@@ -470,16 +470,73 @@
 
 ---
 
-## 30. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)
+## 31. محرك حماية هامش الربح وتحديث الأسعار التلقائي عند غلاء المورد (Margin Protection & Smart Repricing Engine) 🛡️📈
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/purchases/services/margin-protection.service.ts`, `backend/src/modules/purchases/purchases.controller.ts`, `backend/src/modules/purchases/purchases.module.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/purchases/api/margin-protection.api.ts`, `frontend/src/features/purchases/components/MarginProtectionModal.tsx`, `frontend/src/features/purchases/components/PurchasesWorkspace.tsx`, `frontend/src/features/purchases/components/PurchaseComposer.tsx`
+* **الجداول في قاعدة البيانات:** `products`, `purchases`, `purchase_items`, `audit_logs`, `tenants`, `settings`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **كشف زيادات تكلفة المورد وحساب هوامش الربح الفورية** | 🟢 | 100% | `margin-protection.service.ts`, `margin-protection.api.ts` | فحص فوري ومقارنة آلية لتكلفة الصنف السابقة مقابل التكلفة الجديدة الواردة في فاتورة المشتريات، مع حساب نسبة التغير في التكلفة وهامش الربح المحقق حالياً عند البيع بالأسعار القديمة. |
+| **خوارزمية تسعير البيع الذكية لحماية الهامش المستهدف** | 🟢 | 100% | `margin-protection.service.ts`, `MarginProtectionModal.tsx` | حساب تلقائي لسعر البيع القطاعي والجملة الموصى بهما وفق معادلة الحماية: `RetailPrice = NewCost / (1 - TargetMargin / 100)` مع إتاحة شريط تمرير تفاعلي مرن لاختيار نسبة الربح المستهدفة (مثلاً 25% أو 30%) وإعادة احتساب الأسعار المقترحة فورياً. |
+| **كشف وتحذير الأصناف الخاسرة ومنكمشة الهامش** | 🟢 | 100% | `margin-protection.service.ts`, `MarginProtectionModal.tsx` | تنبيه مرئي فوري عريض للأصناف الخاسرة (التي تباع بأقل من سعر التكلفة الجديد - Negative Margin) والأصناف التي تآكل هامش ربحها بنسبة خطرة مقارنة بالمستهدف. |
+| **التحديث الذري الفوري بضغطة زر واحدة في الكاشير (1-Click Reprice)** | 🟢 | 100% | `margin-protection.service.ts`, `purchases.controller.ts` | اعتماد وتحديث أسعار البيع المعتمدة مباشرة في جدول الأصناف (`products`) وتحديث كاتالوج نقاط البيع والكاشير فورياً دون الحاجة لفتح شاشات المنتجات يدوياً، مع تسجيل كامل في سجل التدقيق الأمني. |
+| **طباعة فورية لبطاقات الرفوف والأسعار الجديدة (Shelf Talkers Print)** | 🟢 | 100% | `MarginProtectionModal.tsx` | تنسيق طباعة مؤسسي احترافي `@media print` يتيح طباعة بطاقات رفوف أنيقة ومباشرة بالأصناف المحدثة وأسعارها الجديدة والقديمة والباركود لتعليقها على الأرفف فور استلام البضاعة. |
+| **تنبيه واتساب فوري واستباقي لمالك المتجر** | 🟢 | 100% | `margin-protection.service.ts`, `whatsapp-gateway.service.ts` | إرسال تقرير موجز ومنسق عبر بوابة الواتساب السحابية لهاتف المالك فور تحديث الأسعار يوضح عدد الأصناف المعدلة وأسماء أبرزها لحمايته من أي خسائر ناتجة عن التضخم. |
+
+---
+
+## 32. رادار كشف تلاعب وسرقات الكاشير ومنع الخسائر (Cashier Loss Prevention & Fraud Audit Radar) 🕵️‍♂️🚨
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/sales/services/cashier-fraud-radar.service.ts`, `backend/src/modules/sales/controllers/cashier-fraud-radar.controller.ts`, `backend/src/modules/sales/services/sales-write.service.ts`, `backend/src/modules/sales/sales.module.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/audit/api/cashier-fraud-radar.api.ts`, `frontend/src/features/audit/components/CashierFraudRadarSection.tsx`, `frontend/src/features/audit/pages/AuditPage.tsx`
+* **الجداول في قاعدة البيانات:** `audit_logs`, `sales`, `sale_items`, `users`, `tenants`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **رصد وتتبع الأنماط المشبوهة في نقاط البيع (Suspicious POS Telemetry)** | 🟢 | 100% | `sales-write.service.ts`, `cashier-fraud-radar.service.ts` | التقاط فوري لعمليات: (1) حذف الأصناف من السلة بعد مسحها بالباركود (`cart_remove`)، (2) إلغاء الفواتير المسودة قبل الحفظ (`draft_cancel`)، (3) الفواتير الملغاة رسمياً (`sale_cancelled`)، (4) تجاوزات الخصومات اليدوية (`discount_override`)، مع تسجيل اسم الصنف وقيمته وسببه. |
+| **خوارزمية مؤشر الخطر الذكية لكل كاشير (Cashier Risk Score 0-100)** | 🟢 | 100% | `cashier-fraud-radar.service.ts`, `CashierFraudRadarSection.tsx` | احتساب مؤشر خطورة مركب لكل كاشير يجمع أوزان الأحداث المشبوهة، مع تطبيعه وفق حجم مبيعات الكاشير الناجحة لتجنب الظلم وتصنيف الكاشيرات إلى: 🟢 طبيعي وآمن، 🟡 تحت الملاحظة (30%-59%)، 🔴 عالي الخطورة (&ge; 60%). |
+| **إنذار استباقي وفوري عبر الواتساب للمالك عند الاشتباه** | 🟢 | 100% | `cashier-fraud-radar.service.ts`, `whatsapp-gateway.service.ts` | فحص فوري عند كل عملية؛ وإذا تجاوز الكاشير 5 عمليات حذف سلة خلال ساعة واحدة، يتم إطلاق إنذار طارئ لهاتف المالك عبر الواتساب مع اسم الكاشير وتوقيته ورابط الفحص، مع آلية Debounce كل 60 دقيقة لمنع التكرار المزعج. |
+| **شاشة رادار تفاعلية ومستقلة داخل سجل التدقيق (Fraud Radar UI)** | 🟢 | 100% | `CashierFraudRadarSection.tsx`, `AuditPage.tsx` | تبويب مخصص في شاشة التدقيق والمراجعة بتصميم مؤسسي نظيف يتضمن: شريط المؤشرات العامة، بنر الأمان الحي، محدد الفترات الزمنية (اليوم، 7 أيام، 30 يوماً)، وزر التحديث الفوري. |
+| **بطاقات تحليل وتقييم سلوك الكاشيرات (Cashier Profiles Grid)** | 🟢 | 100% | `CashierFraudRadarSection.tsx`, `cashier-fraud-radar.api.ts` | بطاقات متناظرة تعرض ترتيب الكاشيرات حسب درجة الخطر، وشريط تقدم ملون، وإحصائية تفصيلية لكل كاشير (كمية حذوفات السلة، إلغاء المسودات، الفواتير الملغاة، وتجاوزات الخصم) مع توقيت آخر حركة مشبوهة. |
+| **شريط الرصد الحي التفاعلي للعمليات المشبوهة (Live Telemetry Feed)** | 🟢 | 100% | `CashierFraudRadarSection.tsx` | سجل حي يتحدث تلقائياً كل 30 ثانية يعرض آخر العمليات المشبوهة لحظة بلحظة مع شارة نوع الحدث، اسم الكاشير، تفاصيل الصنف المحذوف، وقيمة الخسائر المرصودة أو المحمية. |
+
+---
+
+---
+
+## 33. محرك الربط والمزامنة مع منصات التجارة الخارجية (Marketplaces Sync - Amazon & Noon) 🛒📦
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/storefront/services/marketplace-sync.service.ts`, `backend/src/modules/storefront/controllers/marketplace-sync.controller.ts`, `backend/src/modules/storefront/storefront.module.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/storefront/api/marketplace-sync.api.ts`, `frontend/src/features/settings/components/workspace-sections/SettingsMarketplacesSection.tsx`, `frontend/src/features/settings/pages/settings.page-config.ts`, `frontend/src/features/settings/pages/SettingsSectionContent.tsx`
+* **الجداول في قاعدة البيانات:** `products`, `online_orders`, `settings`, `audit_logs`, `tenants`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **محرك الربط والاعتماد لأمازون (Amazon SP-API Integration)** | 🟢 | 100% | `marketplace-sync.service.ts`, `SettingsMarketplacesSection.tsx` | إعدادات واتصال كامل مع Amazon Selling Partner API (LWA Client ID, Client Secret, Refresh Token, Seller ID, Marketplace ID) مع فحص الاتصال الحي الآلي وتخزين مؤمّن. |
+| **محرك الربط والاعتماد لمنصة نون (Noon Marketplace API)** | 🟢 | 100% | `marketplace-sync.service.ts`, `SettingsMarketplacesSection.tsx` | ربط متكامل مع Noon Marketplace API (Business Identifier, API App Key, Auth Token) مع فحص الاتصال الحي وتحديد وضع التشغيل التجريبي أو الفعلي. |
+| **محرك مطابقة الأصناف والأكواد (SKU / ASIN Mapping Engine)** | 🟢 | 100% | `marketplace-sync.service.ts`, `SettingsMarketplacesSection.tsx` | مطابقة أصناف نظام ERP مع أكواد أمازون (ASIN / FBM SKU) ونون (Partner SKU / Noon SKU)، وتعيين مخزون الأمان (Safety Buffer) لكل صنف بشكل مستقل. |
+| **منع البيع الزائد والمخزون الآمن (Overselling Prevention Buffer)** | 🟢 | 100% | `marketplace-sync.service.ts`, `comprehensive-recent-features.spec.ts` | خوارزمية ذكية لاحتساب الرصيد المرسل للمنصات: `AvailableStock = Math.max(0, LocalStock - SafetyBuffer)` لمنع بيع قطع محجوزة لصالة المحل أو تحت التسليم. |
+| **المزامنة الذرية التلقائية للمخزون (Automated Inventory Push Engine)** | 🟢 | 100% | `marketplace-sync.service.ts`, `marketplace-sync.controller.ts` | توليد وإرسال تحديثات المخزون إلى فيد أمازون (`Listings Items Feed`) ومخزون نون مع تقرير مباشر بالأصناف المحدثة والمستثناة من المزامنة. |
+| **سحب ومحاكاة الطلبات الخارجية وحجز المخزون الفوري (Order Ingestion & Simulator)** | 🟢 | 100% | `marketplace-sync.service.ts`, `SettingsMarketplacesSection.tsx` | محرك سحب الطلبات الخارجية وإنشاء سجلات تلقائية في `online_orders` مع ربطها بشركات الشحن (`amazon_fbm`, `noon_direct`)، وخصم فوري للمخزون المحلي لتفادي البيع المزدوج، وإرسال تنبيه واتساب فوري لهاتف المالك. |
+
+---
+
+## 34. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)
 
 | الميزة المقترحة / البديل المنفذ | الحالة | نسبة الإنجاز | الملاحظات والبديل المنجز في النظام |
 | :--- | :---: | :---: | :--- |
 | **تغليف تطبيقات المتاجر الرسمية (Google Play / App Store)** | 🟢 | 100% | بديل PWA الفوري للمناديب والمالك يعمل بكفاءة تامة دون الحاجة للمتاجر، ويمكن تغليفه إلى APK/AAB بنقرة واحدة عند الرغبة التسويقية. |
-| **ربط الماركت بليس الخارجي (Marketplaces Sync)** | 🟡 | اختياري | ربط المخزون تلقائياً مع Amazon / Noon / Shopify لمنع البيع الزائد عبر منصات خارجية. |
 | **شاشة المطبخ التفاعلية للمطاعم (Interactive KDS)** | 🟡 | اختياري | شاشة تابلت تفاعلية في المطبخ لتنظيم الوجبات بعد دعم أرقام الطاولات وتذاكر المطبخ. |
+| **تكامل الشحن الدولي المباشر (DHL / FedEx Direct Webhook)** | 🟡 | اختياري | بعد تكامل بوسطة وأرامكس وسمسا، يمكن إضافة مسار مباشر لبوليصات DHL وFedEx السريعة للمتاجر العالمية. |
 
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
+
 
 
 

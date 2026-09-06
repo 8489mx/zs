@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, ParseIntPipe, Post, Put, Query, Req, Res, UseGuards, UseInterceptors, UploadedFile, BadRequestException, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, ParseIntPipe, Post, Put, Query, Req, Res, UseGuards, UseInterceptors, UploadedFile, BadRequestException, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Optional } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -13,6 +13,7 @@ import { CreateSupplierPaymentScheduleDto, PaySupplierScheduleInstallmentDto } f
 import { UpsertPurchaseDto } from './dto/upsert-purchase.dto';
 import { PurchasesService } from './purchases.service';
 import { SupplierPaymentSchedulesService } from './services/supplier-payment-schedules.service';
+import { MarginProtectionService, ApplyRepricingPayload } from './services/margin-protection.service';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -20,6 +21,7 @@ export class PurchasesController {
   constructor(
     private readonly purchasesService: PurchasesService,
     private readonly scheduleService: SupplierPaymentSchedulesService,
+    @Optional() private readonly marginProtectionService?: MarginProtectionService,
   ) {}
 
   @Get('purchases')
@@ -108,6 +110,33 @@ export class PurchasesController {
     return this.scheduleService.payInstallment(id, payload, req.authContext!);
   }
 
+  @Get('purchases/:id/margin-analysis')
+  @RequirePermissions('purchases')
+  analyzePurchaseMargins(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('targetMargin') targetMargin: string,
+    @Req() req: RequestWithAuth,
+  ) {
+    if (!this.marginProtectionService) {
+      throw new BadRequestException('Margin protection service unavailable');
+    }
+    const margin = Number(targetMargin) || 25;
+    return this.marginProtectionService.analyzePurchaseMargins(id, margin, req.authContext!);
+  }
+
+  @Post('purchases/:id/apply-repricing')
+  @RequirePermissions('purchases')
+  applyPurchaseRepricing(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: ApplyRepricingPayload,
+    @Req() req: RequestWithAuth,
+  ) {
+    if (!this.marginProtectionService) {
+      throw new BadRequestException('Margin protection service unavailable');
+    }
+    return this.marginProtectionService.applyRepricing(id, payload, req.authContext!);
+  }
+
   @Get('supplier-payments')
   @RequirePermissions('accounts')
   listSupplierPayments(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
@@ -190,3 +219,4 @@ export class PurchasesController {
     res.sendFile(filePath);
   }
 }
+
