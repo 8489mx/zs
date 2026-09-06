@@ -6,6 +6,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AuditService } from '../../../core/audit/audit.service';
 import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway.service';
+import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
 
 export interface AmazonConfig {
   enabled: boolean;
@@ -411,14 +412,20 @@ export class MarketplaceSyncService {
 
     const orderId = Number(insertResult?.id || 0);
 
-    // 2. Reserve / deduct stock immediately to prevent overselling on other channels
-    const newStock = Math.max(0, Number(product.stock_qty || 0) - orderQty);
-    await this.db
-      .updateTable('products')
-      .set({ stock_qty: newStock, updated_at: new Date() })
-      .where('id', '=', product.id)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
+    // 2. Reserve / deduct stock immediately to prevent overselling on other channels via ledger
+    let newStock = Math.max(0, Number(product.stock_qty || 0) - orderQty);
+    try {
+      const stockChange = await applyStockDelta(this.db, {
+        productId: Number(product.id),
+        delta: -orderQty,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        allowNegative: true,
+      });
+      newStock = stockChange.globalAfter;
+    } catch (err: any) {
+      this.logger.warn(`Ledger stock deduction fallback: ${err?.message}`);
+    }
 
     // 3. Trigger auto-sync across remaining mappings
     await this.syncInventory(auth, marketplace);
