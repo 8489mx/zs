@@ -706,10 +706,45 @@
      - الإدارة والرقابة (رادار متابعة المالك المتنقل `/owner-companion`، وبوابة إدارة النظام المركزي `/login`).
   3. **محرك بحث فوري وتفاعلي (Live Instant Search):** فلترة فورية لكافة البطاقات بمجرد كتابة أي حرف أو كلمة مفتاحية (مثل: بصمة، طيار، رواتب، مطبخ، فان، كاشير، مالك).
   4. **ربط مباشر في شاشة الدخول الرئيسية (Login Integration):** زر وصول مباشر ومميز في صفحة تسجيل الدخول `/login` يرشد الموظفين والمناديب للدخول على بواباتهم دون الحاجة لحساب مستخدم إداري على الـ ERP.
-  5. **تجاوب كامل وصفر إيموجي (Mobile-First & 0 Emojis):** شبكة بطاقات متجاوبة تلقائياً (4 في الصف على الشاشات الكبيرة، و 2 في الصف على شاشات الجوال)، وأيقونات SVG بريميوم موحدة 100% من `@/shared/components/icons/AppIcons`.
+  5. **تجاوب متكامل بين الشاشات المكتبية والجوال (Responsive Desktop Grid & Mobile-First Launchpad):**
+     - **على الشاشات المكتبية (Desktop):** تطبيق معيار الـ 2-Column المتوازن من دستور النظام البصري (Z-Systems Visual Constitution) بعرض حاوية موحد مع الهيدر (1320px)، ترويسة أوامر فخمة ومحاذاة RTL دقيقة للنصوص، وشريط إجراءات سفلي متسع يمنع التفاف روابط المسارات الطويلة (مثل `/pos/customer-display`) نهائياً، مع عداد فوري لعدد البوابات في كل تبويب وزر مسح سريع للبحث.
+     - **على شاشات الجوال (Mobile):** الحفاظ التام على التصميم المدمج بشبكة عمودين (2-col grid)، وعناوين مدمجة بسطرين، وشريط تبويبات مرن بسطر واحد مع تسميات مختصرة، وإخفاء مسار الرابط البرمجي لضمان أقصى راحة للمس بالإبهام وسرعة التصفح، مع الالتزام بصفر إيموجي والاعتماد الحصري على أيقونات `@/shared/components/icons/AppIcons`.
+
+---
+
+## 44. معالج استيراد وتصفير البيانات التجريبية حسب النشاط (Demo Data Wizard & Clean Reset)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Light Enterprise Theme).
+* **روابط الوصول السريع:** `/settings/demo-data`.
+* **مسارات الكود الأساسية:**
+  * **الباك إند (Backend):** `backend/src/modules/settings/services/settings-demo-data.service.ts`, `backend/src/modules/settings/controllers/settings-admin.controller.ts`, `backend/src/modules/settings/services/demo-datasets/index.ts`
+  * **الفرونت إند (Frontend):** `frontend/src/features/settings/api/demo-data.api.ts`, `frontend/src/features/settings/components/workspace-sections/SettingsDemoDataWizardSection.tsx`, `frontend/src/features/settings/pages/SettingsSectionContent.tsx`
+* **الميزات والقدرات المفعلة:**
+  1. **معالج استيراد بيانات النشاط بنقرة واحدة (One-Click Industry Seeding):** 5 باقات متكاملة (سوبرماركت ومواد غذائية، أزياء وملابس وأحذية، كافيه ومطعم، إلكترونيات وهواتف، صيدلية ومستحضرات) تملأ النظام فورياً بـ 50 صنفاً حقيقياً مع باركودات وأسعار شراء وبيع وأقسام متسقة.
+  2. **توليد فواتير المبيعات التاريخية وحركات الكاشير:** محاكاة حركات بيع واقعية موزعة على 6 أشهر مع هوامش ربح متزنة لتفعيل لوحات التحكم والمؤشرات البيانية فوراً.
+  3. **توليد طلبات المتجر السحابي:** إضافة طلبات إلكترونية بحالات شحن مختلفة لتجربة بوابات التوصيل والشحن.
+  4. **حماية السوبر أدمن والنسخ الاحتياطي التلقائي:** اشتراط كلمة مرور السوبر أدمن عند استبدال البيانات، وأخذ نسخة احتياطية Snapshot تلقائياً قبل التصفير لحماية البيانات.
+  5. **تفريغ ومسح البيانات التجريبية بأمان (Clean Production Reset):** مسح كافة الأصناف والعملاء والفواتير التجريبية فقط وتهيئة النظام لبدء العمل الحقيقي دون المساس بالمستخدمين أو الإعدادات.
+  6. **التوافق التام مع معيار العقود وحذف القيود التابعية المتسلسلة (Resilient Contract & Foreign-Key Cascade Ordering):** توافق كامل بين كائنات الباك إند والفرونت إند (`categoryCount`/`categoriesCount`, `productCount`/`productsCount`, `sampleProducts`/`sampleItems`)، واستبدال الإيموجيز بأيقونات SVG الرسمية المعتمدة من `@/shared/components/icons/AppIcons`. وضمان حذف البيانات بحسب الترتيب الهرمي الدقيق للعلاقات والمفاتيح الخارجية (Foreign Keys) لجداول الرواتب والقروض (`hr_payroll_loan_deduction_allocations`) والأقساط ورحلات الفان لضمان عدم حدوث أي خطأ تعارض قيود (FK 23503) أثناء التصفير وإعادة الاستيراد.
+
+---
+
+## 45. الملخص التنفيذي واللوجستي اليومي للمدير عبر واتساب (WhatsApp Daily Executive & Logistics Digest)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Light Enterprise Theme & Symmetrical 2-Column Grid).
+* **روابط الوصول السريع:** `/settings/daily-digest`.
+* **مسارات الكود الأساسية:**
+  * **الباك إند (Backend):** `backend/src/modules/settings/controllers/daily-digest.controller.ts`, `backend/src/modules/settings/services/daily-digest.service.ts`
+  * **الفرونت إند (Frontend):** `frontend/src/features/settings/api/daily-digest.api.ts`, `frontend/src/features/settings/components/workspace-sections/SettingsDailyDigestSection.tsx`, `frontend/src/features/settings/components/workspace-sections/SettingsDailyDigestSection.spec.tsx`
+* **الميزات والقدرات المفعلة:**
+  1. **الجدولة التلقائية الليلية (Automated Nightly Dispatch):** إرسال تقرير ليلي تلقائي بدون تدخل بشري في التوقيت المحدد (الافتراضي 11:30 مساءً) إلى رقم هاتف واتساب المدير أو المالك.
+  2. **بلوك المبيعات والنشاط اليومي (Sales & Revenues Block):** كشف إجمالي المبيعات، عدد الفواتير، السيولة النقدية (كاش)، شبكات وماكينات الدفع، المحافظ وإنستاباي، والأصناف الأكثر مبيعاً خلال اليوم.
+  3. **بلوك أذون الصرف والإمداد للمحل (Store Dispatch & Supply Block):** كشف تفصيلي بأذونات الصرف المنقولة من المستودع الرئيسي لصالة المحل مع الكميات واسم المشرف المعتمد.
+  4. **بلوك نواقص المستودع الحرج (Warehouse Critical Shortages Block):** قائمة بالأصناف التي نفدت أو أوشكت على النفاد في المستودع لإصدار أوامر شراء فورية للموردين.
+  5. **محاكي رسالة واتساب الحية التفاعلي (Interactive Live WhatsApp Simulator):** محاكي فوري مطابق لتطبيق واتساب يحدّث نص الرسالة وأقسامها وتوقيتها مباشرة أثناء تعديل الخيارات في النموذج.
+  6. **التوافق التام مع دستور النظام البصري وصفر إيموجي (Visual Constitution & 0 Emojis):** بطاقات بيضاء مؤسسية نظيفة (`#ffffff`)، شبكة متوازنة بعمودين متناظرين (`1fr 1fr`)، زر إجراءات كحلي ملكي (`#170e5e`)، استبدال كلي لوسوم Tailwind غير المدعومة بتنسيقات داخلية قياسية مستقرة، واستخدام حصري لأيقونات SVG من `@/shared/components/icons/AppIcons`.
 
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
+
 
 
 

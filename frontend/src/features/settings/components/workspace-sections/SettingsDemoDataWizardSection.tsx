@@ -16,7 +16,27 @@ import {
   ShoppingCartIcon,
   BarChartIcon,
   XIcon,
+  UtensilsIcon,
+  SmartphoneIcon,
 } from '@/shared/components/icons/AppIcons';
+
+function getActivityIcon(key: string, isSelected: boolean) {
+  const color = isSelected ? '#170e5e' : '#64748b';
+  switch (key) {
+    case 'supermarket':
+      return <ShoppingCartIcon size={22} color={isSelected ? '#170e5e' : color} />;
+    case 'fashion':
+      return <TagIcon size={22} color={isSelected ? '#7c3aed' : color} />;
+    case 'cafe_restaurant':
+      return <UtensilsIcon size={22} color={isSelected ? '#d97706' : color} />;
+    case 'electronics_mobile':
+      return <SmartphoneIcon size={22} color={isSelected ? '#0284c7' : color} />;
+    case 'pharmacy':
+      return <ShieldCheckIcon size={22} color={isSelected ? '#16a34a' : color} />;
+    default:
+      return <PackageIcon size={22} color={color} />;
+  }
+}
 
 export function SettingsDemoDataWizardSection() {
   const navigate = useNavigate();
@@ -49,7 +69,7 @@ export function SettingsDemoDataWizardSection() {
   });
 
   const status = statusQuery.data;
-  const activities = activitiesQuery.data || [];
+  const activities = Array.isArray(activitiesQuery.data) ? activitiesQuery.data : [];
   const selectedActivity = activities.find((a) => a.key === selectedActivityKey) || activities[0];
 
   // Seed Mutation
@@ -247,8 +267,19 @@ export function SettingsDemoDataWizardSection() {
             width: '100%',
           }}
         >
+          {activitiesQuery.isLoading && (
+            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem', gridColumn: '1 / -1' }}>
+              <RefreshCwIcon size={20} className="animate-spin" style={{ margin: '0 auto 8px', display: 'block' }} />
+              <span>جاري تحميل باقات الأنشطة التجارية...</span>
+            </div>
+          )}
+
           {activities.map((act) => {
             const isSelected = act.key === selectedActivityKey;
+            const sampleProducts = act.sampleProducts || act.sampleItems || [];
+            const productCount = act.productCount ?? act.productsCount ?? 0;
+            const categoryCount = act.categoryCount ?? act.categoriesCount ?? 0;
+
             return (
               <div
                 key={act.key}
@@ -279,11 +310,10 @@ export function SettingsDemoDataWizardSection() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '22px',
                         border: isSelected ? '1px solid #c4b5fd' : '1px solid #e2e8f0',
                       }}
                     >
-                      {act.icon}
+                      {getActivityIcon(act.key, isSelected)}
                     </div>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
@@ -315,7 +345,7 @@ export function SettingsDemoDataWizardSection() {
 
                 {/* Sample product badges */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: 'auto' }}>
-                  {act.sampleProducts.slice(0, 4).map((sp, idx) => (
+                  {sampleProducts.slice(0, 4).map((sp, idx) => (
                     <span
                       key={idx}
                       style={{
@@ -331,9 +361,9 @@ export function SettingsDemoDataWizardSection() {
                       {sp}
                     </span>
                   ))}
-                  {act.productCount > 4 && (
+                  {productCount > 4 && (
                     <span style={{ fontSize: '0.72rem', color: '#94a3b8', padding: '3px 4px' }}>
-                      +{act.productCount - 4} أصناف أخرى
+                      +{productCount - 4} أصناف أخرى
                     </span>
                   )}
                 </div>
@@ -352,11 +382,11 @@ export function SettingsDemoDataWizardSection() {
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <TagIcon size={13} />
-                    <span>{act.productCount} صنفاً متكاملاً</span>
+                    <span>{productCount} صنفاً متكاملاً</span>
                   </span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <PackageIcon size={13} />
-                    <span>{act.categoryCount} تصنيفات</span>
+                    <span>{categoryCount} تصنيفات</span>
                   </span>
                 </div>
               </div>
@@ -490,7 +520,7 @@ export function SettingsDemoDataWizardSection() {
           }}
         >
           <div style={{ fontSize: '0.86rem', color: '#475569' }}>
-            النشاط المحدد: <strong style={{ color: '#170e5e' }}>{selectedActivity?.name || selectedActivityKey}</strong> ({selectedActivity?.productCount || 0} صنفاً)
+            النشاط المحدد: <strong style={{ color: '#170e5e' }}>{selectedActivity?.name || selectedActivityKey}</strong> ({(selectedActivity?.productCount ?? selectedActivity?.productsCount ?? 0)} صنفاً)
           </div>
 
           <Button

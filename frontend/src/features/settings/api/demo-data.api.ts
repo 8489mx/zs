@@ -6,10 +6,13 @@ export interface DemoActivitySummary {
   icon: string;
   tagline: string;
   description: string;
-  categoryCount: number;
-  productCount: number;
-  sampleCategories: string[];
-  sampleProducts: string[];
+  categoryCount?: number;
+  categoriesCount?: number;
+  productCount?: number;
+  productsCount?: number;
+  sampleCategories?: string[];
+  sampleProducts?: string[];
+  sampleItems?: string[];
 }
 
 export interface DemoDataStatusResponse {

@@ -208,23 +208,96 @@ export function PortalsHubPage() {
       }}
     >
       <style>{`
-        .hub-container {
-          max-width: 1200px;
+        .hub-header {
+          background-color: #ffffff;
+          border-bottom: 1px solid #e2e8f0;
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+        }
+        .hub-header-inner {
+          max-width: 1320px;
           width: 100%;
           margin: 0 auto;
-          padding: 32px 20px 60px;
+          padding: 12px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           box-sizing: border-box;
+        }
+        .hub-container {
+          max-width: 1320px;
+          width: 100%;
+          margin: 0 auto;
+          padding: 36px 24px 60px;
+          box-sizing: border-box;
+        }
+        .hub-header-wrap {
+          text-align: center;
+          margin-bottom: 32px;
+        }
+        .hub-hero-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background-color: #eff6ff;
+          color: #1e40af;
+          border: 1px solid #bfdbfe;
+          padding: 5px 14px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 800;
+          margin-bottom: 12px;
+        }
+        .hub-hero-title {
+          margin: 0 0 10px;
+          font-size: 28px;
+          font-weight: 900;
+          color: #0f172a;
+          letter-spacing: -0.5px;
+        }
+        .hub-hero-subtitle {
+          margin: 0 auto 22px;
+          font-size: 14.5px;
+          color: #64748b;
+          max-width: 680px;
+          line-height: 1.6;
+        }
+        .hub-search-wrap {
+          position: relative;
+          max-width: 580px;
+          width: 100%;
+          margin: 0 auto 16px;
+        }
+        .hub-search-input {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 13px 44px 13px 42px;
+          border-radius: 12px;
+          border: 1.5px solid #cbd5e1;
+          background-color: #ffffff;
+          font-size: 14px;
+          font-weight: 600;
+          color: #0f172a;
+          outline: none;
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+          transition: all 0.15s ease;
+        }
+        .hub-search-input:focus {
+          border-color: #170e5e;
+          box-shadow: 0 0 0 3px rgba(23, 14, 94, 0.08);
         }
         .hub-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          grid-template-columns: repeat(2, 1fr);
           gap: 16px;
         }
         .hub-card {
           background-color: #ffffff;
           border: 1px solid #e2e8f0;
           border-radius: 16px;
-          padding: 20px;
+          padding: 22px 24px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
@@ -237,13 +310,37 @@ export function PortalsHubPage() {
         .hub-card:hover {
           transform: translateY(-3px);
           border-color: #cbd5e1;
-          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 12px 24px -5px rgba(23, 14, 94, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
+        }
+        .hub-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        }
+        .hub-card-title {
+          margin: 0 0 6px;
+          font-size: 16px;
+          font-weight: 800;
+          color: #0f172a;
+          line-height: 1.4;
+          text-align: start;
+        }
+        .hub-card-desc {
+          margin: 0;
+          font-size: 13px;
+          color: #64748b;
+          line-height: 1.55;
+          text-align: start;
+          min-height: 38px;
         }
         .hub-cat-scroll {
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
-          margin-top: 16px;
+          flex-wrap: wrap;
+          margin-top: 14px;
         }
         .hub-cat-full {
           display: inline;
@@ -265,6 +362,12 @@ export function PortalsHubPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 6px;
+        }
+        .hub-cat-pill:hover {
+          border-color: #cbd5e1;
+          color: #0f172a;
+          background-color: #f8fafc;
         }
         .hub-cat-pill.active {
           background-color: #170e5e;
@@ -272,14 +375,26 @@ export function PortalsHubPage() {
           color: #ffffff;
           box-shadow: 0 2px 8px rgba(23, 14, 94, 0.25);
         }
+        .hub-cat-count {
+          font-size: 11px;
+          padding: 1px 6px;
+          border-radius: 10px;
+          background: rgba(15, 23, 42, 0.06);
+          color: inherit;
+          font-weight: 800;
+        }
+        .hub-cat-pill.active .hub-cat-count {
+          background: rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+        }
         .hub-action-btn {
-          margin-top: 14px;
-          padding: 8px 12px;
-          border-radius: 8px;
+          margin-top: 16px;
+          padding: 9px 14px;
+          border-radius: 10px;
           background-color: #f8fafc;
           border: 1px solid #e2e8f0;
           color: #170e5e;
-          font-size: 12px;
+          font-size: 12.5px;
           font-weight: 800;
           display: flex;
           align-items: center;
@@ -292,10 +407,26 @@ export function PortalsHubPage() {
           color: #ffffff;
         }
         .hub-btn-path {
-          font-family: monospace;
-          font-size: 11px;
-          opacity: 0.8;
-          display: inline;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11.5px;
+          color: #64748b;
+          direction: ltr;
+          unicode-bidi: embed;
+          background-color: #ffffff;
+          padding: 3px 8px;
+          border-radius: 6px;
+          border: 1px solid #e2e8f0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 220px;
+          display: inline-block;
+          transition: all 0.15s ease;
+        }
+        .hub-card:hover .hub-btn-path {
+          background-color: rgba(255, 255, 255, 0.15);
+          border-color: rgba(255, 255, 255, 0.3);
+          color: #ffffff;
         }
         .hub-btn-label-desktop {
           display: inline;
@@ -311,17 +442,31 @@ export function PortalsHubPage() {
         }
 
         @media (max-width: 768px) {
+          .hub-header-inner {
+            padding: 10px 16px !important;
+          }
           .hub-container {
-            padding: 16px 12px 36px;
+            padding: 16px 12px 36px !important;
           }
           .hub-header-wrap {
-            text-align: center;
+            text-align: center !important;
+            margin-bottom: 20px !important;
+          }
+          .hub-hero-title {
+            font-size: 20px !important;
+          }
+          .hub-hero-subtitle {
+            font-size: 12px !important;
+            margin-bottom: 16px !important;
           }
           .hub-cat-full {
             display: none !important;
           }
           .hub-cat-short {
             display: inline !important;
+          }
+          .hub-cat-count {
+            display: none !important;
           }
           .hub-cat-scroll {
             display: flex !important;
@@ -330,6 +475,7 @@ export function PortalsHubPage() {
             overflow-x: hidden !important;
             padding: 0 !important;
             box-sizing: border-box !important;
+            justify-content: flex-start !important;
           }
           .hub-cat-pill {
             flex: 1 1 0px !important;
@@ -357,6 +503,7 @@ export function PortalsHubPage() {
             -webkit-line-clamp: 2 !important;
             -webkit-box-orient: vertical !important;
             overflow: hidden !important;
+            text-align: center !important;
           }
           .hub-card-desc {
             font-size: 10.5px !important;
@@ -366,6 +513,7 @@ export function PortalsHubPage() {
             -webkit-line-clamp: 2 !important;
             -webkit-box-orient: vertical !important;
             overflow: hidden !important;
+            text-align: center !important;
           }
           .hub-card-icon {
             width: 38px !important;
@@ -416,97 +564,76 @@ export function PortalsHubPage() {
       `}</style>
 
       {/* 1. Top Enterprise Navbar */}
-      <header
-        style={{
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '12px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
+      <header className="hub-header">
+        <div className="hub-header-inner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #170e5e 0%, #2563eb 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 2px 8px rgba(23, 14, 94, 0.2)',
+              }}
+            >
+              <CompassIcon size={20} color="#ffffff" />
+            </div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>
+                منظومة Z-Systems
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>
+                مركز البوابات والخدمات الميدانية (Launchpad)
+              </div>
+            </div>
+          </div>
+
+          <Link
+            to="/login"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #170e5e 0%, #2563eb 100%)',
-              display: 'flex',
+              textDecoration: 'none',
+              backgroundColor: '#f1f5f9',
+              color: '#170e5e',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              boxShadow: '0 2px 8px rgba(23, 14, 94, 0.2)',
+              gap: '6px',
+              transition: 'all 0.15s ease',
             }}
           >
-            <CompassIcon size={20} color="#ffffff" />
-          </div>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>
-              منظومة Z-Systems
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-              مركز البوابات والخدمات الميدانية (Launchpad)
-            </div>
-          </div>
+            <BuildingIcon size={14} color="#170e5e" />
+            <span className="hub-erp-full">الدخول للإدارة (ERP)</span>
+            <span className="hub-erp-short">الإدارة (ERP)</span>
+          </Link>
         </div>
-
-        <Link
-          to="/login"
-          style={{
-            textDecoration: 'none',
-            backgroundColor: '#f1f5f9',
-            color: '#170e5e',
-            border: '1px solid #cbd5e1',
-            borderRadius: '8px',
-            padding: '8px 14px',
-            fontSize: '12.5px',
-            fontWeight: 800,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <BuildingIcon size={14} color="#170e5e" />
-          <span className="hub-erp-full">الدخول للإدارة (ERP)</span>
-          <span className="hub-erp-short">الإدارة (ERP)</span>
-        </Link>
       </header>
 
       {/* 2. Main Hero & Content */}
       <main className="hub-container">
         {/* Hero Section */}
-        <div className="hub-header-wrap" style={{ marginBottom: '28px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#eff6ff',
-              color: '#1e40af',
-              border: '1px solid #bfdbfe',
-              padding: '4px 12px',
-              borderRadius: '20px',
-              fontSize: '11.5px',
-              fontWeight: 800,
-              marginBottom: '10px',
-            }}
-          >
+        <div className="hub-header-wrap">
+          <div className="hub-hero-badge">
             <CheckCircleIcon size={14} color="#1e40af" />
             <span>بوابة موحدة لكافة الموظفين والمناديب وأطقم التشغيل</span>
           </div>
 
-          <h1 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>
+          <h1 className="hub-hero-title">
             دليل البوابات والخدمات الذاتية
           </h1>
-          <p style={{ margin: '0 0 20px', fontSize: '13.5px', color: '#64748b', maxWidth: '640px', lineHeight: 1.5 }}>
+          <p className="hub-hero-subtitle">
             اختر البوابة أو التطبيق الميداني المطلوب للوصول المباشر دون الحاجة لحفظ الروابط المنفصلة.
           </p>
 
           {/* Search Input */}
-          <div style={{ position: 'relative', maxWidth: '520px' }}>
+          <div className="hub-search-wrap">
             <span
               style={{
                 position: 'absolute',
@@ -525,39 +652,42 @@ export function PortalsHubPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="ابحث بالاسم أو الوظيفة أو الخدمة (بصمة، طيار، رواتب)..."
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '12px 14px',
-                paddingInlineStart: '42px',
-                borderRadius: '12px',
-                border: '1.5px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                color: '#0f172a',
-                outline: 'none',
-                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
-                transition: 'border-color 0.15s ease',
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = '#170e5e';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = '#cbd5e1';
-              }}
+              placeholder="ابحث بالاسم، البوابة، الوظيفة أو الخدمة (بصمة، طيار، KDS، فان)..."
+              className="hub-search-input"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  insetInlineEnd: '12px',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  padding: '4px 6px',
+                  borderRadius: '6px',
+                }}
+                title="مسح البحث"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          {/* Category Filter Pills (Single row without scroll on mobile) */}
+          {/* Category Filter Pills */}
           <div className="hub-cat-scroll">
             {[
-              { key: 'all', label: 'الكل (جميع الخدمات)', shortLabel: 'الكل' },
-              { key: 'staff', label: 'الموظفين والخدمة الذاتية', shortLabel: 'الموظفين' },
-              { key: 'field', label: 'المناديب والمبيعات الميدانية', shortLabel: 'المناديب' },
-              { key: 'branch', label: 'شاشات الصالة والمطبخ', shortLabel: 'التشغيل' },
-              { key: 'management', label: 'الإدارة والرقابة', shortLabel: 'الإدارة' },
+              { key: 'all', label: 'الكل (جميع الخدمات)', shortLabel: 'الكل', count: PORTALS_LIST.length },
+              { key: 'staff', label: 'الموظفين والخدمة الذاتية', shortLabel: 'الموظفين', count: PORTALS_LIST.filter(p => p.category === 'staff').length },
+              { key: 'field', label: 'المناديب والمبيعات الميدانية', shortLabel: 'المناديب', count: PORTALS_LIST.filter(p => p.category === 'field').length },
+              { key: 'branch', label: 'شاشات الصالة والمطبخ', shortLabel: 'التشغيل', count: PORTALS_LIST.filter(p => p.category === 'branch').length },
+              { key: 'management', label: 'الإدارة والرقابة', shortLabel: 'الإدارة', count: PORTALS_LIST.filter(p => p.category === 'management').length },
             ].map((cat) => (
               <button
                 key={cat.key}
@@ -567,6 +697,7 @@ export function PortalsHubPage() {
               >
                 <span className="hub-cat-full">{cat.label}</span>
                 <span className="hub-cat-short">{cat.shortLabel}</span>
+                <span className="hub-cat-count">{cat.count}</span>
               </button>
             ))}
           </div>
@@ -591,6 +722,25 @@ export function PortalsHubPage() {
             <div style={{ fontSize: '13px', marginTop: '4px' }}>
               جرّب كتابة كلمة بحث أخرى أو اختر تبويب "الكل" لعرض كافة البوابات.
             </div>
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
+                style={{
+                  marginTop: '16px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                }}
+              >
+                إلغاء التصفية وعرض الكل
+              </button>
+            )}
           </div>
         ) : (
           <div className="hub-grid">
@@ -598,54 +748,35 @@ export function PortalsHubPage() {
               <Link key={portal.id} to={portal.path} className="hub-card">
                 <div>
                   {/* Card Header Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div className="hub-card-header">
                     <div
                       className="hub-card-icon"
                       style={{
-                        width: 46,
-                        height: 46,
-                        borderRadius: 12,
                         backgroundColor: portal.iconBg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
                       }}
                     >
                       {portal.icon}
                     </div>
 
-                    <span
-                      className="hub-card-badge"
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        backgroundColor: '#f1f5f9',
-                        color: '#475569',
-                        border: '1px solid #e2e8f0',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                    <span className="hub-card-badge">
                       {portal.badgeText || portal.categoryName}
                     </span>
                   </div>
 
                   {/* Title & Description */}
-                  <h3 className="hub-card-title" style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>
+                  <h3 className="hub-card-title">
                     {portal.title}
                   </h3>
-                  <p className="hub-card-desc" style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: 1.45 }}>
+                  <p className="hub-card-desc">
                     {portal.description}
                   </p>
                 </div>
 
                 {/* Footer Action Button */}
                 <div className="hub-action-btn">
-                  <span className="hub-btn-path">{portal.path}</span>
                   <span className="hub-btn-label-desktop">فتح البوابة ←</span>
                   <span className="hub-btn-label-mobile">دخول البوابة ←</span>
+                  <span className="hub-btn-path">{portal.path}</span>
                 </div>
               </Link>
             ))}
@@ -656,7 +787,7 @@ export function PortalsHubPage() {
         <div
           style={{
             marginTop: '40px',
-            padding: '16px 20px',
+            padding: '18px 24px',
             backgroundColor: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '14px',
@@ -665,7 +796,7 @@ export function PortalsHubPage() {
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '12px',
-            fontSize: '12.5px',
+            fontSize: '13px',
             color: '#64748b',
           }}
         >
@@ -678,6 +809,9 @@ export function PortalsHubPage() {
               fontWeight: 800,
               color: '#170e5e',
               textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
             تسجيل دخول المدير ➔

@@ -111,6 +111,11 @@ export class SettingsDemoDataService {
 
     await this.db.transaction().execute(async (trx) => {
       // 1. Operational tables
+      await (trx as any).deleteFrom('customer_installments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('customer_installment_plans').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('quotation_items').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('quotations').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+
       await trx.deleteFrom('sale_items').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await trx.deleteFrom('sale_payments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await trx.deleteFrom('held_sale_items').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
@@ -138,6 +143,7 @@ export class SettingsDemoDataService {
       await trx.deleteFrom('supplier_ledger').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await trx.deleteFrom('suppliers').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
+      await (trx as any).deleteFrom('van_sales_trips').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
       await trx.deleteFrom('delivery_representatives').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       await trx.deleteFrom('stock_transfer_items').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
@@ -199,26 +205,29 @@ export class SettingsDemoDataService {
       await trx.deleteFrom('products').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await trx.deleteFrom('product_categories').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
-      // 2. HR tables
-      await trx.deleteFrom('hr_attendance_records').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_attendance_exceptions').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_leave_requests').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_leave_types').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_employee_loans').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_employee_loan_installments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_employee_ledger').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_employee_assets').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_payroll_run_items').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_payroll_item_adjustments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_payroll_runs').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_employment_contracts').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_compensation_packages').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_employee_documents').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_employee_contacts').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_employees').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_positions').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_job_titles').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
-      await trx.deleteFrom('hr_departments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      // 2. HR tables (ordered strictly from child leaf to parent root)
+      await (trx as any).deleteFrom('hr_payroll_loan_deduction_allocations').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_payroll_item_adjustments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_payroll_run_items').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('hr_employee_adjustments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_payroll_runs').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_employee_loan_installments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_employee_loans').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_employee_ledger').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_employee_assets').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_attendance_exceptions').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_attendance_records').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_leave_requests').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_leave_types').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_compensation_packages').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_employment_contracts').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_employee_documents').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_employee_contacts').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await (trx as any).deleteFrom('hr_holidays').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_employees').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_positions').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_job_titles').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
+      await trx.deleteFrom('hr_departments').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute().catch(() => undefined);
 
       // 3. Accounting & Journals
       await trx.deleteFrom('journal_entry_lines').where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();

@@ -28,7 +28,11 @@ export function listSupportedDemoActivities() {
     tagline: d.tagline,
     description: d.description,
     categoriesCount: d.categories.length,
+    categoryCount: d.categories.length,
     productsCount: d.products.length,
+    productCount: d.products.length,
     sampleItems: d.products.slice(0, 4).map((p) => p.name),
+    sampleProducts: d.products.slice(0, 4).map((p) => p.name),
+    sampleCategories: d.categories.slice(0, 4),
   }));
 }

@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { dailyDigestApi, DailyDigestConfig } from '@/features/settings/api/daily-digest.api';
-import { ClockIcon, SmartphoneIcon, XIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import {
+  ClockIcon,
+  SmartphoneIcon,
+  XIcon,
+  CheckCircleIcon,
+  TrendingUpIcon,
+  TruckIcon,
+  AlertTriangleIcon,
+} from '@/shared/components/icons/AppIcons';
 
 export const SettingsDailyDigestSection: React.FC = () => {
   const [config, setConfig] = useState<DailyDigestConfig>({
@@ -56,35 +64,115 @@ export const SettingsDailyDigestSection: React.FC = () => {
   };
 
   return (
-    <div dir="rtl" className="space-y-6">
-      {/* Header Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shadow-2xs">
+    <div
+      dir="rtl"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        width: '100%',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* 1. Header Card */}
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: '14px',
+          border: '1px solid #e2e8f0',
+          padding: '20px 24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px',
+          }}
+        >
+          {/* Title & Icon */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#059669',
+                flexShrink: 0,
+              }}
+            >
               <ClockIcon size={24} />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                <span>الملخص التنفيذي واللوجستي اليومي للمدير</span>
-                <span className="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-bold">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  الملخص التنفيذي واللوجستي اليومي للمدير
+                </h2>
+                <span
+                  style={{
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    color: '#065f46',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    padding: '2px 10px',
+                    borderRadius: '999px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      background: config.enabled ? '#10b981' : '#94a3b8',
+                    }}
+                  />
                   واتساب مجدول
                 </span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              </div>
+              <p style={{ fontSize: '12.5px', color: '#64748b', margin: '4px 0 0 0' }}>
                 إرسال تقرير ليلي تلقائي يجمع بين مبيعات اليوم، تفاصيل أذون الصرف المنقولة للمحل، ونواقص المستودع الرئيسي
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <Button
               variant="secondary"
               onClick={handleSendTest}
               disabled={testMutation.isPending}
-              className="font-bold text-xs flex items-center gap-1.5 px-4 h-9"
+              style={{
+                background: '#f8fafc',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '0 16px',
+                height: '38px',
+                fontWeight: 700,
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
             >
-              <SmartphoneIcon size={14} />
+              <SmartphoneIcon size={15} color="#475569" />
               <span>{testMutation.isPending ? 'جاري الإرسال...' : 'إرسال ملخص تجريبي الآن'}</span>
             </Button>
 
@@ -92,213 +180,563 @@ export const SettingsDailyDigestSection: React.FC = () => {
               variant="primary"
               onClick={handleSave}
               disabled={saveMutation.isPending}
-              className="bg-[#170e5e] hover:bg-[#120b4c] text-white font-bold text-xs px-6 h-9 flex items-center gap-1.5"
+              style={{
+                background: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0 22px',
+                height: '38px',
+                fontWeight: 700,
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
             >
-              {saveSuccess && <CheckCircleIcon size={14} />}
+              {saveSuccess ? <CheckCircleIcon size={15} color="#ffffff" /> : null}
               <span>{saveMutation.isPending ? 'جاري الحفظ...' : saveSuccess ? 'تم الحفظ بنجاح' : 'حفظ الإعدادات'}</span>
             </Button>
           </div>
         </div>
 
-        {testResult && (
+        {/* Test Result Alert Banner */}
+        {testResult ? (
           <div
-            className={`mt-4 p-3 rounded-xl border text-xs font-semibold flex items-center justify-between ${
-              testResult.success
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-red-50 text-red-800 border-red-200'
-            }`}
+            style={{
+              padding: '12px 16px',
+              borderRadius: '10px',
+              background: testResult.success ? '#f0fdf4' : '#fef2f2',
+              border: `1px solid ${testResult.success ? '#bbf7d0' : '#fecaca'}`,
+              color: testResult.success ? '#15803d' : '#b91c1c',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '13px',
+              fontWeight: 600,
+            }}
           >
-            <div className="flex items-center gap-1.5">
-              {testResult.success && <CheckCircleIcon size={14} />}
-              <span>{testResult.success ? 'تم إرسال رسالة الملخص اليومي التجريبية بنجاح إلى رقم الواتساب!' : testResult.message}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {testResult.success ? (
+                <CheckCircleIcon size={16} color="#15803d" />
+              ) : (
+                <AlertTriangleIcon size={16} color="#b91c1c" />
+              )}
+              <span>
+                {testResult.success
+                  ? 'تم إرسال رسالة الملخص اليومي التجريبية بنجاح إلى رقم الواتساب!'
+                  : testResult.message}
+              </span>
             </div>
-            <button type="button" onClick={() => setTestResult(null)} className="text-slate-400 hover:text-slate-600 p-1">
-              <XIcon size={14} />
+            <button
+              type="button"
+              onClick={() => setTestResult(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <XIcon size={15} />
             </button>
           </div>
-        )}
+        ) : null}
       </div>
 
-      {/* Grid: 2 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Settings Form (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
-            <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
-              <span>خيارات الجدولة والإرسال</span>
+      {/* 2. Symmetrical 2-Column Responsive Grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
+          gap: '20px',
+          alignItems: 'start',
+          width: '100%',
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* Column 1: Settings Form */}
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '22px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+          }}
+        >
+          <div
+            style={{
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+              خيارات الجدولة والإرسال
             </h3>
+            <span style={{ fontSize: '12px', color: '#64748b' }}>إعدادات التوقيت والمحتوى</span>
+          </div>
 
-            {/* Toggle Enable */}
-            <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
-              <div>
-                <div className="font-bold text-slate-800 text-xs">تفعيل التقرير الليلي المجدول</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  إرسال الرسالة آلياً في الوقت المحدد دون تدخل بشري
-                </div>
+          {/* Toggle Enable */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 16px',
+              background: config.enabled ? '#f8fafc' : '#fef2f2',
+              border: `1px solid ${config.enabled ? '#e2e8f0' : '#fecaca'}`,
+              borderRadius: '10px',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                تفعيل التقرير الليلي المجدول
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                إرسال الرسالة آلياً في الوقت المحدد دون تدخل بشري
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfig((prev) => ({ ...prev, enabled: !prev.enabled }))}
+              style={{
+                width: '46px',
+                height: '26px',
+                borderRadius: '999px',
+                background: config.enabled ? '#170e5e' : '#cbd5e1',
+                border: 'none',
+                position: 'relative',
+                cursor: 'pointer',
+                transition: 'background 0.2s ease',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <span
+                style={{
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  transition: 'transform 0.2s ease',
+                  transform: config.enabled ? 'translateX(-20px)' : 'translateX(0)',
+                }}
+              />
+            </button>
+          </div>
+
+          {/* Phone Input */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              رقم هاتف الواتساب للمدير / المالك:
+            </label>
+            <input
+              type="text"
+              value={config.phone}
+              onChange={(e) => setConfig((prev) => ({ ...prev, phone: e.target.value }))}
+              placeholder="010XXXXXXXX أو 201XXXXXXXXX"
+              style={{
+                width: '100%',
+                height: '42px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                padding: '0 14px',
+                fontSize: '13.5px',
+                fontFamily: 'monospace',
+                color: '#0f172a',
+                background: '#ffffff',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <p style={{ fontSize: '11.5px', color: '#94a3b8', margin: '5px 0 0 0' }}>
+              يُترك فارغاً لاستخدام رقم هاتف المالك المسجل في بيانات المنشأة تلقائياً.
+            </p>
+          </div>
+
+          {/* Time of Day Input */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              موعد الإرسال اليومي (توقيت محلي):
+            </label>
+            <input
+              type="time"
+              value={config.timeOfDay}
+              onChange={(e) => setConfig((prev) => ({ ...prev, timeOfDay: e.target.value }))}
+              style={{
+                width: '100%',
+                height: '42px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                padding: '0 14px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#0f172a',
+                background: '#ffffff',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <p style={{ fontSize: '11.5px', color: '#94a3b8', margin: '5px 0 0 0' }}>
+              التوقيت الموصى به: 11:30 مساءً أو 12:00 منتصف الليل بعد إغلاق كافة الورديات.
+            </p>
+          </div>
+
+          {/* Section Checkboxes */}
+          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>
+              محتويات وأقسام التقرير المطلوب تضمينها:
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Option 1: Sales */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: `1px solid ${config.includeSales ? '#93c5fd' : '#e2e8f0'}`,
+                  background: config.includeSales ? '#f8fafc' : '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
                 <input
                   type="checkbox"
-                  checked={config.enabled}
-                  onChange={(e) => setConfig((prev) => ({ ...prev, enabled: e.target.checked }))}
-                  className="sr-only peer"
+                  checked={config.includeSales}
+                  onChange={(e) => setConfig((prev) => ({ ...prev, includeSales: e.target.checked }))}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    accentColor: '#170e5e',
+                    marginTop: '2px',
+                    cursor: 'pointer',
+                  }}
                 />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#170e5e]"></div>
-              </label>
-            </div>
-
-            {/* Phone Input */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                رقم هاتف الواتساب للمدير / المالك:
-              </label>
-              <input
-                type="text"
-                value={config.phone}
-                onChange={(e) => setConfig((prev) => ({ ...prev, phone: e.target.value }))}
-                placeholder="010XXXXXXXX أو 201XXXXXXXXX"
-                className="w-full h-10 rounded-xl border border-slate-300 px-3.5 text-xs font-mono text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#170e5e]/20"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                يُترك فارغاً لاستخدام رقم هاتف المالك المسجل في بيانات المنشأة تلقائياً.
-              </p>
-            </div>
-
-            {/* Time of Day */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                موعد الإرسال اليومي (توقيت محلي):
-              </label>
-              <input
-                type="time"
-                value={config.timeOfDay}
-                onChange={(e) => setConfig((prev) => ({ ...prev, timeOfDay: e.target.value }))}
-                className="w-full h-10 rounded-xl border border-slate-300 px-3.5 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#170e5e]/20"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                التوقيت الموصى به: 11:30 مساءً أو 12:00 منتصف الليل بعد إغلاق كافة الورديات.
-              </p>
-            </div>
-
-            {/* Section Checkboxes */}
-            <div className="pt-2 border-t border-slate-100">
-              <label className="block text-xs font-bold text-slate-800 mb-2.5">
-                محتويات وأقسام التقرير المطلوب تضمينها:
-              </label>
-              <div className="space-y-2.5">
-                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50/50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.includeSales}
-                    onChange={(e) => setConfig((prev) => ({ ...prev, includeSales: e.target.checked }))}
-                    className="mt-0.5 rounded border-slate-300 text-[#170e5e] focus:ring-[#170e5e]"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block">بلوك المبيعات والنشاط اليومي</span>
-                    <span className="text-[11px] text-slate-500">
-                      إجمالي المبيعات، عدد الفواتير، السيولة النقدية والشبكة، والأصناف الأكثر رواجاً.
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <TrendingUpIcon size={16} color="#2563eb" />
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                      بلوك المبيعات والنشاط اليومي
                     </span>
                   </div>
-                </label>
+                  <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                    إجمالي المبيعات، عدد الفواتير، السيولة النقدية والشبكة، والأصناف الأكثر رواجاً.
+                  </span>
+                </div>
+              </label>
 
-                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50/50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.includeTransfers}
-                    onChange={(e) => setConfig((prev) => ({ ...prev, includeTransfers: e.target.checked }))}
-                    className="mt-0.5 rounded border-slate-300 text-[#170e5e] focus:ring-[#170e5e]"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block">بلوك أذون الصرف والإمداد التفصيلية للمحل</span>
-                    <span className="text-[11px] text-slate-500">
-                      كشف تفصيلي بكل صنف تم صرفه ونقله من المستودع للمحل وكميته الدقيقة واسم المشرف المعتمد.
+              {/* Option 2: Transfers */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: `1px solid ${config.includeTransfers ? '#c4b5fd' : '#e2e8f0'}`,
+                  background: config.includeTransfers ? '#f8fafc' : '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={config.includeTransfers}
+                  onChange={(e) => setConfig((prev) => ({ ...prev, includeTransfers: e.target.checked }))}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    accentColor: '#170e5e',
+                    marginTop: '2px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <TruckIcon size={16} color="#7c3aed" />
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                      بلوك أذون الصرف والإمداد التفصيلية للمحل
                     </span>
                   </div>
-                </label>
+                  <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                    كشف تفصيلي بكل صنف تم صرفه ونقله من المستودع للمحل وكميته الدقيقة واسم المشرف المعتمد.
+                  </span>
+                </div>
+              </label>
 
-                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50/50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={config.includeShortages}
-                    onChange={(e) => setConfig((prev) => ({ ...prev, includeShortages: e.target.checked }))}
-                    className="mt-0.5 rounded border-slate-300 text-[#170e5e] focus:ring-[#170e5e]"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 block">بلوك نواقص المستودع الحرج</span>
-                    <span className="text-[11px] text-slate-500">
-                      قائمة بالأصناف التي نفدت أو أوشكت على النفاد في المستودع لإصدار أمر شراء للموردين.
+              {/* Option 3: Shortages */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: `1px solid ${config.includeShortages ? '#fdba74' : '#e2e8f0'}`,
+                  background: config.includeShortages ? '#f8fafc' : '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={config.includeShortages}
+                  onChange={(e) => setConfig((prev) => ({ ...prev, includeShortages: e.target.checked }))}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    accentColor: '#170e5e',
+                    marginTop: '2px',
+                    cursor: 'pointer',
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertTriangleIcon size={16} color="#ea580c" />
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                      بلوك نواقص المستودع الحرج
                     </span>
                   </div>
-                </label>
-              </div>
+                  <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                    قائمة بالأصناف التي نفدت أو أوشكت على النفاد في المستودع لإصدار أمر شراء للموردين.
+                  </span>
+                </div>
+              </label>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Live WhatsApp Message Simulator (5 cols) */}
-        <div className="lg:col-span-5">
-          <div className="bg-[#efeae2] rounded-2xl border border-slate-300 p-4 shadow-sm relative overflow-hidden">
-            <div className="bg-[#075e54] text-white p-3 rounded-xl mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">
+        {/* Column 2: Live WhatsApp Message Simulator */}
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '22px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}
+        >
+          <div
+            style={{
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+              معاينة الرسالة الحية على الواتساب
+            </h3>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#047857',
+                background: '#ecfdf5',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                border: '1px solid #a7f3d0',
+              }}
+            >
+              تحديث فوري
+            </span>
+          </div>
+
+          {/* Simulator Container */}
+          <div
+            style={{
+              borderRadius: '14px',
+              border: '1px solid #cbd5e1',
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            }}
+          >
+            {/* WhatsApp App Header Bar */}
+            <div
+              style={{
+                background: '#075e54',
+                color: '#ffffff',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: '15px',
+                    color: '#ffffff',
+                  }}
+                >
                   Z
                 </div>
                 <div>
-                  <div className="text-xs font-bold">بوت الإدارة والملخص اليومي</div>
-                  <div className="text-[10px] text-emerald-200">متصل الآن عبر واتساب</div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff' }}>
+                    بوت الإدارة والملخص اليومي
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: '#a7f3d0' }}>
+                    متصل الآن عبر واتساب
+                  </div>
                 </div>
               </div>
-              <span className="text-xs bg-emerald-700/80 px-2 py-0.5 rounded font-mono">23:30</span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  background: 'rgba(0,0,0,0.2)',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  fontFamily: 'monospace',
+                  color: '#e2e8f0',
+                }}
+              >
+                {config.timeOfDay || '23:30'}
+              </span>
             </div>
 
-            {/* WhatsApp Bubble */}
-            <div className="bg-white rounded-xl rounded-tr-none p-3.5 shadow-xs border border-slate-200 text-slate-800 text-xs leading-relaxed space-y-2.5">
-              <div className="font-bold text-[#075e54] border-b border-slate-100 pb-1.5 flex items-center justify-between">
-                <span>الملخص التنفيذي واللوجستي اليومي</span>
-                <span className="text-[10px] text-slate-400 font-mono">اليوم</span>
-              </div>
-
-              {config.includeSales && (
-                <div className="space-y-1">
-                  <div className="font-bold text-slate-900">المبيعات والإيرادات:</div>
-                  <div className="text-[11px] text-slate-600 space-y-0.5 pr-2">
-                    <div>• إجمالي المبيعات: <b>42,850 ج.م</b> (58 فاتورة)</div>
-                    <div>• نقدية بالصندوق (كاش): 28,150 ج.م</div>
-                    <div>• شبكة وماكينات دفع: 11,500 ج.م</div>
-                    <div>• إنستاباي ومحافظ: 3,200 ج.م</div>
-                    <div>الأكثر مبيعاً: زيت عافية (36 ق)، شاي (24 ق)</div>
-                  </div>
+            {/* Chat Body (Authentic Wallpaper Background) */}
+            <div
+              style={{
+                background: '#efeae2',
+                padding: '16px',
+                minHeight: '340px',
+                boxSizing: 'border-box',
+              }}
+            >
+              {/* WhatsApp Speech Bubble */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '12px 0 12px 12px',
+                  padding: '14px 16px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  fontSize: '12.5px',
+                  lineHeight: '1.7',
+                  color: '#0f172a',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                {/* Bubble Header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '1px solid #f1f5f9',
+                    paddingBottom: '8px',
+                  }}
+                >
+                  <span style={{ fontWeight: 800, color: '#075e54', fontSize: '13px' }}>
+                    الملخص التنفيذي واللوجستي اليومي
+                  </span>
+                  <span style={{ fontSize: '10.5px', color: '#94a3b8', fontFamily: 'monospace' }}>
+                    اليوم
+                  </span>
                 </div>
-              )}
 
-              {config.includeTransfers && (
-                <div className="space-y-1 pt-1.5 border-t border-slate-100">
-                  <div className="font-bold text-slate-900">أذون الصرف والإمداد للمحل:</div>
-                  <div className="text-[11px] text-slate-600 space-y-0.5 pr-2">
-                    <div className="font-semibold text-indigo-900">إذن رقم #TR-882 إلى صالة المحل:</div>
-                    <div className="pr-2 text-slate-700">
-                      <div>• زيت عافية ذرة: <b>24 قطعة</b> (2 كرتونة)</div>
-                      <div>• شاي العروسة 250جم: <b>15 قطعة</b></div>
-                      <div>• سكر الأسرة: <b>25 قطعة</b></div>
-                      <div className="text-slate-400 text-[10px]">_إجمالي إذن الصرف: 64 قطعة_</div>
+                {/* Sales Section */}
+                {config.includeSales ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12.5px' }}>
+                      المبيعات والإيرادات:
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: '#475569', paddingRight: '8px', lineHeight: '1.6' }}>
+                      <div>• إجمالي المبيعات: <b>42,850 ج.م</b> (58 فاتورة)</div>
+                      <div>• نقدية بالصندوق (كاش): <b>28,150 ج.م</b></div>
+                      <div>• شبكة وماكينات دفع: <b>11,500 ج.م</b></div>
+                      <div>• إنستاباي ومحافظ: <b>3,200 ج.م</b></div>
+                      <div style={{ color: '#059669', fontWeight: 600 }}>
+                        الأكثر مبيعاً: زيت عافية (36 ق)، شاي (24 ق)
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : null}
 
-              {config.includeShortages && (
-                <div className="space-y-1 pt-1.5 border-t border-slate-100">
-                  <div className="font-bold text-slate-900">نواقص المستودع التي تحتاج شراء:</div>
-                  <div className="text-[11px] text-slate-600 space-y-0.5 pr-2">
-                    <div>• سكر الأسرة: <span className="text-red-600 font-bold">نفد تماماً (0)</span></div>
-                    <div>• أرز الضحى: <span className="text-amber-600 font-bold">متبقي 5 أكياس</span></div>
+                {/* Transfers Section */}
+                {config.includeTransfers ? (
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12.5px' }}>
+                      أذون الصرف والإمداد للمحل:
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: '#475569', paddingRight: '8px', lineHeight: '1.6' }}>
+                      <div style={{ fontWeight: 700, color: '#4338ca' }}>
+                        إذن رقم #TR-882 إلى صالة المحل:
+                      </div>
+                      <div style={{ paddingRight: '6px' }}>
+                        <div>• زيت عافية ذرة: <b>24 قطعة</b> (2 كرتونة)</div>
+                        <div>• شاي العروسة 250جم: <b>15 قطعة</b></div>
+                        <div>• سكر الأسرة: <b>25 قطعة</b></div>
+                        <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                          (إجمالي إذن الصرف: 64 قطعة - المشرف: أحمد فتحي)
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : null}
 
-              <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between">
-                <span>نظام Z-Systems المؤتمت</span>
-                <span className="text-emerald-700 font-medium">تمت القراءة</span>
+                {/* Shortages Section */}
+                {config.includeShortages ? (
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12.5px' }}>
+                      نواقص المستودع التي تحتاج شراء:
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: '#475569', paddingRight: '8px', lineHeight: '1.6' }}>
+                      <div>• سكر الأسرة: <span style={{ color: '#dc2626', fontWeight: 800 }}>نفد تماماً (0)</span></div>
+                      <div>• أرز الضحى: <span style={{ color: '#d97706', fontWeight: 800 }}>متبقي 5 أكياس</span></div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {!config.includeSales && !config.includeTransfers && !config.includeShortages ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
+                    لم يتم تحديد أي أقسام للتضمين في التقرير. فعّل قسماً واحداً على الأقل لمعاينة المحتوى.
+                  </div>
+                ) : null}
+
+                {/* Bubble Footer */}
+                <div
+                  style={{
+                    borderTop: '1px solid #f1f5f9',
+                    paddingTop: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '10.5px',
+                    color: '#94a3b8',
+                  }}
+                >
+                  <span>نظام Z-Systems المؤتمت</span>
+                  <span style={{ color: '#0284c7', fontWeight: 700 }}>تمت القراءة</span>
+                </div>
               </div>
             </div>
           </div>
