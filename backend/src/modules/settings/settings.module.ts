@@ -17,6 +17,8 @@ import { OfflineReleasesService } from './services/offline-releases.service';
 
 import { WhatsAppGatewayController, WhatsAppPublicWebhookController } from './controllers/whatsapp-gateway.controller';
 import { WhatsAppGatewayService } from './services/whatsapp-gateway.service';
+import { DailyDigestController } from './controllers/daily-digest.controller';
+import { DailyDigestService } from './services/daily-digest.service';
 import { CloudBackupService } from './services/cloud-backup.service';
 import { DiagnosticsSchedulerService } from './services/diagnostics-scheduler.service';
 import { AiCopilotModule } from '../ai-copilot/ai-copilot.module';
@@ -31,6 +33,7 @@ import { AiCopilotModule } from '../ai-copilot/ai-copilot.module';
     SettingsImportController,
     WhatsAppGatewayController,
     WhatsAppPublicWebhookController,
+    DailyDigestController,
     OfflineReleasesAdminController,
     OfflineUpdatesPublicController,
     OfflineUpdatesProtectedController,
@@ -46,8 +49,9 @@ import { AiCopilotModule } from '../ai-copilot/ai-copilot.module';
     SettingsDemoDataService,
     OfflineReleasesService,
     WhatsAppGatewayService,
+    DailyDigestService,
   ],
-  exports: [SettingsService, WhatsAppGatewayService, CloudBackupService, SettingsSupportService],
+  exports: [SettingsService, WhatsAppGatewayService, DailyDigestService, CloudBackupService, SettingsSupportService],
 })
 export class SettingsModule {}
 

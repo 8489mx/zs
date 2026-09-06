@@ -10,12 +10,16 @@ import { CreateStockCountSessionDto, PostStockCountSessionDto } from './dto/crea
 import { CreateStockTransferDto } from './dto/create-stock-transfer.dto';
 import { InventoryAdjustmentDto } from './dto/inventory-adjustment.dto';
 import { InventoryService } from './inventory.service';
+import { InventoryReplenishmentService } from './services/inventory-replenishment.service';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 @UseInterceptors(IdempotencyInterceptor)
 export class InventoryController {
-  constructor(private readonly inventoryService: InventoryService) {}
+  constructor(
+    private readonly inventoryService: InventoryService,
+    private readonly replenishmentService: InventoryReplenishmentService,
+  ) {}
 
   @Get('locations')
   @AllowAuthenticated()
@@ -158,5 +162,38 @@ export class InventoryController {
   @RequirePermissions('canAdjustInventory')
   createAdjustment(@Body() payload: InventoryAdjustmentDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.inventoryService.createInventoryAdjustment(payload, req.authContext!);
+  }
+
+  @Get('inventory/smart-replenishment/suggestions')
+  @RequirePermissions('inventory')
+  getSmartReplenishmentSuggestions(
+    @Query('fromLocationId', ParseIntPipe) fromLocationId: number,
+    @Query('toLocationId', ParseIntPipe) toLocationId: number,
+    @Query('coverDays') coverDays: string | undefined,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.replenishmentService.getSuggestions(
+      {
+        fromLocationId,
+        toLocationId,
+        coverDays: coverDays ? parseInt(coverDays, 10) : 2,
+      },
+      req.authContext!,
+    );
+  }
+
+  @Post('inventory/smart-replenishment/execute')
+  @RequirePermissions('canAdjustInventory')
+  executeSmartReplenishment(
+    @Body()
+    payload: {
+      fromLocationId: number;
+      toLocationId: number;
+      items: { productId: number; qty: number }[];
+      note?: string;
+    },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.replenishmentService.executeReplenishment(payload, req.authContext!);
   }
 }

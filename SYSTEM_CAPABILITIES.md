@@ -448,14 +448,39 @@
 
 ---
 
-## 29. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)
+---
+
+## 29. محرك إمداد الأرفف الذكي وأمر التحميل والملخص التنفيذي واللوجستي اليومي (Smart Shelf Replenishment & Executive Daily Digest) ⚡🌙
+* **حالة الوحدة العامة:** 🟢 مكتمل 100%
+* **مسارات الكود:**
+  * **الباك إند والخدمات:** `backend/src/modules/inventory/services/inventory-replenishment.service.ts`, `backend/src/modules/inventory/inventory.controller.ts`, `backend/src/modules/inventory/inventory.module.ts`, `backend/src/modules/settings/services/daily-digest.service.ts`, `backend/src/modules/settings/controllers/daily-digest.controller.ts`, `backend/src/modules/settings/settings.module.ts`
+  * **الفرونت إند والواجهات:** `frontend/src/features/inventory/api/inventory-replenishment.api.ts`, `frontend/src/features/inventory/components/SmartReplenishmentModal.tsx`, `frontend/src/features/inventory/components/ReplenishmentPickListPrintModal.tsx`, `frontend/src/features/pos/components/pos-workspace/PosWorkspaceHeader.tsx`, `frontend/src/features/inventory/components/InventoryWorkspaceHeader.tsx`, `frontend/src/features/settings/api/daily-digest.api.ts`, `frontend/src/features/settings/components/workspace-sections/SettingsDailyDigestSection.tsx`, `frontend/src/features/settings/pages/settings.page-config.ts`, `frontend/src/features/settings/pages/SettingsSectionContent.tsx`
+* **الجداول في قاعدة البيانات:** `stock_transfers`, `stock_transfer_items`, `stock_movements`, `product_location_stock`, `products`, `product_units`, `sales`, `sale_items`, `settings`, `tenants`
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
+| :--- | :---: | :---: | :--- | :--- |
+| **محرك الاحتساب الذكي لإمداد الأرفف وتغطية 48 ساعة** | 🟢 | 100% | `inventory-replenishment.service.ts`, `inventory.controller.ts` | فحص آلي لمبيعات صالة المحل خلال الـ 48 ساعة الماضية، وحصر الأصناف التي نفدت تماماً والأصناف الحرجة التي قاربت على النفاد، مع تقريب الكميات آلياً إلى وحدات التعبئة الكبرى (الكرتونة / الباكتة) بناءً على `product_units`، مع تقييد المقترح بالرصيد المتاح فعلياً في المستودع الرئيسي. |
+| **تتبع أرصدة سائر المخازن (7 مخازن) وتوجيه الصرف للحاجات المتوفرة فقط** | 🟢 | 100% | `inventory-replenishment.service.ts`, `SmartReplenishmentModal.tsx` | قراءة أرصدة الصنف في كافة مخازن المؤسسة بالكامل؛ منع النظام من اقتراح كميات لصنف من مستودع رصيده فيه صفر، وتنبيه الكاشير فورياً بالمخازن البديلة التي يتوفر بها الصنف ورصيده في كل مخزن (مثال: متوفر في مخزن 2: 40 قطعة) لتوجيه الصرف بدقة. |
+| **محرك التنبؤ بمواعيد الشراء ونفاد المخزون (Predictive Purchase Deadlines)** | 🟢 | 100% | `inventory-replenishment.service.ts`, `daily-digest.service.ts`, `SmartReplenishmentModal.tsx` | حساب معدل الاستهلاك اليومي (Burn Rate) استناداً إلى مبيعات الأسبوع، وحساب أيام التغطية المتبقية لإجمالي رصيد المؤسسة (`Days of Supply`)، وإصدار تاريخ شراء إلزامي محدد (مثال: يجب الشراء قبل الأربعاء 9 سبتمبر لتفادي توقف البيع) يظهر في شاشة الإمداد وفي رسالة الواتساب اليومية للمدير. |
+| **نافذة الكاشير والمشرف التفاعلية لإذن الصرف (Smart Restock Modal)** | 🟢 | 100% | `SmartReplenishmentModal.tsx`, `inventory-replenishment.api.ts` | نافذة مؤسسية متجاوبة تعرض شارات النواقص الحية، وتحليل أعداد القطع المطلوبة، وجدول تفاعلي يتيح تعديل الكميات بسهولة (+ أو - أو إدخال رقمي مباشر) مع بيان المعادل بالكراتين، وحذف أو إضافة الأصناف. |
+| **الاعتماد الآلي بنقرة واحدة وطباعة أمر التحميل (Pick-List)** | 🟢 | 100% | `SmartReplenishmentModal.tsx`, `ReplenishmentPickListPrintModal.tsx`, `inventory-transfer.service.ts` | بنقرة واحدة: ترحيل إذن التحويل المخزني معتمداً رسمياً برقم مسلسل موحد، خصم رصيد المستودع وزيادة رصيد صالة المحل دفترياً فورياً ومحاسبياً، وانبثاق نافذة طباعة رسمية لأمر التحميل والنقل مزودة بمربعات تدقيق `[ ]` وخانات توقيع المسلِّم والمستلم للطباعة على طابعات A4 والطابعات الحرارية للعامل. |
+| **أزرار الإطلاق السريع في نقاط البيع وإدارة المخازن** | 🟢 | 100% | `PosWorkspaceHeader.tsx`, `InventoryWorkspaceHeader.tsx` | زر وصول سريع وبارز «⚡ إمداد الأرفف الذكي» في ترويسة الكاشير والـ POS وفي شريط أدوات المخزون والتحويلات للتشغيل المباشر دون الحاجة للانتقال بين القوائم. |
+| **الملخص التنفيذي واللوجستي اليومي المجدول عبر الواتساب للمدير (Executive Daily Digest)** | 🟢 | 100% | `daily-digest.service.ts`, `daily-digest.controller.ts`, `SettingsDailyDigestSection.tsx`, `daily-digest.api.ts` | خدمة خلفية مجدولة ترسل رسالة واتساب منسقة ليلياً للمدير تشمل: (1) ملخص مبيعات اليوم والسيولة النقدية والشبكة والأصناف الأكثر رواجاً، (2) كشف تفصيلي بكل إذن صرف وتحويل نُقل للمحل اليوم (اسم كل صنف وكميته المنصرفة بدقة)، (3) تنبيهات استباقية لنواقص المخازن مع مواعيد الشراء الإلزامية المحددة باليوم والتاريخ. |
+| **شاشة إعدادات التقرير ومحاكي رسائل الواتساب الحي** | 🟢 | 100% | `SettingsDailyDigestSection.tsx`, `settings.page-config.ts`, `SettingsSectionContent.tsx` | شاشة إدارة مخصصة في الإعدادات لضبط رقم هاتف المدير، توقيت الإرسال اليومي، مفاتيح تفعيل/تعطيل أقسام التقرير، محاكي محادثة واتساب حي يعرض شكل الرسالة كما ستصل لهاتف المالك، وزر فحص مباشر لإرسال ملخص تجريبي فوري. |
+
+---
+
+## 30. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)
 
 | الميزة المقترحة / البديل المنفذ | الحالة | نسبة الإنجاز | الملاحظات والبديل المنجز في النظام |
 | :--- | :---: | :---: | :--- |
 | **تغليف تطبيقات المتاجر الرسمية (Google Play / App Store)** | 🟢 | 100% | بديل PWA الفوري للمناديب والمالك يعمل بكفاءة تامة دون الحاجة للمتاجر، ويمكن تغليفه إلى APK/AAB بنقرة واحدة عند الرغبة التسويقية. |
+| **ربط الماركت بليس الخارجي (Marketplaces Sync)** | 🟡 | اختياري | ربط المخزون تلقائياً مع Amazon / Noon / Shopify لمنع البيع الزائد عبر منصات خارجية. |
+| **شاشة المطبخ التفاعلية للمطاعم (Interactive KDS)** | 🟡 | اختياري | شاشة تابلت تفاعلية في المطبخ لتنظيم الوجبات بعد دعم أرقام الطاولات وتذاكر المطبخ. |
 
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
+
 
 
 

@@ -8,6 +8,7 @@ import { PosOnlineOrdersModal } from './PosOnlineOrdersModal';
 import { PosTablesFloorPlanDialog } from './PosTablesFloorPlanDialog';
 import { PosOnlineOrderFloatingAlert } from './PosOnlineOrderFloatingAlert';
 import { PosOfflineQueueModal } from './PosOfflineQueueModal';
+import { SmartReplenishmentModal } from '@/features/inventory/components/SmartReplenishmentModal';
 import { playNotificationChime } from '@/lib/audio-chime';
 
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
@@ -37,6 +38,7 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
   const [isOfflineQueueModalOpen, setIsOfflineQueueModalOpen] = useState(false);
   const [isOnlineOrdersOpen, setIsOnlineOrdersOpen] = useState(false);
   const [isTablesOpen, setIsTablesOpen] = useState(false);
+  const [isSmartRestockOpen, setIsSmartRestockOpen] = useState(false);
   const [showFloatingAlert, setShowFloatingAlert] = useState(false);
   const [drawerStatus, setDrawerStatus] = useState<string | null>(null);
   const previousPendingCountRef = useRef<number | null>(null);
@@ -294,6 +296,24 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
             </svg>
             <span>شاشة العميل 🖥️</span>
           </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsSmartRestockOpen(true)}
+            title="إمداد الأرفف الذكي وتعويض مبيعات 48 ساعة من المستودع"
+            style={{
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#047857',
+              backgroundColor: '#ecfdf5',
+              borderColor: '#a7f3d0',
+            }}
+          >
+            <span>⚡</span>
+            <span>إمداد الأرفف الذكي</span>
+          </Button>
           {pos.ownOpenShift ? (
             <Link to="/cash-drawer">
               <Button type="button" variant="secondary" className="pos-close-shift-btn">
@@ -309,6 +329,11 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
           )}
         </div>
       )}
+    />
+    <SmartReplenishmentModal
+      isOpen={isSmartRestockOpen}
+      onClose={() => setIsSmartRestockOpen(false)}
+      defaultToLocationId={pos.locationId ? String(pos.locationId) : undefined}
     />
     <PosOnlineOrdersModal
       isOpen={isOnlineOrdersOpen}
