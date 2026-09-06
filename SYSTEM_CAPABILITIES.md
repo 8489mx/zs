@@ -290,16 +290,16 @@
 
 ## 19. لوحات ذكاء الأعمال والرسوم البيانية المتقدمة (Executive BI Charts & Business Intelligence)
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
-* **مسارات الكود:** `frontend/src/features/dashboard/components/ExecutiveBiGrid.tsx`, `frontend/src/features/dashboard/pages/DashboardPage.tsx`, `frontend/src/features/dashboard/components/DashboardExecutiveHero.tsx`
-* **المكتبات والتقنيات:** `recharts`, `ResponsiveContainer`, `ComposedChart`, `Area`, `Bar`, `PieChart`, `Pie`, `Cell`
+* **مسارات الكود:** `frontend/src/features/dashboard/components/ExecutiveBiGrid.tsx`, `frontend/src/features/dashboard/pages/DashboardPage.tsx`, `frontend/src/features/dashboard/components/DashboardExecutiveHero.tsx`, `frontend/src/features/dashboard/components/DashboardDailyDecisionGrid.tsx`
+* **المكتبات والتقنيات:** `recharts`, `PieChart`, `Pie`, `Cell`, `Tooltip`
 
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
-| **مخطط تدفق الإيرادات والمشتريات الزمني (Revenue vs Purchases Flow)** | 🟢 | 100% | `ExecutiveBiGrid.tsx`, `DashboardPage.tsx` | مخطط بياني انسيابي متقدم (Composed Chart) يدمج مساحة الإيرادات المتدرجة باللون الكحلي الملكي (`#170e5e`) مع أعمدة المشتريات والتكاليف باللون العنبري (`#f59e0b`)، مع مفتاح تبديل زمني فوري بين (آخر 7 أيام / آخر 30 يوماً)، ونافذة توجيه عربية دقيقة (Custom RTL Tooltip) توضح المبيعات والمشتريات وصافي الفارق بينهما. |
-| **مخطط توزيع قنوات وطرق التحصيل (Payment Channels Donut Chart)** | 🟢 | 100% | `ExecutiveBiGrid.tsx` | مخطط دائري مجوف (Donut Chart) لتحليل هيكل السيولة والتحصيل: النقدية (الكاش)، البطاقات وماكينات الدفع البنكي Smart POS، المتجر وبوابات الدفع الإلكتروني (Paymob/XPay)، والمبيعات الآجلة (ذمم العملاء)، مع شريط بطاقات توضيحية للأرقام والنسب المئوية. |
-| **شريط مؤشرات الأداء التنفيذي السريع (Executive KPI Velocity Cards)** | 🟢 | 100% | `ExecutiveBiGrid.tsx` | 4 بطاقات مؤسسية ناصعة البياض تعكس: **متوسط سلة المبيعات** لكل فاتورة، **هامش مجمل الربح** التقديري ونسبته المئوية، **صافي الربح التشغيلي** بعد المصروفات، و**صافي التدفق النقدي** في الخزائن والبنوك. |
-| **تحليل القطاعات والفئات الأكثر مساهمة في الربحية (Top Profit Drivers)** | 🟢 | 100% | `ExecutiveBiGrid.tsx` | شبكة بطاقات تحليلية تكشف أعلى 5 قطاعات أو أصناف تحقق عائداً وربحاً مع حساب نسبة الهامش وشريط تقدم بصري للربحية. |
-| **الالتزام بالدستور البصري والتمدد الكامل (Z-Systems Visual Constitution)** | 🟢 | 100% | `DashboardPage.tsx`, `DashboardExecutiveHero.tsx` | إلغاء قيود العرض الثابتة (`maxWidth`) وتمدد الصفحة بنسبة 100%، وتطبيق التصميم المؤسسي الناصع ببطاقات بيضاء ناصعة (`#ffffff`) وحدود خفيفة (`#e2e8f0`) بدون أي خلفيات داكنة أو سوداء. |
+| **مخطط توزيع قنوات وطرق التحصيل بالرسم الحركي (Animated Sweeping Donut Chart)** | 🟢 | 100% | `ExecutiveBiGrid.tsx` | مخطط دائري مجوف (Donut Chart) يحلل هيكل السيولة (كاش، نقاط بيع POS، متجر وبوابات إلكترونية، وآجل) مع **تأثير رسم حركي انسيابي (Circular Sweeping SVG Animation)** يبدأ من قمة الدائرة 90° ويلتف مع عقارب الساعة -270° في 1.3 ثانية، مع معالجة أبعاد فورية ومباشرة تمنع الوميض. |
+| **الشريط التنفيذي النحيف المدمج (Slim Executive Metric Strip)** | 🟢 | 100% | `ExecutiveBiGrid.tsx` | شريط أبيض موحد فائق النحافة مدمج بارتفاع 42px يجمع مؤشرات الأداء الأساسية (متوسط سلة المبيعات، هامش مجمل الربح ونسبته المئوية، وصافي الربح التشغيلي) بعد إزالة الازدواجية وكروت الكاش المكررة. |
+| **تحليل القطاعات الأكثر مساهمة في الإيرادات** | 🟢 | 100% | `ExecutiveBiGrid.tsx` | شبكة بطاقات مصغرة مضغوطة ومنسقة (تأتي 3 ثم 2 في السطر) مع شريط تقدم بصري ومؤشرات المساهمة المالية. |
+| **مركز اتخاذ القرارات المضغوط المتجاوب (Compact Decision Grid)** | 🟢 | 100% | `DashboardDailyDecisionGrid.tsx`, `DashboardPage.tsx` | تحويل كافة قوائم المنتجات الأكثر ربحية ومبيعاً ومديونيات العملاء والموردين وحركات اليوم المالية والمخزون إلى شبكات كروت متجاوبة مضغوطة (2 إلى 3 في السطر الواحد) مما قلص المساحة الرأسية بنسبة 60% مع منع التكرار. |
+| **الالتزام بالدستور البصري والتمدد الكامل (Z-Systems Visual Constitution)** | 🟢 | 100% | `DashboardPage.tsx`, `DashboardExecutiveHero.tsx` | إلغاء قيود العرض الثابتة (`maxWidth`) وتمدد الصفحة بنسبة 100%، وتطبيق التصميم المؤسسي الناصع ببطاقات بيضاء ناصعة (`#ffffff`) وحدود خفيفة (`#e2e8f0`) وحذف الكروت المكررة بنهاية الصفحة لتجربة مستخدم فائقة السرعة. |
 
 ---
 

@@ -11,7 +11,6 @@ import { DashboardExecutiveHero } from '@/features/dashboard/components/Dashboar
 import { ExecutiveBiGrid } from '@/features/dashboard/components/ExecutiveBiGrid';
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
-import { DashboardMonthlySnapshot } from '@/features/dashboard/components/DashboardMonthlySnapshot';
 import { formatCurrency } from '@/lib/format';
 import {
   buildDashboardAlerts,
@@ -99,19 +98,19 @@ export function DashboardPage() {
             {/* أعلى الأصناف مبيعاً اليوم */}
             <FormSection title="أعلى أصناف اليوم مبيعاً" description="الأصناف الأكثر طلباً وحركة خلال فواتير اليوم." actions={<span className="nav-pill">اليوم</span>} className="dashboard-premium-card">
               {topToday.length ? (
-                <div className="list-stack">
-                  {topToday.slice(0, 5).map((row) => (
-                    <div className="list-row" key={row.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                <div className="list-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
+                  {topToday.slice(0, 4).map((row) => (
+                    <div className="list-row" key={row.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
                       <div>
-                        <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{row.name}</strong>
-                        <div className="muted small" style={{ fontSize: '0.75rem', color: '#64748b' }}>الكمية المباعة اليوم: {row.qty}</div>
+                        <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{row.name}</strong>
+                        <div className="muted small" style={{ fontSize: '0.74rem', color: '#64748b' }}>مباع اليوم: {row.qty}</div>
                       </div>
-                      <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>{formatCurrency(row.total)}</strong>
+                      <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>{formatCurrency(row.total)}</strong>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px', fontSize: '0.84rem' }}>
                   لا توجد مبيعات مسجلة اليوم بعد
                 </div>
               )}
@@ -126,50 +125,47 @@ export function DashboardPage() {
               isLoading={managerActions.isLoading}
             />
 
-            {/* الحسابات المستحقة والمخزون */}
+            {/* الحسابات المستحقة والمخزون - شبكة ثنائية 2x2 */}
             <FormSection title="الحسابات والمخزون" description="مؤشرات مديونيات العملاء والموردين وقيمة المخزون." className="dashboard-premium-card">
-              <div className="metric-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="metric-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>قيمة المخزون (بيع)</span>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{formatCurrency(Number(stats.inventorySaleValue || 0))}</strong>
+                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>قيمة المخزون (بيع)</span>
+                  <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{formatCurrency(Number(stats.inventorySaleValue || 0))}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>مستحقات على العملاء</span>
-                  <strong style={{ fontSize: '0.88rem', color: '#b91c1c' }}>{formatCurrency(Number(stats.customerDebt || 0))}</strong>
+                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>إجمالي الأصناف</span>
+                  <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{stats.productsCount || 0} صنف</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>مستحقات للموردين</span>
-                  <strong style={{ fontSize: '0.88rem', color: '#b91c1c' }}>{formatCurrency(Number(stats.supplierDebt || 0))}</strong>
+                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>مستحقات العملاء</span>
+                  <strong style={{ fontSize: '0.86rem', color: '#b91c1c' }}>{formatCurrency(Number(stats.customerDebt || 0))}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>إجمالي عدد الأصناف</span>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{stats.productsCount || 0} صنف</strong>
+                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>مستحقات الموردين</span>
+                  <strong style={{ fontSize: '0.86rem', color: '#b91c1c' }}>{formatCurrency(Number(stats.supplierDebt || 0))}</strong>
                 </div>
               </div>
             </FormSection>
 
-            {/* حركة العمليات اليومية */}
+            {/* حركة العمليات اليومية - 3 في سطر واحد */}
             <FormSection title="حركة اليوم المالية" description="المصروفات والمشتريات والمرتجعات المسجلة." className="dashboard-premium-card">
-              <div className="metric-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>فواتير الشراء اليوم</span>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{stats.todayPurchasesCount || 0}</strong>
+              <div className="metric-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>فواتير الشراء</span>
+                  <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{stats.todayPurchasesCount || 0}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>مصروفات اليوم</span>
-                  <strong style={{ fontSize: '0.88rem', color: '#d97706' }}>{formatCurrency(Number(summary.expenses.total || 0))}</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>مصروفات اليوم</span>
+                  <strong style={{ fontSize: '0.9rem', color: '#d97706' }}>{formatCurrency(Number(summary.expenses.total || 0))}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.82rem', color: '#475569' }}>إجمالي المرتجعات</span>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{formatCurrency(Number(summary.returns.total || 0))}</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>المرتجعات</span>
+                  <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{formatCurrency(Number(summary.returns.total || 0))}</strong>
                 </div>
               </div>
             </FormSection>
           </div>
         </div>
-
-        {/* 3. اللمحة الشهرية */}
-        <DashboardMonthlySnapshot data={managerOverview.data} />
       </main>
     </div>
   );
