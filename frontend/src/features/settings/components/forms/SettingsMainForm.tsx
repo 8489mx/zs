@@ -78,6 +78,7 @@ export const SETTINGS_FIELD_METADATA: Record<
   posTerminalPort: { tab: 'sales_inventory', label: 'منفذ الاتصال بالماكينة' },
 
   // Modules Tab
+  posModuleEnabled: { tab: 'modules', label: 'موديول نقاط البيع السريعة والكاشير' },
   manufacturingModuleEnabled: { tab: 'modules', label: 'موديول التصنيع والتجميع' },
   importModuleEnabled: { tab: 'modules', label: 'موديول الاستيراد والشحن الدولي' },
   comboModuleEnabled: { tab: 'modules', label: 'موديول باقات وعروض الأصناف' },
@@ -168,6 +169,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       businessIndustry: 'general',
       currentBranchId: '',
       currentLocationId: '',
+      posModuleEnabled: true,
       manufacturingModuleEnabled: false,
       importModuleEnabled: false,
       comboModuleEnabled: false,
@@ -385,6 +387,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       restaurantModuleEnabled: settings.restaurantModuleEnabled === true,
       posShowCartMeta: settings.posShowCartMeta === true,
       printDeliveryRepOnReceipt: settings.printDeliveryRepOnReceipt === true,
+      posModuleEnabled: settings.posModuleEnabled !== false,
       storefrontModuleEnabled: settings.storefrontModuleEnabled !== false,
       installmentsModuleEnabled: settings.installmentsModuleEnabled !== false,
       fixedAssetsModuleEnabled: settings.fixedAssetsModuleEnabled !== false,

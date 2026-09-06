@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
-import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon } from '@/shared/components/icons/AppIcons';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -318,6 +318,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || useHasFeature('taxIntegration') || isSuperAdmin;
   const hasDeliveryFleetFeature = useHasFeature('deliveryReps') || isSuperAdmin;
 
+  const isPosActive = form.watch('posModuleEnabled');
   const isManufacturingActive = form.watch('manufacturingModuleEnabled');
   const isComboActive = form.watch('comboModuleEnabled');
   const isImportActive = form.watch('importModuleEnabled');
@@ -418,6 +419,22 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
       <FormSection title="موديولات النظام" description={<>شغّل الأجزاء التي تحتاجها لنشاطك، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
         <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '12px' }}>
           
+          {/* نقاط البيع السريعة والكاشير */}
+          <label style={getCardStyle(Boolean(isPosActive), true)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isPosActive))}>
+                <MonitorIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>نقاط البيع السريعة والكاشير (POS)</strong>
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>شاشات البيع السريع بالباركود والورديات (يمكن إيقافها لشركات الجملة والخدمات)</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posModuleEnabled')} disabled={disabled} />
+          </label>
+
           {/* التصنيع والإنتاج */}
           <label style={getCardStyle(Boolean(isManufacturingActive), hasManufacturingFeature)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

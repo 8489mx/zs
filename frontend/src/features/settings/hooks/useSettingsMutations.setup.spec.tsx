@@ -53,6 +53,7 @@ const baseSettingsMutationValues = {
   importModuleEnabled: false,
   comboModuleEnabled: false,
   restaurantModuleEnabled: false,
+  posModuleEnabled: true,
   storefrontModuleEnabled: false,
   installmentsModuleEnabled: false,
   fixedAssetsModuleEnabled: false,

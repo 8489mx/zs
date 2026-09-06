@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { MobileQuickActionSheet } from '@/shared/layout/MobileQuickActionSheet';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 
 export function MobileBottomNav() {
   const location = useLocation();
@@ -64,8 +67,13 @@ export function MobileBottomNav() {
     setIsHidden(false);
   }, [location.pathname, quickActionOpen]);
 
+  const { data: settings } = useSettingsQuery();
+  const user = useAuthStore((s) => s.user);
+  const isPosActive = settings?.posModuleEnabled !== false || isPlatformAdmin(user);
+
   // Check active routes
   const isPos = location.pathname.startsWith('/pos');
+  const isInventory = location.pathname.startsWith('/inventory') || location.pathname.startsWith('/products');
   const isSales = location.pathname.startsWith('/sales') || location.pathname.startsWith('/returns');
   const isHome = location.pathname === '/';
 
@@ -121,19 +129,35 @@ export function MobileBottomNav() {
           <span className="mobile-bottom-nav-label-center">إجراء سريع</span>
         </button>
 
-        <NavLink
-          to="/pos"
-          className={`mobile-bottom-nav-item mobile-bottom-nav-pos ${isPos && !isMobileSidebarOpen ? 'is-active' : ''}`}
-        >
-          <div className="mobile-bottom-nav-icon">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-          </div>
-          <span className="mobile-bottom-nav-label">نقطة البيع</span>
-        </NavLink>
+        {isPosActive ? (
+          <NavLink
+            to="/pos"
+            className={`mobile-bottom-nav-item mobile-bottom-nav-pos ${isPos && !isMobileSidebarOpen ? 'is-active' : ''}`}
+          >
+            <div className="mobile-bottom-nav-icon">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+            </div>
+            <span className="mobile-bottom-nav-label">نقطة البيع</span>
+          </NavLink>
+        ) : (
+          <NavLink
+            to="/inventory"
+            className={`mobile-bottom-nav-item ${isInventory && !isMobileSidebarOpen ? 'is-active' : ''}`}
+          >
+            <div className="mobile-bottom-nav-icon">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <span className="mobile-bottom-nav-label">المخزون</span>
+          </NavLink>
+        )}
 
         <button
           type="button"

@@ -510,6 +510,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'accounting-fixed-assets' && !isPlatformAdminUser && (settings?.fixedAssetsModuleEnabled === false || !hasFeature('fixed_assets'))) return false;
         if (item.key === 'delivery-reps' && !isPlatformAdminUser && (settings?.deliveryFleetModuleEnabled === false || !hasFeature('deliveryReps'))) return false;
         if (item.key === 'kds' && !isPlatformAdminUser && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
+        if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'kds' || item.key === 'signage') && !isPlatformAdminUser && settings?.posModuleEnabled === false) return false;
 
         // Purchases gating (Bypassed for Platform Admin):
         if (!isPlatformAdminUser && (item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers') && !hasFeature('purchases')) return false;
@@ -534,10 +535,15 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, tenant?.features, t, isEtaActive, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled]);
+  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
-  const primaryNavigationKeys = useMemo(() => ['dashboard', 'pos', 'online-orders', 'cash-drawer'], []);
+  const primaryNavigationKeys = useMemo(() => {
+    if (settings?.posModuleEnabled === false && !isPlatformAdmin(user)) {
+      return ['dashboard', 'sales', 'online-orders'];
+    }
+    return ['dashboard', 'pos', 'online-orders', 'cash-drawer'];
+  }, [settings?.posModuleEnabled, user]);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
     const isPlatformAdminUser = isPlatformAdmin(user);
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);

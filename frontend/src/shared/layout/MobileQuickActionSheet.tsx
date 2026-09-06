@@ -4,6 +4,9 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { QuickProductModal } from '@/shared/components/QuickProductModal';
 import { PriceStockCheckerModal } from '@/shared/components/PriceStockCheckerModal';
 import { triggerHaptic } from '@/shared/utils/haptics';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 
 interface MobileQuickActionSheetProps {
   isOpen: boolean;
@@ -14,6 +17,10 @@ export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionShe
   const navigate = useNavigate();
   const [quickProductOpen, setQuickProductOpen] = useState(false);
   const [priceCheckerOpen, setPriceCheckerOpen] = useState(false);
+
+  const { data: settings } = useSettingsQuery();
+  const user = useAuthStore((s) => s.user);
+  const isPosActive = settings?.posModuleEnabled !== false || isPlatformAdmin(user);
 
   const handleAction = (callback: () => void) => {
     triggerHaptic('selection');
@@ -37,21 +44,43 @@ export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionShe
           </div>
 
           <div className="mobile-quick-action-grid">
-            <button
-              type="button"
-              className="mobile-quick-action-btn action-pos"
-              onClick={() => handleAction(() => navigate('/pos'))}
-            >
-              <div className="mobile-quick-action-icon pos-icon">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4" />
-                </svg>
-              </div>
-              <div className="mobile-quick-action-text">
-                <strong>نقطة البيع (POS)</strong>
-                <span>كاشير وبيع مباشر سريع</span>
-              </div>
-            </button>
+            {isPosActive ? (
+              <button
+                type="button"
+                className="mobile-quick-action-btn action-pos"
+                onClick={() => handleAction(() => navigate('/pos'))}
+              >
+                <div className="mobile-quick-action-icon pos-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4" />
+                  </svg>
+                </div>
+                <div className="mobile-quick-action-text">
+                  <strong>نقطة البيع (POS)</strong>
+                  <span>كاشير وبيع مباشر سريع</span>
+                </div>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="mobile-quick-action-btn action-pos"
+                onClick={() => handleAction(() => navigate('/sales'))}
+              >
+                <div className="mobile-quick-action-icon pos-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </div>
+                <div className="mobile-quick-action-text">
+                  <strong>سجل الفواتير والمبيعات</strong>
+                  <span>فواتير الشركات والمبيعات</span>
+                </div>
+              </button>
+            )}
 
             <button
               type="button"

@@ -772,13 +772,26 @@
   2. **تصفير قاعدة بيانات المنشأة كلياً (Tenant Factory Reset to Zero):** تمكين السوبر أدمن بضغطة زر عندما يقرر العميل الاستقرار والبدء الفعلي للتشغيل من مسح وتصفير قاعدة بيانات المشترك بالكامل (كافة المنتجات، المخازن، الفواتير، المبيعات، المشتريات، الديون، القيود المحاسبية، الجلسات، والطلبات) لتعود منشأة جديدة تماماً برصيد صفري نظيف، ليدخل العميل بياناته الحقيقية.
   3. **الحفاظ الصارم على هوية المالك والاشتراك (Owner Identity & Subscription Preservation):** استثناء وحماية الحساب الإداري الأساسي لمالك المنشأة وفرعه الرئيسي واشتراكه السحابي تلقائياً من المسح أثناء التصفير، مع تطهير أي مستخدمين أو كاشيرات فرعية تم إنشاؤها عبر الباقات التجريبية.
   4. **الحماية المشددة وتأكيد كلمة مرور السوبر أدمن (Super Admin Password Verification):** اشتراط إدخال كلمة مرور السوبر أدمن الشخصية للتحقق الأمني قبل تنفيذ أي عملية تصفير لمنع أي خطأ بشري غير مقصود، مع أخذ نسخة احتياطية Snapshot فورية لقاعدة بيانات المنشأة قبل التصفير.
-  5. **عزل صارم وحظر الوصول للمشتركين (Strict Multi-Tenant Isolation):** عزل تام لمسارات الـ API (`/api/saas-admin/tenants/:id/seed-demo` و `/api/saas-admin/tenants/:id/wipe-data`) بحراسة مزدوجة تشترط `SuperAdminRoleGuard` وهوية المنصة المركزية `isPlatformTenant`، وحظر كامل لظهور أزرار التصفير أو معالجات المطورين لدى أي مشترك عادي.
+  5. **عزل صارم وحظر الوصول للمشتركين (Strict Multi-Tenant Isolation):** عزل تام لمسارات الـ API (`/api/saas-admin/tenants/:id/seed-demo` و `/api/saas-admin/tenants/:id/wipe-data`) بحراسة مزدوجة تشترط `SuperAdminRoleGuard` وهوية المنصة المركزية `isPlatformAdmin`، وحظر كامل لظهور أزرار التصفير أو معالجات المطورين لدى أي مشترك عادي.
+
+---
+
+## 48. تحويل نقطة البيع والكاشير إلى موديول اختياري مرن (Modular POS & Cashier Workspace for B2B & Wholesale ERP)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Light Enterprise Theme).
+* **روابط الوصول السريع:** `/settings/modules` (تبويب الموديولات في الإعدادات العامة).
+* **مسارات الكود الأساسية:**
+  * **النماذج والعقود:** `frontend/src/types/domain-models/settings.ts`, `frontend/src/types/domain-models/system.ts`, `frontend/src/features/settings/schemas/settings.schema.ts`, `frontend/src/features/settings/contracts.ts`, `frontend/src/features/settings/components/forms/SettingsMainForm.tsx`
+  * **واجهة الإعدادات والتحكم:** `frontend/src/features/settings/components/forms/tabs/ModulesSettingsTab.tsx`
+  * **الشل والقوائم والتوجيه:** `frontend/src/shared/layout/app-shell.tsx`, `frontend/src/features/pos/pages/PosPage.tsx`, `frontend/src/features/cash-drawer/pages/CashDrawerPage.tsx`, `frontend/src/shared/layout/MobileBottomNav.tsx`, `frontend/src/shared/layout/MobileQuickActionSheet.tsx`
+* **الميزات والقدرات المفعلة:**
+  1. **بطاقة تحكم مؤسسية في شاشة الموديولات (POS Toggle Card):** بطاقة بيضاء نظيفة بأيقونة SVG رسمية (`MonitorIcon`) في ترويسة شبكة الموديولات تتيح للمنشأة تفعيل أو إيقاف واجهات نقاط البيع السريعة والورديات بالكامل بنقرة زر واحدة.
+  2. **الاستمرارية الافتراضية للتجزئة (Zero-Breaking Backward Compatibility):** القيمة الافتراضية هي `true` (مفعل)، مما يضمن عدم تأثر أي عميل تجزئة أو سوبرماركت أو مطعم قائم، مع إتاحة التعطيل الفوري للشركات التي لا تحتاج كاشير.
+  3. **تكييف القائمة الجانبية والأوامر السريعة (Dynamic Sidebar & Primary Keys Adaptation):** عند إيقاف الكاشير، تختفي صفحات الكاشير (`/pos`) والوردية والدرج النقدي (`/cash-drawer`) والشاشات الملحقة (`/kds`, `/signage`) من القائمة الجانبية، ويتكيف شريط الأوامر السريعة الرئيسي ليصبح: `الرئيسية (Dashboard)`، `سجل الفواتير والمبيعات (Sales)`، و`طلبات المتجر (Online Orders)` لمخاطبة شركات الجملة والمؤسسات كـ Enterprise B2B ERP.
+  4. **حماية التوجيه وإعادة التحويل التلقائي (Route-Level Auto-Redirects):** أي محاولة دخول مباشرة للمسار `/pos` عند تعطيل الموديول يُعاد توجيهها فورياً لـ `/sales`، وأي محاولة دخول لـ `/cash-drawer` يُعاد توجيهها لحركات الخزينة `/treasury`.
+  5. **التكيف المحمول لشاشات الهواتف (Responsive Mobile Bottom Nav & Quick Actions):** يتحول الزر الرابع في شريط الجوال السفلي تلقائياً من "نقطة البيع" إلى "المخزون" (`/inventory`)، ويتحول زر الإجراء السريع في القائمة المنبثقة من كاشير التجزئة إلى "سجل الفواتير والمبيعات" لإنشاء وإصدار الفواتير الميدانية والتجارية.
 
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
-
-
-
 
 
 

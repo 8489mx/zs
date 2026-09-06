@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
@@ -9,6 +9,8 @@ import { CashDrawerReviewDialog } from '@/features/cash-drawer/components/CashDr
 import { CashDrawerStatsGrid } from '@/features/cash-drawer/components/CashDrawerStatsGrid';
 import { useCashDrawerPageController } from '@/features/cash-drawer/hooks/useCashDrawerPageController';
 import { useAuthStore, isAdminUser } from '@/stores/auth-store';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { isPlatformAdmin } from '@/app/router/access';
 
 const cashDrawerRegressionLabels = ['فتح وردية نقطة بيع جديدة', 'تسجيل حركة درج النقدية', 'إغلاق وردية نقطة البيع', 'عدد ورديات نقطة البيع المطابقة', 'طباعة النتائج'];
 const cashDrawerRegressionMarkers = ['pagination={{'];
@@ -19,7 +21,12 @@ void cashDrawerRegressionMarkers;
 export function CashDrawerPage() {
   const { user } = useAuthStore();
   const isAdmin = isAdminUser(user);
+  const { data: settings } = useSettingsQuery();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  if (settings?.posModuleEnabled === false && !isPlatformAdmin(user)) {
+    return <Navigate to="/treasury" replace />;
+  }
   
   const [activeForm, setActiveForm] = useState<'open' | 'movement' | 'close' | null>(null);
   const controller = useCashDrawerPageController();
