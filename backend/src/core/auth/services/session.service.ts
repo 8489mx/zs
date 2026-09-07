@@ -221,7 +221,23 @@ export class SessionService {
     meta?: { ipAddress?: string; userAgent?: string; companyCode?: string },
   ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
     const normalized = identifier.trim();
-    const companyCode = meta?.companyCode?.trim();
+    const rawCompanyCode = meta?.companyCode?.trim();
+    let resolvedTenantId = rawCompanyCode;
+
+    if (rawCompanyCode) {
+      try {
+        const tenantMatch = await this.db
+          .selectFrom('tenants')
+          .select(['id', 'slug'])
+          .where((eb) => eb.or([eb('id', '=', rawCompanyCode), eb('slug', '=', rawCompanyCode)]))
+          .executeTakeFirst();
+        if (tenantMatch?.id) {
+          resolvedTenantId = tenantMatch.id;
+        }
+      } catch {
+        // fallback to rawCompanyCode
+      }
+    }
 
     let user: {
       id: number;
@@ -260,8 +276,8 @@ export class SessionService {
         .where('u.is_active', '=', true)
         .where('u.role', 'in', ['admin', 'super_admin']);
 
-      if (companyCode) {
-        query = query.where('u.tenant_id', '=', companyCode);
+      if (resolvedTenantId) {
+        query = query.where('u.tenant_id', '=', resolvedTenantId);
       }
 
       const matchedByEmail = await query.orderBy('u.id', 'asc').execute();
@@ -298,8 +314,8 @@ export class SessionService {
           .where('is_active', '=', true)
           .where('phone', 'in', variants);
 
-        if (companyCode) {
-          phoneQuery = phoneQuery.where('tenant_id', '=', companyCode);
+        if (resolvedTenantId) {
+          phoneQuery = phoneQuery.where('tenant_id', '=', resolvedTenantId);
         }
 
         candidates = await phoneQuery.execute();
@@ -326,8 +342,8 @@ export class SessionService {
           .where(sql<boolean>`LOWER(username) = LOWER(${normalized})`)
           .where('is_active', '=', true);
 
-        if (companyCode) {
-          userQuery = userQuery.where('tenant_id', '=', companyCode);
+        if (resolvedTenantId) {
+          userQuery = userQuery.where('tenant_id', '=', resolvedTenantId);
         }
 
         candidates = await userQuery.execute();

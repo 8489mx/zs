@@ -40,6 +40,11 @@ export function useLoginForm() {
     return searchParams.get('c') || searchParams.get('tenant') || localStorage.getItem('zs_last_company_code') || null;
   });
 
+  const [rememberedCompanyName, setRememberedCompanyName] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('zs_last_company_name') || null;
+  });
+
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
     defaultValues: { username: '', password: '', companyCode: rememberedCompanyCode || '' }
@@ -103,9 +108,15 @@ export function useLoginForm() {
 
       await clearQueryClientData(queryClient);
       setSession({ user, tenant, storeName, theme });
-      if (user?.tenantId && typeof localStorage !== 'undefined') {
-        localStorage.setItem('zs_last_company_code', String(user.tenantId).trim());
-        setRememberedCompanyCode(String(user.tenantId).trim());
+      const friendlyCompanyCode = String(tenant?.slug || user?.tenantId || '').trim();
+      const friendlyCompanyName = String(tenant?.businessName || storeName || friendlyCompanyCode).trim();
+      if (friendlyCompanyCode && typeof localStorage !== 'undefined') {
+        localStorage.setItem('zs_last_company_code', friendlyCompanyCode);
+        if (friendlyCompanyName) {
+          localStorage.setItem('zs_last_company_name', friendlyCompanyName);
+        }
+        setRememberedCompanyCode(friendlyCompanyCode);
+        setRememberedCompanyName(friendlyCompanyName);
       }
       setDisambiguationTenants(null);
       navigate(getPostLoginRoute(user, storeName, { tenant, deploymentMode: useAuthStore.getState().activationStatus?.deploymentMode, onboardingCompleted }), { replace: true });
@@ -149,8 +160,10 @@ export function useLoginForm() {
   function handleClearRememberedTenant() {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('zs_last_company_code');
+      localStorage.removeItem('zs_last_company_name');
     }
     setRememberedCompanyCode(null);
+    setRememberedCompanyName(null);
     form.setValue('companyCode', '');
     setShowCompanyCodeInput(true);
   }
@@ -164,6 +177,7 @@ export function useLoginForm() {
     setDisambiguationTenants,
     handleSelectTenant,
     rememberedCompanyCode,
+    rememberedCompanyName,
     handleClearRememberedTenant,
     showCompanyCodeInput,
     setShowCompanyCodeInput,

@@ -87,6 +87,7 @@ export function LoginPage() {
     setDisambiguationTenants,
     handleSelectTenant,
     rememberedCompanyCode,
+    rememberedCompanyName,
     handleClearRememberedTenant,
     showCompanyCodeInput,
     setShowCompanyCodeInput,
@@ -158,43 +159,52 @@ export function LoginPage() {
             )}
 
             <div className="login-form-pro" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleSubmit(onSubmit)(); } }}>
-              {rememberedCompanyCode && !showCompanyCodeInput ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    padding: '8px 12px',
-                    marginBottom: '14px',
-                    fontSize: '12.5px',
-                    color: '#334155',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <BuildingIcon />
-                    <span>تسجيل الدخول لمنشأة: <strong style={{ color: '#0f172a' }}>{rememberedCompanyCode}</strong></span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleClearRememberedTenant}
+              {rememberedCompanyCode && !showCompanyCodeInput ? (() => {
+                const isRememberedUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rememberedCompanyCode);
+                const rememberedTenantLabel = rememberedCompanyName
+                  ? (isRememberedUuid || rememberedCompanyName === rememberedCompanyCode
+                      ? rememberedCompanyName
+                      : `${rememberedCompanyName} (${rememberedCompanyCode})`)
+                  : (isRememberedUuid ? 'منشأتك السابقة' : rememberedCompanyCode);
+
+                return (
+                  <div
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#170e5e',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      padding: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      marginBottom: '14px',
+                      fontSize: '12.5px',
+                      color: '#334155',
                     }}
                   >
-                    تغيير
-                  </button>
-                </div>
-              ) : null}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <BuildingIcon />
+                      <span>تسجيل الدخول لمنشأة: <strong style={{ color: '#0f172a' }}>{rememberedTenantLabel}</strong></span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearRememberedTenant}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#170e5e',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: '0',
+                      }}
+                    >
+                      تغيير
+                    </button>
+                  </div>
+                );
+              })() : null}
 
               {showCompanyCodeInput ? (
                 <div className="login-field-group">

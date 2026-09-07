@@ -497,13 +497,30 @@ export class DeliveryRepsService {
     const cleanDigits = rawPhone.replace(/\D/g, '');
     const cleanNoCountry = cleanDigits.startsWith('20') ? cleanDigits.slice(2) : (cleanDigits.startsWith('0') ? cleanDigits.slice(1) : cleanDigits);
 
+    let resolvedTenantId = companyScope ? String(companyScope).trim() : undefined;
+    if (resolvedTenantId) {
+      const tenantKey = resolvedTenantId;
+      try {
+        const tenantRow = await this.db
+          .selectFrom('tenants')
+          .select(['id', 'slug'])
+          .where((eb) => eb.or([eb('id', '=', tenantKey), eb('slug', '=', tenantKey)]))
+          .executeTakeFirst();
+        if (tenantRow?.id) {
+          resolvedTenantId = tenantRow.id;
+        }
+      } catch {
+        // fallback
+      }
+    }
+
     let repsQuery = this.db
       .selectFrom('delivery_representatives')
       .selectAll()
       .where('is_active', '=', true);
 
-    if (companyScope) {
-      repsQuery = repsQuery.where('tenant_id', '=', String(companyScope).trim());
+    if (resolvedTenantId) {
+      repsQuery = repsQuery.where('tenant_id', '=', resolvedTenantId);
     }
 
     const reps = await repsQuery.execute();

@@ -97,8 +97,24 @@ export class MobileAttendanceService {
       ])
       .where('e.status', '=', 'active');
 
-    if (companyScope) {
-      employeesQuery = employeesQuery.where('e.tenant_id', '=', String(companyScope).trim());
+    let resolvedTenantId = companyScope ? String(companyScope).trim() : undefined;
+    if (resolvedTenantId) {
+      try {
+        const tenantRow = await this.anyDb
+          .selectFrom('tenants')
+          .select(['id', 'slug'])
+          .where((eb: any) => eb.or([eb('id', '=', resolvedTenantId), eb('slug', '=', resolvedTenantId)]))
+          .executeTakeFirst();
+        if (tenantRow?.id) {
+          resolvedTenantId = tenantRow.id;
+        }
+      } catch {
+        // fallback
+      }
+    }
+
+    if (resolvedTenantId) {
+      employeesQuery = employeesQuery.where('e.tenant_id', '=', resolvedTenantId);
     }
 
     const employees = await employeesQuery.execute();
