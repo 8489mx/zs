@@ -737,11 +737,14 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   transition: all 0.2s ease;
 }
 .sidebar-group-trigger:hover {
-  background: #f0f9ff;
-  color: #0369a1;
+  background: #f8fafc;
+  color: #170e5e;
 }
-.sidebar-group.is-open { }
-/* removed active/open background for headers to keep them clean */
+.sidebar-group.is-open > .sidebar-group-trigger,
+.sidebar-group.is-active > .sidebar-group-trigger {
+  color: #170e5e;
+  font-weight: 800;
+}
 .sidebar-group-icon {
   width: 32px;
   height: 32px;
@@ -841,16 +844,17 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 }
 
 .sidebar-link-sub:hover, .sidebar-link-sub.active {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: #f1f0fa;
+  color: #170e5e;
+  font-weight: 700;
 }
 .sidebar-link-sub:hover .sidebar-icon, .sidebar-link-sub.active .sidebar-icon {
-  background: #0284c7;
+  background: #170e5e;
 }
 
 /* replaced active */
 .sidebar-link-sub-old-active {
-  background: #1d4ed8;
+  background: #170e5e;
 }
 .sidebar-link {
   width: 100%;
@@ -872,13 +876,13 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 }
 .sidebar-link::before { display: none; }
 .sidebar-link:hover {
-  background: #f0f9ff;
-  color: #0369a1;
+  background: #f8fafc;
+  color: #170e5e;
 }
 .sidebar-link.active {
   background: #f1f0fa;
-  color: #1d4ed8;
-  font-weight: 700;
+  color: #170e5e;
+  font-weight: 800;
 }
 .sidebar-link.active .sidebar-icon {
   box-shadow: 0 4px 12px var(--icon-glow, transparent);

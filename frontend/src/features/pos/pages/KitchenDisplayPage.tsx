@@ -14,7 +14,6 @@ import {
   CheckIcon,
   AlertTriangleIcon,
   FlameIcon,
-  SparklesIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export function KitchenDisplayPage() {
@@ -672,7 +671,7 @@ export function KitchenDisplayPage() {
               {[
                 { name: 'المطبخ الساخن', status: 'جاهز ونشط', icon: <FlameIcon size={16} color="#16a34a" /> },
                 { name: 'المشويات والشواية', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#16a34a" /> },
-                { name: 'المشروبات والبار', status: 'جاهز ونشط', icon: <SparklesIcon size={16} color="#16a34a" /> },
+                { name: 'المشروبات والبار', status: 'جاهز ونشط', icon: <UtensilsIcon size={16} color="#16a34a" /> },
                 { name: 'المخبوزات والحلويات', status: 'جاهز ونشط', icon: <CheckIcon size={16} color="#16a34a" strokeWidth={2.5} /> },
               ].map((st, idx) => (
                 <div

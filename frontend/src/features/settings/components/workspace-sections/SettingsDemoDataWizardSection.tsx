@@ -6,12 +6,10 @@ import { Button } from '@/shared/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
 import {
-  RocketIcon,
   PackageIcon,
   ReceiptIcon,
   TagIcon,
   RefreshCwIcon,
-  SparklesIcon,
   ShieldCheckIcon,
   Trash2Icon,
   CheckCircleIcon,
@@ -153,31 +151,13 @@ export function SettingsDemoDataWizardSection() {
           gap: '16px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: '1 1 400px' }}>
-          <div
-            style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '14px',
-              background: '#170e5e',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '26px',
-              flexShrink: 0,
-              boxShadow: '0 4px 12px rgba(23, 14, 94, 0.18)',
-            }}
-          >
-            <RocketIcon size={24} color="#ffffff" />
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
-              معالج استيراد البيانات التجريبية حسب النشاط (Demo Wizard)
-            </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#64748b', lineHeight: 1.5 }}>
-              اختر تخصص نشاطك التجاري لملء النظام فورياً بـ ~50 صنفاً وفواتير كاشير وموردين وحركات مبيعات حقيقية في 5 ثوانٍ، لترى كافة لوحات التحكم والتقارير نابضة بالحياة.
-            </p>
-          </div>
+        <div style={{ flex: '1 1 400px' }}>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+            معالج استيراد البيانات التجريبية حسب النشاط (Demo Wizard)
+          </h2>
+          <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#64748b', lineHeight: 1.5 }}>
+            اختر تخصص نشاطك التجاري لملء النظام فورياً بـ ~50 صنفاً وفواتير كاشير وموردين وحركات مبيعات حقيقية في 5 ثوانٍ، لترى كافة لوحات التحكم والتقارير نابضة بالحياة.
+          </p>
         </div>
 
         {/* Status Badge */}
@@ -589,10 +569,7 @@ export function SettingsDemoDataWizardSection() {
                   <span>جاري ملء النظام بالبيانات (5 ثوانٍ)...</span>
                 </span>
               ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <SparklesIcon size={16} />
-                  <span>استيراد بيانات النشاط فورياً بنقرة واحدة</span>
-                </span>
+                <span>استيراد بيانات النشاط فورياً بنقرة واحدة</span>
               )}
             </Button>
           </div>

@@ -16,7 +16,6 @@ import {
   AlertTriangleIcon,
   CheckCircleIcon,
   LayersIcon,
-  SparklesIcon,
 } from '@/shared/components/icons/AppIcons';
 import { printCashDrawerShiftReceipt } from '@/features/cash-drawer/utils/cash-drawer-receipt';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -303,7 +302,7 @@ export function CashDrawerReviewDialog(props: CashDrawerReviewDialogProps) {
                   }}
                   title={compactView ? 'التبديل إلى الوضع المريح الطبيعي' : 'التبديل إلى الوضع المضغوط للشاشات الصغيرة'}
                 >
-                  {compactView ? <SparklesIcon size={14} color="#16a34a" /> : <LayersIcon size={14} color="#64748b" />}
+                  <LayersIcon size={14} color={compactView ? '#16a34a' : '#64748b'} />
                   <span>{compactView ? 'الوضع المريح' : 'الوضع المضغوط'}</span>
                 </button>
 

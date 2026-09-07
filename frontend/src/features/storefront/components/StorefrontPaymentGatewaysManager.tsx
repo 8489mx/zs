@@ -5,7 +5,6 @@ import {
   CreditCardIcon, 
   GlobeIcon, 
   BuildingIcon, 
-  SparklesIcon, 
   CheckCircleIcon, 
   AlertCircleIcon, 
   LinkIcon, 
@@ -423,7 +422,7 @@ export function StorefrontPaymentGatewaysManager() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <SparklesIcon size={22} color={formState.onlinePaymentProvider === 'mock' ? '#170e5e' : '#64748b'} />
+                <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'mock' ? '#170e5e' : '#64748b'} />
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Sandbox Mock</div>
                   <div style={{ fontSize: '10px', color: '#64748b' }}>محاكي تجريبي</div>
@@ -1118,7 +1117,7 @@ export function StorefrontPaymentGatewaysManager() {
           {formState.onlinePaymentProvider === 'mock' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 0' }}>
               <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <SparklesIcon size={16} color="#64748b" />
+                <CreditCardIcon size={16} color="#64748b" />
                 <span>وضع المحاكاة التجريبي نشط</span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#64748b', lineHeight: '1.6', margin: 0 }}>

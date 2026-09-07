@@ -9,7 +9,6 @@ import {
   QrCodeIcon,
   Maximize2Icon,
   XIcon,
-  SparklesIcon,
   ShoppingCartIcon,
   AwardIcon,
   TruckIcon,
@@ -712,7 +711,7 @@ export function DigitalSignagePage() {
                         border: '1px solid #e2e8f0',
                       }}
                     >
-                      <SparklesIcon size={18} color="#170e5e" />
+                      <TagIcon size={18} color="#170e5e" />
                     </div>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>

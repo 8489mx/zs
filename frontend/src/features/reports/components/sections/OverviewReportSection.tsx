@@ -7,7 +7,7 @@ import type { ReportsSectionContentProps } from '@/features/reports/components/r
 import { CircularProgress } from '@/shared/components/charts/CircularProgress';
 import { SalesTrendChart } from '@/shared/components/charts/SalesTrendChart';
 import { ShiftAnalysisChart } from '@/shared/components/charts/ShiftAnalysisChart';
-import { ShoppingCartIcon, PackageIcon, CreditCardIcon, SparklesIcon } from '@/shared/components/icons/AppIcons';
+import { ShoppingCartIcon, PackageIcon, CreditCardIcon, TrendingUpIcon } from '@/shared/components/icons/AppIcons';
 
 export function OverviewReportSection({
   report,
@@ -163,7 +163,7 @@ export function OverviewReportSection({
         id: 'profitability',
         title: 'الأداء والربحية الختامية',
         subtitle: 'المحصلة وهوامش الربح الصافية',
-        icon: <SparklesIcon size={16} strokeWidth={2.4} />,
+        icon: <TrendingUpIcon size={16} strokeWidth={2.4} />,
         theme: 'theme-emerald',
         badge: 'النتيجة الصافية',
         items: [

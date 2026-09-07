@@ -3,7 +3,7 @@ import { Field } from '@/shared/ui/field';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { formatCurrency } from '@/lib/format';
 import { addDaysIsoDate, getOfferStatus, todayIsoDate } from './product-offer.utils';
-import { SparklesIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
+import { ClockIcon } from '@/shared/components/icons/AppIcons';
 import type { Product, ProductOffer } from '@/types/domain';
 
 interface ProductOfferItemEditorTabProps {
@@ -288,7 +288,6 @@ export function ProductOfferItemEditorTab({
                   transition: 'all 0.15s ease'
                 }}
               >
-                <SparklesIcon size={13} color="#16a34a" />
                 <span>BOGO اشترِ X</span>
               </button>
             </div>

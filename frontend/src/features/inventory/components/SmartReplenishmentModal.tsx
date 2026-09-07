@@ -10,7 +10,6 @@ import {
 import { ReplenishmentPickListPrintModal, PickListItem } from './ReplenishmentPickListPrintModal';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import {
-  SparklesIcon,
   XIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
@@ -240,44 +239,28 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
               backgroundColor: '#ffffff',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  backgroundColor: '#f1f5f9',
-                  border: '1px solid #e2e8f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <SparklesIcon size={22} color="#170e5e" />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                  محرك إمداد الأرفف الذكي وتتبع المخازن
+                </h2>
+                <span
+                  style={{
+                    backgroundColor: '#eff6ff',
+                    color: '#1e40af',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #dbeafe',
+                  }}
+                >
+                  تغطية {coverDays * 24} ساعة
+                </span>
               </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                    محرك إمداد الأرفف الذكي وتتبع المخازن
-                  </h2>
-                  <span
-                    style={{
-                      backgroundColor: '#eff6ff',
-                      color: '#1e40af',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      border: '1px solid #dbeafe',
-                    }}
-                  >
-                    تغطية {coverDays * 24} ساعة
-                  </span>
-                </div>
-                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
-                  فحص آلي لأرصدة كافة المخازن وتوجيه الصرف للحاجات المتوفرة فعلياً مع تنبيهات بمواعيد الشراء المطلوبة
-                </p>
-              </div>
+              <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
+                فحص آلي لأرصدة كافة المخازن وتوجيه الصرف للحاجات المتوفرة فعلياً مع تنبيهات بمواعيد الشراء المطلوبة
+              </p>
             </div>
 
             <button
@@ -457,7 +440,6 @@ export const SmartReplenishmentModal: React.FC<SmartReplenishmentModalProps> = (
                       cursor: 'pointer',
                     }}
                   >
-                    <SparklesIcon size={14} color="#ffffff" />
                     <span>
                       {createLocationMutation.isPending
                         ? 'جاري إنشاء المستودع الرئيسي...'

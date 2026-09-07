@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useManagerActions } from '@/features/dashboard/hooks/useManagerActions';
 import { importantManagerActions } from '@/features/dashboard/lib/manager-actions-ui';
 import { useOfflineUpdateCheck } from '@/shared/hooks/use-offline-update-check';
-import { RocketIcon, BellIcon, BellOffIcon } from '@/shared/components/icons/AppIcons';
+import { RefreshCwIcon, BellIcon, BellOffIcon } from '@/shared/components/icons/AppIcons';
 import { isAudioChimeEnabled, playNotificationChime, setAudioChimeEnabled } from '@/lib/audio-chime';
 
 function formatCompactAlert(alert: { title: string; message: string; domain: string; severity: string; metrics?: Record<string, unknown> }) {
@@ -246,7 +246,7 @@ export function ManagerNotificationsBell() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <RocketIcon size={18} color="#ffffff" />
+            <RefreshCwIcon size={18} color="#ffffff" />
             <div>
               <div style={{ fontWeight: 800, fontSize: '12.5px', color: '#ffffff' }}>تحديث جديد للمنظومة (v{updateInfo?.latestVersion})</div>
               <div style={{ fontSize: '10.5px', color: '#a7f3d0', marginTop: 1 }}>اضغط هنا للانتقال لصفحة الترقية وتطبيق التحديث</div>

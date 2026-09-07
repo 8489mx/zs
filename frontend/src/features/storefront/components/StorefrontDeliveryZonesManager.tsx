@@ -4,7 +4,6 @@ import { storefrontApi } from '../api/storefront.api';
 import { StorefrontDeliveryZone, CreateDeliveryZonePayload } from '../types/storefront.types';
 import {
   TruckIcon,
-  SparklesIcon,
   BuildingIcon,
   MapPinIcon,
   ClockIcon,
@@ -259,16 +258,13 @@ export function StorefrontDeliveryZonesManager() {
           gap: '10px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <SparklesIcon size={16} color="#170e5e" />
-          <div>
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', display: 'block' }}>
-              قوالب تسعير سريعة بضغطة زر واحدة:
-            </span>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>
-              أنشئ مصفوفة توصيل متكاملة جاهزة وفورية تناسب نشاطك
-            </span>
-          </div>
+        <div>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', display: 'block' }}>
+            قوالب تسعير سريعة بضغطة زر واحدة:
+          </span>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>
+            أنشئ مصفوفة توصيل متكاملة جاهزة وفورية تناسب نشاطك
+          </span>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -407,7 +403,6 @@ export function StorefrontDeliveryZonesManager() {
                 gap: '6px',
               }}
             >
-              <SparklesIcon size={14} />
               <span>تطبيق قالب سريع</span>
             </button>
           </div>

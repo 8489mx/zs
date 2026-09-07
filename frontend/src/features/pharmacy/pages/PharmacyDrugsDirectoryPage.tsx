@@ -12,7 +12,7 @@ import { DoseStickerPrintModal } from '../components/DoseStickerPrintModal';
 import { EgyptianMasterCatalogModal } from '../components/EgyptianMasterCatalogModal';
 import { DistributorInvoiceImportModal } from '../components/DistributorInvoiceImportModal';
 import {
-  IconSparkles,
+  IconRefresh,
   IconPrinter,
   IconPlus,
   IconSearch,
@@ -195,7 +195,7 @@ export default function PharmacyDrugsDirectoryPage() {
                 onClick={() => setIsMasterCatalogOpen(true)}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <IconSparkles size={15} />
+                <IconSearch size={15} />
                 <span>دليل الأدوية المصري (Master Index)</span>
               </Button>
 
@@ -223,7 +223,6 @@ export default function PharmacyDrugsDirectoryPage() {
         {/* 1-Click Fast Drug Entry Strip */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.02)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-            <IconSparkles size={15} color="var(--primary, #1e1b4b)" />
             <span>إضافة سريعة بنقرة واحدة:</span>
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -328,9 +327,7 @@ export default function PharmacyDrugsDirectoryPage() {
                         <Button
                           variant="primary"
                           onClick={() => setIsMasterCatalogOpen(true)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         >
-                          <IconSparkles size={15} />
                           <span>استيراد كافة الأدوية من المرجع المصري</span>
                         </Button>
                       </div>
@@ -393,7 +390,7 @@ export default function PharmacyDrugsDirectoryPage() {
                             title="البدائل والمثائل"
                             style={{ padding: '4px 6px' }}
                           >
-                            <IconSparkles size={14} />
+                            <IconRefresh size={14} />
                           </Button>
                           <Button
                             variant="secondary"

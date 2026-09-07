@@ -41,22 +41,6 @@ function ShieldAlertIcon() {
   );
 }
 
-// function SparklesIcon() {
-//   return (
-//     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//       <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-//       <path d="M5 3v4M3 5h4M19 3v4M17 5h4"/>
-//     </svg>
-//   );
-// }
-// 
-// function KeyIcon() {
-//   return (
-//     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-//     </svg>
-//   );
-// }
 
 function ArrowLeftIcon() {
   return (
@@ -197,24 +181,6 @@ export function LoginPage() {
               </button>
             </div>
 
-            {/* 
-            <div className="login-demo-widget">
-              <div className="demo-sparkles"><SparklesIcon /></div>
-              <div className="demo-widget-content">
-                <KeyIcon />
-                <p>
-                  لتجربة النظام بشكل سريع، استخدم بيانات الحساب التجريبي: <br/>
-                  <span className="demo-badge">demo@zsystems.pro</span> / <span className="demo-badge">demo1234</span>
-                </p>
-                <button type="button" className="demo-fill-btn" onClick={() => {
-                  form.setValue('username', 'demo@zsystems.pro');
-                  form.setValue('password', 'demo1234');
-                }}>
-                  تعبئة بيانات الحساب التجريبي بنقرة واحدة
-                </button>
-              </div>
-            </div>
-            */}
 
             <div className="login-signup-link">
               <p>ليس لديك حساب؟ <Link to="/trial">ابدأ تجربة مجانية الآن</Link></p>

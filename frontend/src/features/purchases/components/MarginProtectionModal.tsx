@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { TrendingUpIcon, XIcon, CheckIcon, TagIcon, SparklesIcon, MessageSquareIcon } from '@/shared/components/icons/AppIcons';
+import { TrendingUpIcon, XIcon, CheckIcon, TagIcon, MessageSquareIcon } from '@/shared/components/icons/AppIcons';
 import {
   marginProtectionApi,
   type MarginProtectionAnalysisResponse,
@@ -415,9 +415,8 @@ export function MarginProtectionModal({
               variant="primary"
               onClick={handleApply}
               disabled={applying || !selectedProductIds.size}
-              className="bg-[#170e5e] hover:bg-[#120b4c] text-white font-bold text-xs px-6 h-9 flex items-center gap-1.5 shadow-sm"
+              className="bg-[#170e5e] hover:bg-[#120b4c] text-white font-bold text-xs px-6 h-9 flex items-center justify-center shadow-sm"
             >
-              <SparklesIcon size={14} />
               <span>{applying ? 'جاري التحديث...' : `تحديث أسعار ${selectedProductIds.size} صنفاً في الكاشير`}</span>
             </Button>
           </div>

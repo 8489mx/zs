@@ -4,7 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { AlertTriangleIcon , XIcon } from '@/shared/components/icons/AppIcons';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { pharmacyApi, MasterDrugItem } from '../api/pharmacy.api';
-import { IconSparkles, IconSearch, IconCheck } from './PharmacyIcons';
+import { IconSearch, IconCheck } from './PharmacyIcons';
 
 interface Props {
   open: boolean;
@@ -111,9 +111,8 @@ export function EgyptianMasterCatalogModal({ open, onClose, onImportSuccess }: P
               variant="primary"
               onClick={handleSeedAll}
               disabled={seeding}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
+              style={{ fontSize: '0.82rem', padding: '6px 12px' }}
             >
-              <IconSparkles size={15} />
               <span>{seeding ? 'جاري الاستيراد الشامل...' : 'استيراد كافة الأدوية لصيدليتي'}</span>
             </Button>
             <button

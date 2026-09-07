@@ -547,7 +547,7 @@ export function SalesInventorySettingsTab({
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <label style={{ ...premiumCardStyle, padding: 0, border: 'none', background: 'transparent', boxShadow: 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ ...iconBadgeStyle, background: form.watch('posTerminalEnabled') ? '#eff6ff' : '#f8fafc', color: form.watch('posTerminalEnabled') ? '#1d4ed8' : '#64748b' }}>
+                <div style={iconBadgeStyle}>
                   <PosTerminalIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
@@ -652,15 +652,9 @@ export function SalesInventorySettingsTab({
       >
         <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
           {/* 1. Toggle Loyalty */}
-          <label
-            style={{
-              ...premiumCardStyle,
-              border: form.watch('loyaltyEnabled') ? '1px solid #10b981' : '1px solid #e2e8f0',
-              background: form.watch('loyaltyEnabled') ? '#f0fdf4' : '#ffffff',
-            }}
-          >
+          <label style={premiumCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ ...iconBadgeStyle, background: form.watch('loyaltyEnabled') ? '#dcfce7' : '#f8fafc', color: form.watch('loyaltyEnabled') ? '#15803d' : '#64748b' }}>
+              <div style={iconBadgeStyle}>
                 <LoyaltyPointsIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
@@ -677,15 +671,9 @@ export function SalesInventorySettingsTab({
           </label>
 
           {/* 2. Print on Receipt */}
-          <label
-            style={{
-              ...premiumCardStyle,
-              border: form.watch('printShowLoyaltyPoints') ? '1px solid #10b981' : '1px solid #e2e8f0',
-              background: form.watch('printShowLoyaltyPoints') ? '#f0fdf4' : '#ffffff',
-            }}
-          >
+          <label style={premiumCardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ ...iconBadgeStyle, background: '#fef3c7', color: '#d97706', borderColor: '#fde68a' }}>
+              <div style={iconBadgeStyle}>
                 <IssueModeDocIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
@@ -705,7 +693,7 @@ export function SalesInventorySettingsTab({
           <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                <div style={{ ...iconBadgeStyle, background: '#ede9fe', color: '#6d28d9', borderColor: '#ddd6fe' }}>
+                <div style={iconBadgeStyle}>
                   <LoyaltyPointsIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
@@ -747,9 +735,9 @@ export function SalesInventorySettingsTab({
                       fontSize: '0.71rem',
                       textAlign: 'center',
                       borderRadius: '6px',
-                      border: isSelected ? '1.5px solid #6d28d9' : '1px solid #e2e8f0',
-                      background: isSelected ? '#f5f3ff' : '#f8fafc',
-                      color: isSelected ? '#5b21b6' : '#475569',
+                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      background: isSelected ? '#eef2ff' : '#f8fafc',
+                      color: isSelected ? '#170e5e' : '#475569',
                       fontWeight: isSelected ? 800 : 600,
                       cursor: 'pointer',
                     }}
@@ -765,7 +753,7 @@ export function SalesInventorySettingsTab({
           <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                <div style={{ ...iconBadgeStyle, background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' }}>
+                <div style={iconBadgeStyle}>
                   <ZeroCostIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
@@ -807,9 +795,9 @@ export function SalesInventorySettingsTab({
                       fontSize: '0.71rem',
                       textAlign: 'center',
                       borderRadius: '6px',
-                      border: isSelected ? '1.5px solid #b45309' : '1px solid #e2e8f0',
-                      background: isSelected ? '#fffbeb' : '#f8fafc',
-                      color: isSelected ? '#92400e' : '#475569',
+                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      background: isSelected ? '#eef2ff' : '#f8fafc',
+                      color: isSelected ? '#170e5e' : '#475569',
                       fontWeight: isSelected ? 800 : 600,
                       cursor: 'pointer',
                     }}
@@ -824,7 +812,7 @@ export function SalesInventorySettingsTab({
           {/* 5. Minimum Redeem Points */}
           <div style={{ ...premiumCardStyle, cursor: 'default' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ ...iconBadgeStyle, background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }}>
+              <div style={iconBadgeStyle}>
                 <LoyaltyPointsIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
@@ -850,7 +838,7 @@ export function SalesInventorySettingsTab({
           {/* 6. Max Discount Percentage */}
           <div style={{ ...premiumCardStyle, cursor: 'default' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ ...iconBadgeStyle, background: '#fce7f3', color: '#be185d', borderColor: '#fbcfe8' }}>
+              <div style={iconBadgeStyle}>
                 <TaxCalcIcon size={20} />
               </div>
               <div style={premiumCardTextStyle}>
@@ -890,14 +878,14 @@ export function SalesInventorySettingsTab({
             gap: '12px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <LightbulbIcon size={18} color="#2563eb" />
+              <LightbulbIcon size={18} color="#170e5e" />
               <span style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 700 }}>
                 معاينة حية للمحرك: مشتريات بقيمة <strong>1,000 ج.م</strong> تمنح العميل{' '}
-                <strong style={{ color: '#6d28d9' }}>
+                <strong style={{ color: '#170e5e' }}>
                   {Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10))} نقطة
                 </strong>{' '}
                 قيمتها{' '}
-                <strong style={{ color: '#059669' }}>
+                <strong style={{ color: '#170e5e' }}>
                   {(Math.floor((1000 / 100) * Number(form.watch('loyaltyPointsPer100Egp') || 10)) * Number(form.watch('loyaltyPointRedeemValue') || 0.1)).toFixed(2)} ج.م
                 </strong>{' '}
                 خصم فوري في مشترياته القادمة (معدل استرجاع{' '}
@@ -920,7 +908,7 @@ export function SalesInventorySettingsTab({
           <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                <div style={{ ...iconBadgeStyle, background: '#fee2e2', color: '#dc2626', borderColor: '#fca5a5' }}>
+                <div style={iconBadgeStyle}>
                   <ExpiryAlertIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
@@ -964,9 +952,9 @@ export function SalesInventorySettingsTab({
                       textAlign: 'center',
                       whiteSpace: 'nowrap',
                       borderRadius: '6px',
-                      border: isSelected ? '1.5px solid #dc2626' : '1px solid #e2e8f0',
-                      background: isSelected ? '#fef2f2' : '#f8fafc',
-                      color: isSelected ? '#b91c1c' : '#475569',
+                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      background: isSelected ? '#eef2ff' : '#f8fafc',
+                      color: isSelected ? '#170e5e' : '#475569',
                       fontWeight: isSelected ? 800 : 600,
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
@@ -983,7 +971,7 @@ export function SalesInventorySettingsTab({
           <div style={{ ...premiumCardStyle, cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                <div style={{ ...iconBadgeStyle, background: '#fef3c7', color: '#d97706', borderColor: '#fde68a' }}>
+                <div style={iconBadgeStyle}>
                   <StagnantStockIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
@@ -1028,9 +1016,9 @@ export function SalesInventorySettingsTab({
                       textAlign: 'center',
                       whiteSpace: 'nowrap',
                       borderRadius: '6px',
-                      border: isSelected ? '1.5px solid #d97706' : '1px solid #e2e8f0',
-                      background: isSelected ? '#fffbeb' : '#f8fafc',
-                      color: isSelected ? '#b45309' : '#475569',
+                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      background: isSelected ? '#eef2ff' : '#f8fafc',
+                      color: isSelected ? '#170e5e' : '#475569',
                       fontWeight: isSelected ? 800 : 600,
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',

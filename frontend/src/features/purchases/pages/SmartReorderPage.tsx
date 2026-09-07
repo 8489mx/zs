@@ -12,7 +12,6 @@ import {
   GenerateDraftOrdersPayload,
 } from '@/features/purchases/api/purchases.api';
 import {
-  SparklesIcon,
   CheckCircleIcon,
   ClockIcon,
   PackageIcon,
@@ -192,11 +191,10 @@ export function SmartReorderPage() {
             <div className="actions compact-actions" style={{ gap: '10px' }}>
               <Button
                 variant="primary"
-                style={{ backgroundColor: '#170e5e', borderColor: '#170e5e', color: '#ffffff', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                style={{ backgroundColor: '#170e5e', borderColor: '#170e5e', color: '#ffffff', fontWeight: 600 }}
                 onClick={handleOpenBatchConfirm}
                 disabled={totalSelectedItemsCount === 0 || generateMutation.isPending}
               >
-                <SparklesIcon size={16} color="#ffffff" />
                 <span>توليد مسودات أوامر الشراء المحددة ({totalSelectedItemsCount})</span>
               </Button>
               <Button variant="secondary" onClick={() => void refetch()} disabled={isLoading}>

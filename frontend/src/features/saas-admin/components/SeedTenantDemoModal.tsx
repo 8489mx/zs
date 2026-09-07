@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { XIcon, ShoppingCartIcon, TagIcon, UtensilsIcon, SmartphoneIcon, ShieldCheckIcon, SparklesIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, ShoppingCartIcon, TagIcon, UtensilsIcon, SmartphoneIcon, ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { saasAdminApi, type SaasTenantRow } from '../api/saas-admin.api';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
@@ -55,17 +55,12 @@ export function SeedTenantDemoModal({ tenant, onClose, onSuccess }: SeedTenantDe
       <div className="dialog-card" dir="rtl" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <SparklesIcon size={20} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                سكب بيانات تجريبية للمشترك
-              </h3>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                النسخة: <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug})
-              </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+              سكب بيانات تجريبية للمشترك
+            </h3>
+            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+              النسخة: <strong style={{ color: '#0f172a' }}>{tenant.businessName || tenant.slug}</strong> ({tenant.slug})
             </div>
           </div>
           <button

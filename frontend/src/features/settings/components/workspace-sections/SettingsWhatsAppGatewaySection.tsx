@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
-import { MessageSquareIcon, SparklesIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
+import { MessageSquareIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
 
 export interface WhatsAppGatewayConfig {
   enabled: boolean;
@@ -236,9 +236,6 @@ export function SettingsWhatsAppGatewaySection() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px', marginBottom: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <SparklesIcon size={18} color="#2563eb" />
-              </div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
                 محرك الذكاء الاصطناعي المجاني (Google Gemini 1.5 Flash Engine)
               </h3>

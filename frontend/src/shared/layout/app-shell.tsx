@@ -52,75 +52,20 @@ type IconTone = {
   glow: string;
 };
 
-const iconToneMap: Record<string, IconTone> = {
-  dashboard: { bg: 'linear-gradient(135deg, #ede9fe, #dbeafe)', border: '#c4b5fd', fg: '#5b21b6', glow: 'rgba(99, 102, 241, 0.22)' },
-  products: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#166534', glow: 'rgba(34, 197, 94, 0.22)' },
-  sales: { bg: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', border: '#93c5fd', fg: '#1d4ed8', glow: 'rgba(37, 99, 235, 0.22)' },
-  quotations: { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
-  'delivery-reps': { bg: 'linear-gradient(135deg, #fef3c7, #fef08a)', border: '#fde047', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.22)' },
-  pos: { bg: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)', border: '#d8b4fe', fg: '#7e22ce', glow: 'rgba(168, 85, 247, 0.22)' },
-  kds: { bg: 'linear-gradient(135deg, #fff7ed, #ffedd5)', border: '#fed7aa', fg: '#c2410c', glow: 'rgba(234, 88, 12, 0.22)' },
-  signage: { bg: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', border: '#bae6fd', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'online-orders': { bg: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', border: '#6ee7b7', fg: '#059669', glow: 'rgba(16, 185, 129, 0.22)' },
-  'cash-drawer': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#a16207', glow: 'rgba(245, 158, 11, 0.24)' },
-  purchases: { bg: 'linear-gradient(135deg, #cffafe, #a5f3fc)', border: '#67e8f9', fg: '#0f766e', glow: 'rgba(6, 182, 212, 0.22)' },
-  'purchases-new': { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#065f46', glow: 'rgba(16, 185, 129, 0.22)' },
-  inventory: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#166534', glow: 'rgba(34, 197, 94, 0.22)' },
-  suppliers: { bg: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border: '#cbd5e1', fg: '#334155', glow: 'rgba(100, 116, 139, 0.18)' },
-  customers: { bg: 'linear-gradient(135deg, #ffe4e6, #fecdd3)', border: '#fda4af', fg: '#be123c', glow: 'rgba(244, 63, 94, 0.2)' },
-  accounts: { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  returns: { bg: 'linear-gradient(135deg, #ffedd5, #fed7aa)', border: '#fdba74', fg: '#c2410c', glow: 'rgba(249, 115, 22, 0.22)' },
-  'purchase-returns': { bg: 'linear-gradient(135deg, #ffedd5, #fed7aa)', border: '#fdba74', fg: '#c2410c', glow: 'rgba(249, 115, 22, 0.22)' },
-  reports: { bg: 'linear-gradient(135deg, #e0e7ff, #c7d2fe)', border: '#a5b4fc', fg: '#4338ca', glow: 'rgba(99, 102, 241, 0.2)' },
-  'reports-overview': { bg: 'linear-gradient(135deg, #ede9fe, #dbeafe)', border: '#c4b5fd', fg: '#5b21b6', glow: 'rgba(99, 102, 241, 0.22)' },
-  'reports-sales': { bg: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', border: '#93c5fd', fg: '#1d4ed8', glow: 'rgba(37, 99, 235, 0.22)' },
-  'reports-treasury': { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#047857', glow: 'rgba(16, 185, 129, 0.22)' },
-  'reports-inventory': { bg: 'linear-gradient(135deg, #ccfbf1, #99f6e4)', border: '#5eead4', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.22)' },
-  'reports-purchases': { bg: 'linear-gradient(135deg, #cffafe, #a5f3fc)', border: '#67e8f9', fg: '#0f766e', glow: 'rgba(6, 182, 212, 0.22)' },
-  'reports-balances': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'reports-employees': { bg: 'linear-gradient(135deg, #fee2e2, #e0f2fe)', border: '#fca5a5', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.2)' },
-  audit: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#15803d', glow: 'rgba(34, 197, 94, 0.2)' },
-  treasury: { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#047857', glow: 'rgba(16, 185, 129, 0.22)' },
-  services: { bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', border: '#c4b5fd', fg: '#6d28d9', glow: 'rgba(124, 58, 237, 0.22)' },
-  hr: { bg: 'linear-gradient(135deg, #fee2e2, #e0f2fe)', border: '#fca5a5', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.2)' },
-  'pricing-center': { bg: 'linear-gradient(135deg, #fef9c3, #fde68a)', border: '#facc15', fg: '#a16207', glow: 'rgba(234, 179, 8, 0.24)' },
-  settings: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
-  admin: { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#475569', glow: 'rgba(71, 85, 105, 0.18)' },
-  'tax-dispatcher': { bg: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', border: '#cbd5e1', fg: '#334155', glow: 'rgba(71, 85, 105, 0.18)' },
-  installments: { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'vat-declaration': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
-  'saas-admin-tenants': { bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', border: '#c4b5fd', fg: '#6d28d9', glow: 'rgba(124, 58, 237, 0.22)' },
-  'saas-admin-plans': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
-  'accounting-accounts': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'accounting-journal-entries': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'accounting-settings': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'accounting-financial-summary': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'accounting-receivables-payables': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'accounting-inventory-value': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  mobile: { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#f59e0b', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
-  import: { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0284c7', glow: 'rgba(14, 165, 233, 0.22)' },
-  manufacturing: { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
-  maintenance: { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#f59e0b', fg: '#b45309', glow: 'rgba(245, 158, 11, 0.24)' },
-  'trade-in': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#38bdf8', fg: '#0284c7', glow: 'rgba(14, 165, 233, 0.22)' },
-  'imei-history': { bg: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)', border: '#c084fc', fg: '#7e22ce', glow: 'rgba(168, 85, 247, 0.22)' },
-  'manufacturing-components': { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
-  'manufacturing-boms': { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
-  'manufacturing-work-orders': { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
-  'manufacturing-settings': { bg: 'linear-gradient(135deg, #fef08a, #fde047)', border: '#facc15', fg: '#ca8a04', glow: 'rgba(234, 179, 8, 0.22)' },
-  'import-shipments': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0284c7', glow: 'rgba(14, 165, 233, 0.22)' },
-  'import-supplier-credit': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0284c7', glow: 'rgba(14, 165, 233, 0.22)' },
-  'import-profit-pool': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0284c7', glow: 'rgba(14, 165, 233, 0.22)' },
-  'inventory-tree': { bg: 'linear-gradient(135deg, #ccfbf1, #99f6e4)', border: '#5eead4', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.22)' },
-  'product-categories': { bg: 'linear-gradient(135deg, #ccfbf1, #99f6e4)', border: '#5eead4', fg: '#0f766e', glow: 'rgba(20, 184, 166, 0.22)' },
-  expenses: { bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', border: '#fca5a5', fg: '#b91c1c', glow: 'rgba(239, 68, 68, 0.2)' },
-  pharmacy: { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#15803d', glow: 'rgba(34, 197, 94, 0.22)' },
-  'pharmacy-dashboard': { bg: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', border: '#86efac', fg: '#15803d', glow: 'rgba(34, 197, 94, 0.22)' },
-  'pharmacy-drugs': { bg: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: '#7dd3fc', fg: '#0369a1', glow: 'rgba(14, 165, 233, 0.22)' },
-  'pharmacy-prescriptions': { bg: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', border: '#6ee7b7', fg: '#047857', glow: 'rgba(16, 185, 129, 0.22)' },
-  'pharmacy-shortages': { bg: 'linear-gradient(135deg, #fee2e2, #fecaca)', border: '#fca5a5', fg: '#b91c1c', glow: 'rgba(239, 68, 68, 0.2)' },
-  'pharmacy-batches': { bg: 'linear-gradient(135deg, #fef3c7, #fde68a)', border: '#fbbf24', fg: '#a16207', glow: 'rgba(245, 158, 11, 0.24)' },
-  'pharmacy-clinical': { bg: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', border: '#c4b5fd', fg: '#6d28d9', glow: 'rgba(124, 58, 237, 0.22)' },
+const defaultIconTone: IconTone = {
+  bg: '#f8fafc',
+  border: '#e2e8f0',
+  fg: '#475569',
+  glow: 'transparent',
 };
+
+const activeIconTone: IconTone = {
+  bg: '#eef2ff',
+  border: '#c7d2fe',
+  fg: '#170e5e',
+  glow: 'rgba(23, 14, 94, 0.08)',
+};
+
 
 const iconPathMap: Record<string, string> = {
   pharmacy: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7ZM12 5v6M9 8h6',
@@ -775,8 +720,6 @@ export function AppShell({ children }: PropsWithChildren) {
   const cleanWorkspaceName = workspaceName.replace(/^\s*["'”“]+|["'”“]+\s*$/g, '').trim() || workspaceName;
 
   function renderNavItem(item: NonNullable<(typeof visibleNavigationItems)[number]>, keyPrefix: string) {
-    const tone = iconToneMap[item.key] || iconToneMap.settings;
-    const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
     return (
       <NavLink 
         key={`${keyPrefix}-${item.key}`} 
@@ -784,7 +727,11 @@ export function AppShell({ children }: PropsWithChildren) {
         end={item.end} 
         data-key={item.key} 
         data-tooltip={effectiveSidebarCollapsed ? item.label : undefined}
-        style={toneStyle} 
+        style={({ isActive }) => {
+          const isPathActive = item.activePaths?.includes(location.pathname) || isActive;
+          const tone = isPathActive ? activeIconTone : defaultIconTone;
+          return { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
+        }} 
         onMouseEnter={() => prefetchRouteData(item.to)}
         onTouchStart={() => prefetchRouteData(item.to)}
         onAuxClick={(e) => {
@@ -934,7 +881,7 @@ export function AppShell({ children }: PropsWithChildren) {
             {filteredPrimaryNavigationItems.map((item) => renderNavItem(item, 'primary'))}
             {filteredSidebarGroups.map(({ group, groupItems, isActive, isOpen }) => {
               const groupIconItemKey = group.iconKey || groupItems[0]?.key || 'settings';
-              const tone = iconToneMap[groupIconItemKey] || iconToneMap.settings;
+              const tone = (isActive || isOpen) ? activeIconTone : defaultIconTone;
               const toneStyle = { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
               return (
                 <div key={group.key} className={`sidebar-group ${isActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`.trim()}>

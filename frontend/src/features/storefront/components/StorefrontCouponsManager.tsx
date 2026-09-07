@@ -4,7 +4,6 @@ import { storefrontApi } from '../api/storefront.api';
 import { StorefrontCoupon, CreateCouponPayload } from '../types/storefront.types';
 import {
   TagIcon,
-  SparklesIcon,
   ShoppingCartIcon,
   CopyIcon,
   CheckIcon,
@@ -202,7 +201,7 @@ export function StorefrontCouponsManager() {
               {activeCount}
             </div>
           </div>
-          <SparklesIcon size={24} color="#15803d" />
+          <TagIcon size={24} color="#15803d" />
         </div>
 
         {/* Stat 3: Total Orders Used */}

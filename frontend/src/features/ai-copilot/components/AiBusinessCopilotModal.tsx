@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { AiRobotIcon } from '@/shared/ui/AiRobotIcon';
-import { SparklesIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 
 interface Message {
   id: string;
@@ -389,8 +389,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 <span style={{ fontSize: '8px', lineHeight: 1, color: '#10b981' }}>●</span>
                 <span>متصل بالبيانات الحية</span>
                 <span style={{ color: '#cbd5e1' }}>|</span>
-                <span style={{ background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '4px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <SparklesIcon size={12} color="#047857" />
+                <span style={{ background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '4px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center' }}>
                   <span>مدعوم بـ Google Gemini Flash</span>
                 </span>
               </div>

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
-import { SparklesIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 
 export function SmartDemoOnboardingBanner() {
   const navigate = useNavigate();
@@ -67,48 +67,28 @@ export function SmartDemoOnboardingBanner() {
         }}
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: '1 1 340px' }}>
-        {/* Professional SVG Icon Container */}
-        <div
-          style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            color: '#170e5e',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <SparklesIcon size={20} color="#170e5e" />
+      <div style={{ flex: '1 1 340px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
+            معالج استيراد البيانات التجريبية حسب النشاط
+          </h3>
+          <span
+            style={{
+              fontSize: '11px',
+              background: '#ede9fe',
+              color: '#170e5e',
+              border: '1px solid #ddd6fe',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              fontWeight: 700,
+            }}
+          >
+            5 ثوانٍ فقط
+          </span>
         </div>
-
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
-              معالج استيراد البيانات التجريبية حسب النشاط
-            </h3>
-            <span
-              style={{
-                fontSize: '11px',
-                background: '#ede9fe',
-                color: '#170e5e',
-                border: '1px solid #ddd6fe',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                fontWeight: 700,
-              }}
-            >
-              5 ثوانٍ فقط
-            </span>
-          </div>
-          <p style={{ margin: '4px 0 0', fontSize: '0.83rem', color: '#64748b', lineHeight: 1.5 }}>
-            اختر نشاطك (سوبرماركت، ملابس، كافيه، إلكترونيات، صيدلية) لتعبئة ~50 صنفاً وفواتير وموردين لتجربة شاشة الكاشير والداشبورد وبوت الواتساب فورياً.
-          </p>
-        </div>
+        <p style={{ margin: '4px 0 0', fontSize: '0.83rem', color: '#64748b', lineHeight: 1.5 }}>
+          اختر نشاطك (سوبرماركت، ملابس، كافيه، إلكترونيات، صيدلية) لتعبئة ~50 صنفاً وفواتير وموردين لتجربة شاشة الكاشير والداشبورد وبوت الواتساب فورياً.
+        </p>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>

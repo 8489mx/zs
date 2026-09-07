@@ -1,4 +1,4 @@
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
@@ -11,7 +11,6 @@ import { MAJOR_DISTRIBUTORS } from '../constants/pharmacy.constants';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import {
   IconShortage,
-  IconSparkles,
   IconPlus,
   IconRefresh,
   IconEdit,
@@ -162,7 +161,7 @@ export default function PharmacyShortagesPage() {
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>{urgentCount}</div>
             </div>
             <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c' }}>
-              <IconSparkles size={18} />
+              <AlertTriangleIcon size={18} />
             </div>
           </div>
 
