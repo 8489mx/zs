@@ -122,13 +122,14 @@ export interface DriverPortalUser {
   phone?: string | null;
   vehiclePlate?: string | null;
   tenantId: string;
+  tenantName?: string;
 }
 
 export const driverPortalApi = {
-  login: async (phone: string, pinCode: string): Promise<{ token: string; rep: DriverPortalUser }> => {
+  login: async (phone: string, pinCode: string, companyCode?: string): Promise<{ token: string; rep: DriverPortalUser }> => {
     const res = await http<{ token: string; rep: DriverPortalUser }>('/api/driver-portal/login', {
       method: 'POST',
-      body: JSON.stringify({ phone, pinCode }),
+      body: JSON.stringify({ phone, pinCode, ...(companyCode ? { companyCode } : {}) }),
     });
     if (res?.token) {
       localStorage.setItem('zs_driver_portal_token', res.token);

@@ -197,10 +197,36 @@ export class EmployeePortalService {
       if (validPinMatches.length === 1) {
         matched = validPinMatches[0];
       } else if (validPinMatches.length > 1) {
+        const candidateTenantIds = Array.from(
+          new Set(validPinMatches.map((e: any) => String(e.tenant_id).trim())),
+        ).filter(Boolean);
+
+        let tenantRows: any[] = [];
+        try {
+          tenantRows = await this.anyDb
+            .selectFrom('tenants')
+            .select(['id', 'slug', 'business_name'])
+            .where('id', 'in', candidateTenantIds)
+            .execute();
+        } catch {
+          tenantRows = [];
+        }
+
+        const tenantMap = new Map((tenantRows || []).map((t: any) => [t.id, t]));
+        const tenantOptions = candidateTenantIds.map((tId) => {
+          const t = tenantMap.get(tId);
+          return {
+            id: tId,
+            name: t?.business_name || t?.slug || tId,
+            slug: t?.slug || tId,
+          };
+        });
+
         throw new AppError(
-          'كود الموظف ورمز الدخول مسجلان لدى أكثر من منشأة. يرجى تسجيل الدخول برقم الهاتف المحمول أو استخدام رابط محلك لمنع تداخل الحسابات.',
-          'AMBIGUOUS_EMPLOYEE_CREDENTIALS',
-          409,
+          'بيانات الدخول مسجلة لدى أكثر من منشأة. يرجى اختيار المنشأة لمتابعة العمل.',
+          'MULTIPLE_TENANTS',
+          401,
+          { tenants: tenantOptions },
         );
       } else {
         throw new AppError('رمز الدخول السري (PIN) غير صحيح', 'INVALID_PIN', 401);

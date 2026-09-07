@@ -520,14 +520,55 @@ export class DeliveryRepsService {
     }
 
     if (matchedReps.length > 1) {
+      const candidateTenantIds = Array.from(
+        new Set(matchedReps.map((r) => String(r.tenant_id).trim())),
+      ).filter(Boolean);
+
+      let tenantRows: any[] = [];
+      try {
+        tenantRows = await this.db
+          .selectFrom('tenants')
+          .select(['id', 'slug', 'business_name'])
+          .where('id', 'in', candidateTenantIds)
+          .execute();
+      } catch {
+        tenantRows = [];
+      }
+
+      const tenantMap = new Map((tenantRows || []).map((t: any) => [t.id, t]));
+      const tenantOptions = candidateTenantIds.map((tId) => {
+        const t = tenantMap.get(tId);
+        return {
+          id: tId,
+          name: t?.business_name || t?.slug || tId,
+          slug: t?.slug || tId,
+        };
+      });
+
       throw new AppError(
-        'رقم هاتف المندوب مسجل لدى أكثر من منشأة. يرجى تحديد المنشأة المراد العمل معها لمنع تداخل الحسابات.',
-        'AMBIGUOUS_DRIVER_TENANT',
-        409,
+        'رقم هاتف المندوب مسجل لدى أكثر من منشأة. يرجى اختيار المنشأة المراد العمل معها لمنع تداخل الحسابات.',
+        'MULTIPLE_TENANTS',
+        401,
+        { tenants: tenantOptions },
       );
     }
 
     const matchedRep = matchedReps[0];
+
+    // Fetch tenant name for active driver session
+    let tenantName = matchedRep.tenant_id;
+    try {
+      const tenantRow = await this.db
+        .selectFrom('tenants')
+        .select(['business_name', 'slug'])
+        .where('id', '=', matchedRep.tenant_id)
+        .executeTakeFirst();
+      if (tenantRow?.business_name || tenantRow?.slug) {
+        tenantName = tenantRow.business_name || tenantRow.slug;
+      }
+    } catch {
+      // fallback to tenant_id
+    }
 
     const tokenPayload = {
       repId: Number(matchedRep.id),
@@ -553,6 +594,7 @@ export class DeliveryRepsService {
         phone: matchedRep.phone,
         vehiclePlate: matchedRep.vehicle_plate,
         tenantId: matchedRep.tenant_id,
+        tenantName,
       },
     };
   }

@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, IsBoolean, MaxLength, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, IsBoolean, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 
 export class UpsertHrMasterDataDto {
   @IsString()

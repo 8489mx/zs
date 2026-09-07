@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { vanSalesApi, VanActiveTripResponse, VanStockItem } from '../api/van-sales.api';
 import { driverPortalApi } from '@/shared/api/delivery-reps.api';
 import { Button } from '@/shared/ui/button';
@@ -15,7 +15,7 @@ export default function VanSalesMobilePage() {
 
   useEffect(() => {
     if (!session) {
-      navigate('/driver');
+      navigate('/driver', { replace: true });
     }
   }, [session, navigate]);
 
@@ -168,6 +168,13 @@ export default function VanSalesMobilePage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/hub"
+            className="text-xs bg-white/10 hover:bg-white/20 text-white font-bold px-2.5 py-1.5 rounded-lg transition"
+            title="العودة لمركز البوابات"
+          >
+            مركز البوابات
+          </Link>
           <button
             onClick={() => navigate('/driver')}
             type="button"

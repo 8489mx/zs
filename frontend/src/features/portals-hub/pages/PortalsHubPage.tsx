@@ -592,27 +592,52 @@ export function PortalsHubPage() {
             </div>
           </div>
 
-          <Link
-            to="/login"
-            style={{
-              textDecoration: 'none',
-              backgroundColor: '#f1f5f9',
-              color: '#170e5e',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              fontSize: '12.5px',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <BuildingIcon size={14} color="#170e5e" />
-            <span className="hub-erp-full">الدخول للإدارة (ERP)</span>
-            <span className="hub-erp-short">الإدارة (ERP)</span>
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link
+              to="/settings/users"
+              style={{
+                textDecoration: 'none',
+                backgroundColor: '#ffffff',
+                color: '#1e293b',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+              title="إدارة كلمات السر، رموز الـ PIN، وأرقام هواتف الموظفين والمناديب"
+            >
+              <UsersIcon size={14} color="#170e5e" />
+              <span className="hub-erp-full">إدارة الحسابات والوصول</span>
+              <span className="hub-erp-short">إدارة الحسابات</span>
+            </Link>
+
+            <Link
+              to="/login"
+              style={{
+                textDecoration: 'none',
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: '1px solid #170e5e',
+                borderRadius: '8px',
+                padding: '8px 16px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <BuildingIcon size={14} color="#ffffff" />
+              <span className="hub-erp-full">الدخول للإدارة (ERP)</span>
+              <span className="hub-erp-short">الإدارة (ERP)</span>
+            </Link>
+          </div>
         </div>
       </header>
 

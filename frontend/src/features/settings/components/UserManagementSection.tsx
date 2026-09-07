@@ -1,5 +1,5 @@
-// regression marker: startNewUser('admin')
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { QueryFeedback } from '@/shared/components/query-feedback';
@@ -12,6 +12,15 @@ import {
   UserManagementEditorPanel,
   UserManagementListPanel,
 } from '@/features/settings/components/UserManagementPanels';
+import {
+  DeliveryRepsAccessPanel,
+  EmployeeSelfServiceAccessPanel,
+} from '@/features/settings/components/user-management/UnifiedAccessDirectoryPanel';
+import {
+  UsersIcon,
+  TruckIcon,
+  SmartphoneIcon,
+} from '@/shared/components/icons/AppIcons';
 import { useUserManagementController } from '@/features/settings/hooks/useUserManagementController';
 import { useScrollIntoViewOnChange } from '@/shared/hooks/use-scroll-into-view-on-change';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -82,6 +91,32 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
   useScrollIntoViewOnChange(selectedUserKey, userEditorSectionRef, { enabled: Boolean(selectedUserKey) && userInteracted });
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'erp-users' | 'drivers' | 'employees'>(() => {
+    if (urlTab === 'drivers') return 'drivers';
+    if (urlTab === 'employees') return 'employees';
+    return 'erp-users';
+  });
+
+  useEffect(() => {
+    if (urlTab === 'drivers' || urlTab === 'employees' || urlTab === 'erp-users') {
+      setActiveTab(urlTab as any);
+    }
+  }, [urlTab]);
+
+  const handleTabChange = (tab: 'erp-users' | 'drivers' | 'employees') => {
+    setActiveTab(tab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'erp-users') {
+        next.delete('tab');
+      } else {
+        next.set('tab', tab);
+      }
+      return next;
+    });
+  };
 
   const authUser = useAuthStore((s) => s.user);
   const authTenant = useAuthStore((s) => s.tenant);
@@ -94,129 +129,239 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
     <>
       <section className="document-prototype-section settings-users-card">
         <div className="section-header-compact-row">
-          <h3 className="document-prototype-section-title">المستخدمون والصلاحيات</h3>
-          <div className="section-header-actions-group">
-            {!setupMode ? (
-              isUserLimitReached ? (
-                <span
-                  style={{
-                    fontSize: '0.70rem',
-                    padding: '3px 6px',
-                    background: '#fef3c7',
-                    color: '#92400e',
-                    border: '1px solid #fde68a',
-                    borderRadius: '6px',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    whiteSpace: 'nowrap',
+          <div>
+            <h3 className="document-prototype-section-title">إدارة المستخدمين والهويات والوصول</h3>
+            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+              التحكم الشامل في حسابات دخول لوحة التحكم، مناديب الدليفري والتوزيع، وموظفي الخدمة الذاتية والبصمة.
+            </p>
+          </div>
+          {activeTab === 'erp-users' && (
+            <div className="section-header-actions-group">
+              {!setupMode ? (
+                isUserLimitReached ? (
+                  <span
+                    style={{
+                      fontSize: '0.70rem',
+                      padding: '3px 6px',
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={`وصلت للحد الأقصى في باقتك (${maxAllowedUsers} مستخدمين).`}
+                  >
+                    حد الباقة ({maxAllowedUsers})
+                  </span>
+                ) : (
+                  <Button type="button" variant="primary" className="section-header-action-btn" onClick={() => { startNewUser('cashier'); setIsEditorOpen(true); }}>
+                    + مستخدم جديد
+                  </Button>
+                )
+              ) : null}
+              {!setupMode ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="section-header-action-btn"
+                  onClick={async () => {
+                    const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter });
+                    exportUsersCsv('users-results.csv', payload.rows.map(normalizeUserRecord));
                   }}
-                  title={`وصلت للحد الأقصى في باقتك (${maxAllowedUsers} مستخدمين).`}
                 >
-                  حد الباقة ({maxAllowedUsers})
-                </span>
-              ) : (
-                <Button type="button" variant="primary" className="section-header-action-btn" onClick={() => { startNewUser('cashier'); setIsEditorOpen(true); }}>
-                  + مستخدم جديد
+                  تصدير
                 </Button>
-              )
-            ) : null}
-            {!setupMode ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="section-header-action-btn"
-                onClick={async () => {
-                  const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter });
-                  exportUsersCsv('users-results.csv', payload.rows.map(normalizeUserRecord));
-                }}
-              >
-                تصدير
-              </Button>
-            ) : null}
-            {!setupMode ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="section-header-action-btn"
-                onClick={async () => {
-                  const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter });
-                  printUsersList('قائمة المستخدمين', payload.rows.map(normalizeUserRecord));
-                }}
-              >
-                طباعة
-              </Button>
-            ) : null}
-          </div>
+              ) : null}
+              {!setupMode ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="section-header-action-btn"
+                  onClick={async () => {
+                    const payload = await settingsApi.listAllUsers({ search: userSearch, filter: userFilter });
+                    printUsersList('قائمة المستخدمين', payload.rows.map(normalizeUserRecord));
+                  }}
+                >
+                  طباعة
+                </Button>
+              ) : null}
+            </div>
+          )}
         </div>
-        <QueryFeedback
-          isLoading={usersQuery.isLoading}
-          isError={usersQuery.isError}
-          error={usersQuery.error}
-          isEmpty={!userSummary.totalItems}
-          loadingText="جاري تحميل المستخدمين..."
-          emptyTitle="لا توجد بيانات مستخدمين"
-          emptyHint="سيظهر هنا المستخدمون بمجرد تحميلهم من الخادم، ويمكنك إنشاء مستخدم جديد من نفس الشاشة."
-        >
-          <div className="page-stack">
-            <UserManagementListPanel
-              managedUsers={managedUsers}
-              summary={userSummary}
-              selectedUserKey={selectedUserKey}
-              selectedIds={selectedIds}
-              userSearch={userSearch}
-              userFilter={userFilter}
-              page={usersQuery.data?.pagination?.page || page}
-              pageSize={usersQuery.data?.pagination?.pageSize || pageSize}
-              totalItems={userSummary.totalItems}
-              onNewUser={() => { setUserInteracted(true); startNewUser(setupMode && setupStepKey === 'admin-user' ? 'admin' : 'cashier'); if (!setupMode) setIsEditorOpen(true); }}
-              onApplyRolePermissions={() => applyDefaultPermissions(draft.role)}
-              onApplyTemplate={applyTemplate}
-              activeTemplate={activeTemplate}
-              onCopyPermissions={() => void copyPermissions()}
-              onUserSearchChange={setUserSearch}
-              onUserFilterChange={setUserFilter}
-              onLoadUser={(user) => { setUserInteracted(true); loadUser(user); if (!setupMode) setIsEditorOpen(true); }}
-              onSelectedIdsChange={setSelectedIds}
-              onPageChange={setPage}
-              onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
-              onBulkAction={openBulkAction}
-              disableBulkSummary={disableBulkSummary}
-              onOpenDetails={(user) => setDetailsUserId(String(user.id || ''))}
-              setupMode={setupMode}
-            />
-            {setupMode && (
-              <div ref={userEditorSectionRef}>
-                <UserManagementEditorPanel
-                  branches={branches}
-                  draft={draft}
-                  currentUserRole={currentUserRole}
-                  isCurrentUserSelected={isCurrentUserSelected}
-                  selectedDraftDisableProtection={selectedDraftDisableProtection}
-                  canDirectlyDisableSelected={canDirectlyDisableSelected}
-                  canUnlockSelected={canUnlockSelected}
-                  canDeleteSelected={canDeleteSelected}
-                  isPending={actionMutation.isPending}
-                  isError={actionMutation.isError}
-                  isSuccess={actionMutation.isSuccess}
-                  error={actionMutation.error}
-                  statusMessage={statusMessage}
-                  onDraftChange={(updater) => setDraft((current) => updater(current))}
-                  onApplyRolePermissions={applyDefaultPermissions}
-                  onToggleBranch={toggleBranch}
-                  onTogglePermission={togglePermission}
-                  onReset={resetSelectedDraft}
-                  onUnlock={() => void unlockSelectedUser()}
-                  onDelete={() => setDeleteDialogOpen(true)}
-                  onSave={() => void saveCurrentDraft()}
-                  setupMode={setupMode}
-                  setupStepKey={setupStepKey}
-                />
-              </div>
-            )}
+
+        {/* Tab Navigation */}
+        {!setupMode && (
+          <div
+            style={{
+              display: 'flex',
+              gap: '6px',
+              padding: '4px',
+              background: '#f1f5f9',
+              borderRadius: '10px',
+              margin: '16px 0',
+              border: '1px solid #e2e8f0',
+              width: 'fit-content',
+              flexWrap: 'wrap',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => handleTabChange('erp-users')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === 'erp-users' ? '#170e5e' : 'transparent',
+                color: activeTab === 'erp-users' ? '#ffffff' : '#475569',
+                fontWeight: 700,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <UsersIcon size={16} color={activeTab === 'erp-users' ? '#ffffff' : '#64748b'} />
+              <span>مستخدمو لوحة الإدارة (ERP)</span>
+              <span
+                style={{
+                  background: activeTab === 'erp-users' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
+                  color: activeTab === 'erp-users' ? '#ffffff' : '#334155',
+                  padding: '1px 7px',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {userSummary.totalItems || 0}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('drivers')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === 'drivers' ? '#170e5e' : 'transparent',
+                color: activeTab === 'drivers' ? '#ffffff' : '#475569',
+                fontWeight: 700,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <TruckIcon size={16} color={activeTab === 'drivers' ? '#ffffff' : '#64748b'} />
+              <span>مناديب التوصيل والفان (Drivers)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('employees')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === 'employees' ? '#170e5e' : 'transparent',
+                color: activeTab === 'employees' ? '#ffffff' : '#475569',
+                fontWeight: 700,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <SmartphoneIcon size={16} color={activeTab === 'employees' ? '#ffffff' : '#64748b'} />
+              <span>موظفو الخدمة الذاتية والبصمة (Staff)</span>
+            </button>
           </div>
-        </QueryFeedback>
+        )}
+
+        {/* Tab Content */}
+        {activeTab === 'drivers' && !setupMode ? (
+          <DeliveryRepsAccessPanel />
+        ) : activeTab === 'employees' && !setupMode ? (
+          <EmployeeSelfServiceAccessPanel />
+        ) : (
+          <QueryFeedback
+            isLoading={usersQuery.isLoading}
+            isError={usersQuery.isError}
+            error={usersQuery.error}
+            isEmpty={!userSummary.totalItems}
+            loadingText="جاري تحميل المستخدمين..."
+            emptyTitle="لا توجد بيانات مستخدمين"
+            emptyHint="سيظهر هنا المستخدمون بمجرد تحميلهم من الخادم، ويمكنك إنشاء مستخدم جديد من نفس الشاشة."
+          >
+            <div className="page-stack">
+              <UserManagementListPanel
+                managedUsers={managedUsers}
+                summary={userSummary}
+                selectedUserKey={selectedUserKey}
+                selectedIds={selectedIds}
+                userSearch={userSearch}
+                userFilter={userFilter}
+                page={usersQuery.data?.pagination?.page || page}
+                pageSize={usersQuery.data?.pagination?.pageSize || pageSize}
+                totalItems={userSummary.totalItems}
+                onNewUser={() => { setUserInteracted(true); startNewUser(setupMode && setupStepKey === 'admin-user' ? 'admin' : 'cashier'); if (!setupMode) setIsEditorOpen(true); }}
+                onApplyRolePermissions={() => applyDefaultPermissions(draft.role)}
+                onApplyTemplate={applyTemplate}
+                activeTemplate={activeTemplate}
+                onCopyPermissions={() => void copyPermissions()}
+                onUserSearchChange={setUserSearch}
+                onUserFilterChange={setUserFilter}
+                onLoadUser={(user) => { setUserInteracted(true); loadUser(user); if (!setupMode) setIsEditorOpen(true); }}
+                onSelectedIdsChange={setSelectedIds}
+                onPageChange={setPage}
+                onPageSizeChange={(nextPageSize) => { setPageSize(nextPageSize); setPage(1); }}
+                onBulkAction={openBulkAction}
+                disableBulkSummary={disableBulkSummary}
+                onOpenDetails={(user) => setDetailsUserId(String(user.id || ''))}
+                setupMode={setupMode}
+              />
+              {setupMode && (
+                <div ref={userEditorSectionRef}>
+                  <UserManagementEditorPanel
+                    branches={branches}
+                    draft={draft}
+                    currentUserRole={currentUserRole}
+                    isCurrentUserSelected={isCurrentUserSelected}
+                    selectedDraftDisableProtection={selectedDraftDisableProtection}
+                    canDirectlyDisableSelected={canDirectlyDisableSelected}
+                    canUnlockSelected={canUnlockSelected}
+                    canDeleteSelected={canDeleteSelected}
+                    isPending={actionMutation.isPending}
+                    isError={actionMutation.isError}
+                    isSuccess={actionMutation.isSuccess}
+                    error={actionMutation.error}
+                    statusMessage={statusMessage}
+                    onDraftChange={(updater) => setDraft((current) => updater(current))}
+                    onApplyRolePermissions={applyDefaultPermissions}
+                    onToggleBranch={toggleBranch}
+                    onTogglePermission={togglePermission}
+                    onReset={resetSelectedDraft}
+                    onUnlock={() => void unlockSelectedUser()}
+                    onDelete={() => setDeleteDialogOpen(true)}
+                    onSave={() => void saveCurrentDraft()}
+                    setupMode={setupMode}
+                    setupStepKey={setupStepKey}
+                  />
+                </div>
+              )}
+            </div>
+          </QueryFeedback>
+        )}
       </section>
 
       {/* Modal for Editing/Creating User in Non-Setup Mode */}

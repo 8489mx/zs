@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { driverPortalApi, DeliveryOrder, SettleOrderPayload, DriverPortalUser } from '../api/delivery-reps.api';
 import { DeliverySettlementModal } from '../components/DeliverySettlementModal';
@@ -14,6 +15,29 @@ import {
   CheckIcon,
 } from '@/shared/components/icons/AppIcons';
 
+function BuildingIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h.01" />
+      <path d="M16 6h.01" />
+      <path d="M8 10h.01" />
+      <path d="M16 10h.01" />
+      <path d="M8 14h.01" />
+      <path d="M16 14h.01" />
+    </svg>
+  );
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+
 interface OfflineQueueItem {
   orderId: number;
   docNo: string;
@@ -24,6 +48,7 @@ interface OfflineQueueItem {
 }
 
 export function DriverPortalPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [driverUser, setDriverUser] = useState<DriverPortalUser | null>(() => {
@@ -35,6 +60,7 @@ export function DriverPortalPage() {
   const [pinInput, setPinInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [disambiguationTenants, setDisambiguationTenants] = useState<Array<{ id: string; name: string; slug: string }> | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<'pending' | 'settled' | 'all'>('pending');
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,6 +106,7 @@ export function DriverPortalPage() {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    setDisambiguationTenants(null);
     const cleanPhone = phoneInput.trim();
     const cleanPin = pinInput.trim();
     if (!cleanPhone || !cleanPin) {
@@ -89,12 +116,50 @@ export function DriverPortalPage() {
 
     setIsLoggingIn(true);
     try {
-      const res = await driverPortalApi.login(cleanPhone, cleanPin);
+      const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const companyCode = urlParams?.get('c') || urlParams?.get('tenant') || (typeof localStorage !== 'undefined' ? localStorage.getItem('zs_driver_last_company_code') : null) || undefined;
+      const res = await driverPortalApi.login(cleanPhone, cleanPin, companyCode);
+      if (companyCode) {
+        localStorage.setItem('zs_driver_last_company_code', companyCode);
+      }
       setDriverUser(res.rep);
     } catch (err: any) {
+      const details = err?.details || err?.error?.details || err?.response?.data?.details || err?.response?.data || err;
+      const tenants = details?.tenants || details?.error?.tenants || err?.tenants;
+      const code = err?.code || details?.code || details?.error?.code || err?.response?.data?.code;
+
+      if ((code === 'MULTIPLE_TENANTS' || code === 'AMBIGUOUS_DRIVER_TENANT') && Array.isArray(tenants) && tenants.length > 0) {
+        setDisambiguationTenants(tenants);
+        return;
+      }
       setLoginError(err.message || 'بيانات الدخول غير صحيحة، تأكد من رقم الهاتف والرمز السري');
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const handleSelectTenant = async (tenantId: string) => {
+    setIsLoggingIn(true);
+    setLoginError('');
+    try {
+      const cleanPhone = phoneInput.trim();
+      const cleanPin = pinInput.trim();
+      const res = await driverPortalApi.login(cleanPhone, cleanPin, tenantId);
+      localStorage.setItem('zs_driver_last_company_code', tenantId);
+      setDisambiguationTenants(null);
+      setDriverUser(res.rep);
+    } catch (err: any) {
+      setLoginError(err.message || 'تعذر تسجيل الدخول للمنشأة المحددة');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleSwitchTenant = () => {
+    if (window.confirm('هل تود الانتقال والتبديل إلى منشأة أخرى؟')) {
+      driverPortalApi.logout();
+      setDriverUser(null);
+      setDisambiguationTenants(null);
     }
   };
 
@@ -102,6 +167,7 @@ export function DriverPortalPage() {
     if (window.confirm('هل تود تسجيل الخروج من حساب المندوب؟')) {
       driverPortalApi.logout();
       setDriverUser(null);
+      setDisambiguationTenants(null);
     }
   };
 
@@ -364,7 +430,160 @@ export function DriverPortalPage() {
               منظومة Z-Systems اللوجستية لإدارة أساطيل الدليفري
             </span>
           </div>
+
+          <div style={{ marginTop: '14px', textAlign: 'center' }}>
+            <Link
+              to="/hub"
+              style={{
+                fontSize: '12.5px',
+                fontWeight: 700,
+                color: '#170e5e',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>← العودة لمركز البوابات</span>
+            </Link>
+          </div>
         </div>
+
+        {disambiguationTenants && disambiguationTenants.length > 0 && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: '16px',
+            }}
+            dir="rtl"
+          >
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                border: '1px solid #e2e8f0',
+                width: '100%',
+                maxWidth: '460px',
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      backgroundColor: '#ede9fe',
+                      color: '#170e5e',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <BuildingIcon />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                      اختر المنشأة لبدء التوصيل
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                      رقمك مسجل كمندوب لدى أكثر من منشأة
+                    </p>
+                  </div>
+                </div>
+                <p style={{ fontSize: '13px', color: '#475569', margin: '8px 0 0', lineHeight: 1.5 }}>
+                  يرجى تحديد المنشأة التي ترغب في توصيل طلباتها ومتابعة عهدتها الآن:
+                </p>
+              </div>
+
+              <div style={{ padding: '16px 24px', maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {disambiguationTenants.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    disabled={isLoggingIn}
+                    onClick={() => handleSelectTenant(t.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: '#ffffff',
+                      cursor: isLoggingIn ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s ease-in-out',
+                      textAlign: 'right',
+                      width: '100%',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.borderColor = '#170e5e';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
+                          backgroundColor: '#f1f5f9',
+                          color: '#170e5e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <BuildingIcon />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{t.name}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>كود المنشأة: {t.slug || t.id}</div>
+                      </div>
+                    </div>
+                    <div style={{ color: '#94a3b8' }}>
+                      <ChevronLeftIcon />
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ padding: '12px 24px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  disabled={isLoggingIn}
+                  onClick={() => setDisambiguationTenants(null)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -485,8 +704,23 @@ export function DriverPortalPage() {
             <TruckIcon size={20} color="#2563eb" />
           </div>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>
-              أهلاً، كابتن {driverUser.name}
+            <div style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>أهلاً، كابتن {driverUser.name}</span>
+              {driverUser.tenantName && (
+                <span
+                  style={{
+                    backgroundColor: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '6px',
+                    padding: '1px 7px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {driverUser.tenantName}
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '11px', color: '#64748b' }}>
               {driverUser.phone ? `هاتف: ${driverUser.phone}` : ''}
@@ -496,9 +730,28 @@ export function DriverPortalPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Link
+            to="/hub"
+            style={{
+              background: '#f1f5f9',
+              color: '#334155',
+              border: '1px solid #e2e8f0',
+              borderRadius: '7px',
+              padding: '6px 10px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title="العودة لمركز البوابات"
+          >
+            <span>مركز البوابات</span>
+          </Link>
           <button
             type="button"
-            onClick={() => { window.location.href = '/van-sales'; }}
+            onClick={() => navigate('/van-sales')}
             style={{
               background: '#ecfdf5',
               color: '#047857',
@@ -526,6 +779,26 @@ export function DriverPortalPage() {
             <RefreshCwIcon size={13} color="#475569" />
             <span>{isFetching ? '...' : 'تحديث'}</span>
           </Button>
+          <button
+            type="button"
+            onClick={handleSwitchTenant}
+            style={{
+              background: '#f8fafc',
+              color: '#170e5e',
+              border: '1px solid #cbd5e1',
+              borderRadius: '7px',
+              padding: '6px 10px',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title="التبديل إلى منشأة أخرى"
+          >
+            <span>تبديل المنشأة</span>
+          </button>
           <button
             type="button"
             onClick={handleLogout}

@@ -12,6 +12,8 @@ import { ContactsSection, LedgerSection } from '@/features/hr/components/employe
 import { EndOfServiceModal } from '../components/employee-profile/EndOfServiceModal';
 import { EmployeeAdjustmentsSection } from '@/features/hr/components/employee-profile/EmployeeAdjustmentsSection';
 import { buildEmployeeProfileDerivedData } from '@/features/hr/components/employee-profile/employee-profile.derived';
+import { mobilePunchApi } from '@/features/hr/api/mobile-punch.api';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 import { systemAlert } from '@/shared/components/system-alert';
 
@@ -56,6 +58,30 @@ export function EmployeeProfilePage() {
   const [contractDraft, setContractDraft] = useState({ baseSalary: '', contractType: 'monthly' });
   const [showContractForm, setShowContractForm] = useState(false);
   const [showEndOfServiceModal, setShowEndOfServiceModal] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinCodeInput, setPinCodeInput] = useState('');
+  const [isPinSubmitting, setIsPinSubmitting] = useState(false);
+
+  async function handleSavePin() {
+    if (!id) return;
+    const cleanPin = pinCodeInput.trim();
+    if (!cleanPin || cleanPin.length < 4) {
+      systemAlert('يرجى إدخال رمز PIN لا يقل عن 4 أرقام');
+      return;
+    }
+    setIsPinSubmitting(true);
+    try {
+      await mobilePunchApi.setEmployeePin(Number(id), cleanPin);
+      await profile.refetch();
+      systemAlert('تم تعيين رمز الدخول السريع (PIN) بنجاح');
+      setShowPinModal(false);
+      setPinCodeInput('');
+    } catch (err: any) {
+      systemAlert(err.message || 'حدث خطأ أثناء حفظ الرمز');
+    } finally {
+      setIsPinSubmitting(false);
+    }
+  }
 
   const employee = (profile.data?.employee || undefined) as HrEmployee | undefined;
   const contacts = useMemo(() => (profile.data?.contacts || []) as HrContact[], [profile.data?.contacts]);
@@ -133,6 +159,17 @@ export function EmployeeProfilePage() {
           actions={
             <div className="actions compact-actions">
               {id && canManageEmployees ? <Button variant="secondary" onClick={() => navigate(`/hr/employees/${id}/edit`)}>تعديل بيانات الموظف</Button> : null}
+              {id && canManageEmployees ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setPinCodeInput(employee?.pinCode || (employee as any)?.pin_code || '');
+                    setShowPinModal(true);
+                  }}
+                >
+                  رمز الـ PIN للدخول
+                </Button>
+              ) : null}
               <Button variant="secondary" onClick={() => navigate(`/hr/employees/${id}/print-contract`)}>طباعة العقد</Button>
               {employee?.status !== 'terminated' && <Button variant="secondary" className="danger" onClick={() => setShowEndOfServiceModal(true)}>إنهاء خدمة</Button>}
               <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
@@ -197,6 +234,28 @@ export function EmployeeProfilePage() {
                     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px' }}>
                       <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>الموبايل الأساسي</span>
                       <strong style={{ fontSize: '0.825rem', color: '#0f172a' }}>{primaryPhone}</strong>
+                    </div>
+                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', gridColumn: 'span 2' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>رمز الدخول السريع (PIN) للبوابة والبصمة</span>
+                          <strong style={{ fontSize: '0.85rem', color: '#0f172a', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                            {employee?.pinCode || (employee as any)?.pin_code ? `•••• (${employee?.pinCode || (employee as any)?.pin_code})` : 'غير محدد حتى الآن'}
+                          </strong>
+                        </div>
+                        {canManageEmployees && (
+                          <Button
+                            variant="secondary"
+                            style={{ fontSize: '11px', padding: '2px 8px' }}
+                            onClick={() => {
+                              setPinCodeInput(employee?.pinCode || (employee as any)?.pin_code || '');
+                              setShowPinModal(true);
+                            }}
+                          >
+                            تعديل الـ PIN
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -472,6 +531,62 @@ export function EmployeeProfilePage() {
           ) : null}
         </QueryFeedback>
       </div>
+
+      {showPinModal && (
+        <DialogShell
+          title={`تعيين رمز PIN للدخول: ${employee ? employeeName(employee) : ''}`}
+          isOpen={showPinModal}
+          onClose={() => setShowPinModal(false)}
+          maxWidth="440px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '10px 0' }} dir="rtl">
+            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+              يستخدم الموظف هذا الرمز لتسجيل بصمة الحضور بالسيلفي والـ GPS، وللدخول إلى بوابة الموظف الذاتية لاستعراض الراتب والإجازات.
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                رمز الدخول السريع (PIN جديد - 4 إلى 6 أرقام)
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={pinCodeInput}
+                onChange={(e) => setPinCodeInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="مثال: 1234"
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '7px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '16px',
+                  direction: 'ltr',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  letterSpacing: '3px',
+                  fontWeight: 800,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+              <Button variant="secondary" onClick={() => setShowPinModal(false)}>
+                إلغاء
+              </Button>
+              <Button
+                variant="primary"
+                style={{ background: '#170e5e', borderColor: '#170e5e' }}
+                onClick={handleSavePin}
+                disabled={isPinSubmitting}
+              >
+                {isPinSubmitting ? 'جاري الحفظ...' : 'تأكيد وحفظ الرمز'}
+              </Button>
+            </div>
+          </div>
+        </DialogShell>
+      )}
       </main>
     </div>
   );
