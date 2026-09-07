@@ -339,7 +339,6 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                 <Button
                   type="button"
                   variant="secondary"
-                  size="sm"
                   className="pos-customer-cancel-btn"
                   onClick={() => setPickerMode('closed')}
                   disabled={props.isQuickCustomerPending}
@@ -349,7 +348,6 @@ export function PosCartMetaForm(props: Pick<PosCartPanelProps,
                 <Button
                   type="submit"
                   variant="primary"
-                  size="sm"
                   disabled={props.isQuickCustomerPending || !props.quickCustomerName.trim()}
                   className="pos-customer-save-btn"
                 >

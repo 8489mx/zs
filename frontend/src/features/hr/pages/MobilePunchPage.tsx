@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { mobilePunchApi, type MobileAttendanceUser, type TodayAttendanceStatus } from '../api/mobile-punch.api';
-import { CameraIcon, MapPinIcon, SmartphoneIcon, CheckIcon, XIcon, AlertTriangleIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
+import { MapPinIcon, SmartphoneIcon, CheckIcon, XIcon, AlertTriangleIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
 
 export default function MobilePunchPage() {
   const [token, setToken] = useState<string | null>(() => {

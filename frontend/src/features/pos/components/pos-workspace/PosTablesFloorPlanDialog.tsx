@@ -643,7 +643,7 @@ export function PosTablesFloorPlanDialog({
                         <Button
                           type="button"
                           variant="primary"
-                          size="sm"
+
                           disabled={isPending}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -665,7 +665,7 @@ export function PosTablesFloorPlanDialog({
                           <Button
                             type="button"
                             variant="secondary"
-                            size="sm"
+  
                             onClick={(e) => {
                               e.stopPropagation();
                               void onDeleteDraft(draft.id);
@@ -700,7 +700,6 @@ export function PosTablesFloorPlanDialog({
                 <Button
                   type="button"
                   variant="secondary"
-                  size="sm"
                   onClick={() => { void onClearAllDrafts(); }}
                   disabled={!heldDrafts.length}
                   style={{
