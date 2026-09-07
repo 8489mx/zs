@@ -390,7 +390,7 @@ export function AiBusinessCopilotModal({ open, onClose }: AiBusinessCopilotModal
                 <span>متصل بالبيانات الحية</span>
                 <span style={{ color: '#cbd5e1' }}>|</span>
                 <span style={{ background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '4px', fontSize: '10.5px', display: 'inline-flex', alignItems: 'center' }}>
-                  <span>مدعوم بـ Google Gemini Flash</span>
+                  <span>مدعوم بالذكاء الاصطناعي (AI Copilot)</span>
                 </span>
               </div>
             </div>

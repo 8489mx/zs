@@ -24,7 +24,13 @@ export class AiCopilotController {
 
   @Post('config')
   saveConfig(
-    @Body() body: { geminiApiKey?: string },
+    @Body() body: {
+      provider?: 'gemini' | 'openai' | 'custom';
+      apiKey?: string;
+      geminiApiKey?: string;
+      model?: string;
+      baseUrl?: string;
+    },
     @Req() req: RequestWithAuth,
   ) {
     return this.copilotService.saveConfig(body, req.authContext!);
@@ -32,10 +38,15 @@ export class AiCopilotController {
 
   @Post('test-key')
   testKey(
-    @Body('apiKey') apiKey: string,
+    @Body() body: {
+      apiKey?: string;
+      provider?: 'gemini' | 'openai' | 'custom';
+      model?: string;
+      baseUrl?: string;
+    },
     @Req() req: RequestWithAuth,
   ) {
-    return this.copilotService.testGeminiKey(apiKey, req.authContext!);
+    return this.copilotService.testAiKey(body, req.authContext!);
   }
 
   @Post('simulate-bot')

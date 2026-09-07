@@ -5,11 +5,13 @@ import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 
+export type AiProvider = 'gemini' | 'openai' | 'custom';
+
 export interface CopilotResponse {
   answer: string;
   suggestedQuestions: string[];
   metrics?: Record<string, unknown>;
-  engine?: 'gemini_llm' | 'local_analytics';
+  engine?: 'gemini_llm' | 'openai_llm' | 'custom_llm' | 'local_analytics';
 }
 
 @Injectable()
@@ -342,21 +344,27 @@ export class AiCopilotService {
       topProductsMonth: topMonthlyRows.map((p) => ({ name: p.product_name, qty: Number(p.total_qty) })),
     };
 
-    // 2. Try Generative AI (Gemini 1.5 Flash) if API key is present
-    const geminiApiKey = await this.getEffectiveGeminiApiKey(tenantId);
-    if (geminiApiKey && geminiApiKey.trim()) {
+    // 2. Try Generative AI (Gemini or OpenAI / Custom) if API key is present
+    const aiConfig = await this.getEffectiveAiConfig(tenantId);
+    if (aiConfig.apiKey && aiConfig.apiKey.trim()) {
       try {
-        const llmResponse = await this.askGemini(question, snapshot, geminiApiKey.trim());
+        let llmResponse: { answer: string; suggestedQuestions: string[] } | null = null;
+        if (aiConfig.provider === 'openai' || aiConfig.provider === 'custom' || aiConfig.apiKey.startsWith('sk-')) {
+          llmResponse = await this.askOpenAi(question, snapshot, aiConfig.apiKey.trim(), aiConfig.model, aiConfig.baseUrl);
+        } else {
+          llmResponse = await this.askGemini(question, snapshot, aiConfig.apiKey.trim());
+        }
+
         if (llmResponse) {
           return {
             answer: llmResponse.answer,
             suggestedQuestions: llmResponse.suggestedQuestions,
             metrics: snapshot,
-            engine: 'gemini_llm',
+            engine: aiConfig.provider === 'openai' ? 'openai_llm' : aiConfig.provider === 'custom' ? 'custom_llm' : 'gemini_llm',
           };
         }
       } catch (err: any) {
-        this.logger.warn(`Gemini LLM copilot failed, falling back to local engine: ${err?.message || err}`);
+        this.logger.warn(`Cloud LLM copilot failed, falling back to local engine: ${err?.message || err}`);
       }
     }
 
@@ -658,87 +666,150 @@ ${JSON.stringify(snapshot, null, 2)}
     };
   }
 
-  async getEffectiveGeminiApiKey(tenantId: string): Promise<string | null> {
+  async getEffectiveAiConfig(tenantId: string): Promise<{
+    provider: AiProvider;
+    apiKey: string | null;
+    model: string;
+    baseUrl?: string;
+  }> {
+    let customKey: string | null = null;
+    let customProvider: AiProvider = 'gemini';
+    let customModel = '';
+    let customBaseUrl = '';
+
     try {
-      const row = await this.db
+      const rows = await this.db
         .selectFrom('settings')
-        .select('value')
+        .select(['key', 'value'])
         .where('tenant_id', '=', tenantId)
-        .where('key', '=', 'gemini_api_key')
-        .executeTakeFirst();
+        .where('key', 'in', ['ai_api_key', 'gemini_api_key', 'ai_provider', 'ai_model', 'ai_base_url'])
+        .execute();
 
-      if (row && row.value) {
-        let val: any = row.value;
-        try {
-          val = JSON.parse(val);
-        } catch {
-          // string
-        }
-        if (typeof val === 'string' && val.trim().length > 5) {
-          return val.trim();
-        }
+      const map = new Map<string, any>();
+      for (const r of rows) {
+        try { map.set(r.key, JSON.parse(r.value)); } catch { map.set(r.key, r.value); }
       }
+
+      customKey = map.get('ai_api_key') || map.get('gemini_api_key') || null;
+      if (typeof customKey === 'string') customKey = customKey.trim();
+
+      const p = map.get('ai_provider');
+      if (p === 'openai' || p === 'custom' || p === 'gemini') {
+        customProvider = p;
+      } else if (customKey?.startsWith('sk-')) {
+        customProvider = 'openai';
+      }
+
+      customModel = String(map.get('ai_model') || '').trim();
+      customBaseUrl = String(map.get('ai_base_url') || '').trim();
     } catch (err: any) {
-      this.logger.warn(`Failed to read tenant gemini key: ${err?.message || err}`);
+      this.logger.warn(`Failed to read tenant AI config: ${err?.message || err}`);
     }
 
-    const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.AI_COPILOT_API_KEY;
-    if (envKey && envKey.trim().length > 5) {
-      return envKey.trim();
+    if (!customKey) {
+      const envOpenAiKey = process.env.OPENAI_API_KEY;
+      const envGeminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.AI_COPILOT_API_KEY;
+      if (envOpenAiKey && envOpenAiKey.trim().length > 5) {
+        return {
+          provider: 'openai',
+          apiKey: envOpenAiKey.trim(),
+          model: customModel || 'gpt-4o-mini',
+          baseUrl: customBaseUrl || 'https://api.openai.com/v1',
+        };
+      }
+      if (envGeminiKey && envGeminiKey.trim().length > 5) {
+        return {
+          provider: 'gemini',
+          apiKey: envGeminiKey.trim(),
+          model: customModel || 'gemini-flash-latest',
+        };
+      }
+      return {
+        provider: customProvider,
+        apiKey: null,
+        model: customModel || (customProvider === 'openai' ? 'gpt-4o-mini' : 'gemini-flash-latest'),
+      };
     }
-    return null;
+
+    return {
+      provider: customProvider,
+      apiKey: customKey,
+      model: customModel || (customProvider === 'openai' ? 'gpt-4o-mini' : 'gemini-flash-latest'),
+      baseUrl: customBaseUrl || (customProvider === 'openai' ? 'https://api.openai.com/v1' : undefined),
+    };
+  }
+
+  async getEffectiveGeminiApiKey(tenantId: string): Promise<string | null> {
+    const config = await this.getEffectiveAiConfig(tenantId);
+    return config.apiKey;
   }
 
   async getConfig(actor: AuthContext): Promise<{
     hasApiKey: boolean;
     isCustomKey: boolean;
     maskedKey: string;
-    engine: 'gemini_llm' | 'local_analytics';
+    engine: 'gemini_llm' | 'openai_llm' | 'custom_llm' | 'local_analytics';
+    provider: AiProvider;
     model: string;
+    baseUrl?: string;
   }> {
     const { tenantId } = requireTenantScope(actor);
-    const customRow = await this.db
-      .selectFrom('settings')
-      .select('value')
-      .where('tenant_id', '=', tenantId)
-      .where('key', '=', 'gemini_api_key')
-      .executeTakeFirst();
-
-    let customKey: string | null = null;
-    if (customRow?.value) {
-      try {
-        customKey = JSON.parse(customRow.value);
-      } catch {
-        customKey = customRow.value;
-      }
-    }
-
-    const effectiveKey = await this.getEffectiveGeminiApiKey(tenantId);
-    const hasKey = !!(effectiveKey && effectiveKey.trim());
-    const isCustom = !!(customKey && typeof customKey === 'string' && customKey.trim().length > 5);
+    const aiConfig = await this.getEffectiveAiConfig(tenantId);
+    const hasKey = !!(aiConfig.apiKey && aiConfig.apiKey.trim());
 
     let masked = '';
-    if (effectiveKey && effectiveKey.length > 8) {
-      masked = `${effectiveKey.slice(0, 4)}••••${effectiveKey.slice(-4)}`;
+    if (aiConfig.apiKey && aiConfig.apiKey.length > 8) {
+      masked = `${aiConfig.apiKey.slice(0, 4)}••••${aiConfig.apiKey.slice(-4)}`;
     }
+
+    const providerNames: Record<AiProvider, string> = {
+      gemini: 'Google Gemini Flash (المحرك السحابي الفائق)',
+      openai: `OpenAI ChatGPT (${aiConfig.model || 'gpt-4o-mini'})`,
+      custom: `مزود مخصص (${aiConfig.model || 'OpenAI Compatible'})`,
+    };
 
     return {
       hasApiKey: hasKey,
-      isCustomKey: isCustom,
+      isCustomKey: hasKey,
       maskedKey: masked,
-      engine: hasKey ? 'gemini_llm' : 'local_analytics',
-      model: 'Google Gemini 3.6 Flash (المجاني الفائق)',
+      engine: !hasKey
+        ? 'local_analytics'
+        : aiConfig.provider === 'openai'
+          ? 'openai_llm'
+          : aiConfig.provider === 'custom'
+            ? 'custom_llm'
+            : 'gemini_llm',
+      provider: aiConfig.provider,
+      model: providerNames[aiConfig.provider] || aiConfig.model,
+      baseUrl: aiConfig.baseUrl,
     };
   }
 
-  async saveConfig(payload: { geminiApiKey?: string }, actor: AuthContext): Promise<{ ok: boolean }> {
+  async saveConfig(
+    payload: {
+      provider?: AiProvider;
+      apiKey?: string;
+      geminiApiKey?: string;
+      model?: string;
+      baseUrl?: string;
+    },
+    actor: AuthContext,
+  ): Promise<{ ok: boolean }> {
     const { tenantId, accountId } = requireTenantScope(actor);
-    const keyVal = (payload.geminiApiKey || '').trim();
+    const keyVal = (payload.apiKey ?? payload.geminiApiKey ?? '').trim();
+    let provider = payload.provider || (keyVal.startsWith('sk-') ? 'openai' : 'gemini');
+    const model = (payload.model || '').trim();
+    const baseUrl = (payload.baseUrl || '').trim();
 
     if (keyVal) {
       await sql`
         INSERT INTO settings (key, value, tenant_id, account_id)
-        VALUES ('gemini_api_key', ${JSON.stringify(keyVal)}, ${tenantId}, ${accountId})
+        VALUES 
+          ('ai_api_key', ${JSON.stringify(keyVal)}, ${tenantId}, ${accountId}),
+          ('gemini_api_key', ${JSON.stringify(keyVal)}, ${tenantId}, ${accountId}),
+          ('ai_provider', ${JSON.stringify(provider)}, ${tenantId}, ${accountId}),
+          ('ai_model', ${JSON.stringify(model)}, ${tenantId}, ${accountId}),
+          ('ai_base_url', ${JSON.stringify(baseUrl)}, ${tenantId}, ${accountId})
         ON CONFLICT (tenant_id, key)
         DO UPDATE SET value = EXCLUDED.value, account_id = EXCLUDED.account_id
       `.execute(this.db);
@@ -746,11 +817,39 @@ ${JSON.stringify(snapshot, null, 2)}
       await this.db
         .deleteFrom('settings')
         .where('tenant_id', '=', tenantId)
-        .where('key', '=', 'gemini_api_key')
+        .where('key', 'in', ['ai_api_key', 'gemini_api_key', 'ai_provider', 'ai_model', 'ai_base_url'])
         .execute();
     }
 
     return { ok: true };
+  }
+
+  async testAiKey(
+    params: {
+      apiKey?: string;
+      provider?: AiProvider;
+      model?: string;
+      baseUrl?: string;
+    },
+    actor?: AuthContext,
+  ): Promise<{ success: boolean; message: string; model?: string; provider?: string }> {
+    const { tenantId } = actor ? requireTenantScope(actor) : { tenantId: '' };
+    const config = tenantId ? await this.getEffectiveAiConfig(tenantId) : { provider: 'gemini' as AiProvider, apiKey: null, model: '' };
+
+    const keyToTest = (params.apiKey || config.apiKey || '').trim();
+    let provider = params.provider || (keyToTest.startsWith('sk-') ? 'openai' : config.provider || 'gemini');
+    const model = params.model || config.model || (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-flash-latest');
+    const baseUrl = params.baseUrl || (config as any).baseUrl || 'https://api.openai.com/v1';
+
+    if (!keyToTest) {
+      return { success: false, message: 'لم يتم توفير مفتاح الذكاء الاصطناعي لاختباره' };
+    }
+
+    if (provider === 'openai' || provider === 'custom' || keyToTest.startsWith('sk-')) {
+      return this.testOpenAiKey(keyToTest, model, baseUrl);
+    }
+
+    return this.testGeminiKey(keyToTest, actor);
   }
 
   async testGeminiKey(apiKey?: string, actor?: AuthContext): Promise<{ success: boolean; message: string; model?: string }> {
@@ -932,30 +1031,47 @@ ${JSON.stringify(snapshot, null, 2)}
       return words.some((w) => w.length > 2 && qLower.includes(w)) || qLower.includes(p.name.toLowerCase());
     });
 
-    const apiKey = await this.getEffectiveGeminiApiKey(tenantId);
-    if (apiKey) {
+    const aiConfig = await this.getEffectiveAiConfig(tenantId);
+    if (aiConfig.apiKey && aiConfig.apiKey.trim()) {
       try {
-        const geminiReply = await this.askGeminiSalesBot(
-          q,
-          products,
-          {
-            name: businessName,
-            currency: 'ج.م',
-            storefrontUrl,
-            customPrompt,
-          },
-          apiKey,
-        );
+        let reply: string | null = null;
+        if (aiConfig.provider === 'openai' || aiConfig.provider === 'custom' || aiConfig.apiKey.startsWith('sk-')) {
+          reply = await this.askOpenAiSalesBot(
+            q,
+            products,
+            {
+              name: businessName,
+              currency: 'ج.م',
+              storefrontUrl,
+              customPrompt,
+            },
+            aiConfig.apiKey.trim(),
+            aiConfig.model,
+            aiConfig.baseUrl,
+          );
+        } else {
+          reply = await this.askGeminiSalesBot(
+            q,
+            products,
+            {
+              name: businessName,
+              currency: 'ج.م',
+              storefrontUrl,
+              customPrompt,
+            },
+            aiConfig.apiKey.trim(),
+          );
+        }
 
-        if (geminiReply && geminiReply.trim()) {
+        if (reply && reply.trim()) {
           return {
-            reply: geminiReply.trim(),
+            reply: reply.trim(),
             matchedProducts: matchedProducts.slice(0, 5),
             engine: 'gemini_llm',
           };
         }
       } catch (err: any) {
-        this.logger.warn(`Gemini sales bot failed, falling back to local: ${err?.message || err}`);
+        this.logger.warn(`AI sales bot failed, falling back to local: ${err?.message || err}`);
       }
     }
 
@@ -1077,5 +1193,184 @@ ${businessInfo.customPrompt ? `تعليمات التاجر الإضافية: ${b
     }
 
     return `أهلاً بك في ${businessInfo.name}! 🌟\nسعداء بتواصلك معنا. يمكنك استعراض كافة منتجاتنا وأحدث العروض والأسعار عبر المتجر:\n${businessInfo.storefrontUrl || 'متجرنا الإلكتروني'}\n\nأو يمكنك توضيح اسم الصنف المطلوب وسأوافيك بتفاصيله فوراً!`;
+  }
+
+  async testOpenAiKey(
+    apiKey: string,
+    model = 'gpt-4o-mini',
+    baseUrl = 'https://api.openai.com/v1',
+  ): Promise<{ success: boolean; message: string; model?: string; provider?: string }> {
+    const cleanUrl = (baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 9000);
+
+    try {
+      const res = await fetch(`${cleanUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: model || 'gpt-4o-mini',
+          messages: [{ role: 'user', content: 'Say OK' }],
+          max_tokens: 5,
+        }),
+      });
+
+      if (res.ok) {
+        return {
+          success: true,
+          message: `تم الاتصال بنجاح بمحرك OpenAI (${model || 'gpt-4o-mini'})!`,
+          model: model || 'gpt-4o-mini',
+          provider: 'openai',
+        };
+      }
+
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData?.error?.message || `HTTP ${res.status}`;
+      return {
+        success: false,
+        message: `فشل الاتصال بـ OpenAI: ${errMsg}`,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: `تعذر الاتصال بمحرك OpenAI: ${err?.message || String(err)}`,
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private async askOpenAi(
+    question: string,
+    snapshot: Record<string, unknown>,
+    apiKey: string,
+    model = 'gpt-4o-mini',
+    baseUrl = 'https://api.openai.com/v1',
+  ): Promise<{ answer: string; suggestedQuestions: string[] } | null> {
+    const prompt = `أنت (زاد AI)، المساعد والمستشار التجاري والمالي الذكي لنظام إدارة المنشآت Z-Systems.
+بيانات النشاط الحالية:
+${JSON.stringify(snapshot, null, 2)}
+
+قواعدك الصارمة:
+1. أجب «على قد السؤال بالضبط» وبإيجاز شديد ومباشر (من سطر إلى 3 أسطر كحد أقصى).
+2. لا تسرد تقريراً شاملاً لم يطلبه المستخدم.
+3. إذا سأل المستخدم عن بند محدد فقط، أجب عنه بالتحديد فقط بالأرقام.
+4. إذا كان السؤال دردشة أو تحية، أجب بروح ذكية ومرحة وموجزة في سطر واحد دون سرد بيانات.
+5. تحدث باللغة العربية بأسلوب راقٍ وموجز.
+6. اقترح فقط 3 أسئلة تالية قصيرة تناسب نفس موضوع السؤال.
+
+السؤال: "${question}"
+
+أجب حصراً بصيغة JSON صالحة:
+{
+  "answer": "الإجابة المباشرة والموجزة",
+  "suggestedQuestions": ["سؤال 1", "سؤال 2", "سؤال 3"]
+}`;
+
+    const cleanUrl = (baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 9000);
+
+    try {
+      const res = await fetch(`${cleanUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: model || 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'You are a helpful business analytics assistant. Respond only with JSON as requested.' },
+            { role: 'user', content: prompt },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.4,
+        }),
+      });
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      const content = data?.choices?.[0]?.message?.content;
+      if (!content) return null;
+
+      const parsed = JSON.parse(content);
+      if (parsed.answer) {
+        return {
+          answer: String(parsed.answer),
+          suggestedQuestions: Array.isArray(parsed.suggestedQuestions) ? parsed.suggestedQuestions.map(String) : [],
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private async askOpenAiSalesBot(
+    customerMessage: string,
+    products: Array<{ name: string; price: number; stock: number; color?: string | null; size?: string | null }>,
+    businessInfo: { name: string; currency: string; storefrontUrl?: string; customPrompt?: string },
+    apiKey: string,
+    model = 'gpt-4o-mini',
+    baseUrl = 'https://api.openai.com/v1',
+  ): Promise<string | null> {
+    const catalogText = products.slice(0, 45).map((p, idx) =>
+      `${idx + 1}. ${p.name} | السعر: ${p.price} ${businessInfo.currency} | المتوفر بالمخزن: ${p.stock > 0 ? p.stock + ' قطعة' : 'غير متوفر حالياً'}${p.color ? ' | اللون: ' + p.color : ''}${p.size ? ' | المقاس: ' + p.size : ''}`
+    ).join('\n');
+
+    const prompt = `أنت المساعد الذكي لمبيعات وخدمة عملاء متجر "${businessInfo.name}".
+مهمتك: الرد على استفسار الزبون على تطبيق واتساب بأسلوب لطيف ومحترف باللهجة العربية/المصرية السلسة والمحترمة.
+
+قواعدك الصارمة:
+1. اعتمد فقط على قائمة المنتجات والأسعار المتاحة بالمخزن أدناه:
+${catalogText}
+
+2. إذا سأل العميل عن منتج متاح، اذكر سعره بدقة وتوفر المخزون، وشجعه على الشراء${businessInfo.storefrontUrl ? ` مع رابط المتجر: ${businessInfo.storefrontUrl}` : ''}.
+3. إذا سأل عن منتج غير موجود أو كميته 0، اعتذر بلطف واقترح أقرب بديل إن وجد من القائمة.
+4. حافظ على ردود مختصرة ومناسبة للواتساب (بين 2 إلى 4 أسطر).
+5. لا تؤلف منتجات أو أسعار غير موجودة في القائمة.
+${businessInfo.customPrompt ? `تعليمات التاجر الإضافية: ${businessInfo.customPrompt}` : ''}
+
+رسالة العميل الواردة:
+"${customerMessage}"
+
+اكتب الرد النهائي الموجه للعميل مباشرة دون مقدمات أو شروحات إضافية.`;
+
+    const cleanUrl = (baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 9000);
+
+    try {
+      const res = await fetch(`${cleanUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: model || 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.4,
+          max_tokens: 300,
+        }),
+      });
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.choices?.[0]?.message?.content?.trim() || null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 }
