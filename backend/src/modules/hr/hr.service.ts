@@ -33,6 +33,8 @@ import {
   PayPayrollRunDto,
   UpsertHolidayDto,
   EndOfServiceDto,
+  UpdateEmployeeCredentialsDto,
+  UpdateEmployeeStatusDto,
 } from './dto/hr.dto';
 import { HrTreasuryAdapter } from './hr-treasury.adapter';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
@@ -526,6 +528,7 @@ export class HrService {
     const result = await sql<Record<string, unknown>>`
       SELECT e.*, d.name AS department_name, j.name AS job_title_name, p.name AS position_name, b.name AS branch_name, l.name AS location_name, u.username AS username
       , to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date_text
+      , (SELECT c.value FROM hr_employee_contacts c WHERE c.employee_id = e.id ORDER BY c.is_primary DESC, c.id ASC LIMIT 1) AS primary_phone
       FROM hr_employees e
       LEFT JOIN hr_departments d ON d.id = e.department_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
@@ -545,6 +548,9 @@ export class HrService {
       lastName: clean(row.last_name),
       displayName: clean(row.display_name) || `${clean(row.first_name)} ${clean(row.last_name)}`.trim(),
       status: clean(row.status) || 'active',
+      pinCode: clean(row.pin_code),
+      phone: clean(row.primary_phone),
+      mobile: clean(row.primary_phone),
       userId: row.user_id ? String(row.user_id) : '',
       username: clean(row.username),
       departmentId: row.department_id ? String(row.department_id) : '',
@@ -579,7 +585,7 @@ export class HrService {
       notes: clean(row.notes),
     }));
     if (search) {
-      rows = rows.filter((row) => [row.employeeNo, row.displayName, row.username, row.departmentName, row.jobTitleName].some((value) => value.toLowerCase().includes(search)));
+      rows = rows.filter((row) => [row.employeeNo, row.displayName, row.username, row.departmentName, row.jobTitleName, row.phone].some((value) => value && value.toLowerCase().includes(search)));
     }
     const paged = paginateRows(rows, query, { defaultSize: 25, maxSize: 5000 });
     return { employees: paged.rows, pagination: paged.pagination, summary: { totalItems: rows.length, activeCount: rows.filter((row) => row.status === 'active').length } };
@@ -610,6 +616,7 @@ export class HrService {
       lastName: clean(row.last_name),
       displayName: clean(row.display_name) || `${clean(row.first_name)} ${clean(row.last_name)}`.trim(),
       status: clean(row.status) || 'active',
+      pinCode: clean(row.pin_code),
       userId: row.user_id ? String(row.user_id) : '',
       username: clean(row.username),
       departmentId: row.department_id ? String(row.department_id) : '',
