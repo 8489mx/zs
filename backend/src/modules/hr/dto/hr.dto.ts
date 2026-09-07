@@ -61,6 +61,21 @@ export class UpsertEmployeeDto {
   nationalId?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  mobile?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  pinCode?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   userId?: number;
@@ -736,3 +751,23 @@ export class EndOfServiceDto {
   @IsString()
   endOfServiceReason?: string;
 }
+
+export class UpdateEmployeeStatusDto {
+  @IsString()
+  @IsIn(['active', 'inactive', 'deactivated', 'terminated'])
+  status!: string;
+}
+
+export class UpdateEmployeeCredentialsDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(4)
+  @MaxLength(10)
+  pinCode?: string;
+}
+
