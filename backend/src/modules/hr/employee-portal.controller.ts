@@ -6,7 +6,7 @@ export class EmployeePortalController {
   constructor(private readonly service: EmployeePortalService) {}
 
   @Post('login')
-  login(@Body() body: { identifier: string; pinCode: string }) {
+  login(@Body() body: { identifier: string; pinCode: string; companyCode?: string; tenantId?: string }) {
     return this.service.login(body);
   }
 

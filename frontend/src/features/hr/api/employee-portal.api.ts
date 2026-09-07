@@ -149,7 +149,7 @@ function getAuthHeader(): Record<string, string> {
 }
 
 export const employeePortalApi = {
-  async login(payload: { identifier: string; pinCode: string }): Promise<{
+  async login(payload: { identifier: string; pinCode: string; companyCode?: string; tenantId?: string }): Promise<{
     token: string;
     employee: PortalEmployeeUser;
   }> {

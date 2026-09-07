@@ -11,6 +11,7 @@ export interface UserListQuery {
 export interface UserRowLike {
   id: number | string;
   username: string;
+  phone?: string | null;
   role: string;
   permissions_json?: string | null;
   display_name?: string | null;
@@ -25,6 +26,7 @@ export interface UserRowLike {
 export interface UserViewModel {
   id: string;
   username: string;
+  phone?: string | null;
   role: string;
   permissions: string[];
   name: string;
@@ -58,6 +60,7 @@ export function mapUserRow(row: UserRowLike, branchIds: string[]): UserViewModel
   return {
     id: String(row.id),
     username: row.username,
+    phone: row.phone || null,
     role: row.role,
     permissions: safeJsonArray(String(row.permissions_json || '[]')),
     name: row.display_name || row.username,
@@ -86,7 +89,8 @@ export function filterUsers(users: UserViewModel[], normalizedQuery: UserListQue
     filtered = filtered.filter((row) => {
       const username = String(row.username || '').toLowerCase();
       const name = String(row.name || '').toLowerCase();
-      return username.includes(normalizedQuery.search) || name.includes(normalizedQuery.search);
+      const phone = String(row.phone || '').toLowerCase();
+      return username.includes(normalizedQuery.search) || name.includes(normalizedQuery.search) || phone.includes(normalizedQuery.search);
     });
   }
 

@@ -36,6 +36,7 @@ export interface SessionTable {
 export interface UserTable {
   id: Generated<number>;
   username: string;
+  phone: string | null;
   password_hash: string;
   password_salt: string;
   role: 'super_admin' | 'admin' | 'cashier';

@@ -183,6 +183,7 @@ export function blankUserDraft(role: 'super_admin' | 'admin' | 'cashier' = 'cash
   return {
     id: null,
     username: '',
+    phone: '',
     password: '',
     role,
     permissions: role === 'super_admin' ? [...DEFAULT_ADMIN_PERMS] : role === 'admin' ? [...DEFAULT_ADMIN_PERMS] : [...DEFAULT_CASHIER_PERMS],
@@ -205,6 +206,7 @@ export function normalizeUserRecord(user: Partial<ManagedUserRecord> | null | un
     ...user,
     id: user?.id ? String(user.id) : null,
     username: String(user?.username || ''),
+    phone: user?.phone ? String(user.phone) : '',
     password: typeof user?.password === 'string' ? user.password : '',
     role,
     permissions: Array.isArray(user?.permissions) && user.permissions.length

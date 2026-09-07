@@ -11,6 +11,7 @@ import { assertStrongPassword } from '../utils/password-policy';
 import { resolveTenantContext } from '../utils/tenant-context';
 import { requireTenantScope } from '../utils/tenant-boundary';
 import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
+import { generatePhoneSearchVariants } from '../../utils/phone-utils';
 import { AuthCacheService } from './auth-cache.service';
 
 function safeJsonArray(value: unknown): string[] {
@@ -214,11 +215,18 @@ export class SessionService {
 
   }
 
-  async authenticate(identifier: string, password: string, meta?: { ipAddress?: string; userAgent?: string }): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
+  async authenticate(
+    identifier: string,
+    password: string,
+    meta?: { ipAddress?: string; userAgent?: string; companyCode?: string },
+  ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date } | null> {
     const normalized = identifier.trim();
+    const companyCode = meta?.companyCode?.trim();
+
     let user: {
       id: number;
       username: string;
+      phone?: string | null;
       password_hash: string;
       password_salt: string;
       role: 'super_admin' | 'admin' | 'cashier';
@@ -231,12 +239,13 @@ export class SessionService {
     } | undefined;
 
     if (normalized.includes('@')) {
-      const matchedByEmail = await this.db
+      let query = this.db
         .selectFrom('users as u')
         .innerJoin('tenants as t', 't.id', 'u.tenant_id')
         .select([
           'u.id',
           'u.username',
+          'u.phone',
           'u.password_hash',
           'u.password_salt',
           'u.role',
@@ -249,33 +258,129 @@ export class SessionService {
         ])
         .where(sql<string>`LOWER(COALESCE(t.owner_email, ''))`, '=', normalized.toLowerCase())
         .where('u.is_active', '=', true)
-        .where('u.role', 'in', ['admin', 'super_admin'])
-        .orderBy('u.id', 'asc')
-        .execute();
+        .where('u.role', 'in', ['admin', 'super_admin']);
+
+      if (companyCode) {
+        query = query.where('u.tenant_id', '=', companyCode);
+      }
+
+      const matchedByEmail = await query.orderBy('u.id', 'asc').execute();
 
       if (matchedByEmail.length > 1) {
-        throw new UnauthorizedException('تم العثور على اكثر من حساب بهذا البريد. سجل الدخول باسم المستخدم.');
+        throw new UnauthorizedException('تم العثور على أكثر من حساب بهذا البريد. يرجى تسجيل الدخول برقم الهاتف أو اسم المستخدم.');
       }
       user = matchedByEmail[0];
     } else {
-      const candidates = await this.db
-        .selectFrom('users')
-        .select(['id', 'username', 'password_hash', 'password_salt', 'role', 'permissions_json', 'is_active', 'locked_until', 'failed_login_count', 'tenant_id', 'account_id'])
-        .where(sql<boolean>`LOWER(username) = LOWER(${normalized})`)
-        .where('is_active', '=', true)
-        .execute();
+      const cleanDigits = normalized.replace(/\D/g, '');
+      const isPotentialPhone = cleanDigits.length >= 7 && /^[\d\s\-+]+$/.test(normalized);
+
+      let candidates: Array<any> = [];
+
+      if (isPotentialPhone) {
+        const variants = generatePhoneSearchVariants(normalized);
+
+        let phoneQuery = this.db
+          .selectFrom('users')
+          .select([
+            'id',
+            'username',
+            'phone',
+            'password_hash',
+            'password_salt',
+            'role',
+            'permissions_json',
+            'is_active',
+            'locked_until',
+            'failed_login_count',
+            'tenant_id',
+            'account_id',
+          ])
+          .where('is_active', '=', true)
+          .where('phone', 'in', variants);
+
+        if (companyCode) {
+          phoneQuery = phoneQuery.where('tenant_id', '=', companyCode);
+        }
+
+        candidates = await phoneQuery.execute();
+      }
+
+      // If no candidate found by phone (or identifier was a username), search by username
+      if (candidates.length === 0) {
+        let userQuery = this.db
+          .selectFrom('users')
+          .select([
+            'id',
+            'username',
+            'phone',
+            'password_hash',
+            'password_salt',
+            'role',
+            'permissions_json',
+            'is_active',
+            'locked_until',
+            'failed_login_count',
+            'tenant_id',
+            'account_id',
+          ])
+          .where(sql<boolean>`LOWER(username) = LOWER(${normalized})`)
+          .where('is_active', '=', true);
+
+        if (companyCode) {
+          userQuery = userQuery.where('tenant_id', '=', companyCode);
+        }
+
+        candidates = await userQuery.execute();
+      }
 
       if (candidates.length === 1) {
         user = candidates[0];
       } else if (candidates.length > 1) {
+        // Multi-tenant check: check password across candidates
+        const validCandidates: Array<any> = [];
         for (const candidate of candidates) {
           const check = await verifyPassword(password, candidate.password_hash, candidate.password_salt);
           if (check.valid) {
-            user = candidate;
-            break;
+            validCandidates.push(candidate);
           }
         }
-        if (!user) user = candidates[0];
+
+        if (validCandidates.length === 1) {
+          user = validCandidates[0];
+        } else if (validCandidates.length > 1) {
+          // Multi-Tenant Disambiguation: fetch tenant details for the Tenant Switcher
+          const candidateTenantIds = Array.from(new Set(validCandidates.map((c) => String(c.tenant_id).trim())));
+          let tenantRows: any[] = [];
+          try {
+            tenantRows = await this.db
+              .selectFrom('tenants')
+              .select(['id', 'slug', 'business_name'])
+              .where('id', 'in', candidateTenantIds)
+              .execute();
+          } catch {
+            tenantRows = [];
+          }
+
+          const tenantMap = new Map((tenantRows || []).map((t: any) => [t.id, t]));
+          const tenantOptions = candidateTenantIds.map((tId) => {
+            const t = tenantMap.get(tId);
+            return {
+              id: tId,
+              name: t?.business_name || t?.slug || tId,
+              slug: t?.slug || tId,
+            };
+          });
+
+          // Zero-Trust Disambiguation: NEVER pick candidates[0] when multiple tenants match!
+          throw new UnauthorizedException({
+            message: 'بيانات الدخول مسجلة لدى أكثر من منشأة بنفس كلمة المرور. يرجى اختيار المنشأة أو تحديد كود المنشأة لمنع تداخل الحسابات.',
+            code: 'MULTIPLE_TENANTS',
+            tenants: tenantOptions,
+          });
+        } else {
+          // None matched the password, pick first to trigger audit failed login below
+          user = candidates[0];
+        }
       }
     }
 

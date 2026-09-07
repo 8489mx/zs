@@ -49,7 +49,7 @@ export class MobileAttendanceService {
   /**
    * Fast employee mobile login using phone and 4-digit PIN
    */
-  async employeeLogin(payload: { phone: string; pinCode: string }): Promise<{
+  async employeeLogin(payload: { phone: string; pinCode: string; companyCode?: string; tenantId?: string }): Promise<{
     token: string;
     employee: MobileAttendanceUser;
     todayStatus: {
@@ -62,6 +62,8 @@ export class MobileAttendanceService {
   }> {
     const rawPhone = String(payload?.phone || '').trim();
     const pinCode = String(payload?.pinCode || '').trim();
+    const companyScope = payload?.companyCode || payload?.tenantId;
+
     if (!rawPhone || !pinCode) {
       throw new AppError('رقم الهاتف ورمز الدخول السريع (PIN) مطلوبان', 'INVALID_CREDENTIALS', 400);
     }
@@ -74,7 +76,7 @@ export class MobileAttendanceService {
       : cleanDigits;
 
     // Search active employees with matching contact phone
-    const employees = await this.anyDb
+    let employeesQuery = this.anyDb
       .selectFrom('hr_employees as e')
       .leftJoin('branches as b', 'b.id', 'e.branch_id')
       .select([
@@ -93,8 +95,13 @@ export class MobileAttendanceService {
         'b.longitude as branch_lng',
         'b.geofence_radius_meters',
       ])
-      .where('e.status', '=', 'active')
-      .execute();
+      .where('e.status', '=', 'active');
+
+    if (companyScope) {
+      employeesQuery = employeesQuery.where('e.tenant_id', '=', String(companyScope).trim());
+    }
+
+    const employees = await employeesQuery.execute();
 
     // Fetch phone contacts
     const contacts = await this.anyDb
@@ -111,7 +118,7 @@ export class MobileAttendanceService {
       empPhonesMap.set(eid, list);
     }
 
-    const matched = employees.find((emp: any) => {
+    const matchedList = employees.filter((emp: any) => {
       const pinsMatch = String(emp.pin_code || '').trim() === pinCode;
       if (!pinsMatch) return false;
 
@@ -127,9 +134,19 @@ export class MobileAttendanceService {
       });
     });
 
-    if (!matched) {
+    if (!matchedList || matchedList.length === 0) {
       throw new AppError('بيانات الدخول غير صحيحة أو رمز الـ PIN غير مطابق', 'UNAUTHORIZED_EMPLOYEE', 401);
     }
+
+    if (matchedList.length > 1) {
+      throw new AppError(
+        'رقم الهاتف مسجل لدى أكثر من منشأة. يرجى استخدام رابط محلك المحدد لتسجيل البصمة لمنع تداخل الحسابات.',
+        'AMBIGUOUS_EMPLOYEE_TENANT',
+        409,
+      );
+    }
+
+    const matched = matchedList[0];
 
     if (matched.mobile_punch_enabled === false) {
       throw new AppError('تسجيل البصمة عبر الموبايل غير مفعل لهذا الموظف', 'MOBILE_PUNCH_DISABLED', 403);

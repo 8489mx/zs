@@ -51,8 +51,46 @@ function ArrowLeftIcon() {
   );
 }
 
+function BuildingIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h.01" />
+      <path d="M16 6h.01" />
+      <path d="M12 6h.01" />
+      <path d="M12 10h.01" />
+      <path d="M12 14h.01" />
+      <path d="M16 10h.01" />
+      <path d="M16 14h.01" />
+      <path d="M8 10h.01" />
+      <path d="M8 14h.01" />
+    </svg>
+  );
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  );
+}
+
 export function LoginPage() {
-  const { form, onSubmit, submitError, isSubmitting } = useLoginForm();
+  const {
+    form,
+    onSubmit,
+    submitError,
+    isSubmitting,
+    disambiguationTenants,
+    setDisambiguationTenants,
+    handleSelectTenant,
+    rememberedCompanyCode,
+    handleClearRememberedTenant,
+    showCompanyCodeInput,
+    setShowCompanyCodeInput,
+  } = useLoginForm();
   const [showPassword, setShowPassword] = useState(false);
 
   const features = [
@@ -120,10 +158,80 @@ export function LoginPage() {
             )}
 
             <div className="login-form-pro" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleSubmit(onSubmit)(); } }}>
-              
+              {rememberedCompanyCode && !showCompanyCodeInput ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    marginBottom: '14px',
+                    fontSize: '12.5px',
+                    color: '#334155',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <BuildingIcon />
+                    <span>تسجيل الدخول لمنشأة: <strong style={{ color: '#0f172a' }}>{rememberedCompanyCode}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearRememberedTenant}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#170e5e',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: '0',
+                    }}
+                  >
+                    تغيير
+                  </button>
+                </div>
+              ) : null}
+
+              {showCompanyCodeInput ? (
+                <div className="login-field-group">
+                  <div className="login-field-label flex-between">
+                    <label htmlFor="login-companyCode">كود أو معرف المنشأة (اختياري)</label>
+                    {rememberedCompanyCode ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowCompanyCodeInput(false)}
+                        style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '11.5px', cursor: 'pointer' }}
+                      >
+                        إلغاء
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="login-input-pro-wrap">
+                    <input
+                      id="login-companyCode"
+                      {...form.register('companyCode')}
+                      type="text"
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      placeholder="مثال: my-store أو المعرف الخاص بالمنشأة"
+                      className="login-input-pro"
+                    />
+                  </div>
+                </div>
+              ) : null}
+
               <div className="login-field-group">
                 <div className="login-field-label">
-                  <label htmlFor="login-username">اسم المستخدم او البريد الالكتروني</label>
+                  <label htmlFor="login-username">رقم الهاتف المحمول أو اسم المستخدم</label>
                 </div>
                 <div className="login-input-pro-wrap">
                   <input 
@@ -137,7 +245,7 @@ export function LoginPage() {
                     autoCorrect="off" 
                     autoCapitalize="off" 
                     spellCheck={false}
-                    placeholder="أدخل اسم المستخدم أو البريد الإلكتروني" 
+                    placeholder="مثال: 01012345678 أو اسم المستخدم" 
                     className="login-input-pro"
                   />
                 </div>
@@ -175,11 +283,167 @@ export function LoginPage() {
                 )}
               </div>
 
+              {!rememberedCompanyCode && !showCompanyCodeInput ? (
+                <div style={{ marginBottom: '16px', textAlign: 'left' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowCompanyCodeInput(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: '0',
+                    }}
+                  >
+                    + تحديد كود منشأة معين
+                  </button>
+                </div>
+              ) : null}
+
               <button type="button" className="login-submit-pro-btn" disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>
                 <span>{isSubmitting ? 'جاري التحقق والاتصال...' : 'تسجيل الدخول'}</span>
                 {!isSubmitting && <ArrowLeftIcon />}
               </button>
             </div>
+
+            {disambiguationTenants && disambiguationTenants.length > 0 && (
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '16px',
+                }}
+                dir="rtl"
+              >
+                <div
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderRadius: '16px',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                    border: '1px solid #e2e8f0',
+                    width: '100%',
+                    maxWidth: '480px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <div
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '10px',
+                          backgroundColor: '#ede9fe',
+                          color: '#170e5e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <BuildingIcon />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                          اختر المنشأة للمتابعة
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                          بيانات الدخول مسجلة لدى أكثر من منشأة
+                        </p>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '13.5px', color: '#475569', margin: '8px 0 0', lineHeight: 1.5 }}>
+                      يرجى اختيار المنشأة التي ترغب في تسجيل الدخول إليها ومتابعة العمل:
+                    </p>
+                  </div>
+
+                  <div style={{ padding: '16px 24px', maxHeight: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {disambiguationTenants.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => handleSelectTenant(t.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '14px 16px',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          backgroundColor: '#ffffff',
+                          cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.15s ease-in-out',
+                          textAlign: 'right',
+                          width: '100%',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f8fafc';
+                          e.currentTarget.style.borderColor = '#170e5e';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#ffffff';
+                          e.currentTarget.style.borderColor = '#e2e8f0';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '8px',
+                              backgroundColor: '#f1f5f9',
+                              color: '#170e5e',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <BuildingIcon />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{t.name}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>كود المنشأة: {t.slug || t.id}</div>
+                          </div>
+                        </div>
+                        <div style={{ color: '#94a3b8' }}>
+                          <ChevronLeftIcon />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ padding: '12px 24px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => setDisambiguationTenants(null)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: '#ffffff',
+                        color: '#475569',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      إلغاء والعودة
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
 
             <div className="login-signup-link">

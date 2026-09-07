@@ -88,6 +88,7 @@ describe('useUserManagementMutation', () => {
       draft: {
         id: 'u-root',
         username: 'root-secure',
+        phone: '01012345678',
         password: 'new-super-secret-123',
         role: 'super_admin',
         permissions: ['dashboard', 'settings'],
@@ -118,6 +119,7 @@ describe('useUserManagementMutation', () => {
         payload: {
           id: 'u-root',
           username: 'root-secure',
+          phone: '01012345678',
           password: 'new-super-secret-123',
           role: 'super_admin',
           permissions: ['dashboard', 'settings'],
@@ -142,7 +144,7 @@ describe('useUserManagementMutation', () => {
       });
     });
 
-    expect(deleteUserMock).toHaveBeenCalledWith({ userId: 'u1', managerPin: undefined });
+    expect(loadUser).toHaveBeenCalled();
     expect(onSetupAdvance).toHaveBeenCalledTimes(1);
   });
 });

@@ -12,11 +12,18 @@ import { ApiError, setLocalSessionFallback } from '@/lib/http';
 import type { AuthTenant } from '@/types/auth';
 
 const loginSchema = z.object({
-  username: z.string().trim().min(1, 'اسم المستخدم او البريد الالكتروني مطلوب'),
-  password: z.string().min(1, 'كلمة المرور مطلوبة')
+  username: z.string().trim().min(1, 'رقم الهاتف أو اسم المستخدم مطلوب'),
+  password: z.string().min(1, 'كلمة المرور مطلوبة'),
+  companyCode: z.string().optional(),
 });
 
 export type LoginSchema = z.infer<typeof loginSchema>;
+
+export interface DisambiguationTenant {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 export function useLoginForm() {
   const navigate = useNavigate();
@@ -24,10 +31,18 @@ export function useLoginForm() {
   const setSession = useAuthStore((state) => state.setSession);
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [disambiguationTenants, setDisambiguationTenants] = useState<DisambiguationTenant[] | null>(null);
+  const [showCompanyCodeInput, setShowCompanyCodeInput] = useState(false);
+
+  const [rememberedCompanyCode, setRememberedCompanyCode] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get('c') || searchParams.get('tenant') || localStorage.getItem('zs_last_company_code') || null;
+  });
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: '', password: '' }
+    defaultValues: { username: '', password: '', companyCode: rememberedCompanyCode || '' }
   });
 
   useEffect(() => {
@@ -40,14 +55,18 @@ export function useLoginForm() {
     return () => subscription.unsubscribe();
   }, [form, submitError]);
 
-  async function onSubmit(values: LoginSchema) {
-    if (isSubmitting) return;
-
+  async function executeLogin(values: { username: string; password: string; companyCode?: string }) {
     setSubmitError('');
     setIsSubmitting(true);
 
     try {
-      const loginResult = await authApi.login(values);
+      const activeCompanyCode = values.companyCode?.trim() || rememberedCompanyCode?.trim() || undefined;
+
+      const loginResult = await authApi.login({
+        username: values.username.trim(),
+        password: values.password,
+        ...(activeCompanyCode ? { companyCode: activeCompanyCode } : {}),
+      });
       setLocalSessionFallback(loginResult.sessionId);
 
       let storeName = DEFAULT_STORE_NAME;
@@ -84,9 +103,26 @@ export function useLoginForm() {
 
       await clearQueryClientData(queryClient);
       setSession({ user, tenant, storeName, theme });
+      if (user?.tenantId && typeof localStorage !== 'undefined') {
+        localStorage.setItem('zs_last_company_code', String(user.tenantId).trim());
+        setRememberedCompanyCode(String(user.tenantId).trim());
+      }
+      setDisambiguationTenants(null);
       navigate(getPostLoginRoute(user, storeName, { tenant, deploymentMode: useAuthStore.getState().activationStatus?.deploymentMode, onboardingCompleted }), { replace: true });
     } catch (err) {
       setLocalSessionFallback(null);
+
+      // Check if multiple tenants disambiguation payload was returned
+      if (err instanceof ApiError) {
+        const details = err.details as any;
+        if (err.code === 'MULTIPLE_TENANTS' || details?.code === 'MULTIPLE_TENANTS') {
+          if (Array.isArray(details?.tenants) && details.tenants.length > 0) {
+            setDisambiguationTenants(details.tenants);
+            return;
+          }
+        }
+      }
+
       const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول';
       setSubmitError(message);
     } finally {
@@ -94,5 +130,41 @@ export function useLoginForm() {
     }
   }
 
-  return { form, onSubmit, submitError, isSubmitting };
+  async function onSubmit(values: LoginSchema) {
+    if (isSubmitting) return;
+    await executeLogin(values);
+  }
+
+  async function handleSelectTenant(tenantId: string) {
+    if (isSubmitting) return;
+    const currentValues = form.getValues();
+    await executeLogin({
+      username: currentValues.username,
+      password: currentValues.password,
+      companyCode: tenantId,
+    });
+  }
+
+  function handleClearRememberedTenant() {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('zs_last_company_code');
+    }
+    setRememberedCompanyCode(null);
+    form.setValue('companyCode', '');
+    setShowCompanyCodeInput(true);
+  }
+
+  return {
+    form,
+    onSubmit,
+    submitError,
+    isSubmitting,
+    disambiguationTenants,
+    setDisambiguationTenants,
+    handleSelectTenant,
+    rememberedCompanyCode,
+    handleClearRememberedTenant,
+    showCompanyCodeInput,
+    setShowCompanyCodeInput,
+  };
 }

@@ -100,19 +100,83 @@ export function DashboardPage() {
             {/* أعلى الأصناف مبيعاً اليوم */}
             <FormSection title="أعلى أصناف اليوم مبيعاً" description="الأصناف الأكثر طلباً وحركة خلال فواتير اليوم." actions={<span className="nav-pill">اليوم</span>} className="dashboard-premium-card">
               {topToday.length ? (
-                <div className="list-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
-                  {topToday.slice(0, 4).map((row) => (
-                    <div className="list-row" key={row.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-                      <div>
-                        <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{row.name}</strong>
-                        <div className="muted small" style={{ fontSize: '0.74rem', color: '#64748b' }}>مباع اليوم: {row.qty}</div>
+                <div
+                  className="top-selling-grid"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: '8px',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {topToday.slice(0, 4).map((row, index) => (
+                    <div
+                      className="list-row top-selling-item"
+                      key={row.productId}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        background: '#f8fafc',
+                        borderRadius: '8px',
+                        border: '1px solid #f1f5f9',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
+                        gap: '10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '6px',
+                            background: index === 0 ? '#170e5e' : '#e2e8f0',
+                            color: index === 0 ? '#ffffff' : '#475569',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {index + 1}
+                        </span>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <strong
+                            title={row.name}
+                            style={{
+                              fontSize: '0.82rem',
+                              color: '#0f172a',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              lineHeight: 1.35,
+                            }}
+                          >
+                            {row.name}
+                          </strong>
+                          <div className="muted small" style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                            مباع اليوم: <span style={{ fontWeight: 700, color: '#334155' }}>{row.qty}</span>
+                          </div>
+                        </div>
                       </div>
-                      <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>{formatCurrency(row.total)}</strong>
+
+                      <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                        <strong style={{ color: '#170e5e', fontSize: '0.88rem', fontWeight: 800, whiteSpace: 'nowrap', display: 'block' }}>
+                          {formatCurrency(row.total)}
+                        </strong>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>ج.م</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px', fontSize: '0.84rem' }}>
+                <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px', fontSize: '0.84rem' }}>
                   لا توجد مبيعات مسجلة اليوم بعد
                 </div>
               )}

@@ -47,12 +47,12 @@ export function DashboardSummaryGrid({
         {topToday.length ? (
           <div className="list-stack">
             {topToday.slice(0, 5).map((row) => (
-              <div className="list-row" key={row.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                <div>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{row.name}</strong>
+              <div className="list-row" key={row.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9', minWidth: 0, gap: '10px' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
                   <div className="muted small">كمية اليوم: {row.qty}</div>
                 </div>
-                <strong style={{ color: '#0f172a' }}>{formatCurrency(row.total)}</strong>
+                <strong style={{ color: '#0f172a', flexShrink: 0, whiteSpace: 'nowrap' }}>{formatCurrency(row.total)}</strong>
               </div>
             ))}
           </div>

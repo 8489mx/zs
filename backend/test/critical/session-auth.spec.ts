@@ -10,6 +10,7 @@ function hashPassword(password: string, salt: string): string {
 type UserRow = {
   id: number;
   username: string;
+  phone?: string | null;
   display_name?: string;
   default_branch_id?: number | null;
   password_hash: string;
@@ -96,28 +97,53 @@ class FakeDb {
 
 class UsersSelectBuilder {
   private username?: string;
+  private phone?: string;
+  private phones?: string[];
+  private tenantId?: string;
   private id?: number;
   constructor(private readonly db: FakeDb) {}
   select(_cols: string[]) { return this; }
-  where(column: string | unknown, _op?: string, value?: string | number) {
+  where(column: string | unknown, _op?: string, value?: any) {
     if (column === 'username') this.username = String(value);
+    if (column === 'phone') {
+      if (_op === 'in' && Array.isArray(value)) {
+        this.phones = value.map((v) => String(v));
+      } else {
+        this.phone = String(value);
+      }
+    }
+    if (column === 'tenant_id') this.tenantId = String(value);
     if (column === 'id') this.id = Number(value);
     if (typeof column === 'object' && column !== null) {
-      const params = (column as any).parameters || (column as any).sqlFragments;
-      if (Array.isArray(params) && params.length > 0) {
-        this.username = String(params[0]);
+      const node = (column as any)?.toOperationNode?.() || (column as any);
+      const sqlFragments = node?.sqlFragments || [];
+      const parameters = node?.parameters || [];
+      const text = Array.isArray(sqlFragments) ? sqlFragments.join(' ') : '';
+      const values = Array.isArray(parameters) ? parameters.map((p: any) => (p?.value != null ? p.value : p)) : [];
+
+      if (text.includes('phone') && values.length > 0) {
+        this.phone = String(values[0]);
+      } else if (text.toLowerCase().includes('username') && values.length > 0) {
+        this.username = String(values[0]);
       }
     }
     return this;
   }
   async execute() {
-    if (this.username != null) {
-      return this.db.users.filter((row) => row.username.toLowerCase() === this.username!.toLowerCase());
+    let rows = this.db.users;
+    if (this.tenantId != null) {
+      rows = rows.filter((r) => r.tenant_id === this.tenantId);
     }
-    if (this.id != null) {
-      return this.db.users.filter((row) => row.id === this.id);
+    if (this.phones != null && this.phones.length > 0) {
+      rows = rows.filter((r) => r.phone != null && this.phones!.includes(r.phone));
+    } else if (this.phone != null) {
+      rows = rows.filter((r) => r.phone === this.phone);
+    } else if (this.username != null) {
+      rows = rows.filter((row) => row.username.toLowerCase() === this.username!.toLowerCase());
+    } else if (this.id != null) {
+      rows = rows.filter((row) => row.id === this.id);
     }
-    return this.db.users;
+    return rows;
   }
   async executeTakeFirst() {
     const list = await this.execute();
@@ -127,11 +153,24 @@ class UsersSelectBuilder {
 
 class TenantsSelectBuilder {
   private id?: string;
+  private ids?: string[];
   constructor(private readonly db: FakeDb) {}
   select(_cols: string[]) { return this; }
-  where(column: string, _op: string, value: string) {
-    if (column === 'id') this.id = value;
+  where(column: string, op: string, value: any) {
+    if (column === 'id') {
+      if (op === 'in' && Array.isArray(value)) {
+        this.ids = value;
+      } else {
+        this.id = value;
+      }
+    }
     return this;
+  }
+  async execute() {
+    if (this.ids) {
+      return this.db.tenants.filter((row) => this.ids?.includes(row.id));
+    }
+    return this.id ? this.db.tenants.filter((row) => row.id === this.id) : this.db.tenants;
   }
   async executeTakeFirst() {
     return this.db.tenants.find((row) => row.id === this.id) ?? undefined;
@@ -314,6 +353,63 @@ async function run(): Promise<void> {
   assert.equal((tenantPayload.user as any).role, 'admin', 'Login payload for non-platform tenant MUST have role admin');
   const tenantMe = await service.buildMePayload(tenantLogin!.auth);
   assert.equal((tenantMe.user as any).role, 'admin', 'Me payload for non-platform tenant MUST have role admin');
+
+  // Multi-tenant disambiguation & mobile-first login tests:
+  // Two cashiers in different tenants with SAME username 'cashier_common' and SAME password
+  const cashierPass = 'CashierCommon123!';
+  const cashierSalt = 'salt_c';
+  const cashierRagab: UserRow = {
+    id: 101,
+    username: 'cashier_common',
+    phone: '01011111111',
+    password_hash: hashPassword(cashierPass, cashierSalt),
+    password_salt: cashierSalt,
+    role: 'cashier',
+    permissions_json: '["sales"]',
+    is_active: true,
+    locked_until: null,
+    failed_login_count: 0,
+    tenant_id: 'tenant-ragab',
+    account_id: 'account-ragab',
+  };
+  const cashierMahmoud: UserRow = {
+    id: 102,
+    username: 'cashier_common',
+    phone: '01022222222',
+    password_hash: hashPassword(cashierPass, cashierSalt),
+    password_salt: cashierSalt,
+    role: 'cashier',
+    permissions_json: '["sales"]',
+    is_active: true,
+    locked_until: null,
+    failed_login_count: 0,
+    tenant_id: 'tenant-mahmoud',
+    account_id: 'account-mahmoud',
+  };
+  db.users.push(cashierRagab, cashierMahmoud);
+
+  // 1. Attempting login with ambiguous username + same password MUST REJECT with disambiguation error!
+  await assert.rejects(async () => {
+    await service.authenticate('cashier_common', cashierPass);
+  }, /مسجلة لدى أكثر من منشأة/);
+
+  // 2. Logging in with Ragab's phone MUST succeed and lock to Ragab
+  const ragabLogin = await service.authenticate('01011111111', cashierPass);
+  assert.ok(ragabLogin);
+  assert.equal(ragabLogin?.auth.tenantId, 'tenant-ragab');
+  assert.equal(ragabLogin?.auth.userId, 101);
+
+  // 3. Logging in with Mahmoud's phone MUST succeed and lock to Mahmoud
+  const mahmoudLogin = await service.authenticate('01022222222', cashierPass);
+  assert.ok(mahmoudLogin);
+  assert.equal(mahmoudLogin?.auth.tenantId, 'tenant-mahmoud');
+  assert.equal(mahmoudLogin?.auth.userId, 102);
+
+  // 4. Logging in with username + companyCode MUST succeed and lock to that company
+  const scopedRagab = await service.authenticate('cashier_common', cashierPass, { companyCode: 'tenant-ragab' });
+  assert.ok(scopedRagab);
+  assert.equal(scopedRagab?.auth.tenantId, 'tenant-ragab');
+  assert.equal(scopedRagab?.auth.userId, 101);
 }
 
 run().then(() => {

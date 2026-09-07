@@ -485,9 +485,11 @@ export class DeliveryRepsService {
     return { ok: true, settledCount: result.settledCount, totalAmount: result.totalAmount };
   }
 
-  async driverLogin(payload: { phone: string; pinCode: string }): Promise<{ token: string; rep: Record<string, unknown> }> {
+  async driverLogin(payload: { phone: string; pinCode: string; companyCode?: string; tenantId?: string }): Promise<{ token: string; rep: Record<string, unknown> }> {
     const rawPhone = String(payload?.phone || '').trim();
     const pinCode = String(payload?.pinCode || '').trim();
+    const companyScope = payload?.companyCode || payload?.tenantId;
+
     if (!rawPhone || !pinCode) {
       throw new AppError('رقم الهاتف ورمز الدخول السريع (PIN) مطلوبان', 'INVALID_CREDENTIALS', 400);
     }
@@ -495,22 +497,37 @@ export class DeliveryRepsService {
     const cleanDigits = rawPhone.replace(/\D/g, '');
     const cleanNoCountry = cleanDigits.startsWith('20') ? cleanDigits.slice(2) : (cleanDigits.startsWith('0') ? cleanDigits.slice(1) : cleanDigits);
 
-    const reps = await this.db
+    let repsQuery = this.db
       .selectFrom('delivery_representatives')
       .selectAll()
-      .where('is_active', '=', true)
-      .execute();
+      .where('is_active', '=', true);
 
-    const matchedRep = reps.find((r) => {
+    if (companyScope) {
+      repsQuery = repsQuery.where('tenant_id', '=', String(companyScope).trim());
+    }
+
+    const reps = await repsQuery.execute();
+
+    const matchedReps = reps.filter((r) => {
       if (!r.phone || !r.pin_code) return false;
       const rDigits = String(r.phone).replace(/\D/g, '');
       const rNoCountry = rDigits.startsWith('20') ? rDigits.slice(2) : (rDigits.startsWith('0') ? rDigits.slice(1) : rDigits);
       return (rNoCountry === cleanNoCountry || rDigits === cleanDigits) && String(r.pin_code).trim() === pinCode;
     });
 
-    if (!matchedRep) {
+    if (!matchedReps || matchedReps.length === 0) {
       throw new AppError('بيانات الدخول غير صحيحة أو حساب المندوب غير مفعّل', 'UNAUTHORIZED_DRIVER', 401);
     }
+
+    if (matchedReps.length > 1) {
+      throw new AppError(
+        'رقم هاتف المندوب مسجل لدى أكثر من منشأة. يرجى تحديد المنشأة المراد العمل معها لمنع تداخل الحسابات.',
+        'AMBIGUOUS_DRIVER_TENANT',
+        409,
+      );
+    }
+
+    const matchedRep = matchedReps[0];
 
     const tokenPayload = {
       repId: Number(matchedRep.id),

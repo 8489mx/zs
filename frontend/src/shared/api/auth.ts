@@ -4,6 +4,7 @@ import type { AuthLoginResponse, AuthMeResponse } from '@/types/auth';
 export interface LoginPayload {
   username: string;
   password: string;
+  companyCode?: string;
 }
 
 export type LoginResponse = AuthLoginResponse;
@@ -17,7 +18,8 @@ export const authApi = {
   login(payload: LoginPayload) {
     return http<LoginResponse>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      skipUnauthorizedInterceptor: true,
     });
   },
   logout() {

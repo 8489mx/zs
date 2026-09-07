@@ -14,6 +14,7 @@ import { ensureUsersPayload, filterUsers, mapUserRow, normalizeBranchIds, normal
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { generatePhoneSearchVariants, validateAndNormalizePhone } from '../../core/utils/phone-utils';
 
 @Injectable()
 export class UsersService {
@@ -50,6 +51,29 @@ export class UsersService {
 
     if (row && (!excludeId || Number(row.id) !== excludeId)) {
       throw new AppError('Username already exists', 'USERNAME_EXISTS', 400);
+    }
+  }
+
+  private normalizePhone(phone?: string | null, countryCode?: string): string {
+    const result = validateAndNormalizePhone(phone, countryCode);
+    if (!result.isValid) {
+      throw new AppError(result.error || 'رقم الهاتف المحمول غير صالح', 'INVALID_PHONE', 400);
+    }
+    return result.normalized;
+  }
+
+  private async ensureUniquePhone(phone: string | null, actor: AuthContext, excludeId?: number): Promise<void> {
+    if (!phone) return;
+    const variants = generatePhoneSearchVariants(phone);
+    const row = await this.db
+      .selectFrom('users')
+      .select(['id', 'username', 'phone'])
+      .where('phone', 'in', variants)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+
+    if (row && (!excludeId || Number(row.id) !== excludeId)) {
+      throw new AppError('رقم الهاتف مسجل بالفعل لمستخدم آخر في المنشأة', 'PHONE_EXISTS', 400);
     }
   }
 
@@ -107,6 +131,7 @@ export class UsersService {
       : users.map((u) => ({
           id: u.id,
           username: u.username,
+          phone: u.phone || null,
           name: u.name,
           role: u.role,
           isActive: u.isActive,
@@ -142,6 +167,11 @@ export class UsersService {
     }
 
     await this.ensureUniqueUsername(payload.username, actor);
+    if (!payload.phone || !String(payload.phone).trim()) {
+      throw new AppError('رقم الهاتف المحمول مطلوب', 'PHONE_REQUIRED', 400);
+    }
+    const cleanPhone = this.normalizePhone(payload.phone, payload.countryCode);
+    await this.ensureUniquePhone(cleanPhone, actor);
     assertStrongPassword(payload.password);
 
     const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
@@ -171,6 +201,7 @@ export class UsersService {
       .insertInto('users')
       .values(({
         username: payload.username.trim(),
+        phone: cleanPhone,
         password_hash: passwordRecord.hash,
         password_salt: passwordRecord.salt,
         role: effectiveRole,
@@ -208,6 +239,14 @@ export class UsersService {
     }
 
     await this.ensureUniqueUsername(payload.username, actor, id);
+    let updatedPhone: string | null | undefined = undefined;
+    if (payload.phone !== undefined) {
+      if (!payload.phone || !String(payload.phone).trim()) {
+        throw new AppError('رقم الهاتف المحمول مطلوب ولا يمكن تركه فارغاً', 'PHONE_REQUIRED', 400);
+      }
+      updatedPhone = this.normalizePhone(payload.phone, payload.countryCode);
+      await this.ensureUniquePhone(updatedPhone, actor, id);
+    }
 
     const scope = this.scope(actor);
     const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
@@ -227,6 +266,10 @@ export class UsersService {
       default_branch_id: payload.defaultBranchId ? Number(payload.defaultBranchId) : null,
       must_change_password: payload.mustChangePassword === true,
     };
+
+    if (updatedPhone !== undefined) {
+      updates.phone = updatedPhone;
+    }
 
     if (payload.password) {
       assertStrongPassword(payload.password);
@@ -310,6 +353,14 @@ export class UsersService {
     }
     if (payload.name !== undefined) {
       updates.display_name = payload.name.trim() || (payload.username || existing.username).trim();
+    }
+    if (payload.phone !== undefined) {
+      if (!payload.phone || !String(payload.phone).trim()) {
+        throw new AppError('رقم الهاتف المحمول مطلوب ولا يمكن تركه فارغاً', 'PHONE_REQUIRED', 400);
+      }
+      const cleanPhone = this.normalizePhone(payload.phone, payload.countryCode);
+      await this.ensureUniquePhone(cleanPhone, actor, id);
+      updates.phone = cleanPhone;
     }
 
     if (Object.keys(updates).length > 0) {

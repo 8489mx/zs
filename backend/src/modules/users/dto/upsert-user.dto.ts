@@ -9,6 +9,14 @@ export class UpsertUserDto {
   @MinLength(1)
   username!: string;
 
+  @IsString()
+  @MinLength(7)
+  phone!: string;
+
+  @IsOptional()
+  @IsString()
+  countryCode?: string;
+
   @IsOptional()
   @IsString()
   @MinLength(MIN_PASSWORD_LENGTH)

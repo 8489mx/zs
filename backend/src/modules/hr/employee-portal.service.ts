@@ -85,7 +85,7 @@ export class EmployeePortalService {
   /**
    * Employee Login using phone / employeeNo / nationalId + 4-digit PIN
    */
-  async login(payload: { identifier: string; pinCode: string }): Promise<{
+  async login(payload: { identifier: string; pinCode: string; companyCode?: string; tenantId?: string }): Promise<{
     token: string;
     employee: PortalEmployeeUser;
   }> {
@@ -103,8 +103,10 @@ export class EmployeePortalService {
       ? cleanDigits.slice(1)
       : cleanDigits;
 
+    const companyScope = payload?.companyCode || payload?.tenantId;
+
     // Search active employees
-    const employees = await this.anyDb
+    let employeesQuery = this.anyDb
       .selectFrom('hr_employees as e')
       .leftJoin('branches as b', 'b.id', 'e.branch_id')
       .leftJoin('hr_departments as d', 'd.id', 'e.department_id')
@@ -125,8 +127,13 @@ export class EmployeePortalService {
         'd.name as department_name',
         'pos.name as position_name',
       ])
-      .where('e.status', '=', 'active')
-      .execute();
+      .where('e.status', '=', 'active');
+
+    if (companyScope) {
+      employeesQuery = employeesQuery.where('e.tenant_id', '=', String(companyScope).trim());
+    }
+
+    const employees = await employeesQuery.execute();
 
     if (!employees || employees.length === 0) {
       throw new AppError('لم يتم العثور على أي موظف نشط في النظام', 'NO_ACTIVE_EMPLOYEES', 404);
@@ -141,7 +148,7 @@ export class EmployeePortalService {
       .execute();
 
     // Match employee
-    const matched = employees.find((e: any) => {
+    const matchedEmployees = employees.filter((e: any) => {
       // Check employee_no
       if (e.employee_no && e.employee_no.trim().toLowerCase() === rawIdentifier.toLowerCase()) {
         return true;
@@ -157,23 +164,47 @@ export class EmployeePortalService {
           : pDigits.startsWith('0')
           ? pDigits.slice(1)
           : pDigits;
-        return pDigits === cleanDigits || pNoCountry === cleanNoCountry;
+        return cleanDigits.length >= 8 && (pDigits === cleanDigits || pNoCountry === cleanNoCountry);
       });
     });
 
-    if (!matched) {
+    if (!matchedEmployees || matchedEmployees.length === 0) {
       throw new AppError('بيانات الدخول غير صحيحة، يرجى التأكد من رقم الهاتف أو كود الموظف', 'EMPLOYEE_NOT_FOUND', 401);
     }
 
-    // Check PIN code
-    const storedPin = String(matched.pin_code || '').trim();
-    if (!storedPin) {
-      // Default fallback PIN for first-time login: 1234 or last 4 digits of phone
-      if (rawPin !== '1234' && rawPin !== cleanDigits.slice(-4)) {
-        throw new AppError('لم يتم تعيين رمز PIN بعد للموظف. استخدم الرمز الافتراضي 1234 أو راجع إدارة الموارد البشرية', 'DEFAULT_PIN_REQUIRED', 401);
+    let matched: any = null;
+
+    if (matchedEmployees.length === 1) {
+      matched = matchedEmployees[0];
+      const storedPin = String(matched.pin_code || '').trim();
+      if (!storedPin) {
+        if (rawPin !== '1234' && rawPin !== cleanDigits.slice(-4)) {
+          throw new AppError('لم يتم تعيين رمز PIN بعد للموظف. استخدم الرمز الافتراضي 1234 أو راجع إدارة الموارد البشرية', 'DEFAULT_PIN_REQUIRED', 401);
+        }
+      } else if (storedPin !== rawPin) {
+        throw new AppError('رمز الدخول السري (PIN) غير صحيح', 'INVALID_PIN', 401);
       }
-    } else if (storedPin !== rawPin) {
-      throw new AppError('رمز الدخول السري (PIN) غير صحيح', 'INVALID_PIN', 401);
+    } else {
+      // Multiple matches across tenants (e.g. employee code 001 exists in both Ragab and Mahmoud)
+      const validPinMatches = matchedEmployees.filter((emp: any) => {
+        const storedPin = String(emp.pin_code || '').trim();
+        if (!storedPin) {
+          return rawPin === '1234' || (cleanDigits.length >= 4 && rawPin === cleanDigits.slice(-4));
+        }
+        return storedPin === rawPin;
+      });
+
+      if (validPinMatches.length === 1) {
+        matched = validPinMatches[0];
+      } else if (validPinMatches.length > 1) {
+        throw new AppError(
+          'كود الموظف ورمز الدخول مسجلان لدى أكثر من منشأة. يرجى تسجيل الدخول برقم الهاتف المحمول أو استخدام رابط محلك لمنع تداخل الحسابات.',
+          'AMBIGUOUS_EMPLOYEE_CREDENTIALS',
+          409,
+        );
+      } else {
+        throw new AppError('رمز الدخول السري (PIN) غير صحيح', 'INVALID_PIN', 401);
+      }
     }
 
     const employeeUser: PortalEmployeeUser = {

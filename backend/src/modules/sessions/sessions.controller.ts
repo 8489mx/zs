@@ -123,6 +123,7 @@ export class SessionsController {
     const result = await this.sessionService.authenticate(username, password, {
       ipAddress: req.ip,
       userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : '',
+      companyCode: payload.companyCode || (typeof req.headers['x-tenant-id'] === 'string' ? req.headers['x-tenant-id'] : undefined),
     });
 
     if (!result) {

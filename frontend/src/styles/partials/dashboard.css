@@ -920,4 +920,16 @@
   .manager-action-link { width: 100%; justify-content: center; }
 }
 
+.top-selling-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
 
+@media (max-width: 640px) {
+  .top-selling-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

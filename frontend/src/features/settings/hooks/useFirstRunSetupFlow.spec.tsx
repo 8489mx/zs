@@ -69,7 +69,7 @@ describe('useFirstRunSetupFlow', () => {
   });
 
   it('keeps the setup flow open for the secure-account step until the default bootstrap password is changed', async () => {
-    branchesMock.mockResolvedValueOnce([{ id: 'b-1', name: 'Main Branch' }]);
+    branchesMock.mockResolvedValueOnce([{ id: 'b-1', name: 'Main Branch', defaultStockLocationId: 'l-1' }]);
     locationsMock.mockResolvedValueOnce([{ id: 'l-1', name: 'Main Stock', branchId: 'b-1' }]);
     usersMock.mockResolvedValueOnce([{ id: 'u-admin', username: 'manager', role: 'admin', permissions: ['dashboard'], name: 'Manager', branchIds: ['b-1'], defaultBranchId: 'b-1', isActive: true }]);
     settingsMock.mockResolvedValueOnce({

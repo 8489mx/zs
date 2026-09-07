@@ -6,7 +6,7 @@ export class DriverPortalController {
   constructor(private readonly service: DeliveryRepsService) {}
 
   @Post('login')
-  login(@Body() body: { phone: string; pinCode: string }) {
+  login(@Body() body: { phone: string; pinCode: string; companyCode?: string; tenantId?: string }) {
     return this.service.driverLogin(body);
   }
 

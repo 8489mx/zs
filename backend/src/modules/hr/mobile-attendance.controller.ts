@@ -6,7 +6,7 @@ export class MobileAttendanceController {
   constructor(private readonly service: MobileAttendanceService) {}
 
   @Post('login')
-  login(@Body() body: { phone: string; pinCode: string }) {
+  login(@Body() body: { phone: string; pinCode: string; companyCode?: string; tenantId?: string }) {
     return this.service.employeeLogin(body);
   }
 

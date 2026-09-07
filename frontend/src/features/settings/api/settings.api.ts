@@ -9,6 +9,7 @@ import { buildQueryString } from '@/lib/query-string';
 export interface ManagedUserRecord {
   id?: string | null;
   username: string;
+  phone?: string | null;
   password?: string;
   role: 'super_admin' | 'admin' | 'cashier';
   permissions: string[];

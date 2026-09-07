@@ -93,7 +93,13 @@ export default function EmployeePortalPage() {
 
     try {
       setLoginLoading(true);
-      const res = await employeePortalApi.login({ identifier: identifier.trim(), pinCode: pinCode.trim() });
+      const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const companyCode = urlParams?.get('c') || urlParams?.get('tenant') || (typeof localStorage !== 'undefined' ? localStorage.getItem('zs_last_company_code') : null) || undefined;
+      const res = await employeePortalApi.login({
+        identifier: identifier.trim(),
+        pinCode: pinCode.trim(),
+        ...(companyCode ? { companyCode } : {}),
+      });
       setToken(res.token);
       setUser(res.employee);
     } catch (err: any) {
