@@ -286,7 +286,7 @@ export function ProductIconStudioModal({
               padding: '7px 12px',
               borderRadius: '7px',
               fontSize: '0.82rem',
-              fontWeight: activeTab === 'theme' ? 700 : 600,
+              fontWeight: 700,
               border: 'none',
               cursor: 'pointer',
               background: activeTab === 'theme' ? '#ffffff' : 'transparent',
@@ -296,7 +296,9 @@ export function ProductIconStudioModal({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -312,7 +314,7 @@ export function ProductIconStudioModal({
               padding: '7px 12px',
               borderRadius: '7px',
               fontSize: '0.82rem',
-              fontWeight: activeTab === 'manage' ? 700 : 600,
+              fontWeight: 700,
               border: 'none',
               cursor: 'pointer',
               background: activeTab === 'manage' ? '#ffffff' : 'transparent',
@@ -322,7 +324,9 @@ export function ProductIconStudioModal({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -408,11 +412,13 @@ export function ProductIconStudioModal({
                         gap: '8px',
                         padding: '9px 10px',
                         borderRadius: '8px',
-                        border: isSelected ? '1.5px solid #0f172a' : '1px solid #e2e8f0',
+                        border: isSelected ? '1px solid #0f172a' : '1px solid #e2e8f0',
                         background: isSelected ? '#ffffff' : '#fafafa',
                         cursor: 'pointer',
                         textAlign: 'start',
-                        transition: 'all 0.15s ease',
+                        whiteSpace: 'nowrap',
+                        userSelect: 'none',
+                        transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
                         boxShadow: isSelected ? '0 1px 4px rgba(15, 23, 42, 0.08)' : 'none',
                       }}
                     >
@@ -427,7 +433,7 @@ export function ProductIconStudioModal({
                           flexShrink: 0,
                         }}
                       />
-                      <span style={{ fontSize: '0.76rem', fontWeight: isSelected ? 800 : 600, color: isSelected ? '#0f172a' : '#475569' }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 700, color: isSelected ? '#0f172a' : '#475569' }}>
                         {preset.label}
                       </span>
                     </button>

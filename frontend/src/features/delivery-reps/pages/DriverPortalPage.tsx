@@ -573,10 +573,13 @@ export function DriverPortalPage() {
               borderRadius: '8px',
               border: 'none',
               fontSize: '12px',
-              fontWeight: statusFilter === 'pending' ? 800 : 600,
+              fontWeight: 700,
               background: statusFilter === 'pending' ? '#ea580c' : '#f1f5f9',
               color: statusFilter === 'pending' ? '#ffffff' : '#475569',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease',
             }}
           >
             قيد التسليم ({pendingCount})
@@ -590,10 +593,13 @@ export function DriverPortalPage() {
               borderRadius: '8px',
               border: 'none',
               fontSize: '12px',
-              fontWeight: statusFilter === 'settled' ? 800 : 600,
+              fontWeight: 700,
               background: statusFilter === 'settled' ? '#16a34a' : '#f1f5f9',
               color: statusFilter === 'settled' ? '#ffffff' : '#475569',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease',
             }}
           >
             تم تسليمها ({settledCount})
@@ -607,10 +613,13 @@ export function DriverPortalPage() {
               borderRadius: '8px',
               border: 'none',
               fontSize: '12px',
-              fontWeight: statusFilter === 'all' ? 800 : 600,
+              fontWeight: 700,
               background: statusFilter === 'all' ? '#0f172a' : '#f1f5f9',
               color: statusFilter === 'all' ? '#ffffff' : '#475569',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease',
             }}
           >
             الكل ({orders.length})

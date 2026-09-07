@@ -107,12 +107,15 @@ export function BranchReferenceCard(props: {
                   style={{
                     padding: '3px 8px',
                     fontSize: '0.72rem',
-                    fontWeight: active ? 700 : 500,
+                    fontWeight: 700,
                     borderRadius: '4px',
                     border: 'none',
                     background: active ? '#ffffff' : 'transparent',
                     color: active ? '#0f172a' : '#64748b',
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                    transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                     boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   }}
                 >
@@ -273,12 +276,15 @@ export function LocationReferenceCard(props: {
                   style={{
                     padding: '3px 8px',
                     fontSize: '0.72rem',
-                    fontWeight: active ? 700 : 500,
+                    fontWeight: 700,
                     borderRadius: '4px',
                     border: 'none',
                     background: active ? '#ffffff' : 'transparent',
                     color: active ? '#0f172a' : '#64748b',
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                    transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                     boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   }}
                 >

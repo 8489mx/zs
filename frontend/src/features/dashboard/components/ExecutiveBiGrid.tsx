@@ -130,78 +130,99 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
   return (
     <section className="executive-bi-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
       
-      {/* الشريط الإحصائي النحيف المدمج (Slim Executive Strip) */}
+      {/* الشريط الإحصائي العلوي (KPI Strip) - 3 في سطر واحد دائماً */}
       <div
+        className="executive-kpi-strip keep-grid-row"
         style={{
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'stretch',
+          width: '100%',
           overflow: 'hidden',
+          boxSizing: 'border-box',
         }}
       >
         {/* متوسط سلة الشراء */}
         <div
           style={{
+            flex: '1 1 0',
+            minWidth: 0,
             display: 'flex',
-            justifyContent: 'space-between',
+            flexDirection: 'column',
             alignItems: 'center',
-            padding: '10px 18px',
+            justifyContent: 'center',
+            padding: '10px 4px',
             borderInlineEnd: '1px solid #f1f5f9',
+            textAlign: 'center',
+            gap: '2px',
+            boxSizing: 'border-box',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>متوسط سلة المبيعات</span>
-            <span style={{ padding: '1px 6px', fontSize: '0.68rem', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', fontWeight: 600 }}>
+          <strong style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+            {formatCurrency(averageBasket)}
+          </strong>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>متوسط السلة</span>
+            <span style={{ padding: '1px 4px', fontSize: '0.58rem', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', fontWeight: 600, whiteSpace: 'nowrap' }}>
               لكل فاتورة
             </span>
           </div>
-          <strong style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-            {formatCurrency(averageBasket)}
-          </strong>
         </div>
 
         {/* هامش مجمل الربح */}
         <div
           style={{
+            flex: '1 1 0',
+            minWidth: 0,
             display: 'flex',
-            justifyContent: 'space-between',
+            flexDirection: 'column',
             alignItems: 'center',
-            padding: '10px 18px',
+            justifyContent: 'center',
+            padding: '10px 4px',
             borderInlineEnd: '1px solid #f1f5f9',
+            textAlign: 'center',
+            gap: '2px',
+            boxSizing: 'border-box',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>هامش مجمل الربح</span>
-            <span style={{ padding: '1px 6px', fontSize: '0.68rem', borderRadius: '8px', background: '#ecfdf5', color: '#047857', fontWeight: 700 }}>
+          <strong style={{ fontSize: '0.98rem', fontWeight: 800, color: '#059669', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+            {formatCurrency(grossProfit)}
+          </strong>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>مجمل الربح</span>
+            <span style={{ padding: '1px 4px', fontSize: '0.58rem', borderRadius: '4px', background: '#ecfdf5', color: '#047857', fontWeight: 700, whiteSpace: 'nowrap' }}>
               {grossMarginPercent}%
             </span>
           </div>
-          <strong style={{ fontSize: '1.1rem', fontWeight: 800, color: '#059669' }}>
-            {formatCurrency(grossProfit)}
-          </strong>
         </div>
 
         {/* صافي الربح التشغيلي */}
         <div
           style={{
+            flex: '1 1 0',
+            minWidth: 0,
             display: 'flex',
-            justifyContent: 'space-between',
+            flexDirection: 'column',
             alignItems: 'center',
-            padding: '10px 18px',
+            justifyContent: 'center',
+            padding: '10px 4px',
+            textAlign: 'center',
+            gap: '2px',
+            boxSizing: 'border-box',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>صافي الربح التقديري</span>
-            <span style={{ padding: '1px 6px', fontSize: '0.68rem', borderRadius: '8px', background: '#f8fafc', color: '#475569', fontWeight: 600 }}>
+          <strong style={{ fontSize: '0.98rem', fontWeight: 800, color: '#170e5e', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+            {formatCurrency(netOperatingProfit)}
+          </strong>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>صافي الربح</span>
+            <span style={{ padding: '1px 4px', fontSize: '0.58rem', borderRadius: '4px', background: '#f8fafc', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>
               تشغيلي
             </span>
           </div>
-          <strong style={{ fontSize: '1.1rem', fontWeight: 800, color: '#170e5e' }}>
-            {formatCurrency(netOperatingProfit)}
-          </strong>
         </div>
       </div>
 

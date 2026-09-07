@@ -68,13 +68,13 @@ export function Step1Welcome({ form, updateField, extraData, updateExtra, onNext
         </Field>
         <Field label={t('firstRun.step1.adminPassword')}>
           <input 
-            type="text"
+            type="password"
             className="input secure-password-field"
             value={form.adminPassword} 
             onChange={(e) => updateField('adminPassword', e.target.value)} 
             dir="ltr"
-            placeholder="********" 
-            autoComplete="off"
+            placeholder="••••••••" 
+            autoComplete="new-password"
             data-lpignore="true"
             data-1p-ignore="true"
             data-form-type="other"
@@ -94,7 +94,19 @@ export function Step1Welcome({ form, updateField, extraData, updateExtra, onNext
             className="btn-wizard-next" 
             onClick={onNext}
             disabled={!isValid}
-            style={{ opacity: isValid ? 1 : 0.5 }}
+            style={{
+              background: '#170e5e',
+              color: '#ffffff',
+              padding: '12px 32px',
+              borderRadius: '8px',
+              fontWeight: 800,
+              fontSize: '15px',
+              border: 'none',
+              cursor: isValid ? 'pointer' : 'not-allowed',
+              opacity: isValid ? 1 : 0.5,
+              boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
+              transition: 'all 0.15s ease'
+            }}
           >
             {t('firstRun.step1.continue')}
           </button>

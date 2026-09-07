@@ -11,7 +11,7 @@
   display: flex;
   flex-direction: row-reverse;
   width: 100%;
-  max-width: 1100px;
+  max-width: 1180px;
   min-height: 560px;
   background: transparent;
   gap: 40px;
@@ -20,9 +20,9 @@
 .onboarding-card {
   flex: 1;
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
-  padding: 40px 48px;
+  padding: 36px 40px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -59,6 +59,8 @@
   color: var(--muted);
   font-size: 15px;
   margin: 0;
+  white-space: pre-line;
+  line-height: 1.6;
 }
 
 /* Progress Bar */
@@ -265,7 +267,7 @@
 }
 
 .btn-wizard-next {
-  background: #170c5c;
+  background: #170e5e;
   color: #fff;
   border: none;
   padding: 12px 32px;
@@ -382,6 +384,28 @@
 @keyframes scaleBounce {
   0% { transform: scale(0); }
   100% { transform: scale(1); }
+}
+
+.wizard-industry-grid {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.wizard-industry-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wizard-industry-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wizard-industry-grid::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+}
+
+.wizard-industry-grid::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 @media (max-width: 992px) {

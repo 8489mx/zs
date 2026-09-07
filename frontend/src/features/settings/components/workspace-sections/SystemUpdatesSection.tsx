@@ -1061,10 +1061,11 @@ export function SystemUpdatesSection({ deploymentMode }: { deploymentMode?: stri
                             padding: '8px 4px',
                             borderRadius: '10px',
                             background: isDone ? '#ecfdf5' : isActive ? '#eff6ff' : '#f8fafc',
-                            border: isDone ? '1px solid #a7f3d0' : isActive ? '1.5px solid #93c5fd' : '1px solid #e2e8f0',
+                            border: isDone ? '1px solid #a7f3d0' : isActive ? '1px solid #93c5fd' : '1px solid #e2e8f0',
                             color: isDone ? '#059669' : isActive ? '#1d4ed8' : '#64748b',
                             fontSize: '11.5px',
-                            fontWeight: isActive || isDone ? 800 : 600
+                            fontWeight: 700,
+                            transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
                           }}>
                             <div style={{ fontSize: '12px', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isDone ? <CheckIcon size={12} /> : st.stepNum}</div>
                             <div>{st.label}</div>

@@ -211,16 +211,17 @@ export function MerchantOnlineOrdersPage() {
                   padding: '7px 14px',
                   borderRadius: '9px',
                   fontSize: '12.5px',
-                  fontWeight: statusFilter === tab.id ? 700 : 500,
+                  fontWeight: 700,
                   background: statusFilter === tab.id ? '#170e5e' : '#ffffff',
                   color: statusFilter === tab.id ? '#ffffff' : '#475569',
                   border: statusFilter === tab.id ? '1px solid #170e5e' : '1px solid #e2e8f0',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
+                  userSelect: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  transition: 'all 0.15s ease',
+                  transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                 }}
               >
                 <span>{tab.label}</span>

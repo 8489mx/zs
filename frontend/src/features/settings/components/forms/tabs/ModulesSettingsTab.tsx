@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 import { FormSection } from '@/shared/components/form-section';
-import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon } from '@/shared/components/icons/AppIcons';
+import { LightbulbIcon, XIcon, CheckIcon, StarIcon, ChevronDownIcon, MonitorIcon, PackageIcon, ReceiptIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
 import { useHasFeature } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { MAINTENANCE_PROFILES, getMaintenanceProfile, type MaintenanceProfileKey } from '@/features/maintenance/constants/maintenance-profiles';
+import { SmartModularConfiguratorModal } from '@/features/settings/components/modular-configurator/SmartModularConfiguratorModal';
+import { SmartModularQuickBar } from '@/features/settings/components/modular-configurator/SmartModularQuickBar';
+import { INDUSTRY_PRESETS, type IndustryPresetId, resolveModuleDependencies, SYSTEM_MODULES } from '@/features/settings/components/modular-configurator/modular-presets';
 
 interface ModulesTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
@@ -317,8 +320,14 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const hasFixedAssetsFeature = useHasFeature('fixed_assets') || useHasFeature('accounting') || isSuperAdmin;
   const hasTaxDeclarationFeature = useHasFeature('vat_declaration') || useHasFeature('taxIntegration') || isSuperAdmin;
   const hasDeliveryFleetFeature = useHasFeature('deliveryReps') || isSuperAdmin;
+  const hasPurchasesFeature = useHasFeature('purchases') || isSuperAdmin;
+  const hasInventoryFeature = useHasFeature('inventory') || isSuperAdmin;
+  const hasHrFeature = useHasFeature('hr') || isSuperAdmin;
 
   const isPosActive = form.watch('posModuleEnabled');
+  const isPurchasesActive = form.watch('purchasesModuleEnabled');
+  const isInventoryActive = form.watch('inventoryModuleEnabled');
+  const isHrActive = form.watch('hrModuleEnabled');
   const isManufacturingActive = form.watch('manufacturingModuleEnabled');
   const isComboActive = form.watch('comboModuleEnabled');
   const isImportActive = form.watch('importModuleEnabled');
@@ -343,12 +352,66 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const currentProfile = getMaintenanceProfile(currentProfileKey);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [configuratorOpen, setConfiguratorOpen] = useState(false);
   const [upgradeModalInfo, setUpgradeModalInfo] = useState<{
     open: boolean;
     title: string;
     planName: string;
     description: string;
   } | null>(null);
+
+  const handleApplyConfig = (config: {
+    selectedModules: Record<string, boolean>;
+    industry: IndustryPresetId;
+    posMode?: 'scanner' | 'touch';
+    productKind?: 'standard' | 'fashion';
+    maintenanceProfile?: string;
+  }) => {
+    for (const [key, value] of Object.entries(config.selectedModules)) {
+      form.setValue(key as any, value, { shouldDirty: true, shouldValidate: true });
+    }
+    form.setValue('businessIndustry', config.industry as any, { shouldDirty: true });
+    if (config.posMode) {
+      form.setValue('defaultPosMode', config.posMode, { shouldDirty: true });
+    }
+    if (config.productKind) {
+      form.setValue('defaultProductKind', config.productKind, { shouldDirty: true });
+    }
+    if (config.maintenanceProfile) {
+      form.setValue('maintenanceProfile', config.maintenanceProfile, { shouldDirty: true });
+    }
+  };
+
+  const handleQuickSelectIndustry = (indId: IndustryPresetId) => {
+    const preset = INDUSTRY_PRESETS[indId];
+    if (!preset) return;
+
+    const newSelection: Record<string, boolean> = {};
+    for (const mod of SYSTEM_MODULES) {
+      newSelection[mod.key] = false;
+    }
+    for (const key of preset.recommendedModules) {
+      newSelection[key] = true;
+    }
+    for (const key of preset.disabledModules) {
+      newSelection[key] = false;
+    }
+
+    const activeKeys = Object.keys(newSelection).filter((k) => newSelection[k]);
+    const { resolvedKeys } = resolveModuleDependencies(activeKeys);
+    for (const key of resolvedKeys) {
+      newSelection[key] = true;
+    }
+
+    handleApplyConfig({
+      selectedModules: newSelection,
+      industry: indId,
+      posMode: preset.defaultPosMode,
+      productKind: preset.defaultProductKind,
+      maintenanceProfile: preset.maintenanceProfile,
+    });
+  };
+
 
   const handleLockedCardClick = (title: string, planName: string, description: string) => {
     setUpgradeModalInfo({
@@ -415,9 +478,17 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
         </div>
       )}
 
+      {/* ===== شريط التخصيص السريع ومعالج الموديولات ===== */}
+      <SmartModularQuickBar
+        currentIndustry={form.watch('businessIndustry')}
+        onOpenModal={() => setConfiguratorOpen(true)}
+        onQuickSelect={handleQuickSelectIndustry}
+        disabled={disabled}
+      />
+
       {/* ===== موديولات النظام ===== */}
       <FormSection title="موديولات النظام" description={<>شغّل الأجزاء التي تحتاجها لنشاطك، وسيتم ضبط وتحديث القوائم والشاشات تلقائياً.</>}>
-        <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '12px' }}>
+        <div className="document-prototype-grid compact-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '14px' }}>
           
           {/* نقاط البيع السريعة والكاشير */}
           <label style={getCardStyle(Boolean(isPosActive), true)}>
@@ -433,6 +504,69 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posModuleEnabled')} disabled={disabled} />
+          </label>
+
+          {/* المخازن والمستودعات المتقدمة */}
+          <label style={getCardStyle(Boolean(isInventoryActive), hasInventoryFeature)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isInventoryActive))}>
+                <PackageIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المخازن والمستودعات المتقدمة</strong>
+                  {!hasInventoryFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>التحويلات بين المخازن، أذون الصرف، والجرد (يمكن إيقافه للأنشطة الخدمية)</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('inventoryModuleEnabled')} disabled={disabled || !hasInventoryFeature} />
+          </label>
+
+          {/* المشتريات وإدارة الموردين */}
+          <label style={getCardStyle(Boolean(isPurchasesActive), hasPurchasesFeature)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isPurchasesActive))}>
+                <ReceiptIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>المشتريات وإدارة الموردين</strong>
+                  {!hasPurchasesFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>فواتير الشراء، مرتجعات المشتريات، وحسابات الموردين وسندات الصرف</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('purchasesModuleEnabled')} disabled={disabled || !hasPurchasesFeature} />
+          </label>
+
+          {/* الموارد البشرية والرواتب */}
+          <label style={getCardStyle(Boolean(isHrActive), hasHrFeature)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isHrActive))}>
+                <UsersIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>الموارد البشرية والرواتب (HR)</strong>
+                  {!hasHrFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>مسير الرواتب، تسجيل الحضور، السلف، وملفات الموظفين (يمكن إيقافه للمتاجر الفردية)</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('hrModuleEnabled')} disabled={disabled || !hasHrFeature} />
           </label>
 
           {/* التصنيع والإنتاج */}
@@ -527,72 +661,39 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </label>
 
           {/* ===== موديول إدارة الصيانة الشامل مع محدد الأنشطة ===== */}
-          <div style={{ ...getCardStyle(Boolean(isMaintenanceActive), hasMaintenanceFeature), flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={getIconBadgeStyle(Boolean(isMaintenanceActive))}>
-                  <MaintenanceWrenchIcon size={20} />
-                </div>
-                <div style={premiumCardTextStyle}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
-                    {!hasMaintenanceFeature && (
-                      <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
-                        <LockIcon size={11} /> ترقية مطلوبة
-                      </span>
-                    )}
-                  </div>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تتبع السيريال، استلام الأجهزة، فحص الضمان، وحساب المصنعية</small>
-                </div>
+          <label style={getCardStyle(Boolean(isMaintenanceActive), hasMaintenanceFeature)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isMaintenanceActive))}>
+                <MaintenanceWrenchIcon size={20} />
               </div>
-              <input
-                type="checkbox"
-                style={premiumCheckboxInputStyle}
-                {...form.register('enableMobileStoreFeatures', {
-                  onChange: (e) => {
-                    if (e.target.checked && !form.getValues('maintenanceProfile')) {
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول إدارة الصيانة والأجهزة</strong>
+                  {!hasMaintenanceFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> ترقية مطلوبة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل تتبع السيريال، استلام الأجهزة، فحص الضمان، وحساب المصنعية</small>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              style={premiumCheckboxInputStyle}
+              {...form.register('enableMobileStoreFeatures', {
+                onChange: (e) => {
+                  if (e.target.checked) {
+                    if (!form.getValues('maintenanceProfile')) {
                       form.setValue('maintenanceProfile', 'mobile', { shouldDirty: true });
                     }
+                    setProfileModalOpen(true);
                   }
-                })}
-                disabled={disabled || !hasMaintenanceFeature}
-              />
-            </div>
-
-            {isMaintenanceActive && hasMaintenanceFeature && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 10px', marginTop: '2px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                  <span style={{ color: '#64748b' }}>نشاط الصيانة المحدد:</span>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#15803d', fontWeight: 800 }}>
-                    <ProfileVectorIcon type={currentProfile.iconType} size={15} />
-                    <span>{currentProfile.shortTitle}</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setProfileModalOpen(true)}
-                  disabled={disabled}
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    padding: '3px 10px',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    color: '#0f172a',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-                  }}
-                >
-                  <span>تغيير النشاط</span>
-                  <ChevronDownIcon size={13} color="#64748b" />
-                </button>
-              </div>
-            )}
-          </div>
+                }
+              })}
+              disabled={disabled || !hasMaintenanceFeature}
+            />
+          </label>
 
           {/* موديول الصيدليات والأدوية */}
           <label style={getCardStyle(Boolean(isPharmacyActive), hasPharmacyFeature)}>
@@ -1194,6 +1295,15 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
           </div>
         </div>
       </DialogShell>
+      
+      {/* معالج التخصيص الذكي للموديولات والمنيو */}
+      <SmartModularConfiguratorModal
+        open={configuratorOpen}
+        onClose={() => setConfiguratorOpen(false)}
+        currentValues={form.getValues()}
+        onApply={handleApplyConfig}
+        disabled={disabled}
+      />
     </div>
   );
 }

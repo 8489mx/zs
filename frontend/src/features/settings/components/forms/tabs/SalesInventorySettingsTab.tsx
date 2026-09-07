@@ -735,11 +735,12 @@ export function SalesInventorySettingsTab({
                       fontSize: '0.71rem',
                       textAlign: 'center',
                       borderRadius: '6px',
-                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
                       background: isSelected ? '#eef2ff' : '#f8fafc',
                       color: isSelected ? '#170e5e' : '#475569',
-                      fontWeight: isSelected ? 800 : 600,
+                      fontWeight: 700,
                       cursor: 'pointer',
+                      transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                     }}
                   >
                     {p.label}
@@ -795,11 +796,12 @@ export function SalesInventorySettingsTab({
                       fontSize: '0.71rem',
                       textAlign: 'center',
                       borderRadius: '6px',
-                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
                       background: isSelected ? '#eef2ff' : '#f8fafc',
                       color: isSelected ? '#170e5e' : '#475569',
-                      fontWeight: isSelected ? 800 : 600,
+                      fontWeight: 700,
                       cursor: 'pointer',
+                      transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                     }}
                   >
                     {p.label}
@@ -952,12 +954,12 @@ export function SalesInventorySettingsTab({
                       textAlign: 'center',
                       whiteSpace: 'nowrap',
                       borderRadius: '6px',
-                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
                       background: isSelected ? '#eef2ff' : '#f8fafc',
                       color: isSelected ? '#170e5e' : '#475569',
-                      fontWeight: isSelected ? 800 : 600,
+                      fontWeight: 700,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
+                      transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                     }}
                   >
                     {p.label}
@@ -1016,12 +1018,12 @@ export function SalesInventorySettingsTab({
                       textAlign: 'center',
                       whiteSpace: 'nowrap',
                       borderRadius: '6px',
-                      border: isSelected ? '1.5px solid #170e5e' : '1px solid #e2e8f0',
+                      border: isSelected ? '1px solid #170e5e' : '1px solid #e2e8f0',
                       background: isSelected ? '#eef2ff' : '#f8fafc',
                       color: isSelected ? '#170e5e' : '#475569',
-                      fontWeight: isSelected ? 800 : 600,
+                      fontWeight: 700,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
+                      transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                     }}
                   >
                     {p.label}

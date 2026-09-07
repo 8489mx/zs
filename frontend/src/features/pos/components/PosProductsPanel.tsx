@@ -581,7 +581,9 @@ function PosProductsPanelComponent({
                 color: selectedCategoryId === null ? '#ffffff' : '#334155',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                fontWeight: selectedCategoryId === null ? 'bold' : '600',
+                userSelect: 'none',
+                fontWeight: 700,
+                transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
               }}
             >
               كل الأقسام
@@ -603,7 +605,9 @@ function PosProductsPanelComponent({
                   color: selectedCategoryId === String(cat.id) ? '#ffffff' : '#334155',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  fontWeight: selectedCategoryId === String(cat.id) ? 'bold' : '600',
+                  userSelect: 'none',
+                  fontWeight: 700,
+                  transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                 }}
               >
                 {cat.name}

@@ -37,6 +37,7 @@ export interface AuthMeResponse {
     theme: string;
     uiLanguage?: 'ar' | 'en' | string;
     isEtaActive?: boolean;
+    onboardingCompleted?: boolean;
   };
   security: {
     mustChangePassword: boolean;

@@ -58,13 +58,24 @@ export function useSettingsPageController(section: SettingsSectionKey) {
       setAppGate(status.setupRequired ? 'setup' : 'ready', status);
     }
 
-    if (latestFlow.currentStep) {
+    const isTargetingCurrentSection = latestFlow.currentStep?.to?.includes(`/settings/${section}`);
+    if (latestFlow.currentStep && !isTargetingCurrentSection) {
       navigate(latestFlow.currentStep.to, { replace: true });
       return;
     }
 
+    const nextStepInOtherSection = latestFlow.steps?.find((s) => !s.done && s.to && !s.to.includes(`/settings/${section}`));
+    if (nextStepInOtherSection) {
+      navigate(nextStepInOtherSection.to, { replace: true });
+      return;
+    }
+
     const authState = useAuthStore.getState();
-    navigate(getPostLoginRoute(currentUser, latestFlow.resolvedStoreName, { tenant: authState.tenant, deploymentMode: authState.activationStatus?.deploymentMode }), { replace: true });
+    const targetRoute = getPostLoginRoute(currentUser, latestFlow.resolvedStoreName, {
+      tenant: authState.tenant,
+      deploymentMode: authState.activationStatus?.deploymentMode,
+    });
+    navigate(targetRoute === '/settings/core?setup=1' ? '/' : targetRoute, { replace: true });
   };
 
   const settingsGuidanceCards = useMemo(() => buildSettingsGuidanceCards({

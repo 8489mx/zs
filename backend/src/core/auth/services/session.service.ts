@@ -425,6 +425,17 @@ export class SessionService {
       }
     }
 
+    let onboardingCompleted = false;
+    const rawOnboarding = settingsMap.get('onboardingCompleted');
+    if (rawOnboarding) {
+      try {
+        const parsed = JSON.parse(rawOnboarding);
+        onboardingCompleted = parsed === true || parsed === 'true';
+      } catch {
+        onboardingCompleted = rawOnboarding === 'true';
+      }
+    }
+
     return {
       user: {
         id: profile.id,
@@ -442,6 +453,7 @@ export class SessionService {
         storeName,
         theme,
         isEtaActive,
+        onboardingCompleted,
       },
       security: {
         mustChangePassword: profile.mustChangePassword,

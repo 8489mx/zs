@@ -112,6 +112,14 @@ vi.mock('@/shared/system/first-run-setup-checklist', () => ({
   FirstRunSetupChecklist: () => null,
 }));
 
+vi.mock('@/shared/system/TenantQuickStartChecklist', () => ({
+  TenantQuickStartChecklist: () => null,
+}));
+
+vi.mock('@/shared/system/SmartDemoOnboardingBanner', () => ({
+  SmartDemoOnboardingBanner: () => null,
+}));
+
 describe('Dashboard daily home layout', () => {
   it('renders the current focused daily dashboard with decision and summary cards', () => {
     useDashboardOverviewMock.mockReturnValue({
@@ -139,17 +147,14 @@ describe('Dashboard daily home layout', () => {
     expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
     expect(screen.getByText('صافي الخزينة')).toBeInTheDocument();
     expect(screen.getByLabelText('إجراءات سريعة')).toBeInTheDocument();
-    expect(screen.getByText('أهم ما يحتاج مراجعة الآن')).toBeInTheDocument();
-    expect(screen.getByText('قرارات تحتاج مراجعة')).toBeInTheDocument();
-    expect(screen.getByText('إيه أشتريه؟')).toBeInTheDocument();
-    expect(screen.getByText('إيه الراكد؟')).toBeInTheDocument();
-    expect(screen.getByText('بيكسب منين؟')).toBeInTheDocument();
-    expect(screen.getByText('مبيعات عالية وهامش ضعيف')).toBeInTheDocument();
-    expect(screen.getByText('إيه أُحصّله؟')).toBeInTheDocument();
-    expect(screen.getByText('تنبيهات المخزون والحسابات')).toBeInTheDocument();
-    expect(screen.getByText('أعلى أصناف اليوم')).toBeInTheDocument();
-    expect(screen.getByText('الحسابات المستحقة والمخزون')).toBeInTheDocument();
-    expect(screen.getByText('مبيعات آخر 30 يوم')).toBeInTheDocument();
-    expect(screen.getAllByText('لا توجد قرارات عاجلة الآن').length).toBeGreaterThan(0);
+    expect(screen.getByText('تنبيهات عاجلة وموجز تنفيذي')).toBeInTheDocument();
+    expect(screen.getByText('مركز اتخاذ القرارات')).toBeInTheDocument();
+    expect(screen.getByText('نواقص الشراء')).toBeInTheDocument();
+    expect(screen.getByText('الأصناف الراكدة')).toBeInTheDocument();
+    expect(screen.getByText('مصادر الأرباح')).toBeInTheDocument();
+    expect(screen.getByText('تحصيل العملاء')).toBeInTheDocument();
+    expect(screen.getByText('أعلى أصناف اليوم مبيعاً')).toBeInTheDocument();
+    expect(screen.getByText('الحسابات والمخزون')).toBeInTheDocument();
+    expect(screen.getByText('حركة اليوم المالية')).toBeInTheDocument();
   });
 });

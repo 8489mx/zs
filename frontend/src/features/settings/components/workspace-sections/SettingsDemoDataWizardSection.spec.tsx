@@ -60,8 +60,8 @@ describe('SettingsDemoDataWizardSection Component', () => {
     await vi.waitFor(() => {
       expect(screen.getAllByText('سوبرماركت ومواد غذائية').length).toBeGreaterThan(0);
       expect(screen.getByText('أزياء وملابس وأحذية')).toBeInTheDocument();
-      expect(screen.getByText('أرز الضحى')).toBeInTheDocument();
-      expect(screen.getByText('قميص كلاسيك')).toBeInTheDocument();
+      expect(screen.getByText('يملأ النظام بتشكيلة واقعية من السلع الاستهلاكية')).toBeInTheDocument();
+      expect(screen.getByText('يملأ النظام بأصناف الموضة والمقاسات والألوان')).toBeInTheDocument();
     });
   });
 });

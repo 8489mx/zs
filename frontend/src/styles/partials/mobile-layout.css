@@ -1321,8 +1321,23 @@
   }
 
   /* Universal 3-column & 4-column collapse on mobile/tablet */
-  :where([style*="repeat(3, minmax(0, 1fr))"], [style*="repeat(3, 1fr)"], [style*="repeat(4, minmax(0, 1fr))"], [style*="repeat(4, 1fr)"], [style*="repeat(auto-fit, minmax(180px, 1fr))"], [style*="repeat(auto-fit, minmax(200px, 1fr))"]) {
+  :where([style*="repeat(3, minmax(0, 1fr))"], [style*="repeat(3, 1fr)"], [style*="repeat(4, minmax(0, 1fr))"], [style*="repeat(4, 1fr)"], [style*="repeat(auto-fit, minmax(180px, 1fr))"], [style*="repeat(auto-fit, minmax(200px, 1fr))"]):not(.keep-grid-row, .executive-kpi-strip, .daily-movement-strip) {
     grid-template-columns: 1fr !important;
+  }
+
+  .executive-kpi-strip,
+  .daily-movement-strip {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+
+  .executive-kpi-strip > div,
+  .daily-movement-strip > div {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
 
   /* Settings tabs smooth horizontal scrolling */
@@ -1355,8 +1370,16 @@
 
 @media (max-width: 600px) {
   /* Prevent 2-column form grids from squishing labels and inputs on small mobile screens */
-  :where([style*="grid-template-columns: 1fr 1fr"], [style*="gridTemplateColumns: '1fr 1fr'"], [style*="grid-template-columns: repeat(2, 1fr)"], [style*="gridTemplateColumns: 'repeat(2, 1fr)'"]) {
+  :where([style*="grid-template-columns: 1fr 1fr"], [style*="gridTemplateColumns: '1fr 1fr'"], [style*="grid-template-columns: repeat(2, 1fr)"], [style*="gridTemplateColumns: 'repeat(2, 1fr)'"]):not(.keep-grid-row, .daily-brief-compact-2col, .decision-products-2col) {
     grid-template-columns: 1fr !important;
+  }
+
+  .daily-brief-compact-2col,
+  .decision-products-2col {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100% !important;
   }
 
   /* Search toolbars responsive stacking */

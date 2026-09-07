@@ -729,7 +729,7 @@ export function ProductOfferItemEditorTab({
               borderRadius: 6,
               padding: '6px 4px',
               fontSize: '0.76rem',
-              fontWeight: selectedOffersTab === 'active' ? 700 : 500,
+              fontWeight: 700,
               color: selectedOffersTab === 'active' ? '#047857' : '#64748b',
               background: selectedOffersTab === 'active' ? '#ffffff' : 'transparent',
               boxShadow: selectedOffersTab === 'active' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
@@ -738,7 +738,9 @@ export function ProductOfferItemEditorTab({
               alignItems: 'center',
               justifyContent: 'center',
               gap: 5,
-              transition: 'all 0.15s ease'
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease'
             }}
           >
             <span style={{
@@ -758,7 +760,7 @@ export function ProductOfferItemEditorTab({
               borderRadius: 6,
               padding: '6px 4px',
               fontSize: '0.76rem',
-              fontWeight: selectedOffersTab === 'expired' ? 700 : 500,
+              fontWeight: 700,
               color: selectedOffersTab === 'expired' ? '#b91c1c' : '#64748b',
               background: selectedOffersTab === 'expired' ? '#ffffff' : 'transparent',
               boxShadow: selectedOffersTab === 'expired' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
@@ -767,7 +769,9 @@ export function ProductOfferItemEditorTab({
               alignItems: 'center',
               justifyContent: 'center',
               gap: 5,
-              transition: 'all 0.15s ease'
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease'
             }}
           >
             <span style={{
@@ -787,7 +791,7 @@ export function ProductOfferItemEditorTab({
               borderRadius: 6,
               padding: '6px 4px',
               fontSize: '0.76rem',
-              fontWeight: selectedOffersTab === 'all' ? 700 : 500,
+              fontWeight: 700,
               color: selectedOffersTab === 'all' ? '#1e293b' : '#64748b',
               background: selectedOffersTab === 'all' ? '#ffffff' : 'transparent',
               boxShadow: selectedOffersTab === 'all' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
@@ -796,7 +800,9 @@ export function ProductOfferItemEditorTab({
               alignItems: 'center',
               justifyContent: 'center',
               gap: 4,
-              transition: 'all 0.15s ease'
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease'
             }}
           >
             الكل ({offers.length})

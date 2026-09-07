@@ -78,7 +78,11 @@ export const SETTINGS_FIELD_METADATA: Record<
   posTerminalPort: { tab: 'sales_inventory', label: 'منفذ الاتصال بالماكينة' },
 
   // Modules Tab
+  onboardingCompleted: { tab: 'modules', label: 'حالة إكمال التهيئة الأولية' },
   posModuleEnabled: { tab: 'modules', label: 'موديول نقاط البيع السريعة والكاشير' },
+  purchasesModuleEnabled: { tab: 'modules', label: 'موديول المشتريات والموردين' },
+  inventoryModuleEnabled: { tab: 'modules', label: 'موديول المخازن والمستودعات المتقدمة' },
+  hrModuleEnabled: { tab: 'modules', label: 'موديول الموارد البشرية والرواتب' },
   manufacturingModuleEnabled: { tab: 'modules', label: 'موديول التصنيع والتجميع' },
   importModuleEnabled: { tab: 'modules', label: 'موديول الاستيراد والشحن الدولي' },
   comboModuleEnabled: { tab: 'modules', label: 'موديول باقات وعروض الأصناف' },

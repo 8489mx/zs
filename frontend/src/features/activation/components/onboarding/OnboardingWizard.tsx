@@ -16,12 +16,12 @@ export function OnboardingWizard() {
 
   // Extra state for visual steps not in the backend yet
   const [extraData, setExtraData] = useState({
-    role: '',
-    companySize: '',
+    role: 'مدير النظام',
+    companySize: '1-10',
     taxId: '',
     address: '',
     city: '',
-    industry: ''
+    industry: 'retail'
   });
 
   const updateExtra = (key: keyof typeof extraData, value: string) => {
@@ -46,7 +46,7 @@ export function OnboardingWizard() {
     // We let the loading screen show for a few seconds before actually submitting
     // because the user requested an animation.
     setTimeout(async () => {
-      const success = await handleSubmit(syntheticEvent);
+      const success = await handleSubmit(syntheticEvent, { industry: extraData.industry });
       if (!success) {
         setStep(3); // Go back if error so user can see it and correct
       }

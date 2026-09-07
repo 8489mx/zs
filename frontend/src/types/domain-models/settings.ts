@@ -50,6 +50,10 @@ export interface AppSettings {
   printNumberFormat?: 'arabic' | 'english' | string;
   printDualReceiptForOnlineDelivery?: boolean;
   posModuleEnabled?: boolean;
+  purchasesModuleEnabled?: boolean;
+  inventoryModuleEnabled?: boolean;
+  hrModuleEnabled?: boolean;
+  onboardingCompleted?: boolean;
   manufacturingModuleEnabled?: boolean;
   importModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;

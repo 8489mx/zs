@@ -894,11 +894,12 @@ export default function EmployeePortalPage() {
                 borderBottom: isActive ? '3px solid #170e5e' : '3px solid transparent',
                 borderRadius: '8px 8px 0 0',
                 color: isActive ? '#170e5e' : '#64748b',
-                fontWeight: isActive ? 900 : 700,
+                fontWeight: 700,
                 fontSize: '14px',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
+                userSelect: 'none',
+                transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
               }}
             >
               <span style={{ color: isActive ? '#170e5e' : '#94a3b8', display: 'flex', alignItems: 'center' }}>

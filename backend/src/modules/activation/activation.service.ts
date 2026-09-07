@@ -269,6 +269,18 @@ export class ActivationService {
         await this.setSetting('uiLanguage', dto.uiLanguage?.trim().toLowerCase() === 'en' ? 'en' : 'ar', trx);
         if (dto.theme?.trim()) await this.setSetting('theme', dto.theme.trim(), trx);
 
+        if (dto.businessIndustry?.trim()) {
+          await this.setSetting('businessIndustry', JSON.stringify(dto.businessIndustry.trim()), trx);
+          await this.setSetting('onboardingCompleted', JSON.stringify(true), trx);
+        }
+
+        if (dto.initialSettings && typeof dto.initialSettings === 'object') {
+          for (const [key, val] of Object.entries(dto.initialSettings)) {
+            if (key === 'storeName' || key === 'uiLanguage' || key === 'theme') continue;
+            await this.setSetting(key, JSON.stringify(val), trx);
+          }
+        }
+
         const now = new Date();
 
         const branchesScoped = await this.columnExists('branches', 'tenant_id', trx);

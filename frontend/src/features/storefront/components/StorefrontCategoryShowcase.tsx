@@ -150,12 +150,12 @@ export function StorefrontCategoryShowcase({
                   height: '66px',
                   borderRadius: '50%',
                   overflow: 'hidden',
-                  border: isSelected ? '2.5px solid #170e5e' : '1.5px solid #e2e8f0',
+                  border: isSelected ? '2px solid #170e5e' : '2px solid #e2e8f0',
                   marginBottom: '6px',
                   boxShadow: isSelected ? '0 4px 12px rgba(23, 14, 94, 0.2)' : '0 2px 6px rgba(0,0,0,0.03)',
                   position: 'relative',
                   background: '#f8fafc',
-                  transition: 'all 0.2s ease',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
                 <img
@@ -179,7 +179,7 @@ export function StorefrontCategoryShowcase({
               <span
                 style={{
                   fontSize: '11.5px',
-                  fontWeight: isSelected ? 800 : 700,
+                  fontWeight: 700,
                   color: isSelected ? '#170e5e' : '#1e293b',
                   textAlign: 'center',
                   whiteSpace: 'nowrap',

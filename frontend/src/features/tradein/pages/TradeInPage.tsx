@@ -337,13 +337,15 @@ export function TradeInPage() {
                     padding: '5px 12px',
                     borderRadius: '6px',
                     fontSize: '0.8rem',
-                    fontWeight: active ? 700 : 500,
+                    fontWeight: 700,
                     border: active ? '1px solid #cbd5e1' : '1px solid transparent',
                     background: active ? '#ffffff' : 'transparent',
                     color: active ? '#0f172a' : '#64748b',
                     boxShadow: active ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                    transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
@@ -772,17 +774,19 @@ export function TradeInPage() {
                                   border: `1px solid ${isSelected ? meta.border : '#cbd5e1'}`,
                                   background: isSelected ? meta.bg : '#ffffff',
                                   color: isSelected ? meta.color : '#334155',
-                                  fontWeight: isSelected ? 800 : 500,
+                                  fontWeight: 700,
                                   fontSize: '0.8rem',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: '4px',
+                                  whiteSpace: 'nowrap',
+                                  userSelect: 'none',
                                   boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
+                                  transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
                                 }}
                               >
-                                {isSelected && <CheckIcon size={12} color="currentColor" />}
                                 {meta.label}
                               </button>
                             );

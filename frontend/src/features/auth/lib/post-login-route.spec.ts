@@ -59,6 +59,18 @@ describe('post-login routing', () => {
     expect(getPostLoginRoute(inventoryUser, 'My Store')).toBe('/inventory');
   });
 
+  it('routes operational tenant admin to /onboarding when onboarding is not completed', () => {
+    expect(getPostLoginRoute(adminUser, 'My Store', { onboardingCompleted: false })).toBe('/onboarding');
+  });
+
+  it('routes operational tenant admin to / when onboarding is completed', () => {
+    expect(getPostLoginRoute(adminUser, 'My Store', { onboardingCompleted: true })).toBe('/');
+  });
+
+  it('routes cashiers directly to the POS even if onboardingCompleted is false', () => {
+    expect(getPostLoginRoute(cashierUser, 'My Store', { onboardingCompleted: false })).toBe('/pos');
+  });
+
   it('falls back to the first accessible operational route when only reports are available', () => {
     expect(getPostLoginRoute({ ...adminUser, permissions: ['reports'] }, 'My Store')).toBe('/reports/overview');
   });

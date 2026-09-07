@@ -20,6 +20,31 @@ export function getDemoDataset(activityKey?: string): DemoActivityDataset {
   return DEMO_DATASETS[key] || supermarketDataset;
 }
 
+export function mapIndustryToDemoActivity(industry?: string): string {
+  const norm = String(industry || '').trim().toLowerCase();
+  switch (norm) {
+    case 'restaurant':
+    case 'cafe':
+    case 'cafe_restaurant':
+      return 'cafe_restaurant';
+    case 'fashion':
+    case 'clothing':
+      return 'fashion';
+    case 'electronics':
+    case 'electronics_mobile':
+    case 'maintenance':
+    case 'services':
+      return 'electronics_mobile';
+    case 'pharmacy':
+      return 'pharmacy';
+    case 'supermarket':
+    case 'retail':
+    case 'wholesale':
+    default:
+      return 'supermarket';
+  }
+}
+
 export function listSupportedDemoActivities() {
   return Object.values(DEMO_DATASETS).map((d) => ({
     key: d.key,

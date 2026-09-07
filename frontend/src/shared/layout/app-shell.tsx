@@ -201,6 +201,17 @@ export function AppShell({ children }: PropsWithChildren) {
     return false;
   });
 
+  const isPlatformUser = isPlatformAdmin(user);
+  const isTenantAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const previewOnboarding = new URLSearchParams(location.search).get('onboarding') === '1';
+  const shouldRedirectToOnboarding = previewOnboarding || (!isPlatformUser && isTenantAdmin && settings && (settings as any).onboardingCompleted !== true && (settings as any).onboardingCompleted !== 'true');
+
+  useEffect(() => {
+    if (shouldRedirectToOnboarding && location.pathname !== '/onboarding') {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [shouldRedirectToOnboarding, location.pathname, navigate]);
+
   const [isMobileScreen, setIsMobileScreen] = useState(() => {
     if (typeof window !== 'undefined') return window.innerWidth <= 900;
     return false;
@@ -458,16 +469,16 @@ export function AppShell({ children }: PropsWithChildren) {
         if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'kds' || item.key === 'signage') && !isPlatformAdminUser && settings?.posModuleEnabled === false) return false;
 
         // Purchases gating (Bypassed for Platform Admin):
-        if (!isPlatformAdminUser && (item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers') && !hasFeature('purchases')) return false;
+        if (!isPlatformAdminUser && (item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'purchases-reorder' || item.key === 'reports-purchases') && (settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
 
         // Advanced Inventory gating (Bypassed for Platform Admin):
-        if (!isPlatformAdminUser && (item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new') && !hasFeature('inventory')) return false;
+        if (!isPlatformAdminUser && (item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'reports-inventory') && (settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
 
         // Reports gating (Bypassed for Platform Admin):
         if (!isPlatformAdminUser && (item.key?.startsWith('reports-') || item.key === 'audit') && !hasFeature('reports')) return false;
 
         // HR gating (Bypassed for Platform Admin):
-        if (!isPlatformAdminUser && item.key === 'hr' && !hasFeature('hr')) return false;
+        if (!isPlatformAdminUser && (item.key === 'hr' || item.key === 'reports-employees') && (settings?.hrModuleEnabled === false || !hasFeature('hr'))) return false;
 
         // Accounting tree & journal gating (Bypassed for Platform Admin):
         if (!isPlatformAdminUser && (item.key === 'accounting-accounts' || item.key === 'accounting-journal-entries' || item.key === 'accounting-settings' || item.key === 'accounts') && !hasFeature('accounting')) return false;
@@ -480,7 +491,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled]);
+  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => {

@@ -49,32 +49,33 @@ function ProductList({ rows, type }: { rows: DashboardStagnantItem[] | Dashboard
   if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px' }}>لا توجد عناصر تحتاج متابعة الآن</div>;
 
   return (
-    <div className="manager-overview-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+    <div className="manager-overview-list decision-products-2col keep-grid-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
       {rows.slice(0, 6).map((row) => {
         const stockQty = type === 'stagnant' ? (row as DashboardStagnantItem).stockQty : (row as DashboardBuyingItem).stockQty;
         const isOutOfStock = type === 'buying' && stockQty <= 0;
 
         return (
-          <div className="manager-overview-row" key={`${type}-${row.productId}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-            <div style={{ minWidth: 0, flex: 1, paddingInlineEnd: '8px' }}>
-              <strong style={{ fontSize: '0.86rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
-              <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{row.categoryName || 'بدون قسم'}</span>
+          <div className="manager-overview-row" key={`${type}-${row.productId}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', minWidth: 0, boxSizing: 'border-box', gap: '4px' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <strong style={{ fontSize: '0.78rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
+              <span style={{ display: 'block', fontSize: '0.66rem', color: '#64748b', marginTop: '1px' }}>{row.categoryName || 'بدون قسم'}</span>
             </div>
             <span
               style={{
-                fontSize: '0.74rem',
+                fontSize: '0.66rem',
                 fontWeight: 700,
-                padding: '3px 8px',
-                borderRadius: '6px',
+                padding: '2px 5px',
+                borderRadius: '4px',
                 background: isOutOfStock ? '#fef2f2' : '#f8fafc',
                 color: isOutOfStock ? '#dc2626' : '#334155',
                 border: isOutOfStock ? '1px solid #fecaca' : '1px solid #e2e8f0',
                 whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               {type === 'stagnant'
-                ? `راكد منذ ${formatNumber((row as DashboardStagnantItem).daysWithoutSales)} يوم`
-                : (stockQty <= 0 ? 'الرصيد: 0 (نافد)' : `المتاح: ${formatNumber(stockQty)}`)}
+                ? `راكد ${formatNumber((row as DashboardStagnantItem).daysWithoutSales)} يوم`
+                : (stockQty <= 0 ? '0 (نافد)' : `${formatNumber(stockQty)} متاح`)}
             </span>
           </div>
         );
@@ -84,17 +85,17 @@ function ProductList({ rows, type }: { rows: DashboardStagnantItem[] | Dashboard
 }
 
 function ProfitList({ rows, emptyLabel, valueType }: { rows: DashboardProfitItem[]; emptyLabel: string; valueType: 'profit' | 'margin' }) {
-  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px' }}>{emptyLabel}</div>;
+  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px', fontSize: '0.82rem' }}>{emptyLabel}</div>;
 
   return (
-    <div className="manager-overview-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+    <div className="manager-overview-list decision-products-2col keep-grid-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
       {rows.slice(0, 6).map((row, index) => (
-        <div className="manager-overview-row" key={`${valueType}-${row.productId || row.categoryId || row.name}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-          <div style={{ minWidth: 0, flex: 1, paddingInlineEnd: '8px' }}>
-            <strong style={{ fontSize: '0.86rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
-            <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{row.categoryName || `مبيعات ${formatCurrency(row.revenue)}`}</span>
+        <div className="manager-overview-row" key={`${valueType}-${row.productId || row.categoryId || row.name}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', minWidth: 0, boxSizing: 'border-box', gap: '4px' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <strong style={{ fontSize: '0.78rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
+            <span style={{ display: 'block', fontSize: '0.66rem', color: '#64748b', marginTop: '1px' }}>{row.categoryName || `مبيعات ${formatCurrency(row.revenue)}`}</span>
           </div>
-          <span style={{ fontSize: '0.78rem', color: '#0f766e', fontWeight: 700, background: '#f0fdfa', border: '1px solid #ccfbf1', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '0.72rem', color: '#0f766e', fontWeight: 700, background: '#f0fdfa', border: '1px solid #ccfbf1', padding: '2px 5px', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {valueType === 'profit' ? formatCurrency(row.grossProfit) : formatPercent(row.marginPercent)}
           </span>
         </div>
@@ -104,17 +105,17 @@ function ProfitList({ rows, emptyLabel, valueType }: { rows: DashboardProfitItem
 }
 
 function CustomerList({ rows }: { rows: DashboardCollectionItem[] }) {
-  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px' }}>لا توجد أرصدة عملاء تحتاج متابعة الآن</div>;
+  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '16px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px', fontSize: '0.82rem' }}>لا توجد أرصدة عملاء تحتاج متابعة الآن</div>;
 
   return (
-    <div className="manager-overview-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+    <div className="manager-overview-list decision-products-2col keep-grid-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
       {rows.slice(0, 6).map((row) => (
-        <div className="manager-overview-row" key={row.customerId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-          <div style={{ minWidth: 0, flex: 1, paddingInlineEnd: '8px' }}>
-            <strong style={{ fontSize: '0.86rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
-            <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>{row.creditLimit > 0 ? `حد ${formatCurrency(row.creditLimit)}` : 'بدون حد'}</span>
+        <div className="manager-overview-row" key={row.customerId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', minWidth: 0, boxSizing: 'border-box', gap: '4px' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <strong style={{ fontSize: '0.78rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
+            <span style={{ display: 'block', fontSize: '0.66rem', color: '#64748b', marginTop: '1px' }}>{row.creditLimit > 0 ? `حد ${formatCurrency(row.creditLimit)}` : 'بدون حد'}</span>
           </div>
-          <span style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 700, background: '#fef2f2', border: '1px solid #fee2e2', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 700, background: '#fef2f2', border: '1px solid #fee2e2', padding: '2px 5px', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {formatCurrency(row.balance)}
           </span>
         </div>
@@ -124,17 +125,17 @@ function CustomerList({ rows }: { rows: DashboardCollectionItem[] }) {
 }
 
 function SupplierList({ rows }: { rows: DashboardPartnerItem[] }) {
-  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '20px', textAlign: 'center', color: '#15803d', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.84rem', fontWeight: 600 }}>لا توجد مديونيات مستحقة للموردين حالياً</div>;
+  if (!rows.length) return <div className="manager-overview-inline-empty" style={{ padding: '16px', textAlign: 'center', color: '#15803d', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.82rem', fontWeight: 600 }}>لا توجد مديونيات مستحقة للموردين حالياً</div>;
 
   return (
-    <div className="manager-overview-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+    <div className="manager-overview-list decision-products-2col keep-grid-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
       {rows.slice(0, 6).map((row) => (
-        <div className="manager-overview-row" key={row.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-          <div style={{ minWidth: 0, flex: 1, paddingInlineEnd: '8px' }}>
-            <strong style={{ fontSize: '0.86rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
-            <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>واجب السداد</span>
+        <div className="manager-overview-row" key={row.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', minWidth: 0, boxSizing: 'border-box', gap: '4px' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <strong style={{ fontSize: '0.78rem', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.name}</strong>
+            <span style={{ display: 'block', fontSize: '0.66rem', color: '#64748b', marginTop: '1px' }}>واجب السداد</span>
           </div>
-          <span style={{ fontSize: '0.78rem', color: '#c2410c', fontWeight: 700, background: '#fff7ed', border: '1px solid #ffedd5', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '0.72rem', color: '#c2410c', fontWeight: 700, background: '#fff7ed', border: '1px solid #ffedd5', padding: '2px 5px', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {formatCurrency(row.total)}
           </span>
         </div>

@@ -20,21 +20,21 @@ import {
   SmartphoneIcon,
 } from '@/shared/components/icons/AppIcons';
 
-function getActivityIcon(key: string, isSelected: boolean) {
+function getActivityIcon(key: string, isSelected: boolean, size = 20) {
   const color = isSelected ? '#170e5e' : '#64748b';
   switch (key) {
     case 'supermarket':
-      return <ShoppingCartIcon size={22} color={isSelected ? '#170e5e' : color} />;
+      return <ShoppingCartIcon size={size} color={isSelected ? '#170e5e' : color} />;
     case 'fashion':
-      return <TagIcon size={22} color={isSelected ? '#7c3aed' : color} />;
+      return <TagIcon size={size} color={isSelected ? '#7c3aed' : color} />;
     case 'cafe_restaurant':
-      return <UtensilsIcon size={22} color={isSelected ? '#d97706' : color} />;
+      return <UtensilsIcon size={size} color={isSelected ? '#d97706' : color} />;
     case 'electronics_mobile':
-      return <SmartphoneIcon size={22} color={isSelected ? '#0284c7' : color} />;
+      return <SmartphoneIcon size={size} color={isSelected ? '#0284c7' : color} />;
     case 'pharmacy':
-      return <ShieldCheckIcon size={22} color={isSelected ? '#16a34a' : color} />;
+      return <ShieldCheckIcon size={size} color={isSelected ? '#16a34a' : color} />;
     default:
-      return <PackageIcon size={22} color={color} />;
+      return <PackageIcon size={size} color={color} />;
   }
 }
 
@@ -250,9 +250,11 @@ export function SettingsDemoDataWizardSection() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '16px',
+            gridTemplateColumns: 'repeat(5, minmax(200px, 1fr))',
+            gap: '12px',
             width: '100%',
+            overflowX: 'auto',
+            paddingBottom: '4px',
           }}
         >
           {activitiesQuery.isLoading && (
@@ -264,119 +266,116 @@ export function SettingsDemoDataWizardSection() {
 
           {activities.map((act) => {
             const isSelected = act.key === selectedActivityKey;
-            const sampleProducts = act.sampleProducts || act.sampleItems || [];
-            const productCount = act.productCount ?? act.productsCount ?? 0;
-            const categoryCount = act.categoryCount ?? act.categoriesCount ?? 0;
 
             return (
               <div
                 key={act.key}
                 onClick={() => setSelectedActivityKey(act.key)}
                 style={{
-                  background: '#ffffff',
-                  border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                  background: isSelected ? '#faf9ff' : '#ffffff',
+                  border: `1.5px solid ${isSelected ? '#170e5e' : '#e2e8f0'}`,
                   borderRadius: '14px',
-                  padding: '18px',
+                  padding: '16px 14px',
                   cursor: 'pointer',
-                  boxShadow: isSelected ? '0 6px 20px rgba(23, 14, 94, 0.08)' : '0 1px 3px rgba(0, 0, 0, 0.03)',
-                  transition: 'all 0.2s ease',
+                  boxShadow: isSelected ? '0 4px 16px rgba(23, 14, 94, 0.08)' : '0 1px 3px rgba(0, 0, 0, 0.03)',
+                  transition: 'background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
                   position: 'relative',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '12px',
+                  gap: '10px',
+                  userSelect: 'none',
+                  boxSizing: 'border-box',
                 }}
               >
-                {/* Header row with icon & selection indicator */}
+                {/* Header row: Radio (Right), Title & Tagline (Center), Icon (Left) */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div
-                      style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '12px',
-                        background: isSelected ? '#ede9fe' : '#f8fafc',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: isSelected ? '1px solid #c4b5fd' : '1px solid #e2e8f0',
-                      }}
-                    >
-                      {getActivityIcon(act.key, isSelected)}
-                    </div>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                        {act.name}
-                      </h4>
-                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                        {act.tagline}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Radio indicator */}
+                  {/* Selection Radio Circle */}
                   <div
                     style={{
-                      width: '20px',
-                      height: '20px',
+                      width: '18px',
+                      height: '18px',
                       borderRadius: '50%',
-                      border: isSelected ? '6px solid #170e5e' : '2px solid #cbd5e1',
+                      border: `2px solid ${isSelected ? '#170e5e' : '#cbd5e1'}`,
                       background: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       flexShrink: 0,
-                      marginTop: '4px',
+                      boxSizing: 'border-box',
+                      marginTop: '3px',
+                      transition: 'border-color 0.15s ease',
                     }}
-                  />
-                </div>
+                  >
+                    {isSelected && (
+                      <div
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#170e5e',
+                        }}
+                      />
+                    )}
+                  </div>
 
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.4 }}>
-                  {act.description}
-                </p>
-
-                {/* Sample product badges */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: 'auto' }}>
-                  {sampleProducts.slice(0, 4).map((sp, idx) => (
-                    <span
-                      key={idx}
+                  {/* Title & Tagline */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h4
                       style={{
-                        background: isSelected ? '#f5f3ff' : '#f1f5f9',
-                        color: isSelected ? '#170e5e' : '#475569',
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        border: isSelected ? '1px solid #ddd6fe' : '1px solid #e2e8f0',
+                        margin: 0,
+                        fontSize: '0.9rem',
+                        fontWeight: 800,
+                        color: isSelected ? '#170e5e' : '#0f172a',
+                        lineHeight: 1.3,
+                        transition: 'color 0.15s ease',
                       }}
                     >
-                      {sp}
+                      {act.name}
+                    </h4>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        color: '#64748b',
+                        display: 'block',
+                        marginTop: '3px',
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {act.tagline}
                     </span>
-                  ))}
-                  {productCount > 4 && (
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', padding: '3px 4px' }}>
-                      +{productCount - 4} أصناف أخرى
-                    </span>
-                  )}
+                  </div>
+
+                  {/* Activity Icon */}
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      background: isSelected ? '#ede9fe' : '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: `1px solid ${isSelected ? '#c4b5fd' : '#e2e8f0'}`,
+                      flexShrink: 0,
+                      transition: 'background-color 0.15s ease, border-color 0.15s ease',
+                    }}
+                  >
+                    {getActivityIcon(act.key, isSelected, 18)}
+                  </div>
                 </div>
 
-                {/* Key stats pill */}
-                <div
+                {/* Description */}
+                <p
                   style={{
-                    borderTop: '1px solid #f1f5f9',
-                    paddingTop: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    margin: 0,
                     fontSize: '0.76rem',
-                    color: '#64748b',
+                    color: '#475569',
+                    lineHeight: 1.45,
+                    flex: 1,
                   }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <TagIcon size={13} />
-                    <span>{productCount} صنفاً متكاملاً</span>
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <PackageIcon size={13} />
-                    <span>{categoryCount} تصنيفات</span>
-                  </span>
-                </div>
+                  {act.description}
+                </p>
               </div>
             );
           })}

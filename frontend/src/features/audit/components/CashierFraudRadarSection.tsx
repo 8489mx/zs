@@ -201,12 +201,14 @@ export function CashierFraudRadarSection() {
                 padding: '6px 14px',
                 borderRadius: '6px',
                 fontSize: '12.5px',
-                fontWeight: timeframe === 'today' ? 700 : 500,
+                fontWeight: 700,
                 background: timeframe === 'today' ? '#ffffff' : 'transparent',
                 color: timeframe === 'today' ? '#170e5e' : '#64748b',
                 boxShadow: timeframe === 'today' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
               اليوم
@@ -219,12 +221,14 @@ export function CashierFraudRadarSection() {
                 padding: '6px 14px',
                 borderRadius: '6px',
                 fontSize: '12.5px',
-                fontWeight: timeframe === '7days' ? 700 : 500,
+                fontWeight: 700,
                 background: timeframe === '7days' ? '#ffffff' : 'transparent',
                 color: timeframe === '7days' ? '#170e5e' : '#64748b',
                 boxShadow: timeframe === '7days' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
               آخر 7 أيام
@@ -237,12 +241,14 @@ export function CashierFraudRadarSection() {
                 padding: '6px 14px',
                 borderRadius: '6px',
                 fontSize: '12.5px',
-                fontWeight: timeframe === '30days' ? 700 : 500,
+                fontWeight: 700,
                 background: timeframe === '30days' ? '#ffffff' : 'transparent',
                 color: timeframe === '30days' ? '#170e5e' : '#64748b',
                 boxShadow: timeframe === '30days' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
               }}
             >
               آخر 30 يوماً

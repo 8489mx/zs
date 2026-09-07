@@ -48,10 +48,12 @@ export default function DeliveryRepsPage() {
                       border: 'none',
                       borderRadius: '7px',
                       color: activeTab === 'performance' ? '#ffffff' : '#475569',
-                      fontWeight: activeTab === 'performance' ? 700 : 500,
+                      fontWeight: 700,
                       cursor: 'pointer',
                       fontSize: '13px',
-                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                      userSelect: 'none',
+                      transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                       boxShadow: activeTab === 'performance' ? '0 2px 6px rgba(15, 23, 42, 0.15)' : 'none',
                     }}
                   >
@@ -66,10 +68,12 @@ export default function DeliveryRepsPage() {
                       border: 'none',
                       borderRadius: '7px',
                       color: activeTab === 'orders' ? '#ffffff' : '#475569',
-                      fontWeight: activeTab === 'orders' ? 700 : 500,
+                      fontWeight: 700,
                       cursor: 'pointer',
                       fontSize: '13px',
-                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                      userSelect: 'none',
+                      transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                       boxShadow: activeTab === 'orders' ? '0 2px 6px rgba(15, 23, 42, 0.15)' : 'none',
                     }}
                   >
@@ -84,10 +88,12 @@ export default function DeliveryRepsPage() {
                       border: 'none',
                       borderRadius: '7px',
                       color: activeTab === 'settlements' ? '#ffffff' : '#475569',
-                      fontWeight: activeTab === 'settlements' ? 700 : 500,
+                      fontWeight: 700,
                       cursor: 'pointer',
                       fontSize: '13px',
-                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                      userSelect: 'none',
+                      transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
                       boxShadow: activeTab === 'settlements' ? '0 2px 6px rgba(15, 23, 42, 0.15)' : 'none',
                     }}
                   >

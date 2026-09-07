@@ -206,7 +206,10 @@ export function ImeiHistoryPage() {
                     padding: '3px 8px',
                     borderRadius: '5px',
                     cursor: 'pointer',
-                    fontWeight: activeSerial === s ? 700 : 500,
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                    transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                   }}
                 >
                   {s}

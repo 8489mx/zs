@@ -11,6 +11,7 @@ import { canAccessPath, findFirstAccessibleRoute } from '@/app/router/access';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
 import { ActivationPage } from '@/features/activation/pages/ActivationPage';
 import { FirstRunSetupPage } from '@/features/activation/pages/FirstRunSetupPage';
+import { SaaSOnboardingPage } from '@/features/activation/pages/SaaSOnboardingPage';
 import { SupplierQuickPaymentDialog } from '@/features/accounts/components/SupplierQuickPaymentDialog';
 import { QuickCashAdvanceModal } from '@/features/hr/components/QuickCashAdvanceModal';
 import { QuickOffersModal } from '@/features/products/components/QuickOffersModal';
@@ -50,7 +51,13 @@ function NoWorkspaceAccess() {
 
 function AppGateGuard({ expected, children }: { expected: 'activation' | 'setup' | 'login'; children: ReactNode }) {
   const { initialized, appGate, user } = useAuthStore();
+  const location = useLocation();
   useBootstrapAuth();
+
+  const isPreview = new URLSearchParams(location.search).get('preview') === '1';
+  if (isPreview) {
+    return <>{children}</>;
+  }
 
   if (!initialized || appGate === 'loading') {
     return <div className="screen-center"><div className="loading-card">جاري تجهيز النظام...</div></div>;
@@ -89,12 +96,6 @@ function ProtectedLayout() {
     return <Navigate to={firstAccessibleRoute} replace />;
   }
 
-  if (location.pathname === '/') {
-    const state = useAuthStore.getState();
-    const postLoginRoute = getPostLoginRoute(user, state.storeName, { tenant: state.tenant, deploymentMode: state.activationStatus?.deploymentMode });
-    if (postLoginRoute !== '/') return <Navigate to={postLoginRoute} replace />;
-  }
-
   return <AppShell><Outlet /><SupplierQuickPaymentDialog /><QuickCashAdvanceModal /><QuickOffersModal /></AppShell>;
 }
 
@@ -118,6 +119,7 @@ function LoginRoute() {
 const router = createRouter([
   { path: '/activate', element: <AppGateGuard expected="activation"><ActivationPage /></AppGateGuard> },
   { path: '/setup', element: <AppGateGuard expected="setup"><FirstRunSetupPage /></AppGateGuard> },
+  { path: '/onboarding', element: <SaaSOnboardingPage /> },
   {
     path: '/trial',
     element: createLazyRoute(() => import('@/features/public-trial/pages/TrialSignupPage').then((module) => ({ default: module.TrialSignupPage }))),

@@ -281,7 +281,7 @@ export function FashionVariantsBuilder({
               style={{
                 background: activeTemplate === 'scents' ? '#ffffff' : 'transparent',
                 color: activeTemplate === 'scents' ? 'var(--primary, #1e1b4b)' : '#475569',
-                fontWeight: activeTemplate === 'scents' ? 800 : 600,
+                fontWeight: 700,
                 border: activeTemplate === 'scents' ? '1px solid #cbd5e1' : '1px solid transparent',
                 borderRadius: '6px',
                 padding: '5px 10px',
@@ -290,8 +290,10 @@ export function FashionVariantsBuilder({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
                 boxShadow: activeTemplate === 'scents' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease'
               }}
             >
               <ScentDropletIcon size={14} />
@@ -304,7 +306,7 @@ export function FashionVariantsBuilder({
               style={{
                 background: activeTemplate === 'fashion' ? '#ffffff' : 'transparent',
                 color: activeTemplate === 'fashion' ? 'var(--primary, #1e1b4b)' : '#475569',
-                fontWeight: activeTemplate === 'fashion' ? 800 : 600,
+                fontWeight: 700,
                 border: activeTemplate === 'fashion' ? '1px solid #cbd5e1' : '1px solid transparent',
                 borderRadius: '6px',
                 padding: '5px 10px',
@@ -313,8 +315,10 @@ export function FashionVariantsBuilder({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
                 boxShadow: activeTemplate === 'fashion' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease'
               }}
             >
               <FashionShirtIcon size={14} />
@@ -327,7 +331,7 @@ export function FashionVariantsBuilder({
               style={{
                 background: activeTemplate === 'sizes' ? '#ffffff' : 'transparent',
                 color: activeTemplate === 'sizes' ? 'var(--primary, #1e1b4b)' : '#475569',
-                fontWeight: activeTemplate === 'sizes' ? 800 : 600,
+                fontWeight: 700,
                 border: activeTemplate === 'sizes' ? '1px solid #cbd5e1' : '1px solid transparent',
                 borderRadius: '6px',
                 padding: '5px 10px',
@@ -336,8 +340,10 @@ export function FashionVariantsBuilder({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
                 boxShadow: activeTemplate === 'sizes' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease'
               }}
             >
               <PackageBoxIcon size={14} />
@@ -350,7 +356,7 @@ export function FashionVariantsBuilder({
               style={{
                 background: activeTemplate === 'custom' ? '#ffffff' : 'transparent',
                 color: activeTemplate === 'custom' ? 'var(--primary, #1e1b4b)' : '#475569',
-                fontWeight: activeTemplate === 'custom' ? 800 : 600,
+                fontWeight: 700,
                 border: activeTemplate === 'custom' ? '1px solid #cbd5e1' : '1px solid transparent',
                 borderRadius: '6px',
                 padding: '5px 10px',
@@ -359,8 +365,10 @@ export function FashionVariantsBuilder({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
                 boxShadow: activeTemplate === 'custom' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease'
               }}
             >
               <SlidersConfigIcon size={14} />

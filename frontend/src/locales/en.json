@@ -57,12 +57,12 @@
     "success": "System setup completed successfully!",
     "error": "Failed to complete setup.",
     "step1": {
-      "welcome": "Welcome to ZSystems!",
+      "welcome": "Welcome to Z-Systems!",
       "desc": "Let's personalize your workspace, tell us a bit about you.",
       "companyName": "Company Name *",
       "companyNamePlaceholder": "e.g., Apex Corp",
-      "role": "What is your role?",
-      "rolePlaceholder": "e.g., Owner",
+      "role": "Role / Job Title",
+      "rolePlaceholder": "System Administrator",
       "companySize": "Company Size",
       "adminUsername": "Username (for login) *",
       "adminPassword": "Password *",
@@ -70,9 +70,9 @@
       "continue": "Continue >"
     },
     "wizard": {
-      "logo": "System",
+      "logo": "Z-Systems",
       "title": "Manage your entire business from one place",
-      "desc": "An integrated AI-powered cloud platform to simplify your daily management."
+      "desc": "An enterprise platform for POS, sales, inventory, and accounting management."
     }
   },
   "common": {

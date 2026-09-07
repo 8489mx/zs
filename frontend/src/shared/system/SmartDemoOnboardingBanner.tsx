@@ -4,11 +4,39 @@ import { useNavigate } from 'react-router-dom';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { XIcon } from '@/shared/components/icons/AppIcons';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+
+function getIndustryLabelAndActivity(industry?: string): { activity: string; label: string } {
+  switch (industry) {
+    case 'restaurant':
+    case 'cafe':
+    case 'cafe_restaurant':
+      return { activity: 'cafe_restaurant', label: 'مطاعم وكافيهات' };
+    case 'fashion':
+    case 'clothing':
+      return { activity: 'fashion', label: 'ملابس وأزياء' };
+    case 'electronics':
+    case 'electronics_mobile':
+    case 'maintenance':
+    case 'services':
+      return { activity: 'electronics_mobile', label: 'إلكترونيات وموبايل' };
+    case 'pharmacy':
+      return { activity: 'pharmacy', label: 'صيدليات وأدوية' };
+    case 'retail':
+    case 'wholesale':
+    case 'supermarket':
+    default:
+      return { activity: 'supermarket', label: 'سوبرماركت وبقالة' };
+  }
+}
 
 export function SmartDemoOnboardingBanner() {
   const navigate = useNavigate();
+  const { data: settings } = useSettingsQuery();
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
+
+  const mappedIndustry = getIndustryLabelAndActivity(settings?.businessIndustry);
 
   const statusQuery = useQuery({
     queryKey: ['demo-data', 'status'],
@@ -17,9 +45,9 @@ export function SmartDemoOnboardingBanner() {
   });
 
   const mutation = useMutation({
-    mutationFn: () => http<{ ok: boolean; message: string }>('/api/admin/demo-data/seed', {
+    mutationFn: (activityType: string) => http<{ ok: boolean; message: string }>('/api/admin/demo-data/seed', {
       method: 'POST',
-      body: JSON.stringify({ password: '' }),
+      body: JSON.stringify({ activityType, password: '' }),
     }),
     onSuccess: (data) => {
       setFeedback({ kind: 'success', message: data.message || 'تم تجهيز البيانات التجريبية وسكبها بنجاح!' });
@@ -119,7 +147,7 @@ export function SmartDemoOnboardingBanner() {
           disabled={mutation.isPending}
           onClick={() => {
             setFeedback(null);
-            mutation.mutate();
+            mutation.mutate(mappedIndustry.activity);
           }}
           style={{
             background: '#f8fafc',
@@ -132,7 +160,7 @@ export function SmartDemoOnboardingBanner() {
             cursor: 'pointer',
           }}
         >
-          {mutation.isPending ? 'جاري الاستيراد...' : 'تعبئة سريعة (سوبرماركت)'}
+          {mutation.isPending ? 'جاري الاستيراد...' : `تعبئة سريعة (${mappedIndustry.label})`}
         </button>
 
         <button

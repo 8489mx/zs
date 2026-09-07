@@ -1,8 +1,9 @@
 import { DEFAULT_STORE_NAME } from '@/config/app-defaults';
-import { canAccessPath } from '@/app/router/access';
+import { canAccessPath, isPlatformAdmin } from '@/app/router/access';
 import type { AuthTenant, AuthUser } from '@/types/auth';
 
 const SETUP_ENTRY_ROUTE = '/settings/core?setup=1';
+const ONBOARDING_ROUTE = '/onboarding';
 
 const ROUTE_PREFERENCES: Record<AuthUser['role'], string[]> = {
   cashier: ['/pos', '/cash-drawer', '/sales', '/customers', '/services', '/expenses', '/'],
@@ -19,9 +20,10 @@ function pickOperationalLandingRoute(user: AuthUser) {
   return preferredRoutes.find((route) => canAccessPath(user, route)) || '/';
 }
 
-interface PostLoginContext {
+export interface PostLoginContext {
   tenant?: AuthTenant | null;
   deploymentMode?: 'desktop' | 'server' | string | null;
+  onboardingCompleted?: boolean;
 }
 
 function isSaasOrTrialContext(context?: PostLoginContext) {
@@ -31,6 +33,7 @@ function isSaasOrTrialContext(context?: PostLoginContext) {
 
 export function shouldStartSetupFlow(user: AuthUser | null | undefined, storeName: string | null | undefined, context?: PostLoginContext) {
   if (!user || user.role !== 'super_admin') return false;
+  if (context?.onboardingCompleted === true) return false;
   if (isSaasOrTrialContext(context)) return false;
   if (user.usingDefaultAdminPassword === true) return true;
   return normalizeValue(storeName) === DEFAULT_STORE_NAME;
@@ -39,5 +42,8 @@ export function shouldStartSetupFlow(user: AuthUser | null | undefined, storeNam
 export function getPostLoginRoute(user: AuthUser | null | undefined, storeName: string | null | undefined, context?: PostLoginContext) {
   if (!user) return '/login';
   if (shouldStartSetupFlow(user, storeName, context)) return SETUP_ENTRY_ROUTE;
+  if (!isPlatformAdmin(user) && (user.role === 'admin' || user.role === 'super_admin') && context?.onboardingCompleted === false) {
+    return ONBOARDING_ROUTE;
+  }
   return pickOperationalLandingRoute(user);
 }

@@ -37,14 +37,14 @@ export function Step2Details({ form, updateField, onNext, onBack }: Step2Props) 
         </Field>
         <Field label="كلمة المرور (Password)">
           <input 
-            type="text"
+            type="password"
             className="input secure-password-field"
             value={form.adminPassword} 
             onChange={(e) => updateField('adminPassword', e.target.value)} 
             placeholder="••••••••" 
             dir="ltr"
             style={{ textAlign: 'left' }}
-            autoComplete="off"
+            autoComplete="new-password"
             data-lpignore="true"
             data-1p-ignore="true"
             data-form-type="other"
@@ -60,7 +60,21 @@ export function Step2Details({ form, updateField, onNext, onBack }: Step2Props) 
         <button 
           className="btn-wizard-next" 
           onClick={onNext} 
-          style={{ width: 'auto', flex: 1, marginLeft: 16 }}
+          style={{
+            background: '#170e5e',
+            color: '#ffffff',
+            padding: '12px 32px',
+            borderRadius: '8px',
+            fontWeight: 800,
+            fontSize: '15px',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(23, 14, 94, 0.25)',
+            transition: 'all 0.15s ease',
+            width: 'auto',
+            flex: 1,
+            marginLeft: 16
+          }}
           disabled={!form.adminDisplayName || !form.adminUsername || !form.adminPassword || form.adminPassword.length < 6}
         >
           متابعة &gt;

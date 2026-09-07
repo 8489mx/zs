@@ -153,10 +153,11 @@ export function WarehouseDetailsPage() {
                 background: isActive ? 'var(--primary, #170c5c)' : '#ffffff',
                 color: isActive ? '#ffffff' : '#334155',
                 fontSize: '13px',
-                fontWeight: isActive ? 700 : 500,
+                fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
                 whiteSpace: 'nowrap',
+                userSelect: 'none',
+                transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
                 boxShadow: isActive ? '0 2px 6px rgba(23, 12, 92, 0.2)' : '0 1px 3px rgba(0,0,0,0.02)',
               }}
             >

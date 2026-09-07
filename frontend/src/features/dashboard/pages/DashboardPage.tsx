@@ -3,6 +3,7 @@ import { FormSection } from '@/shared/components/form-section';
 import { LoadingState } from '@/shared/ui/loading-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { FirstRunSetupChecklist } from '@/shared/system/first-run-setup-checklist';
+import { TenantQuickStartChecklist } from '@/shared/system/TenantQuickStartChecklist';
 import { SmartDemoOnboardingBanner } from '@/shared/system/SmartDemoOnboardingBanner';
 import { useDashboardManagerOverview } from '@/features/dashboard/hooks/useDashboardManagerOverview';
 import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
@@ -53,7 +54,7 @@ export function DashboardPage() {
           description="مؤشرات الأداء المباشرة، القرارات المطلوبة، وحركة المبيعات والخزينة اليومية."
           badge={<span className="nav-pill">ملخص اليوم</span>}
           actions={(
-            <div className="actions compact-actions dashboard-header-actions">
+            <div className="actions compact-actions dashboard-header-actions" aria-label="إجراءات سريعة">
               <button className="button button-secondary" onClick={() => exportDashboardSnapshot(overview.data)}>تصدير Excel</button>
               <button className="button button-secondary" onClick={() => printDashboardSnapshot(overview.data, smartAlerts)}>طباعة الملخص</button>
             </div>
@@ -61,6 +62,7 @@ export function DashboardPage() {
         />
 
         <FirstRunSetupChecklist />
+        <TenantQuickStartChecklist />
         <SmartDemoOnboardingBanner />
 
         {/* 1. البانر التنفيذي والترحيب الذكي */}
@@ -127,40 +129,65 @@ export function DashboardPage() {
 
             {/* الحسابات المستحقة والمخزون - شبكة ثنائية 2x2 */}
             <FormSection title="الحسابات والمخزون" description="مؤشرات مديونيات العملاء والموردين وقيمة المخزون." className="dashboard-premium-card">
-              <div className="metric-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>قيمة المخزون (بيع)</span>
-                  <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{formatCurrency(Number(stats.inventorySaleValue || 0))}</strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
+                {/* الصف الأول */}
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>قيمة المخزون (بيع)</span>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {formatCurrency(Number(stats.inventorySaleValue || 0))}
+                    </strong>
+                  </div>
+                  <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>إجمالي الأصناف</span>
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                      {stats.productsCount || 0} صنف
+                    </strong>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>إجمالي الأصناف</span>
-                  <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{stats.productsCount || 0} صنف</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>مستحقات العملاء</span>
-                  <strong style={{ fontSize: '0.86rem', color: '#b91c1c' }}>{formatCurrency(Number(stats.customerDebt || 0))}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>مستحقات الموردين</span>
-                  <strong style={{ fontSize: '0.86rem', color: '#b91c1c' }}>{formatCurrency(Number(stats.supplierDebt || 0))}</strong>
+
+                {/* الصف الثاني */}
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>مستحقات العملاء</span>
+                    <strong style={{ fontSize: '0.88rem', color: '#b91c1c', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {formatCurrency(Number(stats.customerDebt || 0))}
+                    </strong>
+                  </div>
+                  <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>مستحقات الموردين</span>
+                    <strong style={{ fontSize: '0.88rem', color: '#b91c1c', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {formatCurrency(Number(stats.supplierDebt || 0))}
+                    </strong>
+                  </div>
                 </div>
               </div>
             </FormSection>
 
-            {/* حركة العمليات اليومية - 3 في سطر واحد */}
+            {/* حركة العمليات اليومية - 3 في سطر واحد دائماً */}
             <FormSection title="حركة اليوم المالية" description="المصروفات والمشتريات والمرتجعات المسجلة." className="dashboard-premium-card">
-              <div className="metric-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>فواتير الشراء</span>
-                  <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{stats.todayPurchasesCount || 0}</strong>
+              <div
+                className="daily-movement-strip keep-grid-row"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'stretch',
+                  gap: '6px',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 4px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>فواتير الشراء</span>
+                  <strong style={{ fontSize: '0.98rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>{stats.todayPurchasesCount || 0}</strong>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>مصروفات اليوم</span>
-                  <strong style={{ fontSize: '0.9rem', color: '#d97706' }}>{formatCurrency(Number(summary.expenses.total || 0))}</strong>
+                <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 4px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>مصروفات اليوم</span>
+                  <strong style={{ fontSize: '0.98rem', color: '#d97706', fontWeight: 800, whiteSpace: 'nowrap' }}>{formatCurrency(Number(summary.expenses.total || 0))}</strong>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>المرتجعات</span>
-                  <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{formatCurrency(Number(summary.returns.total || 0))}</strong>
+                <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 4px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', border: '1px solid #f1f5f9', boxSizing: 'border-box' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>المرتجعات</span>
+                  <strong style={{ fontSize: '0.98rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>{formatCurrency(Number(summary.returns.total || 0))}</strong>
                 </div>
               </div>
             </FormSection>

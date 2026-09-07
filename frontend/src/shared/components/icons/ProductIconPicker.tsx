@@ -318,10 +318,10 @@ export function ProductIconPicker({
                     padding: '10px 6px',
                     minHeight: '84px',
                     borderRadius: '10px',
-                    border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                    border: isSelected ? '1.5px solid #2563eb' : '1.5px solid #e2e8f0',
                     background: isSelected ? '#eff6ff' : '#ffffff',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
                     textAlign: 'center',
                     overflow: 'hidden',
                     boxShadow: isSelected ? '0 2px 4px rgba(37,99,235,0.1)' : 'none',
@@ -345,7 +345,7 @@ export function ProductIconPicker({
                   <span
                     style={{
                       fontSize: '0.74rem',
-                      fontWeight: isSelected ? 800 : 600,
+                      fontWeight: 700,
                       color: isSelected ? '#1d4ed8' : '#334155',
                       lineHeight: 1.25,
                       maxWidth: '100%',

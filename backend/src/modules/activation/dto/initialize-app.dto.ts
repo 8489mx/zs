@@ -40,4 +40,11 @@ export class InitializeAppDto {
   @IsString()
   @MinLength(8)
   adminPassword!: string;
+
+  @IsOptional()
+  @IsString()
+  businessIndustry?: string;
+
+  @IsOptional()
+  initialSettings?: Record<string, unknown>;
 }

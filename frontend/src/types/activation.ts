@@ -20,4 +20,6 @@ export interface ActivationInitializePayload {
   adminDisplayName: string;
   adminUsername: string;
   adminPassword: string;
+  businessIndustry?: string;
+  initialSettings?: Record<string, unknown>;
 }

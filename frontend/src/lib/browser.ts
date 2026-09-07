@@ -226,7 +226,10 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
   const branding = resolvePrintSettings();
   const safeSubtitle = sanitizePrintText(subtitle);
   const bodyContent = pageSize === 'receipt' ? bodyHtml : stripLeadingDuplicateHeading(bodyHtml, title);
-  const effectiveFooter = pageSize === 'receipt' ? sanitizePrintText(footerHtml || branding.invoiceFooter) : sanitizePrintText(footerHtml);
+  const bodyHasFooter = /class=["'][^"']*\bprint-footer\b|<footer\b/i.test(bodyContent);
+  const effectiveFooter = bodyHasFooter
+    ? ''
+    : (pageSize === 'receipt' ? sanitizePrintText(footerHtml || branding.invoiceFooter) : sanitizePrintText(footerHtml));
   const printedAt = new Date().toLocaleString('ar-EG');
 
   const pageRule = pageSize === 'A4'

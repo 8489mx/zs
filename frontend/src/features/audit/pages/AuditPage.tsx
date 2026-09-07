@@ -153,7 +153,7 @@ export function AuditPage() {
               padding: '8px 18px',
               borderRadius: '8px',
               fontSize: '13.5px',
-              fontWeight: activeTab === 'trail' ? 800 : 600,
+              fontWeight: 700,
               background: activeTab === 'trail' ? '#170e5e' : '#f1f5f9',
               color: activeTab === 'trail' ? '#ffffff' : '#475569',
               cursor: 'pointer',
@@ -161,7 +161,7 @@ export function AuditPage() {
               alignItems: 'center',
               gap: '8px',
               boxShadow: activeTab === 'trail' ? '0 1px 3px rgba(23, 14, 94, 0.2)' : 'none',
-              transition: 'all 0.15s ease',
+              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
             }}
           >
             <FileTextIcon size={16} />
@@ -176,7 +176,7 @@ export function AuditPage() {
               padding: '8px 18px',
               borderRadius: '8px',
               fontSize: '13.5px',
-              fontWeight: activeTab === 'fraudRadar' ? 800 : 600,
+              fontWeight: 700,
               background: activeTab === 'fraudRadar' ? '#170e5e' : '#f1f5f9',
               color: activeTab === 'fraudRadar' ? '#ffffff' : '#475569',
               cursor: 'pointer',
@@ -184,7 +184,7 @@ export function AuditPage() {
               alignItems: 'center',
               gap: '8px',
               boxShadow: activeTab === 'fraudRadar' ? '0 1px 3px rgba(23, 14, 94, 0.2)' : 'none',
-              transition: 'all 0.15s ease',
+              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
             }}
           >
             <ShieldAlertIcon size={16} />

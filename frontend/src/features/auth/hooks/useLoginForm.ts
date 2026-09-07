@@ -53,6 +53,7 @@ export function useLoginForm() {
       let storeName = DEFAULT_STORE_NAME;
       let theme = DEFAULT_THEME;
       let tenant: AuthTenant | null = loginResult.tenant ?? null;
+      let onboardingCompleted: boolean | undefined;
       let user = {
         ...loginResult.user,
         tenantId: String(loginResult.user?.tenantId || loginResult.tenant?.id || '').trim() || loginResult.user?.tenantId,
@@ -66,6 +67,7 @@ export function useLoginForm() {
         storeName = me.settings.storeName || DEFAULT_STORE_NAME;
         theme = me.settings.theme || DEFAULT_THEME;
         tenant = me.tenant ?? tenant;
+        onboardingCompleted = me.settings?.onboardingCompleted;
         user = {
           ...me.user,
           tenantId: String(me.user?.tenantId || me.tenant?.id || '').trim() || me.user?.tenantId,
@@ -82,7 +84,7 @@ export function useLoginForm() {
 
       await clearQueryClientData(queryClient);
       setSession({ user, tenant, storeName, theme });
-      navigate(getPostLoginRoute(user, storeName, { tenant, deploymentMode: useAuthStore.getState().activationStatus?.deploymentMode }), { replace: true });
+      navigate(getPostLoginRoute(user, storeName, { tenant, deploymentMode: useAuthStore.getState().activationStatus?.deploymentMode, onboardingCompleted }), { replace: true });
     } catch (err) {
       setLocalSessionFallback(null);
       const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول';

@@ -307,7 +307,9 @@ export function QuickAttendanceShortcut({ onClose }: QuickAttendanceShortcutProp
                   fontSize: '0.78rem',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                  userSelect: 'none',
+                  transition: 'background-color 0.15s ease, color 0.15s ease',
                 }}
               >
                 {tab.label}

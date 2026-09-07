@@ -7,7 +7,7 @@ import { AppError } from '../../../common/errors/app-error';
 import { AuditService } from '../../../core/audit/audit.service';
 import { SettingsBackupService } from './settings-backup.service';
 import { createPasswordRecord, verifyPassword } from '../../../core/auth/utils/password-hasher';
-import { getDemoDataset, listSupportedDemoActivities, DemoActivityDataset } from './demo-datasets';
+import { getDemoDataset, listSupportedDemoActivities, mapIndustryToDemoActivity, DemoActivityDataset } from './demo-datasets';
 
 export interface SeedDemoDataDto {
   activityType?: string;
@@ -384,7 +384,24 @@ export class SettingsDemoDataService {
       await this.takeAutoBackup(actor, 'before_demo_seed');
     }
 
-    const dataset = getDemoDataset(dto.activityType);
+    let targetActivity = dto.activityType?.trim().toLowerCase();
+    if (!targetActivity || targetActivity === 'auto' || targetActivity === 'supermarket') {
+      const industrySetting = await this.db
+        .selectFrom('settings')
+        .select('value')
+        .where('key', '=', 'businessIndustry')
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+      if (industrySetting?.value) {
+        let ind = industrySetting.value;
+        try {
+          ind = JSON.parse(industrySetting.value);
+        } catch {}
+        targetActivity = mapIndustryToDemoActivity(String(ind));
+      }
+    }
+
+    const dataset = getDemoDataset(targetActivity);
     let insertedProductsCount = 0;
     let insertedSalesCount = 0;
     let insertedOnlineOrdersCount = 0;

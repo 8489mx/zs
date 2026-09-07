@@ -413,7 +413,9 @@ export function StorefrontSettingsTab() {
             border: activeTab === 'settings' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: activeTab === 'settings' ? '#170e5e' : '#ffffff',
             color: activeTab === 'settings' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
           بيانات المتجر والبنر
@@ -430,7 +432,9 @@ export function StorefrontSettingsTab() {
             border: activeTab === 'coupons' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: activeTab === 'coupons' ? '#170e5e' : '#ffffff',
             color: activeTab === 'coupons' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
           كوبونات الخصم والعروض
@@ -447,7 +451,9 @@ export function StorefrontSettingsTab() {
             border: activeTab === 'zones' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: activeTab === 'zones' ? '#170e5e' : '#ffffff',
             color: activeTab === 'zones' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
           مناطق وأسعار التوصيل
@@ -464,7 +470,9 @@ export function StorefrontSettingsTab() {
             border: activeTab === 'payments' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: activeTab === 'payments' ? '#170e5e' : '#ffffff',
             color: activeTab === 'payments' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
           بوابات الدفع الإلكتروني
@@ -481,7 +489,9 @@ export function StorefrontSettingsTab() {
             border: activeTab === 'images' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: activeTab === 'images' ? '#170e5e' : '#ffffff',
             color: activeTab === 'images' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
           استوديو صور الأصناف
@@ -498,7 +508,9 @@ export function StorefrontSettingsTab() {
             border: activeTab === 'bosta' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: activeTab === 'bosta' ? '#170e5e' : '#ffffff',
             color: activeTab === 'bosta' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
           شحن بوسطة
@@ -515,7 +527,9 @@ export function StorefrontSettingsTab() {
             border: activeTab === 'gcc-shipping' ? '1px solid #170e5e' : '1px solid #e2e8f0',
             background: activeTab === 'gcc-shipping' ? '#170e5e' : '#ffffff',
             color: activeTab === 'gcc-shipping' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease',
           }}
         >
           شحن خليجي (أرامكس / سمسا)
