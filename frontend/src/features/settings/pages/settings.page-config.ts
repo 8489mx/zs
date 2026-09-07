@@ -1,19 +1,26 @@
 export type SettingsSectionKey = 'core' | 'demo-data' | 'daily-digest' | 'subscription' | 'storefront' | 'marketplaces' | 'whatsapp' | 'reference' | 'backup' | 'users' | 'system-updates' | 'lan-network' | 'tax-integration' | 'monitoring';
 
-const allSections: Array<{ key: SettingsSectionKey; label: string; adminOnly?: boolean; superAdminOnly?: boolean; offlineOnly?: boolean }> = [
-  { key: 'core', label: 'إعدادات النظام' },
-  { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط' },
-  { key: 'daily-digest', label: 'الملخص اليومي للمدير', adminOnly: true },
-  { key: 'subscription', label: 'الاشتراك والفوترة', adminOnly: true },
-  { key: 'storefront', label: 'المتجر الإلكتروني', adminOnly: true },
-  { key: 'marketplaces', label: 'الربط مع منصات أمازون ونون', adminOnly: true },
-  { key: 'whatsapp', label: 'بوابة الواتساب السحابية', adminOnly: true },
-  { key: 'reference', label: 'أماكن المخزون' },
-  { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', offlineOnly: true, superAdminOnly: true },
+const allSections: Array<{
+  key: SettingsSectionKey;
+  label: string;
+  adminOnly?: boolean;
+  superAdminOnly?: boolean;
+  offlineOnly?: boolean;
+  hiddenInTabs?: boolean;
+}> = [
+  { key: 'core', label: 'إعدادات النظام الأساسية' },
+  { key: 'reference', label: 'الفروع وأماكن التخزين' },
   { key: 'users', label: 'المستخدمون والصلاحيات', adminOnly: true },
-  { key: 'system-updates', label: 'الإصدارات والتحديثات', offlineOnly: true },
-  { key: 'backup', label: 'النسخ والاستيراد' },
   { key: 'tax-integration', label: 'الضرائب والفاتورة الإلكترونية', adminOnly: true },
+  { key: 'storefront', label: 'التجارة الإلكترونية والمنصات', adminOnly: true },
+  { key: 'whatsapp', label: 'بوابة الواتساب والتقارير الذكية', adminOnly: true },
+  { key: 'backup', label: 'النسخ والبيانات والصيانة' },
+  { key: 'subscription', label: 'الاشتراك والفوترة', adminOnly: true },
+  { key: 'demo-data', label: 'بيانات تجريبية حسب النشاط', hiddenInTabs: true },
+  { key: 'marketplaces', label: 'الربط مع منصات أمازون ونون', adminOnly: true, hiddenInTabs: true },
+  { key: 'daily-digest', label: 'الملخص اليومي للمدير', adminOnly: true, hiddenInTabs: true },
+  { key: 'lan-network', label: 'شبكة محلية متعددة الأجهزة', offlineOnly: true, superAdminOnly: true },
+  { key: 'system-updates', label: 'الإصدارات والتحديثات', offlineOnly: true },
   { key: 'monitoring', label: 'المراقبة ورصد السيرفر (APM)', superAdminOnly: true },
 ];
 

@@ -19,6 +19,7 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
   });
 
   const visibleSections = settingsSections.filter((section) => {
+    if ((section as any).hiddenInTabs) return false;
     if (section.superAdminOnly && !isPlatformAdmin(user)) return false;
     if (section.adminOnly && !isPrivilegedUser) return false;
     if (section.offlineOnly && deploymentMode !== 'desktop' && !import.meta.env.DEV) return false;
@@ -29,6 +30,11 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
     return true;
   });
 
+  const activeSectionKey =
+    currentSection === 'marketplaces' ? 'storefront' :
+    currentSection === 'daily-digest' ? 'whatsapp' :
+    currentSection;
+
   return (
     <div className="filter-chip-row toolbar-chip-row settings-section-tabs">
       {visibleSections.map((section) => (
@@ -37,7 +43,7 @@ export function SettingsSectionTabs({ currentSection, currentUserRole }: { curre
           to={`/settings/${section.key}`}
           onMouseEnter={() => prefetchRouteData(`/settings/${section.key}`)}
           onTouchStart={() => prefetchRouteData(`/settings/${section.key}`)}
-          className={({ isActive }) => `btn ${isActive || currentSection === section.key ? 'btn-primary' : 'btn-secondary'}`}
+          className={({ isActive }) => `btn ${isActive || activeSectionKey === section.key ? 'btn-primary' : 'btn-secondary'}`}
         >
           {section.label}
         </NavLink>

@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom';
 import type { SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import {
   renderBackupSection,
@@ -52,11 +53,89 @@ interface SettingsSectionContentProps extends SharedSettingsSectionProps {
 export function SettingsSectionContent({ section, ...props }: SettingsSectionContentProps) {
   if (section === 'core') return renderCoreSection(props);
   if (section === 'demo-data') return <SettingsDemoDataWizardSection />;
-  if (section === 'daily-digest') return <SettingsDailyDigestSection />;
   if (section === 'subscription') return <TenantSubscriptionPage />;
-  if (section === 'storefront') return <StorefrontSettingsTab />;
-  if (section === 'marketplaces') return <SettingsMarketplacesSection />;
-  if (section === 'whatsapp') return <SettingsWhatsAppGatewaySection />;
+  if (section === 'storefront' || section === 'marketplaces') {
+    return (
+      <div className="page-stack">
+        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px' }}>
+          <NavLink
+            to="/settings/storefront"
+            className="btn"
+            style={{
+              background: section === 'storefront' ? '#170e5e' : 'transparent',
+              color: section === 'storefront' ? '#ffffff' : '#64748b',
+              border: 'none',
+              padding: '6px 16px',
+              borderRadius: '7px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            المتجر الإلكتروني الخاص
+          </NavLink>
+          <NavLink
+            to="/settings/marketplaces"
+            className="btn"
+            style={{
+              background: section === 'marketplaces' ? '#170e5e' : 'transparent',
+              color: section === 'marketplaces' ? '#ffffff' : '#64748b',
+              border: 'none',
+              padding: '6px 16px',
+              borderRadius: '7px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            الربط مع أمازون ونون
+          </NavLink>
+        </div>
+        {section === 'storefront' ? <StorefrontSettingsTab /> : <SettingsMarketplacesSection />}
+      </div>
+    );
+  }
+  if (section === 'whatsapp' || section === 'daily-digest') {
+    return (
+      <div className="page-stack">
+        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px' }}>
+          <NavLink
+            to="/settings/whatsapp"
+            className="btn"
+            style={{
+              background: section === 'whatsapp' ? '#170e5e' : 'transparent',
+              color: section === 'whatsapp' ? '#ffffff' : '#64748b',
+              border: 'none',
+              padding: '6px 16px',
+              borderRadius: '7px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            بوابة الواتساب والرد الآلي الذكي
+          </NavLink>
+          <NavLink
+            to="/settings/daily-digest"
+            className="btn"
+            style={{
+              background: section === 'daily-digest' ? '#170e5e' : 'transparent',
+              color: section === 'daily-digest' ? '#ffffff' : '#64748b',
+              border: 'none',
+              padding: '6px 16px',
+              borderRadius: '7px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            الملخص اليومي للمدير
+          </NavLink>
+        </div>
+        {section === 'whatsapp' ? <SettingsWhatsAppGatewaySection /> : <SettingsDailyDigestSection />}
+      </div>
+    );
+  }
   if (section === 'reference') return renderReferenceSection(props);
   if (section === 'backup') return renderBackupSection(props);
   if (section === 'users') return renderUsersSection(props);

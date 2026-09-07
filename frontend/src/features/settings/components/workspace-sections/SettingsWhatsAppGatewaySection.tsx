@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
@@ -23,8 +23,10 @@ interface AiConfigResponse {
   hasApiKey: boolean;
   isCustomKey: boolean;
   maskedKey: string;
-  engine: 'gemini_llm' | 'local_analytics';
+  engine: string;
+  provider?: 'gemini' | 'openai' | 'custom';
   model: string;
+  baseUrl?: string;
 }
 
 interface SimChatMessage {
@@ -95,37 +97,69 @@ export function SettingsWhatsAppGatewaySection() {
     },
   });
 
-  // 2. Gemini AI Key & Status Management
+  // 2. Universal AI Engine Config (Gemini / OpenAI / Custom)
   const { data: aiConfig, refetch: refetchAiConfig } = useQuery<AiConfigResponse>({
     queryKey: ['settings-ai-config'],
     queryFn: () => http<AiConfigResponse>('/api/ai-copilot/config'),
   });
 
+  const [selectedProvider, setSelectedProvider] = useState<'gemini' | 'openai' | 'custom'>('gemini');
   const [customApiKey, setCustomApiKey] = useState('');
+  const [customModel, setCustomModel] = useState('');
+  const [customBaseUrl, setCustomBaseUrl] = useState('');
   const [aiFeedback, setAiFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
 
+  useEffect(() => {
+    if (aiConfig) {
+      if (aiConfig.provider) {
+        setSelectedProvider(aiConfig.provider);
+      }
+      if (aiConfig.model) {
+        setCustomModel(aiConfig.model);
+      }
+      if (aiConfig.baseUrl) {
+        setCustomBaseUrl(aiConfig.baseUrl);
+      }
+    }
+  }, [aiConfig]);
+
+  const handleApiKeyChange = (val: string) => {
+    setCustomApiKey(val);
+    const trimmed = val.trim();
+    if (trimmed.startsWith('sk-')) {
+      setSelectedProvider('openai');
+    } else if (trimmed.startsWith('AIza') || trimmed.startsWith('AQ.')) {
+      setSelectedProvider('gemini');
+    }
+  };
+
   const saveAiKeyMutation = useMutation({
-    mutationFn: (apiKey: string) =>
+    mutationFn: (payload: { apiKey: string; provider: 'gemini' | 'openai' | 'custom'; model?: string; baseUrl?: string }) =>
       http<{ ok: boolean }>('/api/ai-copilot/config', {
         method: 'POST',
-        body: JSON.stringify({ geminiApiKey: apiKey }),
+        body: JSON.stringify(payload),
       }),
     onSuccess: () => {
       refetchAiConfig();
-      setAiFeedback({ kind: 'success', message: 'تم حفظ مفتاح Google Gemini API بنجاح!' });
+      setAiFeedback({ kind: 'success', message: 'تم حفظ إعدادات ومفتاح محرك الذكاء الاصطناعي بنجاح!' });
       setCustomApiKey('');
       setTimeout(() => setAiFeedback(null), 3500);
     },
     onError: (err: any) => {
-      setAiFeedback({ kind: 'error', message: err?.message || 'فشل حفظ مفتاح الذكاء الاصطناعي' });
+      setAiFeedback({ kind: 'error', message: err?.message || 'فشل حفظ إعدادات الذكاء الاصطناعي' });
     },
   });
 
   const testAiKeyMutation = useMutation({
-    mutationFn: (apiKey?: string | void) =>
+    mutationFn: (params?: { apiKey?: string; provider?: 'gemini' | 'openai' | 'custom'; model?: string; baseUrl?: string }) =>
       http<{ success: boolean; message: string }>('/api/ai-copilot/test-key', {
         method: 'POST',
-        body: JSON.stringify({ apiKey: (typeof apiKey === 'string' && apiKey) ? apiKey : customApiKey }),
+        body: JSON.stringify({
+          provider: params?.provider || selectedProvider,
+          apiKey: (params?.apiKey !== undefined ? params.apiKey : customApiKey) || undefined,
+          model: (params?.model !== undefined ? params.model : customModel) || undefined,
+          baseUrl: (params?.baseUrl !== undefined ? params.baseUrl : customBaseUrl) || undefined,
+        }),
       }),
     onSuccess: (res) => {
       if (res.success) {
@@ -223,7 +257,7 @@ export function SettingsWhatsAppGatewaySection() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }} dir="rtl">
-      {/* CARD 1: GOOGLE GEMINI 1.5 FLASH (AI BRAIN) */}
+      {/* CARD 1: UNIVERSAL AI ENGINE (GEMINI, OPENAI, CUSTOM) */}
       <div
         style={{
           background: '#ffffff',
@@ -235,9 +269,9 @@ export function SettingsWhatsAppGatewaySection() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px', marginBottom: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a' }}>
-                محرك الذكاء الاصطناعي المجاني (Google Gemini 1.5 Flash Engine)
+                محرك ومفتاح الذكاء الاصطناعي (Universal AI Engine)
               </h3>
               <span
                 style={{
@@ -249,84 +283,244 @@ export function SettingsWhatsAppGatewaySection() {
                   fontWeight: 800,
                 }}
               >
-                {aiConfig?.hasApiKey ? 'Gemini Flash متصل ونشط' : 'يعمل بالمحرك المحلي المدمج'}
+                {aiConfig?.hasApiKey
+                  ? `${aiConfig.provider === 'openai' ? 'OpenAI' : aiConfig.provider === 'custom' ? 'محرك مخصص' : 'Gemini'} متصل ونشط${aiConfig.model ? ` (${aiConfig.model})` : ''}`
+                  : 'يعمل بالمحرك المحلي المدمج'}
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              يغذي نموذج الذكاء الاصطناعي فائق السرعة كلاً من <strong>مستشار الإدارة (زاد AI)</strong> وبوت <strong>الرد الآلي على الواتساب</strong> لخدمة الزبائن مجاناً 100%.
+              يدعم كلاً من <strong>Google Gemini</strong> و <strong>OpenAI (ChatGPT)</strong> ومزودي النماذج المتوافقة مثل <strong>DeepSeek</strong>. يغذي <strong>مستشار الإدارة (زاد AI)</strong> وبوت <strong>الرد الآلي على الواتساب</strong>.
             </p>
           </div>
         </div>
 
-        {/* Gemini Key Input & Actions */}
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
-                مفتاح Google Gemini API المجاني:
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="password"
-                  placeholder={aiConfig?.hasApiKey ? `المفتاح مسجل: ${aiConfig.maskedKey}` : 'الصق مفتاح AIzaSy... الخاص بك هنا'}
-                  value={customApiKey}
-                  onChange={(e) => setCustomApiKey(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '13px',
-                    background: '#ffffff',
-                    direction: 'ltr',
-                    textAlign: 'left',
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="primary"
-                  disabled={saveAiKeyMutation.isPending || !customApiKey.trim()}
-                  onClick={() => saveAiKeyMutation.mutate(customApiKey.trim())}
-                  style={{ background: '#170e5e', fontSize: '12.5px', padding: '8px 14px', fontWeight: 800 }}
-                >
-                  {saveAiKeyMutation.isPending ? 'جاري الحفظ...' : 'حفظ المفتاح'}
-                </Button>
-                {aiConfig?.isCustomKey && (
-                  <Button
+        {/* AI Key & Multi-Provider Settings */}
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Provider Selector Tabs */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '6px' }}>
+              اختر مزود الذكاء الاصطناعي (AI Provider):
+            </label>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'gemini', label: 'Google Gemini (مجاني وسريع)', tag: 'موصى به' },
+                { id: 'openai', label: 'OpenAI / ChatGPT (GPT-4o & Mini)', tag: 'متقدم' },
+                { id: 'custom', label: 'مزود مخصص (DeepSeek / Groq / Local)', tag: 'مفتوح' },
+              ].map((p) => {
+                const active = selectedProvider === p.id;
+                return (
+                  <button
+                    key={p.id}
                     type="button"
-                    variant="secondary"
-                    onClick={() => saveAiKeyMutation.mutate('')}
-                    style={{ fontSize: '12px', padding: '8px 10px', color: '#dc2626' }}
-                    title="حذف المفتاح المخصص والرجوع للإعداد العام"
+                    onClick={() => setSelectedProvider(p.id as any)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: active ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                      background: active ? '#f5f3ff' : '#ffffff',
+                      color: active ? '#170e5e' : '#475569',
+                      fontWeight: active ? 800 : 600,
+                      fontSize: '12.5px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
                   >
-                    حذف
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={testAiKeyMutation.isPending || (!customApiKey.trim() && !aiConfig?.hasApiKey)}
-                onClick={() => testAiKeyMutation.mutate(customApiKey.trim() || undefined)}
-                style={{ fontSize: '12.5px', padding: '8px 16px', fontWeight: 800, height: '38px' }}
-              >
-                {testAiKeyMutation.isPending ? 'جاري فحص الاتصال...' : 'فحص الاتصال بـ Gemini Flash'}
-              </Button>
+                    <span>{p.label}</span>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        background: active ? '#170e5e' : '#f1f5f9',
+                        color: active ? '#ffffff' : '#64748b',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      {p.tag}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Quick Guide Card */}
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#1e40af', lineHeight: 1.6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-              <LightbulbIcon size={15} color="#1d4ed8" />
-              <strong>كيف تحصل على مفتاحك المجاني 100% في 30 ثانية وبدون أي بطاقة بنكية؟</strong>
+          {/* API Key Input */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
+              {selectedProvider === 'gemini'
+                ? 'مفتاح Google Gemini API:'
+                : selectedProvider === 'openai'
+                ? 'مفتاح OpenAI API (sk-...):'
+                : 'مفتاح API الخاص بالمزود المخصص:'}
+            </label>
+            <input
+              type="password"
+              placeholder={
+                aiConfig?.hasApiKey
+                  ? `المفتاح مسجل: ${aiConfig.maskedKey}`
+                  : selectedProvider === 'gemini'
+                  ? 'الصق مفتاح AIzaSy... الخاص بك هنا'
+                  : selectedProvider === 'openai'
+                  ? 'الصق مفتاح sk-... الخاص بك هنا'
+                  : 'الصق مفتاح API الخاص بك هنا'
+              }
+              value={customApiKey}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                background: '#ffffff',
+                direction: 'ltr',
+                textAlign: 'left',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Custom Model and Base URL Fields */}
+          {selectedProvider !== 'gemini' && (
+            <div style={{ display: 'grid', gridTemplateColumns: selectedProvider === 'custom' ? '1fr 1fr' : '1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                  اسم النموذج (Model) - اختياري:
+                </label>
+                <input
+                  type="text"
+                  placeholder={selectedProvider === 'openai' ? 'gpt-4o-mini (الافتراضي)' : 'deepseek-chat أو أي نموذج'}
+                  value={customModel}
+                  onChange={(e) => setCustomModel(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '12.5px',
+                    background: '#ffffff',
+                    direction: 'ltr',
+                    textAlign: 'left',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              {selectedProvider === 'custom' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                    عنوان الرابط الأساسي (API Base URL) - اختياري:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: https://api.deepseek.com/v1"
+                    value={customBaseUrl}
+                    onChange={(e) => setCustomBaseUrl(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '7px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '12.5px',
+                      background: '#ffffff',
+                      direction: 'ltr',
+                      textAlign: 'left',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              )}
             </div>
-            1. افتح منصة جوجل الرسمية: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', fontWeight: 800, textDecoration: 'underline' }}>Google AI Studio (اضغط هنا)</a>.<br />
-            2. سجل بحساب Gmail الخاص بك، واضغط على <strong>Create API key</strong> ثم انسخ المفتاح والصقه في الخانة أعلاه.<br />
-            3. جوجل تمنحك آلاف الطلبات اليومية <strong>مجاناً تماماً (0$)</strong>.
+          )}
+
+          {/* Actions Row */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={saveAiKeyMutation.isPending || (!customApiKey.trim() && !aiConfig?.hasApiKey && !customModel && !customBaseUrl)}
+              onClick={() =>
+                saveAiKeyMutation.mutate({
+                  apiKey: customApiKey.trim(),
+                  provider: selectedProvider,
+                  model: customModel.trim() || undefined,
+                  baseUrl: customBaseUrl.trim() || undefined,
+                })
+              }
+              style={{ background: '#170e5e', fontSize: '12.5px', padding: '8px 18px', fontWeight: 800 }}
+            >
+              {saveAiKeyMutation.isPending ? 'جاري الحفظ...' : 'حفظ إعدادات المحرك'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={testAiKeyMutation.isPending || (!customApiKey.trim() && !aiConfig?.hasApiKey)}
+              onClick={() =>
+                testAiKeyMutation.mutate({
+                  provider: selectedProvider,
+                  apiKey: customApiKey.trim() || undefined,
+                  model: customModel.trim() || undefined,
+                  baseUrl: customBaseUrl.trim() || undefined,
+                })
+              }
+              style={{ fontSize: '12.5px', padding: '8px 16px', fontWeight: 800 }}
+            >
+              {testAiKeyMutation.isPending ? 'جاري فحص الاتصال...' : 'فحص الاتصال بالمحرك'}
+            </Button>
+
+            {aiConfig?.isCustomKey && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  saveAiKeyMutation.mutate({
+                    apiKey: '',
+                    provider: 'gemini',
+                    model: '',
+                    baseUrl: '',
+                  })
+                }
+                style={{ fontSize: '12px', padding: '8px 12px', color: '#dc2626' }}
+                title="حذف المفتاح المخصص والرجوع للإعداد الافتراضي"
+              >
+                حذف المفتاح المخصص
+              </Button>
+            )}
+          </div>
+
+          {/* Quick Guide Card */}
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 14px', fontSize: '12px', color: '#1e40af', lineHeight: 1.6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+              <LightbulbIcon size={15} color="#1d4ed8" />
+              <strong>إرشادات الحصول على مفاتيح الذكاء الاصطناعي:</strong>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+              <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #dbeafe' }}>
+                <strong>1. Google Gemini (مجاني وسريع):</strong>
+                <br />
+                احصل على مفتاح مجاني بدون بطاقة بنكية عبر{' '}
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', fontWeight: 800, textDecoration: 'underline' }}>
+                  Google AI Studio
+                </a>
+                . يدعم أحدث نماذج فلاش الحديثة تلقائياً.
+              </div>
+              <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #dbeafe' }}>
+                <strong>2. OpenAI / ChatGPT:</strong>
+                <br />
+                احصل على المفتاح من منصة{' '}
+                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', fontWeight: 800, textDecoration: 'underline' }}>
+                  OpenAI Platform
+                </a>
+                . متوافق مع GPT-4o و GPT-4o-mini.
+              </div>
+              <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #dbeafe' }}>
+                <strong>3. المزود المخصص (DeepSeek / Groq / خادم محلي):</strong>
+                <br />
+                يمكنك ربط أي مزود يقدم واجهة متوافقة مع OpenAI API فقط بتحديد عنوان الرابط واسم النموذج.
+              </div>
+            </div>
           </div>
 
           {aiFeedback && (
@@ -584,8 +778,8 @@ export function SettingsWhatsAppGatewaySection() {
                   >
                     <span>{msg.time}</span>
                     {msg.engine && (
-                      <span style={{ color: msg.engine === 'gemini_llm' ? '#2563eb' : '#059669', fontWeight: 700 }}>
-                        ({msg.engine === 'gemini_llm' ? 'Gemini 1.5' : 'Smart Local'})
+                      <span style={{ color: msg.engine === 'gemini_llm' || msg.engine === 'openai_llm' || msg.engine === 'custom_llm' ? '#2563eb' : '#059669', fontWeight: 700 }}>
+                        ({msg.engine === 'gemini_llm' ? 'Gemini' : msg.engine === 'openai_llm' ? 'OpenAI' : msg.engine === 'custom_llm' ? 'AI Cloud' : 'Smart Local'})
                       </span>
                     )}
                   </div>

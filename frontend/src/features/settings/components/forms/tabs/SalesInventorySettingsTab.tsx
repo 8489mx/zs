@@ -1,12 +1,15 @@
+import { Link } from 'react-router-dom';
 import { LightbulbIcon } from '@/shared/components/icons/AppIcons';
 import type { UseFormReturn } from 'react-hook-form';
 import type { SettingsFormInput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
+import type { AppSettings } from '@/types/domain';
 import { FormSection } from '@/shared/components/form-section';
 
 interface SalesInventoryTabProps {
   form: UseFormReturn<SettingsFormInput, undefined, SettingsFormOutput>;
   disabled: boolean;
   activeTab: string;
+  settings?: AppSettings;
 }
 
 // Premium SVG Line Icons
@@ -213,6 +216,7 @@ export function SalesInventorySettingsTab({
   form,
   disabled,
   activeTab,
+  settings,
 }: SalesInventoryTabProps) {
   const isStoreFleet = form.watch('deliveryFeeMode') === 'store_fleet';
 
@@ -296,6 +300,20 @@ export function SalesInventorySettingsTab({
               </span>
             </div>
           </div>
+
+          {/* Direct link to Advanced Tax & E-Invoice Integration */}
+          <div style={{ gridColumn: '1 / -1', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <span style={{ fontSize: '0.78rem', color: '#475569' }}>
+              للربط السحابي المباشر مع مصلحة الضرائب المصرية (ETA) أو هيئة الزكاة والضريبة والجمارك (ZATCA):
+            </span>
+            <Link
+              to="/settings/tax-integration"
+              className="btn btn-secondary"
+              style={{ padding: '4px 12px', fontSize: '0.78rem', fontWeight: 700 }}
+            >
+              إعدادات الضرائب والفاتورة الإلكترونية
+            </Link>
+          </div>
         </div>
       </FormSection>
 
@@ -369,7 +387,7 @@ export function SalesInventorySettingsTab({
             />
           </div>
 
-          {/* Card 4.5: Max Cashier Discount Approval Threshold */}
+          {/* Card 4.5: Max Cashier Discount Approval Threshold & Manager PIN */}
           <div style={{ gridColumn: '1 / -1', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -378,54 +396,74 @@ export function SalesInventorySettingsTab({
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>سقف خصم الكاشير واعتماد المدير (PIN)</strong>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>اشتراط إدخال PIN المدير عند إعطاء الكاشير خصماً يتجاوز حداً معيناً</span>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>اشتراط إدخال PIN المدير عند إعطاء الكاشير خصماً يتجاوز حداً معيناً أو لتعديل العمليات الحساسة</span>
                 </div>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: form.watch('posMaxDiscountThresholdEnabled') ? '#166534' : '#64748b' }}>
-                  {form.watch('posMaxDiscountThresholdEnabled') ? 'مفعل' : 'معطل'}
+                  {form.watch('posMaxDiscountThresholdEnabled') ? 'سقف الخصم: مفعّل' : 'سقف الخصم: معطل'}
                 </span>
                 <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posMaxDiscountThresholdEnabled')} disabled={disabled} />
               </label>
             </div>
 
-            {form.watch('posMaxDiscountThresholdEnabled') && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    طريقة حساب سقف الخصم
-                  </label>
-                  <select
-                    className="purchase-prototype-field-input"
-                    {...form.register('posMaxDiscountThresholdType')}
-                    disabled={disabled}
-                    style={fieldControlStyle}
-                  >
-                    <option value="percentage">نسبة مئوية من إجمالي الفاتورة (%)</option>
-                    <option value="fixed">مبلغ ثابت بالجنيه (ج.م)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                    قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? '(ج.م)' : '(%)'}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    className="purchase-prototype-field-input"
-                    {...form.register('posMaxDiscountThresholdValue')}
-                    disabled={disabled}
-                    placeholder={form.watch('posMaxDiscountThresholdType') === 'fixed' ? 'مثال: 50' : 'مثال: 15'}
-                    style={fieldControlStyle}
-                  />
-                  <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                    عند تطبيق خصم أعلى من هذا الحد بالكاشير، لن تكتمل الفاتورة إلا بإدخال رمز مرور المدير (PIN).
-                  </small>
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  الرمز السري للمدير (PIN)
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  className="purchase-prototype-field-input"
+                  {...form.register('managerPin')}
+                  disabled={disabled}
+                  placeholder={settings?.hasManagerPin ? 'اتركه فارغًا للإبقاء على الرمز الحالي' : 'مثال: 1234'}
+                  style={fieldControlStyle}
+                />
+                <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  {settings?.hasManagerPin ? 'يوجد رمز مدير محفوظ. اكتب رمزًا جديدًا فقط عند الحاجة للتغيير.' : 'الرمز السري المطلوب لاعتماد العمليات الحساسة وتجاوز سقف الخصم بالكاشير.'}
+                </small>
               </div>
-            )}
+
+              {form.watch('posMaxDiscountThresholdEnabled') && (
+                <>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                      طريقة حساب سقف الخصم
+                    </label>
+                    <select
+                      className="purchase-prototype-field-input"
+                      {...form.register('posMaxDiscountThresholdType')}
+                      disabled={disabled}
+                      style={fieldControlStyle}
+                    >
+                      <option value="percentage">نسبة مئوية من إجمالي الفاتورة (%)</option>
+                      <option value="fixed">مبلغ ثابت بالجنيه (ج.م)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                      قيمة سقف الخصم المسموح به {form.watch('posMaxDiscountThresholdType') === 'fixed' ? '(ج.م)' : '(%)'}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      className="purchase-prototype-field-input"
+                      {...form.register('posMaxDiscountThresholdValue')}
+                      disabled={disabled}
+                      placeholder={form.watch('posMaxDiscountThresholdType') === 'fixed' ? 'مثال: 50' : 'مثال: 15'}
+                      style={fieldControlStyle}
+                    />
+                    <small style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                      عند تطبيق خصم أعلى من هذا الحد بالكاشير، لن تكتمل الفاتورة إلا بإدخال رمز مرور المدير (PIN).
+                    </small>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Card 5: Default Branch Issue Mode (Span 2) */}

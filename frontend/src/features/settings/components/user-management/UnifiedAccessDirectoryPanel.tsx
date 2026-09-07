@@ -715,12 +715,6 @@ export function EmployeeSelfServiceAccessPanel() {
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '12px',
-      {/* Employees Table */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
           overflowX: 'auto',
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
         }}

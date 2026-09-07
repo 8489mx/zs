@@ -18,12 +18,11 @@ import { DraftStateNotice } from '@/shared/components/draft-state-notice';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { SalesInventorySettingsTab } from './tabs/SalesInventorySettingsTab';
 import { ModulesSettingsTab } from './tabs/ModulesSettingsTab';
-import { SecuritySettingsTab } from './tabs/SecuritySettingsTab';
 import { PrintingSettingsTab } from './tabs/PrintingSettingsTab';
 
 export const SETTINGS_FIELD_METADATA: Record<
   string,
-  { tab: 'general' | 'sales_inventory' | 'modules' | 'printing' | 'security'; label: string }
+  { tab: 'general' | 'sales_inventory' | 'modules' | 'printing'; label: string }
 > = {
   // General Tab
   storeName: { tab: 'general', label: 'اسم النشاط / المتجر' },
@@ -142,16 +141,15 @@ export const SETTINGS_FIELD_METADATA: Record<
   posElectronCashierPrinter: { tab: 'printing', label: 'طابعة الكاشير الافتراضية' },
   posElectronKitchenPrinter: { tab: 'printing', label: 'طابعة المطبخ الافتراضية' },
 
-  // Security Tab
-  managerPin: { tab: 'security', label: 'الرقم السري للمدير' },
-  autoBackup: { tab: 'security', label: 'النسخ الاحتياطي التلقائي' },
+  managerPin: { tab: 'sales_inventory', label: 'الرمز السري للمدير (PIN)' },
+  autoBackup: { tab: 'general', label: 'النسخ الاحتياطي التلقائي' },
 };
 
 export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsMainFormProps) {
   const navigate = useNavigate();
   const locale = useLocalePreference();
   const setLocaleLanguage = locale.setLanguage;
-  const [activeTab, setActiveTab] = useState<'general' | 'sales_inventory' | 'modules' | 'printing' | 'security'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'sales_inventory' | 'modules' | 'printing'>('general');
   const form = useForm<SettingsFormInput, undefined, SettingsFormOutput>({
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
@@ -665,14 +663,13 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
   const tabErrors = useMemo(() => {
     const errors = form.formState.errors;
     const map: Record<
-      'general' | 'sales_inventory' | 'modules' | 'printing' | 'security',
+      'general' | 'sales_inventory' | 'modules' | 'printing',
       { fieldKey: string; label: string; message?: string }[]
     > = {
       general: [],
       sales_inventory: [],
       modules: [],
       printing: [],
-      security: [],
     };
 
     for (const [field, err] of Object.entries(errors)) {
@@ -858,10 +855,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
                 if (!items.length) return null;
                 const tabNames: Record<string, string> = {
                   general: 'عام',
-                  sales_inventory: 'البيع والمخزون',
+                  sales_inventory: 'البيع وقواعد المخزون',
                   modules: 'موديولات النظام',
-                  printing: 'الطباعة',
-                  security: 'الأمان',
+                  printing: 'الطباعة والإيصالات',
                 };
                 return (
                   <div
@@ -928,10 +924,9 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         <div className="settings-tabs" style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px', marginBottom: '16px', overflowX: 'auto' }}>
           {[
             { id: 'general', label: 'عام' },
-            { id: 'sales_inventory', label: 'البيع والمخزون' },
+            { id: 'sales_inventory', label: 'البيع وقواعد المخزون' },
             { id: 'modules', label: 'موديولات النظام' },
-            { id: 'printing', label: 'الطباعة' },
-            { id: 'security', label: 'الأمان' },
+            { id: 'printing', label: 'الطباعة والإيصالات' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1007,11 +1002,10 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           form={form}
           disabled={disabled}
           activeTab={activeTab}
+          settings={settings}
         />
 
         <ModulesSettingsTab form={form} disabled={disabled} activeTab={activeTab} />
-
-        <SecuritySettingsTab form={form} disabled={disabled} activeTab={activeTab} settings={settings} />
 
         <PrintingSettingsTab
           form={form}

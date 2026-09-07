@@ -25,11 +25,19 @@ interface SettingsGuidanceInput {
 }
 
 export function getSettingsSectionDescription(section: string) {
-  if (section === 'core') return 'عدّل بيانات النشاط ثم احفظ.';
-  if (section === 'subscription') return 'تابع تفاصيل باقتك السحابية، استهلاك الموارد، الترقية، وإيصالات السداد.';
-  if (section === 'reference') return 'نظّم الفروع والمخازن من نفس الصفحة.';
-  if (section === 'users') return 'أدر المستخدمين والصلاحيات من مكان واحد.';
-  return 'خذ نسخة احتياطية أو استورد البيانات من نفس الشاشة.';
+  if (section === 'core') return 'بيانات المنشأة، سياسات البيع والمخزون، موديولات النظام، والطباعة والإيصالات.';
+  if (section === 'reference') return 'إدارة الفروع، نقاط الاستلام، والمستودعات التشغيلية ومخازن البضاعة.';
+  if (section === 'users') return 'إدارة حسابات الموظفين، الأدوار الوظيفية، ومصفوفة الصلاحيات.';
+  if (section === 'tax-integration') return 'الربط المباشر مع مصلحة الضرائب المصرية (ETA) وهيئة الزكاة والضريبة (ZATCA).';
+  if (section === 'storefront' || section === 'marketplaces') return 'إدارة المتجر الإلكتروني الخارجي، بوابات الدفع والشحن، والربط مع أمازون ونون.';
+  if (section === 'whatsapp' || section === 'daily-digest') return 'بوابة رسائل الواتساب السحابية، روبوت الرد الذكي، وإرسال الملخص اليومي للمدير.';
+  if (section === 'backup') return 'النسخ الاحتياطي، تصدير واستيراد البيانات، وأدوات صيانة النظام.';
+  if (section === 'subscription') return 'تفاصيل الاشتراك السحابي، استهلاك الموارد، وتجديد الباقة والفوترة.';
+  if (section === 'demo-data') return 'توليد أو مسح البيانات التجريبية حسب طبيعة النشاط التجاري.';
+  if (section === 'lan-network') return 'إعدادات مزامنة الشبكة المحلية والربط المتعدد للأجهزة على السيرفر المحلي.';
+  if (section === 'system-updates') return 'سجل إصدارات النظام والتحقق من التحديثات السحابية.';
+  if (section === 'monitoring') return 'المراقبة ورصد أداء الخادم (APM) والتنبيهات عبر تيليجرام.';
+  return 'إعدادات وضوابط تشغيل المنظومة.';
 }
 
 export function buildSettingsGuidanceCards(input: SettingsGuidanceInput) {
