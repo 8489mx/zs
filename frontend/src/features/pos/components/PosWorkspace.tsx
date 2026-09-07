@@ -7,6 +7,7 @@ import { PosWorkspaceWholesaleDialog } from '@/features/pos/components/pos-works
 import { PosWorkspaceMainContent } from '@/features/pos/components/pos-workspace/PosWorkspaceMainContent';
 import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCheckoutDialog';
 import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/PosHeldDraftsDialog';
+import { PosTablesFloorPlanDialog } from '@/features/pos/components/pos-workspace/PosTablesFloorPlanDialog';
 import { PosItemModifiersModal } from '@/features/pos/components/pos-cart-panel/PosItemModifiersModal';
 import { PosDraftSwitcherOverlay } from '@/features/pos/components/pos-workspace/PosDraftSwitcherOverlay';
 import { PosOpenShiftModal } from '@/features/pos/components/pos-workspace/PosOpenShiftModal';
@@ -54,6 +55,8 @@ export function PosWorkspace() {
   const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
+  const [restaurantTablesOpen, setRestaurantTablesOpen] = useState(false);
+  const [restaurantInitialTab, setRestaurantInitialTab] = useState<'floor' | 'list'>('floor');
   const [openShiftModalOpen, setOpenShiftModalOpen] = useState(false);
   const [serialLookupOpen, setSerialLookupOpen] = useState(false);
   const [quickServiceOpen, setQuickServiceOpen] = useState(false);
@@ -494,6 +497,17 @@ export function PosWorkspace() {
 
   const isServicesActive = pos.settingsQuery.data?.servicesModuleEnabled === true || Boolean(pos.settingsQuery.data?.enableMobileStoreFeatures);
 
+  const isRestaurantActive = Boolean(pos.settingsQuery.data?.restaurantModuleEnabled);
+
+  const handleOpenHeldOrTables = useCallback((initialTab: 'floor' | 'list' = 'floor') => {
+    if (isRestaurantActive) {
+      setRestaurantInitialTab(initialTab);
+      setRestaurantTablesOpen(true);
+    } else {
+      setHeldDraftsDialogOpen(true);
+    }
+  }, [isRestaurantActive]);
+
   usePosWorkspaceKeyboardShortcuts({
     pos,
     focusBarcodeEntry,
@@ -503,7 +517,7 @@ export function PosWorkspace() {
     onRequestClearCart: requestClearCart,
     onRequestLineDelete: requestLineDelete,
     onRequestCheckout: requestCheckoutDialog,
-    onOpenHeldDrafts: () => setHeldDraftsDialogOpen(true),
+    onOpenHeldDrafts: () => handleOpenHeldOrTables('floor'),
     onRecallHeldDraftByIndex: requestRecallHeldDraftByIndex,
     onOpenReprintModal: () => setReprintModalOpen(true),
   });
@@ -517,6 +531,8 @@ export function PosWorkspace() {
         onFocusSearch={focusBarcodeEntry}
         onOpenNewProduct={() => handleOpenNewProduct()}
         onOpenQuickService={isServicesActive ? () => setQuickServiceOpen(true) : undefined}
+        onOpenTables={() => handleOpenHeldOrTables('floor')}
+        onOpenHeldDrafts={() => handleOpenHeldOrTables('list')}
         onPrintDraft={printCurrentDraft}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
         onOpenSerialLookup={() => setSerialLookupOpen(true)}
@@ -543,7 +559,7 @@ export function PosWorkspace() {
         onRequestClearCart={requestClearCart}
         onRequestCheckout={requestCheckoutDialog}
         heldDraftsCount={pos.heldDraftSummaries.length}
-        onOpenHeldDrafts={() => setHeldDraftsDialogOpen(true)}
+        onOpenHeldDrafts={() => handleOpenHeldOrTables('floor')}
         onPrintCurrentDraft={printCurrentDraft}
         onFocusBarcodeEntry={focusBarcodeEntry}
         onRequestOpenShift={() => setOpenShiftModalOpen(true)}
@@ -581,8 +597,52 @@ export function PosWorkspace() {
         onFocusBarcodeEntry={focusBarcodeEntry}
       />
 
+      {/* 1. Restaurant Unified Floor & Orders Dialog (Restaurant Mode) */}
+      {isRestaurantActive && (
+        <PosTablesFloorPlanDialog
+          open={restaurantTablesOpen}
+          onClose={() => {
+            setRestaurantTablesOpen(false);
+            focusBarcodeEntry();
+          }}
+          currentTableNumber={pos.tableNumber}
+          currentCartItemsCount={pos.cart.length}
+          currentCartTotal={Number(pos.totals?.total || 0)}
+          heldDrafts={pos.heldDraftSummaries || []}
+          initialTab={restaurantInitialTab}
+          onSelectTable={async (tableNum) => {
+            if (pos.cart.length > 0) {
+              await pos.holdDraft();
+            }
+            pos.setOrderType('dine_in');
+            pos.setTableNumber(tableNum);
+            pos.setCustomerId('');
+            pos.setQuickCustomerName('');
+            pos.setQuickCustomerPhone('');
+            pos.setQuickCustomerAddress('');
+          }}
+          onRecallDraft={async (draftId) => {
+            if (pos.cart.length > 0) {
+              await pos.holdDraft();
+            }
+            await pos.recallDraft(draftId);
+          }}
+          onDeleteDraft={async (draftId) => {
+            await pos.deleteDraft(draftId);
+          }}
+          onClearAllDrafts={async () => {
+            await pos.clearHeldDrafts();
+          }}
+          onTransferTable={(from, to) => {
+            pos.setTableNumber(to);
+            alert(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}!`);
+          }}
+        />
+      )}
+
+      {/* 2. Standard Retail Held Drafts Dialog (Non-Restaurant Mode) */}
       <PosHeldDraftsDialog
-        open={heldDraftsDialogOpen}
+        open={heldDraftsDialogOpen && !isRestaurantActive}
         heldDrafts={pos.heldDraftSummaries}
         requestedRecallDraftId={shortcutRecallDraftId}
         onRequestedRecallHandled={() => setShortcutRecallDraftId('')}

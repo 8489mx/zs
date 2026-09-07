@@ -40,13 +40,14 @@ interface PosWorkspaceHeaderProps {
   onOpenNewProduct?: () => void;
   onOpenQuickService?: () => void;
   onOpenHeldDrafts?: () => void;
+  onOpenTables?: () => void;
   onPrintDraft: () => void;
   onRequestOpenShift?: () => void;
   onOpenSerialLookup?: () => void;
   onOpenReprintModal?: () => void;
 }
 
-function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
+function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch, onOpenQuickService, onOpenHeldDrafts, onOpenTables, onRequestOpenShift, onOpenReprintModal }: PosWorkspaceHeaderProps) {
   const { data: settings } = useSettingsQuery();
   const isRestaurantActive = settings?.restaurantModuleEnabled === true;
   const isStorefrontActive = settings?.storefrontModuleEnabled !== false;
@@ -273,38 +274,21 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
             F9 إعادة طباعة
           </Button>
 
-          {/* 4. Active Table (if selected) */}
-          {pos.tableNumber && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsTablesOpen(true)}
-              style={{
-                fontWeight: 800,
-                color: '#166534',
-                background: '#f0fdf4',
-                border: '1px solid #86efac',
-              }}
-            >
-              طاولة: {pos.tableNumber}
-            </Button>
-          )}
-
           {/* 4. Restaurant Tables (Only when Restaurant Module is active or table is assigned) */}
           {(isRestaurantActive || pos.tableNumber) && (
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setIsTablesOpen(true)}
+              onClick={onOpenTables || onOpenHeldDrafts || (() => setIsTablesOpen(true))}
               style={{
                 fontWeight: 700,
                 color: pos.tableNumber ? '#166534' : undefined,
                 background: pos.tableNumber ? '#f0fdf4' : undefined,
                 border: pos.tableNumber ? '1px solid #86efac' : undefined,
               }}
-              title="إدارة طاولات الصالة وجلسات الطعام"
+              title="إدارة طاولات الصالة وجلسات الطعام والطلبات المعلقة (F3)"
             >
-              {pos.tableNumber ? `طاولة: ${pos.tableNumber}` : 'الطاولات'}
+              {pos.tableNumber ? `طاولة: ${pos.tableNumber}` : 'الطاولات F3'}
             </Button>
           )}
 
@@ -550,23 +534,37 @@ function PosWorkspaceHeaderComponent({ pos, posMode, onModeChange, onFocusSearch
       isOpen={isOnlineOrdersOpen}
       onClose={() => setIsOnlineOrdersOpen(false)}
     />
-    <PosTablesFloorPlanDialog
-      open={isTablesOpen}
-      onClose={() => setIsTablesOpen(false)}
-      currentTableNumber={pos.tableNumber}
-      heldDrafts={pos.heldDraftSummaries || []}
-      onSelectTable={(tableNum) => {
-        pos.setOrderType('dine_in');
-        pos.setTableNumber(tableNum);
-      }}
-      onRecallDraft={async (draftId) => {
-        await pos.recallDraft(draftId);
-      }}
-      onTransferTable={(from, to) => {
-        pos.setTableNumber(to);
-        alert(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}!`);
-      }}
-    />
+    {!onOpenTables && (
+      <PosTablesFloorPlanDialog
+        open={isTablesOpen}
+        onClose={() => setIsTablesOpen(false)}
+        currentTableNumber={pos.tableNumber}
+        currentCartItemsCount={pos.cart.length}
+        currentCartTotal={Number(pos.totals?.total || 0)}
+        heldDrafts={pos.heldDraftSummaries || []}
+        onSelectTable={async (tableNum) => {
+          if (pos.cart.length > 0) {
+            await pos.holdDraft();
+          }
+          pos.setOrderType('dine_in');
+          pos.setTableNumber(tableNum);
+          pos.setCustomerId('');
+          pos.setQuickCustomerName('');
+          pos.setQuickCustomerPhone('');
+          pos.setQuickCustomerAddress('');
+        }}
+        onRecallDraft={async (draftId) => {
+          if (pos.cart.length > 0) {
+            await pos.holdDraft();
+          }
+          await pos.recallDraft(draftId);
+        }}
+        onTransferTable={(from, to) => {
+          pos.setTableNumber(to);
+          alert(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}!`);
+        }}
+      />
+    )}
     {showFloatingAlert && (
       <PosOnlineOrderFloatingAlert
         orderCount={pendingCount}
