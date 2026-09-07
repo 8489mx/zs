@@ -17,6 +17,10 @@ import {
   UpdateAccountDto,
   GenerateCodeQueryDto,
   UpdateAccountingSettingsDto,
+  CreateManualJournalEntryDto,
+  CreateBankStatementDto,
+  ReconcileMatchDto,
+  CreateBankFeeAdjustmentDto,
 } from './dto/accounting.dto';
 
 @Controller('api/accounting')
@@ -66,6 +70,11 @@ export class AccountingController {
     return this.accountingService.listJournalEntries(query, req.authContext!);
   }
 
+  @Post('journal-entries')
+  createJournalEntry(@Body() dto: CreateManualJournalEntryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.accountingService.createManualJournalEntry(dto, req.authContext!);
+  }
+
   @Get('journal-entries/:id')
   getJournalEntry(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.getJournalEntry(id, req.authContext!);
@@ -102,23 +111,40 @@ export class AccountingController {
   }
 
   @Get('cost-centers')
-  listCostCenters(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  listCostCenters(@Req() req: RequestWithAuth): Promise<{ ok: boolean; costCenters: Record<string, unknown>[] }> {
     return this.accountingService.listCostCenters(req.authContext!);
   }
 
   @Post('cost-centers')
-  createCostCenter(@Body() body: { code: string; name: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  createCostCenter(
+    @Body() body: { code: string; name: string; dimension?: string; budgetAmount?: number; parentId?: number | null; description?: string; isActive?: boolean },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
     return this.accountingService.createCostCenter(body, req.authContext!);
   }
 
   @Put('cost-centers/:id')
-  updateCostCenter(@Param('id', ParseIntPipe) id: number, @Body() body: { name?: string; isActive?: boolean }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+  updateCostCenter(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { code?: string; name?: string; dimension?: string; budgetAmount?: number; parentId?: number | null; description?: string; isActive?: boolean },
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
     return this.accountingService.updateCostCenter(id, body, req.authContext!);
   }
 
   @Delete('cost-centers/:id')
   deleteCostCenter(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.deleteCostCenter(id, req.authContext!);
+  }
+
+  @Get('cost-centers/:id/report')
+  getCostCenterReport(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('fromDate') fromDate: string,
+    @Query('toDate') toDate: string,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.accountingService.getCostCenterReport(id, req.authContext!, { fromDate, toDate });
   }
 
   @Get('projects')
@@ -176,6 +202,42 @@ export class AccountingController {
   @Post('currencies/convert')
   convertCurrency(@Body() body: { amount: number; fromCurrency: string; toCurrency: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.convertCurrency(body, req.authContext!);
+  }
+
+  // --- Bank Reconciliation Engine (التسويات البنكية ومطابقة كشوف الحساب) ---
+  @Get('bank-statements')
+  listBankStatements(@Query('accountId') accountId: string, @Req() req: RequestWithAuth): Promise<any[]> {
+    return this.accountingService.listBankStatements(req.authContext!, accountId ? Number(accountId) : undefined);
+  }
+
+  @Get('bank-statements/:id')
+  getBankStatement(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<any> {
+    return this.accountingService.getBankStatement(id, req.authContext!);
+  }
+
+  @Post('bank-statements')
+  createBankStatement(@Body() dto: CreateBankStatementDto, @Req() req: RequestWithAuth): Promise<any> {
+    return this.accountingService.createBankStatement(dto, req.authContext!);
+  }
+
+  @Get('bank-statements/:id/workspace')
+  getBankReconciliationWorkspace(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<any> {
+    return this.accountingService.getBankReconciliationWorkspace(id, req.authContext!);
+  }
+
+  @Post('bank-statements/reconcile')
+  reconcileMatch(@Body() dto: ReconcileMatchDto, @Req() req: RequestWithAuth): Promise<any> {
+    return this.accountingService.reconcileMatch(dto, req.authContext!);
+  }
+
+  @Post('bank-statements/unreconcile')
+  unreconcileMatch(@Body('statementLineId', ParseIntPipe) statementLineId: number, @Req() req: RequestWithAuth): Promise<any> {
+    return this.accountingService.unreconcileMatch(statementLineId, req.authContext!);
+  }
+
+  @Post('bank-statements/fee-adjustment')
+  createBankFeeAdjustment(@Body() dto: CreateBankFeeAdjustmentDto, @Req() req: RequestWithAuth): Promise<any> {
+    return this.accountingService.createBankFeeAdjustment(dto, req.authContext!);
   }
 }
 

@@ -104,6 +104,15 @@ export function EmployeeProfileTopCards({
           <div className="field"><span>الرقم القومي</span><strong>{nationalIdMasked}</strong></div>
         </div>
       </FormSection>
+
+      <FormSection title="البيانات البنكية وحماية الأجور (WPS / SIF)">
+        <div className="form-grid">
+          <div className="field"><span>اسم البنك</span><strong>{fallbackText(employee?.bankName)}</strong></div>
+          <div className="field"><span>رقم الحساب البنكي</span><strong>{fallbackText(employee?.bankAccountNumber)}</strong></div>
+          <div className="field"><span>رقم الآيبان (IBAN)</span><strong style={{ fontFamily: 'monospace', direction: 'ltr' }}>{fallbackText(employee?.iban)}</strong></div>
+          <div className="field"><span>رمز السويفت (SWIFT)</span><strong style={{ fontFamily: 'monospace', direction: 'ltr' }}>{fallbackText(employee?.bankSwiftCode)}</strong></div>
+        </div>
+      </FormSection>
     </>
   );
 }

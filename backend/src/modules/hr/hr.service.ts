@@ -35,6 +35,7 @@ import {
   EndOfServiceDto,
   UpdateEmployeeCredentialsDto,
   UpdateEmployeeStatusDto,
+  GenerateWpsDto,
 } from './dto/hr.dto';
 import { HrTreasuryAdapter } from './hr-treasury.adapter';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
@@ -580,6 +581,10 @@ export class HrService {
       hasSocialInsurance: row.has_social_insurance === true,
       insuranceSalary: row.insurance_salary == null ? null : Number(row.insurance_salary),
       hasIncomeTax: row.has_income_tax === true,
+      bankName: clean(row.bank_name),
+      bankAccountNumber: clean(row.bank_account_number),
+      iban: clean(row.iban),
+      bankSwiftCode: clean(row.bank_swift_code),
       annualLeaveBalance: row.annual_leave_balance == null ? 21 : Number(row.annual_leave_balance),
       usedAnnualLeaves: row.used_annual_leaves == null ? 0 : Number(row.used_annual_leaves),
       notes: clean(row.notes),
@@ -649,6 +654,10 @@ export class HrService {
       hasSocialInsurance: row.has_social_insurance === true,
       insuranceSalary: row.insurance_salary == null ? null : Number(row.insurance_salary),
       hasIncomeTax: row.has_income_tax === true,
+      bankName: clean(row.bank_name),
+      bankAccountNumber: clean(row.bank_account_number),
+      iban: clean(row.iban),
+      bankSwiftCode: clean(row.bank_swift_code),
       annualLeaveBalance: row.annual_leave_balance == null ? 21 : Number(row.annual_leave_balance),
       usedAnnualLeaves: row.used_annual_leaves == null ? 0 : Number(row.used_annual_leaves),
       notes: clean(row.notes),
@@ -863,6 +872,10 @@ export class HrService {
               has_social_insurance = ${Boolean(payload.hasSocialInsurance)},
               insurance_salary = ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)},
               has_income_tax = ${Boolean(payload.hasIncomeTax)},
+              bank_name = ${clean(payload.bankName) || null},
+              bank_account_number = ${clean(payload.bankAccountNumber) || null},
+              iban = ${clean(payload.iban) || null},
+              bank_swift_code = ${clean(payload.bankSwiftCode) || null},
               updated_by = ${auth.userId}, updated_at = NOW()
           WHERE id = ${id} AND tenant_id = ${auth.tenantId}
         `.execute(this.db);
@@ -880,8 +893,8 @@ export class HrService {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
           const insertResult = await sql<{ id: number }>`
-            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, pin_code, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, created_by, updated_by)
-            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${cleanPin || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, pin_code, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, bank_name, bank_account_number, iban, bank_swift_code, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${cleanPin || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${clean(payload.bankName) || null}, ${clean(payload.bankAccountNumber) || null}, ${clean(payload.iban) || null}, ${clean(payload.bankSwiftCode) || null}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
           const newId = insertResult.rows[0]?.id;
@@ -2483,6 +2496,134 @@ export class HrService {
     await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status NOT IN ('approved', 'paid') AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log('Cancel HR payroll run', `Payroll run #${id} cancelled by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
+  }
+
+  async generatePayrollWps(id: number, payload: GenerateWpsDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    requireTenantScope(auth);
+    const runResult = await sql<Record<string, unknown>>`
+      SELECT r.*,
+        to_char(r.start_date, 'YYYY-MM-DD') AS start_date_text,
+        to_char(r.end_date, 'YYYY-MM-DD') AS end_date_text
+      FROM hr_payroll_runs r
+      WHERE r.id = ${id} AND r.tenant_id = ${auth.tenantId}
+    `.execute(this.db);
+    const run = runResult.rows[0];
+    if (!run) throw new AppError('مسير الرواتب غير موجود', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
+
+    const itemsResult = await sql<Record<string, unknown>>`
+      SELECT
+        i.*,
+        e.employee_no,
+        e.national_id,
+        e.display_name,
+        e.bank_name,
+        e.bank_account_number,
+        e.iban,
+        e.bank_swift_code
+      FROM hr_payroll_run_items i
+      JOIN hr_employees e ON e.id = i.employee_id
+      WHERE i.run_id = ${id} AND i.status <> 'excluded' AND i.tenant_id = ${auth.tenantId}
+      ORDER BY e.employee_no ASC, e.display_name ASC
+    `.execute(this.db);
+
+    const now = new Date();
+    const createDate = now.toISOString().slice(0, 10);
+    const createTime = now.toTimeString().slice(0, 5).replace(':', '');
+    const periodMonth = clean(run.period_month) || createDate.slice(0, 7);
+    const startDate = clean(run.start_date_text) || `${periodMonth}-01`;
+    const endDate = clean(run.end_date_text) || `${periodMonth}-28`;
+
+    const payerCrNo = clean(payload.payerCrNo) || '7000000000';
+    const payerBankRoutingCode = clean(payload.payerBankRoutingCode) || 'RIBL';
+    const payerName = clean(payload.payerName) || clean(auth.tenantId) || 'COMPANY';
+    const currency = clean(payload.currency) || 'SAR';
+
+    let totalNetPay = 0;
+    let totalBaseSalary = 0;
+    let totalAllowances = 0;
+    let totalDeductions = 0;
+
+    const mappedRecords = itemsResult.rows.map((row) => {
+      const netPay = Number(row.net_pay || 0);
+      const baseSalary = Number(row.base_salary || 0);
+      const allowances = Number(row.allowance_amount || 0);
+      const deductions = Number(row.deduction_amount || 0) + Number(row.loan_deduction_amount || 0) + Number(row.asset_recovery_deduction_amount || 0);
+
+      totalNetPay += netPay;
+      totalBaseSalary += baseSalary;
+      totalAllowances += allowances;
+      totalDeductions += deductions;
+
+      return {
+        id: Number(row.id),
+        employeeId: Number(row.employee_id),
+        employeeNo: clean(row.employee_no) || '000',
+        displayName: clean(row.display_name),
+        nationalId: clean(row.national_id) || '1000000000',
+        bankName: clean(row.bank_name) || 'N/A',
+        bankAccountNumber: clean(row.bank_account_number) || 'N/A',
+        iban: clean(row.iban) || 'N/A',
+        bankSwiftCode: clean(row.bank_swift_code) || payerBankRoutingCode,
+        baseSalary,
+        allowances,
+        deductions,
+        netPay,
+      };
+    });
+
+    const totalEmployees = mappedRecords.length;
+
+    // Header Record (SCR): SCR,PayerCR,PayerName,CreationDate,CreationTime,PayerBank,PayerIBAN,SalaryMonth,TotalSalary,Currency
+    const scrLine = `SCR,${payerCrNo},${payerName.replace(/,/g, ' ')},${createDate},${createTime},${payerBankRoutingCode},,${periodMonth},${totalNetPay.toFixed(2)},${currency}`;
+
+    // Employee Detail Records (EDR): EDR,EmpID,EmpNo,EmpName,BankCode,IBAN,StartDate,EndDate,Days,NetPay,BaseSalary,Allowances,Deductions
+    const edrLines = mappedRecords.map((rec) => {
+      const sanitizedName = rec.displayName.replace(/,/g, ' ');
+      const ibanOrAcc = rec.iban !== 'N/A' ? rec.iban : rec.bankAccountNumber;
+      const swift = rec.bankSwiftCode !== 'N/A' ? rec.bankSwiftCode : payerBankRoutingCode;
+      return `EDR,${rec.nationalId},${rec.employeeNo},${sanitizedName},${swift},${ibanOrAcc},${startDate},${endDate},30,${rec.netPay.toFixed(2)},${rec.baseSalary.toFixed(2)},${rec.allowances.toFixed(2)},${rec.deductions.toFixed(2)}`;
+    });
+
+    const sifContent = [scrLine, ...edrLines].join('\r\n');
+
+    // Standard CSV export
+    const csvHeaders = ['رقم الموظف', 'اسم الموظف', 'الهوية / الإقامة', 'البنك', 'الآيبان / الحساب', 'السويفت', 'الراتب الأساسي', 'البدلات', 'الخصومات', 'صافي الراتب'];
+    const csvLines = mappedRecords.map((r) => [
+      `"${r.employeeNo}"`,
+      `"${r.displayName}"`,
+      `"${r.nationalId}"`,
+      `"${r.bankName}"`,
+      `"${r.iban !== 'N/A' ? r.iban : r.bankAccountNumber}"`,
+      `"${r.bankSwiftCode}"`,
+      r.baseSalary.toFixed(2),
+      r.allowances.toFixed(2),
+      r.deductions.toFixed(2),
+      r.netPay.toFixed(2),
+    ].join(','));
+    const csvContent = [csvHeaders.join(','), ...csvLines].join('\r\n');
+
+    await this.audit.log('Export HR payroll WPS', `Payroll run #${id} exported as WPS/SIF by ${auth.username} (${totalEmployees} employees, total: ${totalNetPay})`, auth);
+
+    return {
+      ok: true,
+      runId: id,
+      runName: clean(run.name),
+      periodMonth,
+      startDate,
+      endDate,
+      summary: {
+        totalEmployees,
+        totalNetPay,
+        totalBaseSalary,
+        totalAllowances,
+        totalDeductions,
+        currency,
+        missingIbanCount: mappedRecords.filter((r) => r.iban === 'N/A' && r.bankAccountNumber === 'N/A').length,
+      },
+      sifContent,
+      csvContent,
+      records: mappedRecords,
+    };
   }
 
   async updatePayrollRunItem(id: number, payload: UpsertPayrollItemDto, auth: AuthContext): Promise<Record<string, unknown>> {

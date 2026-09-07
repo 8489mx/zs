@@ -53,7 +53,7 @@ export function EmployeeCreatePage() {
     if (draft.compensationType === 'hourly' && !(expectedDailyHours > 0)) { setSubmitError('عدد ساعات العمل اليومية المتوقعة مطلوب للموظف بالأجر بالساعة.'); return; }
 
     try {
-      const result = await mutations.saveEmployee.mutateAsync({ payload: { employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined, firstName, lastName: String(draft.lastName || '').trim() || undefined, nationalId: nationalId || undefined, status: draft.status, departmentId: toId(draft.departmentId), jobTitleId: toId(draft.jobTitleId), positionId: toId(draft.positionId), hireDate, notes: String(draft.notes || '').trim() || undefined, compensationType: draft.compensationType, payFrequency: draft.payFrequency, hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined, expectedDailyHours: draft.compensationType === 'hourly' ? expectedDailyHours : undefined, scheduledCheckInTime: draft.scheduledCheckInTime || undefined, scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined, graceMinutes, overtimePolicy: draft.overtimePolicy, attendancePolicy: draft.attendancePolicy, commissionType: draft.commissionType, commissionValue: draft.commissionValue ? Number(draft.commissionValue) : undefined, commissionTarget: draft.commissionTarget ? Number(draft.commissionTarget) : undefined, delayPolicy: draft.delayPolicy, hasSocialInsurance: draft.hasSocialInsurance, hasIncomeTax: draft.hasIncomeTax, annualLeaveBalance: draft.annualLeaveBalance ? Number(draft.annualLeaveBalance) : 21, insuranceSalary: draft.insuranceSalary ? Number(normalizeNumberText(draft.insuranceSalary)) : undefined } });
+      const result = await mutations.saveEmployee.mutateAsync({ payload: { employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined, firstName, lastName: String(draft.lastName || '').trim() || undefined, nationalId: nationalId || undefined, status: draft.status, departmentId: toId(draft.departmentId), jobTitleId: toId(draft.jobTitleId), positionId: toId(draft.positionId), hireDate, notes: String(draft.notes || '').trim() || undefined, compensationType: draft.compensationType, payFrequency: draft.payFrequency, hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined, expectedDailyHours: draft.compensationType === 'hourly' ? expectedDailyHours : undefined, scheduledCheckInTime: draft.scheduledCheckInTime || undefined, scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined, graceMinutes, overtimePolicy: draft.overtimePolicy, attendancePolicy: draft.attendancePolicy, commissionType: draft.commissionType, commissionValue: draft.commissionValue ? Number(draft.commissionValue) : undefined, commissionTarget: draft.commissionTarget ? Number(draft.commissionTarget) : undefined, delayPolicy: draft.delayPolicy, hasSocialInsurance: draft.hasSocialInsurance, hasIncomeTax: draft.hasIncomeTax, bankName: String(draft.bankName || '').trim() || undefined, bankAccountNumber: String(draft.bankAccountNumber || '').trim() || undefined, iban: String(draft.iban || '').trim() || undefined, bankSwiftCode: String(draft.bankSwiftCode || '').trim() || undefined, annualLeaveBalance: draft.annualLeaveBalance ? Number(draft.annualLeaveBalance) : 21, insuranceSalary: draft.insuranceSalary ? Number(normalizeNumberText(draft.insuranceSalary)) : undefined } });
       const createdEmployeeId = getCreatedEmployeeId(result, draft, firstName);
       if (createdEmployeeId) {
         await mutations.saveContact.mutateAsync({ employeeId: createdEmployeeId, payload: { contactType: 'phone', value: mobile, label: 'الموبايل', isPrimary: true, notes: '' } });
@@ -395,6 +395,54 @@ export function EmployeeCreatePage() {
               </div>
             </div>
 
+          </div>
+
+          {/* Bank & WPS Details Card */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>البيانات البنكية وحماية الأجور (WPS / SIF)</span>
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>مطلوب للتحويلات البنكية المباشرة ونظام حماية الأجور</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>اسم البنك</label>
+                <input
+                  value={draft.bankName || ''}
+                  onChange={(e) => setDraft((current) => ({ ...current, bankName: e.target.value }))}
+                  placeholder="مثال: مصرف الراجحي / البنك الأهلي"
+                  style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>رقم الحساب البنكي</label>
+                <input
+                  value={draft.bankAccountNumber || ''}
+                  onChange={(e) => setDraft((current) => ({ ...current, bankAccountNumber: e.target.value }))}
+                  placeholder="رقم الحساب البنكي"
+                  style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>رقم الآيبان الدولي (IBAN)</label>
+                <input
+                  value={draft.iban || ''}
+                  onChange={(e) => setDraft((current) => ({ ...current, iban: e.target.value.toUpperCase() }))}
+                  placeholder="SA0000000000000000000000"
+                  dir="ltr"
+                  style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box', textAlign: 'left', fontFamily: 'monospace' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>رمز السويفت / كود البنك (SWIFT / Routing)</label>
+                <input
+                  value={draft.bankSwiftCode || ''}
+                  onChange={(e) => setDraft((current) => ({ ...current, bankSwiftCode: e.target.value.toUpperCase() }))}
+                  placeholder="مثال: RJHI / NCBK"
+                  dir="ltr"
+                  style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box', textAlign: 'left', fontFamily: 'monospace' }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Bottom Section: Notes & Actions */}

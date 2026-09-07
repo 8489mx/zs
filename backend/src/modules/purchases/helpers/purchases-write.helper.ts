@@ -23,6 +23,8 @@ export type NormalizedPurchaseItem = {
   categoryId?: number | null;
   locationId?: number | null;
   serials?: any;
+  batchNumber?: string | null;
+  expiryDate?: string | null;
 };
 
 export type DiscountAllocatedPurchaseItem = NormalizedPurchaseItem & {
@@ -71,6 +73,8 @@ export function buildNormalizedPurchaseItem(
     categoryId: item.categoryId ? Number(item.categoryId) : null,
     locationId: item.locationId ? Number(item.locationId) : null,
     ...(item.serials !== undefined ? { serials: item.serials } : {}),
+    batchNumber: (item as any).batchNumber || (item as any).batch_number || null,
+    expiryDate: (item as any).expiryDate || (item as any).expiry_date || null,
   };
 }
 

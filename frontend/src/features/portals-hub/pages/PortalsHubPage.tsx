@@ -14,6 +14,7 @@ import {
   SearchIcon,
   CompassIcon,
   CheckCircleIcon,
+  XIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface PortalItem {
@@ -39,7 +40,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'خدمة ذاتية',
     description: 'استعراض مسيرات الرواتب، أرصدة الإجازات، طلب سلفة، وتفاصيل العقد.',
     path: '/portal',
-    icon: <UsersIcon size={24} color="#170e5e" />,
+    icon: <UsersIcon size={20} color="#170e5e" />,
     iconBg: '#eff6ff',
     iconColor: '#170e5e',
     badgeText: 'للموظفين',
@@ -52,7 +53,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'خدمة ذاتية',
     description: 'تسجيل الحضور والانصراف بالسيلفي وفحص النطاق الجغرافي للفرع.',
     path: '/punch',
-    icon: <SmartphoneIcon size={24} color="#16a34a" />,
+    icon: <SmartphoneIcon size={20} color="#16a34a" />,
     iconBg: '#f0fdf4',
     iconColor: '#16a34a',
     badgeText: 'سيلفي + GPS',
@@ -67,7 +68,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'توصيل وميداني',
     description: 'استلام أوردرات الدليفري، تحديث التسليم، والاتصال المباشر بالعملاء.',
     path: '/driver',
-    icon: <TruckIcon size={24} color="#ea580c" />,
+    icon: <TruckIcon size={20} color="#ea580c" />,
     iconBg: '#fff7ed',
     iconColor: '#ea580c',
     badgeText: 'طيارين الدليفري',
@@ -80,7 +81,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'توصيل وميداني',
     description: 'محطة بيع وفواتير متنقلة لمندوبي الفان، جرد السيارة والتحصيل الميداني.',
     path: '/van-sales',
-    icon: <PackageIcon size={24} color="#0284c7" />,
+    icon: <PackageIcon size={20} color="#0284c7" />,
     iconBg: '#f0f9ff',
     iconColor: '#0284c7',
     badgeText: 'فان كاشير',
@@ -95,7 +96,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'صالة وعمليات',
     description: 'متابعة أوامر تحضير وتجهيز الوجبات بالمطاعم والكافيهات لحظياً.',
     path: '/kds',
-    icon: <UtensilsIcon size={24} color="#d97706" />,
+    icon: <UtensilsIcon size={20} color="#d97706" />,
     iconBg: '#fffbeb',
     iconColor: '#d97706',
     badgeText: 'شاشة تحضير',
@@ -108,7 +109,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'صالة وعمليات',
     description: 'شاشة كاونتر لعرض تفاصيل الفاتورة الحية، السعر، وعروض الولاء للمشتري.',
     path: '/pos/customer-display',
-    icon: <MonitorIcon size={24} color="#059669" />,
+    icon: <MonitorIcon size={20} color="#059669" />,
     iconBg: '#ecfdf5',
     iconColor: '#059669',
     badgeText: 'كاونتر الكاشير',
@@ -121,7 +122,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'صالة وعمليات',
     description: 'لوحة تفاعلية لشاشات التلفزيون بالمعرض لعرض الأسعار والخصومات التسويقية.',
     path: '/signage',
-    icon: <TagIcon size={24} color="#7c3aed" />,
+    icon: <TagIcon size={20} color="#7c3aed" />,
     iconBg: '#faf5ff',
     iconColor: '#7c3aed',
     badgeText: 'شاشة المعرض',
@@ -134,7 +135,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'صالة وعمليات',
     description: 'تصفح المنيو والطلب الفوري من طاولة الصالة عبر مسح كود الـ QR بالهاتف.',
     path: '/table/1',
-    icon: <QrCodeIcon size={24} color="#db2777" />,
+    icon: <QrCodeIcon size={20} color="#db2777" />,
     iconBg: '#fdf2f8',
     iconColor: '#db2777',
     badgeText: 'منيو الطاولة',
@@ -149,7 +150,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'إدارة ورقابة',
     description: 'لوحة رقابة لهاتف صاحب العمل لمتابعة الإيرادات والورديات لحظة بلحظة.',
     path: '/owner-companion',
-    icon: <BarChartIcon size={24} color="#4338ca" />,
+    icon: <BarChartIcon size={20} color="#4338ca" />,
     iconBg: '#eef2ff',
     iconColor: '#4338ca',
     badgeText: 'PWA للمالك',
@@ -162,7 +163,7 @@ const PORTALS_LIST: PortalItem[] = [
     categoryName: 'إدارة ورقابة',
     description: 'لوحة التحكم الكبرى لإدارة الحسابات، المخازن، المشتريات، والمبيعات.',
     path: '/login',
-    icon: <BuildingIcon size={24} color="#170e5e" />,
+    icon: <BuildingIcon size={20} color="#170e5e" />,
     iconBg: '#f1f5f9',
     iconColor: '#170e5e',
     badgeText: 'الإدارة الكاملة',
@@ -196,151 +197,160 @@ export function PortalsHubPage() {
   }, [searchTerm, selectedCategory]);
 
   return (
-    <div
-      dir="rtl"
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#f8fafc',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: 'inherit',
-        color: '#0f172a',
-      }}
-    >
+    <div dir="rtl" className="hub-page-root">
       <style>{`
+        .hub-page-root {
+          min-height: 100vh;
+          background-color: #f8fafc;
+          display: flex;
+          flex-direction: column;
+          font-family: inherit;
+          color: #0f172a;
+          box-sizing: border-box;
+        }
         .hub-header {
           background-color: #ffffff;
           border-bottom: 1px solid #e2e8f0;
-          position: sticky;
-          top: 0;
-          z-index: 50;
+          flex-shrink: 0;
           box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
         }
         .hub-header-inner {
-          max-width: 1320px;
+          max-width: 1280px;
           width: 100%;
           margin: 0 auto;
-          padding: 12px 24px;
+          padding: 8px 24px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           box-sizing: border-box;
+          min-height: 50px;
         }
         .hub-container {
-          max-width: 1320px;
+          max-width: 1280px;
           width: 100%;
           margin: 0 auto;
-          padding: 36px 24px 60px;
+          padding: 14px 24px 24px;
           box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
         }
-        .hub-header-wrap {
-          text-align: center;
-          margin-bottom: 32px;
+        .hub-controls-bar {
+          background-color: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 10px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+          flex-shrink: 0;
+          margin-bottom: 12px;
+        }
+        .hub-controls-row1 {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .hub-title-group {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .hub-hero-title {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 900;
+          color: #0f172a;
+          letter-spacing: -0.3px;
         }
         .hub-hero-badge {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
           background-color: #eff6ff;
           color: #1e40af;
           border: 1px solid #bfdbfe;
-          padding: 5px 14px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 800;
-          margin-bottom: 12px;
-        }
-        .hub-hero-title {
-          margin: 0 0 10px;
-          font-size: 28px;
-          font-weight: 900;
-          color: #0f172a;
-          letter-spacing: -0.5px;
+          padding: 3px 10px;
+          border-radius: 999px;
+          font-size: 11.5px;
+          font-weight: 700;
         }
         .hub-hero-subtitle {
-          margin: 0 auto 22px;
-          font-size: 14.5px;
+          margin: 0;
+          font-size: 12px;
           color: #64748b;
-          max-width: 680px;
-          line-height: 1.6;
+          line-height: 1.45;
         }
         .hub-search-wrap {
           position: relative;
-          max-width: 580px;
-          width: 100%;
-          margin: 0 auto 16px;
+          width: 290px;
         }
         .hub-search-input {
           width: 100%;
           box-sizing: border-box;
-          padding: 13px 44px 13px 42px;
-          border-radius: 12px;
+          padding: 8px 14px 8px 36px;
+          border-radius: 8px;
           border: 1.5px solid #cbd5e1;
-          background-color: #ffffff;
-          font-size: 14px;
+          background-color: #f8fafc;
+          font-size: 12.5px;
           font-weight: 600;
           color: #0f172a;
           outline: none;
-          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
           transition: all 0.15s ease;
         }
         .hub-search-input:focus {
           border-color: #170e5e;
-          box-shadow: 0 0 0 3px rgba(23, 14, 94, 0.08);
-        }
-        .hub-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-        .hub-card {
           background-color: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 22px 24px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          text-decoration: none;
-          color: inherit;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-          position: relative;
-        }
-        .hub-card:hover {
-          transform: translateY(-3px);
-          border-color: #cbd5e1;
-          box-shadow: 0 12px 24px -5px rgba(23, 14, 94, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
-        }
-        .hub-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-        }
-        .hub-card-title {
-          margin: 0 0 6px;
-          font-size: 16px;
-          font-weight: 800;
-          color: #0f172a;
-          line-height: 1.4;
-          text-align: start;
-        }
-        .hub-card-desc {
-          margin: 0;
-          font-size: 13px;
-          color: #64748b;
-          line-height: 1.55;
-          text-align: start;
-          min-height: 38px;
+          box-shadow: 0 0 0 3px rgba(23, 14, 94, 0.08);
         }
         .hub-cat-scroll {
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 8px;
+          gap: 6px;
           flex-wrap: wrap;
-          margin-top: 14px;
+          margin-top: 2px;
+        }
+        .hub-cat-pill {
+          padding: 4px 12px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          background-color: #f8fafc;
+          color: #475569;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .hub-cat-pill:hover {
+          border-color: #cbd5e1;
+          color: #0f172a;
+          background-color: #ffffff;
+        }
+        .hub-cat-pill.active {
+          background-color: #170e5e;
+          border-color: #170e5e;
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(23, 14, 94, 0.2);
+        }
+        .hub-cat-count {
+          font-size: 10.5px;
+          padding: 0 5px;
+          border-radius: 5px;
+          background: rgba(15, 23, 42, 0.08);
+          color: inherit;
+          font-weight: 800;
+        }
+        .hub-cat-pill.active .hub-cat-count {
+          background: rgba(255, 255, 255, 0.22);
+          color: #ffffff;
         }
         .hub-cat-full {
           display: inline;
@@ -348,85 +358,111 @@ export function PortalsHubPage() {
         .hub-cat-short {
           display: none;
         }
-        .hub-cat-pill {
-          padding: 8px 16px;
-          border-radius: 20px;
-          border: 1px solid #e2e8f0;
+        .hub-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 14px;
+          margin-bottom: 14px;
+        }
+        .hub-card {
           background-color: #ffffff;
-          color: #64748b;
-          font-size: 13px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          white-space: nowrap;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-        }
-        .hub-cat-pill:hover {
-          border-color: #cbd5e1;
-          color: #0f172a;
-          background-color: #f8fafc;
-        }
-        .hub-cat-pill.active {
-          background-color: #170e5e;
-          border-color: #170e5e;
-          color: #ffffff;
-          box-shadow: 0 2px 8px rgba(23, 14, 94, 0.25);
-        }
-        .hub-cat-count {
-          font-size: 11px;
-          padding: 1px 6px;
-          border-radius: 10px;
-          background: rgba(15, 23, 42, 0.06);
-          color: inherit;
-          font-weight: 800;
-        }
-        .hub-cat-pill.active .hub-cat-count {
-          background: rgba(255, 255, 255, 0.2);
-          color: #ffffff;
-        }
-        .hub-action-btn {
-          margin-top: 16px;
-          padding: 9px 14px;
-          border-radius: 10px;
-          background-color: #f8fafc;
           border: 1px solid #e2e8f0;
-          color: #170e5e;
-          font-size: 12.5px;
-          font-weight: 800;
+          border-radius: 12px;
+          padding: 14px 16px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          text-decoration: none;
+          color: inherit;
+          transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+          position: relative;
+          min-height: 136px;
+          box-sizing: border-box;
+        }
+        .hub-card:hover {
+          transform: translateY(-2px);
+          border-color: #170e5e;
+          box-shadow: 0 10px 24px -4px rgba(23, 14, 94, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+        }
+        .hub-card-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          transition: all 0.15s ease;
+          margin-bottom: 6px;
         }
-        .hub-card:hover .hub-action-btn {
-          background-color: #170e5e;
-          border-color: #170e5e;
-          color: #ffffff;
+        .hub-card-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .hub-card-badge {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 5px;
+          background-color: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+        }
+        .hub-card-title {
+          margin: 0 0 3px;
+          font-size: 14px;
+          font-weight: 800;
+          color: #0f172a;
+          line-height: 1.3;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .hub-card-desc {
+          margin: 0;
+          font-size: 11.5px;
+          color: #64748b;
+          line-height: 1.48;
+          height: 34px;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .hub-action-btn {
+          margin-top: 6px;
+          padding-top: 6px;
+          border-top: 1px solid #f1f5f9;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 11.5px;
+          color: #170e5e;
+          font-weight: 800;
+          transition: all 0.15s ease;
         }
         .hub-btn-path {
           font-family: 'JetBrains Mono', monospace;
-          font-size: 11.5px;
+          font-size: 11px;
           color: #64748b;
           direction: ltr;
           unicode-bidi: embed;
-          background-color: #ffffff;
-          padding: 3px 8px;
-          border-radius: 6px;
+          background-color: #f8fafc;
+          padding: 2px 8px;
+          border-radius: 4px;
           border: 1px solid #e2e8f0;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 220px;
+          max-width: 180px;
           display: inline-block;
-          transition: all 0.15s ease;
         }
         .hub-card:hover .hub-btn-path {
-          background-color: rgba(255, 255, 255, 0.15);
-          border-color: rgba(255, 255, 255, 0.3);
-          color: #ffffff;
+          border-color: #cbd5e1;
+          color: #0f172a;
+          background-color: #ffffff;
         }
         .hub-btn-label-desktop {
           display: inline;
@@ -434,95 +470,59 @@ export function PortalsHubPage() {
         .hub-btn-label-mobile {
           display: none;
         }
+        .hub-card:hover .hub-action-btn {
+          color: #170e5e;
+        }
         .hub-erp-full {
           display: inline;
         }
         .hub-erp-short {
           display: none;
         }
+        .hub-footer-bar {
+          margin-top: auto;
+          padding: 8px 16px;
+          background-color: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 8px;
+          font-size: 11.5px;
+          color: #64748b;
+          flex-shrink: 0;
+        }
 
-        @media (max-width: 768px) {
+        @media (max-width: 960px) {
+          .hub-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+          }
+        }
+
+        @media (max-width: 640px) {
           .hub-header-inner {
-            padding: 10px 16px !important;
+            padding: 8px 16px !important;
           }
           .hub-container {
-            padding: 16px 12px 36px !important;
-          }
-          .hub-header-wrap {
-            text-align: center !important;
-            margin-bottom: 20px !important;
-          }
-          .hub-hero-title {
-            font-size: 20px !important;
-          }
-          .hub-hero-subtitle {
-            font-size: 12px !important;
-            margin-bottom: 16px !important;
-          }
-          .hub-cat-full {
-            display: none !important;
-          }
-          .hub-cat-short {
-            display: inline !important;
-          }
-          .hub-cat-count {
-            display: none !important;
-          }
-          .hub-cat-scroll {
-            display: flex !important;
-            width: 100% !important;
-            gap: 4px !important;
-            overflow-x: hidden !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-            justify-content: flex-start !important;
-          }
-          .hub-cat-pill {
-            flex: 1 1 0px !important;
-            min-width: 0 !important;
-            padding: 7px 2px !important;
-            font-size: 11.5px !important;
-            font-weight: 800 !important;
-            text-align: center !important;
-            border-radius: 10px !important;
-            white-space: nowrap !important;
+            padding: 12px 14px 24px !important;
           }
           .hub-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
+            grid-template-columns: 1fr !important;
             gap: 8px !important;
           }
           .hub-card {
-            padding: 12px 10px !important;
-            border-radius: 14px !important;
-          }
-          .hub-card-title {
-            font-size: 12.5px !important;
-            line-height: 1.35 !important;
-            min-height: 34px !important;
-            display: -webkit-box !important;
-            -webkit-line-clamp: 2 !important;
-            -webkit-box-orient: vertical !important;
-            overflow: hidden !important;
-            text-align: center !important;
+            padding: 12px 14px !important;
+            min-height: auto !important;
           }
           .hub-card-desc {
-            font-size: 10.5px !important;
-            line-height: 1.35 !important;
-            min-height: 28px !important;
-            display: -webkit-box !important;
-            -webkit-line-clamp: 2 !important;
-            -webkit-box-orient: vertical !important;
-            overflow: hidden !important;
-            text-align: center !important;
+            font-size: 11px !important;
+            height: auto !important;
           }
-          .hub-card-icon {
-            width: 38px !important;
-            height: 38px !important;
-            border-radius: 10px !important;
-          }
-          .hub-card-badge {
-            font-size: 10px !important;
-            padding: 2px 6px !important;
+          .hub-search-wrap {
+            width: 100% !important;
           }
           .hub-btn-path {
             display: none !important;
@@ -533,12 +533,15 @@ export function PortalsHubPage() {
           .hub-btn-label-mobile {
             display: inline !important;
           }
-          .hub-action-btn {
-            margin-top: 10px !important;
-            padding: 7px 8px !important;
-            font-size: 11.5px !important;
-            justify-content: center !important;
-            text-align: center !important;
+          .hub-cat-scroll {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            padding-bottom: 2px !important;
+          }
+          .hub-cat-pill {
+            flex-shrink: 0 !important;
+            padding: 5px 10px !important;
+            font-size: 11px !important;
           }
           .hub-erp-full {
             display: none !important;
@@ -547,52 +550,38 @@ export function PortalsHubPage() {
             display: inline !important;
           }
         }
-
-        @media (max-width: 480px) {
-          .hub-cat-pill {
-            padding: 6px 1px !important;
-            font-size: 10.5px !important;
-            border-radius: 8px !important;
-          }
-          .hub-card-title {
-            font-size: 12px !important;
-          }
-          .hub-card-desc {
-            font-size: 10px !important;
-          }
-        }
       `}</style>
 
       {/* 1. Top Enterprise Navbar */}
       <header className="hub-header">
         <div className="hub-header-inner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
+                width: 30,
+                height: 30,
+                borderRadius: 8,
                 background: 'linear-gradient(135deg, #170e5e 0%, #2563eb 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#ffffff',
-                boxShadow: '0 2px 8px rgba(23, 14, 94, 0.2)',
+                boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
               }}
             >
-              <CompassIcon size={20} color="#ffffff" />
+              <CompassIcon size={16} color="#ffffff" />
             </div>
             <div>
-              <div style={{ fontSize: '15px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
                 منظومة Z-Systems
               </div>
-              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>
+              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600, lineHeight: 1.2 }}>
                 مركز البوابات والخدمات الميدانية (Launchpad)
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Link
               to="/settings/users"
               style={{
@@ -600,18 +589,18 @@ export function PortalsHubPage() {
                 backgroundColor: '#ffffff',
                 color: '#1e293b',
                 border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontSize: '12.5px',
+                borderRadius: '6px',
+                padding: '5px 10px',
+                fontSize: '11.5px',
                 fontWeight: 800,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '5px',
                 transition: 'all 0.15s ease',
               }}
               title="إدارة كلمات السر، رموز الـ PIN، وأرقام هواتف الموظفين والمناديب"
             >
-              <UsersIcon size={14} color="#170e5e" />
+              <UsersIcon size={13} color="#170e5e" />
               <span className="hub-erp-full">إدارة الحسابات والوصول</span>
               <span className="hub-erp-short">إدارة الحسابات</span>
             </Link>
@@ -623,17 +612,17 @@ export function PortalsHubPage() {
                 backgroundColor: '#170e5e',
                 color: '#ffffff',
                 border: '1px solid #170e5e',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                fontSize: '12.5px',
+                borderRadius: '6px',
+                padding: '5px 12px',
+                fontSize: '11.5px',
                 fontWeight: 800,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '5px',
                 transition: 'all 0.15s ease',
               }}
             >
-              <BuildingIcon size={14} color="#ffffff" />
+              <BuildingIcon size={13} color="#ffffff" />
               <span className="hub-erp-full">الدخول للإدارة (ERP)</span>
               <span className="hub-erp-short">الإدارة (ERP)</span>
             </Link>
@@ -641,68 +630,75 @@ export function PortalsHubPage() {
         </div>
       </header>
 
-      {/* 2. Main Hero & Content */}
+      {/* 2. Main Hub Container */}
       <main className="hub-container">
-        {/* Hero Section */}
-        <div className="hub-header-wrap">
-          <div className="hub-hero-badge">
-            <CheckCircleIcon size={14} color="#1e40af" />
-            <span>بوابة موحدة لكافة الموظفين والمناديب وأطقم التشغيل</span>
-          </div>
+        {/* Sleek Controls Bar */}
+        <div className="hub-controls-bar">
+          <div className="hub-controls-row1">
+            <div className="hub-title-group">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h1 className="hub-hero-title">
+                  دليل البوابات والخدمات الذاتية
+                </h1>
+                <div className="hub-hero-badge">
+                  <CheckCircleIcon size={12} color="#1e40af" />
+                  <span>بوابة موحدة لكافة الموظفين والمناديب وأطقم التشغيل</span>
+                </div>
+              </div>
+              <p className="hub-hero-subtitle">
+                اختر البوابة أو التطبيق الميداني المطلوب للوصول المباشر دون الحاجة لحفظ الروابط المنفصلة.
+              </p>
+            </div>
 
-          <h1 className="hub-hero-title">
-            دليل البوابات والخدمات الذاتية
-          </h1>
-          <p className="hub-hero-subtitle">
-            اختر البوابة أو التطبيق الميداني المطلوب للوصول المباشر دون الحاجة لحفظ الروابط المنفصلة.
-          </p>
-
-          {/* Search Input */}
-          <div className="hub-search-wrap">
-            <span
-              style={{
-                position: 'absolute',
-                top: '50%',
-                insetInlineStart: '14px',
-                transform: 'translateY(-50%)',
-                color: '#94a3b8',
-                display: 'flex',
-                alignItems: 'center',
-                pointerEvents: 'none',
-              }}
-            >
-              <SearchIcon size={18} />
-            </span>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="ابحث بالاسم، البوابة، الوظيفة أو الخدمة (بصمة، طيار، KDS، فان)..."
-              className="hub-search-input"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  insetInlineEnd: '12px',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  padding: '4px 6px',
-                  borderRadius: '6px',
-                }}
-                title="مسح البحث"
-              >
-                ✕
-              </button>
-            )}
+            {/* Search Input */}
+            <div className="hub-search-wrap">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="ابحث بالاسم، البوابة، الوظيفة أو الخدمة..."
+                className="hub-search-input"
+              />
+              {searchTerm ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    insetInlineEnd: '10px',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '3px',
+                    borderRadius: '4px',
+                  }}
+                  title="مسح البحث"
+                >
+                  <XIcon size={14} />
+                </button>
+              ) : (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    insetInlineEnd: '12px',
+                    transform: 'translateY(-50%)',
+                    color: '#94a3b8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <SearchIcon size={15} />
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Category Filter Pills */}
@@ -734,17 +730,18 @@ export function PortalsHubPage() {
             style={{
               backgroundColor: '#ffffff',
               border: '1px solid #e2e8f0',
-              borderRadius: '16px',
-              padding: '48px 24px',
+              borderRadius: '12px',
+              padding: '28px 16px',
               textAlign: 'center',
               color: '#64748b',
+              margin: 'auto 0',
             }}
           >
-            <CompassIcon size={40} color="#94a3b8" />
-            <div style={{ fontSize: '16px', fontWeight: 800, marginTop: '12px', color: '#0f172a' }}>
+            <CompassIcon size={32} color="#94a3b8" />
+            <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '8px', color: '#0f172a' }}>
               لا توجد بوابات مطابقة لبحثك
             </div>
-            <div style={{ fontSize: '13px', marginTop: '4px' }}>
+            <div style={{ fontSize: '12px', marginTop: '2px' }}>
               جرّب كتابة كلمة بحث أخرى أو اختر تبويب "الكل" لعرض كافة البوابات.
             </div>
             {searchTerm && (
@@ -752,14 +749,14 @@ export function PortalsHubPage() {
                 type="button"
                 onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
                 style={{
-                  marginTop: '16px',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
+                  marginTop: '12px',
+                  padding: '6px 14px',
+                  borderRadius: '6px',
                   backgroundColor: '#170e5e',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 700,
-                  fontSize: '12.5px',
+                  fontSize: '11.5px',
                   cursor: 'pointer',
                 }}
               >
@@ -797,11 +794,11 @@ export function PortalsHubPage() {
                   </p>
                 </div>
 
-                {/* Footer Action Button */}
+                {/* Footer Action */}
                 <div className="hub-action-btn">
-                  <span className="hub-btn-label-desktop">فتح البوابة ←</span>
-                  <span className="hub-btn-label-mobile">دخول البوابة ←</span>
                   <span className="hub-btn-path">{portal.path}</span>
+                  <span className="hub-btn-label-desktop">فتح البوابة ←</span>
+                  <span className="hub-btn-label-mobile">دخول ←</span>
                 </div>
               </Link>
             ))}
@@ -809,22 +806,7 @@ export function PortalsHubPage() {
         )}
 
         {/* 4. Help & Guidelines Footer */}
-        <div
-          style={{
-            marginTop: '40px',
-            padding: '18px 24px',
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
-            fontSize: '13px',
-            color: '#64748b',
-          }}
-        >
+        <div className="hub-footer-bar">
           <div>
             <strong style={{ color: '#0f172a' }}>تلميح للموظفين والمناديب:</strong> يمكنك حفظ هذا الرابط (<code>/hub</code>) في المفضلة على هاتفك للوصول لكافة البوابات في أي وقت بنقرة واحدة.
           </div>
@@ -836,7 +818,7 @@ export function PortalsHubPage() {
               textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
             }}
           >
             تسجيل دخول المدير ➔

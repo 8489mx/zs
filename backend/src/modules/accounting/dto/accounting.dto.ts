@@ -246,5 +246,129 @@ export class UpdateAccountingSettingsDto {
   @IsOptional() @IsNumber() expensesAccountId?: number;
   @IsOptional() @IsNumber() salesTaxAccountId?: number;
   @IsOptional() @IsNumber() purchaseTaxAccountId?: number;
+  @IsOptional() @IsString() lockDateAll?: string | null;
+  @IsOptional() @IsString() lockDateNonAdviser?: string | null;
+  @IsOptional() @IsString() lockDateTax?: string | null;
 }
+
+export class CreateJournalLineDto {
+  @Type(() => Number)
+  @IsNumber()
+  accountId!: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  costCenterId?: number | null;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  debit!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  credit!: number;
+
+  @IsOptional()
+  @IsIn(['none', 'customer', 'supplier'])
+  partnerType?: 'none' | 'customer' | 'supplier';
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  partnerId?: number | null;
+}
+
+export class CreateManualJournalEntryDto {
+  @IsDateString()
+  entryDate!: string;
+
+  @IsString()
+  description!: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  branchId?: number | null;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  lines!: CreateJournalLineDto[];
+}
+
+export class CreateBankStatementLineDto {
+  @IsDateString()
+  lineDate!: string;
+
+  @IsString()
+  description!: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  amount!: number;
+}
+
+export class CreateBankStatementDto {
+  @Type(() => Number)
+  @IsNumber()
+  accountId!: number;
+
+  @IsString()
+  statementNo!: string;
+
+  @IsDateString()
+  statementDate!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  startingBalance!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  endingBalance!: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  lines?: CreateBankStatementLineDto[];
+}
+
+export class ReconcileMatchDto {
+  @Type(() => Number)
+  @IsNumber()
+  statementLineId!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  journalLineId!: number;
+}
+
+export class CreateBankFeeAdjustmentDto {
+  @Type(() => Number)
+  @IsNumber()
+  statementLineId!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  expenseAccountId!: number;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
 

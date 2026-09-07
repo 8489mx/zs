@@ -15,6 +15,11 @@ import {
   CreateAccountDto,
   UpdateAccountDto,
   UpdateAccountingSettingsDto,
+  CreateManualJournalEntryDto,
+  CreateBankStatementDto,
+  CreateBankStatementLineDto,
+  ReconcileMatchDto,
+  CreateBankFeeAdjustmentDto,
 } from './dto/accounting.dto';
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 
@@ -22,6 +27,7 @@ type PartnerType = 'none' | 'customer' | 'supplier';
 
 type DraftJournalLineInput = {
   accountId: number;
+  costCenterId?: number | null;
   description?: string;
   debit?: number;
   credit?: number;
@@ -436,6 +442,9 @@ export class AccountingService {
         expensesAccount: mapRef(settings.expenses_account_id),
         salesTaxAccount: mapRef(settings.sales_tax_account_id),
         purchaseTaxAccount: mapRef(settings.purchase_tax_account_id),
+        lockDateAll: settings.lock_date_all ? String(settings.lock_date_all).slice(0, 10) : null,
+        lockDateNonAdviser: settings.lock_date_non_adviser ? String(settings.lock_date_non_adviser).slice(0, 10) : null,
+        lockDateTax: settings.lock_date_tax ? String(settings.lock_date_tax).slice(0, 10) : null,
         updatedAt: settings.updated_at,
       },
     };
@@ -459,6 +468,9 @@ export class AccountingService {
     if (dto.expensesAccountId !== undefined) updateData.expenses_account_id = dto.expensesAccountId || null;
     if (dto.salesTaxAccountId !== undefined) updateData.sales_tax_account_id = dto.salesTaxAccountId || null;
     if (dto.purchaseTaxAccountId !== undefined) updateData.purchase_tax_account_id = dto.purchaseTaxAccountId || null;
+    if (dto.lockDateAll !== undefined) updateData.lock_date_all = dto.lockDateAll || null;
+    if (dto.lockDateNonAdviser !== undefined) updateData.lock_date_non_adviser = dto.lockDateNonAdviser || null;
+    if (dto.lockDateTax !== undefined) updateData.lock_date_tax = dto.lockDateTax || null;
     
     updateData.updated_at = new Date();
 
@@ -570,13 +582,17 @@ export class AccountingService {
       .executeTakeFirst();
     if (!entry) throw new NotFoundException('Journal entry not found');
 
-    const lines = await this.db
+    const lines = await (this.db as any)
       .selectFrom('journal_entry_lines as l')
       .innerJoin('accounting_accounts as a', 'a.id', 'l.account_id')
+      .leftJoin('cost_centers as cc', 'cc.id', 'l.cost_center_id')
       .select([
         'l.id',
         'l.journal_entry_id',
         'l.account_id',
+        'l.cost_center_id',
+        'cc.code as cost_center_code',
+        'cc.name as cost_center_name',
         'l.description',
         'l.debit',
         'l.credit',
@@ -592,8 +608,8 @@ export class AccountingService {
       .orderBy('l.id', 'asc')
       .execute();
 
-    const totalDebit = this.toMoney(lines.reduce((sum, line) => sum + Number(line.debit || 0), 0));
-    const totalCredit = this.toMoney(lines.reduce((sum, line) => sum + Number(line.credit || 0), 0));
+    const totalDebit = this.toMoney(lines.reduce((sum: number, line: any) => sum + Number(line.debit || 0), 0));
+    const totalCredit = this.toMoney(lines.reduce((sum: number, line: any) => sum + Number(line.credit || 0), 0));
 
     return {
       entry: {
@@ -612,12 +628,15 @@ export class AccountingService {
         cancelledBy: entry.cancelled_by ? String(entry.cancelled_by) : '',
         cancelledAt: entry.cancelled_at,
         cancelReason: entry.cancel_reason || '',
-        lines: lines.map((line) => ({
+        lines: lines.map((line: any) => ({
           id: String(line.id),
           accountId: String(line.account_id),
           accountCode: line.account_code,
           accountNameAr: line.account_name_ar,
           accountNameEn: line.account_name_en || '',
+          costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
+          costCenterCode: line.cost_center_code || null,
+          costCenterName: line.cost_center_name || null,
           description: line.description || '',
           debit: this.toMoney(line.debit),
           credit: this.toMoney(line.credit),
@@ -632,6 +651,216 @@ export class AccountingService {
           balanced: Math.abs(totalDebit - totalCredit) <= 0.0001,
         },
       },
+    };
+  }
+
+  async assertNotInLockedPeriod(
+    tenantId: string,
+    entryDate: Date | string,
+    options?: {
+      auth?: AuthContext;
+      isTaxOperation?: boolean;
+    },
+  ): Promise<void> {
+    const settings = await this.db
+      .selectFrom('accounting_settings')
+      .select(['lock_date_all', 'lock_date_non_adviser', 'lock_date_tax'])
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', 1)
+      .executeTakeFirst();
+
+    if (!settings) return;
+
+    const dateStr = typeof entryDate === 'string' ? entryDate.slice(0, 10) : entryDate.toISOString().slice(0, 10);
+
+    // 1. Hard lock (All users)
+    if (settings.lock_date_all) {
+      const lockAllStr = String(settings.lock_date_all).slice(0, 10);
+      if (dateStr <= lockAllStr) {
+        throw new BadRequestException(
+          `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن إضافة أو تعديل قيود في فترة مغلقة.`
+        );
+      }
+    }
+
+    // 2. Operational lock (Non-advisers)
+    if (settings.lock_date_non_adviser) {
+      const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
+      const isAdviser = options?.auth?.role === 'admin' || options?.auth?.role === 'super_admin';
+      if (!isAdviser && dateStr <= lockNonAdvStr) {
+        throw new BadRequestException(
+          `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`
+        );
+      }
+    }
+
+    // 3. Tax lock
+    if (options?.isTaxOperation && settings.lock_date_tax) {
+      const lockTaxStr = String(settings.lock_date_tax).slice(0, 10);
+      if (dateStr <= lockTaxStr) {
+        throw new BadRequestException(
+          `الفترة الضريبية مقفلة حتى تاريخ ${lockTaxStr}. لا يمكن إجراء عمليات تؤثر على ضريبة هذه الفترة المغلقة.`
+        );
+      }
+    }
+  }
+
+  async createManualJournalEntry(dto: CreateManualJournalEntryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
+
+    if (!dto.lines || dto.lines.length < 2) {
+      throw new BadRequestException('يجب أن يحتوي القيد اليومي على سطرين على الأقل (مدين ودائن).');
+    }
+
+    const entryDate = dto.entryDate ? new Date(dto.entryDate) : new Date();
+    if (Number.isNaN(entryDate.getTime())) {
+      throw new BadRequestException('تاريخ القيد غير صالح.');
+    }
+
+    // Check period lock dates
+    await this.assertNotInLockedPeriod(scope.tenantId, entryDate, { auth });
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    const validatedLines: Array<{
+      accountId: number;
+      costCenterId: number | null;
+      description: string;
+      debit: number;
+      credit: number;
+      partnerType: 'none' | 'customer' | 'supplier';
+      partnerId: number | null;
+    }> = [];
+
+    const accountIds = new Set<number>();
+    for (const line of dto.lines) {
+      const accId = Number(line.accountId);
+      if (!accId || accId <= 0) {
+        throw new BadRequestException('يجب تحديد حساب صالح لكل سطر في القيد.');
+      }
+      accountIds.add(accId);
+
+      const debit = this.toMoney(line.debit || 0);
+      const credit = this.toMoney(line.credit || 0);
+
+      if (debit <= 0 && credit <= 0) {
+        throw new BadRequestException('يجب تحديد مبلغ مدين أو دائن أكبر من الصفر لكل سطر.');
+      }
+      if (debit > 0 && credit > 0) {
+        throw new BadRequestException('لا يمكن أن يكون السطر مدين ودائن في نفس الوقت.');
+      }
+
+      totalDebit += debit;
+      totalCredit += credit;
+
+      validatedLines.push({
+        accountId: accId,
+        costCenterId: line.costCenterId ? Number(line.costCenterId) : null,
+        description: String(line.description || dto.description || '').trim(),
+        debit,
+        credit,
+        partnerType: line.partnerType || 'none',
+        partnerId: line.partnerId ? Number(line.partnerId) : null,
+      });
+    }
+
+    totalDebit = this.toMoney(totalDebit);
+    totalCredit = this.toMoney(totalCredit);
+
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      throw new BadRequestException(`القيد غير متزن: إجمالي المدين (${totalDebit}) لا يساوي إجمالي الدائن (${totalCredit}). الفارق: ${Math.abs(totalDebit - totalCredit).toFixed(2)}`);
+    }
+
+    // Verify all accounts belong to tenant and allow manual entries
+    const existingAccounts = await this.db
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code', 'name_ar', 'is_active', 'allow_manual_entries'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('id', 'in', Array.from(accountIds))
+      .execute();
+
+    if (existingAccounts.length !== accountIds.size) {
+      throw new BadRequestException('واحد أو أكثر من الحسابات المحددة غير موجود في شجرة الحسابات.');
+    }
+
+    for (const acc of existingAccounts) {
+      if (!acc.is_active) {
+        throw new BadRequestException(`الحساب [${acc.code} - ${acc.name_ar}] غير نشط.`);
+      }
+      if (!acc.allow_manual_entries) {
+        throw new BadRequestException(`الحساب [${acc.code} - ${acc.name_ar}] لا يسمح بإدخال قيود يدوية.`);
+      }
+    }
+
+    const userId = Number(auth.userId) || null;
+    const branchId = dto.branchId ? Number(dto.branchId) : null;
+
+    const result = await this.db.transaction().execute(async (trx) => {
+      const tempEntryNo = `JE-MANUAL-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const inserted = await trx
+        .insertInto('journal_entries')
+        .values({
+          entry_no: tempEntryNo,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          entry_date: entryDate,
+          description: String(dto.description || '').trim(),
+          source_type: 'manual',
+          source_id: null,
+          status: 'posted',
+          branch_id: branchId,
+          location_id: null,
+          created_by: userId,
+          posted_by: userId,
+          posted_at: sql`NOW()`,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      const entryId = Number(inserted.id);
+      const officialEntryNo = `JE-${String(entryId).padStart(8, '0')}`;
+
+      await trx
+        .updateTable('journal_entries')
+        .set({ entry_no: officialEntryNo, updated_at: sql`NOW()` } as any)
+        .where('id', '=', entryId)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
+      await trx
+        .insertInto('journal_entry_lines')
+        .values(
+          validatedLines.map((l) => ({
+            journal_entry_id: entryId,
+            tenant_id: scope.tenantId,
+            account_id: l.accountId,
+            cost_center_id: l.costCenterId,
+            description: l.description,
+            debit: l.debit,
+            credit: l.credit,
+            partner_type: l.partnerType,
+            partner_id: l.partnerId,
+            branch_id: branchId,
+            location_id: null,
+          } as any))
+        )
+        .execute();
+
+      return {
+        id: entryId,
+        entryNo: officialEntryNo,
+        totalDebit,
+        totalCredit,
+      };
+    });
+
+    return {
+      ok: true,
+      entry: result,
+      message: `تم إنشاء وترحيل القيد اليومي بنجاح برقم ${result.entryNo}`,
     };
   }
 
@@ -1278,6 +1507,7 @@ export class AccountingService {
           journal_entry_id: Number(entry.id),
           tenant_id: scope.tenantId,
           account_id: line.accountId,
+          cost_center_id: line.costCenterId ?? null,
           description: line.description,
           debit: line.debit,
           credit: line.credit,
@@ -1285,7 +1515,7 @@ export class AccountingService {
           partner_id: line.partnerId,
           branch_id: line.branchId,
           location_id: line.locationId,
-        }).execute();
+        } as any).execute();
       }
 
       return Number(entry.id);
@@ -1308,6 +1538,7 @@ export class AccountingService {
       }
       return {
         accountId: Number(line.accountId || 0),
+        costCenterId: line.costCenterId ? Number(line.costCenterId) : null as any,
         description: String(line.description || '').trim(),
         debit,
         credit,
@@ -1551,15 +1782,6 @@ export class AccountingService {
     return { ok: true };
   }
 
-  async listCostCenters(actor: AuthContext): Promise<Record<string, unknown>> {
-    const records = await this.db
-      .selectFrom('cost_centers')
-      .selectAll()
-      .where('tenant_id', '=', requireTenantScope(actor).tenantId)
-      .execute();
-    return { ok: true, costCenters: records };
-  }
-
   async listProjects(actor: AuthContext): Promise<Record<string, unknown>> {
     const records = await this.db
       .selectFrom('projects')
@@ -1567,54 +1789,6 @@ export class AccountingService {
       .where('tenant_id', '=', requireTenantScope(actor).tenantId)
       .execute();
     return { ok: true, projects: records };
-  }
-
-  async createCostCenter(body: { code: string; name: string }, actor: AuthContext): Promise<Record<string, unknown>> {
-    const scope = requireTenantScope(actor);
-    const code = String(body.code || '').trim();
-    const name = String(body.name || '').trim();
-    if (!code || !name) {
-      throw new BadRequestException('كود واسم مركز التكلفة مطلوبان.');
-    }
-    const inserted = await this.db
-      .insertInto('cost_centers')
-      .values({
-        code,
-        name,
-        is_active: true,
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    return { ok: true, costCenter: inserted };
-  }
-
-  async updateCostCenter(id: number, body: { name?: string; isActive?: boolean }, actor: AuthContext): Promise<Record<string, unknown>> {
-    const scope = requireTenantScope(actor);
-    const updateData: any = {};
-    if (body.name !== undefined) updateData.name = String(body.name).trim();
-    if (body.isActive !== undefined) updateData.is_active = Boolean(body.isActive);
-    updateData.updated_at = sql`NOW()`;
-
-    const updated = await this.db
-      .updateTable('cost_centers')
-      .set(updateData)
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .returningAll()
-      .executeTakeFirst();
-    return { ok: true, costCenter: updated };
-  }
-
-  async deleteCostCenter(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const scope = requireTenantScope(actor);
-    await this.db
-      .deleteFrom('cost_centers')
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
-    return { ok: true };
   }
 
   // --- Fixed Assets & Depreciation (الأصول الثابتة والإهلاك المحاسبي) ---
@@ -2189,6 +2363,624 @@ export class AccountingService {
       toCurrency: toCode,
       convertedAmount: Number(convertedAmount.toFixed(4)),
       effectiveRate: toRate > 0 ? Number((fromRate / toRate).toFixed(6)) : 1,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // COST CENTERS ENGINE
+  // ---------------------------------------------------------------------------
+
+  async listCostCenters(auth: AuthContext): Promise<{ ok: boolean; costCenters: Record<string, unknown>[] }> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    const rows = await (this.db as any)
+      .selectFrom('cost_centers as cc')
+      .leftJoin('cost_centers as p', 'cc.parent_id', 'p.id')
+      .select([
+        'cc.id',
+        'cc.code',
+        'cc.name',
+        'cc.dimension',
+        'cc.budget_amount as budgetAmount',
+        'cc.parent_id as parentId',
+        'p.name as parentName',
+        'cc.is_active as isActive',
+        'cc.description',
+        'cc.created_at as createdAt',
+        'cc.updated_at as updatedAt',
+      ])
+      .where('cc.tenant_id', '=', scope.tenantId)
+      .orderBy('cc.code', 'asc')
+      .execute();
+
+    return {
+      ok: true,
+      costCenters: rows.map((r: any) => ({
+        ...r,
+        id: Number(r.id),
+        dimension: r.dimension || 'operational',
+        budgetAmount: Number(r.budgetAmount || 0),
+        parentId: r.parentId ? Number(r.parentId) : null,
+        isActive: Boolean(r.isActive),
+      })),
+    };
+  }
+
+  async createCostCenter(
+    body: { code: string; name: string; dimension?: string; budgetAmount?: number; parentId?: number | null; description?: string; isActive?: boolean },
+    auth: AuthContext,
+  ) {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    const code = String(body.code || '').trim().toUpperCase();
+    const name = String(body.name || '').trim();
+    if (!code || !name) {
+      throw new BadRequestException('كود واسم مركز التكلفة مطلوبان.');
+    }
+    const dimension = body.dimension ? String(body.dimension).trim() : 'operational';
+    const budgetAmount = body.budgetAmount !== undefined ? Number(body.budgetAmount) : 0;
+    const parentId = body.parentId ? Number(body.parentId) : null;
+    const description = body.description ? String(body.description).trim() : null;
+    const isActive = body.isActive !== false;
+
+    const inserted = await this.db
+      .insertInto('cost_centers')
+      .values({
+        tenant_id: scope.tenantId,
+        code,
+        name,
+        dimension,
+        budget_amount: budgetAmount,
+        parent_id: parentId,
+        description,
+        is_active: isActive,
+      } as any)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return {
+      ok: true,
+      costCenter: {
+        ...inserted,
+        id: Number(inserted.id),
+        dimension: (inserted as any).dimension || 'operational',
+        budgetAmount: Number((inserted as any).budget_amount || 0),
+        parentId: inserted.parent_id ? Number(inserted.parent_id) : null,
+        isActive: Boolean(inserted.is_active),
+      },
+    };
+  }
+
+  async updateCostCenter(
+    id: number,
+    body: { code?: string; name?: string; dimension?: string; budgetAmount?: number; parentId?: number | null; description?: string; isActive?: boolean },
+    auth: AuthContext,
+  ) {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    const updates: Record<string, unknown> = {
+      updated_at: sql`NOW()`,
+    };
+    if (body.code !== undefined) updates.code = String(body.code).trim().toUpperCase();
+    if (body.name !== undefined) updates.name = String(body.name).trim();
+    if (body.dimension !== undefined) updates.dimension = String(body.dimension).trim();
+    if (body.budgetAmount !== undefined) updates.budget_amount = Number(body.budgetAmount);
+    if (body.parentId !== undefined) updates.parent_id = body.parentId ? Number(body.parentId) : null;
+    if (body.description !== undefined) updates.description = body.description ? String(body.description).trim() : null;
+    if (body.isActive !== undefined) updates.is_active = Boolean(body.isActive);
+
+    const updated = await this.db
+      .updateTable('cost_centers')
+      .set(updates as any)
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .returningAll()
+      .executeTakeFirst();
+
+    if (!updated) {
+      throw new NotFoundException('مركز التكلفة غير موجود.');
+    }
+
+    return {
+      ok: true,
+      costCenter: {
+        ...updated,
+        id: Number(updated.id),
+        dimension: (updated as any).dimension || 'operational',
+        budgetAmount: Number((updated as any).budget_amount || 0),
+        parentId: updated.parent_id ? Number(updated.parent_id) : null,
+        isActive: Boolean(updated.is_active),
+      },
+    };
+  }
+
+  async deleteCostCenter(id: number, auth: AuthContext) {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+
+    const linkedLines = await this.db
+      .selectFrom('journal_entry_lines')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('tenant_id', '=', scope.tenantId)
+      .where('cost_center_id', '=', id)
+      .executeTakeFirst();
+
+    if (Number(linkedLines?.count || 0) > 0) {
+      await this.db
+        .updateTable('cost_centers')
+        .set({ is_active: false, updated_at: sql`NOW()` } as any)
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+      return { ok: true, message: 'تم تعطيل مركز التكلفة لارتباطه بحركات محاسبية سابقة.' };
+    }
+
+    await this.db
+      .deleteFrom('cost_centers')
+      .where('id', '=', id)
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
+
+    return { ok: true, message: 'تم حذف مركز التكلفة بنجاح.' };
+  }
+
+  async getCostCenterReport(
+    costCenterId: number,
+    auth: AuthContext,
+    filters?: { fromDate?: string; toDate?: string },
+  ) {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+
+    const costCenter = await this.db
+      .selectFrom('cost_centers')
+      .selectAll()
+      .where('id', '=', costCenterId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!costCenter) {
+      throw new NotFoundException('مركز التكلفة غير موجود.');
+    }
+
+    let query = (this.db as any)
+      .selectFrom('journal_entry_lines as l')
+      .innerJoin('journal_entries as e', 'l.journal_entry_id', 'e.id')
+      .innerJoin('accounting_accounts as a', 'l.account_id', 'a.id')
+      .select([
+        'l.id as lineId',
+        'e.id as entryId',
+        'e.entry_no as entryNo',
+        'e.entry_date as entryDate',
+        'e.description as entryDescription',
+        'l.description as lineDescription',
+        'a.id as accountId',
+        'a.code as accountCode',
+        'a.name as accountName',
+        'a.type as accountType',
+        'l.debit',
+        'l.credit',
+      ])
+      .where('l.tenant_id', '=', scope.tenantId)
+      .where('l.cost_center_id', '=', costCenterId);
+
+    if (filters?.fromDate) {
+      query = query.where('e.entry_date', '>=', new Date(filters.fromDate));
+    }
+    if (filters?.toDate) {
+      query = query.where('e.entry_date', '<=', new Date(filters.toDate));
+    }
+
+    const lines = await query.orderBy('e.entry_date', 'desc').execute();
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+    let totalExpenses = 0;
+    let totalRevenues = 0;
+
+    for (const line of lines) {
+      const debit = Number(line.debit || 0);
+      const credit = Number(line.credit || 0);
+      totalDebit += debit;
+      totalCredit += credit;
+      if (line.accountType === 'expense') {
+        totalExpenses += (debit - credit);
+      } else if (line.accountType === 'revenue') {
+        totalRevenues += (credit - debit);
+      }
+    }
+
+    const budgetAmount = Number((costCenter as any).budget_amount || 0);
+    const variance = budgetAmount > 0 ? (budgetAmount - totalExpenses) : 0;
+    const utilizationRate = budgetAmount > 0 ? Math.round((totalExpenses / budgetAmount) * 100) : 0;
+
+    return {
+      costCenter: {
+        id: Number(costCenter.id),
+        code: costCenter.code,
+        name: costCenter.name,
+        dimension: (costCenter as any).dimension || 'operational',
+        budgetAmount,
+      },
+      summary: {
+        totalDebit,
+        totalCredit,
+        totalExpenses,
+        totalRevenues,
+        netProfit: totalRevenues - totalExpenses,
+        budgetAmount,
+        variance,
+        utilizationRate,
+        linesCount: lines.length,
+      },
+      lines,
+    };
+  }
+
+  // ==================== BANK RECONCILIATION ENGINE ====================
+  async listBankStatements(auth: AuthContext, accountId?: number): Promise<any[]> {
+    this.assertAccountingAccess(auth);
+
+    let query = (this.db as any)
+      .selectFrom('bank_statements as bs')
+      .innerJoin('accounting_accounts as a', 'a.id', 'bs.account_id')
+      .where(this.tenantPredicate(auth, 'bs'))
+      .select([
+        'bs.id',
+        'bs.account_id',
+        'a.code as account_code',
+        'a.name_ar as account_name_ar',
+        'bs.statement_no',
+        'bs.statement_date',
+        'bs.starting_balance',
+        'bs.ending_balance',
+        'bs.status',
+        'bs.notes',
+        'bs.created_at',
+      ])
+      .orderBy('bs.statement_date', 'desc');
+
+    if (accountId && Number(accountId) > 0) {
+      query = query.where('bs.account_id', '=', Number(accountId));
+    }
+
+    const rows = await query.execute();
+    return rows.map((r: any) => ({
+      id: Number(r.id),
+      accountId: Number(r.account_id),
+      accountCode: r.account_code,
+      accountNameAr: r.account_name_ar,
+      statementNo: r.statement_no,
+      statementDate: String(r.statement_date).slice(0, 10),
+      startingBalance: Number(r.starting_balance || 0),
+      endingBalance: Number(r.ending_balance || 0),
+      status: r.status,
+      notes: r.notes || '',
+      createdAt: r.created_at,
+    }));
+  }
+
+  async getBankStatement(id: number, auth: AuthContext): Promise<any> {
+    this.assertAccountingAccess(auth);
+
+    const statement = await (this.db as any)
+      .selectFrom('bank_statements as bs')
+      .innerJoin('accounting_accounts as a', 'a.id', 'bs.account_id')
+      .where('bs.id', '=', id)
+      .where(this.tenantPredicate(auth, 'bs'))
+      .select([
+        'bs.id',
+        'bs.account_id',
+        'a.code as account_code',
+        'a.name_ar as account_name_ar',
+        'bs.statement_no',
+        'bs.statement_date',
+        'bs.starting_balance',
+        'bs.ending_balance',
+        'bs.status',
+        'bs.notes',
+        'bs.created_at',
+      ])
+      .executeTakeFirst();
+
+    if (!statement) {
+      throw new NotFoundException('كشف الحساب البنكي غير موجود.');
+    }
+
+    const lines = await (this.db as any)
+      .selectFrom('bank_statement_lines')
+      .selectAll()
+      .where('statement_id', '=', id)
+      .where(this.tenantPredicate(auth))
+      .orderBy('line_date', 'asc')
+      .execute();
+
+    return {
+      statement: {
+        id: Number(statement.id),
+        accountId: Number(statement.account_id),
+        accountCode: statement.account_code,
+        accountNameAr: statement.account_name_ar,
+        statementNo: statement.statement_no,
+        statementDate: String(statement.statement_date).slice(0, 10),
+        startingBalance: Number(statement.starting_balance || 0),
+        endingBalance: Number(statement.ending_balance || 0),
+        status: statement.status,
+        notes: statement.notes || '',
+      },
+      lines: lines.map((l: any) => ({
+        id: Number(l.id),
+        statementId: Number(l.statement_id),
+        lineDate: String(l.line_date).slice(0, 10),
+        description: l.description,
+        reference: l.reference || '',
+        amount: Number(l.amount || 0),
+        isReconciled: Boolean(l.is_reconciled),
+        matchedJournalLineId: l.matched_journal_line_id ? Number(l.matched_journal_line_id) : null,
+        reconciledAt: l.reconciled_at,
+      })),
+    };
+  }
+
+  async createBankStatement(dto: CreateBankStatementDto, auth: AuthContext): Promise<any> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+
+    const account = await this.db
+      .selectFrom('accounting_accounts')
+      .select(['id', 'code', 'name_ar', 'is_cash_bank'])
+      .where('id', '=', dto.accountId)
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
+
+    if (!account) {
+      throw new BadRequestException('الحساب المالي المحدد غير موجود.');
+    }
+
+    const insertedStatement = await (this.db as any)
+      .insertInto('bank_statements')
+      .values({
+        tenant_id: scope.tenantId,
+        account_id: dto.accountId,
+        statement_no: dto.statementNo,
+        statement_date: dto.statementDate,
+        starting_balance: dto.startingBalance || 0,
+        ending_balance: dto.endingBalance || 0,
+        status: 'draft',
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    if (dto.lines && dto.lines.length > 0) {
+      const lineRows = dto.lines.map((line) => ({
+        tenant_id: scope.tenantId,
+        statement_id: insertedStatement.id,
+        line_date: line.lineDate,
+        description: line.description,
+        reference: line.reference || null,
+        amount: line.amount,
+        is_reconciled: false,
+      }));
+      await (this.db as any).insertInto('bank_statement_lines').values(lineRows).execute();
+    }
+
+    return this.getBankStatement(insertedStatement.id, auth);
+  }
+
+  async getBankReconciliationWorkspace(statementId: number, auth: AuthContext): Promise<any> {
+    this.assertAccountingAccess(auth);
+    const statementData = await this.getBankStatement(statementId, auth);
+    const statement = statementData.statement;
+    const statementLines = statementData.lines;
+
+    // Fetch GL unreconciled journal lines for this bank account
+    const glLines = await (this.db as any)
+      .selectFrom('journal_entry_lines as jel')
+      .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
+      .where('jel.account_id', '=', statement.accountId)
+      .where('je.status', '=', 'posted')
+      .where(sql`jel.is_reconciled = false OR jel.is_reconciled IS NULL`)
+      .where(this.tenantPredicate(auth, 'jel'))
+      .select([
+        'jel.id',
+        'jel.journal_entry_id',
+        'je.entry_no',
+        'je.entry_date',
+        'jel.description',
+        'jel.debit',
+        'jel.credit',
+        'jel.is_reconciled',
+      ])
+      .orderBy('je.entry_date', 'asc')
+      .execute();
+
+    const formattedGlLines = glLines.map((gl: any) => ({
+      id: Number(gl.id),
+      journalEntryId: Number(gl.journal_entry_id),
+      entryNo: gl.entry_no,
+      entryDate: String(gl.entry_date).slice(0, 10),
+      description: gl.description,
+      debit: Number(gl.debit || 0),
+      credit: Number(gl.credit || 0),
+      netAmount: Number(gl.debit || 0) - Number(gl.credit || 0),
+      isReconciled: Boolean(gl.is_reconciled),
+    }));
+
+    // Auto-match suggestions:
+    // Match statement line (+deposit) with GL debit (+amount)
+    // Match statement line (-withdrawal) with GL credit (+amount)
+    const suggestions: any[] = [];
+    const usedGlIds = new Set<number>();
+
+    for (const sLine of statementLines) {
+      if (sLine.isReconciled) continue;
+      const targetAmount = sLine.amount;
+
+      for (const glLine of formattedGlLines) {
+        if (usedGlIds.has(glLine.id)) continue;
+        const matchesDeposit = targetAmount > 0 && Math.abs(glLine.debit - targetAmount) < 0.01;
+        const matchesWithdrawal = targetAmount < 0 && Math.abs(glLine.credit - Math.abs(targetAmount)) < 0.01;
+
+        if (matchesDeposit || matchesWithdrawal) {
+          const sDate = new Date(sLine.lineDate).getTime();
+          const gDate = new Date(glLine.entryDate).getTime();
+          const daysDiff = Math.abs(sDate - gDate) / (1000 * 60 * 60 * 24);
+
+          suggestions.push({
+            statementLineId: sLine.id,
+            journalLineId: glLine.id,
+            confidence: daysDiff <= 7 ? 'high' : 'medium',
+            reason: `تطابق تام في المبلغ (${Math.abs(targetAmount).toFixed(2)}) وفارق زمني ${Math.round(daysDiff)} يوم`,
+          });
+          usedGlIds.add(glLine.id);
+          break;
+        }
+      }
+    }
+
+    // Calculate balances
+    const totalReconciledLinesAmount = statementLines
+      .filter((l: any) => l.isReconciled)
+      .reduce((sum: number, l: any) => sum + l.amount, 0);
+
+    const calculatedEndingBalance = statement.startingBalance + totalReconciledLinesAmount;
+    const difference = statement.endingBalance - calculatedEndingBalance;
+
+    return {
+      statement,
+      statementLines,
+      glLines: formattedGlLines,
+      suggestions,
+      summary: {
+        startingBalance: statement.startingBalance,
+        endingBalance: statement.endingBalance,
+        reconciledAmount: totalReconciledLinesAmount,
+        calculatedEndingBalance,
+        difference: Number(difference.toFixed(2)),
+        isBalanced: Math.abs(difference) < 0.01,
+        totalLines: statementLines.length,
+        reconciledLinesCount: statementLines.filter((l: any) => l.isReconciled).length,
+      },
+    };
+  }
+
+  async reconcileMatch(dto: ReconcileMatchDto, auth: AuthContext): Promise<any> {
+    this.assertAccountingAccess(auth);
+
+    // Update statement line
+    await (this.db as any)
+      .updateTable('bank_statement_lines')
+      .set({
+        is_reconciled: true,
+        matched_journal_line_id: dto.journalLineId,
+        reconciled_at: new Date(),
+      })
+      .where('id', '=', dto.statementLineId)
+      .where(this.tenantPredicate(auth))
+      .execute();
+
+    // Update journal line
+    await (this.db as any)
+      .updateTable('journal_entry_lines')
+      .set({
+        is_reconciled: true,
+        reconciled_at: new Date(),
+      })
+      .where('id', '=', dto.journalLineId)
+      .where(this.tenantPredicate(auth))
+      .execute();
+
+    return { success: true, message: 'تمت مطابقة السطر البنكي مع القيد المحاسبي بنجاح.' };
+  }
+
+  async unreconcileMatch(statementLineId: number, auth: AuthContext): Promise<any> {
+    this.assertAccountingAccess(auth);
+
+    const line = await (this.db as any)
+      .selectFrom('bank_statement_lines')
+      .select(['id', 'matched_journal_line_id'])
+      .where('id', '=', statementLineId)
+      .where(this.tenantPredicate(auth))
+      .executeTakeFirst();
+
+    if (!line) throw new NotFoundException('سطر كشف الحساب غير موجود.');
+
+    if (line.matched_journal_line_id) {
+      await (this.db as any)
+        .updateTable('journal_entry_lines')
+        .set({ is_reconciled: false, reconciled_at: null })
+        .where('id', '=', line.matched_journal_line_id)
+        .where(this.tenantPredicate(auth))
+        .execute();
+    }
+
+    await (this.db as any)
+      .updateTable('bank_statement_lines')
+      .set({ is_reconciled: false, matched_journal_line_id: null, reconciled_at: null })
+      .where('id', '=', statementLineId)
+      .where(this.tenantPredicate(auth))
+      .execute();
+
+    return { success: true, message: 'تم إلغاء المطابقة وإعادة السطر للحركات المعلقة.' };
+  }
+
+  async createBankFeeAdjustment(dto: CreateBankFeeAdjustmentDto, auth: AuthContext): Promise<any> {
+    this.assertAccountingAccess(auth);
+
+    const sLine = await (this.db as any)
+      .selectFrom('bank_statement_lines as bsl')
+      .innerJoin('bank_statements as bs', 'bs.id', 'bsl.statement_id')
+      .where('bsl.id', '=', dto.statementLineId)
+      .where(this.tenantPredicate(auth, 'bsl'))
+      .select(['bsl.id', 'bsl.amount', 'bsl.line_date', 'bsl.description', 'bs.account_id'])
+      .executeTakeFirst();
+
+    if (!sLine) throw new NotFoundException('سطر كشف الحساب غير موجود.');
+
+    const feeAmount = Math.abs(Number(sLine.amount));
+    if (feeAmount <= 0) throw new BadRequestException('مبلغ العمولة أو المصروف يجب أن يكون أكبر من صفر.');
+
+    // Create journal entry: Debit Expense, Credit Bank
+    const entryResult = await this.createManualJournalEntry({
+      entryDate: String(sLine.line_date).slice(0, 10),
+      description: dto.description || `مصاريف وعمولات بنكية - كشف حساب (${sLine.description})`,
+      lines: [
+        {
+          accountId: dto.expenseAccountId,
+          description: dto.description || 'مصاريف وعمولات بنكية',
+          debit: feeAmount,
+          credit: 0,
+        },
+        {
+          accountId: Number(sLine.account_id),
+          description: dto.description || 'مصاريف وعمولات بنكية خصماً من الحساب',
+          debit: 0,
+          credit: feeAmount,
+        },
+      ],
+    }, auth);
+
+    // Find the bank credit line in the newly created entry
+    const entryId = Number((entryResult as any)?.entry?.id);
+    const createdBankLine = await (this.db as any)
+      .selectFrom('journal_entry_lines')
+      .select(['id'])
+      .where('journal_entry_id', '=', entryId)
+      .where('account_id', '=', Number(sLine.account_id))
+      .executeTakeFirst();
+
+    if (createdBankLine) {
+      await this.reconcileMatch({
+        statementLineId: dto.statementLineId,
+        journalLineId: Number(createdBankLine.id),
+      }, auth);
+    }
+
+    return {
+      success: true,
+      message: 'تم إنشاء قيد المصاريف البنكية ومطابقته فورياً.',
+      journalEntryId: entryId,
     };
   }
 }

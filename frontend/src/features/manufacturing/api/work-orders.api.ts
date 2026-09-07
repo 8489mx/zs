@@ -10,9 +10,17 @@ export interface CreateWorkOrderPayload {
   note?: string;
 }
 
+export interface WorkOrderOperationInput {
+  workCenterId: number;
+  operationName: string;
+  durationHours: number;
+  notes?: string;
+}
+
 export interface CompleteWorkOrderPayload {
   sourceLocationId?: number;
   destinationLocationId?: number;
+  operations?: WorkOrderOperationInput[];
 }
 
 export interface WorkOrderRecord {

@@ -1,9 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { tenantSubscriptionApi, TenantSubscriptionData } from '../api/tenant-subscription.api';
+import { settingsApi } from '../api/settings.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
+
+const REGIONAL_PRICING: Record<string, { label: string; unit: string; basic: number; pro: number; ultimate: number; omnichannel: number }> = {
+  EGP: { label: 'مصر (EGP)', unit: 'ج.م', basic: 3500, pro: 7500, ultimate: 15000, omnichannel: 24000 },
+  SAR: { label: 'السعودية (SAR)', unit: 'ر.س', basic: 350, pro: 750, ultimate: 1500, omnichannel: 2400 },
+  KWD: { label: 'الكويت (KWD)', unit: 'د.ك', basic: 30, pro: 60, ultimate: 120, omnichannel: 195 },
+  QAR: { label: 'قطر (QAR)', unit: 'ر.ق', basic: 350, pro: 750, ultimate: 1500, omnichannel: 2400 },
+  AED: { label: 'الإمارات (AED)', unit: 'د.إ', basic: 350, pro: 750, ultimate: 1500, omnichannel: 2400 },
+  BHD: { label: 'البحرين (BHD)', unit: 'د.ب', basic: 35, pro: 75, ultimate: 150, omnichannel: 240 },
+  OMR: { label: 'عُمان (OMR)', unit: 'ر.ع', basic: 35, pro: 75, ultimate: 150, omnichannel: 240 },
+  USD: { label: 'عالمي (USD)', unit: '$', basic: 99, pro: 199, ultimate: 399, omnichannel: 599 },
+};
 
 function PlanFeatureItem({ children }: { children: React.ReactNode }) {
   return (
@@ -18,10 +30,16 @@ function PlanFeatureItem({ children }: { children: React.ReactNode }) {
 
 export function TenantSubscriptionPage() {
   const [isAnnual, setIsAnnual] = useState(true);
+  const [userSelectedCurrency, setUserSelectedCurrency] = useState<string | null>(null);
   const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<{ id: number; name: string; price: number; currency: string } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'xpay' | 'paymob' | 'instapay' | 'vodafone_cash' | 'bank_transfer' | 'cash'>('xpay');
   const [notes, setNotes] = useState('');
   const [requestSuccessMessage, setRequestSuccessMessage] = useState<string | null>(null);
+
+  const { data: settingsData } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => settingsApi.settings(),
+  });
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['tenant-my-subscription'],
@@ -102,10 +120,24 @@ export function TenantSubscriptionPage() {
   const branchesLimit = usage.branches.max;
   const branchesPercent = branchesLimit ? Math.min(100, Math.round((usage.branches.current / branchesLimit) * 100)) : null;
 
-  const basicPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'basic') || availablePlans[0] || { id: 1, name: 'الباقة الأساسية', price: 3500, currency: 'EGP' };
-  const proPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'pro') || availablePlans[1] || availablePlans[0] || { id: 2, name: 'الباقة الاحترافية (Pro)', price: 7500, currency: 'EGP' };
-  const enterprisePlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'ultimate' || p.code?.toLowerCase() === 'enterprise') || availablePlans[2] || proPlanObj || { id: 3, name: 'الباقة المتكاملة (Ultimate ERP)', price: 15000, currency: 'EGP' };
-  const omnichannelPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'omnichannel') || availablePlans[3] || enterprisePlanObj || { id: 4, name: 'باقة التجارة الشاملة (Omnichannel Enterprise)', price: 24000, currency: 'EGP' };
+  const defaultCurrency = String(settingsData?.currency || 'EGP').toUpperCase();
+  const activeCurrency = userSelectedCurrency || (REGIONAL_PRICING[defaultCurrency] ? defaultCurrency : 'EGP');
+  const regionalPricing = REGIONAL_PRICING[activeCurrency] || REGIONAL_PRICING.EGP;
+  const isThreeDec = activeCurrency === 'KWD' || activeCurrency === 'BHD' || activeCurrency === 'OMR';
+
+  const calcPeriodPrice = (annualPrice: number) => isAnnual
+    ? annualPrice
+    : (isThreeDec ? Math.round((annualPrice / 10) * 10) / 10 : Math.round(annualPrice / 10));
+
+  const basicPrice = calcPeriodPrice(regionalPricing.basic);
+  const proPrice = calcPeriodPrice(regionalPricing.pro);
+  const enterprisePrice = calcPeriodPrice(regionalPricing.ultimate);
+  const omnichannelPrice = calcPeriodPrice(regionalPricing.omnichannel);
+
+  const basicPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'basic') || availablePlans[0] || { id: 1, name: 'الباقة الأساسية', price: basicPrice, currency: activeCurrency };
+  const proPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'pro') || availablePlans[1] || availablePlans[0] || { id: 2, name: 'الباقة الاحترافية (Pro)', price: proPrice, currency: activeCurrency };
+  const enterprisePlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'ultimate' || p.code?.toLowerCase() === 'enterprise') || availablePlans[2] || proPlanObj || { id: 3, name: 'الباقة المتكاملة (Ultimate ERP)', price: enterprisePrice, currency: activeCurrency };
+  const omnichannelPlanObj = availablePlans.find((p: any) => p.code?.toLowerCase() === 'omnichannel') || availablePlans[3] || enterprisePlanObj || { id: 4, name: 'باقة التجارة الشاملة (Omnichannel Enterprise)', price: omnichannelPrice, currency: activeCurrency };
 
   const handlePrintReceipt = (payment: TenantSubscriptionData['payments'][0]) => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -397,50 +429,76 @@ export function TenantSubscriptionPage() {
             </p>
           </div>
 
-          {/* Monthly / Annual Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px' }}>
-            <button
-              type="button"
-              onClick={() => setIsAnnual(false)}
-              style={{
-                border: 'none',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                background: !isAnnual ? '#ffffff' : 'transparent',
-                color: !isAnnual ? '#0f172a' : '#64748b',
-                boxShadow: !isAnnual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              دفع شهري
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAnnual(true)}
-              style={{
-                border: 'none',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '11.5px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                background: isAnnual ? '#0f172a' : 'transparent',
-                color: isAnnual ? '#ffffff' : '#64748b',
-                boxShadow: isAnnual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span>دفع سنوي</span>
-              <span style={{ fontSize: '9.5px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                وفّر شهرين
-              </span>
-            </button>
+          {/* Controls: Currency Selector + Monthly/Annual Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Currency Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '2px 8px', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>العملة:</span>
+              <select
+                value={activeCurrency}
+                onChange={(e) => setUserSelectedCurrency(e.target.value)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  outline: 'none',
+                }}
+              >
+                {Object.entries(REGIONAL_PRICING).map(([code, p]) => (
+                  <option key={code} value={code}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Monthly / Annual Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px' }}>
+              <button
+                type="button"
+                onClick={() => setIsAnnual(false)}
+                style={{
+                  border: 'none',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: !isAnnual ? '#ffffff' : 'transparent',
+                  color: !isAnnual ? '#0f172a' : '#64748b',
+                  boxShadow: !isAnnual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                دفع شهري
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAnnual(true)}
+                style={{
+                  border: 'none',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  background: isAnnual ? '#0f172a' : 'transparent',
+                  color: isAnnual ? '#ffffff' : '#64748b',
+                  boxShadow: isAnnual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span>دفع سنوي</span>
+                <span style={{ fontSize: '9.5px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                  وفّر شهرين
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -452,7 +510,7 @@ export function TenantSubscriptionPage() {
             <div>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>الباقة الأساسية</div>
               <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
-                {isAnnual ? '3,500' : '350'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
+                {basicPrice.toLocaleString('ar-EG')} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{regionalPricing.unit} / {isAnnual ? 'سنة' : 'شهر'}</span>
               </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>مناسبة للمحلات الفردية ونقاط البيع السريعة</p>
               
@@ -467,7 +525,7 @@ export function TenantSubscriptionPage() {
 
             <button
               type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: basicPlanObj.id, name: basicPlanObj.name, price: isAnnual ? Number(basicPlanObj.price) : Math.round(Number(basicPlanObj.price) / 10), currency: 'EGP' })}
+              onClick={() => setSelectedPlanForUpgrade({ id: basicPlanObj.id, name: basicPlanObj.name, price: basicPrice, currency: regionalPricing.unit })}
               style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               اختيار الأساسية
@@ -483,7 +541,7 @@ export function TenantSubscriptionPage() {
             <div>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', textTransform: 'uppercase' }}>الباقة الاحترافية (Pro)</div>
               <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
-                {isAnnual ? '7,500' : '750'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
+                {proPrice.toLocaleString('ar-EG')} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{regionalPricing.unit} / {isAnnual ? 'سنة' : 'شهر'}</span>
               </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للشركات المتوسطة وسلاسل الفروع وتجار الجملة</p>
               
@@ -498,7 +556,7 @@ export function TenantSubscriptionPage() {
 
             <button
               type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: proPlanObj.id, name: proPlanObj.name, price: isAnnual ? Number(proPlanObj.price) : Math.round(Number(proPlanObj.price) / 10), currency: 'EGP' })}
+              onClick={() => setSelectedPlanForUpgrade({ id: proPlanObj.id, name: proPlanObj.name, price: proPrice, currency: regionalPricing.unit })}
               style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               ترقية للاحترافية الآن
@@ -510,7 +568,7 @@ export function TenantSubscriptionPage() {
             <div>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase' }}>الباقة المتكاملة (Ultimate ERP)</div>
               <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
-                {isAnnual ? '15,000' : '1,500'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
+                {enterprisePrice.toLocaleString('ar-EG')} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{regionalPricing.unit} / {isAnnual ? 'سنة' : 'شهر'}</span>
               </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للمؤسسات الكبرى، المصانع، والمحاسبة المتقدمة</p>
               
@@ -529,7 +587,7 @@ export function TenantSubscriptionPage() {
 
             <button
               type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: enterprisePlanObj.id, name: enterprisePlanObj.name, price: isAnnual ? Number(enterprisePlanObj.price) : Math.round(Number(enterprisePlanObj.price) / 10), currency: 'EGP' })}
+              onClick={() => setSelectedPlanForUpgrade({ id: enterprisePlanObj.id, name: enterprisePlanObj.name, price: enterprisePrice, currency: regionalPricing.unit })}
               style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               اختيار المتكاملة
@@ -545,7 +603,7 @@ export function TenantSubscriptionPage() {
             <div>
               <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', textTransform: 'uppercase' }}>التجارة الشاملة (Omnichannel)</div>
               <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
-                {isAnnual ? '24,000' : '2,400'} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>جنيه / {isAnnual ? 'سنة' : 'شهر'}</span>
+                {omnichannelPrice.toLocaleString('ar-EG')} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{regionalPricing.unit} / {isAnnual ? 'سنة' : 'شهر'}</span>
               </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للمؤسسات التي تدير فروعاً ومتجراً إلكترونياً متكاملاً</p>
               
@@ -561,7 +619,7 @@ export function TenantSubscriptionPage() {
 
             <button
               type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: omnichannelPlanObj.id, name: omnichannelPlanObj.name, price: isAnnual ? Number(omnichannelPlanObj.price) : Math.round(Number(omnichannelPlanObj.price) / 10), currency: 'EGP' })}
+              onClick={() => setSelectedPlanForUpgrade({ id: omnichannelPlanObj.id, name: omnichannelPlanObj.name, price: omnichannelPrice, currency: regionalPricing.unit })}
               style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: 'none', background: '#d97706', color: '#ffffff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
             >
               ترقية للشاملة الآن

@@ -23,9 +23,10 @@ interface PosCheckoutDialogProps {
   selectedCustomerName: string;
   onClose: () => void;
   onConfirmSale: (managerPin?: string) => void;
+  onOpenSplitBill?: () => void;
 }
 
-function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, onConfirmSale }: PosCheckoutDialogProps) {
+function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, onConfirmSale, onOpenSplitBill }: PosCheckoutDialogProps) {
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [isManualCustomerOpen, setIsManualCustomerOpen] = useState(false);
@@ -293,6 +294,20 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
 
           <div className="actions compact-actions pos-checkout-dialog-actions">
             <Button type="button" variant="secondary" onClick={handleDialogClose} disabled={pos.createSale.isPending}>رجوع للسلة</Button>
+            {onOpenSplitBill && pos.cart.length > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  onClose();
+                  onOpenSplitBill();
+                }}
+                disabled={pos.createSale.isPending}
+                style={{ borderColor: '#170e5e', color: '#170e5e', fontWeight: 800 }}
+              >
+                تجزئة / تقسيم الشيك
+              </Button>
+            )}
             <Button type="button" variant="success" onClick={handleConfirmSale} disabled={pos.createSale.isPending || !pos.canSubmitSale}>
               {pos.createSale.isPending ? 'جاري الحفظ...' : 'تأكيد البيع (F2)'}
             </Button>

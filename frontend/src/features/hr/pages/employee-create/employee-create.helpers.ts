@@ -26,6 +26,10 @@ export interface EmployeeDraft {
   delayPolicy: string;
   hasSocialInsurance?: boolean;
   hasIncomeTax?: boolean;
+  bankName?: string;
+  bankAccountNumber?: string;
+  iban?: string;
+  bankSwiftCode?: string;
   annualLeaveBalance?: string;
   insuranceSalary?: string;
   notes: string;
@@ -74,6 +78,10 @@ export const initialDraft: EmployeeDraft = {
   delayPolicy: 'inherit',
   hasSocialInsurance: false,
   hasIncomeTax: false,
+  bankName: '',
+  bankAccountNumber: '',
+  iban: '',
+  bankSwiftCode: '',
   annualLeaveBalance: "21",
   insuranceSalary: '',
   notes: '',

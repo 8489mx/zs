@@ -9,6 +9,7 @@ interface ExpensePayload {
   date: string;
   branchId: string;
   locationId: string;
+  costCenterId?: string;
 }
 
 export function useCreateExpenseMutation(onSuccess?: () => void) {
@@ -21,6 +22,7 @@ export function useCreateExpenseMutation(onSuccess?: () => void) {
       date: new Date(payload.date).toISOString(),
       ...(payload.branchId ? { branchId: Number(payload.branchId) } : {}),
       ...(payload.locationId ? { locationId: Number(payload.locationId) } : {}),
+      ...(payload.costCenterId ? { costCenterId: Number(payload.costCenterId) } : {}),
     }),
     onSuccess: async () => {
       await Promise.all([

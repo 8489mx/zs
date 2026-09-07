@@ -547,23 +547,26 @@ export class PharmacyService {
   ) {
     const scope = requireTenantScope(auth);
     let query = this.db
-      .selectFrom('pharmacy_batches')
-      .where('tenant_id', '=', scope.tenantId);
+      .selectFrom('pharmacy_batches as pb')
+      .leftJoin('products as p', 'p.id', 'pb.product_id')
+      .where(sql<boolean>`pb.tenant_id = ${scope.tenantId}`);
 
     if (filters?.status && filters.status !== 'all') {
-      query = query.where('status', '=', filters.status);
+      query = query.where('pb.status', '=', filters.status);
     }
 
     if (filters?.q && filters.q.trim()) {
       const term = `%${normalizeArabicSearch(filters.q)}%`;
       query = query.where(sql<boolean>`(
-        lower(batch_number) like ${term}
-        OR lower(coalesce(supplier_name, '')) like ${term}
-        OR lower(coalesce(notes, '')) like ${term}
+        lower(pb.batch_number) like ${term}
+        OR lower(coalesce(pb.supplier_name, '')) like ${term}
+        OR lower(coalesce(pb.notes, '')) like ${term}
+        OR lower(coalesce(p.name, '')) like ${term}
+        OR lower(coalesce(p.barcode, '')) like ${term}
       )`);
     }
 
-    const totalRes = await query.select((eb) => eb.fn.count('id').as('count')).executeTakeFirst();
+    const totalRes = await query.select((eb) => eb.fn.count('pb.id').as('count')).executeTakeFirst();
     const total = Number(totalRes?.count || 0);
 
     const page = Math.max(1, Number(filters?.page || 1));
@@ -571,8 +574,26 @@ export class PharmacyService {
     const offset = (page - 1) * pageSize;
 
     const batches = await query
-      .selectAll()
-      .orderBy('id', 'desc')
+      .select([
+        'pb.id',
+        'pb.tenant_id',
+        'pb.account_id',
+        'pb.product_id',
+        'pb.drug_id',
+        'pb.batch_number',
+        'pb.expiry_date',
+        'pb.quantity',
+        'pb.unit_cost',
+        'pb.location_id',
+        'pb.supplier_name',
+        'pb.status',
+        'pb.notes',
+        'pb.created_at',
+        'pb.updated_at',
+        'p.name as product_name',
+        'p.barcode as product_barcode',
+      ])
+      .orderBy('pb.id', 'desc')
       .limit(pageSize)
       .offset(offset)
       .execute();

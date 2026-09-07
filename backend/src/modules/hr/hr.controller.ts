@@ -30,6 +30,7 @@ import {
   CreateQuickCashAdvanceDto,
   UpdateEmployeeCredentialsDto,
   UpdateEmployeeStatusDto,
+  GenerateWpsDto,
 } from './dto/hr.dto';
 import { HrService } from './hr.service';
 import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
@@ -263,6 +264,12 @@ export class HrController {
   @RequirePermissions('hrPayrollApprove')
   payPayrollRun(@Param('id', ParseIntPipe) id: number, @Body() payload: PayPayrollRunDto, @Req() req: RequestWithAuth) {
     return this.hr.payPayrollRun(id, payload, req.authContext!);
+  }
+
+  @Post('payroll-runs/:id/wps')
+  @RequirePermissions('hrPayrollView')
+  generatePayrollWps(@Param('id', ParseIntPipe) id: number, @Body() payload: GenerateWpsDto, @Req() req: RequestWithAuth) {
+    return this.hr.generatePayrollWps(id, payload, req.authContext!);
   }
 
   @Patch('payroll-run-items/:id')

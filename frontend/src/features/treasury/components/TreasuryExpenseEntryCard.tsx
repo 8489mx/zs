@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -10,6 +11,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import type { Location } from '@/types/domain';
 import type { ExpenseFormState } from '@/features/treasury/lib/treasury-page.helpers';
+import { costCentersApi } from '@/features/accounting/api/cost-centers.api';
 
 const EXPENSE_PRESETS = [
   'إيجار',
@@ -43,6 +45,11 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
   const warehouseList = warehouses || locations || [];
   const [customPresets, setCustomPresets] = useState<string[]>([]);
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
+
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ['accounting-cost-centers'],
+    queryFn: costCentersApi.list,
+  });
 
   useEffect(() => {
     try {
@@ -139,6 +146,20 @@ export function TreasuryExpenseEntryCard({ expenseForm, setExpenseForm, branches
             </select>
           </Field>
         )}
+
+        <Field label="مركز التكلفة (اختياري)">
+          <select
+            value={expenseForm.costCenterId || ''}
+            onChange={(e) => setExpenseForm((current) => ({ ...current, costCenterId: e.target.value }))}
+          >
+            <option value="">بدون مركز تكلفة</option>
+            {costCenters.filter((c) => c.isActive).map((center) => (
+              <option key={center.id} value={center.id}>
+                {center.code} - {center.name}
+              </option>
+            ))}
+          </select>
+        </Field>
 
         <Field label="التاريخ" className="field-full-span">
           <input

@@ -8,6 +8,7 @@ import { PosWorkspaceMainContent } from '@/features/pos/components/pos-workspace
 import { PosCheckoutDialog } from '@/features/pos/components/pos-workspace/PosCheckoutDialog';
 import { PosHeldDraftsDialog } from '@/features/pos/components/pos-workspace/PosHeldDraftsDialog';
 import { PosTablesFloorPlanDialog } from '@/features/pos/components/pos-workspace/PosTablesFloorPlanDialog';
+import { PosSplitBillModal } from '@/features/pos/components/pos-workspace/PosSplitBillModal';
 import { PosItemModifiersModal } from '@/features/pos/components/pos-cart-panel/PosItemModifiersModal';
 import { PosDraftSwitcherOverlay } from '@/features/pos/components/pos-workspace/PosDraftSwitcherOverlay';
 import { PosOpenShiftModal } from '@/features/pos/components/pos-workspace/PosOpenShiftModal';
@@ -54,6 +55,7 @@ export function PosWorkspace() {
   const [clearHeldConfirmOpen, setClearHeldConfirmOpen] = useState(false);
   const [saleSuccessDialogOpen, setSaleSuccessDialogOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const [splitBillOpen, setSplitBillOpen] = useState(false);
   const [heldDraftsDialogOpen, setHeldDraftsDialogOpen] = useState(false);
   const [restaurantTablesOpen, setRestaurantTablesOpen] = useState(false);
   const [restaurantInitialTab, setRestaurantInitialTab] = useState<'floor' | 'list'>('floor');
@@ -575,11 +577,25 @@ export function PosWorkspace() {
           setCheckoutDialogOpen(false);
           focusBarcodeEntry();
         }}
+        onOpenSplitBill={() => setSplitBillOpen(true)}
         onConfirmSale={(managerPin) => {
           void pos.handleSubmit({ managerPin }).then(() => {
             setCheckoutDialogOpen(false);
             focusBarcodeEntry();
           });
+        }}
+      />
+
+      <PosSplitBillModal
+        open={splitBillOpen}
+        pos={pos}
+        onClose={() => {
+          setSplitBillOpen(false);
+          focusBarcodeEntry();
+        }}
+        onSplitCompleted={() => {
+          setSplitBillOpen(false);
+          focusBarcodeEntry();
         }}
       />
 
@@ -635,7 +651,30 @@ export function PosWorkspace() {
           }}
           onTransferTable={(from, to) => {
             pos.setTableNumber(to);
-            alert(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}!`);
+            pos.setSubmitMessage(`تم نقل الطلب بنجاح من طاولة ${from} إلى طاولة ${to}.`);
+          }}
+          onMergeTable={async (from, to) => {
+            const targetDraft = pos.heldDrafts.find((d) => String(d.tableNumber).trim() === String(to).trim());
+            if (targetDraft && targetDraft.cart?.length) {
+              const mergedCart = [...pos.cart];
+              for (const targetItem of targetDraft.cart) {
+                const existingIdx = mergedCart.findIndex(
+                  (c) => c.productId === targetItem.productId && c.unitId === targetItem.unitId && c.price === targetItem.price
+                );
+                if (existingIdx !== -1) {
+                  mergedCart[existingIdx] = {
+                    ...mergedCart[existingIdx],
+                    qty: Number(mergedCart[existingIdx].qty || 0) + Number(targetItem.qty || 0),
+                  };
+                } else {
+                  mergedCart.push(targetItem);
+                }
+              }
+              pos.setCart(mergedCart);
+              await pos.deleteDraft(targetDraft.id);
+            }
+            pos.setTableNumber(to);
+            pos.setSubmitMessage(`تم دمج طلب طاولة ${from} مع طاولة ${to} بنجاح.`);
           }}
         />
       )}

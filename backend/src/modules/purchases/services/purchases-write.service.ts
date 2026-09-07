@@ -396,6 +396,54 @@ export class PurchasesWriteService {
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           }).execute();
+
+          const batchNo = item.batchNumber ? String(item.batchNumber).trim() : '';
+          const expiryDate = item.expiryDate ? String(item.expiryDate).trim() : '';
+          if (batchNo) {
+            try {
+              const existingBatch = await trx
+                .selectFrom('pharmacy_batches')
+                .selectAll()
+                .where('product_id', '=', item.productId)
+                .where('batch_number', '=', batchNo)
+                .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+                .executeTakeFirst();
+
+              if (existingBatch) {
+                const updatedQty = Number(existingBatch.quantity || 0) + increasedQty;
+                await trx
+                  .updateTable('pharmacy_batches')
+                  .set({
+                    quantity: updatedQty,
+                    unit_cost: item.effectiveUnitCost,
+                    status: 'active',
+                    expiry_date: expiryDate || existingBatch.expiry_date,
+                    updated_at: sql`NOW()`,
+                  } as any)
+                  .where('id', '=', Number(existingBatch.id))
+                  .execute();
+              } else {
+                await trx
+                  .insertInto('pharmacy_batches')
+                  .values({
+                    tenant_id: scope.tenantId,
+                    account_id: scope.accountId,
+                    product_id: item.productId,
+                    batch_number: batchNo,
+                    expiry_date: expiryDate || new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+                    quantity: increasedQty,
+                    unit_cost: item.effectiveUnitCost,
+                    location_id: itemLocationId || null,
+                    supplier_name: supplier?.name || null,
+                    status: 'active',
+                    notes: `وارد فاتورة شراء PUR-${id}`,
+                  } as any)
+                  .execute();
+              }
+            } catch {
+              // Non-blocking if table not available
+            }
+          }
         }
       }
 

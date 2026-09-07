@@ -24,6 +24,10 @@ export const accountingRouteModule: FeatureRouteModule = {
       element: createLazyRoute(() => import('@/features/accounting/pages/AccountingJournalEntriesPage').then((module) => ({ default: withAccountingGate(module.AccountingJournalEntriesPage) }))),
     },
     {
+      path: 'accounting/cost-centers',
+      element: createLazyRoute(() => import('@/features/accounting/pages/AccountingCostCentersPage').then((module) => ({ default: withAccountingGate(module.AccountingCostCentersPage) }))),
+    },
+    {
       path: 'accounting/settings',
       element: createLazyRoute(() => import('@/features/accounting/pages/AccountingSettingsPage').then((module) => ({ default: withAccountingGate(module.AccountingSettingsPage) }))),
     },
@@ -47,10 +51,16 @@ export const accountingRouteModule: FeatureRouteModule = {
       path: 'accounting/fixed-assets',
       element: createLazyRoute(() => import('@/features/accounting/pages/AccountingFixedAssetsPage').then((module) => ({ default: withAccountingGate(module.AccountingFixedAssetsPage) }))),
     },
+    {
+      path: 'accounting/bank-reconciliation',
+      element: createLazyRoute(() => import('@/features/accounting/pages/BankReconciliationPage').then((module) => ({ default: withAccountingGate(module.BankReconciliationPage) }))),
+    },
   ],
   navigation: [
     { key: 'accounting-accounts', label: 'شجرة الحسابات', to: '/accounting/accounts' },
+    { key: 'accounting-cost-centers', label: 'مراكز التكلفة', to: '/accounting/cost-centers' },
     { key: 'accounting-journal-entries', label: 'القيود اليومية', to: '/accounting/journal-entries' },
+    { key: 'accounting-bank-reconciliation', label: 'التسويات البنكية', to: '/accounting/bank-reconciliation' },
     { key: 'accounting-fixed-assets', label: 'الأصول الثابتة والإهلاك', to: '/accounting/fixed-assets' },
     { key: 'accounting-settings', label: 'إعدادات الحسابات', to: '/accounting/settings' },
   ],

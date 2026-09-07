@@ -8,7 +8,8 @@ import { http } from '@/lib/http';
 import { useAuthStore } from '@/stores/auth-store';
 import { ManufacturingLayout } from '@/features/manufacturing/components/ManufacturingLayout';
 
-import { workOrdersApi, type WorkOrderRecord } from '@/features/manufacturing/api/work-orders.api';
+import { workOrdersApi, type WorkOrderRecord, type WorkOrderOperationInput } from '@/features/manufacturing/api/work-orders.api';
+import { workCentersApi, type WorkCenterRecord } from '@/features/manufacturing/api/work-centers.api';
 
 import { systemAlert } from '@/shared/components/system-alert';
 
@@ -31,6 +32,10 @@ const statusColors: Record<string, string> = {
 export default function WorkOrdersListPage() {
   const navigate = useNavigate();
   const [workOrders, setWorkOrders] = useState<WorkOrderRecord[]>([]);
+  const [workCenters, setWorkCenters] = useState<WorkCenterRecord[]>([]);
+  const [completingOrder, setCompletingOrder] = useState<WorkOrderRecord | null>(null);
+  const [operations, setOperations] = useState<WorkOrderOperationInput[]>([]);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   const [dateFilter, setDateFilter] = useState<'all'|'today'|'week'|'month'>('all');
@@ -46,6 +51,10 @@ export default function WorkOrdersListPage() {
           setUsers(res.users.map(u => ({ id: u.id, name: u.displayName || u.username })));
         }
       })
+      .catch(() => {});
+
+    workCentersApi.list()
+      .then(setWorkCenters)
       .catch(() => {});
 
     workOrdersApi.list()
@@ -138,14 +147,8 @@ export default function WorkOrdersListPage() {
         <Button 
           variant="secondary" 
           onClick={() => {
-            if (confirm('هل أنت متأكد من إنهاء أمر الإنتاج وسحب المواد من المخزن وإضافة المنتج التام؟')) {
-              workOrdersApi.complete(row.id, {})
-                .then(() => {
-                  systemAlert('تم إنهاء أمر الإنتاج بنجاح');
-                  setWorkOrders(workOrders.map(wo => wo.id === row.id ? { ...wo, status: 'done' } : wo));
-                })
-                .catch((e: any) => systemAlert(e?.message || 'حدث خطأ أثناء إنهاء الأمر'));
-            }
+            setCompletingOrder(row);
+            setOperations([]);
           }}
         >
           إنهاء وتأكيد
@@ -241,6 +244,314 @@ export default function WorkOrdersListPage() {
           )}
           </div>
         </section>
+
+      {/* Complete Work Order Modal with Machine Routing */}
+      {completingOrder && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '16px',
+          }}
+          dir="rtl"
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '680px',
+              width: '100%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              overflow: 'hidden',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
+                  إنهاء أمر الإنتاج {completingOrder.doc_no || `#${completingOrder.id}`}
+                </h3>
+                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                  {completingOrder.product_name} — الكمية: {Number(completingOrder.quantity_to_produce).toLocaleString('ar-EG')}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCompletingOrder(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '14px',
+                  marginBottom: '20px',
+                  fontSize: '13px',
+                  color: '#334155',
+                  lineHeight: '1.6',
+                }}
+              >
+                عند تأكيد الإنهاء، سيتم سحب المواد الخام من المخزن، وإيداع المنتج التام في مخزن الإنتاج.
+                كما يمكنك اختياريّاً تسجيل خطوط الإنتاج والماكينات (Work Centers) المستهلكة لحساب تكلفة التشغيل بالساعة بدقة معيارية مثل أودو 17.
+              </div>
+
+              <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
+                  تشغيل الماكينات ومراكز العمل (Work Centers Routing)
+                </span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    const defaultCenter = workCenters[0];
+                    setOperations([
+                      ...operations,
+                      {
+                        workCenterId: defaultCenter ? defaultCenter.id : 0,
+                        operationName: 'تشغيل خط الإنتاج',
+                        durationHours: 1,
+                        notes: '',
+                      },
+                    ]);
+                  }}
+                  style={{ fontSize: '12px' }}
+                >
+                  + إضافة عملية ماكينة
+                </Button>
+              </div>
+
+              {operations.length === 0 ? (
+                <div
+                  style={{
+                    padding: '24px',
+                    textAlign: 'center',
+                    border: '1px dashed #cbd5e1',
+                    borderRadius: '8px',
+                    color: '#64748b',
+                    fontSize: '13px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  لم يتم إضافة عمليات ماكينات. سيتم احتساب تكلفة الخامات والتكاليف غير المباشرة فقط.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                  {operations.map((op, idx) => {
+                    const center = workCenters.find((w) => w.id === op.workCenterId);
+                    const hourlyRate = center ? Number(center.cost_per_hour || 0) : 0;
+                    const lineCost = (Number(op.durationHours) || 0) * hourlyRate;
+
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          display: 'grid',
+                          gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr auto',
+                          gap: '10px',
+                          alignItems: 'end',
+                        }}
+                      >
+                        <Field label="مركز العمل / الماكينة">
+                          <select
+                            value={op.workCenterId}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              const newOps = [...operations];
+                              newOps[idx].workCenterId = val;
+                              setOperations(newOps);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '6px 8px',
+                              borderRadius: '6px',
+                              border: '1px solid #d1d5db',
+                              fontSize: '13px',
+                              backgroundColor: '#fff',
+                            }}
+                          >
+                            <option value={0}>اختر مركز العمل...</option>
+                            {workCenters.map((wc) => (
+                              <option key={wc.id} value={wc.id}>
+                                {wc.name} ({Number(wc.cost_per_hour)} ج.م/س)
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+
+                        <Field label="اسم العملية">
+                          <input
+                            type="text"
+                            value={op.operationName}
+                            onChange={(e) => {
+                              const newOps = [...operations];
+                              newOps[idx].operationName = e.target.value;
+                              setOperations(newOps);
+                            }}
+                            placeholder="مثال: تغليف، تقطيع..."
+                            style={{
+                              width: '100%',
+                              padding: '6px 8px',
+                              borderRadius: '6px',
+                              border: '1px solid #d1d5db',
+                              fontSize: '13px',
+                            }}
+                          />
+                        </Field>
+
+                        <Field label="المدة (ساعة)">
+                          <input
+                            type="number"
+                            min="0.1"
+                            step="0.25"
+                            value={op.durationHours}
+                            onChange={(e) => {
+                              const newOps = [...operations];
+                              newOps[idx].durationHours = Number(e.target.value);
+                              setOperations(newOps);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '6px 8px',
+                              borderRadius: '6px',
+                              border: '1px solid #d1d5db',
+                              fontSize: '13px',
+                            }}
+                          />
+                        </Field>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>
+                            التكلفة المحسوبة
+                          </label>
+                          <div style={{ fontWeight: 600, fontSize: '13px', color: '#170e5e', padding: '6px 0' }}>
+                            {lineCost.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' })}
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="danger"
+                          onClick={() => {
+                            setOperations(operations.filter((_, i) => i !== idx));
+                          }}
+                          style={{ padding: '6px', fontSize: '12px' }}
+                        >
+                          حذف
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {operations.length > 0 && (
+                <div
+                  style={{
+                    background: '#f1f5f9',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                    إجمالي تكلفة ساعات تشغيل الماكينات:
+                  </span>
+                  <span style={{ fontSize: '16px', fontWeight: 700, color: '#170e5e' }}>
+                    {operations
+                      .reduce((sum, op) => {
+                        const center = workCenters.find((w) => w.id === op.workCenterId);
+                        const rate = center ? Number(center.cost_per_hour || 0) : 0;
+                        return sum + (Number(op.durationHours) || 0) * rate;
+                      }, 0)
+                      .toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                background: '#ffffff',
+              }}
+            >
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setCompletingOrder(null)}
+                disabled={isCompleting}
+              >
+                إلغاء
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={isCompleting}
+                onClick={async () => {
+                  setIsCompleting(true);
+                  try {
+                    const validOps = operations.filter((op) => op.workCenterId > 0 && op.durationHours > 0);
+                    await workOrdersApi.complete(completingOrder.id, {
+                      operations: validOps.length > 0 ? validOps : undefined,
+                    });
+                    systemAlert('تم إنهاء أمر الإنتاج وترحيل التكاليف والمخزون بنجاح');
+                    setWorkOrders(
+                      workOrders.map((wo) =>
+                        wo.id === completingOrder.id ? { ...wo, status: 'done' } : wo
+                      )
+                    );
+                    setCompletingOrder(null);
+                  } catch (e: any) {
+                    systemAlert(e?.message || 'حدث خطأ أثناء إنهاء أمر الإنتاج');
+                  } finally {
+                    setIsCompleting(false);
+                  }
+                }}
+                style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 600 }}
+              >
+                {isCompleting ? 'جاري الإنهاء والترحيل...' : 'تأكيد الإنهاء والترحيل المخزني'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </ManufacturingLayout>
   );
 }

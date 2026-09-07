@@ -9,12 +9,14 @@ export const manufacturingRouteModule: FeatureRouteModule = {
     { path: 'manufacturing/boms/:id/edit', element: createLazyRoute(() => import('./pages/EditBomPage').then((m) => ({ default: m.default }))) },
     { path: 'manufacturing/work-orders', element: createLazyRoute(() => import('./pages/WorkOrdersListPage').then((m) => ({ default: m.default }))) },
     { path: 'manufacturing/work-orders/new', element: createLazyRoute(() => import('./pages/NewWorkOrderPage').then((m) => ({ default: m.default }))) },
+    { path: 'manufacturing/work-centers', element: createLazyRoute(() => import('./pages/WorkCentersPage').then((m) => ({ default: m.default }))) },
     { path: 'manufacturing/settings', element: createLazyRoute(() => import('./pages/ManufacturingSettingsPage').then((m) => ({ default: m.default }))) }
   ],
   navigation: [
     { key: 'manufacturing-components', label: 'مكونات التصنيع', to: '/manufacturing/components' },
     { key: 'manufacturing-boms', label: 'قائمة المكونات (BOM)', to: '/manufacturing/boms' },
     { key: 'manufacturing-work-orders', label: 'أوامر الإنتاج', to: '/manufacturing/work-orders' },
+    { key: 'manufacturing-work-centers', label: 'مراكز العمل والماكينات', to: '/manufacturing/work-centers' },
     { key: 'manufacturing-settings', label: 'إعدادات التصنيع', to: '/manufacturing/settings' },
   ]
 };

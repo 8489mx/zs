@@ -105,7 +105,7 @@ export class TreasuryService {
     const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
       const insert = await sql<{ id: number }>`
-        INSERT INTO expenses (title, amount, expense_date, note, branch_id, location_id, created_by, tenant_id, account_id)
+        INSERT INTO expenses (title, amount, expense_date, note, branch_id, location_id, cost_center_id, created_by, tenant_id, account_id)
         VALUES (
           ${String(payload.title || '').trim()},
           ${Number(payload.amount || 0)},
@@ -113,6 +113,7 @@ export class TreasuryService {
           ${String(payload.note || '').trim()},
           ${payload.branchId ? Number(payload.branchId) : null},
           ${payload.locationId ? Number(payload.locationId) : null},
+          ${payload.costCenterId ? Number(payload.costCenterId) : null},
           ${auth.userId},
           ${scope.tenantId},
           ${scope.accountId}

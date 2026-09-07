@@ -83,4 +83,68 @@ export class CompleteWorkOrderDto {
   @IsOptional()
   @IsNumber()
   destinationLocationId?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateWoOperationDto)
+  operations?: CreateWoOperationDto[];
 }
+
+export class UpsertWorkCenterDto {
+  @IsString()
+  code!: string;
+
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  costPerHour?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  capacity?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1000)
+  timeEfficiency?: number;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateWoOperationDto {
+  @IsNumber()
+  workCenterId!: number;
+
+  @IsString()
+  operationName!: string;
+
+  @IsOptional()
+  @IsNumber()
+  sequence?: number;
+
+  @IsNumber()
+  @Min(0.01)
+  durationHours!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  hourlyCost?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+

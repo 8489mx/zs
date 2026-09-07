@@ -17,6 +17,7 @@ interface PosTablesFloorPlanDialogProps {
   onDeleteDraft?: (draftId: string) => Promise<void>;
   onClearAllDrafts?: () => Promise<void>;
   onTransferTable?: (fromTable: string, toTable: string) => void;
+  onMergeTable?: (fromTable: string, toTable: string) => void;
   initialTab?: 'floor' | 'list';
 }
 
@@ -32,6 +33,7 @@ export function PosTablesFloorPlanDialog({
   onDeleteDraft,
   onClearAllDrafts,
   onTransferTable,
+  onMergeTable,
   initialTab = 'floor',
 }: PosTablesFloorPlanDialogProps) {
   const [activeTab, setActiveTab] = useState<'floor' | 'list'>(initialTab);
@@ -95,11 +97,24 @@ export function PosTablesFloorPlanDialog({
 
   const handleTableClick = async (tableNum: string) => {
     if (isTransferring) {
-      if (currentTableNumber && onTransferTable) {
-        onTransferTable(currentTableNumber, tableNum);
-        setIsTransferring(false);
-        onClose();
+      if (currentTableNumber && currentTableNumber !== tableNum) {
+        const isTargetOccupied = occupiedMap.has(tableNum);
+        if (isTargetOccupied && onMergeTable) {
+          const confirmMerge = window.confirm(`الطاولة ${tableNum} مشغولة بالفعل بطلب قيمته ${Number(occupiedMap.get(tableNum)?.total || 0).toLocaleString('ar-EG')} ج.م.\n\nهل ترغب في دمج طلب الطاولة ${currentTableNumber} مع هذه الطاولة؟`);
+          if (confirmMerge) {
+            onMergeTable(currentTableNumber, tableNum);
+            setIsTransferring(false);
+            onClose();
+            return;
+          }
+        } else if (onTransferTable) {
+          onTransferTable(currentTableNumber, tableNum);
+          setIsTransferring(false);
+          onClose();
+          return;
+        }
       }
+      setIsTransferring(false);
       return;
     }
 

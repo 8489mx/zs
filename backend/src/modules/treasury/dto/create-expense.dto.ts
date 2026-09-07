@@ -28,4 +28,10 @@ export class CreateExpenseDto {
   @IsNumber()
   @Min(1)
   locationId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  costCenterId?: number;
 }

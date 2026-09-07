@@ -8,7 +8,7 @@ import { applyStockDelta, previewAssignedLocationStockQty } from '../../../commo
 import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
-import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto } from '../dto/manufacturing.dto';
+import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto, UpsertWorkCenterDto, CreateWoOperationDto } from '../dto/manufacturing.dto';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 
 @Injectable()
@@ -395,6 +395,38 @@ export class ManufacturingService {
       const totalOverheadCost = Number((overheadCost * (qtyToProduce / bomQuantity)).toFixed(3));
       totalCost += totalOverheadCost;
 
+      // Add Work Center Operations & Machine Costs
+      if (payload.operations && payload.operations.length > 0) {
+        for (const op of payload.operations) {
+          let hourlyCost = op.hourlyCost;
+          if (hourlyCost == null) {
+            const wc = await trx
+              .selectFrom('manufacturing_work_centers')
+              .select(['cost_per_hour'])
+              .where('id', '=', op.workCenterId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .executeTakeFirst();
+            hourlyCost = Number(wc?.cost_per_hour || 0);
+          }
+          const opTotalCost = Number((Number(op.durationHours || 0) * Number(hourlyCost || 0)).toFixed(2));
+          totalCost += opTotalCost;
+
+          await trx.insertInto('manufacturing_wo_operations').values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            work_order_id: wo.id,
+            work_center_id: op.workCenterId,
+            operation_name: op.operationName,
+            sequence: op.sequence || 1,
+            duration_hours: op.durationHours,
+            hourly_cost: hourlyCost,
+            total_cost: opTotalCost,
+            status: 'completed',
+            notes: op.notes || null,
+          } as any).execute();
+        }
+      }
+
       // Add finished product
       const fgStockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(wo.finished_product_id), branchId: null, locationId: destinationLocation };
       const fgStockChange = await applyStockDelta(trx, {
@@ -449,5 +481,100 @@ export class ManufacturingService {
 
     await this.audit.log('إنهاء أمر إنتاج', `تم إنهاء أمر إنتاج #${id}`, auth);
     return { ok: true };
+  }
+
+  async listWorkCenters(auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+    const workCenters = await this.db
+      .selectFrom('manufacturing_work_centers')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .orderBy('code', 'asc')
+      .execute();
+    return { ok: true, workCenters };
+  }
+
+  async upsertWorkCenter(id: number | null, dto: UpsertWorkCenterDto, auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+    if (id) {
+      const updated = await this.db
+        .updateTable('manufacturing_work_centers')
+        .set({
+          code: dto.code.trim(),
+          name: dto.name.trim(),
+          cost_per_hour: dto.costPerHour ?? 0,
+          capacity: dto.capacity ?? 1,
+          time_efficiency: dto.timeEfficiency ?? 100,
+          status: dto.status || 'active',
+          notes: dto.notes ?? null,
+          updated_at: sql`NOW()`,
+        } as any)
+        .where('id', '=', id)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      await this.audit.log('تعديل مركز عمل', `تم تعديل مركز العمل ${dto.name} (${dto.code})`, auth);
+      return { ok: true, workCenter: updated };
+    }
+
+    const inserted = await this.db
+      .insertInto('manufacturing_work_centers')
+      .values({
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+        code: dto.code.trim(),
+        name: dto.name.trim(),
+        cost_per_hour: dto.costPerHour ?? 0,
+        capacity: dto.capacity ?? 1,
+        time_efficiency: dto.timeEfficiency ?? 100,
+        status: dto.status || 'active',
+        notes: dto.notes ?? null,
+      } as any)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await this.audit.log('إنشاء مركز عمل', `تم إنشاء مركز العمل ${dto.name} (${dto.code})`, auth);
+    return { ok: true, workCenter: inserted };
+  }
+
+  async deleteWorkCenter(id: number, auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+    await this.db
+      .deleteFrom('manufacturing_work_centers')
+      .where('id', '=', id)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .execute();
+
+    await this.audit.log('حذف مركز عمل', `تم حذف مركز العمل #${id}`, auth);
+    return { ok: true };
+  }
+
+  async getWorkOrderOperations(workOrderId: number, auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+    const operations = await this.db
+      .selectFrom('manufacturing_wo_operations as op')
+      .innerJoin('manufacturing_work_centers as wc', 'wc.id', 'op.work_center_id')
+      .select([
+        'op.id',
+        'op.work_order_id',
+        'op.work_center_id',
+        'op.operation_name',
+        'op.sequence',
+        'op.duration_hours',
+        'op.hourly_cost',
+        'op.total_cost',
+        'op.status',
+        'op.notes',
+        'op.created_at',
+        'wc.name as work_center_name',
+        'wc.code as work_center_code',
+      ])
+      .where('op.work_order_id', '=', workOrderId)
+      .where(sql<boolean>`op.tenant_id = ${scope.tenantId}`)
+      .orderBy('op.sequence', 'asc')
+      .execute();
+
+    return { ok: true, operations };
   }
 }

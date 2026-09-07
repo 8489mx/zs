@@ -143,6 +143,7 @@ export interface JournalEntryLineTable {
   tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   journal_entry_id: number;
   account_id: number;
+  cost_center_id?: number | null;
   description: string;
   debit: number;
   credit: number;
@@ -150,6 +151,36 @@ export interface JournalEntryLineTable {
   partner_id: number | null;
   branch_id: number | null;
   location_id: number | null;
+  is_reconciled?: boolean;
+  reconciled_at?: Date | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
+export interface BankStatementTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  account_id: number;
+  statement_no: string;
+  statement_date: ColumnType<string, string | Date, string | Date>;
+  starting_balance: number;
+  ending_balance: number;
+  status: 'draft' | 'in_progress' | 'reconciled';
+  notes: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface BankStatementLineTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  statement_id: number;
+  line_date: ColumnType<string, string | Date, string | Date>;
+  description: string;
+  reference: string | null;
+  amount: number;
+  is_reconciled: boolean;
+  matched_journal_line_id: number | null;
+  reconciled_at: Date | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -170,6 +201,9 @@ export interface AccountingSettingsTable {
   sales_tax_account_id: number | null;
   purchase_tax_account_id: number | null;
   manufacturing_overhead_account_id: number | null;
+  lock_date_all: ColumnType<string | null, string | Date | null | undefined, string | Date | null | undefined>;
+  lock_date_non_adviser: ColumnType<string | null, string | Date | null | undefined, string | Date | null | undefined>;
+  lock_date_tax: ColumnType<string | null, string | Date | null | undefined, string | Date | null | undefined>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
@@ -740,6 +774,7 @@ export interface ExpenseTable {
   id: Generated<number>;
   title: string;
   amount: number;
+  cost_center_id?: number | null;
   expense_date: ColumnType<Date, string | undefined, string | undefined>;
   note: string;
   branch_id: number | null;
@@ -929,10 +964,52 @@ export interface PartnerAddressTable {
 export interface CostCenterTable {
   id: Generated<number>;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
-  account_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id?: ColumnType<string, string | undefined, string | undefined>;
   code: ColumnType<string, string | undefined, string | undefined>;
   name: string;
+  dimension?: ColumnType<string, string | undefined, string | undefined>;
+  budget_amount?: ColumnType<number, number | undefined, number | undefined>;
+  parent_id?: number | null;
   is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  description?: string | null;
+  created_at?: ColumnType<Date, string | undefined, never>;
+  updated_at?: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface CrmDealTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  title: string;
+  stage: ColumnType<string, string | undefined, string | undefined>;
+  expected_amount: ColumnType<number, number | undefined, number | undefined>;
+  currency: ColumnType<string, string | undefined, string | undefined>;
+  probability: ColumnType<number, number | undefined, number | undefined>;
+  expected_close_date?: ColumnType<Date | string | null, string | null | undefined, string | null | undefined>;
+  contact_name?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  company_name?: string | null;
+  source: ColumnType<string, string | undefined, string | undefined>;
+  priority: ColumnType<string, string | undefined, string | undefined>;
+  assigned_user_id?: number | null;
+  customer_id?: number | null;
+  lost_reason?: string | null;
+  notes?: string | null;
+  created_by?: number | null;
+  created_at?: ColumnType<Date, string | undefined, never>;
+  updated_at?: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface CrmActivityTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  deal_id: number;
+  activity_type: ColumnType<string, string | undefined, string | undefined>;
+  summary: string;
+  due_date?: ColumnType<Date | string | null, string | null | undefined, string | null | undefined>;
+  is_completed: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  created_by?: number | null;
+  created_at?: ColumnType<Date, string | undefined, never>;
 }
 
 export interface AddonTable {
@@ -1017,6 +1094,37 @@ export interface ManufacturingWoConsumptionTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
+export interface ManufacturingWorkCenterTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  code: string;
+  name: string;
+  cost_per_hour: number;
+  capacity: number;
+  time_efficiency: number;
+  status: string;
+  notes: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ManufacturingWoOperationTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  account_id: ColumnType<string, string | undefined, string | undefined>;
+  work_order_id: number;
+  work_center_id: number;
+  operation_name: string;
+  sequence: number;
+  duration_hours: number;
+  hourly_cost: number;
+  total_cost: number;
+  status: string;
+  notes: string | null;
+  created_at: ColumnType<Date, string | undefined, never>;
+}
+
 export interface PurchaseAttachmentTable {
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
@@ -1059,6 +1167,10 @@ export interface PurchaseTable {
   terms_template: ColumnType<string, string | undefined, string | undefined>;
   lifecycle_status?: ColumnType<string, string | undefined, string | undefined>;
   matched_status?: ColumnType<string, string | undefined, string | undefined>;
+  landed_cost_total?: number | null;
+  landed_cost_allocation_method?: 'value' | 'qty' | 'equal' | null;
+  landed_cost_notes?: string | null;
+  landed_cost_applied_at?: Date | null;
   tenant_id: ColumnType<string, string | undefined, string | undefined>;
   account_id: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -1077,10 +1189,24 @@ export interface PurchaseItemTable {
   line_total: number;
   unit_name: string;
   unit_multiplier: number;
+  allocated_landed_cost?: number | null;
+  landed_unit_cost?: number | null;
   received_qty?: ColumnType<number, number | undefined, number | undefined>;
   category_id: number | null;
   location_id: number | null;
   serials?: any;
+}
+
+export interface PurchaseLandedCostTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  purchase_id: number;
+  cost_type: 'freight' | 'customs' | 'handling' | 'insurance' | 'other';
+  description: string;
+  amount: number;
+  vendor_id?: number | null;
+  allocation_method: 'value' | 'qty' | 'equal';
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface SupplierPaymentTable {
@@ -1206,6 +1332,10 @@ export interface HrEmployeeTable {
   has_income_tax: boolean;
   end_of_service_date: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   end_of_service_reason: string | null;
+  bank_name?: string | null;
+  bank_account_number?: string | null;
+  iban?: string | null;
+  bank_swift_code?: string | null;
   notes: ColumnType<string, string | undefined, string | undefined>;
   created_by: number | null;
   updated_by: number | null;
@@ -1601,6 +1731,11 @@ export interface Database {
   accounting_accounts: AccountingAccountTable;
   journal_entries: JournalEntryTable;
   journal_entry_lines: JournalEntryLineTable;
+  bank_statements: BankStatementTable;
+  bank_statement_lines: BankStatementLineTable;
+  cost_centers: CostCenterTable;
+  crm_deals: CrmDealTable;
+  crm_activities: CrmActivityTable;
   accounting_settings: AccountingSettingsTable;
   audit_logs: AuditLogTable;
   branches: BranchTable;
@@ -1638,6 +1773,7 @@ export interface Database {
   cashier_shifts: CashierShiftTable;
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
+  purchase_landed_costs: PurchaseLandedCostTable;
   supplier_payments: SupplierPaymentTable;
   supplier_payment_schedules: SupplierPaymentScheduleTable;
   supplier_payment_schedule_logs: SupplierPaymentScheduleLogTable;
@@ -1854,6 +1990,8 @@ export interface Database {
   accounting_accounts: AccountingAccountTable;
   journal_entries: JournalEntryTable;
   journal_entry_lines: JournalEntryLineTable;
+  bank_statements: BankStatementTable;
+  bank_statement_lines: BankStatementLineTable;
   accounting_settings: AccountingSettingsTable;
   audit_logs: AuditLogTable;
   branches: BranchTable;
@@ -1891,6 +2029,7 @@ export interface Database {
   cashier_shifts: CashierShiftTable;
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
+  purchase_landed_costs: PurchaseLandedCostTable;
   supplier_payments: SupplierPaymentTable;
   supplier_payment_schedules: SupplierPaymentScheduleTable;
   supplier_payment_schedule_logs: SupplierPaymentScheduleLogTable;
@@ -1929,6 +2068,8 @@ export interface Database {
   manufacturing_bom_lines: ManufacturingBomLineTable;
   manufacturing_work_orders: ManufacturingWorkOrderTable;
   manufacturing_wo_consumptions: ManufacturingWoConsumptionTable;
+  manufacturing_work_centers: ManufacturingWorkCenterTable;
+  manufacturing_wo_operations: ManufacturingWoOperationTable;
   hr_employee_adjustments: HrEmployeeAdjustmentTable;
   offline_releases: OfflineReleaseTable;
   style_code_counters: StyleCodeCounterTable;

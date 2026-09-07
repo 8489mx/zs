@@ -45,6 +45,7 @@ import { AiCopilotModule } from './modules/ai-copilot/ai-copilot.module';
 import { JobQueueModule } from './common/queue/job-queue.module';
 import { BostaModule } from './modules/bosta/bosta.module';
 import { GccShippingModule } from './modules/gcc-shipping/gcc-shipping.module';
+import { CrmModule } from './modules/crm/crm.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { GccShippingModule } from './modules/gcc-shipping/gcc-shipping.module';
     AiCopilotModule,
     BostaModule,
     GccShippingModule,
+    CrmModule,
   ],
 
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],

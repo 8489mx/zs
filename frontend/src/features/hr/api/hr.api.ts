@@ -142,6 +142,41 @@ export const hrApi = {
   approvePayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/approve`, { method: 'POST' }),
   cancelPayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/cancel`, { method: 'POST' }),
   payPayrollRun: (id: string, payload: { paymentChannel: string }) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/pay`, { method: 'POST', body: JSON.stringify(payload) }),
+  generatePayrollWps: (id: string, payload: { payerCrNo?: string; payerBankRoutingCode?: string; payerName?: string; currency?: string } = {}) =>
+    http<{
+      ok: boolean;
+      runId: number;
+      runName: string;
+      periodMonth: string;
+      startDate: string;
+      endDate: string;
+      summary: {
+        totalEmployees: number;
+        totalNetPay: number;
+        totalBaseSalary: number;
+        totalAllowances: number;
+        totalDeductions: number;
+        currency: string;
+        missingIbanCount: number;
+      };
+      sifContent: string;
+      csvContent: string;
+      records: Array<{
+        id: number;
+        employeeId: number;
+        employeeNo: string;
+        displayName: string;
+        nationalId: string;
+        bankName: string;
+        bankAccountNumber: string;
+        iban: string;
+        bankSwiftCode: string;
+        baseSalary: number;
+        allowances: number;
+        deductions: number;
+        netPay: number;
+      }>;
+    }>(`/api/hr/payroll-runs/${id}/wps`, { method: 'POST', body: JSON.stringify(payload) }),
   updatePayrollRunItem: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   createPayrollAdjustment: (id: string, payload: unknown) => http<PayrollRunResponse>(`/api/hr/payroll-run-items/${id}/adjustments`, { method: 'POST', body: JSON.stringify(payload) }),
   deletePayrollAdjustment: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-item-adjustments/${id}`, { method: 'DELETE' }),

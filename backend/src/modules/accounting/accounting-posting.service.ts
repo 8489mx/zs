@@ -17,6 +17,7 @@ type JournalLineDraft = {
   partnerId: number | null;
   branchId: number | null;
   locationId: number | null;
+  costCenterId?: number | null;
 };
 
 type ExpenseAccountCandidate = {
@@ -423,6 +424,45 @@ export class AccountingPostingService {
       throw new Error(`Unbalanced journal entry for ${params.sourceType} #${params.sourceId}: debit=${totalDebit.toFixed(2)} credit=${totalCredit.toFixed(2)}`);
     }
 
+    // Validate Period Lock Dates
+    const settings = await queryable
+      .selectFrom('accounting_settings')
+      .select(['lock_date_all', 'lock_date_non_adviser', 'lock_date_tax'])
+      .where('tenant_id', '=', params.tenantId)
+      .where('id', '=', 1)
+      .executeTakeFirst();
+
+    if (settings) {
+      const dateStr = params.entryDate instanceof Date
+        ? params.entryDate.toISOString().slice(0, 10)
+        : String(params.entryDate || '').slice(0, 10);
+
+      if (settings.lock_date_all) {
+        const lockAllStr = String(settings.lock_date_all).slice(0, 10);
+        if (dateStr <= lockAllStr) {
+          throw new AppError(
+            `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
+            'ACCOUNTING_PERIOD_LOCKED',
+            400,
+          );
+        }
+      }
+
+      if (settings.lock_date_non_adviser) {
+        const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
+        if (dateStr <= lockNonAdvStr) {
+          const operationalSources = ['sale', 'sale_edit', 'sale_cancel', 'sale_reversal', 'sales_return', 'return', 'purchase', 'purchase_cancel', 'purchase_reversal', 'supplier_payment', 'customer_payment', 'expense', 'treasury_expense'];
+          if (operationalSources.includes(params.sourceType)) {
+            throw new AppError(
+              `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`,
+              'ACCOUNTING_PERIOD_LOCKED_OPERATIONAL',
+              400,
+            );
+          }
+        }
+      }
+    }
+
     const tempEntryNo = `JE-TMP-${params.sourceType}-${params.sourceId}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const inserted = await queryable
       .insertInto('journal_entries')
@@ -460,6 +500,7 @@ export class AccountingPostingService {
             journal_entry_id: entryId,
             tenant_id: params.tenantId,
             account_id: line.accountId,
+            cost_center_id: line.costCenterId ?? null,
             description: line.description,
             debit: this.toMoney(line.debit),
             credit: this.toMoney(line.credit),
@@ -1712,6 +1753,7 @@ export class AccountingPostingService {
         'expense_date',
         'branch_id',
         'location_id',
+        'cost_center_id',
         'created_by',
         'created_at',
       ])
@@ -1735,6 +1777,7 @@ export class AccountingPostingService {
 
     const branchId = expense.branch_id ? Number(expense.branch_id) : null;
     const locationId = expense.location_id ? Number(expense.location_id) : null;
+    const costCenterId = expense.cost_center_id ? Number(expense.cost_center_id) : null;
     const expenseTitle = String(expense.title || '').trim();
     const expenseDebitAccountId = await this.resolveExpenseDebitAccountId(queryable, scope.tenantId, settings, expenseTitle, expenseId);
     const expenseLabel = expenseTitle || 'مصروف عام';
@@ -1751,6 +1794,7 @@ export class AccountingPostingService {
       partnerId: null,
       branchId,
       locationId,
+      costCenterId,
     });
     this.addLine(lines, {
       accountId: Number(settings.cash_account_id || 0),

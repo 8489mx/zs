@@ -14,6 +14,8 @@ import { UpsertPurchaseDto } from './dto/upsert-purchase.dto';
 import { PurchasesService } from './purchases.service';
 import { SupplierPaymentSchedulesService } from './services/supplier-payment-schedules.service';
 import { MarginProtectionService, ApplyRepricingPayload } from './services/margin-protection.service';
+import { PurchaseLandedCostsService } from './services/purchase-landed-costs.service';
+import { ApplyPurchaseLandedCostsDto } from './dto/purchase-landed-cost.dto';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -21,6 +23,7 @@ export class PurchasesController {
   constructor(
     private readonly purchasesService: PurchasesService,
     private readonly scheduleService: SupplierPaymentSchedulesService,
+    @Optional() private readonly landedCostsService?: PurchaseLandedCostsService,
     @Optional() private readonly marginProtectionService?: MarginProtectionService,
   ) {}
 
@@ -217,6 +220,24 @@ export class PurchasesController {
 
     const filePath = join(process.cwd(), 'uploads/purchases', fileUrl);
     res.sendFile(filePath);
+  }
+
+  @Get('purchases/:id/landed-costs')
+  @RequirePermissions('purchases')
+  getPurchaseLandedCosts(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    if (!this.landedCostsService) throw new BadRequestException('خدمة تكلفة الوصول غير مفعلة');
+    return this.landedCostsService.getPurchaseLandedCosts(id, req.authContext!);
+  }
+
+  @Post('purchases/:id/landed-costs')
+  @RequirePermissions('canEditInvoices')
+  applyPurchaseLandedCosts(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: ApplyPurchaseLandedCostsDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    if (!this.landedCostsService) throw new BadRequestException('خدمة تكلفة الوصول غير مفعلة');
+    return this.landedCostsService.applyPurchaseLandedCosts(id, payload, req.authContext!);
   }
 }
 

@@ -23,7 +23,7 @@ export function getLocalDatetimeInputValue(date: Date = new Date()): string {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
-export const initialExpenseForm = () => ({ title: '', amount: '0', note: '', date: getLocalDatetimeInputValue(), branchId: '', locationId: '' });
+export const initialExpenseForm = () => ({ title: '', amount: '0', note: '', date: getLocalDatetimeInputValue(), branchId: '', locationId: '', costCenterId: '' });
 export type ExpenseFormState = ReturnType<typeof initialExpenseForm>;
 
 export function validateExpenseForm(form: ExpenseFormState, allLocations: Location[]) {

@@ -735,10 +735,14 @@ export function GeneralSettingsTab({
           <div className="field">
             <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>المنطقة الزمنية</label>
             <select className="purchase-prototype-field-input" {...form.register('timezone')} disabled={disabled} style={{ padding: '7px 10px', fontSize: '0.84rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}>
-              <option value="Africa/Cairo">Africa/Cairo</option>
-              <option value="Asia/Riyadh">Asia/Riyadh</option>
-              <option value="Asia/Dubai">Asia/Dubai</option>
-              <option value="UTC">UTC</option>
+              <option value="Africa/Cairo">مصر (Africa/Cairo)</option>
+              <option value="Asia/Riyadh">السعودية (Asia/Riyadh)</option>
+              <option value="Asia/Kuwait">الكويت (Asia/Kuwait)</option>
+              <option value="Asia/Qatar">قطر (Asia/Qatar)</option>
+              <option value="Asia/Dubai">الإمارات (Asia/Dubai)</option>
+              <option value="Asia/Bahrain">البحرين (Asia/Bahrain)</option>
+              <option value="Asia/Muscat">عُمان (Asia/Muscat)</option>
+              <option value="UTC">التوقيت العالمي (UTC)</option>
             </select>
           </div>
 

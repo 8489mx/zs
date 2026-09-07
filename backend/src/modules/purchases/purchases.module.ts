@@ -12,6 +12,7 @@ import { PurchasesWriteService } from './services/purchases-write.service';
 import { SupplierPaymentSchedulesService } from './services/supplier-payment-schedules.service';
 import { PurchasesReorderService } from './services/purchases-reorder.service';
 import { MarginProtectionService } from './services/margin-protection.service';
+import { PurchaseLandedCostsService } from './services/purchase-landed-costs.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
@@ -24,7 +25,8 @@ import { MarginProtectionService } from './services/margin-protection.service';
     SupplierPaymentSchedulesService,
     PurchasesReorderService,
     MarginProtectionService,
+    PurchaseLandedCostsService,
   ],
-  exports: [PurchasesService, PurchasesReorderService, MarginProtectionService],
+  exports: [PurchasesService, PurchasesReorderService, MarginProtectionService, PurchaseLandedCostsService],
 })
 export class PurchasesModule {}

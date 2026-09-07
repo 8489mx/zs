@@ -40,6 +40,9 @@ export type JournalEntryLine = {
   accountCode?: string;
   accountNameAr?: string;
   accountNameEn?: string;
+  costCenterId?: number | null;
+  costCenterCode?: string | null;
+  costCenterName?: string | null;
   description: string;
   debit: number;
   credit: number;
@@ -205,6 +208,24 @@ export type OpeningBalancesPostResponse = {
   preview: OpeningBalancesPreviewResponse;
 };
 
+export type CreateManualJournalLinePayload = {
+  accountId: number;
+  costCenterId?: number | null;
+  description?: string;
+  debit: number;
+  credit: number;
+  partnerType?: 'none' | 'customer' | 'supplier';
+  partnerId?: number | null;
+};
+
+export type CreateManualJournalEntryPayload = {
+  entryDate: string;
+  description: string;
+  branchId?: number | null;
+  reference?: string;
+  lines: CreateManualJournalLinePayload[];
+};
+
 export const accountingApi = {
   accounts: () => http<{ accounts: AccountingAccount[] }>('/api/accounting/accounts'),
   createAccount: (body: Partial<AccountingAccount>) => http<{ ok: boolean; accountId: string }>('/api/accounting/accounts', { method: 'POST', body: JSON.stringify(body) }),
@@ -212,7 +233,12 @@ export const accountingApi = {
   deleteAccount: (id: string) => http<{ ok: boolean }>(`/api/accounting/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   generateNextAccountCode: (parentId: number) => http<{ code: string }>(`/api/accounting/accounts/generate-code?parentId=${parentId}`),
   settings: () => http<{ settings: Record<string, unknown> | null }>('/api/accounting/settings'),
-  updateSettings: (body: Record<string, number | null>) => http<{ success: boolean }>('/api/accounting/settings', { method: 'PUT', body: JSON.stringify(body) }),
+  updateSettings: (body: Record<string, unknown>) => http<{ success: boolean }>('/api/accounting/settings', { method: 'PUT', body: JSON.stringify(body) }),
+  createJournalEntry: (body: CreateManualJournalEntryPayload) =>
+    http<{ ok: boolean; entry: { id: number; entryNo: string; totalDebit: number; totalCredit: number }; message: string }>('/api/accounting/journal-entries', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   journalEntries: (query: Record<string, string | number | undefined>) => {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
@@ -339,4 +365,91 @@ export interface AssetDepreciationLog {
   note: string;
   created_at: string;
 }
+
+export interface BankStatementListItem {
+  id: number;
+  accountId: number;
+  accountCode: string;
+  accountNameAr: string;
+  statementNo: string;
+  statementDate: string;
+  startingBalance: number;
+  endingBalance: number;
+  status: 'draft' | 'in_progress' | 'reconciled';
+  notes?: string;
+  createdAt: string;
+}
+
+export interface BankStatementLine {
+  id: number;
+  statementId: number;
+  lineDate: string;
+  description: string;
+  reference: string;
+  amount: number;
+  isReconciled: boolean;
+  matchedJournalLineId: number | null;
+  reconciledAt: string | null;
+}
+
+export interface GlReconciliationLine {
+  id: number;
+  journalEntryId: number;
+  entryNo: string;
+  entryDate: string;
+  description: string;
+  debit: number;
+  credit: number;
+  netAmount: number;
+  isReconciled: boolean;
+}
+
+export interface ReconcileSuggestion {
+  statementLineId: number;
+  journalLineId: number;
+  confidence: 'high' | 'medium';
+  reason: string;
+}
+
+export interface BankReconciliationWorkspace {
+  statement: BankStatementListItem;
+  statementLines: BankStatementLine[];
+  glLines: GlReconciliationLine[];
+  suggestions: ReconcileSuggestion[];
+  summary: {
+    startingBalance: number;
+    endingBalance: number;
+    reconciledAmount: number;
+    calculatedEndingBalance: number;
+    difference: number;
+    isBalanced: boolean;
+    totalLines: number;
+    reconciledLinesCount: number;
+  };
+}
+
+export const bankReconciliationApi = {
+  listStatements: (accountId?: number) => {
+    const url = accountId ? `/api/accounting/bank-statements?accountId=${accountId}` : '/api/accounting/bank-statements';
+    return http<BankStatementListItem[]>(url);
+  },
+  getStatement: (id: number) => http<{ statement: BankStatementListItem; lines: BankStatementLine[] }>(`/api/accounting/bank-statements/${id}`),
+  createStatement: (data: {
+    accountId: number;
+    statementNo: string;
+    statementDate: string;
+    startingBalance: number;
+    endingBalance: number;
+    notes?: string;
+    lines?: { lineDate: string; description: string; reference?: string; amount: number }[];
+  }) => http<any>('/api/accounting/bank-statements', { method: 'POST', body: JSON.stringify(data) }),
+  getWorkspace: (id: number) => http<BankReconciliationWorkspace>(`/api/accounting/bank-statements/${id}/workspace`),
+  reconcileMatch: (data: { statementLineId: number; journalLineId: number }) =>
+    http<{ success: boolean; message: string }>('/api/accounting/bank-statements/reconcile', { method: 'POST', body: JSON.stringify(data) }),
+  unreconcileMatch: (statementLineId: number) =>
+    http<{ success: boolean; message: string }>('/api/accounting/bank-statements/unreconcile', { method: 'POST', body: JSON.stringify({ statementLineId }) }),
+  createFeeAdjustment: (data: { statementLineId: number; expenseAccountId: number; description?: string }) =>
+    http<{ success: boolean; message: string; journalEntryId: number }>('/api/accounting/bank-statements/fee-adjustment', { method: 'POST', body: JSON.stringify(data) }),
+};
+
 

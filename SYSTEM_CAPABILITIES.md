@@ -69,6 +69,10 @@
 | **شاشات العروض الرقمية والأسعار (Digital Signage & Price Board)** | 🟢 | 100% | `DigitalSignagePage.tsx`, `sales/routes.tsx`, `app-shell.tsx` | لوحة عرض تفاعلية ترويجية لقوائم الأسعار والعروض الترويجية في صالة العرض والمطاعم مع تحديث ديناميكي للمنتجات والأسعار. |
 | **شاشة المطبخ الذكية (Kitchen Display System - KDS)** | 🟢 | 100% | `KitchenDisplayPage.tsx`, `restaurant.types.ts`, `app-shell.tsx` | نظام إدارة طلبات المطبخ للمطاعم والكافيهات، متابعة أوامر التشغيل والتحضير لحظياً، والارتباط الشرطي بتفعيل موديول المطاعم في الإعدادات. |
 | **مُحدِّد العميل القياسي والشريط المالي الرشيق (Unified Combobox & Sleek Financial Strip)** | 🟢 | 100% | `PosCartMetaForm.tsx`, `searchable-combobox.tsx`, `combobox-system.css`, `pos-step4-cashier-tune.css` | استبدال القائمة القديمة بدروب داون `SearchableCombobox` السحابي بالبورتال العائم، وضغط نموذج إضافة العميل بنسبة 45% (حقول بارتفاع 32px وأزرار بلون الهوية الملكي `#170e5e` وإغلاق فوري عند الحفظ)، مع إعادة هندسة كارت العميل المختار ليصبح شريطاً مالياً فائق الرشاقة (بارتفاع 34px فقط بدلاً من 190px) يُبرز مديونية العميل ورصيده المستحق وحد الائتمان بالألوان التنبيهية الفورية دون أن يحجب سلة المنتجات، مع طي التفاصيل الإحصائية المطولة (إجمالي المشتريات وتاريخ الفواتير) خلف زر اختياري أنيق «كشف الحساب ▾». |
+| **التعليق التلقائي عند تبديل الطاولات وحالة السلة الحية (Auto-Hold on Table Switch & Live Cart)** | 🟢 | 100% | `PosTablesFloorPlanDialog.tsx`, `PosWorkspace.tsx`, `PosWorkspaceHeader.tsx` | تعليق وحفظ طلب الطاولة السابقة تلقائياً في قاعدة البيانات فور اختيار طاولة جديدة بالسلة النشطة دون الحاجة للضغط على F4 يدوياً، مع تمييز الطاولة النشطة حالياً في خريطة الصالة بحدود وظلال زرقاء كحلية `#170e5e` وشارة «نشطة» ومجموعها الحي وعدد أصنافها وإدراجها بدقة ضمن إحصائيات الطاولات المشغولة، والعودة الفورية للسلة بنقرة واحدة. |
+| **مركز بوابات الخدمة الذاتية المدمج والميداني (Zero-Scroll Enterprise Launchpad)** | 🟢 | 100% | `PortalsHubPage.tsx`, `PortalsHubPage.spec.tsx` | شاشة قيادة موحدة `/hub` لكافة البوابات والخدمات الذاتية (بوابة الموظف، بصمة الموبايل الذكية، بوابة المناديب، فواتير الفان، شاشة المطبخ، شاشة العميل، شاشات العروض، طلب الطاولة QR، رادار المالك، والنظام المركزي) مصممة بتقنية الـ Zero-Scroll بنظام 5 أعمدة وصفين لتظهر كافة البوابات العشر في شاشة واحدة أنيقة بدون سكرول نهائياً، مع شريط تصفية وبحث فوري وشارات أدوار ملونة وهوية مؤسسية فاخرة. |
+| **تقسيم الفاتورة ودمج ونقل الطاولات (Toast POS Split Bill & Table Operations)** | 🟢 | 100% | `PosSplitBillModal.tsx`, `PosCheckoutDialog.tsx`, `PosTablesFloorPlanDialog.tsx`, `PosWorkspace.tsx` | نافذة متطورة لتقسيم الفاتورة تدعم نمطين: تقسيم بالأصناف والمقاعد (Split by items / seats) مع نقل الأصناف بين فواتير فرعية، وتقسيم متساوي بالعدد (Split evenly by guest count)، مدمجة بزر مخصص في شاشة الدفع السريع، مع نقل ودمج الطاولات التفاعلي في خريطة الصالة. |
+
 
 ---
 
@@ -88,6 +92,8 @@
 | **حركة كارت الصنف التفصيلية (Stock Card)** | 🟢 | 100% | `ProductHistoryModal.tsx` | تتبع كل حركة دخول وخروج ورقم الفاتورة والرصيد المتبقي للصنف بالتاريخ والوقت. |
 | **تصدير وبرمجة موازين الباركود الإلكترونية (Scale PLU Export Engine)** | 🟢 | 100% | `ScalePluExportModal.tsx`, `ProductsWorkspace.tsx` | توليد وتصدير ملفات الأصناف والأسعار المتوافقة بضغطة زر لمختلف موازين الباركود الأكثر انتشاراً في السوق: Rongta (RLS1000 / RLink)، CAS (CL5000 / CL-Works)، Dibal (Series 500 / Wind)، وملف Universal Excel/CSV، مع ترقيم الـ PLU التلقائي، وتطبيع طول الأكواد، وإرشادات التنزيل المباشر للميزان. |
 | **أرقام التشغيلات وتواريخ الصلاحية ونظام FEFO** | 🟢 | 100% | `pharmacy_batches`, `sales-write.service.ts`, `PharmacyBatchesExpiryPage.tsx` | تتبع رقم التشغيلة (Batch) وتاريخ الانتهاء، وصرف الأسبق انتهاءً تلقائياً في الكاشير مع حظر بيع المنتهي الصلاحية نهائياً (انظر تفاصيل الوحدة 13). |
+| **تتبع التشغيلات وتواريخ الصلاحية الشامل لكافة الأنشطة (Universal Batches & Expiry)** | 🟢 | 100% | `InventoryBatchesPage.tsx`, `purchases-write.service.ts`, `pharmacy.service.ts`, `inventory/routes.tsx` | شاشة شاملة لإدارة وتتبع أرقام التشغيلات وتواريخ الانتهاء في المخازن العامة للصيدليات والأغذية والتوزيع والتجزئة عبر المسار `/inventory/batches`، وتحديث تلقائي لبيانات التشغيلة عند الشراء، مع مؤشرات ذكية وتمديد الصلاحية السريع (+3M, +6M, +1Y, +2Y). |
+
 
 ---
 
@@ -102,6 +108,8 @@
 | **مرتجع المشتريات للمورد** | 🟢 | 100% | `purchase_returns`, `PurchaseReturnsPage.tsx` | إرجاع بضاعة للمورد، خصمها من المخزن وتخفيض مديونية المورد أو استرداد نقدي. |
 | **سجل وحسابات الموردين (Supplier Ledger)** | 🟢 | 100% | `partners.service.ts`, `SuppliersPage.tsx` | كشف حساب تفصيلي، أرصدة سابقة، مديونيات، وسجل الفواتير السابقة. |
 | **سندات صرف دفعات الموردين** | 🟢 | 100% | `treasury.service.ts`, `PaymentVoucherModal.tsx` | سداد نقدي أو شيك أو تحويل بنكي للمورد وخصمه من الخزينة وكشف حساب المورد. |
+| **محرك تكاليف الشحن والجمارك الموزعة (Purchase Landed Costs Engine)** | 🟢 | 100% | `purchase-landed-costs.service.ts`, `purchases.controller.ts`, `PurchaseLandedCostsModal.tsx`, `PurchaseDetailCard.tsx`, `2040000000054_purchase_landed_costs.ts` | محرك احتساب تكاليف الشحن البحري والجوي والتخليص الجمركي والنقل والتأمين الإضافية وتوزيعها آلياً حسب القيمة أو الكمية على بنود فاتورة المشتريات، وتحديث تكلفة الوحدة المخزنية `landed_unit_cost` وسعر التكلفة `cost_price` في المخازن، وتوليد القيود المحاسبية المقابلة. |
+
 
 ---
 
@@ -149,6 +157,9 @@
 | **الخزائن والحسابات البنكية وحركات النقدية** | 🟢 | 100% | `treasury.service.ts`, `TreasuryPage.tsx` | إدارة عدة خزائن وبنوك، سندات القبض والصرف، والتحويل بين الخزائن. |
 | **سجل الأصول الثابتة وكروت الأصول (Fixed Assets Registry)** | 🟢 | 100% | `AccountingFixedAssetsPage.tsx`, `accounting.service.ts`, `2040000000024_fixed_assets.ts` | إدارة كاملة للأصول الثابتة عبر المسار `/accounting/fixed-assets`: تسجيل بيانات الأصل، الكود، التصنيف (سيارات، معدات، أثاث، أجهزة كمبيوتر، مباني، عام)، تاريخ وتكلفة الشراء، القيمة التخريدية (Salvage Value)، والعمر الإنتاجي بالشهور، مع حساب آلي لحظي لصافي القيمة الدفترية ومجمع الإهلاك وإجمالي تكلفة أصول المؤسسة. |
 | **محرك الإهلاك التلقائي وقيود اليومية الآلية (Auto-Depreciation Engine)** | 🟢 | 100% | `AccountingFixedAssetsPage.tsx`, `accounting.service.ts`, `fixed-assets-depreciation.spec.ts` | محرك إهلاك مالي دقيق يدعم طريقتي: القسط الثابت (Straight-Line) والقسط المتناقص المزدوج (Double Declining Balance) مع حماية سقف القيمة التخريدية؛ إمكانية تشغيل الإهلاك لأصل منفرد أو تشغيل دورة إهلاك مجمعة لكافة أصول الشركة بنقرة واحدة، مع إنشاء الحسابات تلقائياً (حـ/ مصروف إهلاك 6950، وحـ/ مجمع إهلاك 1290) وتوليد قيود يومية متوازنة آلياً في الأستاذ العام وتسجيل كامل في جدول `asset_depreciation_logs`. |
+| **محرك التسوية والمطابقة البنكية الذكية (Smart Bank Reconciliation Engine)** | 🟢 | 100% | `bank-reconciliation.service.ts`, `accounting.controller.ts`, `BankReconciliationPage.tsx`, `2040000000053_bank_reconciliation.ts` | محرك تسوية بنكية متكامل بمعيار أودو 17 و SAP B1 عبر المسار `/accounting/bank-reconciliation`، يشمل استيراد كشوف الحسابات البنكية، المطابقة الآلية الذكية بالسجل والمبلغ (Auto Match)، المطابقة اليدوية المزدوجة بنظام العمودين، احتساب رصيد الإغلاق، وتحديث حالة أسطر اليومية. |
+| **نظام إغلاق الفترات المالية المحاسبية (Fiscal Lock Dates & Governance)** | 🟢 | 100% | `accounting-validation.service.ts`, `AccountingSettingsPage.tsx`, `ManualJournalEntryDialog.tsx`, `2040000000052_accounting_lock_dates.ts` | حوكمة محاسبية صارمة تمنع التعديل أو الترحيل في الفترات المقفلة عبر 3 مستويات: إغلاق لكافة المستخدمين، إغلاق للمستخدمين العاديين مع استثناء المستشار المالي، وإغلاق ضريبي للإقرارات، مع نافذة متوازنة للقيود اليومية اليدوية. |
+
 
 ---
 
@@ -176,6 +187,9 @@
 | **حركات الحضور والانصراف والغياب** | 🟢 | 100% | `attendance`, `AttendancePage.tsx` | تسجيل ساعات الحضور والانصراف والغياب والأيام الإضافية. |
 | **مسير الرواتب والسلف والخصومات** | 🟢 | 100% | `payroll_runs`, `PayrollPage.tsx`, `hr-treasury` | احتساب المرتبات شهرياً، استقطاع السلف والغياب، وصرف الرواتب وترحيلها للخزينة والمصروفات. |
 | **بوابة الخدمة الذاتية للموظف (Employee Self-Service Portal)** | 🟢 | 100% | `EmployeePortalPage.tsx`, `employee-portal.service.ts`, `employee-portal.controller.ts` | بوابة مخصصة للموظف تتيح له تسجيل الدخول بكوده الوظيفي وكلمة المرور المشفرة للاطلاع على ملفه، رصيد الإجازات، سجل الحضور، مفردات المرتب، وتقديم طلبات السلف والإجازات مع عزل كامل لصلاحيات الإدارة. |
+| **إدارة العهد العينية والنقدية للموظفين (Employee Custody & Assets)** | 🟢 | 100% | `HrAssetsPage.tsx`, `hr.service.ts`, `hr_employee_assets`, `employee-portal.service.ts` | نظام كامل لإدارة العهد العينية (سيارات، لابتوبات، هواتف، أجهزة) والنقدية، وتتبع تسليمها واسترجاعها، مع إثبات تلقائي للخصومات المالية على راتب الموظف عند التلف أو الفقدان، وربطها الصارم بإخلاء الطرف وتصفية مستحقات نهاية الخدمة (`endOfService`) وبوابة الموظف الذاتية (`EmployeePortalPage`). |
+| **ملف حماية الأجور والرواتب البنكي (WPS / SIF Payroll Export)** | 🟢 | 100% | `hr.service.ts`, `hr.controller.ts`, `PayrollWpsExportModal.tsx`, `HrPayrollPage.tsx`, `2040000000055_hr_employee_bank_details.ts` | معيار BambooHR و Deel للشركات: تسجيل الحسابات البنكية للموظفين والآيبان IBAN وكود السويفت SWIFT، وتصدير ملف حماية الأجور المعتمد للبنوك الخليجية والسعودية والمصرية (تنسيق SIF: سجل المؤسسة SCR + سجلات الموظفين EDR) وملف CSV المعتمد بنقرة واحدة من صفحة الرواتب. |
+
 
 ---
 
@@ -195,12 +209,14 @@
 ## 11. التصنيع وشجرة المنتج (Manufacturing & BOM)
 * **حالة الوحدة العامة:** 🟢 مكتمل 100%
 * **مسارات الكود:** `backend/src/modules/manufacturing`, `frontend/src/features/manufacturing`
-* **الجداول في قاعدة البيانات:** `bom_recipes`, `bom_items`, `production_orders`
+* **الجداول في قاعدة البيانات:** `manufacturing_boms`, `manufacturing_bom_items`, `manufacturing_work_orders`, `manufacturing_work_centers`, `manufacturing_wo_operations`
 
 | الميزة التفصيلية | الحالة | نسبة الإنجاز | ملفات التنفيذ الأساسية | الشرح وملاحظات العمل |
 | :--- | :---: | :---: | :--- | :--- |
-| **تعريف شجرة المنتج وتكلفة المكونات (BOM)** | 🟢 | 100% | `manufacturing.module.ts`, `BomPage.tsx` | تحديد المواد الخام ومقاديرها اللازمة لإنتاج صنف تام الصنع وحساب تكلفة الإنتاج. |
-| **أوامر التشغيل والإنتاج الفعلي** | 🟢 | 100% | `ProductionOrdersPage.tsx` | تنفيذ أمر إنتاج: خصم المواد الخام من مخزن الخامات، وإضافة المنتج التام لمخزن المنتجات الجاهزة. |
+| **تعريف شجرة المنتج وتكلفة المكونات (BOM)** | 🟢 | 100% | `manufacturing.module.ts`, `BomsListPage.tsx`, `EditBomPage.tsx` | تحديد المواد الخام ومقاديرها اللازمة لإنتاج صنف تام الصنع وحساب تكلفة الإنتاج والتكاليف غير المباشرة. |
+| **أوامر التشغيل والإنتاج الفعلي** | 🟢 | 100% | `WorkOrdersListPage.tsx`, `NewWorkOrderPage.tsx`, `manufacturing.service.ts` | تنفيذ أمر إنتاج: خصم المواد الخام من مخزن الخامات، وإضافة المنتج التام لمخزن المنتجات الجاهزة والتقييد المحاسبي. |
+| **مراكز العمل والماكينات وتكلفة التشغيل بالساعة (Work Centers & Routing)** | 🟢 | 100% | `manufacturing.service.ts`, `manufacturing.controller.ts`, `WorkCentersPage.tsx`, `WorkOrdersListPage.tsx`, `2040000000056_manufacturing_work_centers.ts` | معيار أودو 17 للتصنيع MRP: تعريف مراكز العمل وخطوط الإنتاج والماكينات عبر المسار `/manufacturing/work-centers` مع تحديد تكلفة تشغيل الساعة وطاقة الإنتاج وكفاءة الأداء، وتسجيل ساعات تشغيل الماكينات أثناء إنهاء أمر الإنتاج واحتسابها آلياً ضمن تكلفة المنتج التام والتوجيه المحاسبي. |
+
 
 ---
 
@@ -1011,6 +1027,109 @@
      - **بوت واتساب التفاعلي لخدمة ومبيعات العملاء (Conversational WhatsApp Sales Bot):** الرد الفوري على رسائل واستفسارات الزبائن حول أسعار المنتجات والمقاسات والألوان وتوليد روابط الشراء المباشرة.
   5. **طبقات التراجع الآمن وتصفير البيانات الوهمية (Graceful Multi-Layer Fallback):** في حال عدم إدخال مفتاح مخصص من قبل المستأجر، يبحث النظام عن مفاتيح الخادم البيئية (`OPENAI_API_KEY` ثم `GEMINI_API_KEY`)، وفي حال عدم توفر أي مفتاح أو تعطل الإنترنت الخارجي، يتراجع النظام تلقائياً وبسلاسة إلى محرك التحليل والرد المحلي المدمج (`local_analytics` و `local_smart`) دون توقف المنظومة أو إطلاق أخطاء قاتلة.
   6. **التطهير الشامل للواجهات ومنع الإيموجيز (0 Emojis & UI Constitution):** إزالة عبارة "Gemini 1.5 Flash" و "Google Gemini" الحصرية من كافة الواجهات والبادجات ومحاكي الشات، واستبدالها بتسميات مؤسسية نظيفة (`Universal AI Engine`، `AI Cloud`، `Smart Local`)، مع تطبيق ألوان الهوية المؤسسية (`#170e5e` للأزرار الرئيسية).
+
+---
+
+## 58. حزمة التوطين الخليجي الشاملة وتعدد العملات ومحرك الفلس ثلاثي الخانات (GCC Localization Pack & 3-Decimal Fils Engine)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **مسارات الكود الأساسية:**
+  * `frontend/src/lib/currencies.ts` (إضافة دعم عملات الخليج KWD, QAR, BHD, OMR إلى جانب SAR, AED, EGP, USD وتحديد عدد الخانات العشرية بدقة 3 خانات للدينار الكويتي والبحريني والريال العماني).
+  * `frontend/src/lib/format.ts` (تحديث محرك تنسيق العملات `formatCurrency` ليعتمد تلقائياً على `getCurrencyDecimals` ويدعم ديناميكياً تنسيق الفلس والبيسة ثلاثي الخانات العشرية بدلاً من الاقتصار على خانتين).
+  * `frontend/src/features/settings/components/forms/tabs/GeneralSettingsTab.tsx` (توسيع قائمة المناطق الزمنية لتشمل كافة عواصم ومدن الخليج: الكويت `Asia/Kuwait`، قطر `Asia/Qatar`، البحرين `Asia/Bahrain`، مسقط `Asia/Muscat`، الرياض `Asia/Riyadh`، دبي `Asia/Dubai`).
+  * `frontend/src/features/settings/pages/TenantSubscriptionPage.tsx` (تسعير باقات الاشتراك السحابي إقليمياً لدول الخليج KWD, SAR, QAR, AED, BHD, OMR مع محول ديناميكي للعملة يتيح للمشترك الخليجي الاطلاع على الباقات بالعملة المحلية مباشرة بدون حصر بالجنيه المصري).
+* **الميزات والقدرات المفعلة:**
+  1. **التوافق الكامل مع العملات الخليجية (Full GCC Currencies Support):** دعم رسمي متكامل لعملات الدينار الكويتي (KWD)، الريال القطري (QAR)، الدينار البحريني (BHD)، الريال العماني (OMR)، والريال السعودي (SAR)، والدرهم الإماراتي (AED).
+  2. **محرك الفلس والبيسة ثلاثي الخانات (3-Decimal Fractional Currency Engine):** معالجة الخصوصية الحسابية الفريدة لدول الخليج التي تعتمد 1000 فلس للدينار (الكويت والبحرين) و 1000 بيسة للريال (عُمان)، مع إظهار المبالغ بدقة 3 خانات عشرية (مثل 12.500 د.ك) تلقائياً ودون تشويه للعملات ثنائية الخانات (مثل الجنيه المصري والريال السعودي والدولار).
+  3. **توطين المناطق الزمنية للأعمال (GCC Business Timezones):** ضبط مواعيد الجلسات وتوقيت إغلاق الكاشير والتقارير المالية بحسب التوقيت المحلي الدقيق لكل دولة خليجية.
+  4. **التسعير الإقليمي المخصص لمنصة SaaS:** إمكانية عرض واشتراك المنشآت الخليجية في باقات Z-Systems بحسب عملتها المحلية بأسعار متكافئة ومدروسة لسوق كل دولة.
+
+---
+
+## 59. محرك مراكز التكلفة المحاسبية وشجرة مراكز التكلفة وتحليل الربحية (Cost Centers Accounting Engine & P&L Reporting)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات والترحيل (Database & Migration):**
+    * `backend/src/database/migrations/2040000000049_cost_centers_and_gcc_currencies.ts` (إنشاء جدول `cost_centers` الهرمي مع كود ومركز رئيسي وعزل الشركات، وإضافة عمود `cost_center_id` المفهرس في جدول `journal_entry_lines`).
+    * `backend/src/database/database.types.ts` (تعريف أنواع الجداول `CostCenterTable` وربط الحقل بـ `JournalEntryLineTable`).
+  * **الباك إند (Backend):**
+    * `backend/src/modules/accounting/accounting.service.ts` (دوال إدارة مراكز التكلفة `listCostCenters`, `createCostCenter`, `updateCostCenter`, `deleteCostCenter`, وتوليد تقرير قائمة الدخل والأرباح والخسائر لكل مركز `getCostCenterReport`، وربط حقل `cost_center_id` في القيود المحاسبية).
+    * `backend/src/modules/accounting/accounting.controller.ts` (نقاط النهاية لـ CRUD مراكز التكلفة وتقرير المركز المالي `/api/accounting/cost-centers`).
+  * **الفرونت إند (Frontend):**
+    * `frontend/src/features/accounting/api/cost-centers.api.ts` (عميل API متكامل لعمليات مراكز التكلفة والتقارير المالية).
+    * `frontend/src/features/accounting/pages/AccountingCostCentersPage.tsx` (شاشة إدارة مراكز التكلفة بتصميم مؤسسي متكامل: بطاقات إحصائية، شجرة ومستويات المراكز، بحث وفلترة، نافذة منبثقة للإنشاء والتعديل، ونافذة تفصيلية لتقرير الأرباح والخسائر P&L والحركات المحاسبية مع فلترة بالتاريخ).
+    * `frontend/src/features/accounting/routes.tsx` & `frontend/src/app/router/access.ts` & `frontend/src/shared/layout/app-shell.tsx` (تسجيل المسار `/accounting/cost-centers`، دمج التبويب في قائمة المالية والمحاسبة بالسايدبار مع الصلاحيات والأيقونة المؤسسية).
+    * `frontend/src/features/accounting/pages/AccountingJournalEntriesPage.tsx` (عرض مركز التكلفة المرتبط بكل سطر من سطور القيد اليومي).
+* **الميزات والقدرات المفعلة:**
+  1. **هيكلية شجرية مرنة لمراكز التكلفة (Hierarchical Cost Center Tree):** إمكانية إنشاء مراكز رئيسية (فروع، خطوط أعمال، مشاريع) ومراكز فرعية متفرعة عنها بعدة مستويات مع حساب المستوى التلقائي.
+  2. **ربط سطور القيود اليومية بمراكز التكلفة (Multi-Dimensional Journal Tagging):** دعم إسناد أي حركة مالية (مصروف، إيراد، أصل) إلى مركز تكلفة محدد بدقة عند توليد القيود.
+  3. **تقرير الأرباح والخسائر لكل مركز تكلفة (Cost Center P&L & Financial Report):** احتساب فوري وصارم لإجمالي المصروفات والإيرادات وصافي الربح/الخسارة لكل مركز تكلفة مع سجل تفصيلي لجميع السطور المحاسبية المرتبطة وفلاتر زمنية دقيقة.
+  4. **منع الحذف في حال وجود ارتباطات مالية (Data Integrity Protection):** حماية المركز من الحذف العشوائي إذا كان مرتبطاً بحركات وسطور قيود فعلية أو لديه مراكز تكلفة فرعية تابعة.
+  5. **الالتزام الكامل بالدستور البصري وسياسة منع الإيموجيز (Strict Enterprise UI & 0 Emojis):** بطاقات بيضاء متوازنة، مؤشرات أداء بنسب مئوية نظيفة، أيقونات SVG قياسية، وتدرج لوني كحلي ملكي `#170e5e`.
+
+---
+
+## 60. ترقية مراكز التكلفة بالموازنات التقديرية وموديول إدارة علاقات العملاء والصفقات المؤسسي (Cost Center Budgets & Enterprise CRM Pipeline Engine)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **روابط وشاشات الوصول:**
+  * `/accounting/cost-centers` (مراكز التكلفة، الأبعاد التحليلية، والموازنات التقديرية).
+  * `/crm` (لوحة مسار الفرص والصفقات البيعية وإدارة الأنشطة والعملاء).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات والترحيل (Database & Migrations):**
+    * `backend/src/database/migrations/2040000000050_cost_center_budgets_and_dimensions.ts` (إضافة أعمدة `dimension` و `budget_amount` لجدول `cost_centers`، وعمود `cost_center_id` لجدول `expenses`).
+    * `backend/src/database/migrations/2040000000051_crm_deals_and_activities.ts` (إنشاء جدولي `crm_deals` و `crm_activities` مع الفهارس والعزل الصارم للمستأجرين).
+    * `backend/src/database/database.types.ts` (تعريف أنواع `CrmDealTable` و `CrmActivityTable` وتحديث `CostCenterTable` و `ExpenseTable`).
+  * **الباك إند (Backend):**
+    * `backend/src/modules/accounting/accounting.service.ts` & `accounting.controller.ts` & `accounting-posting.service.ts` (تحديث إضافة وتعديل مراكز التكلفة بحقول الموازنة والبعد، وحساب نسبة الاستهلاك والانحراف، وترحيل مركز التكلفة من المصروفات اليومية للقيود المحاسبية).
+    * `backend/src/modules/treasury/treasury.service.ts` & `dto/create-expense.dto.ts` (دعم إسناد مركز التكلفة المباشر للمصروف).
+    * `backend/src/modules/crm/crm.service.ts` & `crm.controller.ts` & `crm.module.ts` & `dto/crm.dto.ts` (محرك إدارة الصفقات، ملخص المسار البيعي KPIs، سجل الأنشطة والمهام، ونقطة تحويل الفرصة إلى عميل مسجل).
+    * `backend/src/app.module.ts` (تسجيل `CrmModule`).
+  * **الفرونت إند (Frontend):**
+    * `frontend/src/features/accounting/api/cost-centers.api.ts` & `AccountingCostCentersPage.tsx` (فلتر الأبعاد التحليلية، بطاقات وشارات الأبعاد، مدخلات الموازنة التقديرية، وبطاقة متابعة الموازنة ونسبة الاستهلاك التفاعلية).
+    * `frontend/src/features/treasury/components/TreasuryExpenseEntryCard.tsx` (منتقي مراكز التكلفة في نموذج تسجيل المصروفات السريعة).
+    * `frontend/src/features/crm/api/crm.api.ts` (عميل API لصفقات CRM وسجل الأنشطة وملخص المسار والتحويل لعميل).
+    * `frontend/src/features/crm/pages/CrmPipelinePage.tsx` (واجهة CRM المؤسسية المتكاملة: بطاقات المؤشرات الأربعة، لوحة كانبان ذات 6 مراحل، التنقل السريع بين المراحل، جدول تفصيلي، نموذج إنشاء فرصة، نافذة تفاصيل الفرصة وسجل المهام والأنشطة، زر التحويل الفوري لعميل مسجل، وزر مراسلة واتساب المباشر).
+    * `frontend/src/features/crm/routes.tsx` & `frontend/src/app/router/registry.ts` & `frontend/src/app/router/access.ts` (تسجيل المسار `/crm` والصلاحيات).
+    * `frontend/src/shared/layout/app-shell.tsx` (إضافة CRM لمجموعة المبيعات في السايدبار مع الأيقونة والترتيب المفضل وعنوان الشاشة).
+    * `frontend/src/locales/ar.json` & `en.json` (ترجمات إدارة علاقات العملاء باللغتين العربية والإنجليزية).
+* **الميزات والقدرات المفعلة:**
+  1. **الأبعاد التحليلية الخماسية لمراكز التكلفة (Analytic Dimensions - Odoo 17 Benchmark):** تصنيف مراكز التكلفة وفق 5 أبعاد عملية رئيسية (فروع ومواقع `branch`، مشاريع ومقاولات `project`، أقسام داخلية `department`، أسطول وسيارات `fleet`، تشغيلي عام `operational`) مع فلاتر فرز وشارات بصرية مميزة.
+  2. **محرك الموازنات التقديرية ومقارنة الفعلي بالمخطط (Budget vs Actual & Variance Engine):** رصد الموازنة التقديرية المستهدفة لكل مركز تكلفة ومقارنتها التلقائية بحركات المصروفات الفعلية المستخرجة من سطور اليومية العامة، مع احتساب الانحراف (Variance) ونسبة الاستهلاك اللحظية (Utilization %) وشريط تقدم بياني.
+  3. **إسناد مراكز التكلفة لمصروفات الخزينة المباشرة (Direct Expense Cost Center Tagging):** إمكانية اختيار مركز التكلفة مباشرة عند تسجيل أي مصروف نثري في الخزينة، مع الترحيل التلقائي لسطر القيد المحاسبي في الأستاذ العام وتأثيره الفوري على موازنة المركز.
+  4. **لوحة كانبان التفاعلية لإدارة الفرص والصفقات (Kanban Sales Pipeline - Twenty CRM Benchmark):** متابعة مرئية لكافة الصفقات عبر 6 مراحل متدرجة (جديد، تم التواصل، مؤهل للشراء، عرض سعر مرسل، مفاوضات، تم التعاقد / فوز) مع إحصائيات فورية لعدد ومبالغ كل مرحلة، وإمكانية نقل الصفقات بين المراحل بنقرة سريعة.
+  5. **مؤشرات الأداء البيعي التراكمي (Sales Pipeline KPIs):** احتساب دقيق لإجمالي الفرص النشطة، القيمة الإجمالية للمسار، القيمة المتوقعة الموزونة بنسبة احتمالية النجاح (Weighted Pipeline Value)، ونسبة إغلاق ونجاح الصفقات (Win Rate %).
+  6. **التحويل الفوري للفرصة إلى عميل مسجل (1-Click Convert to Customer):** تحويل أي فرصة بيعية بضغطة زر واحدة إلى عميل دائم ومسجل في قاعدة بيانات المنشأة مع التحقق من عدم التكرار برقم الهاتف، وتحديث حالة الصفقة تلقائياً إلى [تم التعاقد / فوز]، وتوثيق ذلك في سجل الأنشطة.
+  7. **سجل متابعات وخط زمني للأنشطة والمهام (Activities & Follow-up Timeline):** جدول زمني لكل فرصة لتدوين المكالمات والاجتماعات والمهام والملاحظات ومواعيد الاستحقاق مع إمكانية إنجاز المهام بمربعات اختيار تفاعلية.
+  8. **التكامل المباشر مع واتساب ونقاط البيع (WhatsApp & POS Integration):** زر فوري لفتح محادثة واتساب مع جهة الاتصال برابط منسق مسبقاً، وزر سريع لفتح نقطة البيع أو المبيعات لإصدار عروض الأسعار وفواتير التعاقد.
+  9. **التصميم المؤسسي النظيف وسياسة خلو الإيموجيز (Clean Enterprise Constitution & 0 Emojis):** التزام قطعي بنسبة 100% بكافة معايير النظام البصري (كروت بيضاء نقية، خلفية `#f8fafc`، أزرار كحلية عميقة `#170e5e`، وأيقونات SVG رسمية من مكتبة `AppIcons`).
+
+---
+
+## 61. محرك قفل الفترات المحاسبية المحكم والقيود اليومية اليدوية المتزنة (Fiscal Lock Dates & Manual Journal Entries Engine)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 17 Accounting & SAP Business One Financial Periods.
+* **روابط وشاشات الوصول:**
+  * `/accounting/settings` (تبويب: إقفال الفترات المحاسبية).
+  * `/accounting/journal-entries` (زر ونافذة: إنشاء قيد يدوي).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات والترحيل (Database & Migrations):**
+    * `backend/src/database/migrations/2029000000008_accounting_lock_dates.ts` (إضافة أعمدة `lock_date_all`, `lock_date_non_adviser`, `lock_date_tax` لجدول `accounting_settings`).
+    * `backend/src/database/database.types.ts` (تحديث نوع `AccountingSettingsTable`).
+  * **الباك إند (Backend):**
+    * `backend/src/modules/accounting/dto/accounting.dto.ts` (تحديث `UpdateAccountingSettingsDto` بمدخلات تواريخ الإقفال، وإضافة `CreateManualJournalEntryDto` و `CreateJournalLineDto`).
+    * `backend/src/modules/accounting/accounting.service.ts` (تحديث `getAccountingSettings` و `updateAccountingSettings`، إضافة محرك التدقيق المحاسبي `assertNotInLockedPeriod`، وتنفيذ دالة إنشاء القيد اليدوي المتزن `createManualJournalEntry` مع التحقق الصارم من توازن المدين والدائن وصلاحيات الحسابات).
+    * `backend/src/modules/accounting/accounting.controller.ts` (إضافة نقطة النهاية `POST /api/accounting/journal-entries`).
+    * `backend/src/modules/accounting/accounting-posting.service.ts` (حقن فحص وتدقيق تواريخ الإقفال المحاسبي الصارم داخل محرك ترحيل القيود العام `insertJournal` لرفض أي حركة بيع أو شراء أو مصروف أو تسوية تقع في فترة مغلقة).
+  * **الفرونت إند (Frontend):**
+    * `frontend/src/features/accounting/api/accounting.api.ts` (تحديث واجهة الـ API لدعم قراءة وتحديث تواريخ الإقفال، واستدعاء `createJournalEntry`).
+    * `frontend/src/features/accounting/components/ManualJournalEntryDialog.tsx` (مكون نافذة إدخال القيد اليدوي المؤسسية: جدول سطور ديناميكي، منتقي الحسابات ومراكز التكلفة، احتساب لحظي للمدين والدائن والفارق، شارة حالة التوازن، ومنع الترحيل حتى تحقيق التوازن التام).
+    * `frontend/src/features/accounting/pages/AccountingJournalEntriesPage.tsx` (زر «إنشاء قيد يدوي» في رأس الصفحة، تكامل فتح النافذة، والتحديث الفوري للجدول مع الانتقال المباشر لتفاصيل القيد المنشأ).
+    * `frontend/src/features/accounting/pages/AccountingSettingsPage.tsx` (تبويب وبطاقات «إقفال الفترات المحاسبية والرقابة المالية»: كارت الإقفال الشامل النهائي Hard Lock، كارت إقفال العمليات التشغيلية لمدخلي البيانات والكاشير Non-Advisers Lock، وكارت إقفال الإقرار الضريبي Tax Lock، مع أزرار الحفظ والإلغاء وإشعارات الحالة).
+* **الميزات والقدرات المفعلة:**
+  1. **الإقفال المحاسبي النهائي الشامل (Hard Lock Date):** منع بات ومطلق لإضافة أو تعديل أي فواتير بيع أو شراء أو مصاريف أو سندات صرف وقبض أو قيود يومية بتاريخ يسبق أو يطابق تاريخ الإقفال لجميع المستخدمين بما فيهم الإدارة العامة والمدير المالي، لحماية الفترات المدققة رسمياً.
+  2. **إقفال العمليات التشغيلية (Operational Lock Date for Non-Advisers):** منع موظفي الكاشير ومدخلي البيانات والمحاسبين المبتدئين من تسجيل أي حركات بأثر رجعي تسبق تاريخ الإقفال التشغيلي، مع حصر استثناء التعديل للمدققين والمديرين الماليين المعتمدين.
+  3. **إقفال الإقرار الضريبي (Tax / VAT Lock Date):** تجميد الفترات الضريبية التي تم تقديم إقرارها للهيئة الضريبية لحماية تطابق إقرارات ضريبة القيمة المضافة مع الدفاتر.
+  4. **محرك القيود اليومية اليدوية المتزنة (Balanced Manual Journal Entry Engine):** إمكانية تسجيل قيود تسوية محاسبية متعددة الأطراف (Multi-line) مع اختيار مراكز التكلفة، مع تدقيق لحظي في الفرونت إند والباك إند يمنع ترحيل أي قيد غير متزن أو يحتوي على سطور صفرية أو متعارضة.
+  5. **الحوكمة المالية الصارمة وخلو الإيموجيز (Enterprise Financial Governance & 0 Emojis):** التزام قطعي بنسبة 100% بالدستور البصري المؤسسي بدون أي رموز غير قياسية، مع استخدام اللون الكحلي الملكي `#170e5e` للأزرار الأساسية وتنسيق كروت بيضاء نقية متناسقة.
 
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*

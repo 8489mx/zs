@@ -139,7 +139,64 @@ export const purchasesApi = {
       body: JSON.stringify(payload),
     });
   },
+  getLandedCosts: async (purchaseId: string | number) => {
+    return http<PurchaseLandedCostDetails>(`/api/purchases/${purchaseId}/landed-costs`);
+  },
+  applyLandedCosts: async (purchaseId: string | number, data: ApplyPurchaseLandedCostsInput) => {
+    return http<PurchaseLandedCostDetails>(`/api/purchases/${purchaseId}/landed-costs`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
+
+export interface PurchaseLandedCostItem {
+  id?: number;
+  costType: 'freight' | 'customs' | 'handling' | 'insurance' | 'other';
+  description: string;
+  amount: number;
+  vendorId?: number | null;
+  allocationMethod?: 'value' | 'qty' | 'equal';
+}
+
+export interface PurchaseLandedCostDetails {
+  purchase: {
+    id: number;
+    docNo: string | null;
+    supplierId: number | null;
+    supplierName: string;
+    subtotal: number;
+    total: number;
+    landedCostTotal: number;
+    landedCostAllocationMethod: 'value' | 'qty' | 'equal';
+    landedCostNotes: string;
+    landedCostAppliedAt: string | null;
+    createdAt: string;
+  };
+  costs: PurchaseLandedCostItem[];
+  items: Array<{
+    id: number;
+    productId: number | null;
+    productName: string;
+    qty: number;
+    unitCost: number;
+    lineTotal: number;
+    unitName: string;
+    allocatedLandedCost: number;
+    landedUnitCost: number;
+  }>;
+}
+
+export interface ApplyPurchaseLandedCostsInput {
+  allocationMethod: 'value' | 'qty' | 'equal';
+  notes?: string;
+  costs: Array<{
+    costType: 'freight' | 'customs' | 'handling' | 'insurance' | 'other';
+    description: string;
+    amount: number;
+    vendorId?: number | null;
+  }>;
+}
 
 export interface ReorderItemSuggestion {
   productId: number;

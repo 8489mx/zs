@@ -82,6 +82,7 @@ const iconPathMap: Record<string, string> = {
   'online-orders': 'M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6M9 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   'cash-drawer': 'M3 10h18v10H3V10zm3-6h12v4H6V4zm6 9v2m-4 0h8',
   sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
+  crm: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   quotations: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
   purchases: 'M1 3h3l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L22 6H6M10 21a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm10 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z',
   'purchases-new': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M12 18v-6M9 15h6',
@@ -97,6 +98,7 @@ const iconPathMap: Record<string, string> = {
   expenses: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
   accounts: 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
   'accounting-accounts': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
+  'accounting-cost-centers': 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V17a1 1 0 0 1-2 0v-.07A6.002 6.002 0 0 1 5.07 13H5a1 1 0 0 1 0-2h.07A6.002 6.002 0 0 1 11 5.07V5a1 1 0 0 1 2 0v.07A6.002 6.002 0 0 1 18.93 11H19a1 1 0 0 1 0 2h-.07A6.002 6.002 0 0 1 13 16.93zM12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4z',
   'accounting-journal-entries': 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15zM9 7h6M9 11h6',
   'accounting-fixed-assets': 'M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4',
   'accounting-settings': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-2a8 8 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-1.7-1L15 3.5h-4l-.3 2.4a8 8 0 0 0-1.7 1l-2.5-1-2 3.5 2.1 1.6a8 8 0 0 0 0 2L4.5 15l2 3.5 2.5-1a8 8 0 0 0 1.7 1l.3 2.5h4l.3-2.5a8 8 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.6z',
@@ -303,6 +305,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'cash-drawer',
 
       // 1. Sales & Customers
+      'crm',
       'quotations',
       'sales',
       'returns',
@@ -334,6 +337,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'vat-declaration',
       'accounting-journal-entries',
       'accounting-accounts',
+      'accounting-cost-centers',
       'accounting-fixed-assets',
       'accounting-settings',
 
@@ -385,6 +389,7 @@ export function AppShell({ children }: PropsWithChildren) {
       dashboard: t('sidebar.dashboard', 'الرئيسية'),
       'cash-drawer': t('sidebar.cash-drawer', 'الوردية والدرج النقدي'),
       pos: t('sidebar.pos', 'نقطة البيع'),
+      crm: 'إدارة علاقات العملاء (CRM)',
       sales: 'سجل الفواتير',
       quotations: 'عروض الأسعار',
       'online-orders': 'طلبات الأونلاين',
@@ -411,6 +416,7 @@ export function AppShell({ children }: PropsWithChildren) {
       expenses: 'المصروفات',
       accounts: 'أرصدة وذمم الحسابات',
       'accounting-accounts': 'شجرة الحسابات',
+      'accounting-cost-centers': 'مراكز التكلفة',
       'accounting-journal-entries': 'القيود اليومية',
       'accounting-fixed-assets': 'الأصول الثابتة والإهلاك',
       'accounting-settings': 'إعدادات الحسابات',
@@ -479,7 +485,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if ((item.key === 'hr' || item.key === 'reports-employees') && (settings?.hrModuleEnabled === false || !hasFeature('hr'))) return false;
 
         // Accounting tree & journal gating:
-        if ((item.key === 'accounting-accounts' || item.key === 'accounting-journal-entries' || item.key === 'accounting-settings' || item.key === 'accounts') && !hasFeature('accounting')) return false;
+        if ((item.key === 'accounting-accounts' || item.key === 'accounting-cost-centers' || item.key === 'accounting-journal-entries' || item.key === 'accounting-settings' || item.key === 'accounts') && !hasFeature('accounting')) return false;
 
         return true;
       })
@@ -503,10 +509,10 @@ export function AppShell({ children }: PropsWithChildren) {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     const hasAccounting = isPlatformAdminUser || !tenant?.features || tenant.features.includes('accounting');
     return [
-      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'signage'], iconKey: 'sales' },
+      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'signage'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
       { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-tree'], iconKey: 'inventory' },
-      { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
+      { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
       ...(settings?.restaurantModuleEnabled ? [{
         key: 'restaurant-group',
         label: 'المطاعم والكافيهات',

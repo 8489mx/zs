@@ -11,7 +11,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import { accountingApi, type OpeningBalancesPreviewResponse } from '@/features/accounting/api/accounting.api';
 
 type AccountRef = { id?: string; code?: string; nameAr?: string; nameEn?: string } | null;
-type SettingsSection = 'accounts-map' | 'opening-balances';
+type SettingsSection = 'accounts-map' | 'opening-balances' | 'lock-dates';
 
 function normalizeNumerals(value: string): string {
   const arabicIndic = '٠١٢٣٤٥٦٧٨٩';
@@ -50,12 +50,36 @@ export function AccountingSettingsPage() {
   const [previewData, setPreviewData] = useState<OpeningBalancesPreviewResponse | null>(null);
   const [showPostConfirm, setShowPostConfirm] = useState(false);
   
+  const [lockDateAll, setLockDateAll] = useState('');
+  const [lockDateNonAdviser, setLockDateNonAdviser] = useState('');
+  const [lockDateTax, setLockDateTax] = useState('');
+  const [lockDatesSavedNotice, setLockDatesSavedNotice] = useState(false);
+
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState<Record<string, string>>({});
 
   const query = useQuery({
     queryKey: ['accounting', 'settings'],
     queryFn: () => accountingApi.settings(),
+  });
+
+  useEffect(() => {
+    if (query.data?.settings) {
+      const s = query.data.settings as any;
+      if (s.lockDateAll) setLockDateAll(String(s.lockDateAll).slice(0, 10));
+      if (s.lockDateNonAdviser) setLockDateNonAdviser(String(s.lockDateNonAdviser).slice(0, 10));
+      if (s.lockDateTax) setLockDateTax(String(s.lockDateTax).slice(0, 10));
+    }
+  }, [query.data?.settings]);
+
+  const updateLockDatesMutation = useMutation({
+    mutationFn: (data: { lockDateAll: string | null; lockDateNonAdviser: string | null; lockDateTax: string | null }) =>
+      accountingApi.updateSettings(data as any),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounting', 'settings'] });
+      setLockDatesSavedNotice(true);
+      setTimeout(() => setLockDatesSavedNotice(false), 4000);
+    },
   });
 
   const accountsQuery = useQuery({
@@ -153,6 +177,9 @@ export function AccountingSettingsPage() {
               </Button>
               <Button type="button" variant={activeSection === 'opening-balances' ? 'primary' : 'secondary'} onClick={() => setActiveSection('opening-balances')}>
                 الأرصدة الافتتاحية
+              </Button>
+              <Button type="button" variant={activeSection === 'lock-dates' ? 'primary' : 'secondary'} onClick={() => setActiveSection('lock-dates')}>
+                إقفال الفترات المحاسبية
               </Button>
             </div>
           }
@@ -378,6 +405,231 @@ export function AccountingSettingsPage() {
                 </table>
               </>
             ) : null}
+          </div>
+        </FormSection>
+      )}
+
+      {activeSection === 'lock-dates' && (
+        <FormSection
+          title="إقفال الفترات المحاسبية والرقابة المالية"
+          description="حماية الحسابات والفترات المغلقة ضد أي تعديل أو ترحيل بأثر رجعي لضمان الحوكمة وتطابق القوائم المالية."
+          actions={
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={updateLockDatesMutation.isPending}
+                onClick={() => {
+                  setLockDateAll('');
+                  setLockDateNonAdviser('');
+                  setLockDateTax('');
+                  updateLockDatesMutation.mutate({
+                    lockDateAll: null,
+                    lockDateNonAdviser: null,
+                    lockDateTax: null,
+                  });
+                }}
+              >
+                إلغاء الإقفال (فتح الفترات)
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={updateLockDatesMutation.isPending}
+                onClick={() => {
+                  updateLockDatesMutation.mutate({
+                    lockDateAll: lockDateAll || null,
+                    lockDateNonAdviser: lockDateNonAdviser || null,
+                    lockDateTax: lockDateTax || null,
+                  });
+                }}
+                style={{
+                  backgroundColor: '#170e5e',
+                  borderColor: '#170e5e',
+                  fontWeight: 700,
+                }}
+              >
+                {updateLockDatesMutation.isPending ? 'جاري الحفظ...' : 'حفظ تواريخ الإقفال'}
+              </Button>
+            </div>
+          }
+        >
+          {lockDatesSavedNotice && (
+            <div
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#ecfdf5',
+                borderRight: '4px solid #10b981',
+                borderRadius: '8px',
+                color: '#065f46',
+                fontSize: '13px',
+                fontWeight: 600,
+                marginBottom: '16px',
+              }}
+            >
+              تم حفظ تواريخ إقفال الفترات المحاسبية بنجاح وتفعيل الرقابة الصارمة على الحركات المالية.
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+            {/* Card 1: Hard Lock */}
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>
+                  تاريخ الإقفال النهائي الشامل
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: lockDateAll ? '#fee2e2' : '#f1f5f9',
+                    color: lockDateAll ? '#991b1b' : '#64748b',
+                  }}
+                >
+                  {lockDateAll ? 'إقفال نشط' : 'غير محدد'}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
+                يمنع تماماً إضافة أو تعديل أي قيد يومية أو فاتورة بيع أو شراء أو سند دفع/قبض يسبق أو يطابق هذا التاريخ <strong>لكافة المستخدمين بما فيهم الإدارة العامة والمدير المالي</strong>.
+              </p>
+              <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  تاريخ الإقفال النهائي
+                </label>
+                <input
+                  type="date"
+                  value={lockDateAll}
+                  onChange={(e) => setLockDateAll(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    backgroundColor: '#ffffff',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Card 2: Operational Lock */}
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>
+                  إقفال العمليات التشغيلية
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: lockDateNonAdviser ? '#fef3c7' : '#f1f5f9',
+                    color: lockDateNonAdviser ? '#92400e' : '#64748b',
+                  }}
+                >
+                  {lockDateNonAdviser ? 'إقفال نشط' : 'غير محدد'}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
+                يمنع تسجيل أو تعديل العمليات التشغيلية (فواتير المبيعات، المشتريات، المصروفات، المرتجعات) بأثر رجعي قبل هذا التاريخ لمدخلي البيانات وموظفي نقاط البيع، ويسمح فقط للمدقق والمدير المالي.
+              </p>
+              <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  تاريخ إقفال العمليات التشغيلية
+                </label>
+                <input
+                  type="date"
+                  value={lockDateNonAdviser}
+                  onChange={(e) => setLockDateNonAdviser(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    backgroundColor: '#ffffff',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Card 3: Tax Lock */}
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#170e5e' }}>
+                  إقفال الإقرار الضريبي
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: lockDateTax ? '#e0e7ff' : '#f1f5f9',
+                    color: lockDateTax ? '#3730a3' : '#64748b',
+                  }}
+                >
+                  {lockDateTax ? 'إقفال نشط' : 'غير محدد'}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>
+                يمنع تعديل أو إدراج أي عمليات تؤثر على حسابات ضريبة القيمة المضافة للفترات التي تم تقديم واعتماد إقرارها الضريبي لدى الهيئة الضريبية.
+              </p>
+              <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  تاريخ إقفال الإقرار الضريبي
+                </label>
+                <input
+                  type="date"
+                  value={lockDateTax}
+                  onChange={(e) => setLockDateTax(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '13px',
+                    backgroundColor: '#ffffff',
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </FormSection>
       )}

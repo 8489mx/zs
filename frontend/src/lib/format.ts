@@ -1,7 +1,10 @@
-export function formatCurrency(value: number) {
+import { getCurrencyDecimals } from './currencies';
+
+export function formatCurrency(value: number, currencyCode?: string | null) {
+  const decimals = getCurrencyDecimals(currencyCode);
   return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
   }).format(value || 0);
 }
 

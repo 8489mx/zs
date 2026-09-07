@@ -8,6 +8,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { PurchasePaymentScheduleCard } from '@/features/purchases/components/PurchasePaymentScheduleCard';
 import { resolveRequestUrl } from '@/lib/http';
 import { purchasesApi } from '@/features/purchases/api/purchases.api';
+import { PurchaseLandedCostsModal } from './PurchaseLandedCostsModal';
 
 interface PurchaseDetailCardProps {
   purchase?: Purchase;
@@ -20,6 +21,7 @@ interface PurchaseDetailCardProps {
 
 export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCancel, onPrint, onRefresh }: PurchaseDetailCardProps) {
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [showLandedCostsModal, setShowLandedCostsModal] = useState(false);
   const [receivingItems, setReceivingItems] = useState<{ [itemId: string]: number }>({});
   const [isSubmittingGrn, setIsSubmittingGrn] = useState(false);
   const [grnError, setGrnError] = useState('');
@@ -187,7 +189,7 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
       {!isCancelled && (
         <div className="invoice-detail-actions-bar" style={{
           display: 'grid',
-          gridTemplateColumns: !isMatched ? 'repeat(4, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
           gap: '8px',
           marginBottom: '14px',
         }}>
@@ -200,6 +202,13 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
               استلام بضاعة (GRN)
             </Button>
           )}
+          <Button
+            variant="secondary"
+            style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center', borderColor: '#170e5e', color: '#170e5e', fontWeight: 800 }}
+            onClick={() => setShowLandedCostsModal(true)}
+          >
+            تكلفة الوصول (Landed Costs)
+          </Button>
           {onPrint ? <Button variant="secondary" style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center' }} onClick={onPrint}>طباعة الفاتورة</Button> : null}
           {onEdit ? <Button variant="secondary" style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center' }} onClick={onEdit}>تعديل الفاتورة</Button> : null}
           {onCancel ? <Button variant="danger" style={{ fontSize: '12.5px', padding: '7px 8px', justifyContent: 'center' }} onClick={onCancel}>إلغاء الفاتورة</Button> : null}
@@ -396,6 +405,17 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
             </div>
           </div>
         </div>
+      )}
+
+      {showLandedCostsModal && (
+        <PurchaseLandedCostsModal
+          open={showLandedCostsModal}
+          purchaseId={purchase.id}
+          onClose={() => setShowLandedCostsModal(false)}
+          onApplied={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
       )}
     </div>
   );

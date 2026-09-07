@@ -38,6 +38,10 @@ export interface HrEmployee {
   delayPolicy?: string;
   hasSocialInsurance?: boolean;
   hasIncomeTax?: boolean;
+  bankName?: string;
+  bankAccountNumber?: string;
+  iban?: string;
+  bankSwiftCode?: string;
   annualLeaveBalance?: string | number;
   usedAnnualLeaves?: string | number;
   insuranceSalary?: number;

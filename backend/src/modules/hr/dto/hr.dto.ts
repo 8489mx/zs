@@ -72,6 +72,26 @@ export class UpsertEmployeeDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  bankAccountNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  iban?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  bankSwiftCode?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(10)
   pinCode?: string;
 
@@ -770,4 +790,23 @@ export class UpdateEmployeeCredentialsDto {
   @MaxLength(10)
   pinCode?: string;
 }
+
+export class GenerateWpsDto {
+  @IsOptional()
+  @IsString()
+  payerCrNo?: string;
+
+  @IsOptional()
+  @IsString()
+  payerBankRoutingCode?: string;
+
+  @IsOptional()
+  @IsString()
+  payerName?: string;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+}
+
 

@@ -27,6 +27,10 @@ export interface EmployeeEditDraft {
   delayPolicy?: string;
   hasSocialInsurance?: boolean;
   hasIncomeTax?: boolean;
+  bankName?: string;
+  bankAccountNumber?: string;
+  iban?: string;
+  bankSwiftCode?: string;
   annualLeaveBalance?: string;
   insuranceSalary?: string;
   notes?: string;
@@ -74,7 +78,11 @@ export const initialDraft: EmployeeEditDraft = {
   delayPolicy: 'inherit',
   hasSocialInsurance: false,
   hasIncomeTax: false,
-  annualLeaveBalance: '',
+  bankName: '',
+  bankAccountNumber: '',
+  iban: '',
+  bankSwiftCode: '',
+  annualLeaveBalance: '21',
   insuranceSalary: '',
   notes: '',
 };

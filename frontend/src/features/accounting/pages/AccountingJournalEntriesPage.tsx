@@ -7,6 +7,8 @@ import { Button } from '@/shared/ui/button';
 import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
 import { accountingApi, type JournalEntryDetail, type JournalEntryLine, type JournalEntryListItem } from '@/features/accounting/api/accounting.api';
+import { ManualJournalEntryDialog } from '../components/ManualJournalEntryDialog';
+import { PlusIcon } from '@/shared/components/icons/AppIcons';
 
 function mapStatusLabel(status: string) {
   if (status === 'posted') return 'مرحّل';
@@ -42,6 +44,7 @@ export function AccountingJournalEntriesPage() {
   const [pageSize, setPageSize] = useState(20);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [shouldAutoScrollToDetails, setShouldAutoScrollToDetails] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const detailsRef = useRef<HTMLDivElement | null>(null);
 
   const query = useQuery({
@@ -78,6 +81,24 @@ export function AccountingJournalEntriesPage() {
         title="القيود اليومية"
         description="استعراض وتتبع قيود اليومية العامة الناتجة عن حركات النظام المالية."
         badge={<span className="nav-pill">دفتر اليومية العامة</span>}
+        actions={
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => setIsCreateOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#170e5e',
+              borderColor: '#170e5e',
+              fontWeight: 700,
+            }}
+          >
+            <PlusIcon size={16} />
+            إنشاء قيد يدوي
+          </Button>
+        }
       />
       <section className="document-prototype-section">
         <div className="section-header-compact-row">
@@ -211,6 +232,27 @@ export function AccountingJournalEntriesPage() {
                             header: 'الحساب',
                             render: (row) => [row.accountCode, row.accountNameAr || row.accountNameEn || row.accountId].filter(Boolean).join(' - '),
                           },
+                          {
+                            id: 'costCenter',
+                            header: 'مركز التكلفة',
+                            render: (row) =>
+                              row.costCenterName ? (
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: 'rgba(23, 14, 94, 0.07)',
+                                    color: '#170e5e',
+                                  }}
+                                >
+                                  {[row.costCenterCode, row.costCenterName].filter(Boolean).join(' - ')}
+                                </span>
+                              ) : (
+                                <span style={{ color: '#94a3b8' }}>-</span>
+                              ),
+                          },
                           { id: 'description', header: 'الوصف', render: (row) => row.description || '-' },
                           { id: 'debit', header: 'مدين', align: 'end', render: (row) => formatCurrency(Number(row.debit || 0)) },
                           { id: 'credit', header: 'دائن', align: 'end', render: (row) => formatCurrency(Number(row.credit || 0)) },
@@ -226,6 +268,15 @@ export function AccountingJournalEntriesPage() {
           </FormSection>
         </div>
       ) : null}
+
+      <ManualJournalEntryDialog
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={(entry) => {
+          query.refetch();
+          handleSelectEntry(String(entry.id));
+        }}
+      />
       </main>
     </div>
   );

@@ -21,8 +21,8 @@ import {
   type PayrollReviewStatus,
 } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { DialogShell } from '@/shared/components/dialog-shell';
-
 import { systemAlert } from '@/shared/components/system-alert';
+import { PayrollWpsExportModal } from '@/features/hr/components/payroll/PayrollWpsExportModal';
 
 interface PayrollDraft {
   periodMonth: string;
@@ -64,6 +64,7 @@ export function HrPayrollPage() {
   const [pendingApprovalAction, setPendingApprovalAction] = useState<{ runId: string; type: 'review' | 'approve' } | null>(null);
   const [showCreateRun, setShowCreateRun] = useState(false);
   const [showPayRun, setShowPayRun] = useState(false);
+  const [showWpsModal, setShowWpsModal] = useState(false);
   const [payChannel, setPayChannel] = useState<'cash' | 'bank'>('cash');
 
   const workspace = useHrWorkspace({ page, pageSize, month: monthFilter });
@@ -616,6 +617,15 @@ export function HrPayrollPage() {
                 </DialogShell>
               )}
 
+              {showWpsModal && selectedRun && (
+                <PayrollWpsExportModal
+                  runId={String(selectedRun.id)}
+                  runMonth={String(selectedRun.periodMonth || '')}
+                  runName={String((selectedRun as any).name || `مسير شهر ${selectedRun.periodMonth || ''}`)}
+                  onClose={() => setShowWpsModal(false)}
+                />
+              )}
+
               {/* Compact Smart Audit Strip */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -697,9 +707,21 @@ export function HrPayrollPage() {
                   <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
                     تفاصيل ومراجعة موظفي المسير {selectedRun ? `(${text(selectedRun.periodMonth)})` : ''}
                   </div>
-                  {runIsFinal && (
-                    <Button variant="secondary" onClick={() => printPayrollSignatureSheet()} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>طباعة كشف تسليم الرواتب</Button>
-                  )}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {selectedRun && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setShowWpsModal(true)}
+                        style={{ padding: '2px 10px', fontSize: '0.8rem', background: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0', fontWeight: 600 }}
+                      >
+                        تصدير ملف حماية الأجور (WPS / SIF)
+                      </Button>
+                    )}
+                    {runIsFinal && (
+                      <Button variant="secondary" onClick={() => printPayrollSignatureSheet()} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>طباعة كشف تسليم الرواتب</Button>
+                    )}
+                  </div>
                 </div>
 
                 {!selectedRunId ? (
