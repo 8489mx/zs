@@ -93,7 +93,7 @@ export class EmployeePortalService {
     const rawPin = String(payload?.pinCode || '').trim();
 
     if (!rawIdentifier || !rawPin) {
-      throw new AppError('يرجى إدخال رقم الهاتف/كود الموظف ورمز الدخول السري (PIN)', 'INVALID_CREDENTIALS', 400);
+      throw new AppError('يرجى إدخال رقم الهاتف المحمول ورمز الدخول السري (PIN)', 'INVALID_CREDENTIALS', 400);
     }
 
     const cleanDigits = rawIdentifier.replace(/\D/g, '');
@@ -169,7 +169,7 @@ export class EmployeePortalService {
     });
 
     if (!matchedEmployees || matchedEmployees.length === 0) {
-      throw new AppError('بيانات الدخول غير صحيحة، يرجى التأكد من رقم الهاتف أو كود الموظف', 'EMPLOYEE_NOT_FOUND', 401);
+      throw new AppError('بيانات الدخول غير صحيحة، يرجى التأكد من رقم الهاتف المحمول ورمز الدخول السري', 'EMPLOYEE_NOT_FOUND', 401);
     }
 
     let matched: any = null;

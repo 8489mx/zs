@@ -328,13 +328,13 @@ export default function EmployeePortalPage() {
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رقم الهاتف أو كود الموظف:
+                رقم الهاتف المحمول:
               </label>
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="مثال: 01012345678 أو EMP-01"
+                placeholder="مثال: 01012345678"
                 required
                 style={{
                   width: '100%',
