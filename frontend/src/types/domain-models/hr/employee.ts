@@ -6,6 +6,10 @@ export interface HrEmployee {
   lastName?: string;
   displayName: string;
   status: string;
+  pinCode?: string;
+  pin_code?: string;
+  phone?: string;
+  mobile?: string;
   userId?: string;
   username?: string;
   departmentId?: string;

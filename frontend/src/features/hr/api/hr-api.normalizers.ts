@@ -111,6 +111,10 @@ export function normalizeHrEmployeeRow(row: HrEmployee | HrApiDateRecord): HrEmp
   return {
     ...(row as HrEmployee),
     nationalId: apiPick(source, ['nationalId', 'national_id']) || (row as HrEmployee).nationalId || '',
+    pinCode: apiPick(source, ['pinCode', 'pin_code']) || (row as HrEmployee).pinCode || '',
+    pin_code: apiPick(source, ['pin_code', 'pinCode']) || (row as HrEmployee).pin_code || '',
+    phone: apiPick(source, ['phone', 'mobile', 'primary_phone']) || (row as HrEmployee).phone || '',
+    mobile: apiPick(source, ['mobile', 'phone', 'primary_phone']) || (row as HrEmployee).mobile || '',
     compensationType: apiPick(source, ['compensationType', 'compensation_type']) || (row as HrEmployee).compensationType || 'monthly',
     hourlyRate: source.hourly_rate == null && source.hourlyRate == null
       ? ((row as HrEmployee).hourlyRate ?? null)

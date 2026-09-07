@@ -28,6 +28,8 @@ import {
   UpsertHolidayDto,
   EndOfServiceDto,
   CreateQuickCashAdvanceDto,
+  UpdateEmployeeCredentialsDto,
+  UpdateEmployeeStatusDto,
 } from './dto/hr.dto';
 import { HrService } from './hr.service';
 import { RequireFeature } from '../../core/auth/decorators/feature.decorator';
@@ -394,6 +396,18 @@ export class HrController {
   @RequirePermissions('hrEmployees')
   deactivateEmployee(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.hr.deactivateEmployee(id, req.authContext!);
+  }
+
+  @Patch('employees/:id/status')
+  @RequirePermissions('hrEmployees')
+  updateEmployeeStatus(@Param('id', ParseIntPipe) id: number, @Body() payload: UpdateEmployeeStatusDto, @Req() req: RequestWithAuth) {
+    return this.hr.updateEmployeeStatus(id, payload.status, req.authContext!);
+  }
+
+  @Put('employees/:id/credentials')
+  @RequirePermissions('hrEmployees')
+  updateEmployeeCredentials(@Param('id', ParseIntPipe) id: number, @Body() payload: UpdateEmployeeCredentialsDto, @Req() req: RequestWithAuth) {
+    return this.hr.updateEmployeeCredentials(id, payload, req.authContext!);
   }
 
   @Get('employees/:employeeId/contacts')

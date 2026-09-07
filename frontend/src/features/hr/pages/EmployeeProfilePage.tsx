@@ -534,18 +534,68 @@ export function EmployeeProfilePage() {
 
       {showPinModal && (
         <DialogShell
-          title={`تعيين رمز PIN للدخول: ${employee ? employeeName(employee) : ''}`}
-          isOpen={showPinModal}
+          open={showPinModal}
           onClose={() => setShowPinModal(false)}
-          maxWidth="440px"
+          width="min(480px, 95vw)"
+          ariaLabel="تعيين رمز PIN للدخول"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '10px 0' }} dir="rtl">
-            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+          <div
+            className="dialog-card"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              padding: '24px 28px',
+              boxSizing: 'border-box',
+            }}
+            dir="rtl"
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid #e2e8f0',
+                paddingBottom: '12px',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', lineHeight: 1.4 }}>
+                تعيين رمز PIN للدخول: {employee ? employeeName(employee) : ''}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPinModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  color: '#94a3b8',
+                  lineHeight: 1,
+                  padding: '4px',
+                }}
+                title="إغلاق"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: '#f8fafc',
+                padding: '12px 14px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '12.5px',
+                color: '#475569',
+                lineHeight: 1.5,
+              }}
+            >
               يستخدم الموظف هذا الرمز لتسجيل بصمة الحضور بالسيلفي والـ GPS، وللدخول إلى بوابة الموظف الذاتية لاستعراض الراتب والإجازات.
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                 رمز الدخول السريع (PIN جديد - 4 إلى 6 أرقام)
               </label>
               <input
@@ -571,7 +621,7 @@ export function EmployeeProfilePage() {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
               <Button variant="secondary" onClick={() => setShowPinModal(false)}>
                 إلغاء
               </Button>

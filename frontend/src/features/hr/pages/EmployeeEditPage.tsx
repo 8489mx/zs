@@ -13,6 +13,7 @@ import {
   normalizeArabicDigits,
   normalizeDigitsOnly,
   normalizeNumberText,
+  normalizePhone,
   toId,
   type EmployeeEditDraft,
 } from '@/features/hr/pages/employee-edit/employee-edit.helpers';
@@ -34,10 +35,18 @@ export function EmployeeEditPage() {
 
   useEffect(() => {
     if (!employee || draftInitialized) return;
+    const primaryPhone = String(
+      employee.mobile ||
+      employee.phone ||
+      (profile.data?.contacts as any[])?.find((c: any) => c.isPrimary)?.value ||
+      (profile.data?.contacts as any[])?.[0]?.value ||
+      ''
+    );
     setDraft({
       employeeNo: String(employee.employeeNo || ''),
       firstName: String(employee.firstName || ''),
       lastName: String(employee.lastName || ''),
+      mobile: primaryPhone,
       nationalId: String(employee.nationalId || ''),
       departmentId: getEmployeeRef(employee, 'departmentId'),
       jobTitleId: getEmployeeRef(employee, 'jobTitleId'),
@@ -81,6 +90,7 @@ export function EmployeeEditPage() {
     if (!id) { setSubmitError('تعذر تحديد الموظف.'); return; }
 
     const firstName = String(draft.firstName || '').trim();
+    const mobile = normalizePhone(draft.mobile);
     const hireDate = String(draft.hireDate || '').trim();
     const employeeNo = normalizeArabicDigits(String(draft.employeeNo || '').trim());
     const nationalId = normalizeDigitsOnly(draft.nationalId);
@@ -89,6 +99,7 @@ export function EmployeeEditPage() {
     const graceMinutes = Number(normalizeDigitsOnly(draft.graceMinutes) || 0);
 
     if (!firstName) { setSubmitError('الاسم الأول مطلوب.'); return; }
+    if (!mobile) { setSubmitError('الموبايل مطلوب.'); return; }
     if (!hireDate) { setSubmitError('تاريخ التعيين مطلوب.'); return; }
     if (nationalId && !/^\d{14}$/.test(nationalId)) { setSubmitError('الرقم القومي يجب أن يكون 14 رقمًا.'); return; }
     if (draft.compensationType === 'hourly' && !(hourlyRate > 0)) { setSubmitError('أجر الساعة مطلوب للموظف بالأجر بالساعة.'); return; }
@@ -101,6 +112,8 @@ export function EmployeeEditPage() {
           employeeNo: employeeNo || undefined,
           firstName,
           lastName: String(draft.lastName || '').trim() || undefined,
+          mobile,
+          phone: mobile,
           nationalId: nationalId || undefined,
           departmentId: toId(draft.departmentId),
           jobTitleId: toId(draft.jobTitleId),
@@ -126,6 +139,12 @@ export function EmployeeEditPage() {
           insuranceSalary: draft.insuranceSalary ? Number(normalizeNumberText(draft.insuranceSalary)) : undefined,
         },
       });
+      if (id && mobile) {
+        await mutations.saveContact.mutateAsync({
+          employeeId: id,
+          payload: { contactType: 'mobile', value: mobile, label: 'الموبايل', isPrimary: true, notes: '' },
+        });
+      }
       goToProfile();
     } catch (error) {
       setSubmitError(getErrorMessage(error, 'تعذر تحديث بيانات الموظف.'));
@@ -186,13 +205,15 @@ export function EmployeeEditPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الرقم القومي (14 رقم)</label>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الموبايل <span style={{ color: '#dc2626' }}>*</span></label>
                   <input
-                    value={draft.nationalId}
-                    onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))}
-                    inputMode="numeric"
-                    maxLength={14}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                    value={draft.mobile}
+                    onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))}
+                    placeholder="01xxxxxxxxx"
+                    inputMode="tel"
+                    dir="ltr"
+                    required
+                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', textAlign: 'right', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
@@ -214,6 +235,17 @@ export function EmployeeEditPage() {
                       { value: 'active', label: 'نشط' },
                       { value: 'inactive', label: 'غير نشط' },
                     ]}
+                  />
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الرقم القومي (14 رقم)</label>
+                  <input
+                    value={draft.nationalId}
+                    onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))}
+                    placeholder="اختياري - 14 رقم"
+                    inputMode="numeric"
+                    maxLength={14}
+                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>

@@ -595,6 +595,7 @@ export class HrService {
     const result = await sql<Record<string, unknown>>`
       SELECT e.*, d.name AS department_name, j.name AS job_title_name, p.name AS position_name, b.name AS branch_name, l.name AS location_name, u.username AS username
       , to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date_text
+      , (SELECT c.value FROM hr_employee_contacts c WHERE c.employee_id = e.id ORDER BY c.is_primary DESC, c.id ASC LIMIT 1) AS primary_phone
       FROM hr_employees e
       LEFT JOIN hr_departments d ON d.id = e.department_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
@@ -617,6 +618,8 @@ export class HrService {
       displayName: clean(row.display_name) || `${clean(row.first_name)} ${clean(row.last_name)}`.trim(),
       status: clean(row.status) || 'active',
       pinCode: clean(row.pin_code),
+      phone: clean(row.primary_phone),
+      mobile: clean(row.primary_phone),
       userId: row.user_id ? String(row.user_id) : '',
       username: clean(row.username),
       departmentId: row.department_id ? String(row.department_id) : '',
@@ -828,6 +831,10 @@ export class HrService {
       throw new AppError('الرقم القومي يجب أن يكون 14 رقمًا.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
     }
 
+    const cleanPhone = String(payload.mobile || payload.phone || '').trim();
+    const cleanPin = String(payload.pinCode || '').trim();
+    let savedEmployeeId = id ? String(id) : '';
+
     try {
       if (id) {
         if (employeeNo) {
@@ -837,6 +844,7 @@ export class HrService {
           UPDATE hr_employees
           SET employee_no = COALESCE(NULLIF(${employeeNo}, ''), employee_no), user_id = ${toId(payload.userId)}, first_name = ${firstName}, last_name = ${lastName}, display_name = ${displayName},
               national_id = ${nationalId || null},
+              pin_code = COALESCE(NULLIF(${cleanPin}, ''), pin_code),
               status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
               branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
               compensation_type = ${compensationType},
@@ -858,15 +866,31 @@ export class HrService {
               updated_by = ${auth.userId}, updated_at = NOW()
           WHERE id = ${id} AND tenant_id = ${auth.tenantId}
         `.execute(this.db);
+
+        if (cleanPhone) {
+          const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(this.db);
+          if (existing.rows.length > 0) {
+            await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id}`.execute(this.db);
+          } else {
+            await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(this.db);
+          }
+        }
       } else {
         await this.tx.runInTransaction(this.db, async (trx) => {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
-          await sql<{ id: number }>`
-            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, created_by, updated_by)
-            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${auth.userId}, ${auth.userId})
+          const insertResult = await sql<{ id: number }>`
+            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, pin_code, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${cleanPin || null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
+          const newId = insertResult.rows[0]?.id;
+          if (newId) {
+            savedEmployeeId = String(newId);
+            if (cleanPhone) {
+              await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${newId}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(trx);
+            }
+          }
         });
       }
     } catch (error) {
@@ -877,6 +901,39 @@ export class HrService {
     }
 
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employee`, `Employee ${displayName} saved by ${auth.username}`, auth);
+    return { ok: true, id: savedEmployeeId, ...(await this.listEmployees({}, auth)) };
+  }
+
+  async updateEmployeeStatus(id: number, status: string, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(id, auth);
+    const validStatus = ['active', 'inactive', 'deactivated', 'terminated'].includes(status) ? status : 'active';
+    await sql`UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    await this.audit.log('Update HR employee status', `Employee #${id} status changed to ${validStatus} by ${auth.username}`, auth);
+    return { ok: true, ...(await this.listEmployees({}, auth)) };
+  }
+
+  async updateEmployeeCredentials(employeeId: number, payload: UpdateEmployeeCredentialsDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const cleanPin = String(payload.pinCode || '').trim();
+    const cleanPhone = String(payload.phone || '').trim();
+
+    if (cleanPin) {
+      if (cleanPin.length < 4) {
+        throw new AppError('رمز الدخول (PIN) يجب ألا يقل عن 4 أرقام', 'INVALID_PIN', 400);
+      }
+      await sql`UPDATE hr_employees SET pin_code = ${cleanPin}, mobile_punch_enabled = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    }
+
+    if (cleanPhone) {
+      const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(this.db);
+      if (existing.rows.length > 0) {
+        await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id}`.execute(this.db);
+      } else {
+        await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(this.db);
+      }
+    }
+
+    await this.audit.log('Update HR employee credentials', `Employee #${employeeId} credentials updated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
 

@@ -4,6 +4,7 @@ export interface EmployeeEditDraft {
   employeeNo: string;
   firstName: string;
   lastName: string;
+  mobile: string;
   nationalId: string;
   departmentId: string;
   jobTitleId: string;
@@ -50,6 +51,7 @@ export const initialDraft: EmployeeEditDraft = {
   employeeNo: '',
   firstName: '',
   lastName: '',
+  mobile: '',
   nationalId: '',
   departmentId: '',
   jobTitleId: '',
@@ -85,6 +87,10 @@ export function normalizeArabicDigits(value: string) {
 
 export function normalizeDigitsOnly(value: string) {
   return normalizeArabicDigits(value).replace(/\D/g, '');
+}
+
+export function normalizePhone(value: string) {
+  return normalizeArabicDigits(value).replace(/\s+/g, '').trim();
 }
 
 export function normalizeNumberText(value: string) {

@@ -220,19 +220,19 @@ export function DeliveryRepsAccessPanel() {
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '12px',
-          overflow: 'hidden',
+          overflowX: 'auto',
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
         }}
       >
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>المندوب</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>رقم الهاتف (معرف الدخول)</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>رمز الـ PIN</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>البوابات المتاحة</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>حالة الحساب</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+              <th style={{ padding: '10px 12px', fontWeight: 700 }}>المندوب</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>رقم الهاتف</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>رمز الـ PIN</th>
+              <th style={{ padding: '10px 8px', fontWeight: 700 }}>البوابات</th>
+              <th style={{ padding: '10px 8px', fontWeight: 700 }}>الحالة</th>
+              <th style={{ padding: '10px 12px', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
             </tr>
           </thead>
           <tbody>
@@ -251,20 +251,20 @@ export function DeliveryRepsAccessPanel() {
             ) : (
               filteredReps.map((rep) => (
                 <tr key={rep.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{rep.name}</div>
+                  <td style={{ padding: '10px 12px' }}>
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>{rep.name}</div>
                     {rep.full_name && (
                       <div style={{ fontSize: '11px', color: '#64748b' }}>{rep.full_name}</div>
                     )}
                   </td>
-                  <td style={{ padding: '12px 16px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace' }}>
-                    {rep.phone || <span style={{ color: '#dc2626' }}>غير محدد</span>}
+                  <td style={{ padding: '10px 10px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
+                    {rep.phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>غير محدد</span>}
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td style={{ padding: '10px 10px' }}>
                     <span
                       style={{
                         display: 'inline-block',
-                        padding: '3px 8px',
+                        padding: '2px 7px',
                         background: rep.pin_code ? '#f0fdf4' : '#fef2f2',
                         border: `1px solid ${rep.pin_code ? '#bbf7d0' : '#fecaca'}`,
                         color: rep.pin_code ? '#15803d' : '#b91c1c',
@@ -272,76 +272,79 @@ export function DeliveryRepsAccessPanel() {
                         fontFamily: 'monospace',
                         fontWeight: 700,
                         letterSpacing: '1px',
-                        fontSize: '12px',
+                        fontSize: '11.5px',
                       }}
                     >
                       {rep.pin_code ? `•••• (${rep.pin_code})` : 'بدون رمز'}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <td style={{ padding: '10px 8px' }}>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                       <span
                         onClick={() => copyUrl('/driver', 'بوابة الدليفري')}
-                        title="انقر لنسخ الرابط"
+                        title="انقر لنسخ رابط بوابة الدليفري (/driver)"
                         style={{
-                          fontSize: '11px',
+                          fontSize: '10.5px',
                           background: '#fff7ed',
                           color: '#c2410c',
                           border: '1px solid #ffedd5',
                           borderRadius: '4px',
-                          padding: '2px 6px',
+                          padding: '2px 5px',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
-                        <CopyIcon size={11} /> دليفري (/driver)
+                        <CopyIcon size={10} /> دليفري
                       </span>
                       <span
                         onClick={() => copyUrl('/van-sales', 'مبيعات الفان')}
-                        title="انقر لنسخ الرابط"
+                        title="انقر لنسخ رابط مبيعات الفان (/van-sales)"
                         style={{
-                          fontSize: '11px',
+                          fontSize: '10.5px',
                           background: '#f0f9ff',
                           color: '#0369a1',
                           border: '1px solid #e0f2fe',
                           borderRadius: '4px',
-                          padding: '2px 6px',
+                          padding: '2px 5px',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
-                        <CopyIcon size={11} /> فان (/van-sales)
+                        <CopyIcon size={10} /> فان
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td style={{ padding: '10px 8px' }}>
                     <span
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
-                        padding: '3px 8px',
+                        gap: '3px',
+                        padding: '2px 7px',
                         borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: 700,
                         background: rep.is_active ? '#ecfdf5' : '#fef2f2',
                         color: rep.is_active ? '#065f46' : '#991b1b',
                         border: `1px solid ${rep.is_active ? '#a7f3d0' : '#fecaca'}`,
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {rep.is_active ? <CheckCircleIcon size={12} /> : <XCircleIcon size={12} />}
-                      {rep.is_active ? 'نشط ومفعل' : 'حساب موقوف'}
+                      {rep.is_active ? <CheckCircleIcon size={11} /> : <XCircleIcon size={11} />}
+                      {rep.is_active ? 'نشط' : 'موقوف'}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px' }}>
+                  <td style={{ padding: '10px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
                       <Button
                         variant="secondary"
-                        style={{ fontSize: '11px', padding: '4px 10px' }}
+                        style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
                         onClick={() => {
                           setEditingRep(rep);
                           setPhoneInput(rep.phone || '');
@@ -352,11 +355,11 @@ export function DeliveryRepsAccessPanel() {
                       </Button>
                       <Button
                         variant={rep.is_active ? 'danger' : 'secondary'}
-                        style={{ fontSize: '11px', padding: '4px 10px' }}
+                        style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
                         onClick={() => toggleActive(rep)}
                         disabled={updateMutation.isPending}
                       >
-                        {rep.is_active ? 'إيقاف الحساب' : 'تفعيل'}
+                        {rep.is_active ? 'إيقاف' : 'تفعيل'}
                       </Button>
                     </div>
                   </td>
@@ -370,18 +373,68 @@ export function DeliveryRepsAccessPanel() {
       {/* Edit Credentials Modal */}
       {editingRep && (
         <DialogShell
-          title={`تعديل بيانات الدخول: ${editingRep.name}`}
-          isOpen={Boolean(editingRep)}
+          open={Boolean(editingRep)}
           onClose={() => setEditingRep(null)}
-          maxWidth="460px"
+          width="min(500px, 95vw)"
+          ariaLabel="تعديل بيانات الدخول للمندوب"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '10px 0' }} dir="rtl">
-            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+          <div
+            className="dialog-card"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              padding: '24px 28px',
+              boxSizing: 'border-box',
+            }}
+            dir="rtl"
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid #e2e8f0',
+                paddingBottom: '12px',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', lineHeight: 1.4 }}>
+                تعديل بيانات الدخول: {editingRep.name}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingRep(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  color: '#94a3b8',
+                  lineHeight: 1,
+                  padding: '4px',
+                }}
+                title="إغلاق"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: '#f8fafc',
+                padding: '12px 14px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '12.5px',
+                color: '#475569',
+                lineHeight: 1.5,
+              }}
+            >
               يستخدم المندوب رقم الهاتف والرمز السري (PIN) للدخول إلى تطبيق المندوب أو نقطة بيع الفان.
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                 رقم الهاتف المحمول (معرف تسجيل الدخول)
               </label>
               <input
@@ -403,7 +456,7 @@ export function DeliveryRepsAccessPanel() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                 رمز الدخول السريع (PIN - من 4 إلى 6 أرقام)
               </label>
               <input
@@ -417,18 +470,18 @@ export function DeliveryRepsAccessPanel() {
                   padding: '9px 12px',
                   borderRadius: '7px',
                   border: '1px solid #cbd5e1',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   direction: 'ltr',
                   textAlign: 'center',
                   fontFamily: 'monospace',
-                  letterSpacing: '2px',
+                  letterSpacing: '3px',
                   fontWeight: 800,
                   boxSizing: 'border-box',
                 }}
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
               <Button variant="secondary" onClick={() => setEditingRep(null)}>
                 إلغاء
               </Button>
@@ -460,6 +513,7 @@ export function EmployeeSelfServiceAccessPanel() {
 
   // Modal State
   const [editingEmployee, setEditingEmployee] = useState<HrEmployee | null>(null);
+  const [phoneInput, setPhoneInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -489,23 +543,33 @@ export function EmployeeSelfServiceAccessPanel() {
     });
   }, [rawEmployees, searchTerm, statusFilter]);
 
-  // Primary Source Mutation: Set Employee PIN for Punch & Portal
-  const handleSavePin = async () => {
+  // Primary Source Mutation: Set Employee Credentials (Phone & PIN)
+  const handleSaveCredentials = async () => {
     if (!editingEmployee || !editingEmployee.id) return;
     const cleanPin = pinInput.trim();
-    if (!cleanPin || cleanPin.length < 4) {
+    const cleanPhone = phoneInput.trim();
+
+    if (cleanPin && cleanPin.length < 4) {
       systemAlert('يرجى إدخال رمز PIN لا يقل عن 4 أرقام');
+      return;
+    }
+
+    if (!cleanPhone && !cleanPin) {
+      systemAlert('يرجى إدخال رقم الهاتف أو رمز الـ PIN على الأقل');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await mobilePunchApi.setEmployeePin(Number(editingEmployee.id), cleanPin);
+      await hrApi.updateEmployeeCredentials(String(editingEmployee.id), {
+        phone: cleanPhone || undefined,
+        pinCode: cleanPin || undefined,
+      });
       await queryClient.invalidateQueries({ queryKey: ['hr'] });
-      systemAlert(`تم تعيين رمز الدخول السريع (PIN) للموظف ${editingEmployee.displayName || editingEmployee.firstName} بنجاح`);
+      systemAlert(`تم تحديث بيانات وصول الموظف ${editingEmployee.displayName || editingEmployee.firstName} بنجاح`);
       setEditingEmployee(null);
     } catch (err: any) {
-      systemAlert(err.message || 'حدث خطأ أثناء حفظ الرمز');
+      systemAlert(err.message || 'حدث خطأ أثناء حفظ البيانات');
     } finally {
       setIsSubmitting(false);
     }
@@ -516,7 +580,7 @@ export function EmployeeSelfServiceAccessPanel() {
     const isCurrentlyActive = String(emp.status || '') === 'active';
     const nextStatus = isCurrentlyActive ? 'deactivated' : 'active';
     try {
-      await hrApi.saveEmployee({ status: nextStatus }, String(emp.id));
+      await hrApi.updateEmployeeStatus(String(emp.id), nextStatus);
       await queryClient.invalidateQueries({ queryKey: ['hr'] });
       systemAlert(`تم ${isCurrentlyActive ? 'إيقاف حساب' : 'تفعيل'} الموظف بنجاح`);
     } catch (err: any) {
@@ -651,20 +715,26 @@ export function EmployeeSelfServiceAccessPanel() {
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '12px',
-          overflow: 'hidden',
+      {/* Employees Table */}
+      <div
+        style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          overflowX: 'auto',
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
         }}
       >
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '12.5px' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>الموظف</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>القسم والوظيفة</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>الموبايل (معرف الدخول)</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>بصمة الموبايل والـ PIN</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>البوابات الذاتية</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>الحالة</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'center' }}>الإجراءات</th>
+              <th style={{ padding: '10px 12px', fontWeight: 700 }}>الموظف</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>القسم والوظيفة</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>الموبايل</th>
+              <th style={{ padding: '10px 10px', fontWeight: 700 }}>رمز الـ PIN</th>
+              <th style={{ padding: '10px 8px', fontWeight: 700 }}>البوابات</th>
+              <th style={{ padding: '10px 8px', fontWeight: 700 }}>الحالة</th>
+              <th style={{ padding: '10px 12px', fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
             </tr>
           </thead>
           <tbody>
@@ -688,26 +758,26 @@ export function EmployeeSelfServiceAccessPanel() {
 
                 return (
                   <tr key={emp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 800, color: '#0f172a' }}>{empName}</div>
+                    <td style={{ padding: '10px 12px' }}>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13px' }}>{empName}</div>
                       {emp.employeeNo && (
                         <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
                           كود: {emp.employeeNo}
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ color: '#334155' }}>{emp.departmentName || '—'}</div>
+                    <td style={{ padding: '10px 10px' }}>
+                      <div style={{ color: '#334155', fontWeight: 600, fontSize: '12px' }}>{emp.departmentName || '—'}</div>
                       <div style={{ fontSize: '11px', color: '#64748b' }}>{emp.jobTitleName || emp.positionName || '—'}</div>
                     </td>
-                    <td style={{ padding: '12px 16px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace' }}>
-                      {phone || <span style={{ color: '#dc2626' }}>ناقص موبايل</span>}
+                    <td style={{ padding: '10px 10px', direction: 'ltr', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
+                      {phone || <span style={{ color: '#dc2626', fontSize: '11px' }}>ناقص موبايل</span>}
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
+                    <td style={{ padding: '10px 10px' }}>
                       <span
                         style={{
                           display: 'inline-block',
-                          padding: '3px 8px',
+                          padding: '2px 7px',
                           background: emp.pinCode || emp.pin_code ? '#f0fdf4' : '#fef2f2',
                           border: `1px solid ${emp.pinCode || emp.pin_code ? '#bbf7d0' : '#fecaca'}`,
                           color: emp.pinCode || emp.pin_code ? '#15803d' : '#b91c1c',
@@ -715,93 +785,97 @@ export function EmployeeSelfServiceAccessPanel() {
                           fontFamily: 'monospace',
                           fontWeight: 700,
                           letterSpacing: '1px',
-                          fontSize: '12px',
+                          fontSize: '11.5px',
                         }}
                       >
                         {emp.pinCode || emp.pin_code ? `•••• (${emp.pinCode || emp.pin_code})` : 'لم يعين PIN'}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <td style={{ padding: '10px 8px' }}>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         <span
                           onClick={() => copyUrl('/portal', 'بوابة الموظف الذاتية')}
-                          title="انقر لنسخ الرابط"
+                          title="انقر لنسخ رابط بوابة الموظف (/portal)"
                           style={{
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             background: '#eff6ff',
                             color: '#1d4ed8',
                             border: '1px solid #dbeafe',
                             borderRadius: '4px',
-                            padding: '2px 6px',
+                            padding: '2px 5px',
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '3px',
+                            whiteSpace: 'nowrap',
                           }}
                         >
-                          <CopyIcon size={11} /> البوابة (/portal)
+                          <CopyIcon size={10} /> بوابة
                         </span>
                         <span
                           onClick={() => copyUrl('/punch', 'بصمة الموبايل الذكية')}
-                          title="انقر لنسخ الرابط"
+                          title="انقر لنسخ رابط بصمة الموبايل (/punch)"
                           style={{
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             background: '#f0fdf4',
                             color: '#15803d',
                             border: '1px solid #dcfce7',
                             borderRadius: '4px',
-                            padding: '2px 6px',
+                            padding: '2px 5px',
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '3px',
+                            whiteSpace: 'nowrap',
                           }}
                         >
-                          <CopyIcon size={11} /> بصمة (/punch)
+                          <CopyIcon size={10} /> بصمة
                         </span>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
+                    <td style={{ padding: '10px 8px' }}>
                       <span
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          padding: '3px 8px',
+                          gap: '3px',
+                          padding: '2px 7px',
                           borderRadius: '6px',
                           fontSize: '11px',
                           fontWeight: 700,
                           background: isActive ? '#ecfdf5' : '#fef2f2',
                           color: isActive ? '#065f46' : '#991b1b',
                           border: `1px solid ${isActive ? '#a7f3d0' : '#fecaca'}`,
+                          whiteSpace: 'nowrap',
                         }}
                       >
-                        {isActive ? <CheckCircleIcon size={12} /> : <XCircleIcon size={12} />}
-                        {isActive ? 'نشط ومفعل' : 'حساب موقوف'}
+                        {isActive ? <CheckCircleIcon size={11} /> : <XCircleIcon size={11} />}
+                        {isActive ? 'نشط' : 'موقوف'}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
                         <Button
                           variant="secondary"
-                          style={{ fontSize: '11px', padding: '4px 10px' }}
+                          style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
                           onClick={() => {
                             setEditingEmployee(emp);
+                            setPhoneInput(emp.phone || emp.mobile || '');
                             setPinInput(emp.pinCode || emp.pin_code || '');
                           }}
                         >
-                          تعيين الـ PIN
+                          تعديل الـ PIN والهاتف
                         </Button>
                         <Button
                           variant={isActive ? 'danger' : 'secondary'}
-                          style={{ fontSize: '11px', padding: '4px 10px' }}
+                          style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
                           onClick={() => toggleEmployeeStatus(emp)}
                         >
-                          {isActive ? 'إيقاف الحساب' : 'تفعيل'}
+                          {isActive ? 'إيقاف' : 'تفعيل'}
                         </Button>
                         <Button
                           variant="secondary"
-                          style={{ fontSize: '11px', padding: '4px 8px', color: '#170e5e' }}
+                          style={{ fontSize: '11px', padding: '3px 8px', color: '#170e5e', fontWeight: 700, whiteSpace: 'nowrap' }}
                           onClick={() => navigate(`/hr/employees/${emp.id}`)}
                           title="فتح ملف الموظف الكامل في الموارد البشرية"
                         >
@@ -817,22 +891,94 @@ export function EmployeeSelfServiceAccessPanel() {
         </table>
       </div>
 
-      {/* Edit PIN Modal */}
+      {/* Edit Credentials Modal */}
       {editingEmployee && (
         <DialogShell
-          title={`تعيين رمز PIN للدخول: ${editingEmployee.displayName || editingEmployee.firstName}`}
-          isOpen={Boolean(editingEmployee)}
+          open={Boolean(editingEmployee)}
           onClose={() => setEditingEmployee(null)}
-          maxWidth="440px"
+          width="min(500px, 95vw)"
+          ariaLabel="تعديل بيانات الدخول للموظف"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '10px 0' }} dir="rtl">
-            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
-              يستخدم الموظف هذا الرمز لتسجيل بصمة الحضور/الانصراف بالسيلفي والـ GPS، وللدخول إلى بوابة الموظف الذاتية لاستعراض الراتب والإجازات.
+          <div
+            className="dialog-card"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              padding: '24px 28px',
+              boxSizing: 'border-box',
+            }}
+            dir="rtl"
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid #e2e8f0',
+                paddingBottom: '12px',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', lineHeight: 1.4 }}>
+                تعديل بيانات الدخول: {editingEmployee.displayName || editingEmployee.firstName}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingEmployee(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  color: '#94a3b8',
+                  lineHeight: 1,
+                  padding: '4px',
+                }}
+                title="إغلاق"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: '#f8fafc',
+                padding: '12px 14px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '12.5px',
+                color: '#475569',
+                lineHeight: 1.5,
+              }}
+            >
+              يستخدم الموظف رقم الهاتف المحمول والرمز السري (PIN) لتسجيل بصمة الحضور والانصراف الذكية (GPS) وللدخول إلى بوابة الموظف الذاتية (ESS).
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                رمز الدخول السريع (PIN جديد - 4 إلى 6 أرقام)
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                رقم الهاتف المحمول (معرف تسجيل الدخول للبوابات الذاتية)
+              </label>
+              <input
+                type="text"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="مثال: 01012345678"
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '7px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  direction: 'ltr',
+                  textAlign: 'right',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                رمز الدخول السريع (PIN - من 4 إلى 6 أرقام)
               </label>
               <input
                 type="text"
@@ -840,7 +986,6 @@ export function EmployeeSelfServiceAccessPanel() {
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="مثال: 1234"
-                autoFocus
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -857,17 +1002,17 @@ export function EmployeeSelfServiceAccessPanel() {
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
               <Button variant="secondary" onClick={() => setEditingEmployee(null)}>
                 إلغاء
               </Button>
               <Button
                 variant="primary"
                 style={{ background: '#170e5e', borderColor: '#170e5e' }}
-                onClick={handleSavePin}
+                onClick={handleSaveCredentials}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'جاري الحفظ...' : 'تأكيد وحفظ الرمز'}
+                {isSubmitting ? 'جاري الحفظ...' : 'حفظ التعديلات'}
               </Button>
             </div>
           </div>
