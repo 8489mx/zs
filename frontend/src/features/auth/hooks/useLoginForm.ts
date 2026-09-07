@@ -115,11 +115,12 @@ export function useLoginForm() {
       // Check if multiple tenants disambiguation payload was returned
       if (err instanceof ApiError) {
         const details = err.details as any;
-        if (err.code === 'MULTIPLE_TENANTS' || details?.code === 'MULTIPLE_TENANTS') {
-          if (Array.isArray(details?.tenants) && details.tenants.length > 0) {
-            setDisambiguationTenants(details.tenants);
-            return;
-          }
+        const tenants = details?.tenants || details?.error?.tenants;
+        const code = err.code || details?.code || details?.error?.code;
+
+        if (code === 'MULTIPLE_TENANTS' && Array.isArray(tenants) && tenants.length > 0) {
+          setDisambiguationTenants(tenants);
+          return;
         }
       }
 

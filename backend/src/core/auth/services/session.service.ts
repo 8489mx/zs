@@ -336,47 +336,59 @@ export class SessionService {
       if (candidates.length === 1) {
         user = candidates[0];
       } else if (candidates.length > 1) {
-        // Multi-tenant check: check password across candidates
-        const validCandidates: Array<any> = [];
-        for (const candidate of candidates) {
-          const check = await verifyPassword(password, candidate.password_hash, candidate.password_salt);
-          if (check.valid) {
-            validCandidates.push(candidate);
-          }
-        }
+        // Multi-candidate check: check password across candidates concurrently for high performance
+        const verificationResults = await Promise.all(
+          candidates.map(async (candidate) => {
+            const check = await verifyPassword(password, candidate.password_hash, candidate.password_salt);
+            return check.valid ? candidate : null;
+          }),
+        );
+        const validCandidates = verificationResults.filter((c): c is NonNullable<typeof c> => c !== null);
 
         if (validCandidates.length === 1) {
           user = validCandidates[0];
         } else if (validCandidates.length > 1) {
-          // Multi-Tenant Disambiguation: fetch tenant details for the Tenant Switcher
-          const candidateTenantIds = Array.from(new Set(validCandidates.map((c) => String(c.tenant_id).trim())));
-          let tenantRows: any[] = [];
-          try {
-            tenantRows = await this.db
-              .selectFrom('tenants')
-              .select(['id', 'slug', 'business_name'])
-              .where('id', 'in', candidateTenantIds)
-              .execute();
-          } catch {
-            tenantRows = [];
+          const candidateTenantIds = Array.from(
+            new Set(validCandidates.map((c) => String(c.tenant_id || '').trim())),
+          ).filter(Boolean);
+
+          if (candidateTenantIds.length > 1) {
+            // Truly multiple tenants: fetch tenant details for the Tenant Switcher
+            let tenantRows: any[] = [];
+            try {
+              tenantRows = await this.db
+                .selectFrom('tenants')
+                .select(['id', 'slug', 'business_name'])
+                .where('id', 'in', candidateTenantIds)
+                .execute();
+            } catch {
+              tenantRows = [];
+            }
+
+            const tenantMap = new Map((tenantRows || []).map((t: any) => [t.id, t]));
+            const tenantOptions = candidateTenantIds.map((tId) => {
+              const t = tenantMap.get(tId);
+              return {
+                id: tId,
+                name: t?.business_name || t?.slug || tId,
+                slug: t?.slug || tId,
+              };
+            });
+
+            // Zero-Trust Disambiguation: NEVER pick candidates[0] when multiple tenants match!
+            throw new UnauthorizedException({
+              message: 'بيانات الدخول مسجلة لدى أكثر من منشأة بنفس كلمة المرور. يرجى اختيار المنشأة أو تحديد كود المنشأة لمنع تداخل الحسابات.',
+              code: 'MULTIPLE_TENANTS',
+              tenants: tenantOptions,
+            });
+          } else {
+            // Multiple accounts inside the SAME tenant sharing the same phone & password!
+            const candidateUsernames = validCandidates.map((c) => c.username).filter(Boolean);
+            const exampleUsernames = candidateUsernames.slice(0, 3).join(' أو ');
+            throw new UnauthorizedException(
+              `رقم الهاتف مرتبط بأكثر من حساب داخل هذه المنشأة (${exampleUsernames}). يرجى تسجيل الدخول باسم المستخدم الخاص بك لتحديد حسابك بدقة.`
+            );
           }
-
-          const tenantMap = new Map((tenantRows || []).map((t: any) => [t.id, t]));
-          const tenantOptions = candidateTenantIds.map((tId) => {
-            const t = tenantMap.get(tId);
-            return {
-              id: tId,
-              name: t?.business_name || t?.slug || tId,
-              slug: t?.slug || tId,
-            };
-          });
-
-          // Zero-Trust Disambiguation: NEVER pick candidates[0] when multiple tenants match!
-          throw new UnauthorizedException({
-            message: 'بيانات الدخول مسجلة لدى أكثر من منشأة بنفس كلمة المرور. يرجى اختيار المنشأة أو تحديد كود المنشأة لمنع تداخل الحسابات.',
-            code: 'MULTIPLE_TENANTS',
-            tenants: tenantOptions,
-          });
         } else {
           // None matched the password, pick first to trigger audit failed login below
           user = candidates[0];

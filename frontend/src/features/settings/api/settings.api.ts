@@ -97,10 +97,12 @@ interface CreateLocationResponse {
 
 function sanitizeUserPayload(payload: ManagedUserRecord) {
   const password = String(payload.password || '').trim();
+  const phone = String(payload.phone || '').trim();
 
   return {
     ...(payload.id ? { id: payload.id } : {}),
     username: String(payload.username || '').trim(),
+    phone,
     ...(password ? { password } : {}),
     role: payload.role === 'super_admin' ? 'super_admin' : payload.role === 'admin' ? 'admin' : 'cashier',
     permissions: Array.isArray(payload.permissions) ? payload.permissions.map((entry) => String(entry)).filter(Boolean) : [],

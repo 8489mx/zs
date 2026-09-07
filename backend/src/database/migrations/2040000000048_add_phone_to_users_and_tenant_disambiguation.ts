@@ -17,13 +17,19 @@ export const migration = {
       CREATE INDEX IF NOT EXISTS idx_users_tenant_phone ON users (tenant_id, phone) WHERE phone IS NOT NULL AND phone <> '';
     `.execute(db);
 
-    // 4. Backfill owner phone for admin users where available from tenants table
+    // 4. Backfill owner phone for primary admin user where available from tenants table
     await sql`
       UPDATE users u
       SET phone = t.owner_phone
       FROM tenants t
       WHERE u.tenant_id = t.id
-        AND u.role IN ('admin', 'super_admin')
+        AND u.id = (
+          SELECT u2.id FROM users u2 
+          WHERE u2.tenant_id = t.id 
+            AND u2.role IN ('super_admin', 'admin') 
+          ORDER BY CASE WHEN u2.role = 'super_admin' THEN 1 ELSE 2 END, u2.id ASC 
+          LIMIT 1
+        )
         AND (u.phone IS NULL OR u.phone = '')
         AND t.owner_phone IS NOT NULL
         AND t.owner_phone <> '';
