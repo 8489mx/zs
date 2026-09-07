@@ -1,0 +1,5 @@
+fix(frontend): resolve remaining TS build errors post-feature-merge
+
+- BankReconciliationPage: add RefreshCwIcon to import and fix JSX usage at line 362
+- PosSplitBillModal: add required CreatePosSaleInput fields (deliveryFee, taxRate, pricesIncludeTax) to both createSale.mutateAsync calls
+- Frontend build: Exit 0 clean

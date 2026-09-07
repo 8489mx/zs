@@ -4,7 +4,7 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { formatCurrency } from '@/lib/format';
-import { CheckIcon, XIcon, SearchIcon } from '@/shared/components/icons/AppIcons';
+import { CheckIcon, XIcon, SearchIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 import {
   bankReconciliationApi,
   accountingApi,
@@ -359,7 +359,7 @@ export function BankReconciliationPage() {
                   onClick={() => void workspaceQuery.refetch()}
                   style={{ fontSize: '12px', fontWeight: 700 }}
                 >
-                  <RefreshIcon size={14} style={{ marginInlineEnd: '4px' }} />
+                  <RefreshCwIcon size={14} style={{ marginInlineEnd: '4px' }} />
                   تحديث
                 </Button>
               </div>
