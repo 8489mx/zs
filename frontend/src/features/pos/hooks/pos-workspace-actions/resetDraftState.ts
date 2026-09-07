@@ -5,6 +5,9 @@ export function resetDraftState(params: PosWorkspaceActionParams) {
   params.setCart([]);
   params.setSelectedLineKey('');
   params.setCustomerId('');
+  params.setQuickCustomerName?.('');
+  params.setQuickCustomerPhone?.('');
+  params.setQuickCustomerAddress?.('');
   params.setDiscount(0);
   params.setLoyaltyPointsRedeemed?.(0);
   params.setDeliveryFee(0);

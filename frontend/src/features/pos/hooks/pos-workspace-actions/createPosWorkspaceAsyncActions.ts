@@ -377,7 +377,10 @@ export function createPosWorkspaceAsyncActions(
     }));
     
     params.setCart(restoredCart);
-    params.setCustomerId(draft.customerId);
+    params.setCustomerId(draft.customerId || '');
+    params.setQuickCustomerName((draft as any).customerName || (draft as any).quickCustomerName || '');
+    params.setQuickCustomerPhone((draft as any).customerPhone || (draft as any).quickCustomerPhone || '');
+    params.setQuickCustomerAddress((draft as any).customerAddress || (draft as any).quickCustomerAddress || '');
     params.setDiscount(Number(draft.discount || 0));
     params.setDeliveryFee(Number((draft as any).deliveryFee || 0));
     params.setCashAmount(Number(draft.cashAmount || 0));
