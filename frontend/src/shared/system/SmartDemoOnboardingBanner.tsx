@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 
 function getIndustryLabelAndActivity(industry?: string): { activity: string; label: string } {
@@ -32,6 +32,7 @@ function getIndustryLabelAndActivity(industry?: string): { activity: string; lab
 
 export function SmartDemoOnboardingBanner() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: settings } = useSettingsQuery();
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -49,11 +50,19 @@ export function SmartDemoOnboardingBanner() {
       method: 'POST',
       body: JSON.stringify({ activityType, password: '' }),
     }),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setFeedback({ kind: 'success', message: data.message || 'تم تجهيز البيانات التجريبية وسكبها بنجاح!' });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['demo-data'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['catalog'] }),
+        queryClient.invalidateQueries({ queryKey: ['sales'] }),
+        queryClient.invalidateQueries({ queryKey: ['settings'] }),
+      ]);
+      // Dismiss after showing success feedback smoothly
       setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+        setIsDismissed(true);
+      }, 2500);
     },
     onError: (err: any) => {
       setFeedback({ kind: 'error', message: err?.message || 'تعذر تجهيز البيانات التجريبية.' });
@@ -95,6 +104,61 @@ export function SmartDemoOnboardingBanner() {
         }}
       />
 
+      {mutation.isPending && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '24px',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '18px',
+              padding: '36px 28px',
+              maxWidth: '440px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+            }}
+          >
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: '#ede9fe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <RefreshCwIcon size={32} color="#170e5e" className="animate-spin" />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+              جاري تجهيز وسكب البيانات التجريبية...
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b', lineHeight: 1.6 }}>
+              يتم الآن إنشاء الأصناف، الفواتير، والعمليات المالية لنشاط ({mappedIndustry.label}).
+              <br />
+              يرجى الانتظار ثوانٍ معدودة...
+            </p>
+          </div>
+        </div>
+      )}
+
       <div style={{ flex: '1 1 340px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.2px' }}>
@@ -122,7 +186,7 @@ export function SmartDemoOnboardingBanner() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <Button
           type="button"
-          onClick={() => navigate('/settings/demo-data')}
+          onClick={() => navigate('/settings/demo-data?setup=quickstart')}
           style={{
             background: '#170e5e',
             color: '#ffffff',

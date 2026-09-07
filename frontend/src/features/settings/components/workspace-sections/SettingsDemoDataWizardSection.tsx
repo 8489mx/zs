@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { demoDataApi, type SeedDemoDataResult } from '@/features/settings/api/demo-data.api';
 import { Button } from '@/shared/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
@@ -18,6 +18,7 @@ import {
   XIcon,
   UtensilsIcon,
   SmartphoneIcon,
+  CompassIcon,
 } from '@/shared/components/icons/AppIcons';
 
 function getActivityIcon(key: string, isSelected: boolean, size = 20) {
@@ -40,6 +41,8 @@ function getActivityIcon(key: string, isSelected: boolean, size = 20) {
 
 export function SettingsDemoDataWizardSection() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isQuickStart = searchParams.get('setup') === 'quickstart' || searchParams.get('setup') === '1';
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const isPlatform = isPlatformAdmin(user);
@@ -136,6 +139,115 @@ export function SettingsDemoDataWizardSection() {
 
   return (
     <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+      {/* ─── QuickStart Setup Step 2 Banner ────────────────────────────────────── */}
+      {isQuickStart && (
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderInlineStart: '4px solid #170e5e',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: '#ede9fe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#170e5e',
+                flexShrink: 0,
+              }}
+            >
+              <CompassIcon size={20} color="#170e5e" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <strong style={{ fontSize: '0.96rem', color: '#0f172a' }}>
+                  دليل التجهيز السريع — الخطوة 2 من 3: إضافة وتجهيز الأصناف في المخزون
+                </strong>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                  }}
+                >
+                  الخطوة 2 من 3
+                </span>
+              </div>
+              <p style={{ margin: '3px 0 0', fontSize: '0.83rem', color: '#64748b' }}>
+                اختر نشاطك التجاري واضغط استيراد لملء المخزن فورياً بـ 50 صنفاً وفواتير جاهزة، أو يمكنك إضافة أصناف يدوياً.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/products')}
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '7px 14px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                color: '#334155',
+                cursor: 'pointer',
+              }}
+            >
+              إضافة أصناف يدوياً
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/pos')}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '7px 14px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                color: '#475569',
+                cursor: 'pointer',
+              }}
+            >
+              تخطي للخطوة 3 (الكاشير)
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '7px 10px',
+                fontSize: '0.82rem',
+                color: '#64748b',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              العودة للرئيسية
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ─── Hero Overview Card ─────────────────────────────────────────────────── */}
       <div
         style={{
@@ -646,6 +758,62 @@ export function SettingsDemoDataWizardSection() {
         </div>
       )}
 
+      {/* ─── Modal: Full-screen Loading Overlay during seeding ────────────────── */}
+      {seedMutation.isPending && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '24px',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '18px',
+              padding: '36px 28px',
+              maxWidth: '460px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+            }}
+          >
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: '#ede9fe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <RefreshCwIcon size={32} color="#170e5e" className="animate-spin" />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+              جاري تجهيز وسكب البيانات التجريبية...
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b', lineHeight: 1.6 }}>
+              يتم الآن إنشاء الأصناف، الباركودات، فواتير المبيعات، وحركات الخزينة لنشاط ({selectedActivity?.name || selectedActivityKey}).
+              <br />
+              يرجى الانتظار ثوانٍ معدودة...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ─── Modal: Confirmation Password when DB is not empty ──────────────────── */}
       {showPasswordModal && (
         <div
@@ -986,7 +1154,7 @@ export function SettingsDemoDataWizardSection() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
               <Button
                 type="button"
-                onClick={() => navigate('/sales/pos')}
+                onClick={() => navigate('/pos')}
                 style={{
                   background: '#170e5e',
                   color: '#ffffff',
@@ -1001,14 +1169,14 @@ export function SettingsDemoDataWizardSection() {
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   <ShoppingCartIcon size={16} />
-                  <span>تجربة شاشة الكاشير السريعة (POS)</span>
+                  <span>الخطوة 3 والأخيرة: فتح شاشة الكاشير (POS) وبدء البيع</span>
                 </span>
               </Button>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
                 <button
                   type="button"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/')}
                   style={{
                     background: '#f8fafc',
                     color: '#0f172a',
@@ -1022,13 +1190,13 @@ export function SettingsDemoDataWizardSection() {
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     <BarChartIcon size={15} />
-                    <span>لوحة التحكم والتحليلات</span>
+                    <span>لوحة التحكم الرئيسية</span>
                   </span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => navigate('/inventory/products')}
+                  onClick={() => navigate('/products')}
                   style={{
                     background: '#f8fafc',
                     color: '#0f172a',

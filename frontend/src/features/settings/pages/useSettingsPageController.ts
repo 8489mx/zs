@@ -42,12 +42,17 @@ export function useSettingsPageController(section: SettingsSectionKey) {
   const supportData = (workspace.supportQuery.data || {}) as Record<string, unknown>;
   const snapshots = workspace.backupSnapshotsQuery.data || [];
   const sectionMeta = settingsSections.find((entry) => entry.key === section) || settingsSections[0];
-  const setupMode = searchParams.get('setup') === '1';
+  const setupMode = searchParams.get('setup') === '1' || searchParams.get('setup') === 'quickstart';
   const setupFlow = useFirstRunSetupFlow();
   const activeSetupSection = setupFlow.currentStep?.section;
   const referenceFilters = useSettingsReferenceFilters(workspace.branches, workspace.locations);
 
   const handleSetupAdvance = async () => {
+    if (searchParams.get('setup') === 'quickstart') {
+      navigate('/settings/demo-data?setup=quickstart', { replace: true });
+      return;
+    }
+
     const [latestFlow, status] = await Promise.all([
       setupFlow.refresh(),
       activationApi.status().catch(() => null),

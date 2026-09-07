@@ -61,7 +61,7 @@ export function TenantQuickStartChecklist() {
       desc: 'أدخل اسم المتجر، الهاتف، العنوان، والرقم الضريبي لتظهر مطبوعة في رأس الإيصال.',
       icon: <BuildingIcon size={20} color={hasStoreInfo ? '#047857' : '#170e5e'} />,
       done: hasStoreInfo,
-      actionTo: '/settings/core',
+      actionTo: '/settings/core?setup=quickstart',
       actionLabel: hasStoreInfo ? 'تعديل البيانات' : 'ضبط البيانات',
     },
     {
@@ -71,9 +71,9 @@ export function TenantQuickStartChecklist() {
       desc: 'سجل أصنافك وأسعارها وباركوداتها، أو استورد كتالوجاً تجريبياً بضغطة زر.',
       icon: <PackageIcon size={20} color={hasProducts ? '#047857' : '#170e5e'} />,
       done: hasProducts,
-      actionTo: '/products',
+      actionTo: '/products?setup=quickstart',
       actionLabel: hasProducts ? 'قائمة الأصناف' : 'إضافة صنف',
-      secondaryTo: !hasProducts ? '/settings/demo-data' : undefined,
+      secondaryTo: !hasProducts ? '/settings/demo-data?setup=quickstart' : undefined,
       secondaryLabel: !hasProducts ? 'بيانات تجريبية' : undefined,
     },
     {
@@ -90,6 +90,16 @@ export function TenantQuickStartChecklist() {
 
   const completedCount = steps.filter((s) => s.done).length;
   const progressPercent = Math.round((completedCount / steps.length) * 100);
+
+  // إخفاء الدليل تلقائياً بمجرد إنجاز كافة الخطوات الثلاث (نسبة الجاهزية 100%)
+  if (completedCount === 3) {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(storageKey, 'true');
+      } catch {}
+    }
+    return null;
+  }
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -140,7 +150,7 @@ export function TenantQuickStartChecklist() {
             <CompassIcon size={22} color="#170e5e" />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h3
                 style={{
                   margin: 0,
@@ -164,6 +174,25 @@ export function TenantQuickStartChecklist() {
               >
                 {completedCount === 3 ? 'مكتمل بنجاح' : `إنجاز ${completedCount} من 3 خطوات`}
               </span>
+              <Link
+                to="/onboarding?onboarding=1"
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  background: '#f8fafc',
+                  color: '#1e293b',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <CompassIcon size={12} color="#475569" />
+                <span>تخصيص الموديولات والنشاط</span>
+              </Link>
             </div>
             <p style={{ margin: '3px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
               أكمل الخطوات الثلاث الأساسية لتجهيز حسابك وإصدار أولى فواتيرك التشغيلية.

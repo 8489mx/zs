@@ -99,4 +99,30 @@ describe('TenantQuickStartChecklist', () => {
     expect(window.localStorage.getItem('zs_quickstart_dismissed_t-123')).toBe('true');
     expect(screen.queryByText('دليل البداية السريعة لتشغيل المنشأة')).not.toBeInTheDocument();
   });
+
+  it('automatically hides and saves dismissal when all 3 steps are completed', () => {
+    useSettingsQueryMock.mockReturnValue({
+      data: {
+        storeName: 'محل البركة',
+        phone: '01012345678',
+        taxNumber: '123-456',
+      },
+    });
+
+    useDashboardOverviewMock.mockReturnValue({
+      data: {
+        summary: { totalProducts: 25, sales: { count: 5 } },
+        stats: { todaySalesCount: 2 },
+      },
+    });
+
+    const { container } = render(
+      <MemoryRouter>
+        <TenantQuickStartChecklist />
+      </MemoryRouter>
+    );
+
+    expect(window.localStorage.getItem('zs_quickstart_dismissed_t-123')).toBe('true');
+    expect(container.firstChild).toBeNull();
+  });
 });

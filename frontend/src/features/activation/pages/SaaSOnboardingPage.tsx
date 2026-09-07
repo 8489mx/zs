@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { isPlatformAdmin } from '@/app/router/access';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { useSettingsUpdateMutation } from '@/features/settings/hooks/useSettingsMutations';
+import { useDashboardOverview } from '@/features/dashboard/hooks/useDashboardOverview';
 import {
   INDUSTRY_PRESETS,
   PLAN_TIERS,
@@ -178,27 +179,43 @@ export function SaaSOnboardingPage() {
   const user = useAuthStore((state) => state.user);
 
   const { data: currentSettings } = useSettingsQuery();
+  const overview = useDashboardOverview();
+  const hasProducts = Number(overview.data?.summary?.totalProducts || 0) > 0;
+
   const updateSettingsMutation = useSettingsUpdateMutation(currentSettings as any, () => {
     navigate('/', { replace: true });
   });
 
-  const [selectedIndustry, setSelectedIndustry] = useState<IndustryPresetId>('retail');
+  const [selectedIndustry, setSelectedIndustry] = useState<IndustryPresetId>(() => {
+    const existing = currentSettings?.businessIndustry as IndustryPresetId | undefined;
+    if (existing && existing in INDUSTRY_PRESETS) {
+      return existing;
+    }
+    return 'retail';
+  });
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategoryFilter>('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // حالة الموديولات التفاعلية: تُهيأ افتراضياً من قالب النشاط المختار
+  // حالة الموديولات التفاعلية: تُهيأ افتراضياً من قالب النشاط المختار أو الإعدادات الحالية
   const [customModules, setCustomModules] = useState<Record<string, boolean>>(() => {
-    const patch = buildSettingsFromIndustry('retail');
+    const existing = currentSettings?.businessIndustry as IndustryPresetId | undefined;
+    const baseIndustry = existing && existing in INDUSTRY_PRESETS ? existing : 'retail';
+    const patch = buildSettingsFromIndustry(baseIndustry);
     const initial: Record<string, boolean> = {};
     for (const mod of SYSTEM_MODULES) {
-      initial[mod.key] = patch[mod.key] === true;
+      if (currentSettings && typeof (currentSettings as any)[mod.key] === 'boolean') {
+        initial[mod.key] = (currentSettings as any)[mod.key] === true;
+      } else {
+        initial[mod.key] = patch[mod.key] === true;
+      }
     }
     return initial;
   });
 
   const isPreview =
     new URLSearchParams(location.search).get('preview') === '1' ||
-    new URLSearchParams(location.search).get('onboarding') === '1';
+    new URLSearchParams(location.search).get('onboarding') === '1' ||
+    new URLSearchParams(location.search).get('reconfigure') === '1';
 
   if (!isPreview && !user) {
     return <Navigate to="/login" replace />;
@@ -208,7 +225,9 @@ export function SaaSOnboardingPage() {
     return <Navigate to="/" replace />;
   }
 
-  if (!isPreview && currentSettings && (currentSettings as any).onboardingCompleted === true) {
+  // إذا كان العميل يمتلك منتجات بالفعل وأتم التهيئة، يتم توجيهه للرئيسية لمنع الإزعاج.
+  // أما إذا كان لا يمتلك أي أصناف بعد (رصيد الأصناف 0)، يُسمح له دائماً بدخول صفحة التهيئة وتعديلها بحرية!
+  if (!isPreview && hasProducts && currentSettings && (currentSettings as any).onboardingCompleted === true) {
     return <Navigate to="/" replace />;
   }
 

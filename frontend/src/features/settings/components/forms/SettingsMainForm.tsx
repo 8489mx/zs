@@ -1,8 +1,9 @@
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
-import { AlertTriangleIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
+import { AlertTriangleIcon, LightbulbIcon, CompassIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { settingsFormSchema, type SettingsFormInput, type SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
@@ -147,6 +148,7 @@ export const SETTINGS_FIELD_METADATA: Record<
 };
 
 export function SettingsMainForm({ settings, branches, locations, canManageSettings, setupMode = false, onSetupAdvance, onUpdateBranch }: SettingsMainFormProps) {
+  const navigate = useNavigate();
   const locale = useLocalePreference();
   const setLocaleLanguage = locale.setLanguage;
   const [activeTab, setActiveTab] = useState<'general' | 'sales_inventory' | 'modules' | 'printing' | 'security'>('general');
@@ -720,6 +722,100 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           transition: all 0.25s ease-in-out !important;
         }
       `}</style>
+
+        {/* شريط دليل الإعداد السريع لتشغيل المنشأة */}
+        {setupMode && (
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderInlineStart: '4px solid #170e5e',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              marginBottom: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: '#ede9fe',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#170e5e',
+                  flexShrink: 0,
+                }}
+              >
+                <CompassIcon size={20} color="#170e5e" />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.96rem', color: '#0f172a' }}>
+                    دليل التجهيز السريع — الخطوة 1 من 3: بيانات المنشأة وترويسة الفواتير
+                  </strong>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      background: '#eff6ff',
+                      color: '#1d4ed8',
+                      border: '1px solid #bfdbfe',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                    }}
+                  >
+                    الخطوة 1 من 3
+                  </span>
+                </div>
+                <p style={{ margin: '3px 0 0', fontSize: '0.83rem', color: '#64748b' }}>
+                  أدخل اسم المتجر، الهاتف، والعنوان. بعد النقر على "حفظ الإعدادات" سيتم نقلك تلقائياً للخطوة 2 (تجهيز الأصناف والبيانات التجريبية).
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => onSetupAdvance ? onSetupAdvance() : navigate('/settings/demo-data?setup=quickstart')}
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '7px 14px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  color: '#334155',
+                  cursor: 'pointer',
+                }}
+              >
+                المتابعة للخطوة 2
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '7px 10px',
+                  fontSize: '0.82rem',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                العودة للرئيسية
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* الإشعارات والأخطاء */}
         <DraftStateNotice visible={form.formState.isDirty && !mutation.isPending} title="تغييرات غير محفوظة" hint="احفظ التعديلات أو أعد ضبطها قبل مغادرة الشاشة." />
