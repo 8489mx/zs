@@ -431,7 +431,22 @@ export function DriverPortalPage() {
             </span>
           </div>
 
-          <div style={{ marginTop: '14px', textAlign: 'center' }}>
+          <div style={{ marginTop: '14px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Link
+              to="/van-sales"
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#0284c7',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>الانتقال لبوابة مبيعات سيارات الفان (فان كاشير) ←</span>
+            </Link>
             <Link
               to="/hub"
               style={{
@@ -441,6 +456,7 @@ export function DriverPortalPage() {
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '6px',
               }}
             >

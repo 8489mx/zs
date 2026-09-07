@@ -612,6 +612,8 @@ export class DeliveryRepsService {
         vehiclePlate: matchedRep.vehicle_plate,
         tenantId: matchedRep.tenant_id,
         tenantName,
+        isVanRep: Boolean((matchedRep as any).is_van_rep),
+        vanLocationId: (matchedRep as any).van_location_id || null,
       },
     };
   }

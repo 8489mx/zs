@@ -123,6 +123,8 @@ export interface DriverPortalUser {
   vehiclePlate?: string | null;
   tenantId: string;
   tenantName?: string;
+  isVanRep?: boolean;
+  vanLocationId?: number | null;
 }
 
 export const driverPortalApi = {
