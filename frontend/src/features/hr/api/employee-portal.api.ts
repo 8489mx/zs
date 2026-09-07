@@ -167,6 +167,21 @@ export const employeePortalApi = {
     return res;
   },
 
+  getStoredToken(): string | null {
+    return typeof localStorage !== 'undefined' ? localStorage.getItem('zs_emp_portal_token') : null;
+  },
+
+  getStoredSession(): { token: string; user: PortalEmployeeUser } | null {
+    try {
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('zs_emp_portal_token') : null;
+      const userRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('zs_emp_portal_user') : null;
+      if (token && userRaw) return { token, user: JSON.parse(userRaw) };
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
   logout() {
     localStorage.removeItem('zs_emp_portal_token');
     localStorage.removeItem('zs_emp_portal_user');

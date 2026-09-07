@@ -38,7 +38,7 @@ function getMobilePunchHeaders(): Record<string, string> {
 }
 
 export const mobilePunchApi = {
-  login: async (payload: { phone: string; pinCode: string }) => {
+  login: async (payload: { phone: string; pinCode: string; companyCode?: string; tenantId?: string }) => {
     return http<{
       token: string;
       employee: MobileAttendanceUser;
