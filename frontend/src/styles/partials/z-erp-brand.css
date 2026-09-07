@@ -63,11 +63,11 @@
 
 .brand-logo {
   position: relative;
-  width: 62px;
-  height: 62px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   overflow: visible;
-  flex: 0 0 62px;
+  flex: 0 0 48px;
   background: transparent;
   box-shadow: none;
   display: flex;
@@ -76,23 +76,23 @@
   cursor: pointer;
 }
 
-.brand-logo-img {
-  width: 58px;
-  height: 58px;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto;
-  filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.18));
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
 .brand-logo:hover .brand-logo-img {
-  opacity: 0.92;
-  transform: scale(1.04);
+  opacity: 0.95;
+  transform: scale(1.05);
 }
 
 .brand-logo:active .brand-logo-img {
-  transform: scale(0.96);
+  transform: scale(0.95);
+}
+
+.brand-logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 3px 8px rgba(15, 23, 42, 0.16));
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .z-erp-icon-img {

@@ -3,8 +3,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useToolbarStore } from '@/stores/toolbar-store';
 import { MobileQuickActionSheet } from '@/shared/layout/MobileQuickActionSheet';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { useAuthStore } from '@/stores/auth-store';
-import { isPlatformAdmin } from '@/app/router/access';
 
 export function MobileBottomNav() {
   const location = useLocation();
@@ -68,8 +66,7 @@ export function MobileBottomNav() {
   }, [location.pathname, quickActionOpen]);
 
   const { data: settings } = useSettingsQuery();
-  const user = useAuthStore((s) => s.user);
-  const isPosActive = settings?.posModuleEnabled !== false || isPlatformAdmin(user);
+  const isPosActive = settings?.posModuleEnabled !== false;
 
   // Check active routes
   const isPos = location.pathname.startsWith('/pos');

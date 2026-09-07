@@ -5,8 +5,6 @@ import { QuickProductModal } from '@/shared/components/QuickProductModal';
 import { PriceStockCheckerModal } from '@/shared/components/PriceStockCheckerModal';
 import { triggerHaptic } from '@/shared/utils/haptics';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { useAuthStore } from '@/stores/auth-store';
-import { isPlatformAdmin } from '@/app/router/access';
 
 interface MobileQuickActionSheetProps {
   isOpen: boolean;
@@ -19,8 +17,7 @@ export function MobileQuickActionSheet({ isOpen, onClose }: MobileQuickActionShe
   const [priceCheckerOpen, setPriceCheckerOpen] = useState(false);
 
   const { data: settings } = useSettingsQuery();
-  const user = useAuthStore((s) => s.user);
-  const isPosActive = settings?.posModuleEnabled !== false || isPlatformAdmin(user);
+  const isPosActive = settings?.posModuleEnabled !== false;
 
   const handleAction = (callback: () => void) => {
     triggerHaptic('selection');

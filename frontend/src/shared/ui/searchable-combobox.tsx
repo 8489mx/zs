@@ -11,6 +11,7 @@ export type ComboboxOption = {
 
 type SearchableComboboxProps<T extends ComboboxOption> = {
   label?: string;
+  ariaLabel?: string;
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
@@ -44,6 +45,7 @@ const containsDigitLikeCharacter = (value: string) => /[0-9٠-٩۰-۹]/.test(val
 
 export function SearchableCombobox<T extends ComboboxOption>({
   label,
+  ariaLabel,
   placeholder,
   value,
   onChange,
@@ -325,6 +327,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
           id={inputId}
           className={inputClassName}
           aria-invalid={Boolean(error)}
+          aria-label={ariaLabel || label || placeholder}
           value={value}
           placeholder={placeholder}
           autoComplete="off"
@@ -345,6 +348,7 @@ export function SearchableCombobox<T extends ComboboxOption>({
             id={inputId}
             className={inputClassName}
             aria-invalid={Boolean(error)}
+            aria-label={ariaLabel || label || placeholder}
             value={value}
             placeholder={placeholder}
             autoComplete="off"
