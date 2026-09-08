@@ -14,6 +14,12 @@ export interface MobileAttendanceUser {
   geofenceRadiusMeters: number;
 }
 
+export interface AttendancePunch {
+  type: 'check_in' | 'check_out';
+  timestamp: string;
+  timeFormatted?: string;
+}
+
 export interface TodayAttendanceStatus {
   workDate: string;
   hasCheckedIn: boolean;
@@ -23,6 +29,7 @@ export interface TodayAttendanceStatus {
   checkInSelfie?: string | null;
   checkOutSelfie?: string | null;
   distanceMeters?: number | null;
+  todayPunches?: AttendancePunch[];
   branch: {
     id: number | null;
     name: string;

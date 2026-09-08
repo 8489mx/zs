@@ -6,6 +6,7 @@ export interface DocumentDraft {
   documentType: string;
   expiryDate: string;
   notes: string;
+  fileUrl?: string;
 }
 
 export type ProfileSection = 'overview' | 'details' | 'documents' | 'assets' | 'leaves' | 'payroll' | 'ledger' | 'all';

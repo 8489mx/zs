@@ -61,9 +61,7 @@ export default function WorkOrdersListPage() {
     if (!completingOrder) return;
     setIsCompleting(true);
     try {
-      await workOrdersApi.update(completingOrder.id, {
-        status: 'done',
-        produced_quantity: completingOrder.quantity_to_produce,
+      await workOrdersApi.complete(completingOrder.id, {
         operations: operations.length > 0 ? operations : undefined,
       });
       setCompletingOrder(null);

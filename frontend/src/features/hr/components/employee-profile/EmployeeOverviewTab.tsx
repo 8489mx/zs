@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from '@/shared/ui/button';
 import { fallbackText, statusLabel, normalizeText, money } from '@/features/hr/utils/employee-profile.helpers';
 import type { HrEmployee } from '@/types/domain';

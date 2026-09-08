@@ -1,4 +1,3 @@
-import React from 'react';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
@@ -53,7 +52,7 @@ export function PrintSettlementModal({
           <p style={{ fontSize: '0.95rem', margin: '0 0 16px', textAlign: 'justify' }}>
             أقر أنا الموقع أدناه: <strong>{settlement.employeeName}</strong> {settlement.employeeNo ? `(كود: ${settlement.employeeNo})` : ''}،
             بأنني قد استلمت كافة حقوقي ومستحقاتي المالية العمالية والنظامية المقررة طبقاً لنظام العمل عن كامل فترة خدمتي من تاريخ التعيين وحتى تاريخ انتهاء الخدمة في <strong>{settlement.terminationDate}</strong>،
-            والبالغة <strong>{settlement.serviceYears} سنة و {settlement.serviceMonths} شهر</strong>، وتشمل مكافأة نهاية الخدمة وبدل الإجازات وأي رواتب أو بدلات.
+            والبالغة <strong>{settlement.serviceYears} سنة</strong>، وتشمل مكافأة نهاية الخدمة وبدل الإجازات وأي رواتب أو بدلات.
           </p>
 
           <table style={{ width: '100%', borderCollapse: 'collapse', margin: '20px 0', fontSize: '0.85rem' }}>
@@ -62,13 +61,13 @@ export function PrintSettlementModal({
                 <td style={{ padding: '8px 12px', background: '#f8fafc', width: '30%', fontWeight: 700 }}>مكافأة نهاية الخدمة:</td>
                 <td style={{ padding: '8px 12px' }}>{formatCurrency(settlement.gratuityAmount)}</td>
                 <td style={{ padding: '8px 12px', background: '#f8fafc', width: '30%', fontWeight: 700 }}>بدل رصيد الإجازات:</td>
-                <td style={{ padding: '8px 12px' }}>{formatCurrency(settlement.leaveEncashment)}</td>
+                <td style={{ padding: '8px 12px' }}>{formatCurrency(settlement.leaveEncashmentAmount)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #cbd5e1' }}>
                 <td style={{ padding: '8px 12px', background: '#f8fafc', fontWeight: 700 }}>مستحقات وبدلات أخرى:</td>
-                <td style={{ padding: '8px 12px' }}>{formatCurrency((settlement.noticePeriodAmount || 0) + (settlement.customEntitlements || 0))}</td>
+                <td style={{ padding: '8px 12px' }}>{formatCurrency(settlement.pendingSalaryAmount || 0)}</td>
                 <td style={{ padding: '8px 12px', background: '#f8fafc', fontWeight: 700 }}>استقطاعات وقروض وعهد:</td>
-                <td style={{ padding: '8px 12px', color: '#dc2626' }}>{formatCurrency((settlement.loanDeduction || 0) + (settlement.assetsDeduction || 0) + (settlement.otherDeductions || 0))}</td>
+                <td style={{ padding: '8px 12px', color: '#dc2626' }}>{formatCurrency(0)}</td>
               </tr>
               <tr style={{ background: '#f1f5f9', fontWeight: 800, fontSize: '1rem' }}>
                 <td colSpan={2} style={{ padding: '12px 14px', borderTop: '2px solid #0f172a' }}>الصافي المستلم النهائي:</td>

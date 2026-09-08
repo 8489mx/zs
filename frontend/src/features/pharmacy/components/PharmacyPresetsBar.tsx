@@ -1,5 +1,3 @@
-import React from 'react';
-import { Button } from '@/shared/ui/button';
 import { IconBox, IconPlus } from './PharmacyIcons';
 
 export const FAST_DRUG_PRESETS = [

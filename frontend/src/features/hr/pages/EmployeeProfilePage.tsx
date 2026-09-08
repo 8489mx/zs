@@ -94,10 +94,10 @@ export function EmployeeProfilePage() {
   const nationalIdMasked = derived.nationalIdMasked;
   const openLoansCount = derived.openLoansCount;
   const openLoansRemaining = derived.openLoansRemaining;
-  const openAssetsCount = derived.openAssetsCount;
+  const openAssetsCount = employeeAssets.length;
   const pendingLeavesCount = derived.pendingLeavesCount;
   const unpaidLeavesCount = derived.unpaidLeavesCount;
-  const expiredOrNearDocumentsCount = derived.expiredOrNearDocumentsCount;
+  const expiredOrNearDocumentsCount = derived.documentStats.expired + derived.documentStats.nearExpiry;
   const reviewAlerts = derived.reviewAlerts;
   const completenessRows = derived.completenessRows;
 
@@ -364,23 +364,38 @@ export function EmployeeProfilePage() {
                 ) : <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا توجد سلف أو قروض مسجلة لهذا الموظف.</p>}
               </div>
 
-              {id ? <EmployeeAdjustmentsSection employeeId={id} /> : null}
+              {id ? (
+                <EmployeeAdjustmentsSection
+                  adjustments={adjustmentsQuery.adjustments}
+                  onAddAdjustment={async (payload) => {
+                    await mutations.createEmployeeAdjustment.mutateAsync({ employeeId: id, payload });
+                    await adjustmentsQuery.refetch();
+                  }}
+                  onDeleteAdjustment={async (adjustmentId) => {
+                    await mutations.deleteEmployeeAdjustment.mutateAsync(adjustmentId);
+                    await adjustmentsQuery.refetch();
+                  }}
+                  isBusy={mutations.createEmployeeAdjustment.isPending || mutations.deleteEmployeeAdjustment.isPending}
+                />
+              ) : null}
             </div>
           ) : null}
 
           {shouldShowProfileSection(activeSection, 'ledger') ? (
-            <LedgerSection ledger={ledger} canViewSalary={canViewSalary} />
+            <LedgerSection ledger={ledger} />
           ) : null}
         </QueryFeedback>
 
         {showEndOfServiceModal && employee && id && (
           <EndOfServiceModal
-            open={showEndOfServiceModal}
+            isOpen={showEndOfServiceModal}
             onClose={() => setShowEndOfServiceModal(false)}
-            employeeId={Number(id)}
+            onSuccess={() => {
+              setShowEndOfServiceModal(false);
+              profile.refetch();
+            }}
+            employeeId={id}
             employeeName={employeeName(employee)}
-            hireDate={employee.hireDate || new Date().toISOString().slice(0, 10)}
-            basicSalary={Number(latestContract?.baseSalary || 0)}
           />
         )}
 

@@ -2,6 +2,7 @@ export type MaintenanceStatus =
   | 'received'
   | 'inspecting'
   | 'in_progress'
+  | 'waiting_parts'
   | 'repaired'
   | 'delivered'
   | 'unrepairable'

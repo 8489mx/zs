@@ -1,4 +1,3 @@
-import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
@@ -65,8 +64,6 @@ export function CreateSettlementModal({
   onOtherDeductionsChange,
   custodyCleared,
   onCustodyClearedChange,
-  clearanceNotes,
-  onClearanceNotesChange,
   confirmTermination,
   onConfirmTerminationChange,
   preview,
@@ -278,26 +275,26 @@ export function CreateSettlementModal({
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>مدة الخدمة الفعلية</span>
-                <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{preview.service.years} سنة و {preview.service.months} شهر</strong>
+                <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{preview.servicePeriod.years} سنة و {preview.servicePeriod.months} شهر</strong>
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>الراتب الأساسي المعتمد</span>
-                <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{formatCurrency(preview.compensation.baseSalary)}</strong>
+                <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{formatCurrency(preview.salaries.basicSalary)}</strong>
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>رصيد الإجازات المتبقي</span>
-                <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{preview.leaveBalanceDays} يوم ({formatCurrency(preview.leaveEncashment)})</strong>
+                <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{preview.leaveEncashment.remainingLeaveDays} يوم ({formatCurrency(preview.leaveEncashment.leaveEncashmentAmount)})</strong>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, borderTop: '1px solid #bbf7d0', paddingTop: 12 }}>
               <div>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>مكافأة نهاية الخدمة</span>
-                <strong style={{ fontSize: '1.1rem', color: '#15803d' }}>{formatCurrency(preview.gratuityAmount)}</strong>
+                <strong style={{ fontSize: '1.1rem', color: '#15803d' }}>{formatCurrency(preview.gratuity.gratuityAmount)}</strong>
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>متبقي السلف المخصومة</span>
-                <strong style={{ fontSize: '1.1rem', color: '#dc2626' }}>{formatCurrency(preview.activeLoansBalance)}</strong>
+                <strong style={{ fontSize: '1.1rem', color: '#dc2626' }}>{formatCurrency(preview.unpaidLoansDeduction)}</strong>
               </div>
               <div>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>صافي المستحق النهائي للموظف</span>

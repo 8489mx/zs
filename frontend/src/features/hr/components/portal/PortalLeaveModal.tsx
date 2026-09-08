@@ -85,7 +85,7 @@ export function PortalLeaveModal({
               </div>
               <button
                 type="button"
-                onClick={() => setShowLeaveModal(false)}
+                onClick={onClose}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
               >
                 <XIcon size={20} />
@@ -110,7 +110,7 @@ export function PortalLeaveModal({
                     fontWeight: 700,
                   }}
                 >
-                  {leavesData?.leaveTypes?.map((t) => (
+                  {leaveTypes?.map((t: { id: number; name: string; isPaid: boolean }) => (
                     <option key={t.id} value={t.id}>
                       {t.name} ({t.isPaid ? 'مدفوعة الأجر' : 'غير مدفوعة'})
                     </option>
@@ -201,7 +201,7 @@ export function PortalLeaveModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowLeaveModal(false)}
+                  onClick={onClose}
                   style={{
                     padding: '12px 18px',
                     borderRadius: '8px',

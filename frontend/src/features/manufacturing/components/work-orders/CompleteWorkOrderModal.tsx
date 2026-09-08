@@ -1,4 +1,4 @@
-import React from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { XIcon } from '@/shared/components/icons/AppIcons';
@@ -10,7 +10,7 @@ interface CompleteWorkOrderModalProps {
   onClose: () => void;
   workCenters: WorkCenterRecord[];
   operations: WorkOrderOperationInput[];
-  onOperationsChange: React.Dispatch<React.SetStateAction<WorkOrderOperationInput[]>>;
+  onOperationsChange: Dispatch<SetStateAction<WorkOrderOperationInput[]>>;
   onConfirm: () => void;
   isCompleting: boolean;
 }
@@ -60,7 +60,7 @@ export function CompleteWorkOrderModal({
                 onClick={() =>
                   onOperationsChange((prev) => [
                     ...prev,
-                    { work_center_id: workCenters[0]?.id || 1, name: 'تشغيل', duration_minutes: 30, cost: 0 },
+                    { workCenterId: workCenters[0]?.id || 1, operationName: 'تشغيل', durationHours: 0.5, cost: 0 },
                   ])
                 }
                 style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
@@ -74,19 +74,19 @@ export function CompleteWorkOrderModal({
                 <input
                   type="text"
                   placeholder="اسم العملية"
-                  value={op.name}
+                  value={op.operationName}
                   onChange={(e) => {
                     const next = [...operations];
-                    next[idx].name = e.target.value;
+                    next[idx].operationName = e.target.value;
                     onOperationsChange(next);
                   }}
                   style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
                 />
                 <select
-                  value={op.work_center_id}
+                  value={op.workCenterId}
                   onChange={(e) => {
                     const next = [...operations];
-                    next[idx].work_center_id = Number(e.target.value);
+                    next[idx].workCenterId = Number(e.target.value);
                     onOperationsChange(next);
                   }}
                   style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
@@ -97,11 +97,11 @@ export function CompleteWorkOrderModal({
                 </select>
                 <input
                   type="number"
-                  placeholder="دقائق"
-                  value={op.duration_minutes}
+                  placeholder="ساعات"
+                  value={op.durationHours}
                   onChange={(e) => {
                     const next = [...operations];
-                    next[idx].duration_minutes = Number(e.target.value);
+                    next[idx].durationHours = Number(e.target.value);
                     onOperationsChange(next);
                   }}
                   style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
@@ -109,7 +109,7 @@ export function CompleteWorkOrderModal({
                 <input
                   type="number"
                   placeholder="تكلفة"
-                  value={op.cost}
+                  value={op.cost ?? 0}
                   onChange={(e) => {
                     const next = [...operations];
                     next[idx].cost = Number(e.target.value);

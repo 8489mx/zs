@@ -1,8 +1,7 @@
-import React from 'react';
-import type { TodayAttendanceStatus } from '../../api/mobile-punch.api';
+import type { AttendancePunch } from '../../api/mobile-punch.api';
 
 interface MobilePunchTimelineProps {
-  punches: TodayAttendanceStatus['todayPunches'];
+  punches: AttendancePunch[];
 }
 
 export function MobilePunchTimeline({ punches }: MobilePunchTimelineProps) {

@@ -93,8 +93,9 @@ export function HrPayrollPage() {
       const rowStatus = normalize(row.status);
       const needsReview = itemNeedsReview(row);
       if (reviewStatusFilter === 'approved' && rowStatus !== 'approved') return false;
-      if (reviewStatusFilter === 'flagged' && !needsReview) return false;
-      if (reviewStatusFilter === 'pending' && (rowStatus === 'approved' || needsReview)) return false;
+      if (reviewStatusFilter === 'needs_review' && !needsReview) return false;
+      if (reviewStatusFilter === 'ready' && (rowStatus === 'approved' || needsReview)) return false;
+      if (reviewStatusFilter === 'paid' && rowStatus !== 'paid') return false;
       return true;
     });
   }, [departmentFilter, employeesMap, reviewStatusFilter, runItems, search]);
@@ -120,8 +121,20 @@ export function HrPayrollPage() {
     const totalBase = runItems.reduce((acc, row) => acc + Number(row.baseSalary || 0), 0);
     const totalAllowances = runItems.reduce((acc, row) => acc + Number(row.allowanceAmount || 0), 0);
     const totalDeductions = runItems.reduce((acc, row) => acc + Number(row.deductionAmount || 0), 0);
+    const totalLoanDeduction = runItems.reduce((acc, row) => acc + Number(row.loanDeductionAmount || 0), 0);
     const flaggedCount = runItems.filter(itemNeedsReview).length;
-    return { totalNet, totalBase, totalAllowances, totalDeductions, flaggedCount, itemCount: runItems.length };
+    return {
+      totalNet,
+      totalBase,
+      totalBaseSalary: totalBase,
+      totalAllowances,
+      totalDeductions,
+      totalLoanDeduction,
+      flaggedCount,
+      needsReview: flaggedCount,
+      itemCount: runItems.length,
+      totalEmployees: runItems.length,
+    };
   }, [runItems]);
 
   const dueLoanInstallmentRows = useMemo(() => {
@@ -162,7 +175,7 @@ export function HrPayrollPage() {
         key: 'status',
         title: 'حالة الاعتماد',
         status: statusLabel(selectedRun.status),
-        ok: runIsFinal,
+        ok: Boolean(runIsFinal),
         action: normalize(selectedRun.status) === 'draft' ? 'اعتماد المسير' : normalize(selectedRun.status) === 'reviewed' ? 'اعتماد نهائي' : undefined,
         onClick: normalize(selectedRun.status) === 'draft' ? () => handleRunActionClick(String(selectedRun.id), 'review') : normalize(selectedRun.status) === 'reviewed' ? () => handleRunActionClick(String(selectedRun.id), 'approve') : undefined,
       });
@@ -212,7 +225,7 @@ export function HrPayrollPage() {
     if (!selectedRunId) return;
     try {
       setFormError('');
-      await mutations.payPayrollRun?.mutateAsync({ runId: selectedRunId, paymentMethod: payChannel });
+      await mutations.payPayrollRun?.mutateAsync({ id: selectedRunId, payload: { paymentChannel: payChannel } });
       setShowPayRun(false);
     } catch (err) {
       setFormError(getErrorMessage(err));
@@ -472,7 +485,7 @@ export function HrPayrollPage() {
         item={selectedReviewItem}
         onClose={() => setSelectedReviewItem(null)}
         canViewSalaryAmounts={canViewSalaryAmounts}
-        runIsFinal={runIsFinal}
+        runIsFinal={Boolean(runIsFinal)}
         onPrintSummary={(item) => alert('طباعة ملخص للموظف ' + item.employeeName)}
         onPrintDetailed={(item) => alert('طباعة تفصيلي للموظف ' + item.employeeName)}
       />

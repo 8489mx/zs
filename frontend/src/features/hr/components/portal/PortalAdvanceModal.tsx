@@ -81,7 +81,7 @@ export function PortalAdvanceModal({
               </div>
               <button
                 type="button"
-                onClick={() => setShowAdvanceModal(false)}
+                onClick={onClose}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
               >
                 <XIcon size={20} />
@@ -178,7 +178,7 @@ export function PortalAdvanceModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowAdvanceModal(false)}
+                  onClick={onClose}
                   style={{
                     padding: '12px 18px',
                     borderRadius: '8px',

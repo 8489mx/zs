@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatCurrency } from '@/lib/format';
 import type { EmployeePayslipItem } from '../../api/employee-portal.api';
 import { ReceiptIcon } from '@/shared/components/icons/AppIcons';

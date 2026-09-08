@@ -131,6 +131,14 @@ export const pharmacyApi = {
     });
   },
 
+  createDrug: async (data: Partial<PharmacyDrug>): Promise<PharmacyDrug> => {
+    return pharmacyApi.upsertDrug(data);
+  },
+
+  updateDrug: async (id: number, data: Partial<PharmacyDrug>): Promise<PharmacyDrug> => {
+    return pharmacyApi.upsertDrug({ ...data, id });
+  },
+
   deleteDrug: async (id: number): Promise<{ success: boolean }> => {
     return http<{ success: boolean }>(`/api/pharmacy/drugs/${id}`, {
       method: 'DELETE',

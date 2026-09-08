@@ -1,6 +1,6 @@
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { PlusIcon } from '@/shared/components/icons/AppIcons';
+import { PlusIcon, TrashIcon } from '@/shared/components/icons/AppIcons';
 import type { CreateRfqPayload } from '../../api/purchase-rfqs.api';
 
 interface CreateRfqModalProps {
@@ -185,7 +185,7 @@ export function CreateRfqModal({
                         onClick={() => onRemoveItem(idx)}
                         style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}
                       >
-                        <AppIcons.Trash size={14} />
+                        <TrashIcon size={14} />
                       </button>
                     </td>
                   </tr>

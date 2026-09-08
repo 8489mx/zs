@@ -121,6 +121,13 @@ export const statusConfig: Record<MaintenanceStatus, { label: string; bg: string
     color: '#92400e',
     dot: '#d97706',
   },
+  waiting_parts: {
+    label: 'انتظار قطع غيار',
+    bg: '#fefce8',
+    border: '#fef08a',
+    color: '#a16207',
+    dot: '#eab308',
+  },
   repaired: {
     label: 'جاهز للتسليم',
     bg: '#ecfdf5',

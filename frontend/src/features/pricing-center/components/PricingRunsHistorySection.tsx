@@ -1,4 +1,3 @@
-import React from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
@@ -24,33 +23,34 @@ export function PricingRunsHistorySection({
       description="متابعة جميع تعديلات الأسعار المنفذة آلياً، مع إمكانية استرجاع الأسعار القديمة فورياً بضغطة زر واحدة."
     >
       <DataTable
-        data={runs}
-        emptyMessage="لا توجد موجات تسعير سابقة مسجلة."
+        rows={runs}
+        rowKey={(row: any) => String(row.id || row.createdAt)}
+        empty="لا توجد موجات تسعير سابقة مسجلة."
         columns={[
           {
             key: 'createdAt',
             header: 'تاريخ الموجة',
-            render: (row: any) => formatDate(row.createdAt),
+            cell: (row: any) => formatDate(row.createdAt),
           },
           {
             key: 'summary',
             header: 'تفاصيل العملية',
-            render: (row: any) => summarizeRun(row),
+            cell: (row: any) => summarizeRun(row),
           },
           {
             key: 'count',
             header: 'الأصناف المعدلة',
-            render: (row: any) => `${row.affectedCount} صنف`,
+            cell: (row: any) => `${row.affectedCount} صنف`,
           },
           {
             key: 'reason',
             header: 'السبب المسجل',
-            render: (row: any) => row.reason || '—',
+            cell: (row: any) => row.reason || '—',
           },
           {
             key: 'actions',
             header: 'إجراءات التراجع',
-            render: (row: any) => (
+            cell: (row: any) => (
               row.status === 'undone' ? (
                 <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>تم التراجع مسبقاً</span>
               ) : (

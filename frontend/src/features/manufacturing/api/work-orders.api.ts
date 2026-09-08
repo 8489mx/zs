@@ -15,6 +15,7 @@ export interface WorkOrderOperationInput {
   operationName: string;
   durationHours: number;
   notes?: string;
+  cost?: number;
 }
 
 export interface CompleteWorkOrderPayload {

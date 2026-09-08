@@ -16,6 +16,7 @@ import {
   CalendarIcon,
   CreditCardIcon,
   CheckCircleIcon,
+  SmartphoneIcon,
 } from '@/shared/components/icons/AppIcons';
 import { EmployeePortalLogin } from '../components/portal/EmployeePortalLogin';
 import { PortalLeaveModal } from '../components/portal/PortalLeaveModal';

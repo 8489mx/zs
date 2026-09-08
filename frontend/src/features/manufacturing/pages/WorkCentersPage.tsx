@@ -170,7 +170,7 @@ export default function WorkCentersPage() {
       cell: (row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div style={{ width: '48px', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{ width: `${Math.min(100, row.time_efficiency)}%`, height: '100%', background: '#10b981' }} />
+            <div style={{ width: `${Math.min(100, Number(row.time_efficiency) || 0)}%`, height: '100%', background: '#10b981' }} />
           </div>
           <span style={{ fontSize: '12px', fontWeight: 600 }}>{row.time_efficiency}%</span>
         </div>
@@ -215,16 +215,13 @@ export default function WorkCentersPage() {
   ];
 
   return (
-    <ManufacturingLayout activeTab="work-centers">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-            مراكز العمل وخطوط الإنتاج (Work Centers)
-          </h2>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-            إدارة الماكينات، المحطات الصناعية، تكلفة التشغيل بالساعة والطاقات الإنتاجية.
-          </p>
-        </div>
+    <ManufacturingLayout
+      breadcrumbs={[
+        { label: 'التصنيع', to: '/manufacturing/work-orders' },
+        { label: 'مراكز العمل' },
+      ]}
+      title="مراكز العمل وخطوط الإنتاج (Work Centers)"
+      actions={
         <Button
           variant="primary"
           onClick={openCreateModal}
@@ -233,7 +230,8 @@ export default function WorkCentersPage() {
           <PlusIcon size={16} />
           <span>إضافة مركز عمل</span>
         </Button>
-      </div>
+      }
+    >
 
       {/* KPI Stats */}
       <WorkCentersStats workCenters={workCenters} />
@@ -283,9 +281,9 @@ export default function WorkCentersPage() {
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
         <DataTable
           columns={columns}
-          data={filteredWorkCenters}
-          loading={isLoading}
-          emptyMessage="لا توجد مراكز عمل مطابقة للبحث."
+          rows={filteredWorkCenters}
+          rowKey={(row) => String(row.id)}
+          empty={isLoading ? 'جاري التحميل...' : 'لا توجد مراكز عمل مطابقة للبحث.'}
         />
       </div>
 

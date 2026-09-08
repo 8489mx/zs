@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { QrCodeIcon, CompassIcon } from '@/shared/components/icons/AppIcons';
 import type { PortalItem } from './portals-data';

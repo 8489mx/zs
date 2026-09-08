@@ -24,7 +24,7 @@ interface MaintenanceTicketsTableProps {
   onOpenDetail: (t: MaintenanceTicket) => void;
   onOpenReceipt: (t: MaintenanceTicket) => void;
   onOpenSettlement: (t: MaintenanceTicket) => void;
-  onChangeStatus: (id: number, status: string) => void;
+  onChangeStatus: (id: string | number, status: string) => void;
   getStatusMeta: (status: string) => { label: string; bg: string; color: string; border: string };
   formatDate: (dt: string) => string;
 }
@@ -94,7 +94,9 @@ export function MaintenanceTicketsTable({
             ) : (
               tickets.map((t) => {
                 const statusMeta = getStatusMeta(t.status);
-                const hasRemaining = t.remainingAmount > 0;
+                const totalCost = t.finalCost > 0 ? t.finalCost : t.expectedCost;
+                const remaining = Math.max(0, totalCost - (t.advancePayment || 0));
+                const hasRemaining = remaining > 0;
                 const isDelivered = t.status === 'delivered';
                 const isDeliveredWithRemaining = isDelivered && hasRemaining;
 
@@ -120,7 +122,7 @@ export function MaintenanceTicketsTable({
                             letterSpacing: '0.3px',
                           }}
                         >
-                          {t.ticketNumber}
+                          {t.ticketNo}
                         </span>
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
@@ -161,10 +163,10 @@ export function MaintenanceTicketsTable({
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{t.deviceModel}</div>
                       <div style={{ fontSize: '0.74rem', color: '#64748b', display: 'flex', gap: '6px', marginTop: '2px', alignItems: 'center' }}>
                         {t.deviceBrand && <span style={{ color: '#475569', fontWeight: 600 }}>{t.deviceBrand}</span>}
-                        {t.deviceBrand && t.deviceSerial && <span>•</span>}
-                        {t.deviceSerial && (
+                        {t.deviceBrand && t.serialNumber && <span>•</span>}
+                        {t.serialNumber && (
                           <span style={{ fontFamily: 'monospace', color: '#64748b' }}>
-                            {t.deviceSerial}
+                            {t.serialNumber}
                           </span>
                         )}
                       </div>
@@ -179,26 +181,26 @@ export function MaintenanceTicketsTable({
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                         }}
-                        title={t.complaint}
+                        title={t.problemDescription}
                       >
-                        {t.complaint}
+                        {t.problemDescription}
                       </div>
-                      {t.assignedTechnicianName && (
+                      {t.technicianName && (
                         <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-                          الفني: <strong style={{ color: '#475569' }}>{t.assignedTechnicianName}</strong>
+                          الفني: <strong style={{ color: '#475569' }}>{t.technicianName}</strong>
                         </div>
                       )}
                     </td>
 
                     <td style={{ padding: '12px 14px' }} onClick={() => onOpenDetail(t)}>
                       <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem' }}>
-                        {(t.finalCost > 0 ? t.finalCost : t.estimatedCost).toFixed(2)}{' '}
+                        {totalCost.toFixed(2)}{' '}
                         <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
-                        {t.paidAmount > 0 && (
+                        {t.advancePayment > 0 && (
                           <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
-                            مسدد: {t.paidAmount.toFixed(0)}
+                            مسدد: {t.advancePayment.toFixed(0)}
                           </span>
                         )}
                         {hasRemaining ? (
@@ -212,7 +214,7 @@ export function MaintenanceTicketsTable({
                               borderRadius: '4px',
                             }}
                           >
-                            متبقي: {t.remainingAmount.toFixed(0)}
+                            متبقي: {remaining.toFixed(0)}
                           </span>
                         ) : (
                           <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 700 }}>

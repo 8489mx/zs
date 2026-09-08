@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatCurrency } from '@/lib/format';
 import type { EmployeePayslipItem } from '../../api/employee-portal.api';
 import { ReceiptIcon, XIcon } from '@/shared/components/icons/AppIcons';
@@ -48,7 +47,7 @@ export function PortalPayslipModal({ payslip, onClose }: PortalPayslipModalProps
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedPayslip(null)}
+                onClick={onClose}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
               >
                 <XIcon size={20} />

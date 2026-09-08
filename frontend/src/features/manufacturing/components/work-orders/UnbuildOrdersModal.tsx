@@ -34,9 +34,11 @@ export function UnbuildOrdersModal({
       return;
     }
     setIsSubmitting(true);
+    const selectedBom = boms.find((b) => b.id === selectedBomId);
     try {
       await workOrdersApi.createUnbuild({
-        bom_id: selectedBomId,
+        productId: selectedBom?.product_id || selectedBom?.productId || 0,
+        bomId: selectedBomId,
         quantity: unbuildQty,
         notes: unbuildNotes,
       });

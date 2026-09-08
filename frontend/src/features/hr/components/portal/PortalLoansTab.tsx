@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatCurrency } from '@/lib/format';
 import type { LoansAndCustodyData } from '../../api/employee-portal.api';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';

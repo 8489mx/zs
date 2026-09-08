@@ -17,7 +17,6 @@ export function NewIssueOrderPage() {
     setFromLocationId,
     fromLocationQuery,
     setFromLocationQuery,
-    toLocationId,
     setToLocationId,
     toLocationQuery,
     setToLocationQuery,

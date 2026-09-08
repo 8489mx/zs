@@ -1,4 +1,3 @@
-import React from 'react';
 import type { AttendanceRecordItem } from '../../api/employee-portal.api';
 
 export interface PortalAttendanceTabProps {

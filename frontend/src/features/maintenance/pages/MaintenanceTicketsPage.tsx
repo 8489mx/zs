@@ -36,7 +36,8 @@ export function MaintenanceTicketsPage() {
 
   const openSettlementModal = (ticket: MaintenanceTicket) => {
     setSettlementTicket(ticket);
-    setCollectedAmount(ticket.remainingAmount > 0 ? ticket.remainingAmount : 0);
+    const rem = Math.max(0, (ticket.finalCost || ticket.expectedCost || 0) - (ticket.advancePayment || 0));
+    setCollectedAmount(rem);
     setDiscountReason('فصال ومراعاة عميل');
     setCustomReason('');
   };
@@ -81,13 +82,20 @@ export function MaintenanceTicketsPage() {
   }, [allTicketsList]);
 
   const totalRemainingSum = useMemo(() => {
-    return allTicketsList.reduce((sum, t) => sum + (t.remainingAmount || 0), 0);
+    return allTicketsList.reduce((sum, t) => {
+      const rem = Math.max(0, (t.finalCost || t.expectedCost || 0) - (t.advancePayment || 0));
+      return sum + rem;
+    }, 0);
   }, [allTicketsList]);
 
   // Status Change Mutation
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      maintenanceApi.updateStatus(id, { status: status as any }),
+    mutationFn: ({ id, status, collectedAmount, technicianNotes }: { id: string | number; status: string; collectedAmount?: number; technicianNotes?: string }) =>
+      maintenanceApi.updateStatus(id, {
+        status: status as any,
+        collectedAmount,
+        technicianNotes,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-tickets'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance-tickets-summary'] });
@@ -133,8 +141,8 @@ export function MaintenanceTicketsPage() {
     <div className="page-stack page-shell maintenance-workspace" dir="rtl">
       <main className="page-content workspace-body" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
         <PageHeader
-          title={`تذاكر الصيانة وإصلاح ${maintenanceProfile.deviceLabel}`}
-          description={`إدارة استلام، فحص، صيانة وتسليم ${maintenanceProfile.deviceLabel} مع قطع الغيار والتكاليف المالية المترتبة`}
+          title={`تذاكر الصيانة وإصلاح ${maintenanceProfile.shortTitle}`}
+          description={`إدارة استلام، فحص، صيانة وتسليم ${maintenanceProfile.shortTitle} مع قطع الغيار والتكاليف المالية المترتبة`}
           badge={<span className="nav-pill" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>{totalItems} تذكرة</span>}
           actions={
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -229,22 +237,34 @@ export function MaintenanceTicketsPage() {
 
         {/* 3. Modal: Delivery Settlement Modal */}
         <MaintenanceSettlementModal
-          ticket={settlementTicket}
+          settlementTicket={settlementTicket}
           collectedAmount={collectedAmount}
           setCollectedAmount={setCollectedAmount}
           discountReason={discountReason}
           setDiscountReason={setDiscountReason}
           customReason={customReason}
           setCustomReason={setCustomReason}
+          isPending={statusMutation.isPending}
           onClose={() => setSettlementTicket(null)}
-          onSettled={() => {
-            queryClient.invalidateQueries({ queryKey: ['maintenance-tickets'] });
-            queryClient.invalidateQueries({ queryKey: ['maintenance-tickets-summary'] });
+          onConfirm={() => {
+            if (!settlementTicket) return;
+            statusMutation.mutate(
+              {
+                id: settlementTicket.id,
+                status: 'delivered',
+                collectedAmount,
+                technicianNotes: discountReason === 'custom' ? customReason : discountReason,
+              },
+              {
+                onSuccess: () => setSettlementTicket(null),
+              },
+            );
           }}
         />
 
         {/* 4. Modal: Printable Receipt & Sticker */}
         <MaintenanceReceiptModal
+          open={Boolean(receiptTicket)}
           ticket={receiptTicket}
           onClose={() => setReceiptTicket(null)}
         />

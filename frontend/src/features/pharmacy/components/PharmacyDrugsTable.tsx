@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { IconSearch, IconPrinter, IconEdit, IconTrash } from './PharmacyIcons';
 import type { PharmacyDrug } from '../types/pharmacy.types';

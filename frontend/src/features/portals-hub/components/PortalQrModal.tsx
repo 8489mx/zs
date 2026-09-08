@@ -1,6 +1,5 @@
-import React from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { XIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon } from '@/shared/components/icons/AppIcons';
 import type { PortalItem } from './portals-data';
 
 interface PortalQrModalProps {

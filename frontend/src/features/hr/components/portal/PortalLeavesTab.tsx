@@ -1,4 +1,3 @@
-import React from 'react';
 import type { EmployeeLeavesData } from '../../api/employee-portal.api';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
 

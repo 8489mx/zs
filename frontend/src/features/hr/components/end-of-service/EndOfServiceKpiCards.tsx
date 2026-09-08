@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatCurrency } from '@/lib/format';
 
 interface EndOfServiceKpiCardsProps {

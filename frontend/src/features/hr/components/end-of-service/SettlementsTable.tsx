@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import {
@@ -81,7 +80,7 @@ export function SettlementsTable({
                 </div>
               </td>
               <td style={{ padding: '12px 16px' }}>
-                <div style={{ fontWeight: 600 }}>{s.serviceYears} سنوات و {s.serviceMonths} شهر</div>
+                <div style={{ fontWeight: 600 }}>{s.serviceYears} سنوات</div>
               </td>
               <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
                 {formatCurrency(s.gratuityAmount)}

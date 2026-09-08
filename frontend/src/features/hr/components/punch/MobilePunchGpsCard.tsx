@@ -1,4 +1,3 @@
-import React from 'react';
 import { MapPinIcon, CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import type { TodayAttendanceStatus } from '../../api/mobile-punch.api';
 

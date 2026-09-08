@@ -1,4 +1,3 @@
-import React from 'react';
 import { PackageIcon, CheckCircleIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { WorkCenterRecord } from '@/features/manufacturing/api/work-centers.api';
 

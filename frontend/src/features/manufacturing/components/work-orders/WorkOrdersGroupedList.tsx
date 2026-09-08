@@ -1,4 +1,3 @@
-import React from 'react';
 import { CalendarIcon } from '@/shared/components/icons/AppIcons';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
@@ -130,7 +129,7 @@ export function WorkOrdersGroupedList({
               <DataTable
                 columns={columns}
                 rows={orders}
-                rowKey={(r) => r.id}
+                rowKey={(r) => String(r.id)}
               />
             </div>
           </details>
