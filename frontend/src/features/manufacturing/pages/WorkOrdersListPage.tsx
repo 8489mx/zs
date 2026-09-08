@@ -37,6 +37,15 @@ export default function WorkOrdersListPage() {
   const [operations, setOperations] = useState<WorkOrderOperationInput[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Unbuild Orders state
+  const [isUnbuildModalOpen, setIsUnbuildModalOpen] = useState(false);
+  const [unbuildOrders, setUnbuildOrders] = useState<any[]>([]);
+  const [boms, setBoms] = useState<any[]>([]);
+  const [selectedBomId, setSelectedBomId] = useState<number>(0);
+  const [unbuildQty, setUnbuildQty] = useState<number>(1);
+  const [unbuildNotes, setUnbuildNotes] = useState<string>('');
+  const [isSubmittingUnbuild, setIsSubmittingUnbuild] = useState(false);
   
   const [dateFilter, setDateFilter] = useState<'all'|'today'|'week'|'month'>('all');
   const [userFilter, setUserFilter] = useState('all');
@@ -51,6 +60,10 @@ export default function WorkOrdersListPage() {
           setUsers(res.users.map(u => ({ id: u.id, name: u.displayName || u.username })));
         }
       })
+      .catch(() => {});
+
+    http<{ boms: any[] }>('/api/manufacturing/boms')
+      .then(res => setBoms(res.boms || []))
       .catch(() => {});
 
     workCentersApi.list()
@@ -165,7 +178,17 @@ export default function WorkOrdersListPage() {
       ]}
       title="أوامر الإنتاج"
       actions={
-        <div className="actions compact-actions">
+        <div className="actions compact-actions" style={{ display: 'flex', gap: '8px' }}>
+          <Button 
+            type="button" 
+            variant="secondary"
+            onClick={() => {
+              workOrdersApi.listUnbuild().then(setUnbuildOrders).catch(() => {});
+              setIsUnbuildModalOpen(true);
+            }}
+          >
+            أوامر التفكيك (Unbuild)
+          </Button>
           <Button 
             type="button" 
             variant="primary"
@@ -547,6 +570,228 @@ export default function WorkOrdersListPage() {
                 style={{ backgroundColor: '#170e5e', color: '#ffffff', fontWeight: 600 }}
               >
                 {isCompleting ? 'جاري الإنهاء والترحيل...' : 'تأكيد الإنهاء والترحيل المخزني'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unbuild Orders Dialog */}
+      {isUnbuildModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            padding: '20px',
+            backdropFilter: 'blur(2px)',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '850px',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              overflow: 'hidden',
+              direction: 'rtl',
+            }}
+          >
+            <div
+              style={{
+                padding: '16px 24px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: '#f8fafc',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                  أوامر التفكيك واسترجاع المواد الخام (Unbuild Orders)
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                  تفكيك المنتج التام وإعادة المكونات الخام للمخزن وعكس القيود المحاسبية مثل أودو 18
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsUnbuildModalOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+              {/* Form to create Unbuild Order */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  marginBottom: '20px',
+                }}
+              >
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
+                  إنشاء أمر تفكيك جديد
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr auto', gap: '12px', alignItems: 'end' }}>
+                  <Field label="المنتج وشجرة المكونات (BOM) *">
+                    <select
+                      value={selectedBomId}
+                      onChange={(e) => setSelectedBomId(Number(e.target.value))}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #d1d5db',
+                        fontSize: '13px',
+                        backgroundColor: '#fff',
+                      }}
+                    >
+                      <option value={0}>اختر شجرة المكونات...</option>
+                      {boms.map((b: any) => (
+                        <option key={b.id} value={b.id}>
+                          {b.product_name} (معيار: {b.quantity} قطعة)
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="الكمية المراد تفكيكها *">
+                    <input
+                      type="number"
+                      min="1"
+                      value={unbuildQty}
+                      onChange={(e) => setUnbuildQty(Math.max(1, Number(e.target.value)))}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #d1d5db',
+                        fontSize: '13px',
+                      }}
+                    />
+                  </Field>
+
+                  <Field label="ملاحظات / سبب التفكيك">
+                    <input
+                      type="text"
+                      placeholder="مثال: عيب صناعي، استرداد خامات..."
+                      value={unbuildNotes}
+                      onChange={(e) => setUnbuildNotes(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #d1d5db',
+                        fontSize: '13px',
+                      }}
+                    />
+                  </Field>
+
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={isSubmittingUnbuild || !selectedBomId || unbuildQty <= 0}
+                    onClick={async () => {
+                      const targetBom = boms.find((b: any) => b.id === selectedBomId);
+                      if (!targetBom) {
+                        systemAlert('يرجى اختيار شجرة المكونات أولاً');
+                        return;
+                      }
+                      setIsSubmittingUnbuild(true);
+                      try {
+                        const res = await workOrdersApi.createUnbuild({
+                          bomId: selectedBomId,
+                          productId: Number(targetBom.product_id),
+                          quantity: unbuildQty,
+                          notes: unbuildNotes.trim() || undefined,
+                        });
+                        systemAlert(res.message || 'تم تفكيك المنتج بنجاح');
+                        setSelectedBomId(0);
+                        setUnbuildQty(1);
+                        setUnbuildNotes('');
+                        const updated = await workOrdersApi.listUnbuild();
+                        setUnbuildOrders(updated);
+                        // Refresh work orders too
+                        const freshOrders = await workOrdersApi.list();
+                        setWorkOrders(freshOrders);
+                      } catch (err: any) {
+                        systemAlert(err?.message || 'فشل تنفيذ أمر التفكيك');
+                      } finally {
+                        setIsSubmittingUnbuild(false);
+                      }
+                    }}
+                    style={{ backgroundColor: '#170e5e', color: '#fff', fontSize: '13px', height: '34px' }}
+                  >
+                    {isSubmittingUnbuild ? 'جاري التفكيك...' : 'تفكيك واسترجاع المواد'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Previous Unbuild Orders List */}
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
+                سجل أوامر التفكيك السابقة
+              </h4>
+              {unbuildOrders.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '13px', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+                  لا توجد أوامر تفكيك مسجلة حتى الآن.
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1', color: '#475569' }}>
+                      <th style={{ padding: '8px 12px', textAlign: 'right' }}>رقم الأمر</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'right' }}>المنتج المفكك</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'center' }}>الكمية</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'right' }}>التكلفة المستعادة</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'right' }}>التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unbuildOrders.map((ub: any) => (
+                      <tr key={ub.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '8px 12px', fontWeight: 600, color: '#170e5e' }}>{ub.unbuild_number}</td>
+                        <td style={{ padding: '8px 12px' }}>{ub.product_name}</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 'bold' }}>{ub.quantity}</td>
+                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>{Number(ub.total_cost || 0).toLocaleString()} ج.م</td>
+                        <td style={{ padding: '8px 12px', color: '#64748b' }}>{ub.created_at ? String(ub.created_at).slice(0, 10) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div
+              style={{
+                padding: '12px 24px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                background: '#ffffff',
+              }}
+            >
+              <Button type="button" variant="secondary" onClick={() => setIsUnbuildModalOpen(false)}>
+                إغلاق
               </Button>
             </div>
           </div>

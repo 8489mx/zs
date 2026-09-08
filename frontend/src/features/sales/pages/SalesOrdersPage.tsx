@@ -6,6 +6,7 @@ import {
   type CreateSalesOrderPayload,
   type SalesOrderItem,
 } from '../api/sales-orders.api';
+import { workOrdersApi } from '@/features/manufacturing/api/work-orders.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
@@ -23,8 +24,10 @@ import {
   PackageIcon,
   EyeIcon,
 } from '@/shared/components/icons/AppIcons';
+import { useAppToolbar } from '@/stores/toolbar-store';
 
 export function SalesOrdersPage() {
+  useAppToolbar([{ label: 'المبيعات', to: '/sales' }, { label: 'أوامر البيع وحجز المخزون' }]);
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -217,47 +220,47 @@ export function SalesOrdersPage() {
   const orders = data?.orders || [];
   const summary = data?.summary || { all: 0, draft: 0, confirmed: 0, converted: 0, cancelled: 0 };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (st: string) => {
+    switch (st) {
       case 'confirmed':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-800 border border-blue-200">
-            <LockIcon size={12} color="#1d4ed8" />
-            مؤكد (مخزون محجوز)
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', fontSize: '11px', fontWeight: 700, borderRadius: '999px', backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
+            <LockIcon size={12} color="#1e40af" />
+            مؤكد ومحجوز بالمخزن
           </span>
         );
       case 'converted':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <CheckCircleIcon size={12} color="#047857" />
-            تم التحويل لفاتورة بيع
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', fontSize: '11px', fontWeight: 700, borderRadius: '999px', backgroundColor: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }}>
+            <CheckCircleIcon size={12} color="#065f46" />
+            تم التحويل لفاتورة
           </span>
         );
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-rose-50 text-rose-800 border border-rose-200">
-            ملغي (فك الحجز)
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', fontSize: '11px', fontWeight: 700, borderRadius: '999px', backgroundColor: '#fff1f2', color: '#9f1239', border: '1px solid #fecdd3' }}>
+            <XIcon size={12} color="#9f1239" />
+            ملغي
           </span>
         );
-      case 'draft':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-            مسودة أمر بيع
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', fontSize: '11px', fontWeight: 700, borderRadius: '999px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}>
+            مسودة غير محجوزة
           </span>
         );
     }
   };
 
   return (
-    <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+    <div className="page-stack page-shell sales-orders-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title="أوامر البيع وحجز المخزون"
-          description="إدارة وتأكيد أوامر البيع التجارية وحجز الكميات مؤقتاً في المستودع ومنع البيع المزدوج قبل إصدار الفاتورة النهائية"
-          badge={<span className="nav-pill">Sales Orders & Reservation</span>}
+          description="إدارة وتأكيد أوامر البيع التجارية وحجز الكميات مؤقتاً في المستودع ومنع البيع المزدوج قبل إصدار الفاتورة النهائية."
+          badge={<span className="nav-pill">{summary.all} أمر بيع</span>}
           actions={
-            <div className="flex items-center gap-2">
+            <div className="actions compact-actions page-header-actions">
               <Button
                 variant="primary"
                 onClick={() => {
@@ -268,90 +271,119 @@ export function SalesOrdersPage() {
                 style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
                 <PlusIcon size={16} color="#ffffff" />
-                <span>أمر بيع جديد</span>
+                <span>+ أمر بيع جديد</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] })}
+                className="flex items-center gap-1.5"
+              >
+                <RefreshCwIcon size={14} />
+                <span>تحديث</span>
               </Button>
             </div>
           }
         />
 
         {/* Stats Grid */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <StatsGrid
             items={[
               {
                 key: 'all',
                 label: 'إجمالي أوامر البيع',
-                value: summary.all,
+                value: `${summary.all} أمر`,
               },
               {
                 key: 'confirmed',
                 label: 'أوامر مؤكدة وحاجزة للمخزون',
-                value: summary.confirmed,
+                value: `${summary.confirmed} أمر`,
               },
               {
                 key: 'draft',
                 label: 'مسودات قيد المراجعة',
-                value: summary.draft,
+                value: `${summary.draft} مسودة`,
               },
               {
                 key: 'converted',
                 label: 'مكتملة ومحولة لفواتير',
-                value: summary.converted,
+                value: `${summary.converted} فاتورة`,
               },
             ]}
           />
         </div>
 
-        {/* Filters and Search Bar */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold text-slate-600">تصفية الحالة:</span>
-            {[
-              { key: 'all', label: 'الكل' },
-              { key: 'confirmed', label: 'المؤكدة والحاجزة للمخزون' },
-              { key: 'draft', label: 'المسودات' },
-              { key: 'converted', label: 'المحولة لفواتير' },
-              { key: 'cancelled', label: 'الملغاة' },
-            ].map((st) => (
-              <button
-                key={st.key}
-                type="button"
-                onClick={() => setStatusFilter(st.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  statusFilter === st.key
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
+        {/* Main Workspace Panel & Table */}
+        <section className="document-prototype-section workspace-panel">
+          <div className="section-header-compact-row">
+            <h3 className="document-prototype-section-title">سجل أوامر البيع وحجز المخزون</h3>
+            <div className="section-header-actions-group">
+              <span className="text-xs text-slate-500 font-medium">عرض {orders.length} من أصل {summary.all}</span>
+            </div>
           </div>
+          <p className="muted small section-header-subtitle">
+            متابعة حجز المخزون المؤقت، فحص الجاهزية والربط بالتصنيع MTO، والتحويل لفواتير معتمدة.
+          </p>
 
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="بحث برقم الأمر أو العميل أو الهاتف..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-72 pr-8 pl-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-600"
-              />
-              <div className="absolute right-2.5 top-2 text-slate-400">
-                <SearchIcon size={14} color="#94a3b8" />
+          {/* Filters and Search Bar */}
+          <div className="products-table-toolbar" style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '12px 0 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                {[
+                  { key: 'all', label: 'الكل' },
+                  { key: 'confirmed', label: 'المؤكدة والحاجزة للمخزون' },
+                  { key: 'draft', label: 'المسودات' },
+                  { key: 'converted', label: 'المحولة لفواتير' },
+                  { key: 'cancelled', label: 'الملغاة' },
+                ].map((st) => {
+                  const isActive = statusFilter === st.key;
+                  return (
+                    <button
+                      key={st.key}
+                      type="button"
+                      onClick={() => setStatusFilter(st.key)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: isActive ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                        backgroundColor: isActive ? '#170e5e' : '#ffffff',
+                        color: isActive ? '#ffffff' : '#475569',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        boxShadow: isActive ? '0 1px 3px rgba(23, 14, 94, 0.25)' : 'none',
+                      }}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ position: 'relative', minWidth: '280px' }}>
+                <input
+                  type="text"
+                  placeholder="بحث برقم الأمر أو العميل أو الهاتف..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 36px 8px 12px',
+                    fontSize: '12px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    backgroundColor: '#ffffff',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                  <SearchIcon size={15} color="#94a3b8" />
+                </div>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['sales-orders-list'] })}
-              className="p-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors"
-              title="تحديث القائمة"
-            >
-              <RefreshCwIcon size={14} color="#64748b" />
-            </button>
           </div>
-        </div>
 
         {/* Orders Table */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -417,7 +449,7 @@ export function SalesOrdersPage() {
                       </td>
                       <td className="p-3.5">{getStatusBadge(order.status)}</td>
                       <td className="p-3.5 text-center">
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
                           {/* View Details */}
                           <button
                             type="button"
@@ -425,13 +457,23 @@ export function SalesOrdersPage() {
                               setSelectedOrder(order);
                               setIsDetailsModalOpen(true);
                             }}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 10px',
+                              fontSize: '11.5px',
+                              fontWeight: 600,
+                              borderRadius: '6px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#ffffff',
+                              color: '#334155',
+                              cursor: 'pointer',
+                            }}
                             title="عرض التفاصيل وجاهزية المخزون"
                           >
-                            <span className="flex items-center gap-1">
-                              <EyeIcon size={13} color="#475569" />
-                              التفاصيل
-                            </span>
+                            <EyeIcon size={13} color="#475569" />
+                            <span>التفاصيل</span>
                           </button>
 
                           {/* Confirm & Reserve Button (if draft) */}
@@ -439,13 +481,23 @@ export function SalesOrdersPage() {
                             <button
                               type="button"
                               onClick={() => confirmMutation.mutate(order.id)}
-                              className="px-2.5 py-1 text-xs font-semibold rounded-md border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '5px 10px',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                border: '1px solid #bfdbfe',
+                                backgroundColor: '#eff6ff',
+                                color: '#1e40af',
+                                cursor: 'pointer',
+                              }}
                               title="تأكيد وحجز كميات المخزون"
                             >
-                              <span className="flex items-center gap-1">
-                                <LockIcon size={13} color="#1e40af" />
-                                حجز المخزون
-                              </span>
+                              <LockIcon size={13} color="#1e40af" />
+                              <span>حجز المخزون</span>
                             </button>
                           )}
 
@@ -462,13 +514,24 @@ export function SalesOrdersPage() {
                                   convertMutation.mutate(order.id);
                                 }
                               }}
-                              className="px-2.5 py-1 text-xs font-bold rounded-md border border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '5px 10px',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                border: '1px solid #059669',
+                                backgroundColor: '#059669',
+                                color: '#ffffff',
+                                cursor: 'pointer',
+                                boxShadow: '0 1px 2px rgba(5, 150, 105, 0.2)',
+                              }}
                               title="تحويل مباشر لفاتورة بيع"
                             >
-                              <span className="flex items-center gap-1">
-                                <ShoppingCartIcon size={13} color="#ffffff" />
-                                تحويل لفاتورة
-                              </span>
+                              <ShoppingCartIcon size={13} color="#ffffff" />
+                              <span>تحويل لفاتورة</span>
                             </button>
                           )}
 
@@ -485,10 +548,22 @@ export function SalesOrdersPage() {
                                   cancelMutation.mutate(order.id);
                                 }
                               }}
-                              className="px-2 py-1 text-xs font-semibold rounded-md border border-slate-200 bg-white hover:bg-rose-50 text-rose-700"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '5px 8px',
+                                fontSize: '11.5px',
+                                fontWeight: 600,
+                                borderRadius: '6px',
+                                border: '1px solid #fecdd3',
+                                backgroundColor: '#ffffff',
+                                color: '#be123c',
+                                cursor: 'pointer',
+                              }}
                               title="إلغاء أمر البيع وفك الحجز"
                             >
-                              إلغاء
+                              <span>إلغاء</span>
                             </button>
                           )}
 
@@ -501,7 +576,15 @@ export function SalesOrdersPage() {
                                   deleteMutation.mutate(order.id);
                                 }
                               }}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                              style={{
+                                padding: '5px',
+                                color: '#94a3b8',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                              }}
                               title="حذف نهائي"
                             >
                               <Trash2Icon size={14} color="#94a3b8" />
@@ -516,6 +599,7 @@ export function SalesOrdersPage() {
             </table>
           </div>
         </div>
+        </section>
       </main>
 
       {/* 1. Create Sales Order Modal */}
@@ -523,34 +607,38 @@ export function SalesOrdersPage() {
         <DialogShell
           open={true}
           onClose={() => setIsCreateModalOpen(false)}
-          width="820px"
+          width="min(820px, 95vw)"
+          ariaLabel="إنشاء أمر بيع جديد"
         >
-          <div className="p-6" dir="rtl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-900">
-                  <PackageIcon size={18} color="#170e5e" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">إنشاء أمر بيع جديد (Sales Order)</h3>
-                  <p className="text-xs text-slate-500">حجز المخزون وتثبيت الأسعار والكميات للعميل</p>
+          <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
+            <div className="standard-dialog-header">
+              <div className="standard-dialog-header-info">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eef2ff', border: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <PackageIcon size={18} color="#170e5e" />
+                  </div>
+                  <div>
+                    <h3 className="standard-dialog-title">إنشاء أمر بيع جديد (Sales Order)</h3>
+                    <p className="standard-dialog-subtitle">حجز المخزون وتثبيت الأسعار والكميات للعميل</p>
+                  </div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="standard-dialog-close-btn"
+                aria-label="إغلاق"
               >
                 <XIcon size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitOrder} className="space-y-4">
+            <form onSubmit={handleSubmitOrder} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Customer and General Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    اسم العميل <span className="text-rose-500">*</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                <div className="field">
+                  <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    اسم العميل <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -558,64 +646,72 @@ export function SalesOrdersPage() {
                     placeholder="اسم العميل أو المنشأة..."
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">هاتف العميل</label>
+                <div className="field">
+                  <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    هاتف العميل
+                  </label>
                   <input
                     type="text"
                     placeholder="رقم الهاتف للتواصل..."
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">تاريخ التسليم المتوقع</label>
+                <div className="field">
+                  <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    تاريخ التسليم المتوقع
+                  </label>
                   <input
                     type="date"
                     value={deliveryDate}
                     onChange={(e) => setDeliveryDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">صلاحية حجز المخزون حتى</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+                <div className="field">
+                  <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    صلاحية حجز المخزون حتى
+                  </label>
                   <input
                     type="date"
                     value={reservationExpiresAt}
                     onChange={(e) => setReservationExpiresAt(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">عنوان العميل / موقع التسليم</label>
+                <div className="field">
+                  <label className="field-label" style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    عنوان العميل / موقع التسليم
+                  </label>
                   <input
                     type="text"
                     placeholder="العنوان التفصيلي..."
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
               {/* Stock Reservation Toggle Option */}
-              <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div style={{ padding: '12px 16px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <LockIcon size={16} color="#1d4ed8" />
                   <div>
-                    <span className="text-xs font-bold text-blue-900 block">
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e3a8a', display: 'block' }}>
                       تفعيل حجز المخزون المؤقت فور الحفظ (Stock Reservation)
                     </span>
-                    <span className="text-[11px] text-blue-700">
+                    <span style={{ fontSize: '11px', color: '#1d4ed8' }}>
                       يتم زيادة الكمية المحجوزة للمنتجات ومنع بيعها في الكاشير أو المتجر الإلكتروني
                     </span>
                   </div>
@@ -624,76 +720,76 @@ export function SalesOrdersPage() {
                   type="checkbox"
                   checked={autoReserve}
                   onChange={(e) => setAutoReserve(e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 rounded"
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                 />
               </div>
 
               {/* Items Table */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <div className="bg-slate-50 p-2.5 font-bold text-xs text-slate-700 flex items-center justify-between">
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ backgroundColor: '#f8fafc', padding: '10px 14px', fontWeight: 700, fontSize: '12px', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #cbd5e1' }}>
                   <span>أصناف وكميات أمر البيع</span>
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1"
+                    style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
-                    <PlusIcon size={13} />
-                    إضافة صنف
+                    <PlusIcon size={14} />
+                    <span>إضافة صنف</span>
                   </button>
                 </div>
-                <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
+                <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
                   {items.map((it, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-lg border border-slate-200/80">
-                      <div className="flex-1">
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ flex: 1 }}>
                         <input
                           type="text"
                           placeholder="اسم الصنف أو كوده..."
                           required
                           value={it.productName}
                           onChange={(e) => handleItemChange(idx, 'productName', e.target.value)}
-                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs"
+                          style={{ width: '100%', padding: '6px 10px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }}
                         />
                       </div>
-                      <div className="w-20">
+                      <div style={{ width: '80px' }}>
                         <input
                           type="number"
                           min="1"
                           placeholder="الكمية"
                           value={it.quantity}
                           onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs text-center"
+                          style={{ width: '100%', padding: '6px 10px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </div>
-                      <div className="w-24">
+                      <div style={{ width: '96px' }}>
                         <input
                           type="number"
                           step="0.01"
                           placeholder="سعر الوحدة"
                           value={it.unitPrice}
                           onChange={(e) => handleItemChange(idx, 'unitPrice', e.target.value)}
-                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs text-center"
+                          style={{ width: '100%', padding: '6px 10px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </div>
-                      <div className="w-20">
+                      <div style={{ width: '80px' }}>
                         <input
                           type="number"
                           step="0.01"
                           placeholder="خصم"
                           value={it.discount}
                           onChange={(e) => handleItemChange(idx, 'discount', e.target.value)}
-                          className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs text-center"
+                          style={{ width: '100%', padding: '6px 10px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </div>
-                      <div className="w-24 text-left font-bold text-xs text-slate-800 pl-1">
+                      <div style={{ width: '96px', textAlign: 'left', fontWeight: 700, fontSize: '12px', color: '#1e293b', paddingLeft: '4px' }}>
                         {formatCurrency(Number(it.total))}
                       </div>
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(idx)}
                         disabled={items.length <= 1}
-                        className="p-1 text-slate-400 hover:text-rose-600 disabled:opacity-30"
+                        style={{ padding: '4px', color: items.length <= 1 ? '#cbd5e1' : '#ef4444', background: 'none', border: 'none', cursor: items.length <= 1 ? 'not-allowed' : 'pointer' }}
                       >
-                        <Trash2Icon size={14} />
+                        <Trash2Icon size={15} />
                       </button>
                     </div>
                   ))}
@@ -701,23 +797,23 @@ export function SalesOrdersPage() {
               </div>
 
               {/* Totals Summary */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+              <div style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12.5px' }}>
                 <div>
-                  <span className="text-slate-500">المجموع قبل الخصم: </span>
-                  <strong className="text-slate-800">{formatCurrency(subtotal)}</strong>
+                  <span style={{ color: '#64748b' }}>المجموع قبل الخصم: </span>
+                  <strong style={{ color: '#1e293b' }}>{formatCurrency(subtotal)}</strong>
                 </div>
                 <div>
-                  <span className="text-slate-500">إجمالي الخصم: </span>
-                  <strong className="text-rose-600">{formatCurrency(totalDiscount)}</strong>
+                  <span style={{ color: '#64748b' }}>إجمالي الخصم: </span>
+                  <strong style={{ color: '#dc2626' }}>{formatCurrency(totalDiscount)}</strong>
                 </div>
-                <div className="text-sm font-bold text-indigo-900">
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#170e5e' }}>
                   <span>الصافي المطلوب: </span>
                   <span>{formatCurrency(totalAmount)}</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+              <div className="standard-dialog-footer">
                 <Button variant="secondary" onClick={() => setIsCreateModalOpen(false)}>
                   إلغاء
                 </Button>
@@ -740,92 +836,96 @@ export function SalesOrdersPage() {
         <DialogShell
           open={true}
           onClose={() => setIsDetailsModalOpen(false)}
-          width="850px"
+          width="min(850px, 95vw)"
+          ariaLabel="تفاصيل أمر البيع"
         >
-          <div className="p-6" dir="rtl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-900">
-                  <PackageIcon size={18} color="#170e5e" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    تفاصيل أمر البيع #{orderDetailsData?.order_number || selectedOrder?.order_number}
-                  </h3>
-                  <p className="text-xs text-slate-500">فحص توفر المخزون، الحجوزات، والجاهزية للفوترة</p>
+          <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
+            <div className="standard-dialog-header">
+              <div className="standard-dialog-header-info">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eef2ff', border: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <PackageIcon size={18} color="#170e5e" />
+                  </div>
+                  <div>
+                    <h3 className="standard-dialog-title">
+                      تفاصيل أمر البيع #{orderDetailsData?.order_number || selectedOrder?.order_number}
+                    </h3>
+                    <p className="standard-dialog-subtitle">فحص توفر المخزون، الحجوزات، والجاهزية للفوترة</p>
+                  </div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsDetailsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="standard-dialog-close-btn"
+                aria-label="إغلاق"
               >
                 <XIcon size={18} />
               </button>
             </div>
 
             {isDetailsLoading ? (
-              <div className="p-8 text-center text-slate-500 text-xs">جاري فحص تفاصيل المخزون...</div>
+              <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>جاري فحص تفاصيل المخزون...</div>
             ) : (
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* Meta Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', backgroundColor: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
                   <div>
-                    <span className="text-slate-500 block">العميل:</span>
-                    <strong className="text-slate-900">{orderDetailsData?.customer_name}</strong>
+                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>العميل:</span>
+                    <strong style={{ color: '#0f172a', fontSize: '13px' }}>{orderDetailsData?.customer_name}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 block">الهاتف:</span>
-                    <strong className="text-slate-900 font-mono">
+                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>الهاتف:</span>
+                    <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>
                       {orderDetailsData?.customer_phone || '—'}
                     </strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 block">الحالة:</span>
+                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>الحالة:</span>
                     <div>{getStatusBadge(orderDetailsData?.status || '')}</div>
                   </div>
                   <div>
-                    <span className="text-slate-500 block">الإجمالي:</span>
-                    <strong className="text-indigo-900 text-sm">
+                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>الإجمالي:</span>
+                    <strong style={{ color: '#170e5e', fontSize: '14px' }}>
                       {formatCurrency(Number(orderDetailsData?.total_amount || 0))}
                     </strong>
                   </div>
                 </div>
 
                 {/* Items & Stock Availability Table */}
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-right border-collapse text-xs">
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', textAlign: 'right', borderCollapse: 'collapse', fontSize: '12px' }}>
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                        <th className="p-3">الصنف</th>
-                        <th className="p-3 text-center">الكمية المطلوبة</th>
-                        <th className="p-3 text-center">الكمية المحجوزة</th>
-                        <th className="p-3 text-center">المخزون الفعلي</th>
-                        <th className="p-3 text-center">المتاح للآخرين</th>
-                        <th className="p-3 text-center">سعر الوحدة</th>
-                        <th className="p-3 text-left">الإجمالي</th>
+                      <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #cbd5e1', color: '#475569', fontWeight: 700 }}>
+                        <th style={{ padding: '10px 12px' }}>الصنف</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>الكمية المطلوبة</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>الكمية المحجوزة</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>المخزون الفعلي</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>المتاح للآخرين</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>سعر الوحدة</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'left' }}>الإجمالي</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody>
                       {orderDetailsData?.items?.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50">
-                          <td className="p-3 font-semibold text-slate-900">{item.product_name || item.productName}</td>
-                          <td className="p-3 text-center font-bold text-slate-800">
+                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '10px 12px', fontWeight: 600, color: '#0f172a' }}>{item.product_name || item.productName}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: '#1e293b' }}>
                             {item.quantity} {item.unit_name || item.unitName || 'قطعة'}
                           </td>
-                          <td className="p-3 text-center">
-                            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200 text-[11px]">
+                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#eff6ff', color: '#1d4ed8', fontWeight: 700, border: '1px solid #bfdbfe', fontSize: '11px' }}>
                               {item.reserved_quantity || 0}
                             </span>
                           </td>
-                          <td className="p-3 text-center font-mono text-slate-700">
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'monospace', color: '#334155' }}>
                             {item.current_stock_qty ?? '—'}
                           </td>
-                          <td className="p-3 text-center font-mono text-emerald-700 font-semibold">
+                          <td style={{ padding: '10px 12px', textAlign: 'center', fontFamily: 'monospace', color: '#059669', fontWeight: 700 }}>
                             {item.available_qty ?? '—'}
                           </td>
-                          <td className="p-3 text-center">{formatCurrency(Number(item.unit_price || item.unitPrice || 0))}</td>
-                          <td className="p-3 text-left font-bold text-slate-900">
+                          <td style={{ padding: '10px 12px', textAlign: 'center' }}>{formatCurrency(Number(item.unit_price || item.unitPrice || 0))}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#0f172a' }}>
                             {formatCurrency(Number(item.total))}
                           </td>
                         </tr>
@@ -835,14 +935,13 @@ export function SalesOrdersPage() {
                 </div>
 
                 {/* Action Footer */}
-                <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                  <div className="flex items-center gap-2">
+                <div className="standard-dialog-footer" style={{ justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     {orderDetailsData?.status === 'draft' && (
                       <Button
                         variant="primary"
                         onClick={() => confirmMutation.mutate(orderDetailsData.id)}
-                        className="text-xs"
-                        style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
+                        style={{ backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12px' }}
                       >
                         تأكيد أمر البيع وحجز المخزون
                       </Button>
@@ -860,9 +959,38 @@ export function SalesOrdersPage() {
                             convertMutation.mutate(orderDetailsData.id);
                           }
                         }}
-                        className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                        style={{ backgroundColor: '#059669', color: '#ffffff', fontSize: '12px' }}
                       >
                         تحويل إلى فاتورة بيع وخصم المخزون
+                      </Button>
+                    )}
+
+                    {(orderDetailsData?.status === 'confirmed' || orderDetailsData?.status === 'draft') && (
+                      <Button
+                        variant="secondary"
+                        onClick={async () => {
+                          const firstItem = orderDetailsData.items?.[0];
+                          if (!firstItem) return;
+                          if (
+                            confirm(
+                              `هل ترغب في توليد أمر تصنيع وتشغيل فوري (MTO) للصنف "${firstItem.product_name || firstItem.productName}" بالكمية المطلوبة (${firstItem.quantity})؟`
+                            )
+                          ) {
+                            try {
+                              const res = await workOrdersApi.createMto({
+                                salesOrderId: orderDetailsData.id,
+                                productId: firstItem.productId || (firstItem as any).product_id,
+                                quantityToProduce: Number(firstItem.quantity),
+                              });
+                              alert(res.message || 'تم توليد أمر التشغيل بنجاح');
+                            } catch (err: any) {
+                              alert(err?.message || 'فشل توليد أمر التصنيع - تأكد من وجود BOM نشطة للصنف');
+                            }
+                          }
+                        }}
+                        style={{ fontSize: '12px', border: '1px solid #c7d2fe', color: '#170e5e' }}
+                      >
+                        توليد أمر تصنيع (MTO)
                       </Button>
                     )}
                   </div>

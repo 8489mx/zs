@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import {
@@ -10,16 +9,20 @@ import {
   RefreshCwIcon,
   DownloadIcon,
   PrinterIcon,
-  CheckCircleIcon,
   Trash2Icon,
   SparklesIcon,
+  XIcon,
 } from '@/shared/components/icons/AppIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import {
   withholdingTaxApi,
   type WithholdingTaxRecord,
   type Form41SummaryResponse,
   type CreateWhtTransactionPayload,
 } from '@/features/accounting/api/accounting.api';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { useAppToolbar } from '@/stores/toolbar-store';
 
 const WHT_TYPE_LABELS: Record<string, { label: string; rate: number; badge: string }> = {
   goods: { label: 'توريدات وسلع', rate: 1, badge: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -36,6 +39,7 @@ const QUARTERS = [
 ];
 
 export function WithholdingTaxPage() {
+  useAppToolbar([{ label: 'المالية والمحاسبة', to: '/accounting' }, { label: 'الخصم والإضافة ن41' }]);
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -218,114 +222,120 @@ export function WithholdingTaxPage() {
   };
 
   return (
-    <div dir="rtl" className="w-full min-h-screen bg-[#f8fafc] text-slate-900 pb-16 space-y-6">
-      {/* Top Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
-                <FileTextIcon size={22} strokeWidth={2} />
-              </span>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                ضريبة الخصم والإضافة المصرية ونموذج 41 ضرائب (Withholding Tax - WHT)
-              </h1>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              إعداد واستخراج إقرار نموذج 41 الربع سنوي المعتمد لمصلحة الضرائب المصرية (ETA) وتصدير شيت البوابة الرسمية
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              onClick={() => {
-                resetNewTxForm();
-                setShowCreateModal(true);
-              }}
-              className="bg-[#170e5e] hover:bg-[#120b4c] text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm"
-            >
-              <PlusIcon size={15} />
-              <span>إضافة معاملة خصم</span>
-            </Button>
-
-            {selectedDirection === 'payable' && (
+    <div className="page-stack page-shell withholding-tax-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="ضريبة الخصم والإضافة ونموذج 41 ضرائب"
+          description="إعداد واستخراج إقرار نموذج 41 الربع سنوي المعتمد لمصلحة الضرائب المصرية (ETA) وتصدير شيت البوابة الرسمية."
+          badge={<span className="nav-pill">{reportData?.total_count || 0} معاملة</span>}
+          actions={(
+            <div className="actions compact-actions page-header-actions">
               <Button
-                onClick={() => setShowExtractModal(true)}
-                variant="secondary"
-                className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5"
+                onClick={() => {
+                  resetNewTxForm();
+                  setShowCreateModal(true);
+                }}
+                className="btn btn-primary flex items-center gap-1.5"
+                style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
               >
-                <SparklesIcon size={15} />
-                <span>استيراد آلي من فواتير الشراء</span>
+                <PlusIcon size={15} />
+                <span>+ إضافة معاملة</span>
               </Button>
-            )}
 
-            <Button
-              onClick={handleExportEtaCsv}
-              variant="secondary"
-              className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-1"
-              title="تصدير شيت البوابة الإلكترونية لمصلحة الضرائب"
-            >
-              <DownloadIcon size={14} />
-              <span>تصدير نموذج 41 (CSV)</span>
-            </Button>
+              {selectedDirection === 'payable' && (
+                <Button
+                  onClick={() => setShowExtractModal(true)}
+                  variant="secondary"
+                  className="flex items-center gap-1.5 text-emerald-800 border-emerald-300"
+                >
+                  <SparklesIcon size={15} />
+                  <span>استيراد آلي من المشتريات</span>
+                </Button>
+              )}
 
-            <Button
-              onClick={() => setShowPrintModal(true)}
-              variant="secondary"
-              className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-1"
-            >
-              <PrinterIcon size={14} />
-              <span>طباعة الإقرار الرسمي</span>
-            </Button>
+              <Button
+                onClick={handleExportEtaCsv}
+                variant="secondary"
+                className="flex items-center gap-1.5"
+                title="تصدير شيت البوابة الإلكترونية لمصلحة الضرائب"
+              >
+                <DownloadIcon size={14} />
+                <span>تصدير CSV</span>
+              </Button>
 
-            <Button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['wht-form41'] })}
-              variant="secondary"
-              className="text-slate-600 hover:text-slate-900 text-xs px-2.5 py-2 rounded-lg"
-              title="تحديث البيانات"
-            >
-              <RefreshCwIcon size={15} />
-            </Button>
-          </div>
-        </div>
-      </div>
+              <Button
+                onClick={() => setShowPrintModal(true)}
+                variant="secondary"
+                className="flex items-center gap-1.5"
+              >
+                <PrinterIcon size={14} />
+                <span>طباعة A4</span>
+              </Button>
 
-      <div className="px-6 space-y-6">
+              <Button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['wht-form41'] })}
+                variant="secondary"
+                className="flex items-center gap-1.5"
+                title="تحديث البيانات"
+              >
+                <RefreshCwIcon size={14} />
+                <span>تحديث</span>
+              </Button>
+            </div>
+          )}
+        />
+
         {/* Period Selector & Direction Switcher */}
-        <Card className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
             {/* Direction Tabs */}
-            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg w-fit">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
               <button
+                type="button"
                 onClick={() => setSelectedDirection('payable')}
-                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  selectedDirection === 'payable'
-                    ? 'bg-white text-[#170e5e] shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: selectedDirection === 'payable' ? '#ffffff' : 'transparent',
+                  color: selectedDirection === 'payable' ? '#170e5e' : '#64748b',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: selectedDirection === 'payable' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
               >
                 نموذج 41 (خصم من الموردين لتوريده للضرائب)
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedDirection('receivable')}
-                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  selectedDirection === 'receivable'
-                    ? 'bg-white text-[#170e5e] shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: selectedDirection === 'receivable' ? '#ffffff' : 'transparent',
+                  color: selectedDirection === 'receivable' ? '#170e5e' : '#64748b',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: selectedDirection === 'receivable' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
               >
                 إشعارات الخصم من العملاء (مبالغ مستردة للشركة)
               </button>
             </div>
 
             {/* Quarter & Year Selector */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-slate-600">السنة الضريبية:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>السنة الضريبية:</span>
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:bg-white"
+                  style={{ padding: '6px 12px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: '#0f172a', outline: 'none' }}
                 >
                   {[currentYear + 1, currentYear, currentYear - 1, currentYear - 2].map((yr) => (
                     <option key={yr} value={yr}>
@@ -335,114 +345,107 @@ export function WithholdingTaxPage() {
                 </select>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-lg border border-slate-200">
-                {QUARTERS.map((q) => (
-                  <button
-                    key={q.id}
-                    onClick={() => setSelectedQuarter(q.id)}
-                    className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
-                      selectedQuarter === q.id
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'text-slate-600 hover:bg-slate-200/60'
-                    }`}
-                    title={q.period}
-                  >
-                    {q.id}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f8fafc', padding: '4px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                {QUARTERS.map((q) => {
+                  const isActive = selectedQuarter === q.id;
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      onClick={() => setSelectedQuarter(q.id)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: isActive ? '#170e5e' : 'transparent',
+                        color: isActive ? '#ffffff' : '#64748b',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      title={q.period}
+                    >
+                      {q.id}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
-        </Card>
-
-        {/* KPI Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-white border border-emerald-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-emerald-700 mb-1">
-              <span className="text-xs font-bold">
-                {selectedDirection === 'payable' ? 'إجمالي الضريبة واجبة التوريد' : 'إجمالي مبالغ الخصم المستردة'}
-              </span>
-              <CheckCircleIcon size={18} className="text-emerald-600" />
-            </div>
-            <div className="text-xl font-extrabold text-emerald-700">
-              {formatCurrency(reportData?.total_tax_amount || 0)} ج.م
-            </div>
-            <div className="text-[11px] text-emerald-600 mt-1">
-              عن {reportData?.total_count || 0} معاملة في {selectedQuarter} {selectedYear}
-            </div>
-          </Card>
-
-          <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">وعاء توريدات السلع (1%)</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">1%</span>
-            </div>
-            <div className="text-lg font-bold text-slate-900">
-              {formatCurrency(reportData?.breakdown.goods.base_amount || 0)} ج.م
-            </div>
-            <div className="text-[11px] text-blue-600 mt-1 font-medium">
-              الضريبة: {formatCurrency(reportData?.breakdown.goods.tax_amount || 0)} ج.م ({reportData?.breakdown.goods.count || 0} معاملة)
-            </div>
-          </Card>
-
-          <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">وعاء الخدمات والمصنعيات (3%)</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold">3%</span>
-            </div>
-            <div className="text-lg font-bold text-slate-900">
-              {formatCurrency(reportData?.breakdown.services.base_amount || 0)} ج.م
-            </div>
-            <div className="text-[11px] text-emerald-600 mt-1 font-medium">
-              الضريبة: {formatCurrency(reportData?.breakdown.services.tax_amount || 0)} ج.م ({reportData?.breakdown.services.count || 0} معاملة)
-            </div>
-          </Card>
-
-          <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">وعاء المهن الحرة والعمولات (5%)</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-bold">5%</span>
-            </div>
-            <div className="text-lg font-bold text-slate-900">
-              {formatCurrency(reportData?.breakdown.professional.base_amount || 0)} ج.م
-            </div>
-            <div className="text-[11px] text-purple-600 mt-1 font-medium">
-              الضريبة: {formatCurrency(reportData?.breakdown.professional.tax_amount || 0)} ج.م ({reportData?.breakdown.professional.count || 0} معاملة)
-            </div>
-          </Card>
         </div>
 
-        {/* Filter Bar */}
-        <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-2 relative">
-              <SearchIcon size={16} className="absolute right-3 top-3 text-slate-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="بحث باسم الممول/المورد، رقم الفاتورة، أو الرقم الضريبي..."
-                className="w-full pr-9 pl-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white"
-              />
-            </div>
+        {/* Stats Grid */}
+        <div style={{ marginBottom: '16px' }}>
+          <StatsGrid
+            items={[
+              {
+                key: 'tax',
+                label: selectedDirection === 'payable' ? 'إجمالي الضريبة واجبة التوريد' : 'إجمالي مبالغ الخصم المستردة',
+                value: `${formatCurrency(reportData?.total_tax_amount || 0)} ج.م`,
+              },
+              {
+                key: 'goods',
+                label: 'وعاء توريدات السلع (1%)',
+                value: `${formatCurrency(reportData?.breakdown.goods.base_amount || 0)} ج.م`,
+              },
+              {
+                key: 'services',
+                label: 'وعاء الخدمات والمصنعيات (3%)',
+                value: `${formatCurrency(reportData?.breakdown.services.base_amount || 0)} ج.م`,
+              },
+              {
+                key: 'prof',
+                label: 'وعاء المهن الحرة والعمولات (5%)',
+                value: `${formatCurrency(reportData?.breakdown.professional.base_amount || 0)} ج.م`,
+              },
+            ]}
+          />
+        </div>
 
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:bg-white"
-              >
-                <option value="all">كافة الحالات</option>
-                <option value="draft">مسودة</option>
-                <option value="declared">مقدم بالإقرار</option>
-                <option value="paid">تم السداد والتوريد</option>
-              </select>
+        {/* Main Workspace Panel & Table */}
+        <section className="document-prototype-section workspace-panel">
+          <div className="section-header-compact-row">
+            <h3 className="document-prototype-section-title">سجل معاملات نموذج 41 ضرائب</h3>
+            <div className="section-header-actions-group">
+              <span className="text-xs text-slate-500 font-medium">الربع {selectedQuarter} لسنة {selectedYear} ({filteredTransactions.length} حركة)</span>
             </div>
           </div>
-        </Card>
+          <p className="muted small section-header-subtitle">
+            بيانات الخصم والتحصيل المعتمدة لمصلحة الضرائب المصرية وتصنيف الأوعية الضريبية.
+          </p>
 
-        {/* Form 41 Detailed Table */}
-        <Card className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          {/* Filter Bar */}
+          <div className="products-table-toolbar" style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '12px 0 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
+              <div className="relative flex-1 min-w-[280px]">
+                <SearchIcon size={15} className="absolute right-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="بحث باسم الممول/المورد، رقم الفاتورة، أو الرقم الضريبي..."
+                  className="w-full pr-9 pl-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white"
+                />
+              </div>
+
+              <div style={{ width: '180px' }}>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:bg-white"
+                >
+                  <option value="all">كافة الحالات</option>
+                  <option value="draft">مسودة</option>
+                  <option value="declared">مقدم بالإقرار</option>
+                  <option value="paid">تم السداد والتوريد</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Form 41 Detailed Table */}
+          <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
           {reportQuery.isLoading ? (
             <div className="p-12 text-center text-slate-400 text-sm">
               جاري تحميل بيانات إقرار نموذج 41...
@@ -572,335 +575,358 @@ export function WithholdingTaxPage() {
               </table>
             </div>
           )}
-        </Card>
-      </div>
+          </div>
+        </section>
+      </main>
 
       {/* Modal 1: Create Manual Transaction */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-lg shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-bold text-slate-900">
-                تسجيل معاملة خصم وتحصيل جديدة (نموذج 41)
-              </h2>
+        <DialogShell
+          open={true}
+          onClose={() => setShowCreateModal(false)}
+          width="min(680px, 95vw)"
+          ariaLabel="تسجيل معاملة خصم وتحصيل جديدة"
+        >
+          <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
+            <div className="standard-dialog-header">
+              <div className="standard-dialog-header-info">
+                <h3 className="standard-dialog-title">تسجيل معاملة خصم وتحصيل جديدة (نموذج 41)</h3>
+                <p className="standard-dialog-subtitle">إثبات خصم الضريبة من منبع الفاتورة وتوريدها لمصلحة الضرائب</p>
+              </div>
               <button
+                type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+                className="standard-dialog-close-btn"
+                aria-label="إغلاق"
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              <div className="md:col-span-2">
-                <label className="block text-slate-700 font-semibold mb-1">
-                  اسم المورد / الممول <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newTx.partner_name}
-                  onChange={(e) => setNewTx({ ...newTx, partner_name: e.target.value })}
-                  placeholder="اسم الشركة أو التاجر أو المهني"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
-                />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    اسم المورد / الممول <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newTx.partner_name}
+                    onChange={(e) => setNewTx({ ...newTx, partner_name: e.target.value })}
+                    placeholder="اسم الشركة أو التاجر أو المهني"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    رقم الفاتورة <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newTx.invoice_number}
+                    onChange={(e) => setNewTx({ ...newTx, invoice_number: e.target.value })}
+                    placeholder="مثال: INV-10492"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    تاريخ الفاتورة <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={newTx.invoice_date}
+                    onChange={(e) => setNewTx({ ...newTx, invoice_date: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    الرقم الضريبي (9 أرقام)
+                  </label>
+                  <input
+                    type="text"
+                    value={newTx.tax_id_number || ''}
+                    onChange={(e) => setNewTx({ ...newTx, tax_id_number: e.target.value })}
+                    placeholder="مثال: 100234567"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    المأمورية الضريبية
+                  </label>
+                  <input
+                    type="text"
+                    value={newTx.tax_office_code || ''}
+                    onChange={(e) => setNewTx({ ...newTx, tax_office_code: e.target.value })}
+                    placeholder="مثال: مأمورية قصر النيل"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    نوع التعامل <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    value={newTx.wht_type}
+                    onChange={(e) => handleWhtTypeChange(e.target.value as any)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  >
+                    <option value="goods">توريدات وسلع (1%)</option>
+                    <option value="services">خدمات ومصنعيات (3%)</option>
+                    <option value="professional">مهن حرة واستشارات (5%)</option>
+                    <option value="custom">نسبة مخصصة أخرى</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    نسبة الخصم (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={newTx.wht_rate || 0}
+                    onChange={(e) => setNewTx({ ...newTx, wht_rate: Number(e.target.value) })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>
+                    القيمة الإجمالية للتعامل (وعاء الخصم قبل الضريبة) <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newTx.base_amount || ''}
+                    onChange={(e) => setNewTx({ ...newTx, base_amount: Number(e.target.value) })}
+                    placeholder="0.00"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700, backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                  {newTx.base_amount > 0 && (
+                    <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#059669', fontWeight: 700 }}>
+                      قيمة الضريبة المحتسبة: {formatCurrency(newTx.base_amount * ((newTx.wht_rate || 1) / 100))} ج.م
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  رقم الفاتورة <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newTx.invoice_number}
-                  onChange={(e) => setNewTx({ ...newTx, invoice_number: e.target.value })}
-                  placeholder="مثال: INV-10492"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  تاريخ الفاتورة <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={newTx.invoice_date}
-                  onChange={(e) => setNewTx({ ...newTx, invoice_date: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  الرقم الضريبي (9 أرقام)
-                </label>
-                <input
-                  type="text"
-                  value={newTx.tax_id_number || ''}
-                  onChange={(e) => setNewTx({ ...newTx, tax_id_number: e.target.value })}
-                  placeholder="مثال: 100234567"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  المأمورية الضريبية
-                </label>
-                <input
-                  type="text"
-                  value={newTx.tax_office_code || ''}
-                  onChange={(e) => setNewTx({ ...newTx, tax_office_code: e.target.value })}
-                  placeholder="مثال: مأمورية قصر النيل"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  نوع التعامل <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={newTx.wht_type}
-                  onChange={(e) => handleWhtTypeChange(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
+              <div className="standard-dialog-footer">
+                <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={() => createMutation.mutate(newTx)}
+                  disabled={
+                    createMutation.isPending ||
+                    !newTx.partner_name ||
+                    !newTx.invoice_number ||
+                    !newTx.base_amount
+                  }
+                  style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
                 >
-                  <option value="goods">توريدات وسلع (1%)</option>
-                  <option value="services">خدمات ومصنعيات (3%)</option>
-                  <option value="professional">مهن حرة واستشارات (5%)</option>
-                  <option value="custom">نسبة مخصصة أخرى</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  نسبة الخصم (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={newTx.wht_rate || 0}
-                  onChange={(e) => setNewTx({ ...newTx, wht_rate: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-slate-700 font-semibold mb-1">
-                  القيمة الإجمالية للتعامل (وعاء الخصم قبل الضريبة) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={newTx.base_amount || ''}
-                  onChange={(e) => setNewTx({ ...newTx, base_amount: Number(e.target.value) })}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
-                />
-                {newTx.base_amount > 0 && (
-                  <div className="mt-1 text-[11px] text-emerald-700 font-semibold">
-                    قيمة الضريبة المحتسبة: {formatCurrency(newTx.base_amount * ((newTx.wht_rate || 1) / 100))} ج.م
-                  </div>
-                )}
+                  {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ المعاملة'}
+                </Button>
               </div>
             </div>
-
-            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
-              <Button
-                variant="secondary"
-                onClick={() => setShowCreateModal(false)}
-                className="text-xs px-4 py-2"
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={() => createMutation.mutate(newTx)}
-                disabled={
-                  createMutation.isPending ||
-                  !newTx.partner_name ||
-                  !newTx.invoice_number ||
-                  !newTx.base_amount
-                }
-                className="bg-[#170e5e] hover:bg-[#120b4c] text-white text-xs font-semibold px-5 py-2 shadow-sm"
-              >
-                {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ المعاملة'}
-              </Button>
-            </div>
-          </Card>
-        </div>
+          </div>
+        </DialogShell>
       )}
 
       {/* Modal 2: Smart Extract from Purchases */}
       {showExtractModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-sm">
-                <SparklesIcon size={16} />
-                <span>استيراد آلي من فواتير المشتريات المسجلة</span>
+        <DialogShell
+          open={true}
+          onClose={() => setShowExtractModal(false)}
+          width="min(540px, 95vw)"
+          ariaLabel="استيراد آلي من فواتير المشتريات المسجلة"
+        >
+          <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
+            <div className="standard-dialog-header">
+              <div className="standard-dialog-header-info">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46' }}>
+                  <SparklesIcon size={18} />
+                  <h3 className="standard-dialog-title" style={{ color: '#065f46' }}>استيراد آلي من فواتير المشتريات المسجلة</h3>
+                </div>
+                <p className="standard-dialog-subtitle">فحص الفواتير التي تجاوزت 300 ج.م واستخراج بيانات الموردين</p>
               </div>
               <button
+                type="button"
                 onClick={() => setShowExtractModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+                className="standard-dialog-close-btn"
+                aria-label="إغلاق"
               >
-                ✕
+                <XIcon size={18} />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500">
-              يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300 ج.م في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+                يقوم هذا المعالج بفحص جميع فواتير الشراء غير الملغاة التي تجاوزت 300 ج.م في الفترة المحددة، ويستخرج بيانات المورد والرقم الضريبي والوعاء تلقائياً لتضمينها في نموذج 41 دون تكرار.
+              </p>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">من تاريخ</label>
-                <input
-                  type="date"
-                  value={extractDates.fromDate}
-                  onChange={(e) => setExtractDates({ ...extractDates, fromDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>من تاريخ</label>
+                  <input
+                    type="date"
+                    value={extractDates.fromDate}
+                    onChange={(e) => setExtractDates({ ...extractDates, fromDate: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>إلى تاريخ</label>
+                  <input
+                    type="date"
+                    value={extractDates.toDate}
+                    onChange={(e) => setExtractDates({ ...extractDates, toDate: e.target.value })}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>نسبة الخصم الافتراضية</label>
+                  <select
+                    value={extractDates.defaultWhtRate}
+                    onChange={(e) =>
+                      setExtractDates({
+                        ...extractDates,
+                        defaultWhtRate: Number(e.target.value),
+                        defaultWhtType: Number(e.target.value) === 1 ? 'goods' : Number(e.target.value) === 5 ? 'professional' : 'services',
+                      })
+                    }
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                  >
+                    <option value={1}>1% (توريدات ومشتريات سلع وبضائع)</option>
+                    <option value={3}>3% (خدمات ومقاولات ومصنعيات)</option>
+                    <option value={5}>5% (مهن حرة واستشارات)</option>
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">إلى تاريخ</label>
-                <input
-                  type="date"
-                  value={extractDates.toDate}
-                  onChange={(e) => setExtractDates({ ...extractDates, toDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">نسبة الخصم الافتراضية</label>
-                <select
-                  value={extractDates.defaultWhtRate}
-                  onChange={(e) =>
-                    setExtractDates({
-                      ...extractDates,
-                      defaultWhtRate: Number(e.target.value),
-                      defaultWhtType: Number(e.target.value) === 1 ? 'goods' : Number(e.target.value) === 5 ? 'professional' : 'services',
-                    })
-                  }
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+              <div className="standard-dialog-footer">
+                <Button variant="secondary" onClick={() => setShowExtractModal(false)}>
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={() => extractMutation.mutate()}
+                  disabled={extractMutation.isPending}
+                  style={{ backgroundColor: '#059669', color: '#ffffff' }}
                 >
-                  <option value={1}>1% (توريدات ومشتريات سلع وبضائع)</option>
-                  <option value={3}>3% (خدمات ومقاولات ومصنعيات)</option>
-                  <option value={5}>5% (مهن حرة واستشارات)</option>
-                </select>
+                  {extractMutation.isPending ? 'جاري الفحص والاستيراد...' : 'بدء الاستيراد الآلي'}
+                </Button>
               </div>
             </div>
-
-            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
-              <Button
-                variant="secondary"
-                onClick={() => setShowExtractModal(false)}
-                className="text-xs px-4 py-2"
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={() => extractMutation.mutate()}
-                disabled={extractMutation.isPending}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-5 py-2 shadow-sm"
-              >
-                {extractMutation.isPending ? 'جاري الفحص والاستيراد...' : 'بدء الاستيراد الآلي'}
-              </Button>
-            </div>
-          </Card>
-        </div>
+          </div>
+        </DialogShell>
       )}
 
       {/* Modal 3: Printable Official Form 41 Declaration */}
       {showPrintModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-4xl shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h2 className="text-base font-bold text-slate-900">
-                إقرار نموذج 41 ضرائب (الخصم والتحصيل تحت حساب الضريبة)
-              </h2>
-              <div className="flex items-center gap-2">
+        <DialogShell
+          open={true}
+          onClose={() => setShowPrintModal(false)}
+          width="min(960px, 96vw)"
+          ariaLabel="إقرار نموذج 41 ضرائب"
+        >
+          <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
+            <div className="standard-dialog-header">
+              <div className="standard-dialog-header-info">
+                <h3 className="standard-dialog-title">إقرار نموذج 41 ضرائب (الخصم والتحصيل تحت حساب الضريبة)</h3>
+                <p className="standard-dialog-subtitle">عن {QUARTERS.find((q) => q.id === selectedQuarter)?.label} سنة {selectedYear}</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Button
                   onClick={() => window.print()}
                   variant="secondary"
-                  className="text-xs px-3 py-1 flex items-center gap-1 text-slate-700"
+                  style={{ fontSize: '12px', height: '32px' }}
                 >
-                  <PrinterIcon size={14} />
-                  <span>طباعة (A4)</span>
+                  <PrinterIcon size={14} className="ml-1" />
+                  طباعة A4
                 </Button>
                 <button
+                  type="button"
                   onClick={() => setShowPrintModal(false)}
-                  className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+                  className="standard-dialog-close-btn"
+                  aria-label="إغلاق"
                 >
-                  ✕
+                  <XIcon size={18} />
                 </button>
               </div>
             </div>
 
             {/* Printable Form 41 Official Paper */}
-            <div className="border border-slate-300 rounded-xl p-6 bg-white space-y-5 text-xs text-slate-900">
+            <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '24px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', gap: '18px', fontSize: '12px', color: '#0f172a' }}>
               {/* Official Header */}
-              <div className="flex items-center justify-between border-b-2 border-slate-800 pb-4">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #0f172a', paddingBottom: '16px' }}>
                 <div>
-                  <h3 className="text-sm font-bold">جمهورية مصر العربية - وزارة المالية</h3>
-                  <h4 className="text-xs font-semibold text-slate-700">مصلحة الضرائب المصرية</h4>
-                  <p className="text-[11px] text-slate-500">إدارة تجميع نماذج الخصم والتحصيل</p>
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>جمهورية مصر العربية - وزارة المالية</h3>
+                  <h4 style={{ fontSize: '12px', fontWeight: 700, color: '#334155', margin: '4px 0' }}>مصلحة الضرائب المصرية</h4>
+                  <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>إدارة تجميع نماذج الخصم والتحصيل</p>
                 </div>
-                <div className="text-center">
-                  <div className="border-2 border-slate-800 px-4 py-1.5 rounded font-bold text-base bg-slate-50">
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ border: '2px solid #0f172a', padding: '6px 16px', borderRadius: '8px', fontWeight: 800, fontSize: '15px', backgroundColor: '#f8fafc' }}>
                     نموذج 41 ضرائب
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-600 block mt-1">
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginTop: '4px' }}>
                     عن {QUARTERS.find((q) => q.id === selectedQuarter)?.label} سنة {selectedYear}
                   </span>
                 </div>
               </div>
 
               {/* Summary Stats Grid */}
-              <div className="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
                 <div>
-                  <span className="text-slate-500 block">إجمالي عدد المعاملات:</span>
-                  <span className="font-bold text-sm text-slate-900">{reportData?.total_count || 0}</span>
+                  <span style={{ color: '#64748b', display: 'block' }}>إجمالي عدد المعاملات:</span>
+                  <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{reportData?.total_count || 0}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">إجمالي وعاء التعامل:</span>
-                  <span className="font-bold text-sm text-slate-900">{formatCurrency(reportData?.total_base_amount || 0)} ج.م</span>
+                  <span style={{ color: '#64748b', display: 'block' }}>إجمالي وعاء التعامل:</span>
+                  <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>{formatCurrency(reportData?.total_base_amount || 0)} ج.م</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">إجمالي الضريبة واجبة التوريد:</span>
-                  <span className="font-bold text-sm text-emerald-800">{formatCurrency(reportData?.total_tax_amount || 0)} ج.م</span>
+                  <span style={{ color: '#64748b', display: 'block' }}>إجمالي الضريبة واجبة التوريد:</span>
+                  <span style={{ fontWeight: 800, fontSize: '14px', color: '#059669' }}>{formatCurrency(reportData?.total_tax_amount || 0)} ج.م</span>
                 </div>
               </div>
 
               {/* Printable Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-right border border-slate-300 text-[11px]">
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', textAlign: 'right', borderCollapse: 'collapse', border: '1px solid #cbd5e1', fontSize: '11px' }}>
                   <thead>
-                    <tr className="bg-slate-100 border-b border-slate-300">
-                      <th className="p-2 border-r border-slate-300">م</th>
-                      <th className="p-2 border-r border-slate-300">اسم الممول</th>
-                      <th className="p-2 border-r border-slate-300">الرقم الضريبي</th>
-                      <th className="p-2 border-r border-slate-300">رقم الفاتورة</th>
-                      <th className="p-2 border-r border-slate-300">تاريخها</th>
-                      <th className="p-2 border-r border-slate-300">طبيعة التعامل</th>
-                      <th className="p-2 border-r border-slate-300">النسبة</th>
-                      <th className="p-2 border-r border-slate-300">قيمة التعامل</th>
-                      <th className="p-2">الضريبة المحصلة</th>
+                    <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                      <th style={{ padding: '8px', borderRight: '1px solid #cbd5e1' }}>م</th>
+                      <th style={{ padding: '8px', borderRight: '1px solid #cbd5e1' }}>اسم الممول</th>
+                      <th style={{ padding: '8px', borderRight: '1px solid #cbd5e1' }}>الرقم الضريبي</th>
+                      <th style={{ padding: '8px', borderRight: '1px solid #cbd5e1' }}>رقم الفاتورة</th>
+                      <th style={{ padding: '8px', borderRight: '1px solid #cbd5e1' }}>تاريخها</th>
+                      <th style={{ padding: '8px', borderRight: '1px solid #cbd5e1' }}>طبيعة التعامل</th>
+                      <th style={{ padding: '8px', borderRight: '1px solid #cbd5e1' }}>النسبة</th>
+                      <th style={{ padding: '8px', borderRight: '1px solid #cbd5e1' }}>قيمة التعامل</th>
+                      <th style={{ padding: '8px' }}>الضريبة المحصلة</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredTransactions.map((t, i) => (
-                      <tr key={t.id} className="border-b border-slate-200">
-                        <td className="p-1.5 border-r border-slate-300 text-center">{i + 1}</td>
-                        <td className="p-1.5 border-r border-slate-300 font-semibold">{t.partner_name}</td>
-                        <td className="p-1.5 border-r border-slate-300 font-mono">{t.tax_id_number || '-'}</td>
-                        <td className="p-1.5 border-r border-slate-300 font-mono">{t.invoice_number}</td>
-                        <td className="p-1.5 border-r border-slate-300">{t.invoice_date}</td>
-                        <td className="p-1.5 border-r border-slate-300">{WHT_TYPE_LABELS[t.wht_type]?.label || t.wht_type}</td>
-                        <td className="p-1.5 border-r border-slate-300 text-center">{t.wht_rate}%</td>
-                        <td className="p-1.5 border-r border-slate-300 font-bold">{formatCurrency(t.base_amount)}</td>
-                        <td className="p-1.5 font-bold text-emerald-800">{formatCurrency(t.tax_amount)}</td>
+                      <tr key={t.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1', textAlign: 'center' }}>{i + 1}</td>
+                        <td style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1', fontWeight: 600 }}>{t.partner_name}</td>
+                        <td style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1', fontFamily: 'monospace' }}>{t.tax_id_number || '-'}</td>
+                        <td style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1', fontFamily: 'monospace' }}>{t.invoice_number}</td>
+                        <td style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1' }}>{t.invoice_date}</td>
+                        <td style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1' }}>{WHT_TYPE_LABELS[t.wht_type]?.label || t.wht_type}</td>
+                        <td style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1', textAlign: 'center' }}>{t.wht_rate}%</td>
+                        <td style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1', fontWeight: 700 }}>{formatCurrency(t.base_amount)}</td>
+                        <td style={{ padding: '6px 8px', fontWeight: 700, color: '#065f46' }}>{formatCurrency(t.tax_amount)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -908,24 +934,24 @@ export function WithholdingTaxPage() {
               </div>
 
               {/* Official Declarations & Signatures */}
-              <div className="pt-6 border-t border-slate-200 space-y-4">
-                <p className="text-[11px] text-slate-600 leading-relaxed text-justify">
+              <div style={{ paddingTop: '20px', borderTop: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <p style={{ fontSize: '11px', color: '#475569', lineHeight: 1.6, textAlign: 'justify', margin: 0 }}>
                   أقر أنا الموقع أدناه بصفتي المسئول عن المنشأة بأن كافة البيانات والمعاملات والمبالغ الموضحة بهذا الإقرار صحيحة وحقيقية ومطابقة للدفاتر والسجلات والمستندات المؤيدة، وأنه تم خصم المبالغ الموضحة وتوريدها لمصلحة الضرائب المصرية طبقاً لأحكام القانون 91 لسنة 2005 وتعديلاته.
                 </p>
-                <div className="grid grid-cols-2 gap-8 pt-4 text-center">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', paddingTop: '16px', textAlign: 'center' }}>
                   <div>
-                    <span className="text-xs text-slate-500 block mb-10">المحاسب القانوني المعتمد</span>
-                    <div className="border-b border-slate-400 w-44 mx-auto" />
+                    <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '36px' }}>المحاسب القانوني المعتمد</span>
+                    <div style={{ borderBottom: '1px solid #94a3b8', width: '180px', margin: '0 auto' }} />
                   </div>
                   <div>
-                    <span className="text-xs text-slate-500 block mb-10">توقيع وخاتم المنشأة / الممول</span>
-                    <div className="border-b border-slate-400 w-44 mx-auto" />
+                    <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '36px' }}>توقيع وخاتم المنشأة / الممول</span>
+                    <div style={{ borderBottom: '1px solid #94a3b8', width: '180px', margin: '0 auto' }} />
                   </div>
                 </div>
               </div>
             </div>
-          </Card>
-        </div>
+          </div>
+        </DialogShell>
       )}
     </div>
   );

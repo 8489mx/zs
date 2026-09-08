@@ -323,6 +323,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'signage',
 
       // 2. Purchases & Suppliers
+      'purchases-orders',
       'purchases',
       'purchase-returns',
       'suppliers',
@@ -409,6 +410,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'vat-declaration': 'الإقرار الضريبي (ن10 و ZATCA)',
       kds: 'شاشة المطبخ (KDS)',
       signage: 'شاشات العروض والأسعار',
+      'purchases-orders': 'أوامر الشراء (PO)',
       purchases: 'سجل فواتير المشتريات',
       'purchase-returns': 'مرتجعات المشتريات',
       suppliers: t('sidebar.suppliers', 'الموردين'),
@@ -523,7 +525,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const hasAccounting = isPlatformAdminUser || !tenant?.features || tenant.features.includes('accounting');
     return [
       { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'signage'], iconKey: 'sales' },
-      { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
+      { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-orders', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
       { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-tree'], iconKey: 'inventory' },
       { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
       ...(settings?.restaurantModuleEnabled ? [{

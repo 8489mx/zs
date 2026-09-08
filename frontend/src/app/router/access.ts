@@ -28,6 +28,8 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   '/cash-drawer': ['cashDrawer', 'treasury'],
   purchases: 'purchases',
   '/purchases': 'purchases',
+  'purchases-orders': 'purchases',
+  '/purchases/orders': 'purchases',
   inventory: 'inventory',
   '/inventory': 'inventory',
   suppliers: 'suppliers',

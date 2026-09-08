@@ -8,7 +8,7 @@ import { applyStockDelta, previewAssignedLocationStockQty } from '../../../commo
 import { KYSELY_DB } from '../../../database/database.constants';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { Database } from '../../../database/database.types';
-import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto, UpsertWorkCenterDto, CreateWoOperationDto } from '../dto/manufacturing.dto';
+import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto, UpsertWorkCenterDto, CreateWoOperationDto, CreateUnbuildOrderDto, CreateMtoWorkOrderDto } from '../dto/manufacturing.dto';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 
 @Injectable()
@@ -450,6 +450,36 @@ export class ManufacturingService {
         account_id: scope.accountId,
       }).execute();
 
+      // Add by-products if any
+      if (payload.byProducts && payload.byProducts.length > 0) {
+        for (const bp of payload.byProducts) {
+          const bpQty = Number(bp.quantity || 0);
+          if (bpQty <= 0) continue;
+          const bpLoc = bp.locationId || destinationLocation;
+          const bpStockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(bp.productId), branchId: null, locationId: bpLoc };
+          const bpStockChange = await applyStockDelta(trx, {
+            ...bpStockScope,
+            delta: bpQty,
+          });
+
+          await trx.insertInto('stock_movements').values({
+            product_id: Number(bp.productId),
+            movement_type: 'manufacturing_byproduct',
+            qty: bpQty,
+            before_qty: bpStockChange.scopeBefore,
+            after_qty: bpStockChange.scopeAfter,
+            reason: 'منتج ثانوي ناتج عن التصنيع',
+            note: `أمر إنتاج #${wo.id} - منتج ثانوي`,
+            reference_type: 'manufacturing_work_order',
+            reference_id: wo.id,
+            location_id: bpLoc,
+            created_by: auth.userId,
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+          }).execute();
+        }
+      }
+
       await trx.updateTable('manufacturing_work_orders')
         .set({
           status: 'done',
@@ -576,5 +606,194 @@ export class ManufacturingService {
       .execute();
 
     return { ok: true, operations };
+  }
+
+  async listUnbuildOrders(auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+    const rows = await this.db
+      .selectFrom('manufacturing_unbuild_orders as u')
+      .innerJoin('products as p', 'p.id', 'u.product_id')
+      .select([
+        'u.id',
+        'u.unbuild_number',
+        'u.product_id',
+        'p.name as product_name',
+        'u.bom_id',
+        'u.quantity',
+        'u.warehouse_id',
+        'u.status',
+        'u.total_cost',
+        'u.notes',
+        'u.created_at',
+      ])
+      .where(sql<boolean>`u.tenant_id = ${scope.tenantId}`)
+      .orderBy('u.created_at', 'desc')
+      .execute();
+
+    return { ok: true, unbuildOrders: rows };
+  }
+
+  async createUnbuildOrder(payload: CreateUnbuildOrderDto, auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+    const unbuildNumber = `UB-${Date.now().toString().slice(-6)}`;
+    let unbuildId = 0;
+
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const product = await trx
+        .selectFrom('products')
+        .select(['id', 'name', 'cost_price', 'default_location_id'])
+        .where('id', '=', payload.productId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+
+      if (!product) {
+        throw new AppError('المنتج المراد تفكيكه غير موجود', 'PRODUCT_NOT_FOUND', 404);
+      }
+
+      const bom = await trx
+        .selectFrom('manufacturing_boms')
+        .selectAll()
+        .where('id', '=', payload.bomId)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+
+      if (!bom) {
+        throw new AppError('شجرة المكونات (BOM) غير موجودة', 'BOM_NOT_FOUND', 404);
+      }
+
+      const bomLines = await trx
+        .selectFrom('manufacturing_bom_lines as l')
+        .innerJoin('products as p', 'p.id', 'l.component_product_id')
+        .select([
+          'l.id',
+          'l.component_product_id',
+          'l.quantity',
+          'l.unit_multiplier',
+          'l.expected_cost',
+          'p.name as component_name',
+          'p.default_location_id as comp_location_id',
+        ])
+        .where('l.bom_id', '=', payload.bomId)
+        .execute();
+
+      if (!bomLines.length) {
+        throw new AppError('شجرة المكونات لا تحتوي على بنود صالحة للتفكيك', 'EMPTY_BOM', 400);
+      }
+
+      const locationId = payload.warehouseId || product.default_location_id || null;
+      const qtyToUnbuild = Number(payload.quantity);
+      const bomQty = Number(bom.quantity || 1);
+
+      const fgStockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(payload.productId), branchId: null, locationId };
+      const fgStockChange = await applyStockDelta(trx, {
+        ...fgStockScope,
+        delta: -qtyToUnbuild,
+        errorCode: 'INSUFFICIENT_FINISHED_PRODUCT',
+        errorMessage: `لا يتوفر رصيد كافٍ من المنتج التام: ${product.name} للتفكيك`,
+      });
+
+      await trx.insertInto('stock_movements').values({
+        product_id: Number(payload.productId),
+        movement_type: 'manufacturing_unbuild',
+        qty: -qtyToUnbuild,
+        before_qty: fgStockChange.scopeBefore,
+        after_qty: fgStockChange.scopeAfter,
+        reason: 'تفكيك منتج تام',
+        note: `أمر تفكيك #${unbuildNumber}`,
+        reference_type: 'manufacturing_unbuild_order',
+        reference_id: 0,
+        location_id: locationId,
+        created_by: auth.userId,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+      }).execute();
+
+      let totalRecoveredCost = 0;
+      for (const line of bomLines) {
+        const lineMultiplier = Number(line.unit_multiplier || 1);
+        const returnQty = Number((Number(line.quantity) * (qtyToUnbuild / bomQty) * lineMultiplier).toFixed(3));
+        const lineCost = Number((returnQty * Number(line.expected_cost)).toFixed(3));
+        totalRecoveredCost += lineCost;
+
+        const compLoc = line.comp_location_id || locationId;
+        const compScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(line.component_product_id), branchId: null, locationId: compLoc };
+        const compStockChange = await applyStockDelta(trx, {
+          ...compScope,
+          delta: returnQty,
+        });
+
+        await trx.insertInto('stock_movements').values({
+          product_id: Number(line.component_product_id),
+          movement_type: 'manufacturing_unbuild_recovery',
+          qty: returnQty,
+          before_qty: compStockChange.scopeBefore,
+          after_qty: compStockChange.scopeAfter,
+          reason: 'استرجاع مواد خام من تفكيك',
+          note: `أمر تفكيك #${unbuildNumber} - استرجاع ${line.component_name}`,
+          reference_type: 'manufacturing_unbuild_order',
+          reference_id: 0,
+          location_id: compLoc,
+          created_by: auth.userId,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        }).execute();
+      }
+
+      const inserted = await trx
+        .insertInto('manufacturing_unbuild_orders')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          unbuild_number: unbuildNumber,
+          product_id: payload.productId,
+          product_name: product.name,
+          bom_id: payload.bomId,
+          quantity: qtyToUnbuild,
+          warehouse_id: locationId || 0,
+          status: 'completed',
+          total_cost: totalRecoveredCost,
+          notes: payload.notes || null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      unbuildId = Number(inserted.id);
+    });
+
+    await this.audit.log('أمر تفكيك منتج', `تم تفكيك ${payload.quantity} من المنتج #${payload.productId} بنجاح`, auth);
+    return { ok: true, unbuildId, unbuildNumber, message: 'تم تفكيك المنتج واسترجاع المواد الخام للمخزن بنجاح' };
+  }
+
+  async createMtoWorkOrder(payload: CreateMtoWorkOrderDto, auth: AuthContext) {
+    const scope = requireTenantScope(auth);
+    let bomId = payload.bomId;
+
+    if (!bomId) {
+      const activeBom = await this.db
+        .selectFrom('manufacturing_boms')
+        .select(['id'])
+        .where('product_id', '=', payload.productId)
+        .where('is_active', '=', true)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .executeTakeFirst();
+
+      if (!activeBom) {
+        throw new AppError('لا توجد شجرة مكونات (BOM) نشطة لهذا الصنف المصنّع', 'BOM_NOT_FOUND', 404);
+      }
+      bomId = Number(activeBom.id);
+    }
+
+    const res = await this.createWorkOrder({
+      bomId,
+      quantityToProduce: payload.quantityToProduce,
+      note: `تصنيع حسب الطلب (MTO) - أمر بيع #${payload.salesOrderId}${payload.notes ? ` - ${payload.notes}` : ''}`,
+    }, auth);
+
+    return {
+      ok: true,
+      workOrderId: res.workOrderId,
+      message: 'تم توليد أمر الشغل للتصنيع حسب الطلب بنجاح',
+    };
   }
 }

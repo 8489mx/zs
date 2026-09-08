@@ -8,7 +8,6 @@ import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
 import { FullScreenToggleButton } from '@/shared/components/FullScreenToggleButton';
 import { AiBusinessCopilotModal } from '@/features/ai-copilot/components/AiBusinessCopilotModal';
 import { AiRobotIcon } from '@/shared/ui/AiRobotIcon';
-import { DualCalendarBadge } from '@/shared/components/DualCalendarBadge';
 
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
@@ -105,10 +104,7 @@ export function GlobalAppToolbar() {
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
             </svg>
           </button>
-          <div className="desktop-only-toolbar-item">
-            <DualCalendarBadge />
-          </div>
-          <div className="desktop-only-toolbar-item">
+          <div className="desktop-only-toolbar-item" style={{ display: 'flex', alignItems: 'center' }}>
             <FullScreenToggleButton />
           </div>
           <button

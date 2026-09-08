@@ -19,6 +19,7 @@
     "accounting-cash-flow": "Cash Flow Statement",
     "accounting-aged-debts": "Aged Debts",
     "sales-orders": "Sales Orders & Stock Reservation",
+    "purchases-orders": "Purchase Orders (PO)",
     "inventory-group": "Inventory",
     "inventory": "Inventory",
     "products": "Products",

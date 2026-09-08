@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Param, ParseIntPipe, Patch, Put, Delete, UseGuards, Req } from '@nestjs/common';
 import { ManufacturingService } from '../services/manufacturing.service';
-import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto, UpsertWorkCenterDto } from '../dto/manufacturing.dto';
+import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto, UpsertWorkCenterDto, CreateUnbuildOrderDto, CreateMtoWorkOrderDto } from '../dto/manufacturing.dto';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { RequirePermissions, RequireAnyPermission } from '../../../core/auth/decorators/permissions.decorator';
 import { RequireFeature } from '../../../core/auth/decorators/feature.decorator';
@@ -115,5 +115,23 @@ export class ManufacturingController {
     @Req() req: RequestWithAuth,
   ) {
     return this.manufacturingService.getWorkOrderOperations(id, req.authContext!);
+  }
+
+  @Get('unbuild-orders')
+  @RequireAnyPermission('inventory', 'products')
+  listUnbuildOrders(@Req() req: RequestWithAuth) {
+    return this.manufacturingService.listUnbuildOrders(req.authContext!);
+  }
+
+  @Post('unbuild-orders')
+  @RequireAnyPermission('inventory', 'products')
+  createUnbuildOrder(@Body() dto: CreateUnbuildOrderDto, @Req() req: RequestWithAuth) {
+    return this.manufacturingService.createUnbuildOrder(dto, req.authContext!);
+  }
+
+  @Post('work-orders/mto')
+  @RequireAnyPermission('inventory', 'products', 'sales')
+  createMtoWorkOrder(@Body() dto: CreateMtoWorkOrderDto, @Req() req: RequestWithAuth) {
+    return this.manufacturingService.createMtoWorkOrder(dto, req.authContext!);
   }
 }

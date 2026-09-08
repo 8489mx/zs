@@ -1777,6 +1777,11 @@ export interface Database {
   purchases: PurchaseTable;
   purchase_items: PurchaseItemTable;
   purchase_landed_costs: PurchaseLandedCostTable;
+  purchase_orders: PurchaseOrderTable;
+  purchase_order_items: PurchaseOrderItemTable;
+  sales_orders: SalesOrderTable;
+  sales_order_items: SalesOrderItemTable;
+  manufacturing_unbuild_orders: ManufacturingUnbuildOrderTable;
   supplier_payments: SupplierPaymentTable;
   supplier_payment_schedules: SupplierPaymentScheduleTable;
   supplier_payment_schedule_logs: SupplierPaymentScheduleLogTable;
@@ -2613,5 +2618,65 @@ export interface SalesOrderItemTable {
   notes: string | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
+
+export interface PurchaseOrderTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  order_number: string;
+  supplier_id: number | null;
+  supplier_name: string;
+  supplier_phone: string | null;
+  warehouse_id: number | null;
+  warehouse_name: string | null;
+  subtotal: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  tax_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  discount_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  expected_delivery_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  converted_purchase_id: number | null;
+  notes: string | null;
+  terms_conditions: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface PurchaseOrderItemTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  purchase_order_id: number;
+  product_id: number;
+  product_name: string;
+  unit_name: string | null;
+  quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  received_quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  unit_cost: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  tax_rate: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  discount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface ManufacturingUnbuildOrderTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  unbuild_number: string;
+  product_id: number;
+  product_name: string;
+  bom_id: number;
+  quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  warehouse_id: number;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  total_cost: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
 
 

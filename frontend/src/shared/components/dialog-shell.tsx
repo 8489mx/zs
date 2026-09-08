@@ -2,10 +2,12 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 interface DialogShellProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   children: ReactNode;
   width?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   zIndex?: number;
   closeOnBackdrop?: boolean;
   showCloseButton?: boolean;
@@ -22,9 +24,11 @@ function getFocusableElements(root: HTMLElement) {
 
 export function DialogShell({
   open,
+  isOpen,
   onClose,
   children,
-  width = 'min(720px, 100%)',
+  width,
+  size,
   zIndex = 10000,
   closeOnBackdrop = true,
   showCloseButton: _showCloseButton = false,
@@ -32,6 +36,7 @@ export function DialogShell({
   overlayClassName = '',
   shellClassName = '',
 }: DialogShellProps) {
+  const isVisible = open !== undefined ? open : Boolean(isOpen);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
@@ -41,7 +46,7 @@ export function DialogShell({
   }, [onClose]);
 
   useEffect(() => {
-    if (!open || typeof document === 'undefined') return;
+    if (!isVisible || typeof document === 'undefined') return;
     const previousOverflow = document.body.style.overflow;
     previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = 'hidden';
@@ -99,11 +104,20 @@ export function DialogShell({
       window.removeEventListener('keydown', handleKeyDown);
       previousActiveElementRef.current?.focus();
     };
-  }, [open]);
+  }, [isVisible]);
 
-  if (!open || typeof document === 'undefined') return null;
+  if (!isVisible || typeof document === 'undefined') return null;
 
   const effectiveZIndex = zIndex && zIndex >= 1000 ? zIndex : 10000 + (zIndex || 0);
+
+  const sizeWidthMap: Record<string, string> = {
+    sm: 'min(480px, 95vw)',
+    md: 'min(600px, 95vw)',
+    lg: 'min(820px, 95vw)',
+    xl: 'min(1040px, 95vw)',
+    full: 'min(1240px, 98vw)',
+  };
+  const effectiveWidth = width || (size ? sizeWidthMap[size] : 'min(720px, 100%)');
 
   return createPortal(
     <div
@@ -118,7 +132,7 @@ export function DialogShell({
       <div
         ref={shellRef}
         className={`dialog-shell ${shellClassName}`.trim()}
-        style={{ width }}
+        style={{ width: effectiveWidth }}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}

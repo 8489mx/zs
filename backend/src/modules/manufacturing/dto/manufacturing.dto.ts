@@ -89,6 +89,56 @@ export class CompleteWorkOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CreateWoOperationDto)
   operations?: CreateWoOperationDto[];
+
+  @IsOptional()
+  @IsArray()
+  byProducts?: {
+    productId: number;
+    productName?: string;
+    quantity: number;
+    unitCost?: number;
+    locationId?: number;
+  }[];
+}
+
+export class CreateUnbuildOrderDto {
+  @IsNumber()
+  productId!: number;
+
+  @IsNumber()
+  bomId!: number;
+
+  @IsNumber()
+  @Min(0.001)
+  quantity!: number;
+
+  @IsOptional()
+  @IsNumber()
+  warehouseId?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateMtoWorkOrderDto {
+  @IsNumber()
+  salesOrderId!: number;
+
+  @IsNumber()
+  productId!: number;
+
+  @IsNumber()
+  @Min(0.001)
+  quantityToProduce!: number;
+
+  @IsOptional()
+  @IsNumber()
+  bomId?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 export class UpsertWorkCenterDto {

@@ -1202,6 +1202,35 @@
   4. **إلغاء أمر البيع وفك الحجز الفوري:** إمكانية إلغاء أمر البيع بضغطة زر لفك حجز المخزون فورياً وإعادته للرصيد المتاح للبيع.
   5. **لوحة فحص جاهزية المخزون (Stock Readiness Modal):** فحص فوري لكل بند في أمر البيع ومقارنة الكمية المطلوبة بالكمية المحجوزة والرصيد الفعلي بالمستودع والرصيد المتاح للآخرين.
 
+## 66. دورة أوامر الشراء واعتماد الموردين والاستلام المخزني (Purchase Orders & Goods Receipt)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Purchase Orders (PO) & 3-Way Matching Flow.
+* **روابط وشاشات الوصول:** `/purchases/orders` (القائمة الجانبية: المشتريات والموردين ➔ أوامر الشراء PO).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000060_purchase_orders_and_unbuild.ts`, `backend/src/database/database.types.ts` (`purchase_orders`, `purchase_order_items`).
+  * **الباك إند:** `backend/src/modules/purchases/services/purchase-orders.service.ts`, `backend/src/modules/purchases/controllers/purchase-orders.controller.ts`, `backend/src/modules/purchases/purchases.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/purchases/api/purchase-orders.api.ts`, `frontend/src/features/purchases/pages/PurchaseOrdersPage.tsx`, `frontend/src/features/purchases/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **إصدار واعتماد أوامر الشراء الرسمية (Purchase Orders):** إنشاء أوامر شراء بمسودة أولية مع الموردين، حساب المجاميع والضرائب والخصومات، وتأكيد الأمر بنقرة زر واحدة لإرساله للمورد.
+  2. **دورة الاستلام المخزني الجزئي والكامل (Goods Receipt Flow):** نافذة مخصصة لإثبات استلام الشحنات والبضائع الواردة، وتغذية أرصدة المخزون الفعلية فورياً، مع تصنيف دقيق لحالة الاستلام (`partially_received` أو `received`).
+  3. **التحويل المباشر لفاتورة مشتريات رسمية (Convert to Bill):** تحويل أمر الشراء المستلم بضغطة زر واحدة إلى فاتورة مشتريات مرحلة في حسابات الموردين دون إعادة إدخال البيانات، مع حفظ رقم الفاتورة المرجعي.
+  4. **إلغاء وحذف الأوامر المسودة والملغاة:** حوكمة صارمة لمنع التعديل على الأوامر التي تم ترحيلها لفواتير رسمية.
+
+---
+
+## 67. إضافات التصنيع الذكية (Smart Manufacturing: Unbuild Orders, By-Products & MTO)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Manufacturing MRP (Unbuild / Disassembly, By-products, Make-to-Order).
+* **روابط وشاشات الوصول:** `/manufacturing/work-orders` (نافذة أوامر التفكيك) و `/sales/orders` (زر توليد أمر التصنيع المباشر MTO).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000060_purchase_orders_and_unbuild.ts`, `backend/src/database/database.types.ts` (`manufacturing_unbuild_orders`).
+  * **الباك إند:** `backend/src/modules/manufacturing/services/manufacturing.service.ts`, `backend/src/modules/manufacturing/controllers/manufacturing.controller.ts`, `backend/src/modules/manufacturing/dto/manufacturing.dto.ts`.
+  * **الفرونت إند:** `frontend/src/features/manufacturing/api/work-orders.api.ts`, `frontend/src/features/manufacturing/pages/WorkOrdersListPage.tsx`, `frontend/src/features/sales/pages/SalesOrdersPage.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **أوامر التفكيك واسترجاع المواد الخام (Unbuild Orders / Disassembly):** إمكانية تفكيك أي كمية من منتج تام الصنع بنقرة زر واحدة؛ يقوم النظام بخصم المنتج التام من المخزن وإعادة كافة المواد الخام والمكونات إلى مخزن الخامات استناداً إلى نسب شجرة المنتج (BOM)، مع تقييد حركات المخزون المعكوسة.
+  2. **تسجيل المنتجات الثانوية والهالك (By-products Recording):** دعم مخرجات التصنيع الثانوية المفيدة أثناء إنهاء أمر الإنتاج وإضافتها كأرصدة مخزنية صالحة للبيع أو الاستخدام.
+  3. **التصنيع عند الطلب المرتبط بالمبيعات (Make-to-Order - MTO):** عند مراجعة أمر البيع في شاشة `/sales/orders`، يمكن للمستخدم بنقرة زر واحدة توليد أمر تشغيل وإنتاج فوري (Work Order) للنواقص المصنعة وربطها برقم أمر البيع كمرجع.
+
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
 

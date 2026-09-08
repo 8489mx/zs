@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -18,6 +20,12 @@ const COST_CENTER_DIMENSIONS: Record<string, { label: string; color: string; bg:
 
 export function AccountingCostCentersPage() {
   const queryClient = useQueryClient();
+
+  useAppToolbar([
+    { label: 'المالية والمحاسبة', to: '/accounting' },
+    { label: 'مراكز التكلفة' },
+  ]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [dimensionFilter, setDimensionFilter] = useState<string>('all');
@@ -172,46 +180,58 @@ export function AccountingCostCentersPage() {
   const rootCount = costCenters.filter((c) => !c.parentId).length;
 
   return (
-    <div style={{ width: '100%', maxWidth: '100%', padding: '0 4px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Header */}
-      <PageHeader
-        title="مراكز التكلفة المحاسبية (Cost Centers)"
-        description="دليل شجري لإدارة وتتبع مراكز التكلفة والفروع والمشاريع، وحساب الأرباح والمصروفات المستقلة"
-        actions={
-          <Button
-            variant="primary"
-            onClick={handleOpenCreate}
-            style={{ background: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <PlusIcon size={16} />
-            <span>إضافة مركز تكلفة جديد</span>
-          </Button>
-        }
-      />
+    <div className="page-stack page-shell cost-centers-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        {/* Header */}
+        <PageHeader
+          title="مراكز التكلفة المحاسبية (Cost Centers)"
+          description="دليل شجري لإدارة وتتبع مراكز التكلفة والفروع والمشاريع، وحساب الأرباح والمصروفات المستقلة"
+          badge={<span className="nav-pill">دليل تحليلي</span>}
+          actions={
+            <div className="actions compact-actions page-header-actions">
+              <Button
+                variant="primary"
+                onClick={handleOpenCreate}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <PlusIcon size={16} />
+                <span>إضافة مركز تكلفة جديد</span>
+              </Button>
+            </div>
+          }
+        />
 
-      {/* Metric Cards Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>إجمالي مراكز التكلفة</div>
-          <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>{costCenters.length}</div>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>مُعرّفة في دليل الحسابات</div>
+        {/* Metric Cards Strip */}
+        <div style={{ marginBottom: '16px' }}>
+          <StatsGrid
+            items={[
+              {
+                key: 'total',
+                label: 'إجمالي مراكز التكلفة',
+                value: `${costCenters.length} مركز`,
+              },
+              {
+                key: 'active',
+                label: 'المراكز النشطة',
+                value: `${activeCount} مركز نشط`,
+              },
+              {
+                key: 'roots',
+                label: 'المراكز الرئيسية (الجذور)',
+                value: `${rootCount} مركز رئيسي`,
+              },
+            ]}
+          />
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '12px', color: '#059669', fontWeight: 700 }}>المراكز النشطة</div>
-          <div style={{ fontSize: '24px', fontWeight: 900, color: '#059669', marginTop: '4px' }}>{activeCount}</div>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>تستقبل قيود يومية وحركات</div>
-        </div>
-
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700 }}>المراكز الرئيسية (الجذور)</div>
-          <div style={{ fontSize: '24px', fontWeight: 900, color: '#170e5e', marginTop: '4px' }}>{rootCount}</div>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>مستوى أعلى بدون مركز أب</div>
-        </div>
-      </div>
-
-      {/* Main Table Card */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        {/* Main Workspace Panel */}
+        <section className="document-prototype-section workspace-panel">
+          <div className="section-header-compact-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 className="document-prototype-section-title" style={{ margin: 0 }}>شجرة ومراكز التكلفة</h2>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>عرض وتصفية مراكز التكلفة والأبعاد التحليلية</p>
+            </div>
+          </div>
         {/* Filters Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '240px' }}>
@@ -462,7 +482,8 @@ export function AccountingCostCentersPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
+    </main>
 
       {/* Add / Edit Cost Center Modal */}
       <DialogShell

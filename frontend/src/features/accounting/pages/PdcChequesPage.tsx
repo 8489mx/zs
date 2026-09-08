@@ -1,24 +1,18 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import {
-  CreditCardIcon,
   SearchIcon,
   PlusIcon,
   RefreshCwIcon,
   DownloadIcon,
   PrinterIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  BuildingIcon,
   FileTextIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
-  ShieldAlertIcon,
   Trash2Icon,
+  XIcon,
 } from '@/shared/components/icons/AppIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
 import {
   pdcChequesApi,
   type PdcCheque,
@@ -27,20 +21,24 @@ import {
   type ChequeStatus,
   type CreatePdcChequePayload,
 } from '@/features/accounting/api/accounting.api';
+import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { useAppToolbar } from '@/stores/toolbar-store';
 
-const STATUS_LABELS: Record<ChequeStatus, { text: string; bg: string; textCol: string }> = {
-  in_safe: { text: 'في الخزينة', bg: 'bg-blue-50', textCol: 'text-blue-700 border-blue-200' },
-  under_collection: { text: 'برسم التحصيل', bg: 'bg-amber-50', textCol: 'text-amber-700 border-amber-200' },
-  collected: { text: 'محصل بالبنك', bg: 'bg-emerald-50', textCol: 'text-emerald-700 border-emerald-200' },
-  bounced: { text: 'مرتد / مرفوض', bg: 'bg-rose-50', textCol: 'text-rose-700 border-rose-200' },
-  endorsed: { text: 'مظهر لمورد', bg: 'bg-purple-50', textCol: 'text-purple-700 border-purple-200' },
-  returned: { text: 'مردود للعميل', bg: 'bg-slate-50', textCol: 'text-slate-700 border-slate-200' },
-  cancelled: { text: 'ملغى', bg: 'bg-zinc-100', textCol: 'text-zinc-500 border-zinc-200' },
-  issued: { text: 'محرر للمورد', bg: 'bg-blue-50', textCol: 'text-blue-700 border-blue-200' },
-  cleared: { text: 'تم الصرف بنكياً', bg: 'bg-emerald-50', textCol: 'text-emerald-700 border-emerald-200' },
+const STATUS_LABELS: Record<ChequeStatus, { text: string; bg: string; color: string; border: string }> = {
+  in_safe: { text: 'في الخزينة', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  under_collection: { text: 'برسم التحصيل', bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+  collected: { text: 'محصل بالبنك', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' },
+  bounced: { text: 'مرتد / مرفوض', bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' },
+  endorsed: { text: 'مظهر لمورد', bg: '#faf5ff', color: '#7e22ce', border: '#e9d5ff' },
+  returned: { text: 'مردود للعميل', bg: '#f8fafc', color: '#334155', border: '#cbd5e1' },
+  cancelled: { text: 'ملغى', bg: '#f1f5f9', color: '#64748b', border: '#e2e8f0' },
+  issued: { text: 'محرر للمورد', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  cleared: { text: 'تم الصرف بنكياً', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' },
 };
 
 export function PdcChequesPage() {
+  useAppToolbar([{ label: 'المالية والمحاسبة', to: '/accounting' }, { label: 'حافظة الشيكات (PDC)' }]);
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'receivable' | 'payable' | 'alerts'>('receivable');
   const [search, setSearch] = useState('');
@@ -253,294 +251,329 @@ export function PdcChequesPage() {
   };
 
   return (
-    <div dir="rtl" className="w-full min-h-screen bg-[#f8fafc] text-slate-900 pb-16 space-y-6">
-      {/* Top Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
-                <CreditCardIcon size={22} strokeWidth={2} />
-              </span>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                حافظة الشيكات وأوراق القبض والدفع (PDC Management)
-              </h1>
+    <div className="page-stack page-shell pdc-cheques-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', width: '100%' }}>
+        <PageHeader
+          title="حافظة الشيكات وأوراق القبض والدفع (PDC)"
+          description="إدارة دورة أوراق القبض والدفع، الإيداع البنكي برسم التحصيل، الصرف، الارتداد، والتظهير."
+          badge={<span className="nav-pill">{(stats?.receivables.totalCount || 0) + (stats?.payables.totalCount || 0)} شيك</span>}
+          actions={(
+            <div className="actions compact-actions page-header-actions">
+              <Button
+                onClick={() => openCreateModal('receivable')}
+                className="btn btn-primary flex items-center gap-1.5"
+                style={{ backgroundColor: '#170e5e', color: '#ffffff' }}
+              >
+                <PlusIcon size={15} />
+                <span>+ تسجيل ورقة قبض</span>
+              </Button>
+
+              <Button
+                onClick={() => openCreateModal('payable')}
+                variant="secondary"
+                className="flex items-center gap-1.5"
+              >
+                <PlusIcon size={15} />
+                <span>+ تحرير ورقة دفع</span>
+              </Button>
+
+              <Button
+                onClick={handleExportCsv}
+                variant="secondary"
+                className="flex items-center gap-1"
+                title="تصدير إلى CSV"
+              >
+                <DownloadIcon size={14} />
+                <span>تصدير</span>
+              </Button>
+
+              <Button
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ['pdc-cheques-list'] });
+                  queryClient.invalidateQueries({ queryKey: ['pdc-cheques-stats'] });
+                }}
+                variant="secondary"
+                className="flex items-center gap-1"
+                title="تحديث البيانات"
+              >
+                <RefreshCwIcon size={14} />
+                <span>تحديث</span>
+              </Button>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              إدارة دورة أوراق القبض والدفع، الإيداع البنكي برسم التحصيل، الصرف، الارتداد، والتظهير
-            </p>
-          </div>
+          )}
+        />
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              onClick={() => openCreateModal('receivable')}
-              className="bg-[#170e5e] hover:bg-[#120b4c] text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm"
-            >
-              <PlusIcon size={15} />
-              <span>تسجيل ورقة قبض (شيك عميل)</span>
-            </Button>
-
-            <Button
-              onClick={() => openCreateModal('payable')}
-              variant="secondary"
-              className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5"
-            >
-              <PlusIcon size={15} />
-              <span>تحرير ورقة دفع (شيك مورد)</span>
-            </Button>
-
-            <Button
-              onClick={handleExportCsv}
-              variant="secondary"
-              className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-1"
-              title="تصدير إلى CSV"
-            >
-              <DownloadIcon size={14} />
-              <span>تصدير</span>
-            </Button>
-
-            <Button
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['pdc-cheques-list'] });
-                queryClient.invalidateQueries({ queryKey: ['pdc-cheques-stats'] });
-              }}
-              variant="secondary"
-              className="text-slate-600 hover:text-slate-900 text-xs px-2.5 py-2 rounded-lg"
-              title="تحديث البيانات"
-            >
-              <RefreshCwIcon size={15} />
-            </Button>
-          </div>
+        {/* KPI Metric Summary Cards */}
+        <div style={{ marginBottom: '16px' }}>
+          <StatsGrid
+            items={[
+              {
+                key: 'rec',
+                label: 'أوراق القبض (عملاء)',
+                value: `${formatCurrency(stats?.receivables.totalAmount || 0)} (${stats?.receivables.totalCount || 0})`,
+              },
+              {
+                key: 'safe',
+                label: 'في الخزينة (جاهزة للإيداع)',
+                value: `${formatCurrency(stats?.receivables.inSafeAmount || 0)} (${stats?.receivables.inSafeCount || 0})`,
+              },
+              {
+                key: 'col',
+                label: 'برسم التحصيل بالبنك',
+                value: `${formatCurrency(stats?.receivables.underCollectionAmount || 0)} (${stats?.receivables.underCollectionCount || 0})`,
+              },
+              {
+                key: 'pay',
+                label: 'أوراق الدفع (موردين)',
+                value: `${formatCurrency(stats?.payables.totalAmount || 0)} (${stats?.payables.issuedCount || 0})`,
+              },
+            ]}
+          />
         </div>
-      </div>
 
-      <div className="px-6 space-y-6">
-        {/* KPI Metric Summary Cards (6 Cards) */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">أوراق القبض (عملاء)</span>
-              <TrendingDownIcon size={16} className="text-emerald-600" />
+        {/* Main Workspace Panel & Table */}
+        <section className="document-prototype-section workspace-panel">
+          <div className="section-header-compact-row">
+            <h3 className="document-prototype-section-title">حافظة وسجل الشيكات البنكية</h3>
+            <div className="section-header-actions-group">
+              <span className="text-xs text-slate-500 font-medium">عرض {displayedCheques.length} شيك</span>
             </div>
-            <div className="text-lg font-bold text-slate-900">
-              {formatCurrency(stats?.receivables.totalAmount || 0)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              {stats?.receivables.totalCount || 0} شيك إجمالي
-            </div>
-          </Card>
+          </div>
+          <p className="muted small section-header-subtitle">
+            متابعة استحقاق الشيكات، الإيداع، الصرف البنكي، والارتداد والتظهير المحاسبي.
+          </p>
 
-          <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">في الخزينة</span>
-              <BuildingIcon size={16} className="text-blue-600" />
-            </div>
-            <div className="text-lg font-bold text-blue-700">
-              {formatCurrency(stats?.receivables.inSafeAmount || 0)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              {stats?.receivables.inSafeCount || 0} شيك جاهز للإيداع
-            </div>
-          </Card>
+          {/* Tab Switcher & Filter Toolbar */}
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', background: '#ffffff', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              {/* Tabs */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('receivable');
+                    setStatusFilter('all');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    border: 'none',
+                    backgroundColor: activeTab === 'receivable' ? '#ffffff' : 'transparent',
+                    color: activeTab === 'receivable' ? '#170e5e' : '#64748b',
+                    boxShadow: activeTab === 'receivable' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}
+                >
+                  أوراق القبض (عملاء)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('payable');
+                    setStatusFilter('all');
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    border: 'none',
+                    backgroundColor: activeTab === 'payable' ? '#ffffff' : 'transparent',
+                    color: activeTab === 'payable' ? '#170e5e' : '#64748b',
+                    boxShadow: activeTab === 'payable' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}
+                >
+                  أوراق الدفع (موردين)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('alerts');
+                    setStatusFilter('all');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    border: 'none',
+                    backgroundColor: activeTab === 'alerts' ? '#ffffff' : 'transparent',
+                    color: activeTab === 'alerts' ? '#b91c1c' : '#64748b',
+                    boxShadow: activeTab === 'alerts' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}
+                >
+                  <span>تنبيهات الاستحقاق والارتداد</span>
+                  {((stats?.receivables.overdueCount || 0) + (stats?.receivables.dueSoonCount || 0) > 0) && (
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
+                  )}
+                </button>
+              </div>
 
-          <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">برسم التحصيل</span>
-              <ClockIcon size={16} className="text-amber-600" />
-            </div>
-            <div className="text-lg font-bold text-amber-700">
-              {formatCurrency(stats?.receivables.underCollectionAmount || 0)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              {stats?.receivables.underCollectionCount || 0} شيك مودع بالبنك
-            </div>
-          </Card>
+              {/* Quick Status Filter Buttons */}
+              {activeTab === 'receivable' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'الكل' },
+                    { id: 'in_safe', label: 'في الخزينة' },
+                    { id: 'under_collection', label: 'برسم التحصيل' },
+                    { id: 'collected', label: 'محصل' },
+                    { id: 'bounced', label: 'مرتد' },
+                    { id: 'endorsed', label: 'مظهر' },
+                  ].map((s) => {
+                    const isActive = statusFilter === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setStatusFilter(s.id)}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '20px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          border: isActive ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                          backgroundColor: isActive ? '#170e5e' : '#ffffff',
+                          color: isActive ? '#ffffff' : '#475569',
+                          boxShadow: isActive ? '0 1px 3px rgba(23, 14, 94, 0.25)' : 'none',
+                        }}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-          <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">أوراق محصلة</span>
-              <CheckCircleIcon size={16} className="text-emerald-600" />
-            </div>
-            <div className="text-lg font-bold text-emerald-700">
-              {formatCurrency(stats?.receivables.collectedAmount || 0)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              {stats?.receivables.collectedCount || 0} شيك محصل بنجاح
-            </div>
-          </Card>
-
-          <Card className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-500 mb-1">
-              <span className="text-xs font-medium">أوراق الدفع (موردين)</span>
-              <TrendingUpIcon size={16} className="text-purple-600" />
-            </div>
-            <div className="text-lg font-bold text-purple-700">
-              {formatCurrency(stats?.payables.totalAmount || 0)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              {stats?.payables.issuedCount || 0} محرر لم يصرف بعد
-            </div>
-          </Card>
-
-          <Card className="bg-white border border-rose-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-rose-600 mb-1">
-              <span className="text-xs font-bold">شيكات مرتدة / متأخرة</span>
-              <ShieldAlertIcon size={16} className="text-rose-600" />
-            </div>
-            <div className="text-lg font-bold text-rose-700">
-              {formatCurrency(
-                (stats?.receivables.bouncedAmount || 0) + (stats?.receivables.overdueAmount || 0),
+              {activeTab === 'payable' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'الكل' },
+                    { id: 'issued', label: 'محرر لم يصرف' },
+                    { id: 'cleared', label: 'تم الصرف بنكياً' },
+                    { id: 'bounced', label: 'مرتد' },
+                    { id: 'cancelled', label: 'ملغى' },
+                  ].map((s) => {
+                    const isActive = statusFilter === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setStatusFilter(s.id)}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '20px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          border: isActive ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                          backgroundColor: isActive ? '#170e5e' : '#ffffff',
+                          color: isActive ? '#ffffff' : '#475569',
+                          boxShadow: isActive ? '0 1px 3px rgba(23, 14, 94, 0.25)' : 'none',
+                        }}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
-            <div className="text-[11px] text-rose-600 mt-1 font-medium">
-              {(stats?.receivables.bouncedCount || 0) + (stats?.receivables.overdueCount || 0)} شيك يتطلب المتابعة
-            </div>
-          </Card>
-        </div>
 
-        {/* Tab Switcher & Filter Toolbar */}
-        <Card className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 pb-4">
-            {/* Tabs */}
-            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg w-fit">
-              <button
-                onClick={() => {
-                  setActiveTab('receivable');
-                  setStatusFilter('all');
-                }}
-                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  activeTab === 'receivable'
-                    ? 'bg-white text-[#170e5e] shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                أوراق القبض (عملاء)
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('payable');
-                  setStatusFilter('all');
-                }}
-                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  activeTab === 'payable'
-                    ? 'bg-white text-[#170e5e] shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                أوراق الدفع (موردين)
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('alerts');
-                  setStatusFilter('all');
-                }}
-                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
-                  activeTab === 'alerts'
-                    ? 'bg-white text-rose-700 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>تنبيهات الاستحقاق والارتداد</span>
-                {((stats?.receivables.overdueCount || 0) + (stats?.receivables.dueSoonCount || 0) > 0) && (
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse inline-block" />
-                )}
-              </button>
-            </div>
-
-            {/* Quick Status Filter Buttons */}
-            {activeTab === 'receivable' && (
-              <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
-                {[
-                  { id: 'all', label: 'الكل' },
-                  { id: 'in_safe', label: 'في الخزينة' },
-                  { id: 'under_collection', label: 'برسم التحصيل' },
-                  { id: 'collected', label: 'محصل' },
-                  { id: 'bounced', label: 'مرتد' },
-                  { id: 'endorsed', label: 'مظهر' },
-                ].map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setStatusFilter(s.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      statusFilter === s.id
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+            {/* Search & Date Filter Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', alignItems: 'center' }}>
+              <div style={{ position: 'relative', gridColumn: 'span 2' }}>
+                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                  <SearchIcon size={16} />
+                </div>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="بحث برقم الشيك، اسم العميل، اسم المورد، أو اسم البنك..."
+                  style={{
+                    width: '100%',
+                    paddingRight: '36px',
+                    paddingLeft: '12px',
+                    paddingTop: '8px',
+                    paddingBottom: '8px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    fontSize: '12px',
+                    color: '#1e293b',
+                    boxSizing: 'border-box',
+                  }}
+                />
               </div>
-            )}
 
-            {activeTab === 'payable' && (
-              <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
-                {[
-                  { id: 'all', label: 'الكل' },
-                  { id: 'issued', label: 'محرر لم يصرف' },
-                  { id: 'cleared', label: 'تم الصرف بنكياً' },
-                  { id: 'bounced', label: 'مرتد' },
-                  { id: 'cancelled', label: 'ملغى' },
-                ].map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setStatusFilter(s.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      statusFilter === s.id
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Search & Date Filter Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="md:col-span-2 relative">
-              <SearchIcon size={16} className="absolute right-3 top-3 text-slate-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="بحث برقم الشيك، اسم العميل، اسم المورد، أو اسم البنك..."
-                className="w-full pr-9 pl-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:bg-white"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-500 whitespace-nowrap">استحقاق من:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>استحقاق من:</span>
                 <input
                   type="date"
                   value={dueFrom}
                   onChange={(e) => setDueFrom(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:bg-white"
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    fontSize: '12px',
+                    color: '#1e293b',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
-            </div>
 
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-500 whitespace-nowrap">إلى:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>إلى:</span>
                 <input
                   type="date"
                   value={dueTo}
                   onChange={(e) => setDueTo(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:bg-white"
+                  style={{
+                    width: '100%',
+                    padding: '7px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    fontSize: '12px',
+                    color: '#1e293b',
+                    boxSizing: 'border-box',
+                  }}
                 />
                 {(search || dueFrom || dueTo || statusFilter !== 'all') && (
                   <button
+                    type="button"
                     onClick={() => {
                       setSearch('');
                       setDueFrom('');
                       setDueTo('');
                       setStatusFilter('all');
                     }}
-                    className="text-xs text-rose-600 hover:underline px-2 whitespace-nowrap"
+                    style={{
+                      fontSize: '12px',
+                      color: '#e11d48',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      padding: '0 4px',
+                    }}
                   >
                     إعادة ضبط
                   </button>
@@ -548,10 +581,9 @@ export function PdcChequesPage() {
               </div>
             </div>
           </div>
-        </Card>
 
         {/* Cheques Data Table */}
-        <Card className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
           {chequesQuery.isLoading ? (
             <div className="p-12 text-center text-slate-400 text-sm">
               جاري تحميل حافظة الشيكات...
@@ -586,8 +618,9 @@ export function PdcChequesPage() {
                   {displayedCheques.map((c) => {
                     const statusInfo = STATUS_LABELS[c.status] || {
                       text: c.status,
-                      bg: 'bg-slate-50',
-                      textCol: 'text-slate-700 border-slate-200',
+                      bg: '#f1f5f9',
+                      color: '#64748b',
+                      border: '#e2e8f0',
                     };
 
                     const isSettled = ['collected', 'cleared', 'cancelled', 'returned'].includes(c.status);
@@ -670,7 +703,16 @@ export function PdcChequesPage() {
                         {/* Status Badge */}
                         <td className="py-3 px-4 text-center">
                           <span
-                            className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold border ${statusInfo.bg} ${statusInfo.textCol}`}
+                            style={{
+                              display: 'inline-block',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              backgroundColor: statusInfo.bg,
+                              color: statusInfo.color,
+                              border: `1px solid ${statusInfo.border}`,
+                            }}
                           >
                             {statusInfo.text}
                           </span>
@@ -717,36 +759,66 @@ export function PdcChequesPage() {
 
                         {/* Actions */}
                         <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             {/* Actions for Receivables */}
                             {c.type === 'receivable' && c.status === 'in_safe' && (
                               <>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setSelectedCheque(c);
                                     setActiveActionModal('deposit');
                                   }}
-                                  className="px-2 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 text-[11px] font-medium"
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#fffbeb',
+                                    color: '#b45309',
+                                    border: '1px solid #fde68a',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
                                   title="إيداع الشيك برسم التحصيل في البنك"
                                 >
                                   إيداع بالبنك
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setSelectedCheque(c);
                                     setActiveActionModal('collect');
                                   }}
-                                  className="px-2 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-[11px] font-medium"
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#ecfdf5',
+                                    color: '#047857',
+                                    border: '1px solid #a7f3d0',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
                                   title="تحصيل مباشر"
                                 >
                                   تحصيل
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setSelectedCheque(c);
                                     setActiveActionModal('endorse');
                                   }}
-                                  className="px-2 py-1 rounded bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 text-[11px] font-medium"
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#faf5ff',
+                                    color: '#7e22ce',
+                                    border: '1px solid #e9d5ff',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
                                   title="تظهير الشيك لمورد"
                                 >
                                   تظهير
@@ -757,28 +829,59 @@ export function PdcChequesPage() {
                             {c.type === 'receivable' && c.status === 'under_collection' && (
                               <>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setSelectedCheque(c);
                                     setActiveActionModal('collect');
                                   }}
-                                  className="px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 text-[11px] font-semibold shadow-sm"
+                                  style={{
+                                    padding: '3px 10px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#059669',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 1px 2px rgba(5, 150, 105, 0.25)',
+                                  }}
                                   title="تأكيد تحصيل الشيك وإضافته للرصيد"
                                 >
                                   تأكيد التحصيل
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setSelectedCheque(c);
                                     setActiveActionModal('bounce');
                                   }}
-                                  className="px-2 py-1 rounded bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 text-[11px] font-medium"
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#fef2f2',
+                                    color: '#b91c1c',
+                                    border: '1px solid #fecaca',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
                                   title="تسجيل ارتداد ورفض الشيك"
                                 >
                                   ارتداد
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => handleDirectAction(c, 'restore_to_safe')}
-                                  className="px-2 py-1 rounded bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 text-[11px]"
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#f8fafc',
+                                    color: '#334155',
+                                    border: '1px solid #cbd5e1',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
                                   title="استرجاع الشيك للخزينة"
                                 >
                                   للخزينة
@@ -790,21 +893,42 @@ export function PdcChequesPage() {
                             {c.type === 'payable' && c.status === 'issued' && (
                               <>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setSelectedCheque(c);
                                     setActiveActionModal('clear');
                                   }}
-                                  className="px-2.5 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 text-[11px] font-semibold shadow-sm"
+                                  style={{
+                                    padding: '3px 10px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#059669',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 1px 2px rgba(5, 150, 105, 0.25)',
+                                  }}
                                   title="تأكيد صرف الشيك وخصمه من البنك"
                                 >
                                   تأكيد الصرف
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setSelectedCheque(c);
                                     setActiveActionModal('bounce');
                                   }}
-                                  className="px-2 py-1 rounded bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 text-[11px] font-medium"
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#fef2f2',
+                                    color: '#b91c1c',
+                                    border: '1px solid #fecaca',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
                                   title="ارتداد الشيك"
                                 >
                                   ارتداد
@@ -815,8 +939,18 @@ export function PdcChequesPage() {
                             {/* Bounced Recovery Action */}
                             {c.status === 'bounced' && (
                               <button
+                                type="button"
                                 onClick={() => handleDirectAction(c, 'restore_to_safe')}
-                                className="px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 text-[11px]"
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#eff6ff',
+                                  color: '#1d4ed8',
+                                  border: '1px solid #bfdbfe',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
                               >
                                 إعادة للحافظة
                               </button>
@@ -824,24 +958,46 @@ export function PdcChequesPage() {
 
                             {/* Voucher Print Button */}
                             <button
+                              type="button"
                               onClick={() => {
                                 setSelectedCheque(c);
                                 setActiveActionModal('voucher');
                               }}
-                              className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                              style={{
+                                padding: '4px 6px',
+                                borderRadius: '6px',
+                                border: '1px solid #e2e8f0',
+                                backgroundColor: '#ffffff',
+                                color: '#64748b',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
                               title="معاينة وطباعة سند الشيك"
                             >
-                              <PrinterIcon size={15} />
+                              <PrinterIcon size={14} />
                             </button>
 
                             {/* Delete Button (Allowed for safe, issued, or cancelled) */}
                             {['in_safe', 'issued', 'cancelled', 'bounced'].includes(c.status) && (
                               <button
+                                type="button"
                                 onClick={() => handleDeleteCheque(c)}
-                                className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                style={{
+                                  padding: '4px 6px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #fee2e2',
+                                  backgroundColor: '#ffffff',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
                                 title="حذف الشيك"
                               >
-                                <Trash2Icon size={15} />
+                                <Trash2Icon size={14} />
                               </button>
                             )}
                           </div>
@@ -853,244 +1009,394 @@ export function PdcChequesPage() {
               </table>
             </div>
           )}
-        </Card>
-      </div>
+        </div>
+        </section>
+      </main>
 
       {/* Modal 1: Register New Cheque */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <Card className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-xl shadow-xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-base font-bold text-slate-900">
-                {createChequeType === 'receivable'
-                  ? 'تسجيل ورقة قبض جديدة (شيك عميل)'
-                  : 'تحرير ورقة دفع جديدة (شيك مورد)'}
-              </h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  رقم الشيك <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newCheque.chequeNumber}
-                  onChange={(e) => setNewCheque({ ...newCheque, chequeNumber: e.target.value })}
-                  placeholder="مثال: 00482910"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  {createChequeType === 'receivable' ? 'اسم العميل / المستفيد' : 'اسم المورد المستفيد'}{' '}
-                  <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newCheque.partnerName}
-                  onChange={(e) => setNewCheque({ ...newCheque, partnerName: e.target.value })}
-                  placeholder="الاسم الثلاثي أو اسم المنشأة"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  البنك المسحوب عليه <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newCheque.bankName}
-                  onChange={(e) => setNewCheque({ ...newCheque, bankName: e.target.value })}
-                  placeholder="مثال: البنك الأهلي المصري / بنك الراجحي"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">فرع البنك</label>
-                <input
-                  type="text"
-                  value={newCheque.branchName || ''}
-                  onChange={(e) => setNewCheque({ ...newCheque, branchName: e.target.value })}
-                  placeholder="مثال: فرع التجمع الخامس"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  المبلغ <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={newCheque.amount || ''}
-                  onChange={(e) => setNewCheque({ ...newCheque, amount: Number(e.target.value) })}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">العملة</label>
-                <select
-                  value={newCheque.currency}
-                  onChange={(e) => setNewCheque({ ...newCheque, currency: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                >
-                  <option value="EGP">جنيه مصري (EGP)</option>
-                  <option value="SAR">ريال سعودي (SAR)</option>
-                  <option value="AED">درهم إماراتي (AED)</option>
-                  <option value="USD">دولار أمريكي (USD)</option>
-                  <option value="EUR">يورو (EUR)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  تاريخ التحرير <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={newCheque.issueDate}
-                  onChange={(e) => setNewCheque({ ...newCheque, issueDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  تاريخ الاستحقاق <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={newCheque.dueDate}
-                  onChange={(e) => setNewCheque({ ...newCheque, dueDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-slate-700 font-semibold mb-1">اسم الساحب (اختياري)</label>
-                <input
-                  type="text"
-                  value={newCheque.drawerName || ''}
-                  onChange={(e) => setNewCheque({ ...newCheque, drawerName: e.target.value })}
-                  placeholder="الاسم الموقع على الشيك إن كان مغايراً للعميل"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-slate-700 font-semibold mb-1">ملاحظات إضافية</label>
-                <textarea
-                  rows={2}
-                  value={newCheque.notes || ''}
-                  onChange={(e) => setNewCheque({ ...newCheque, notes: e.target.value })}
-                  placeholder="رقم الفاتورة أو العقد المرتبط بالشيك..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
-              <Button
-                variant="secondary"
-                onClick={() => setShowCreateModal(false)}
-                className="text-xs px-4 py-2"
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={() => createMutation.mutate(newCheque)}
-                disabled={
-                  createMutation.isPending ||
-                  !newCheque.chequeNumber ||
-                  !newCheque.partnerName ||
-                  !newCheque.bankName ||
-                  !newCheque.amount ||
-                  !newCheque.dueDate
-                }
-                className="bg-[#170e5e] hover:bg-[#120b4c] text-white text-xs font-semibold px-5 py-2 shadow-sm"
-              >
-                {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الشيك بالحافظة'}
-              </Button>
-            </div>
-          </Card>
+      <DialogShell
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        size="lg"
+      >
+        <div className="standard-dialog-header">
+          <div>
+            <h2 className="standard-dialog-title">
+              {createChequeType === 'receivable'
+                ? 'تسجيل ورقة قبض جديدة (شيك عميل)'
+                : 'تحرير ورقة دفع جديدة (شيك مورد)'}
+            </h2>
+            <p className="standard-dialog-subtitle">
+              إدخال بيانات الشيك البنكي وتفاصيل الساحب والمبلغ وتاريخ الاستحقاق
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(false)}
+            className="standard-dialog-close-btn"
+            aria-label="إغلاق"
+          >
+            <XIcon size={18} />
+          </button>
         </div>
-      )}
+
+        <div className="standard-dialog-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              رقم الشيك <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={newCheque.chequeNumber}
+              onChange={(e) => setNewCheque({ ...newCheque, chequeNumber: e.target.value })}
+              placeholder="مثال: 00482910"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              {createChequeType === 'receivable' ? 'اسم العميل / المستفيد' : 'اسم المورد المستفيد'}{' '}
+              <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={newCheque.partnerName}
+              onChange={(e) => setNewCheque({ ...newCheque, partnerName: e.target.value })}
+              placeholder="الاسم الثلاثي أو اسم المنشأة"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              البنك المسحوب عليه <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={newCheque.bankName}
+              onChange={(e) => setNewCheque({ ...newCheque, bankName: e.target.value })}
+              placeholder="مثال: البنك الأهلي المصري / بنك الراجحي"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              فرع البنك
+            </label>
+            <input
+              type="text"
+              value={newCheque.branchName || ''}
+              onChange={(e) => setNewCheque({ ...newCheque, branchName: e.target.value })}
+              placeholder="مثال: فرع التجمع الخامس"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              المبلغ <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={newCheque.amount || ''}
+              onChange={(e) => setNewCheque({ ...newCheque, amount: Number(e.target.value) })}
+              placeholder="0.00"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              العملة
+            </label>
+            <select
+              value={newCheque.currency}
+              onChange={(e) => setNewCheque({ ...newCheque, currency: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            >
+              <option value="EGP">جنيه مصري (EGP)</option>
+              <option value="SAR">ريال سعودي (SAR)</option>
+              <option value="AED">درهم إماراتي (AED)</option>
+              <option value="USD">دولار أمريكي (USD)</option>
+              <option value="EUR">يورو (EUR)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              تاريخ التحرير <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="date"
+              value={newCheque.issueDate}
+              onChange={(e) => setNewCheque({ ...newCheque, issueDate: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              تاريخ الاستحقاق <span style={{ color: '#e11d48' }}>*</span>
+            </label>
+            <input
+              type="date"
+              value={newCheque.dueDate}
+              onChange={(e) => setNewCheque({ ...newCheque, dueDate: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div style={{ gridColumn: 'span 2' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              اسم الساحب (اختياري)
+            </label>
+            <input
+              type="text"
+              value={newCheque.drawerName || ''}
+              onChange={(e) => setNewCheque({ ...newCheque, drawerName: e.target.value })}
+              placeholder="الاسم الموقع على الشيك إن كان مغايراً للعميل"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div style={{ gridColumn: 'span 2' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              ملاحظات إضافية
+            </label>
+            <textarea
+              rows={2}
+              value={newCheque.notes || ''}
+              onChange={(e) => setNewCheque({ ...newCheque, notes: e.target.value })}
+              placeholder="رقم الفاتورة أو العقد المرتبط بالشيك..."
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '12px',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+                resize: 'vertical',
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="standard-dialog-footer">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setShowCreateModal(false)}
+            style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}
+          >
+            إلغاء
+          </Button>
+          <Button
+            type="button"
+            onClick={() => createMutation.mutate(newCheque)}
+            disabled={
+              createMutation.isPending ||
+              !newCheque.chequeNumber ||
+              !newCheque.partnerName ||
+              !newCheque.bankName ||
+              !newCheque.amount ||
+              !newCheque.dueDate
+            }
+            style={{
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              padding: '8px 22px',
+              fontSize: '13px',
+              fontWeight: 700,
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              opacity: createMutation.isPending || !newCheque.chequeNumber ? 0.6 : 1,
+            }}
+          >
+            {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الشيك بالحافظة'}
+          </Button>
+        </div>
+      </DialogShell>
 
       {/* Modal 2: Lifecycle Actions (Deposit, Collect, Clear, Bounce, Endorse) */}
-      {activeActionModal && activeActionModal !== 'voucher' && selectedCheque && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-bold text-slate-900">
-                {activeActionModal === 'deposit' && 'إيداع الشيك برسم التحصيل بالبنك'}
-                {activeActionModal === 'collect' && 'تأكيد تحصيل الشيك بالبنك'}
-                {activeActionModal === 'clear' && 'تأكيد صرف ورقة الدفع بنكياً'}
-                {activeActionModal === 'bounce' && 'تسجيل ارتداد / رفض الشيك'}
-                {activeActionModal === 'endorse' && 'تظهير الشيك لمورد'}
-              </h2>
-              <button
-                onClick={() => setActiveActionModal(null)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
-              >
-                ✕
-              </button>
-            </div>
+      <DialogShell
+        isOpen={Boolean(activeActionModal && activeActionModal !== 'voucher' && selectedCheque)}
+        onClose={() => setActiveActionModal(null)}
+        size="md"
+      >
+        <div className="standard-dialog-header">
+          <div>
+            <h2 className="standard-dialog-title">
+              {activeActionModal === 'deposit' && 'إيداع الشيك برسم التحصيل بالبنك'}
+              {activeActionModal === 'collect' && 'تأكيد تحصيل الشيك بالبنك'}
+              {activeActionModal === 'clear' && 'تأكيد صرف ورقة الدفع بنكياً'}
+              {activeActionModal === 'bounce' && 'تسجيل ارتداد / رفض الشيك'}
+              {activeActionModal === 'endorse' && 'تظهير الشيك لمورد'}
+            </h2>
+            <p className="standard-dialog-subtitle">
+              تنفيذ الحركة المحاسبية وتحديث حالة الشيك
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveActionModal(null)}
+            className="standard-dialog-close-btn"
+            aria-label="إغلاق"
+          >
+            <XIcon size={18} />
+          </button>
+        </div>
 
-            <div className="bg-slate-50 rounded-xl p-3 text-xs space-y-1 border border-slate-100">
-              <div className="flex justify-between">
-                <span className="text-slate-500">رقم الشيك:</span>
-                <span className="font-mono font-bold text-slate-800">
+        {selectedCheque && (
+          <div className="standard-dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px 14px', border: '1px solid #e2e8f0', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748b' }}>رقم الشيك:</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#1e293b' }}>
                   {selectedCheque.cheque_number}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">الطرف:</span>
-                <span className="font-semibold text-slate-800">{selectedCheque.partner_name}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748b' }}>الطرف:</span>
+                <span style={{ fontWeight: 600, color: '#1e293b' }}>{selectedCheque.partner_name}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">المبلغ:</span>
-                <span className="font-bold text-slate-900">
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748b' }}>المبلغ:</span>
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>
                   {formatCurrency(selectedCheque.amount)} {selectedCheque.currency}
                 </span>
               </div>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  تاريخ الإجراء <span className="text-rose-500">*</span>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  تاريخ الإجراء <span style={{ color: '#e11d48' }}>*</span>
                 </label>
                 <input
                   type="date"
                   value={actionDate}
                   onChange={(e) => setActionDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    fontSize: '12px',
+                    color: '#1e293b',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
 
               {activeActionModal === 'bounce' && (
                 <>
                   <div>
-                    <label className="block text-slate-700 font-semibold mb-1">
-                      سبب الرفض / الارتداد <span className="text-rose-500">*</span>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                      سبب الرفض / الارتداد <span style={{ color: '#e11d48' }}>*</span>
                     </label>
                     <select
                       value={bouncedReason}
                       onChange={(e) => setBouncedReason(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: '#ffffff',
+                        fontSize: '12px',
+                        color: '#1e293b',
+                        boxSizing: 'border-box',
+                      }}
                     >
                       <option value="عدم كفاية الرصيد">عدم كفاية الرصيد (رفض مالي)</option>
                       <option value="اختلاف التوقيع">اختلاف التوقيع عن نموذج البنك</option>
@@ -1106,7 +1412,7 @@ export function PdcChequesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-semibold mb-1">
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                       مصاريف الرفض البنكية (إن وجدت)
                     </label>
                     <input
@@ -1114,7 +1420,16 @@ export function PdcChequesPage() {
                       value={bouncedFee}
                       onChange={(e) => setBouncedFee(e.target.value)}
                       placeholder="0.00"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: '#ffffff',
+                        fontSize: '12px',
+                        color: '#1e293b',
+                        boxSizing: 'border-box',
+                      }}
                     />
                   </div>
                 </>
@@ -1122,144 +1437,206 @@ export function PdcChequesPage() {
 
               {activeActionModal === 'endorse' && (
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">
-                    اسم المورد المراد تظهير الشيك إليه <span className="text-rose-500">*</span>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                    اسم المورد المراد تظهير الشيك إليه <span style={{ color: '#e11d48' }}>*</span>
                   </label>
                   <input
                     type="text"
                     value={endorsedSupplier}
                     onChange={(e) => setEndorsedSupplier(e.target.value)}
                     placeholder="اسم المورد المستحق للسداد"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#ffffff',
+                      fontSize: '12px',
+                      color: '#1e293b',
+                      boxSizing: 'border-box',
+                    }}
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">ملاحظات</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  ملاحظات
+                </label>
                 <input
                   type="text"
                   value={actionNotes}
                   onChange={(e) => setActionNotes(e.target.value)}
                   placeholder="ملاحظات حول الإجراء..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:bg-white"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    fontSize: '12px',
+                    color: '#1e293b',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
             </div>
+          </div>
+        )}
 
-            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
-              <Button
-                variant="secondary"
-                onClick={() => setActiveActionModal(null)}
-                className="text-xs px-4 py-2"
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={handleActionSubmit}
-                disabled={updateStatusMutation.isPending}
-                className="bg-[#170e5e] hover:bg-[#120b4c] text-white text-xs font-semibold px-5 py-2 shadow-sm"
-              >
-                {updateStatusMutation.isPending ? 'جاري التنفيذ...' : 'تأكيد الإجراء'}
-              </Button>
-            </div>
-          </Card>
+        <div className="standard-dialog-footer">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setActiveActionModal(null)}
+            style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}
+          >
+            إلغاء
+          </Button>
+          <Button
+            type="button"
+            onClick={handleActionSubmit}
+            disabled={updateStatusMutation.isPending}
+            style={{
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              padding: '8px 22px',
+              fontSize: '13px',
+              fontWeight: 700,
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              opacity: updateStatusMutation.isPending ? 0.6 : 1,
+            }}
+          >
+            {updateStatusMutation.isPending ? 'جاري التنفيذ...' : 'تأكيد الإجراء'}
+          </Button>
         </div>
-      )}
+      </DialogShell>
 
       {/* Modal 3: Cheque Voucher Print Preview */}
-      {activeActionModal === 'voucher' && selectedCheque && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-lg shadow-xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-bold text-slate-900">
-                سند استلام / حافظة شيك
-              </h2>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => window.print()}
-                  variant="secondary"
-                  className="text-xs px-3 py-1 flex items-center gap-1 text-slate-700"
-                >
-                  <PrinterIcon size={14} />
-                  <span>طباعة السند</span>
-                </Button>
-                <button
-                  onClick={() => setActiveActionModal(null)}
-                  className="text-slate-400 hover:text-slate-600 text-sm font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
+      <DialogShell
+        isOpen={Boolean(activeActionModal === 'voucher' && selectedCheque)}
+        onClose={() => setActiveActionModal(null)}
+        size="lg"
+      >
+        <div className="standard-dialog-header">
+          <div>
+            <h2 className="standard-dialog-title">
+              سند استلام / تسليم شيك بنكي
+            </h2>
+            <p className="standard-dialog-subtitle">
+              معاينة وطباعة السند المالي المعتمد للشيك
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Button
+              type="button"
+              onClick={() => window.print()}
+              variant="secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+              }}
+            >
+              <PrinterIcon size={14} />
+              <span>طباعة السند</span>
+            </Button>
+            <button
+              type="button"
+              onClick={() => setActiveActionModal(null)}
+              className="standard-dialog-close-btn"
+              aria-label="إغلاق"
+            >
+              <XIcon size={18} />
+            </button>
+          </div>
+        </div>
 
+        {selectedCheque && (
+          <div className="standard-dialog-body">
             {/* Printable Voucher Paper */}
-            <div className="border-2 border-dashed border-slate-300 rounded-xl p-5 bg-white space-y-4 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '24px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
                     {selectedCheque.type === 'receivable' ? 'سند استلام شيك (ورقة قبض)' : 'سند تسليم شيك (ورقة دفع)'}
                   </h3>
-                  <p className="text-[10px] text-slate-500 font-mono">
+                  <p style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace', margin: 0 }}>
                     رقم الإيصال: REC-CHK-{selectedCheque.id}
                   </p>
                 </div>
-                <div className="text-left font-mono text-[11px] text-slate-600">
+                <div style={{ textAlign: 'left', fontFamily: 'monospace', fontSize: '11px', color: '#475569' }}>
                   <div>التاريخ: {selectedCheque.issue_date}</div>
                   <div>الحالة: {STATUS_LABELS[selectedCheque.status]?.text}</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 py-2">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', padding: '8px 0' }}>
                 <div>
-                  <span className="text-slate-500 block">وصلنا من / سلم إلى:</span>
-                  <span className="font-bold text-sm text-slate-900">{selectedCheque.partner_name}</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>وصلنا من / سلم إلى:</span>
+                  <span style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a' }}>{selectedCheque.partner_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">المبلغ وقدره:</span>
-                  <span className="font-bold text-sm text-emerald-700">
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>المبلغ وقدره:</span>
+                  <span style={{ fontWeight: 800, fontSize: '14px', color: '#047857' }}>
                     {formatCurrency(selectedCheque.amount)} {selectedCheque.currency}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">رقم الشيك:</span>
-                  <span className="font-mono font-bold text-slate-900">{selectedCheque.cheque_number}</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>رقم الشيك:</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>{selectedCheque.cheque_number}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">مسحوب على بنك:</span>
-                  <span className="font-semibold text-slate-800">{selectedCheque.bank_name}</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>مسحوب على بنك:</span>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#334155' }}>{selectedCheque.bank_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">تاريخ الاستحقاق:</span>
-                  <span className="font-bold text-slate-900">{selectedCheque.due_date}</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>تاريخ الاستحقاق:</span>
+                  <span style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>{selectedCheque.due_date}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">الفرع:</span>
-                  <span className="text-slate-800">{selectedCheque.branch_name || 'الرئيسي'}</span>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>الفرع:</span>
+                  <span style={{ fontSize: '13px', color: '#334155' }}>{selectedCheque.branch_name || 'الرئيسي'}</span>
                 </div>
               </div>
 
               {selectedCheque.notes && (
-                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                  <span className="text-slate-500 block text-[10px]">ملاحظات:</span>
-                  <span className="text-slate-700">{selectedCheque.notes}</span>
+                <div style={{ backgroundColor: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '10px' }}>ملاحظات:</span>
+                  <span style={{ color: '#334155', fontSize: '12px' }}>{selectedCheque.notes}</span>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-8 pt-6 border-t border-slate-200 text-center">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', paddingTop: '24px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
                 <div>
-                  <span className="text-[11px] text-slate-500 block mb-8">توقيع المستلم / أمين الخزينة</span>
-                  <div className="border-b border-slate-300 w-32 mx-auto" />
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>توقيع المستلم / أمين الخزينة</span>
+                  <div style={{ borderBottom: '1px solid #cbd5e1', width: '130px', margin: '0 auto' }} />
                 </div>
                 <div>
-                  <span className="text-[11px] text-slate-500 block mb-8">توقيع المعتمد / الإدارة المالية</span>
-                  <div className="border-b border-slate-300 w-32 mx-auto" />
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '32px' }}>توقيع المعتمد / الإدارة المالية</span>
+                  <div style={{ borderBottom: '1px solid #cbd5e1', width: '130px', margin: '0 auto' }} />
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
+        )}
+
+        <div className="standard-dialog-footer">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setActiveActionModal(null)}
+            style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px' }}
+          >
+            إغلاق
+          </Button>
         </div>
-      )}
+      </DialogShell>
     </div>
   );
 }

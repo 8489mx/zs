@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useAppToolbar } from '@/stores/toolbar-store';
 import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -18,10 +20,6 @@ import {
   PlusIcon,
   Trash2Icon,
   SearchIcon,
-  TrendingUpIcon,
-  DollarSignIcon,
-  UsersIcon,
-  AwardIcon,
   CalendarIcon,
   CheckIcon,
   XIcon,
@@ -56,6 +54,11 @@ const ACTIVITY_LABELS: Record<string, string> = {
 export function CrmPipelinePage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  useAppToolbar([
+    { label: 'المبيعات', to: '/sales' },
+    { label: 'إدارة علاقات العملاء (CRM)' },
+  ]);
 
   // State filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -239,167 +242,105 @@ export function CrmPipelinePage() {
   }, [deals, priorityFilter, stageFilter, searchQuery]);
 
   return (
-    <div dir="rtl" style={{ width: '100%', minHeight: '100vh', background: '#f8fafc', padding: '24px' }}>
-      {/* Top Header */}
-      <PageHeader
-        title="إدارة علاقات العملاء والصفقات (CRM Pipeline)"
-        description="تتبع مسار المبيعات والفرص التجارية، إدارة الأنشطة والمهام، والتحويل الفوري إلى عملاء وفواتير بيع."
-      >
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <Button
-            variant="primary"
-            style={{ background: '#170e5e', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}
-            onClick={() => {
-              resetDealForm();
-              setIsCreateOpen(true);
+    <div className="page-stack page-shell crm-pipeline-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        {/* Top Header */}
+        <PageHeader
+          title="إدارة علاقات العملاء والصفقات (CRM Pipeline)"
+          description="تتبع مسار المبيعات والفرص التجارية، إدارة الأنشطة والمهام، والتحويل الفوري إلى عملاء وفواتير بيع."
+          badge={<span className="nav-pill">خط المبيعات</span>}
+          actions={
+            <div className="actions compact-actions page-header-actions">
+              <Button
+                variant="primary"
+                onClick={() => {
+                  resetDealForm();
+                  setIsCreateOpen(true);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <PlusIcon size={16} />
+                <span>إضافة فرصة بيعية</span>
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Feedback Alert */}
+        {feedbackMessage && (
+          <div
+            style={{
+              margin: '16px 0',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: feedbackMessage.type === 'success' ? '#ecfdf5' : '#fef2f2',
+              border: `1px solid ${feedbackMessage.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+              color: feedbackMessage.type === 'success' ? '#065f46' : '#991b1b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '14px',
+              fontWeight: 600,
             }}
           >
-            <PlusIcon size={16} color="#ffffff" />
-            <span>إضافة فرصة بيعية</span>
-          </Button>
-        </div>
-      </PageHeader>
+            <span>{feedbackMessage.text}</span>
+            <button
+              onClick={() => setFeedbackMessage(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+            >
+              <XIcon size={16} />
+            </button>
+          </div>
+        )}
 
-      {/* Feedback Alert */}
-      {feedbackMessage && (
-        <div
-          style={{
-            margin: '16px 0',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            background: feedbackMessage.type === 'success' ? '#ecfdf5' : '#fef2f2',
-            border: `1px solid ${feedbackMessage.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
-            color: feedbackMessage.type === 'success' ? '#065f46' : '#991b1b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '14px',
-            fontWeight: 600,
-          }}
-        >
-          <span>{feedbackMessage.text}</span>
-          <button
-            onClick={() => setFeedbackMessage(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+        {/* KPI Cards Grid */}
+        <div style={{ marginBottom: '16px' }}>
+          <StatsGrid
+            items={[
+              {
+                key: 'active-deals',
+                label: 'إجمالي الفرص النشطة',
+                value: `${summary?.totalActiveCount ?? 0} فرصة`,
+              },
+              {
+                key: 'pipeline-amount',
+                label: 'قيمة المسار النشط',
+                value: formatCurrency(summary?.totalActiveAmount ?? 0),
+              },
+              {
+                key: 'weighted-amount',
+                label: 'القيمة الموزونة المتوقعة',
+                value: formatCurrency(summary?.weightedAmount ?? 0),
+              },
+              {
+                key: 'win-rate',
+                label: 'معدل الإغلاق والنجاح',
+                value: `${summary?.winRate ?? 0}%`,
+              },
+            ]}
+          />
+        </div>
+
+        {/* Main Workspace Panel */}
+        <section className="document-prototype-section workspace-panel">
+          <div className="section-header-compact-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 className="document-prototype-section-title" style={{ margin: 0 }}>مسار الصفقات والمتابعات</h2>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>إدارة ومتابعة تحويل الفرص البيعية والأنشطة</p>
+            </div>
+          </div>
+
+          {/* Control Bar: Filters, Search & View Switcher */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '12px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '16px',
+            }}
           >
-            <XIcon size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* KPI Cards Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '16px',
-          margin: '20px 0',
-        }}
-      >
-        {/* Total Active Deals */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            padding: '16px 20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>إجمالي الفرص النشطة</span>
-            <UsersIcon size={20} color="#170e5e" />
-          </div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#170e5e' }}>
-            {summary?.totalActiveCount ?? 0}
-          </div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-            من أصل {summary?.totalDeals ?? 0} فرصة مسجلة
-          </div>
-        </div>
-
-        {/* Total Pipeline Amount */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            padding: '16px 20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>قيمة المسار النشط</span>
-            <DollarSignIcon size={20} color="#0284c7" />
-          </div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#0284c7' }}>
-            {formatCurrency(summary?.totalActiveAmount ?? 0)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-            إجمالي قيمة العقود المحتملة
-          </div>
-        </div>
-
-        {/* Weighted Expected Amount */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            padding: '16px 20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>القيمة الموزونة المتوقعة</span>
-            <TrendingUpIcon size={20} color="#16a34a" />
-          </div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#16a34a' }}>
-            {formatCurrency(summary?.weightedAmount ?? 0)}
-          </div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-            معدلة حسب احتمالية نجاح كل فرصة
-          </div>
-        </div>
-
-        {/* Win Rate */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            padding: '16px 20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>معدل الإغلاق والنجاح</span>
-            <AwardIcon size={20} color="#d97706" />
-          </div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#d97706' }}>
-            {summary?.winRate ?? 0}%
-          </div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-            {summary?.wonCount ?? 0} صفقات ناجحة بقيمة {formatCurrency(summary?.wonAmount ?? 0)}
-          </div>
-        </div>
-      </div>
-
-      {/* Control Bar: Filters, Search & View Switcher */}
-      <div
-        style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          padding: '14px 20px',
-          marginBottom: '20px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '12px',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
         <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '300px', alignItems: 'center' }}>
           {/* Search Input */}
           <div style={{ position: 'relative', flex: 1, maxWidth: '340px' }}>
@@ -509,12 +450,11 @@ export function CrmPipelinePage() {
         /* Kanban Columns Container */
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(6, minmax(260px, 1fr))',
-            gap: '16px',
+            display: 'flex',
+            gap: '14px',
             overflowX: 'auto',
             paddingBottom: '16px',
-            alignItems: 'start',
+            alignItems: 'stretch',
           }}
         >
           {STAGES.map((stage) => {
@@ -525,10 +465,14 @@ export function CrmPipelinePage() {
               <div
                 key={stage.key}
                 style={{
-                  background: '#f1f5f9',
+                  minWidth: '250px',
+                  width: '250px',
+                  flexShrink: 0,
+                  background: '#f8fafc',
                   borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
                   padding: '12px',
-                  minHeight: '400px',
+                  minHeight: '450px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px',
@@ -816,6 +760,8 @@ export function CrmPipelinePage() {
           </table>
         </div>
       )}
+      </section>
+    </main>
 
       {/* Modal: Create New Deal */}
       <DialogShell

@@ -46,4 +46,14 @@
   - يُمنع منعاً باتاً وضع أي قيم افتراضية وهمية (Mock Fallbacks) مثل أرقام مبيعات أو نسب تحصيل افتراضية في شاشات الإحصائيات أو الداشبورد أو الرسوم البيانية عند صفرية المبيعات.
   - في حال عدم وجود عمليات، يجب دائماً عرض حالة فارغة مؤسسية نظيفة (Enterprise Empty State) بدون أي أرقام مضللة.
 
-
+## 9. Strict No-Tailwind Policy & Universal Modal Standard (حظر كلاسات تيلويند ومعيار النوافذ المنبثقة الصارم)
+- **حظر كلاسات Tailwind نهائياً:**
+  - مكتبة Tailwind CSS **غير مثبتة وغير مفعلة** في هذا المشروع، واستخدام كلاساتها (مثل `p-6`, `space-y-4`, `flex`, `grid-cols-2`, `px-3`, `py-1`, `border-slate-200`) يفشل بصمت ويجعل النوافذ متآكلة الأطراف (`0px padding`) والأزرار كلاسيكية وبدائية بدون تنسيق.
+  - جميع التنسيقات يجب أن تعتمد حصرياً على كلاسات النظام الأساسية في ملفات الـ CSS أو على `style={{ ... }}` المباشرة المحكمة.
+- **معيار النوافذ المنبثقة الصارم (Zero-Clipping Standard):**
+  - **ممنوع نهائياً** استخدام overlays يدوية مثل `fixed inset-0`، بل يُستخدم حصرياً المكون القياسي الموحد `DialogShell` (من `@/shared/components/dialog-shell`) أو `StandardDialog` (من `@/shared/components/StandardDialog`).
+  - كل نافذة منبثقة يجب أن تحتوي على:
+    1. هيدر قياسي `.standard-dialog-header` يحتوي على عنوان النافذة `.standard-dialog-title` مع الخط الكحلي المميز (`#170c5c`) ووصف توضيحي `.standard-dialog-subtitle` وزر إغلاق رسمي `.standard-dialog-close-btn` بأيقونة `<XIcon size={18} />`.
+    2. جسم النافذة `.standard-dialog-body` بمسافات داخلية محكمة وشبكة حقول متناسقة.
+    3. فوتر قياسي `.standard-dialog-footer` بأزرار مؤسسية منسقة (زر الإلغاء الرمادي `secondary` وزر الإجراء الكحلي الأساسي `#170e5e`).
+  - النموذج المرجعي القياسي المعتمد للنوافذ هو: `frontend/src/shared/components/StandardModalExample.tsx`.

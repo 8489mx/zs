@@ -58,6 +58,100 @@
   padding: 26px 30px !important;
 }
 
+/* Universal Defensive Modal Padding:
+   Ensures that ANY content rendered inside .dialog-shell NEVER touches the edges or clips,
+   even if no inner wrapper class or padding was manually specified. */
+.dialog-shell > form,
+.dialog-shell > .dialog-content,
+.dialog-shell > .dialog-body,
+.dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack) {
+  padding: 26px 30px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Standard Dialog Components & Classes */
+.standard-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+  width: 100%;
+}
+
+.standard-dialog-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.standard-dialog-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.standard-dialog-title::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  background: var(--primary, #170c5c);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.standard-dialog-subtitle {
+  margin: 0;
+  padding-inline-start: 14px;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.standard-dialog-close-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.standard-dialog-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #e2e8f0;
+}
+
+.standard-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.standard-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 16px;
+  margin-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  width: 100%;
+}
+
 .dialog-description {
   line-height: 1.8;
 }
@@ -138,7 +232,11 @@
     border-radius: 16px;
   }
 
-  .dialog-card {
+  .dialog-card,
+  .dialog-shell > form,
+  .dialog-shell > .dialog-content,
+  .dialog-shell > .dialog-body,
+  .dialog-shell > div:not(.pos-workspace):not(.full-bleed):not(.dialog-card):not(.page-stack) {
     padding: 18px 16px !important;
   }
 }

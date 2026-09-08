@@ -27,93 +27,121 @@ export function DualCalendarBadge() {
   };
 
   return (
-    <div className="relative inline-block" ref={popoverRef} dir="rtl">
+    <div style={{ position: 'relative', display: 'inline-block' }} ref={popoverRef} dir="rtl">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer select-none bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
-        title="التقويم المزدوج (أم القرى والميلادي)"
+        style={{
+          height: 32,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '0 12px',
+          backgroundColor: isOpen ? '#ffffff' : 'var(--surface-sunken, #f8fafc)',
+          border: isOpen ? '1px solid #170e5e' : '1px solid var(--border-color, #e2e8f0)',
+          borderRadius: 8,
+          cursor: 'pointer',
+          flexShrink: 0,
+          fontSize: '12px',
+          fontWeight: 600,
+          color: '#0f172a',
+          fontFamily: '"IBM Plex Sans Arabic", "Cairo", system-ui, sans-serif',
+          boxShadow: isOpen ? '0 0 0 2px rgba(23, 14, 94, 0.1)' : 'none',
+          transition: 'all 0.15s ease',
+          whiteSpace: 'nowrap',
+          userSelect: 'none',
+        }}
+        title="التقويم المزدوج (أم القرى والميلادي) — اضغط لعرض التفاصيل"
       >
-        <CalendarIcon size={14} color="#170e5e" strokeWidth={2.2} />
-        <span className="hidden sm:inline text-slate-900 font-bold">
-          {dualDate.hijri.day} {dualDate.hijri.monthName} {dualDate.hijri.year} هـ
-        </span>
-        <span className="hidden sm:inline text-slate-400">/</span>
-        <span className="text-slate-600 font-medium">
-          {dualDate.gregorian.day} {dualDate.gregorian.monthName}
+        <CalendarIcon size={15} color="#170e5e" strokeWidth={2.2} style={{ flexShrink: 0 }} />
+        <span style={{ fontWeight: 700, color: '#0f172a' }}>
+          {dualDate.dayName}، {dualDate.gregorian.day} {dualDate.gregorian.monthName} {dualDate.gregorian.year}
         </span>
       </button>
 
       {isOpen && (
         <div
-          className="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 p-3.5 z-50 animate-in fade-in slide-in-from-top-2"
-          style={{ minWidth: '290px' }}
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            width: '310px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06)',
+            padding: '14px',
+            zIndex: 1000,
+            fontFamily: '"IBM Plex Sans Arabic", "Cairo", system-ui, sans-serif',
+            textAlign: 'right',
+          }}
         >
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2.5">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-900">
-                <CalendarIcon size={15} color="#170e5e" strokeWidth={2.2} />
+          {/* Popover Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CalendarIcon size={16} color="#170e5e" strokeWidth={2.2} />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-900">التقويم المزدوج</h4>
-                <p className="text-[11px] text-slate-500">{dualDate.dayName}</p>
+                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>التقويم المزدوج</h4>
+                <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>اليوم: {dualDate.dayName}</p>
               </div>
             </div>
-            <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
+            <span style={{ fontSize: '10px', fontWeight: 700, backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '6px' }}>
               أم القرى الرسمي
             </span>
           </div>
 
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Hijri Card */}
-            <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/80 flex items-center justify-between">
+            <div style={{ padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span className="text-[11px] font-semibold text-slate-500 block">التاريخ الهجري (أم القرى)</span>
-                <span className="text-xs font-bold text-slate-900">{dualDate.hijri.formatted}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'block' }}>التاريخ الهجري (أم القرى)</span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{dualDate.hijri.formatted}</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleCopy(dualDate.hijri.formatted, 'hijri')}
-                className="p-1.5 hover:bg-slate-200/70 text-slate-500 rounded-md transition-colors"
+                style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
                 title="نسخ التاريخ الهجري"
               >
                 {copiedKey === 'hijri' ? (
-                  <CheckCircleIcon size={14} color="#059669" />
+                  <CheckCircleIcon size={15} color="#059669" />
                 ) : (
-                  <CopyIcon size={14} color="#64748b" />
+                  <CopyIcon size={15} color="#64748b" />
                 )}
               </button>
             </div>
 
             {/* Gregorian Card */}
-            <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/80 flex items-center justify-between">
+            <div style={{ padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span className="text-[11px] font-semibold text-slate-500 block">التاريخ الميلادي</span>
-                <span className="text-xs font-bold text-slate-900">{dualDate.gregorian.formatted}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', display: 'block' }}>التاريخ الميلادي</span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{dualDate.gregorian.formatted}</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleCopy(dualDate.gregorian.formatted, 'gregorian')}
-                className="p-1.5 hover:bg-slate-200/70 text-slate-500 rounded-md transition-colors"
+                style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
                 title="نسخ التاريخ الميلادي"
               >
                 {copiedKey === 'gregorian' ? (
-                  <CheckCircleIcon size={14} color="#059669" />
+                  <CheckCircleIcon size={15} color="#059669" />
                 ) : (
-                  <CopyIcon size={14} color="#64748b" />
+                  <CopyIcon size={15} color="#64748b" />
                 )}
               </button>
             </div>
           </div>
 
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-            <span>السنة المالية: {dualDate.gregorian.year}</span>
+          <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
+            <span>السنة المالية: <strong>{dualDate.gregorian.year}</strong></span>
             <button
               type="button"
               onClick={() => handleCopy(dualDate.combined, 'combined')}
-              className="text-indigo-600 hover:text-indigo-800 font-medium"
+              style={{ border: 'none', background: 'transparent', color: '#170e5e', fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
             >
-              {copiedKey === 'combined' ? 'تم النسخ' : 'نسخ التاريخين معاً'}
+              {copiedKey === 'combined' ? 'تم النسخ!' : 'نسخ التاريخين معاً'}
             </button>
           </div>
         </div>
@@ -121,3 +149,4 @@ export function DualCalendarBadge() {
     </div>
   );
 }
+
