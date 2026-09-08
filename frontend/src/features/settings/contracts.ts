@@ -107,6 +107,7 @@ export function buildSettingsUpdatePayload(currentSettings: AppSettings | undefi
     printShowPiecesCount: values.printShowPiecesCount !== false,
     printShowPaymentBreakdown: values.printShowPaymentBreakdown !== false,
     printShowDate: values.printShowDate !== false,
+    printShowHijriDate: Boolean(values.printShowHijriDate),
     printShowItemOffers: values.printShowItemOffers !== false,
     printShowDiscountBreakdown: values.printShowDiscountBreakdown !== false,
     printShowSavingsBanner: values.printShowSavingsBanner !== false,

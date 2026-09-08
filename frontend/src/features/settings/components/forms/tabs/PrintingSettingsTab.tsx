@@ -246,6 +246,10 @@ export function PrintingSettingsTab({
                   إظهار تاريخ ووقت الفاتورة
                 </label>
                 <label className="settings-print-option" style={checkboxStyle}>
+                  <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowHijriDate')} disabled={disabled} />
+                  إظهار التقويم الهجري (أم القرى)
+                </label>
+                <label className="settings-print-option" style={checkboxStyle}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowOrderType')} disabled={disabled} />
                   إظهار نوع الطلب
                 </label>

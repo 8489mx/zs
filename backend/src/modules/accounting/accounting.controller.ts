@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { RequireAnyPermission, RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
@@ -23,12 +23,25 @@ import {
   CreateBankFeeAdjustmentDto,
 } from './dto/accounting.dto';
 
+import { BalanceSheetService } from './services/balance-sheet.service';
+import { CashFlowService } from './services/cash-flow.service';
+import { AgedDebtsService } from './services/aged-debts.service';
+import { PdcChequesService, CreatePdcChequeDto, UpdateChequeStatusDto } from './services/pdc-cheques.service';
+import { WithholdingTaxService, CreateWhtTransactionDto, ExtractFromPurchasesDto } from './services/withholding-tax.service';
+
 @Controller('api/accounting')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 @RequireFeature('accounting')
 @RequireAnyPermission('accounting', 'accounts')
 export class AccountingController {
-  constructor(private readonly accountingService: AccountingService) {}
+  constructor(
+    private readonly accountingService: AccountingService,
+    private readonly balanceSheetService: BalanceSheetService,
+    private readonly cashFlowService: CashFlowService,
+    private readonly agedDebtsService: AgedDebtsService,
+    private readonly pdcChequesService: PdcChequesService,
+    private readonly withholdingTaxService: WithholdingTaxService,
+  ) {}
 
   @Get('accounts')
   listAccounts(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
@@ -98,6 +111,59 @@ export class AccountingController {
   @Get('reports/inventory-value')
   getInventoryValue(@Query() query: InventoryValueQueryDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.getInventoryValue(query, req.authContext!);
+  }
+
+  // --- Big Financial Statements (IFRS / Odoo 17 Standards) ---
+  @Get('reports/balance-sheet')
+  getBalanceSheet(
+    @Query('asOfDate') asOfDate: string,
+    @Query('compareDate') compareDate: string,
+    @Query('branchId') branchId: string,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.balanceSheetService.getBalanceSheet(req.authContext!, {
+      asOfDate: asOfDate || undefined,
+      compareDate: compareDate || undefined,
+      branchId: branchId ? Number(branchId) : undefined,
+    });
+  }
+
+  @Get('reports/cash-flow')
+  getCashFlow(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Query('branchId') branchId: string,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.cashFlowService.getCashFlowStatement(req.authContext!, {
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      branchId: branchId ? Number(branchId) : undefined,
+    });
+  }
+
+  @Get('reports/aged-receivables')
+  getAgedReceivables(
+    @Query('asOfDate') asOfDate: string,
+    @Query('branchId') branchId: string,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.agedDebtsService.getAgedReceivables(req.authContext!, {
+      asOfDate: asOfDate || undefined,
+      branchId: branchId ? Number(branchId) : undefined,
+    });
+  }
+
+  @Get('reports/aged-payables')
+  getAgedPayables(
+    @Query('asOfDate') asOfDate: string,
+    @Query('branchId') branchId: string,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.agedDebtsService.getAgedPayables(req.authContext!, {
+      asOfDate: asOfDate || undefined,
+      branchId: branchId ? Number(branchId) : undefined,
+    });
   }
 
   @Get('opening-balances/preview')
@@ -238,6 +304,105 @@ export class AccountingController {
   @Post('bank-statements/fee-adjustment')
   createBankFeeAdjustment(@Body() dto: CreateBankFeeAdjustmentDto, @Req() req: RequestWithAuth): Promise<any> {
     return this.accountingService.createBankFeeAdjustment(dto, req.authContext!);
+  }
+
+  // --- PDC Cheques Management (حافظة الشيكات وأوراق القبض والدفع) ---
+  @Get('cheques')
+  listCheques(
+    @Query('type') type: 'receivable' | 'payable',
+    @Query('status') status: string,
+    @Query('search') search: string,
+    @Query('dueFrom') dueFrom: string,
+    @Query('dueTo') dueTo: string,
+    @Query('partnerId') partnerId: string,
+    @Query('bankName') bankName: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.pdcChequesService.listCheques(req.authContext!, {
+      type: type || undefined,
+      status: status || undefined,
+      search: search || undefined,
+      dueFrom: dueFrom || undefined,
+      dueTo: dueTo || undefined,
+      partnerId: partnerId ? Number(partnerId) : undefined,
+      bankName: bankName || undefined,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get('cheques/stats')
+  getChequesStats(@Req() req: RequestWithAuth): Promise<any> {
+    return this.pdcChequesService.getStats(req.authContext!);
+  }
+
+  @Post('cheques')
+  createCheque(@Body() dto: CreatePdcChequeDto, @Req() req: RequestWithAuth): Promise<any> {
+    return this.pdcChequesService.createCheque(req.authContext!, dto);
+  }
+
+  @Patch('cheques/:id/status')
+  updateChequeStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateChequeStatusDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.pdcChequesService.updateChequeStatus(req.authContext!, id, dto);
+  }
+
+  @Delete('cheques/:id')
+  deleteCheque(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<any> {
+    return this.pdcChequesService.deleteCheque(req.authContext!, id);
+  }
+
+  // --- Withholding Tax (WHT) & Egyptian Form 41 (ضريبة الخصم والإضافة ونموذج 41 ضرائب) ---
+  @Get('withholding-tax/form-41')
+  getForm41Report(
+    @Query('year') year: string,
+    @Query('quarter') quarter: string,
+    @Query('direction') direction: 'payable' | 'receivable',
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.withholdingTaxService.getForm41Report(req.authContext!, {
+      year: year ? Number(year) : undefined,
+      quarter: quarter || undefined,
+      direction: direction || undefined,
+    });
+  }
+
+  @Post('withholding-tax')
+  createWhtTransaction(
+    @Body() dto: CreateWhtTransactionDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.withholdingTaxService.createTransaction(req.authContext!, dto);
+  }
+
+  @Post('withholding-tax/extract-from-purchases')
+  extractWhtFromPurchases(
+    @Body() dto: ExtractFromPurchasesDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.withholdingTaxService.extractFromPurchases(req.authContext!, dto);
+  }
+
+  @Patch('withholding-tax/:id/status')
+  updateWhtStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: { status: 'draft' | 'declared' | 'paid'; payment_reference?: string },
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.withholdingTaxService.updateStatus(req.authContext!, id, dto);
+  }
+
+  @Delete('withholding-tax/:id')
+  deleteWhtTransaction(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestWithAuth,
+  ): Promise<any> {
+    return this.withholdingTaxService.deleteTransaction(req.authContext!, id);
   }
 }
 

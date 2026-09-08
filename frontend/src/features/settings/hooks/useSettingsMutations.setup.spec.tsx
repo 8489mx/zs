@@ -114,6 +114,7 @@ const baseSettingsMutationValues = {
   printShowPiecesCount: true,
   printShowPaymentBreakdown: true,
   printShowDate: true,
+  printShowHijriDate: false,
   printShowItemOffers: true,
   printShowDiscountBreakdown: true,
   printShowSavingsBanner: true,

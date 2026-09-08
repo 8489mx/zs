@@ -327,6 +327,7 @@ export interface ProductTable {
   retail_price: number;
   wholesale_price: number;
   stock_qty: number;
+  reserved_qty: ColumnType<number, number | undefined, number | undefined>;
   min_stock_qty: number;
   notes: ColumnType<string, string | undefined, string | undefined>;
   is_active: boolean;
@@ -1733,6 +1734,8 @@ export interface Database {
   journal_entry_lines: JournalEntryLineTable;
   bank_statements: BankStatementTable;
   bank_statement_lines: BankStatementLineTable;
+  accounting_cheques: AccountingChequeTable;
+  withholding_tax_transactions: WithholdingTaxTransactionTable;
   cost_centers: CostCenterTable;
   crm_deals: CrmDealTable;
   crm_activities: CrmActivityTable;
@@ -2096,6 +2099,10 @@ export interface Database {
   product_reviews: ProductReviewTable;
   storefront_coupons: StorefrontCouponTable;
   storefront_delivery_zones: StorefrontDeliveryZoneTable;
+  accounting_cheques: AccountingChequeTable;
+  withholding_tax_transactions: WithholdingTaxTransactionTable;
+  sales_orders: SalesOrderTable;
+  sales_order_items: SalesOrderItemTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -2501,4 +2508,110 @@ export interface StorefrontDeliveryZoneTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
+
+export interface AccountingChequeTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: number | null;
+  type: 'receivable' | 'payable';
+  cheque_number: string;
+  bank_name: string;
+  branch_name: string | null;
+  drawer_name: string | null;
+  partner_type: string;
+  partner_id: number | null;
+  partner_name: string;
+  amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  currency: ColumnType<string, string | undefined, string | undefined>;
+  issue_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
+  due_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  deposit_bank_id: number | null;
+  deposit_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  cleared_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  bounced_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  bounced_reason: string | null;
+  bounced_fee: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  endorsed_to_supplier_id: number | null;
+  endorsed_to_supplier_name: string | null;
+  journal_entry_id: number | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface WithholdingTaxTransactionTable {
+  id: Generated<number>;
+  tenant_id: string;
+  direction: ColumnType<'payable' | 'receivable', 'payable' | 'receivable' | undefined, 'payable' | 'receivable' | undefined>;
+  source_type: ColumnType<string, string | undefined, string | undefined>;
+  source_id: number | null;
+  invoice_number: string;
+  invoice_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
+  partner_type: ColumnType<string, string | undefined, string | undefined>;
+  partner_id: number | null;
+  partner_name: string;
+  tax_id_number: string | null;
+  file_number: string | null;
+  tax_office_code: string | null;
+  partner_address: string | null;
+  wht_type: ColumnType<string, string | undefined, string | undefined>;
+  wht_rate: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  base_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  tax_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  quarter: string;
+  tax_year: number;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  payment_reference: string | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface SalesOrderTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  order_number: string;
+  customer_id: number | null;
+  customer_name: string;
+  customer_phone: string | null;
+  customer_address: string | null;
+  branch_id: number | null;
+  subtotal: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  discount_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  tax_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  reservation_expires_at: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  delivery_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  sale_id: number | null;
+  quotation_id: number | null;
+  notes: string | null;
+  terms_conditions: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface SalesOrderItemTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  sales_order_id: number;
+  product_id: number;
+  product_name: string;
+  unit_name: string | null;
+  quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  reserved_quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  delivered_quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  unit_price: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  discount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
 

@@ -452,4 +452,412 @@ export const bankReconciliationApi = {
     http<{ success: boolean; message: string; journalEntryId: number }>('/api/accounting/bank-statements/fee-adjustment', { method: 'POST', body: JSON.stringify(data) }),
 };
 
+// --- Big Financial Statements & Aged Debts Types (IFRS Standard) ---
+
+export interface BalanceSheetAccountRow {
+  id: number;
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  accountType: string;
+  accountGroup: string;
+  amount: number;
+  compareAmount?: number;
+  varianceAmount?: number;
+  variancePercent?: number;
+}
+
+export interface BalanceSheetSection {
+  titleAr: string;
+  titleEn: string;
+  total: number;
+  compareTotal?: number;
+  varianceAmount?: number;
+  variancePercent?: number;
+  accounts: BalanceSheetAccountRow[];
+}
+
+export interface BalanceSheetReportData {
+  asOfDate: string;
+  compareDate?: string;
+  isBalanced: boolean;
+  difference: number;
+  assets: {
+    currentAssets: BalanceSheetSection;
+    nonCurrentAssets: BalanceSheetSection;
+    totalAssets: number;
+    compareTotalAssets?: number;
+  };
+  liabilities: {
+    currentLiabilities: BalanceSheetSection;
+    nonCurrentLiabilities: BalanceSheetSection;
+    totalLiabilities: number;
+    compareTotalLiabilities?: number;
+  };
+  equity: {
+    section: BalanceSheetSection;
+    currentPeriodNetProfit: number;
+    compareCurrentPeriodNetProfit?: number;
+    totalEquity: number;
+    compareTotalEquity?: number;
+  };
+  totalLiabilitiesAndEquity: number;
+  compareTotalLiabilitiesAndEquity?: number;
+}
+
+export interface CashFlowLine {
+  labelAr: string;
+  labelEn: string;
+  amount: number;
+  note?: string;
+}
+
+export interface CashFlowSection {
+  titleAr: string;
+  titleEn: string;
+  total: number;
+  lines: CashFlowLine[];
+}
+
+export interface CashFlowReportData {
+  dateFrom: string;
+  dateTo: string;
+  operatingActivities: CashFlowSection;
+  investingActivities: CashFlowSection;
+  financingActivities: CashFlowSection;
+  netCashFlow: number;
+  beginningCash: number;
+  endingCash: number;
+  reconciledCashActual: number;
+  isReconciled: boolean;
+}
+
+export interface AgedPartnerRow {
+  partnerId: number;
+  partnerName: string;
+  phone?: string;
+  creditLimit?: number;
+  totalBalance: number;
+  currentAmount: number;
+  days1To30: number;
+  days31To60: number;
+  days61To90: number;
+  days91Plus: number;
+  oldestInvoiceDate?: string;
+  oldestInvoiceDays?: number;
+  riskLevel: 'current' | 'low' | 'medium' | 'high' | 'critical';
+  whatsAppUrl?: string;
+}
+
+export interface AgedDebtsSummary {
+  asOfDate: string;
+  totalPartnersCount: number;
+  overduePartnersCount: number;
+  totalBalance: number;
+  totalCurrent: number;
+  total1To30: number;
+  total31To60: number;
+  total61To90: number;
+  total91Plus: number;
+  partners: AgedPartnerRow[];
+}
+
+export const financialReportsApi = {
+  balanceSheet: (params?: { asOfDate?: string; compareDate?: string; branchId?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.asOfDate) sp.set('asOfDate', params.asOfDate);
+    if (params?.compareDate) sp.set('compareDate', params.compareDate);
+    if (params?.branchId) sp.set('branchId', String(params.branchId));
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+    return http<BalanceSheetReportData>(`/api/accounting/reports/balance-sheet${qs}`);
+  },
+
+  cashFlow: (params?: { dateFrom?: string; dateTo?: string; branchId?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.dateFrom) sp.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) sp.set('dateTo', params.dateTo);
+    if (params?.branchId) sp.set('branchId', String(params.branchId));
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+    return http<CashFlowReportData>(`/api/accounting/reports/cash-flow${qs}`);
+  },
+
+  agedReceivables: (params?: { asOfDate?: string; branchId?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.asOfDate) sp.set('asOfDate', params.asOfDate);
+    if (params?.branchId) sp.set('branchId', String(params.branchId));
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+    return http<AgedDebtsSummary>(`/api/accounting/reports/aged-receivables${qs}`);
+  },
+
+  agedPayables: (params?: { asOfDate?: string; branchId?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.asOfDate) sp.set('asOfDate', params.asOfDate);
+    if (params?.branchId) sp.set('branchId', String(params.branchId));
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+    return http<AgedDebtsSummary>(`/api/accounting/reports/aged-payables${qs}`);
+  },
+};
+
+// --- PDC Cheques Management Types & API ---
+export type ChequeType = 'receivable' | 'payable';
+export type ChequeStatus =
+  | 'in_safe'
+  | 'under_collection'
+  | 'collected'
+  | 'bounced'
+  | 'endorsed'
+  | 'returned'
+  | 'cancelled'
+  | 'issued'
+  | 'cleared';
+
+export interface PdcCheque {
+  id: number;
+  tenant_id: string;
+  account_id: number | null;
+  type: ChequeType;
+  cheque_number: string;
+  bank_name: string;
+  branch_name: string | null;
+  drawer_name: string | null;
+  partner_type: string;
+  partner_id: number | null;
+  partner_name: string;
+  amount: number;
+  currency: string;
+  issue_date: string;
+  due_date: string;
+  status: ChequeStatus;
+  deposit_bank_id: number | null;
+  deposit_date: string | null;
+  cleared_date: string | null;
+  bounced_date: string | null;
+  bounced_reason: string | null;
+  bounced_fee: number;
+  endorsed_to_supplier_id: number | null;
+  endorsed_to_supplier_name: string | null;
+  journal_entry_id: number | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PdcChequesStats {
+  receivables: {
+    totalCount: number;
+    totalAmount: number;
+    inSafeCount: number;
+    inSafeAmount: number;
+    underCollectionCount: number;
+    underCollectionAmount: number;
+    collectedCount: number;
+    collectedAmount: number;
+    bouncedCount: number;
+    bouncedAmount: number;
+    dueSoonCount: number;
+    dueSoonAmount: number;
+    overdueCount: number;
+    overdueAmount: number;
+  };
+  payables: {
+    totalCount: number;
+    totalAmount: number;
+    issuedCount: number;
+    issuedAmount: number;
+    clearedCount: number;
+    clearedAmount: number;
+    bouncedCount: number;
+    bouncedAmount: number;
+    dueSoonCount: number;
+    dueSoonAmount: number;
+    overdueCount: number;
+    overdueAmount: number;
+  };
+}
+
+export interface CreatePdcChequePayload {
+  type: ChequeType;
+  chequeNumber: string;
+  bankName: string;
+  branchName?: string;
+  drawerName?: string;
+  partnerType?: string;
+  partnerId?: number;
+  partnerName: string;
+  amount: number;
+  currency?: string;
+  issueDate: string;
+  dueDate: string;
+  depositBankId?: number;
+  notes?: string;
+}
+
+export interface UpdateChequeStatusPayload {
+  action: 'deposit' | 'collect' | 'clear' | 'bounce' | 'endorse' | 'return' | 'cancel' | 'restore_to_safe';
+  actionDate?: string;
+  depositBankId?: number;
+  bouncedReason?: string;
+  bouncedFee?: number;
+  endorsedToSupplierId?: number;
+  endorsedToSupplierName?: string;
+  notes?: string;
+}
+
+export const pdcChequesApi = {
+  list: (params?: {
+    type?: ChequeType;
+    status?: string;
+    search?: string;
+    dueFrom?: string;
+    dueTo?: string;
+    partnerId?: number;
+    bankName?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const sp = new URLSearchParams();
+    if (params?.type) sp.set('type', params.type);
+    if (params?.status) sp.set('status', params.status);
+    if (params?.search) sp.set('search', params.search);
+    if (params?.dueFrom) sp.set('dueFrom', params.dueFrom);
+    if (params?.dueTo) sp.set('dueTo', params.dueTo);
+    if (params?.partnerId) sp.set('partnerId', String(params.partnerId));
+    if (params?.bankName) sp.set('bankName', params.bankName);
+    if (params?.page) sp.set('page', String(params.page));
+    if (params?.limit) sp.set('limit', String(params.limit));
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+    return http<{ data: PdcCheque[]; total: number; page: number; limit: number }>(`/api/accounting/cheques${qs}`);
+  },
+
+  stats: () => http<PdcChequesStats>('/api/accounting/cheques/stats'),
+
+  create: (body: CreatePdcChequePayload) =>
+    http<PdcCheque>('/api/accounting/cheques', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateStatus: (id: number, body: UpdateChequeStatusPayload) =>
+    http<PdcCheque>(`/api/accounting/cheques/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  delete: (id: number) =>
+    http<{ success: boolean }>(`/api/accounting/cheques/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// --- Withholding Tax (WHT) & Egyptian Form 41 (ضريبة الخصم والإضافة ونموذج 41 ضرائب) ---
+export interface WithholdingTaxRecord {
+  id: number;
+  tenant_id: string;
+  direction: 'payable' | 'receivable';
+  source_type: string;
+  source_id: number | null;
+  invoice_number: string;
+  invoice_date: string;
+  partner_type: string;
+  partner_id: number | null;
+  partner_name: string;
+  tax_id_number: string | null;
+  file_number: string | null;
+  tax_office_code: string | null;
+  partner_address: string | null;
+  wht_type: string;
+  wht_rate: number;
+  base_amount: number;
+  tax_amount: number;
+  quarter: string;
+  tax_year: number;
+  status: string;
+  payment_reference: string | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Form41SummaryResponse {
+  tax_year: number;
+  quarter: string;
+  direction: 'payable' | 'receivable';
+  total_count: number;
+  total_base_amount: number;
+  total_tax_amount: number;
+  breakdown: {
+    goods: { count: number; base_amount: number; tax_amount: number; rate: number };
+    services: { count: number; base_amount: number; tax_amount: number; rate: number };
+    professional: { count: number; base_amount: number; tax_amount: number; rate: number };
+    custom: { count: number; base_amount: number; tax_amount: number };
+  };
+  transactions: WithholdingTaxRecord[];
+}
+
+export interface CreateWhtTransactionPayload {
+  direction?: 'payable' | 'receivable';
+  source_type?: string;
+  source_id?: number;
+  invoice_number: string;
+  invoice_date: string;
+  partner_type?: string;
+  partner_id?: number;
+  partner_name: string;
+  tax_id_number?: string;
+  file_number?: string;
+  tax_office_code?: string;
+  partner_address?: string;
+  wht_type: 'goods' | 'services' | 'professional' | 'custom';
+  wht_rate?: number;
+  base_amount: number;
+  quarter?: string;
+  tax_year?: number;
+  notes?: string;
+}
+
+export const withholdingTaxApi = {
+  getForm41: (params?: { year?: number; quarter?: string; direction?: 'payable' | 'receivable' }) => {
+    const sp = new URLSearchParams();
+    if (params?.year) sp.set('year', String(params.year));
+    if (params?.quarter) sp.set('quarter', params.quarter);
+    if (params?.direction) sp.set('direction', params.direction);
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+    return http<Form41SummaryResponse>(`/api/accounting/withholding-tax/form-41${qs}`);
+  },
+
+  create: (body: CreateWhtTransactionPayload) =>
+    http<WithholdingTaxRecord>('/api/accounting/withholding-tax', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  extractFromPurchases: (body: {
+    fromDate: string;
+    toDate: string;
+    defaultWhtRate?: number;
+    defaultWhtType?: 'goods' | 'services' | 'professional';
+  }) =>
+    http<{ extracted_count: number; total_tax_added: number; message: string }>(
+      '/api/accounting/withholding-tax/extract-from-purchases',
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+    ),
+
+  updateStatus: (id: number, body: { status: 'draft' | 'declared' | 'paid'; payment_reference?: string }) =>
+    http<WithholdingTaxRecord>(`/api/accounting/withholding-tax/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  delete: (id: number) =>
+    http<{ success: boolean }>(`/api/accounting/withholding-tax/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+
 

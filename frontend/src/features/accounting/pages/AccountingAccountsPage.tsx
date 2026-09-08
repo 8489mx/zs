@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { DataTable } from '@/shared/components/data-table';
@@ -55,6 +56,7 @@ function renderFlags(account: AccountingAccount): string[] {
 export function AccountingAccountsPage() {
   const queryClient = useQueryClient();
   const [showInactive, setShowInactive] = useState(false);
+  const navigate = useNavigate();
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [formParentAccount, setFormParentAccount] = useState<AccountingAccount | undefined>();
@@ -105,6 +107,58 @@ export function AccountingAccountsPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '100px', maxWidth: '1280px' }}>
         <PageHeader title="شجرة الحسابات" badge={<span className="nav-pill">الأرصدة والبنود المالية</span>} />
+
+        {/* Quick Shortcuts to Big Financial Statements */}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            onClick={() => navigate('/accounting/balance-sheet')}
+            style={{ fontWeight: 700 }}
+          >
+            الميزانية العمومية (Balance Sheet)
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            onClick={() => navigate('/accounting/cash-flow')}
+            style={{ fontWeight: 700 }}
+          >
+            قائمة التدفقات النقدية (Cash Flow)
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            onClick={() => navigate('/accounting/aged-debts')}
+            style={{ fontWeight: 700 }}
+          >
+            أعمار الديون (Aged Debts)
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            onClick={() => navigate('/accounting/cheques')}
+            style={{ fontWeight: 700 }}
+          >
+            حافظة الشيكات (PDC)
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            onClick={() => navigate('/accounting/withholding-tax')}
+            style={{ fontWeight: 700 }}
+          >
+            الخصم والإضافة (نموذج 41)
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-secondary"
+            onClick={() => navigate('/accounting/cost-centers')}
+            style={{ fontWeight: 700 }}
+          >
+            مراكز التكلفة
+          </button>
+        </div>
         
         <FormSection 
           title="شجرة الحسابات" 

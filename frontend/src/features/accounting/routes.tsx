@@ -55,11 +55,36 @@ export const accountingRouteModule: FeatureRouteModule = {
       path: 'accounting/bank-reconciliation',
       element: createLazyRoute(() => import('@/features/accounting/pages/BankReconciliationPage').then((module) => ({ default: withAccountingGate(module.BankReconciliationPage) }))),
     },
+    {
+      path: 'accounting/balance-sheet',
+      element: createLazyRoute(() => import('@/features/accounting/pages/BalanceSheetPage').then((module) => ({ default: withAccountingGate(module.BalanceSheetPage) }))),
+    },
+    {
+      path: 'accounting/cash-flow',
+      element: createLazyRoute(() => import('@/features/accounting/pages/CashFlowStatementPage').then((module) => ({ default: withAccountingGate(module.CashFlowStatementPage) }))),
+    },
+    {
+      path: 'accounting/aged-debts',
+      element: createLazyRoute(() => import('@/features/accounting/pages/AgedDebtsPage').then((module) => ({ default: withAccountingGate(module.AgedDebtsPage) }))),
+    },
+    {
+      path: 'accounting/cheques',
+      element: createLazyRoute(() => import('@/features/accounting/pages/PdcChequesPage').then((module) => ({ default: withAccountingGate(module.PdcChequesPage) }))),
+    },
+    {
+      path: 'accounting/withholding-tax',
+      element: createLazyRoute(() => import('@/features/accounting/pages/WithholdingTaxPage').then((module) => ({ default: withAccountingGate(module.WithholdingTaxPage) }))),
+    },
   ],
   navigation: [
     { key: 'accounting-accounts', label: 'شجرة الحسابات', to: '/accounting/accounts' },
     { key: 'accounting-cost-centers', label: 'مراكز التكلفة', to: '/accounting/cost-centers' },
     { key: 'accounting-journal-entries', label: 'القيود اليومية', to: '/accounting/journal-entries' },
+    { key: 'accounting-cheques', label: 'حافظة الشيكات (PDC)', to: '/accounting/cheques' },
+    { key: 'accounting-withholding-tax', label: 'الخصم والإضافة (نموذج 41)', to: '/accounting/withholding-tax' },
+    { key: 'accounting-balance-sheet', label: 'الميزانية العمومية', to: '/accounting/balance-sheet' },
+    { key: 'accounting-cash-flow', label: 'قائمة التدفقات النقدية', to: '/accounting/cash-flow' },
+    { key: 'accounting-aged-debts', label: 'أعمار الديون', to: '/accounting/aged-debts' },
     { key: 'accounting-bank-reconciliation', label: 'التسويات البنكية', to: '/accounting/bank-reconciliation' },
     { key: 'accounting-fixed-assets', label: 'الأصول الثابتة والإهلاك', to: '/accounting/fixed-assets' },
     { key: 'accounting-settings', label: 'إعدادات الحسابات', to: '/accounting/settings' },

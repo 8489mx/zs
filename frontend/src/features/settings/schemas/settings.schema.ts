@@ -113,6 +113,7 @@ export const settingsFormSchema = z.object({
   printShowPiecesCount: z.boolean().default(true),
   printShowPaymentBreakdown: z.boolean().default(true),
   printShowDate: z.boolean().default(true),
+  printShowHijriDate: z.boolean().default(false),
   printShowItemOffers: z.boolean().default(true),
   printShowDiscountBreakdown: z.boolean().default(true),
   printShowSavingsBanner: z.boolean().default(true),

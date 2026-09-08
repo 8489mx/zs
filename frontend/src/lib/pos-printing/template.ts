@@ -2,6 +2,7 @@ import { escapeHtml } from '@/lib/browser';
 import type { AppSettings, Sale } from '@/types/domain';
 import { getPrintOption, getReceiptNumberLocale, isCompactReceipt, getReceiptTheme, formatDateTime, type PosPrintPageSize } from '@/lib/pos-printing/shared';
 import { buildCode128Svg } from '@/lib/barcode';
+import { formatHijriDate } from '@/lib/hijri';
 
 function resolveStoreIdentity(settings?: Partial<AppSettings> | null) {
   const brandName = String(settings?.storeName || 'متجر').trim() || 'متجر';
@@ -793,6 +794,8 @@ export function buildReceiptDocument(options: {
     : (showCashier && options.cashierName && options.cashierName !== '—' ? options.cashierName : '');
 
   const dateValue = showDate ? (options.dateText || formatDateTime(new Date())) : '';
+  const showHijriDate = getPrintOption(options.settings, 'printShowHijriDate', false);
+  const hijriDateValue = showHijriDate ? formatHijriDate(options.dateText || new Date()) : '';
 
   const metaRows = [
     ...(showDocumentType ? [{ label: 'نوع المستند', value: options.documentLabel || (options.isPurchase ? 'فاتورة شراء' : (options.isReturn ? 'إيصال مرتجع مبيعات' : 'فاتورة')) }] : []),
@@ -817,6 +820,7 @@ export function buildReceiptDocument(options: {
       ...(dateValue ? [{ label: 'التاريخ', value: dateValue }] : []),
       ...(cashierDisplayName ? [{ label: options.isPurchase ? 'المسؤول' : 'الكاشير', value: cashierDisplayName }] : []),
     ]),
+    ...(showHijriDate && hijriDateValue ? [{ label: 'التاريخ الهجري', value: hijriDateValue }] : []),
     ...(shouldShowParty ? [{ label: partyLabel, value: partyValue }] : []),
     ...(showDeliveryCustomerDetails && (options.orderType === 'delivery' || options.customerPhone) ? [
       ...(options.customerPhone ? [{ label: 'هاتف العميل', value: options.customerPhone }] : []),

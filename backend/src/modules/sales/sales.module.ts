@@ -21,12 +21,15 @@ import { CashierFraudRadarController } from './controllers/cashier-fraud-radar.c
 import { CashierFraudRadarService } from './services/cashier-fraud-radar.service';
 import { KdsController } from './controllers/kds.controller';
 import { KdsService } from './services/kds.service';
+import { SalesOrdersController } from './controllers/sales-orders.controller';
+import { SalesOrdersService } from './services/sales-orders.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
   controllers: [
     SalesController,
     QuotationsController,
+    SalesOrdersController,
     PosTerminalController,
     CustomerInstallmentsController,
     CashierFraudRadarController,
@@ -39,6 +42,7 @@ import { KdsService } from './services/kds.service';
     SalesQueryService,
     SalesWriteService,
     QuotationsService,
+    SalesOrdersService,
     PosTerminalService,
     CustomerInstallmentsService,
     CashierFraudRadarService,
@@ -48,6 +52,7 @@ import { KdsService } from './services/kds.service';
     SalesService,
     SalesFinanceService,
     QuotationsService,
+    SalesOrdersService,
     PosTerminalService,
     CustomerInstallmentsService,
     CashierFraudRadarService,

@@ -182,6 +182,7 @@ export interface AppSettings {
   printShowPiecesCount?: boolean;
   printShowPaymentBreakdown?: boolean;
   printShowDate?: boolean;
+  printShowHijriDate?: boolean;
   printShowItemOffers?: boolean;
   printShowDiscountBreakdown?: boolean;
   printShowSavingsBanner?: boolean;
