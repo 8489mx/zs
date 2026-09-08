@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
-import { CustomSelect } from '@/shared/ui/custom-select';
 import { getErrorMessage } from '@/lib/errors';
 import type { HrEmployee } from '@/types/domain';
 import { useHrMutations, useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
@@ -16,7 +15,12 @@ import {
   normalizePhone,
   toId,
   type EmployeeEditDraft,
-} from '@/features/hr/pages/employee-edit/employee-edit.helpers';
+} from './employee-edit/employee-edit.helpers';
+import { EmployeePersonalInfoSection } from './employee-edit/EmployeePersonalInfoSection';
+import { EmployeeCompensationSection } from './employee-edit/EmployeeCompensationSection';
+import { EmployeeJobDetailsSection } from './employee-edit/EmployeeJobDetailsSection';
+import { EmployeeAttendancePolicySection } from './employee-edit/EmployeeAttendancePolicySection';
+import { EmployeeBankDetailsSection } from './employee-edit/EmployeeBankDetailsSection';
 
 export function EmployeeEditPage() {
   const navigate = useNavigate();
@@ -85,8 +89,6 @@ export function EmployeeEditPage() {
   function goToProfile() {
     navigate(id ? `/hr/employees/${id}` : '/hr/employees');
   }
-
-
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -164,376 +166,50 @@ export function EmployeeEditPage() {
     <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
-        title="تعديل بيانات الموظف"
-        description="تعديل بيانات الموظف الأساسية، الوظيفية، والدوام في صفحة واحدة مدمجة ومنظمة."
-        actions={(
-          <div className="compact-actions">
-            <Button type="button" variant="secondary" onClick={goToProfile} disabled={isBusy}>إلغاء</Button>
-            <Button type="button" onClick={() => { const formEl = document.getElementById('employee-edit-form') as HTMLFormElement; formEl?.requestSubmit(); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ التعديلات'}</Button>
-            <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
-          </div>
-        )}
-      />
+          title="تعديل بيانات الموظف"
+          description="تعديل بيانات الموظف الأساسية، الوظيفية، والدوام في صفحة واحدة مدمجة ومنظمة."
+          actions={(
+            <div className="compact-actions">
+              <Button type="button" variant="secondary" onClick={goToProfile} disabled={isBusy}>إلغاء</Button>
+              <Button type="button" onClick={() => { const formEl = document.getElementById('employee-edit-form') as HTMLFormElement; formEl?.requestSubmit(); }} disabled={isBusy}>{isBusy ? 'جاري الحفظ...' : 'حفظ التعديلات'}</Button>
+              <Button variant="secondary" onClick={() => navigate('/hr/employees')}>رجوع للموظفين</Button>
+            </div>
+          )}
+        />
 
-      <QueryFeedback isLoading={profile.isLoading} isError={profile.isError} error={profile.error} isEmpty={!employee} loadingText="جاري تحميل بيانات الموظف..." errorTitle="تعذر تحميل بيانات الموظف" emptyTitle="لم يتم العثور على الموظف.">
-        <form id="employee-edit-form" onSubmit={(event) => { void handleSubmit(event); }}>
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            
-          {/* Top Row: Personal Data (Right) & Compensation (Left) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px', alignItems: 'stretch' }}>
-            
-            {/* Top Right: Personal Data */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>البيانات الأساسية والتعريف (إجباري)</span>
+        <QueryFeedback isLoading={profile.isLoading} isError={profile.isError} error={profile.error} isEmpty={!employee} loadingText="جاري تحميل بيانات الموظف..." errorTitle="تعذر تحميل بيانات الموظف" emptyTitle="لم يتم العثور على الموظف.">
+          <form id="employee-edit-form" onSubmit={(event) => { void handleSubmit(event); }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>كود الموظف</label>
-                  <input
-                    value={draft.employeeNo}
-                    onChange={(e) => setDraft((current) => ({ ...current, employeeNo: e.target.value }))}
-                    placeholder="كود الموظف"
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الاسم الأول <span style={{ color: '#dc2626' }}>*</span></label>
-                  <input
-                    value={draft.firstName}
-                    onChange={(e) => setDraft((current) => ({ ...current, firstName: e.target.value }))}
-                    required
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>اسم العائلة</label>
-                  <input
-                    value={draft.lastName}
-                    onChange={(e) => setDraft((current) => ({ ...current, lastName: e.target.value }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الموبايل <span style={{ color: '#dc2626' }}>*</span></label>
-                  <input
-                    value={draft.mobile}
-                    onChange={(e) => setDraft((current) => ({ ...current, mobile: e.target.value }))}
-                    placeholder="01xxxxxxxxx"
-                    inputMode="tel"
-                    dir="ltr"
-                    required
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', textAlign: 'right', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>تاريخ التعيين <span style={{ color: '#dc2626' }}>*</span></label>
-                  <input
-                    type="date"
-                    value={draft.hireDate}
-                    onChange={(e) => setDraft((current) => ({ ...current, hireDate: e.target.value }))}
-                    required
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>حالة الموظف</label>
-                  <CustomSelect
-                    value={draft.status}
-                    onChange={(val) => setDraft((current) => ({ ...current, status: val === 'inactive' ? 'inactive' : 'active' }))}
-                    options={[
-                      { value: 'active', label: 'نشط' },
-                      { value: 'inactive', label: 'غير نشط' },
-                    ]}
-                  />
-                </div>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الرقم القومي (14 رقم)</label>
-                  <input
-                    value={draft.nationalId}
-                    onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))}
-                    placeholder="اختياري - 14 رقم"
-                    inputMode="numeric"
-                    maxLength={14}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
+              {/* Top Row: Personal Data (Right) & Compensation (Left) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px', alignItems: 'stretch' }}>
+                <EmployeePersonalInfoSection draft={draft} setDraft={setDraft} />
+                <EmployeeCompensationSection draft={draft} setDraft={setDraft} />
               </div>
-            </div>
 
-            {/* Top Left: Compensation */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>نظام الأجور والراتب</span>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>نوع الأجر</label>
-                  <CustomSelect
-                    value={draft.compensationType}
-                    onChange={(val) => setDraft((current) => ({ ...current, compensationType: val === 'hourly' ? 'hourly' : 'monthly' }))}
-                    options={[
-                      { value: 'monthly', label: 'راتب شهري ثابت' },
-                      { value: 'hourly', label: 'أجر بالساعة' },
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>دورة القبض</label>
-                  <CustomSelect
-                    value={draft.payFrequency}
-                    onChange={(val) => setDraft((current) => ({ ...current, payFrequency: val as any }))}
-                    options={[
-                      { value: 'monthly', label: 'شهري' },
-                      { value: 'weekly', label: 'أسبوعي' },
-                      { value: 'biweekly', label: 'نصف شهري' },
-                      { value: 'daily', label: 'يومي' },
-                    ]}
-                  />
-                </div>
-
-                {draft.compensationType === 'hourly' ? (
-                  <>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>أجر الساعة (ج.م)</label>
-                      <input
-                        inputMode="decimal"
-                        min="0"
-                        value={draft.hourlyRate}
-                        onChange={(e) => setDraft((current) => ({ ...current, hourlyRate: e.target.value }))}
-                        style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>ساعات العمل اليومية</label>
-                      <input
-                        inputMode="decimal"
-                        min="0"
-                        value={draft.expectedDailyHours}
-                        onChange={(e) => setDraft((current) => ({ ...current, expectedDailyHours: e.target.value }))}
-                        style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الراتب التأميني</label>
-                    <input
-                      inputMode="decimal"
-                      min="0"
-                      value={draft.insuranceSalary}
-                      onChange={(e) => setDraft((current) => ({ ...current, insuranceSalary: e.target.value }))}
-                      placeholder="اختياري"
-                      style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                )}
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>التأمينات والضرائب</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 14px', minHeight: '38px', boxSizing: 'border-box' }}>
-                    <label style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', margin: 0, userSelect: 'none' }}>
-                      <input type="checkbox" checked={draft.hasSocialInsurance} onChange={(e) => setDraft((current) => ({ ...current, hasSocialInsurance: e.target.checked }))} style={{ width: '16px', height: '16px', margin: 0, cursor: 'pointer' }} />
-                      <span style={{ whiteSpace: 'nowrap' }}>تأمينات اجتماعية</span>
-                    </label>
-                    <label style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', margin: 0, userSelect: 'none' }}>
-                      <input type="checkbox" checked={draft.hasIncomeTax} onChange={(e) => setDraft((current) => ({ ...current, hasIncomeTax: e.target.checked }))} style={{ width: '16px', height: '16px', margin: 0, cursor: 'pointer' }} />
-                      <span style={{ whiteSpace: 'nowrap' }}>ضريبة كسب عمل</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Bottom Row: Organizational Data (Right) & Working Hours (Left) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px', alignItems: 'stretch' }}>
-            
-            {/* Bottom Right: Organizational */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>البيانات الوظيفية والتعيين</span>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>القسم</label>
-                  <CustomSelect
-                    value={draft.departmentId}
-                    onChange={(val) => setDraft((current) => ({ ...current, departmentId: val }))}
-                    options={[
-                      { value: '', label: 'اختيار' },
-                      ...departments.map((entry) => ({ value: entry.id, label: entry.name })),
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>المسمى الوظيفي</label>
-                  <CustomSelect
-                    value={draft.jobTitleId}
-                    onChange={(val) => setDraft((current) => ({ ...current, jobTitleId: val }))}
-                    options={[
-                      { value: '', label: 'اختيار' },
-                      ...jobTitles.map((entry) => ({ value: entry.id, label: entry.name })),
-                    ]}
-                  />
-                </div>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>الوظيفة/المنصب</label>
-                  <CustomSelect
-                    value={draft.positionId}
-                    onChange={(val) => setDraft((current) => ({ ...current, positionId: val }))}
-                    options={[
-                      { value: '', label: 'اختيار' },
-                      ...positions.map((entry) => ({ value: entry.id, label: entry.name })),
-                    ]}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Left: Attendance & Working Hours */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>مواعيد الدوام وسياسات الحضور</span>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>موعد الحضور</label>
-                  <input
-                    type="time"
-                    value={draft.scheduledCheckInTime}
-                    onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckInTime: e.target.value }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>موعد الانصراف</label>
-                  <input
-                    type="time"
-                    value={draft.scheduledCheckOutTime}
-                    onChange={(e) => setDraft((current) => ({ ...current, scheduledCheckOutTime: e.target.value }))}
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>فترة السماح (دقائق)</label>
-                  <input
-                    inputMode="numeric"
-                    value={draft.graceMinutes}
-                    onChange={(e) => setDraft((current) => ({ ...current, graceMinutes: e.target.value }))}
-                    placeholder="15"
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>رصيد الإجازات السنوي</label>
-                  <input
-                    inputMode="numeric"
-                    value={draft.annualLeaveBalance}
-                    onChange={(e) => setDraft((current) => ({ ...current, annualLeaveBalance: e.target.value }))}
-                    placeholder="21"
-                    style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>سياسة التأخير</label>
-                  <CustomSelect
-                    value={draft.delayPolicy}
-                    onChange={(val) => setDraft((current) => ({ ...current, delayPolicy: val }))}
-                    options={[
-                      { value: 'inherit', label: 'حسب سياسة المؤسسة' },
-                      { value: 'standard', label: 'قياسي (دقائق)' },
-                      { value: 'progressive', label: 'تصاعدي' },
-                      { value: 'strict', label: 'صارم' },
-                      { value: 'disabled', label: 'معطل' },
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>سياسة الإضافي</label>
-                  <CustomSelect
-                    value={draft.overtimePolicy}
-                    onChange={(val) => setDraft((current) => ({ ...current, overtimePolicy: val as any }))}
-                    options={[
-                      { value: 'review_only', label: 'مراجعة واعتماد' },
-                      { value: 'auto_approved', label: 'اعتماد تلقائي' },
-                      { value: 'disabled', label: 'معطل' },
-                    ]}
-                  />
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-
-          {/* Bank & WPS Details Card */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>البيانات البنكية وحماية الأجور (WPS / SIF)</span>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>مطلوب للتحويلات البنكية المباشرة ونظام حماية الأجور</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>اسم البنك</label>
-                <input
-                  value={draft.bankName || ''}
-                  onChange={(e) => setDraft((current) => ({ ...current, bankName: e.target.value }))}
-                  placeholder="مثال: مصرف الراجحي / البنك الأهلي"
-                  style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+              {/* Bottom Row: Organizational Data (Right) & Working Hours (Left) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px', alignItems: 'stretch' }}>
+                <EmployeeJobDetailsSection
+                  draft={draft}
+                  setDraft={setDraft}
+                  departments={departments}
+                  jobTitles={jobTitles}
+                  positions={positions}
                 />
+                <EmployeeAttendancePolicySection draft={draft} setDraft={setDraft} />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>رقم الحساب البنكي</label>
-                <input
-                  value={draft.bankAccountNumber || ''}
-                  onChange={(e) => setDraft((current) => ({ ...current, bankAccountNumber: e.target.value }))}
-                  placeholder="رقم الحساب البنكي"
-                  style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>رقم الآيبان الدولي (IBAN)</label>
-                <input
-                  value={draft.iban || ''}
-                  onChange={(e) => setDraft((current) => ({ ...current, iban: e.target.value.toUpperCase() }))}
-                  placeholder="SA0000000000000000000000"
-                  dir="ltr"
-                  style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box', textAlign: 'left', fontFamily: 'monospace' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>رمز السويفت / كود البنك (SWIFT / Routing)</label>
-                <input
-                  value={draft.bankSwiftCode || ''}
-                  onChange={(e) => setDraft((current) => ({ ...current, bankSwiftCode: e.target.value.toUpperCase() }))}
-                  placeholder="مثال: RJHI / NCBK"
-                  dir="ltr"
-                  style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box', textAlign: 'left', fontFamily: 'monospace' }}
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Bottom Section: Notes & Submit */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>ملاحظات إدارية (اختياري)</label>
-              <input
-                value={draft.notes}
-                onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))}
-                placeholder="أدخل أي ملاحظات إدارية على ملف الموظف..."
-                style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+              {/* Bank & WPS Details Card & Submit Section */}
+              <EmployeeBankDetailsSection
+                draft={draft}
+                setDraft={setDraft}
+                submitError={submitError}
+                isBusy={isBusy}
+                onCancel={goToProfile}
               />
             </div>
-
-            {submitError ? <div className="error-box" style={{ margin: 0 }}>{submitError}</div> : null}
-
-            <div className="actions compact-actions" style={{ justifyContent: 'flex-start', gap: '10px', marginTop: '4px' }}>
-              <Button type="submit" disabled={isBusy} style={{ minWidth: '140px' }}>{isBusy ? 'جاري الحفظ...' : 'حفظ التعديلات'}</Button>
-              <Button type="button" variant="secondary" onClick={goToProfile} disabled={isBusy}>إلغاء</Button>
-            </div>
-          </div>
-
-          </div>
-        </form>
-      </QueryFeedback>
+          </form>
+        </QueryFeedback>
       </main>
     </div>
   );

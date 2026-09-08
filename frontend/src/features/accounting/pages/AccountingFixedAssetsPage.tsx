@@ -2,26 +2,13 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
-import { Field } from '@/shared/ui/field';
 import { formatCurrency } from '@/lib/format';
 import { accountingApi, type FixedAsset } from '@/features/accounting/api/accounting.api';
-import { Trash2Icon } from '@/shared/components/icons/AppIcons';
 import { StatsGrid } from '@/shared/components/stats-grid';
-
-const categoryLabels: Record<string, string> = {
-  general: 'عام',
-  equipment: 'معدات وأجهزة',
-  vehicle: 'سيارات ونقل',
-  building: 'مباني وعقارات',
-  furniture: 'أثاث وتجهيزات',
-  it: 'أجهزة حاسوب وتقنية',
-};
-
-const statusLabels: Record<string, { label: string; bg: string; color: string }> = {
-  active: { label: 'نشط ويعمل', bg: '#dcfce7', color: '#166534' },
-  fully_depreciated: { label: 'مستهلك بالكامل', bg: '#fef3c7', color: '#92400e' },
-  retired: { label: 'مستبعد / متقاعد', bg: '#fee2e2', color: '#991b1b' },
-};
+import { AddFixedAssetModal } from '../components/fixed-assets/AddFixedAssetModal';
+import { DepreciateAssetModal, BatchDepreciateModal } from '../components/fixed-assets/DepreciateModals';
+import { FixedAssetsTable } from '../components/fixed-assets/FixedAssetsTable';
+import { FixedAssetsLogsTable } from '../components/fixed-assets/FixedAssetsLogsTable';
 
 export function AccountingFixedAssetsPage() {
   const queryClient = useQueryClient();
@@ -213,385 +200,65 @@ export function AccountingFixedAssetsPage() {
         <StatsGrid items={stats} />
 
         {activeTab === 'assets' ? (
-          /* Assets Tab */
-          <section className="document-prototype-section">
-            <div className="section-header-compact-row">
-              <h3 className="document-prototype-section-title">سجل الأصول الرأسمالية</h3>
-              <div className="section-header-actions-group">
-                <span className="muted small">عرض {filteredAssets.length} من {assets.length} أصل</span>
-              </div>
-            </div>
-            {/* Filters Bar */}
-          <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              placeholder="بحث بالاسم أو الكود..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ minWidth: '240px', padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-            />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#fff' }}
-            >
-              <option value="all">كل التصنيفات</option>
-              <option value="equipment">معدات وأجهزة</option>
-              <option value="vehicle">سيارات ونقل</option>
-              <option value="building">مباني وعقارات</option>
-              <option value="furniture">أثاث وتجهيزات</option>
-              <option value="it">أجهزة حاسوب وتقنية</option>
-              <option value="general">عام</option>
-            </select>
-            <span style={{ fontSize: '13px', color: '#64748b', marginRight: 'auto' }}>
-              عرض {filteredAssets.length} من {assets.length} أصل
-            </span>
-          </div>
-
-          {/* Table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '12px 14px' }}>الكود</th>
-                  <th style={{ padding: '12px 14px' }}>اسم الأصل</th>
-                  <th style={{ padding: '12px 14px' }}>التصنيف</th>
-                  <th style={{ padding: '12px 14px' }}>تاريخ الشراء</th>
-                  <th style={{ padding: '12px 14px' }}>التكلفة</th>
-                  <th style={{ padding: '12px 14px' }}>طريقة الإهلاك</th>
-                  <th style={{ padding: '12px 14px' }}>مجمع الإهلاك</th>
-                  <th style={{ padding: '12px 14px' }}>صافي القيمة الدفترية</th>
-                  <th style={{ padding: '12px 14px' }}>الحالة</th>
-                  <th style={{ padding: '12px 14px', textAlign: 'center' }}>الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAssets.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                      لا توجد أصول ثابتة مسجلة بعد. اضغط على "+ إضافة أصل جديد" للبدء.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAssets.map((asset) => {
-                    const st = statusLabels[asset.status] || { label: asset.status, bg: '#f1f5f9', color: '#475569' };
-                    return (
-                      <tr key={asset.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 14px', fontWeight: 700, color: '#1e293b' }}>{asset.code}</td>
-                        <td style={{ padding: '12px 14px', fontWeight: 600 }}>{asset.name}</td>
-                        <td style={{ padding: '12px 14px', color: '#64748b' }}>{categoryLabels[asset.category] || asset.category}</td>
-                        <td style={{ padding: '12px 14px', color: '#64748b' }}>{asset.purchase_date ? new Date(asset.purchase_date).toLocaleDateString('ar-EG') : '—'}</td>
-                        <td style={{ padding: '12px 14px', fontWeight: 700 }}>{formatCurrency(Number(asset.purchase_cost))}</td>
-                        <td style={{ padding: '12px 14px', color: '#475569' }}>
-                          {asset.depreciation_method === 'declining_balance' ? (
-                            <span style={{ color: '#7c3aed', fontWeight: 600 }}>قسط متناقص</span>
-                          ) : (
-                            <span style={{ color: '#0284c7', fontWeight: 600 }}>قسط ثابت ({asset.useful_life_months} شهر)</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '12px 14px', color: '#d97706', fontWeight: 700 }}>{formatCurrency(Number(asset.accumulated_depreciation))}</td>
-                        <td style={{ padding: '12px 14px', color: '#16a34a', fontWeight: 800 }}>{formatCurrency(Number(asset.book_value))}</td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <span style={{ background: st.bg, color: st.color, padding: '3px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 700 }}>
-                            {st.label}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                          <div style={{ display: 'inline-flex', gap: '6px' }}>
-                            {asset.status === 'active' && (
-                              <button
-                                type="button"
-                                onClick={() => setDepreciateModalAsset(asset)}
-                                title="إهلاك يدوي للأصل وتوليد قيد"
-                                style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}
-                              >
-                                إهلاك
-                              </button>
-                            )}
-                              <button
-                              type="button"
-                              onClick={() => {
-                                if (window.confirm(`هل أنت متأكد من حذف أو استبعاد الأصل: ${asset.name}؟`)) {
-                                  deleteMutation.mutate(asset.id);
-                                }
-                              }}
-                              title="استبعاد أو حذف الأصل"
-                              style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '5px 8px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                              <Trash2Icon size={14} color="#991b1b" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : (
-        /* Logs Tab */
-        <section className="document-prototype-section">
-          <div className="section-header-compact-row">
-            <h3 className="document-prototype-section-title">سجل عمليات الإهلاك والقيود اليومية الآلية</h3>
-            <div className="section-header-actions-group">
-              <span className="nav-pill">{logs.length} قيد محاسبي</span>
-            </div>
-          </div>
-          <p className="muted small section-header-subtitle">
-            سجل القيود المحاسبية المولدة آلياً في شجرة الحسابات مع أرقام القيود ومجمعات الإهلاك.
-          </p>
-          <div style={{ overflowX: 'auto', marginTop: '14px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13.5px' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
-                  <th style={{ padding: '10px 12px' }}>تاريخ العملية</th>
-                  <th style={{ padding: '10px 12px' }}>الأصل</th>
-                  <th style={{ padding: '10px 12px' }}>قيمة الإهلاك</th>
-                  <th style={{ padding: '10px 12px' }}>مجمع الإهلاك الجديد</th>
-                  <th style={{ padding: '10px 12px' }}>القيمة الدفترية المتبقية</th>
-                  <th style={{ padding: '10px 12px' }}>رقم القيد المحاسبي</th>
-                  <th style={{ padding: '10px 12px' }}>البيان / الملاحظة</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                      لا توجد قيود إهلاك مسجلة حتى الآن.
-                    </td>
-                  </tr>
-                ) : (
-                  logs.map((l) => (
-                    <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px 12px', color: '#64748b' }}>{new Date(l.period_date).toLocaleString('ar-EG')}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{l.asset_name || `أصل #${l.asset_id}`} ({l.asset_code || ''})</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 700, color: '#dc2626' }}>{formatCurrency(Number(l.depreciation_amount))}</td>
-                      <td style={{ padding: '10px 12px', color: '#d97706' }}>{formatCurrency(Number(l.accumulated_amount))}</td>
-                      <td style={{ padding: '10px 12px', color: '#16a34a', fontWeight: 700 }}>{formatCurrency(Number(l.book_value))}</td>
-                      <td style={{ padding: '10px 12px' }}>
-                        <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '12px' }}>
-                          {l.journal_entry_no || `JE-${l.journal_entry_id}`}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 12px', color: '#64748b', fontSize: '13px' }}>{l.note}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+          <FixedAssetsTable
+            assets={filteredAssets}
+            totalCount={assets.length}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            onDepreciate={(asset) => setDepreciateModalAsset(asset)}
+            onDelete={(asset) => {
+              if (window.confirm(`هل أنت متأكد من حذف أو استبعاد الأصل: ${asset.name}؟`)) {
+                deleteMutation.mutate(asset.id);
+              }
+            }}
+          />
+        ) : (
+          <FixedAssetsLogsTable logs={logs} />
+        )}
       </main>
 
-      {/* Modal: Add New Asset */}
-      {addModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '600px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#170e5e', marginBottom: '16px' }}>+ إضافة أصل ثابت جديد</h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
-              <Field label="كود الأصل *">
-                <input
-                  type="text"
-                  placeholder="مثال: AST-001"
-                  value={newAsset.code}
-                  onChange={(e) => setNewAsset({ ...newAsset, code: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
+      <AddFixedAssetModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        asset={newAsset}
+        setAsset={setNewAsset}
+        isPending={createMutation.isPending}
+        onSubmit={() => createMutation.mutate(newAsset)}
+      />
 
-              <Field label="اسم الأصل *">
-                <input
-                  type="text"
-                  placeholder="مثال: سيارة نقل تويوتا"
-                  value={newAsset.name}
-                  onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
+      <DepreciateAssetModal
+        asset={depreciateModalAsset}
+        months={depreciateMonths}
+        setMonths={setDepreciateMonths}
+        note={depreciateNote}
+        setNote={setDepreciateNote}
+        isPending={depreciateMutation.isPending}
+        onClose={() => setDepreciateModalAsset(null)}
+        onSubmit={() => {
+          if (depreciateModalAsset) {
+            depreciateMutation.mutate({
+              id: depreciateModalAsset.id,
+              months: depreciateMonths,
+              note: depreciateNote,
+            });
+          }
+        }}
+      />
 
-              <Field label="التصنيف">
-                <select
-                  value={newAsset.category}
-                  onChange={(e) => setNewAsset({ ...newAsset, category: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff' }}
-                >
-                  <option value="equipment">معدات وأجهزة</option>
-                  <option value="vehicle">سيارات ونقل</option>
-                  <option value="building">مباني وعقارات</option>
-                  <option value="furniture">أثاث وتجهيزات</option>
-                  <option value="it">أجهزة حاسوب وتقنية</option>
-                  <option value="general">عام</option>
-                </select>
-              </Field>
-
-              <Field label="تاريخ الشراء">
-                <input
-                  type="date"
-                  value={newAsset.purchaseDate}
-                  onChange={(e) => setNewAsset({ ...newAsset, purchaseDate: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
-
-              <Field label="تكلفة الشراء الأصلية *">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={newAsset.purchaseCost}
-                  onChange={(e) => setNewAsset({ ...newAsset, purchaseCost: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
-
-              <Field label="القيمة التخريدية (الخردة)">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={newAsset.salvageValue}
-                  onChange={(e) => setNewAsset({ ...newAsset, salvageValue: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
-
-              <Field label="العمر الإنتاجي (بالأشهر)">
-                <input
-                  type="number"
-                  placeholder="60 (5 سنوات)"
-                  value={newAsset.usefulLifeMonths}
-                  onChange={(e) => setNewAsset({ ...newAsset, usefulLifeMonths: e.target.value })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
-
-              <Field label="طريقة الإهلاك المحاسبي">
-                <select
-                  value={newAsset.depreciationMethod}
-                  onChange={(e) => setNewAsset({ ...newAsset, depreciationMethod: e.target.value as any })}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff' }}
-                >
-                  <option value="straight_line">القسط الثابت (Straight-Line)</option>
-                  <option value="declining_balance">القسط المتناقص المضاعف (Declining Balance)</option>
-                </select>
-              </Field>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-              <Button type="button" variant="secondary" onClick={() => setAddModalOpen(false)}>
-                إلغاء
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => createMutation.mutate(newAsset)}
-                disabled={!newAsset.code || !newAsset.name || !Number(newAsset.purchaseCost) || createMutation.isPending}
-                style={{ background: '#170e5e', color: '#fff' }}
-              >
-                {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ الأصل'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Single Asset Depreciate */}
-      {depreciateModalAsset && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '480px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#170e5e', marginBottom: '14px' }}>
-              إهلاك الأصل: {depreciateModalAsset.name}
-            </h3>
-            <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px' }}>
-              سيقوم النظام بحساب الإهلاك للفترة المحددة وتوليد قيد يومية محاسبي آلي في شجرة الحسابات (من حـ/ مصروف الإهلاك إلى حـ/ مجمع الإهلاك).
-            </p>
-
-            <div style={{ marginBottom: '14px' }}>
-              <Field label="عدد الشهور المطلوب إهلاكها">
-                <input
-                  type="number"
-                  min="1"
-                  max="120"
-                  value={depreciateMonths}
-                  onChange={(e) => setDepreciateMonths(Math.max(1, Number(e.target.value)))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <Field label="ملاحظة أو بيان القيد (اختياري)">
-                <input
-                  type="text"
-                  placeholder="مثال: إهلاك شهر سبتمبر 2026"
-                  value={depreciateNote}
-                  onChange={(e) => setDepreciateNote(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <Button type="button" variant="secondary" onClick={() => setDepreciateModalAsset(null)}>
-                إلغاء
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => depreciateMutation.mutate({ id: depreciateModalAsset.id, months: depreciateMonths, note: depreciateNote })}
-                disabled={depreciateMutation.isPending}
-                style={{ background: '#170e5e', color: '#fff' }}
-              >
-                {depreciateMutation.isPending ? 'جاري التنفيذ والتسجيل...' : 'تأكيد وتوليد القيد'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Batch Depreciate All */}
-      {batchDepreciateOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '500px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#b45309', marginBottom: '14px' }}>
-              إهلاك شهري شامل لجميع الأصول النشطة
-            </h3>
-            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '16px', lineHeight: 1.6 }}>
-              سيتم فحص كافة الأصول النشطة ({summary.activeCount} أصل) واحتساب إهلاك الدورة وتوليد القيود المحاسبية وتحديث مجمع الإهلاك لكل أصل تلقائياً.
-            </p>
-
-            <div style={{ marginBottom: '16px' }}>
-              <Field label="عدد شهور الإهلاك">
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={batchMonths}
-                  onChange={(e) => setBatchMonths(Math.max(1, Number(e.target.value)))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                />
-              </Field>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <Button type="button" variant="secondary" onClick={() => setBatchDepreciateOpen(false)}>
-                إلغاء
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => batchDepreciateMutation.mutate({ months: batchMonths, note: `إهلاك دوري مجمع لعدد ${batchMonths} شهر` })}
-                disabled={batchDepreciateMutation.isPending}
-                style={{ background: '#170e5e', color: '#fff', fontWeight: 700 }}
-              >
-                {batchDepreciateMutation.isPending ? 'جاري المعالجة والترحيل...' : 'بدء الإهلاك الشامل'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BatchDepreciateModal
+        isOpen={batchDepreciateOpen}
+        activeCount={summary.activeCount}
+        months={batchMonths}
+        setMonths={setBatchMonths}
+        isPending={batchDepreciateMutation.isPending}
+        onClose={() => setBatchDepreciateOpen(false)}
+        onSubmit={() => batchDepreciateMutation.mutate({
+          months: batchMonths,
+          note: `إهلاك دوري مجمع لعدد ${batchMonths} شهر`,
+        })}
+      />
     </div>
   );
 }

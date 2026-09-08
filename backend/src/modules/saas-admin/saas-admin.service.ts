@@ -29,6 +29,10 @@ export class SaasAdminService {
     private readonly authCache: AuthCacheService = new AuthCacheService(),
   ) {}
 
+  private plansCache: { data: Record<string, unknown>[]; expiresAt: number } | null = null;
+  private featurePlansCache: { data: Record<string, unknown>[]; expiresAt: number } | null = null;
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000;
+
   private assertPlatformAccess(auth: AuthContext): void {
     if (auth.role !== 'super_admin') {
       throw new ForbiddenException('غير مسموح: هذه الشاشة مخصصة لمسؤول المنصة فقط.');
@@ -393,7 +397,13 @@ export class SaasAdminService {
 
   async listPlans(auth: AuthContext): Promise<Record<string, unknown>[]> {
     this.assertPlatformAccess(auth);
-    return await this.db.selectFrom('saas_plans').selectAll().orderBy('price', 'asc').execute();
+    const now = Date.now();
+    if (this.plansCache && this.plansCache.expiresAt > now) {
+      return this.plansCache.data;
+    }
+    const plans = await this.db.selectFrom('saas_plans').selectAll().orderBy('price', 'asc').execute();
+    this.plansCache = { data: plans, expiresAt: now + this.CACHE_TTL_MS };
+    return plans;
   }
 
   async listFeaturePlans(auth: AuthContext): Promise<Record<string, unknown>[]> {
@@ -403,6 +413,7 @@ export class SaasAdminService {
 
   async createPlan(body: CreateSaasPlanDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertPlatformAccess(auth);
+    this.plansCache = null;
     const result = await this.db.insertInto('saas_plans').values({
       code: body.code,
       name: body.name,
@@ -421,6 +432,7 @@ export class SaasAdminService {
 
   async updatePlan(id: number, body: UpdateSaasPlanDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertPlatformAccess(auth);
+    this.plansCache = null;
 
     const updateData: any = {};
     if (body.code !== undefined) updateData.code = body.code;
@@ -894,13 +906,19 @@ export class SaasAdminService {
 
 
   async developerListFeaturePlans(): Promise<Record<string, unknown>[]> {
+    const now = Date.now();
+    if (this.featurePlansCache && this.featurePlansCache.expiresAt > now) {
+      return this.featurePlansCache.data;
+    }
     const plans = await this.db.selectFrom('plans').selectAll().orderBy('price', 'asc').execute();
     const planFeatures = await this.db.selectFrom('plan_features').selectAll().execute();
     
-    return plans.map(p => ({
+    const result = plans.map(p => ({
       ...p,
       features: planFeatures.filter(f => f.plan_id === p.id).map(f => f.feature_code)
     }));
+    this.featurePlansCache = { data: result, expiresAt: now + this.CACHE_TTL_MS };
+    return result;
   }
 
   async developerUpdateTenantPlan(dto: { tenantId?: string; planId?: string; extraFeatures?: string[] }) {

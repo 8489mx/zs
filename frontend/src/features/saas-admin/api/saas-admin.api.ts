@@ -76,6 +76,8 @@ export interface SaasPlan {
   max_users: number | null;
   max_branches: number | null;
   feature_plan_id: string | null;
+  feature_plan_name?: string;
+  subscribers_count?: number;
   is_active: boolean;
   features?: string[];
   created_at: string;
@@ -148,9 +150,12 @@ export const saasAdminApi = {
     ),
   
   listPlans: () => http<SaasPlan[]>('/api/saas-admin/plans'),
+  getPlans: () => http<SaasPlan[]>('/api/saas-admin/plans'),
   listFeaturePlans: () => http<any[]>('/api/saas-admin/feature-plans'),
+  getFeaturePlans: () => http<any[]>('/api/saas-admin/feature-plans'),
   createPlan: (payload: { code: string; name: string; price: number; currency?: string; billingPeriodMonths: number; maxUsers?: number | null; maxBranches?: number | null; featurePlanId?: string | null }) => http<{ ok: boolean }>('/api/saas-admin/plans', { method: 'POST', body: JSON.stringify(payload) }),
   updatePlan: (id: number, payload: { code?: string; name?: string; price?: number; currency?: string; billingPeriodMonths?: number; maxUsers?: number | null; maxBranches?: number | null; isActive?: boolean; featurePlanId?: string | null }) => http<{ ok: boolean }>(`/api/saas-admin/plans/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
+  deletePlan: (id: number) => http<{ ok: boolean }>(`/api/saas-admin/plans/${id}`, { method: 'DELETE' }),
   getSubscriptions: (id: string) => http<{ subscriptions: any[]; payments: any[] }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/subscriptions`),
   renewTenant: (id: string, payload: { durationMonths: number; planId: number; paymentAmount?: number; paymentMethod?: string; paymentReference?: string }) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/renew`, { method: 'POST', body: JSON.stringify(payload) }),
   recordPayment: (id: string, payload: RecordPaymentPayload) => http<{ ok: boolean }>(`/api/saas-admin/tenants/${encodeURIComponent(id)}/payment`, { method: 'POST', body: JSON.stringify(payload) }),

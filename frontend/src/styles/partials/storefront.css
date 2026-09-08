@@ -1,0 +1,48 @@
+/* Storefront Responsive Layout Styles */
+.storefront-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.storefront-homepage-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+@media (max-width: 640px) {
+  .storefront-main-content {
+    padding: 8px 10px 80px !important;
+  }
+  .storefront-main-content .storefront-section-card {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+  .storefront-homepage-sections {
+    gap: 12px !important;
+  }
+  .storefront-products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .storefront-deals-header {
+    margin-bottom: 10px !important;
+    padding-bottom: 8px !important;
+  }
+  .storefront-deals-subtitle {
+    display: none !important;
+  }
+  .storefront-cat-shelf-header {
+    margin-bottom: 10px !important;
+    padding-bottom: 8px !important;
+  }
+  .storefront-home-btn-label {
+    display: none !important;
+  }
+  .storefront-filter-header {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+}

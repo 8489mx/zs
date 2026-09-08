@@ -36,7 +36,40 @@ export class SettingsService {
       this._planFeaturesCache.clear();
     }
   }
-  // ────────────────────────────────────────────────────────────────────────
+
+  // ── High-Speed In-Memory Caching for Settings, Branches & Locations (3 min) ─
+  private readonly _settingsCache = new Map<string, { data: Record<string, unknown>; expiresAt: number }>();
+  private readonly _branchesCache = new Map<string, { data: Record<string, unknown>; expiresAt: number }>();
+  private readonly _locationsCache = new Map<string, { data: Record<string, unknown>; expiresAt: number }>();
+  private readonly CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+  invalidateSettingsCache(tenantId?: string) {
+    if (tenantId) {
+      for (const key of this._settingsCache.keys()) {
+        if (key.startsWith(`${tenantId}:`)) this._settingsCache.delete(key);
+      }
+    } else {
+      this._settingsCache.clear();
+    }
+  }
+
+  invalidateBranchesCache(tenantId?: string) {
+    if (tenantId) {
+      this._branchesCache.delete(tenantId);
+    } else {
+      this._branchesCache.clear();
+    }
+  }
+
+  invalidateLocationsCache(tenantId?: string) {
+    if (tenantId) {
+      for (const key of this._locationsCache.keys()) {
+        if (key.startsWith(`${tenantId}:`)) this._locationsCache.delete(key);
+      }
+    } else {
+      this._locationsCache.clear();
+    }
+  }
 
   private scope(actor: AuthContext) { return requireTenantScope(actor); }
   private tenantPredicate(actor: AuthContext, alias?: string) {
@@ -67,6 +100,12 @@ export class SettingsService {
       || actor.permissions?.includes('canManageSettings')
       || actor.permissions?.includes('settings');
 
+    const cacheKey = `${scope.tenantId}:${Boolean(canManageSettings)}`;
+    const cached = this._settingsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { ...cached.data, scope };
+    }
+
     const rows = await this.db.selectFrom('settings').selectAll().where(this.tenantPredicate(actor)).execute();
     const settings = rows.reduce<Record<string, unknown>>((acc, row) => {
       if (!canManageSettings && this.sensitiveSettingKeys.has(row.key)) {
@@ -89,16 +128,31 @@ export class SettingsService {
       }
     }
 
+    this._settingsCache.set(cacheKey, { data: settings, expiresAt: Date.now() + this.CACHE_TTL_MS });
     return { ...settings, scope };
   }
 
   async listBranches(actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.scope(actor);
+    const cached = this._branchesCache.get(scope.tenantId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { ...cached.data, scope };
+    }
     const rows = await this.db.selectFrom('branches').select(['id', 'name', 'code', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock']).where('is_active', '=', true).where(this.tenantPredicate(actor)).orderBy('id', 'asc').execute();
-    return { branches: rows.map((row) => ({ id: String(row.id), name: row.name || '', code: row.code || '', defaultStockLocationId: row.default_stock_location_id ? String(row.default_stock_location_id) : null, salesStockMode: row.sales_stock_mode, allowExternalSalesStock: row.allow_external_sales_stock })), scope: this.scope(actor) };
+    const result = { branches: rows.map((row) => ({ id: String(row.id), name: row.name || '', code: row.code || '', defaultStockLocationId: row.default_stock_location_id ? String(row.default_stock_location_id) : null, salesStockMode: row.sales_stock_mode, allowExternalSalesStock: row.allow_external_sales_stock })) };
+    this._branchesCache.set(scope.tenantId, { data: result, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    return { ...result, scope };
   }
 
   async listLocations(actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(actor);
+    const isStorekeeperRestricted = actor.role === 'storekeeper' && !actor.permissions?.includes('canManageBranchStock');
+    const cacheKey = `${scope.tenantId}:${Boolean(isStorekeeperRestricted)}`;
+    const cached = this._locationsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { ...cached.data, scope };
+    }
+
     let query = this.db
       .selectFrom('stock_locations as l')
       .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 'l.branch_id').on(sql<boolean>`b.tenant_id = ${scope.tenantId} AND b.account_id = ${scope.accountId}`))
@@ -107,12 +161,14 @@ export class SettingsService {
       .where('l.location_type', '!=', 'in_transit')
       .orderBy('l.id', 'asc');
 
-    if (actor.role === 'storekeeper' && !actor.permissions?.includes('canManageBranchStock')) {
+    if (isStorekeeperRestricted) {
       query = query.where('l.location_type', '!=', 'branch_stock');
     }
 
     const rows = await query.execute();
-    return { locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', isActive: row.is_active, locationType: row.location_type })), scope };
+    const result = { locations: rows.map((row) => ({ id: String(row.id), name: row.name + (!row.is_active ? ' (محذوف)' : ''), code: row.code || '', branchId: row.branch_id ? String(row.branch_id) : '', branchName: row.branch_name || '', isActive: row.is_active, locationType: row.location_type })) };
+    this._locationsCache.set(cacheKey, { data: result, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    return { ...result, scope };
   }
 
   async saveSettings(payload: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
@@ -182,6 +238,7 @@ export class SettingsService {
     for (const [key, value] of Object.entries(normalizedPayload)) {
       await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db);
     }
+    this.invalidateSettingsCache(scope.tenantId);
     await this.audit.log('تعديل الإعدادات', `تم تعديل الإعدادات بواسطة ${actor.username}`, actor);
     return this.getSettings(actor);
   }
@@ -229,6 +286,8 @@ export class SettingsService {
       return newBranch;
     });
 
+    this.invalidateBranchesCache(scope.tenantId);
+    this.invalidateLocationsCache(scope.tenantId);
     await this.audit.log('إضافة فرع', `تمت إضافة الفرع ${name} بواسطة ${actor.username}`, actor);
     return { ok: true, branch: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '' }, ...(await this.listBranches(actor)) };
   }
@@ -269,11 +328,13 @@ export class SettingsService {
       if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);
     }
     const inserted = await this.db.insertInto('stock_locations').values({ name, code, branch_id: branchId, location_type: locationType as any, is_active: true, tenant_id: scope.tenantId, account_id: scope.accountId }).returning(['id', 'name', 'code', 'branch_id', 'location_type']).executeTakeFirstOrThrow();
+    this.invalidateLocationsCache(scope.tenantId);
     await this.audit.log('إضافة مخزن', `تمت إضافة المخزن ${name} بواسطة ${actor.username}`, actor);
     return { ok: true, location: { id: String(inserted.id), name: inserted.name || '', code: inserted.code || '', branchId: inserted.branch_id ? String(inserted.branch_id) : '', locationType: inserted.location_type }, ...(await this.listLocations(actor)) };
   }
 
   async updateBranch(id: number, payload: { name?: string; code?: string; defaultStockLocationId?: string | number | null; salesStockMode?: 'single_location' | 'all_operational_locations'; allowExternalSalesStock?: boolean; }, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.scope(actor);
     const branch = await this.db.selectFrom('branches').select(['id', 'name', 'default_stock_location_id']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);
     const name = String(payload.name || '').trim();
@@ -298,21 +359,26 @@ export class SettingsService {
       }
     });
 
+    this.invalidateBranchesCache(scope.tenantId);
+    this.invalidateLocationsCache(scope.tenantId);
     await this.audit.log('تعديل فرع', `تم تحديث الفرع #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, branchId: String(id), ...(await this.listBranches(actor)) };
   }
 
   async deleteBranch(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.scope(actor);
     const branch = await this.db.selectFrom('branches').select(['id']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);
     const linkedLocations = await this.db.selectFrom('stock_locations').select((eb) => eb.fn.countAll<number>().as('count')).where('branch_id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
     if (Number(linkedLocations.count || 0) > 0) throw new AppError('Branch still has active locations', 'BRANCH_HAS_LOCATIONS', 400);
     await this.db.updateTable('branches').set({ is_active: false }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+    this.invalidateBranchesCache(scope.tenantId);
     await this.audit.log('حذف فرع', `تم إلغاء تفعيل الفرع #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, removedBranchId: String(id), ...(await this.listBranches(actor)) };
   }
 
   async updateLocation(id: number, payload: { name?: string; code?: string; branchId?: string | number | null; locationType?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.scope(actor);
     const location = await this.db.selectFrom('stock_locations').select(['id', 'location_type']).where('id', '=', id).where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!location) throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
     const name = String(payload.name || '').trim();
@@ -335,11 +401,13 @@ export class SettingsService {
       if (!branch) throw new AppError('Branch not found', 'BRANCH_NOT_FOUND', 404);
     }
     await this.db.updateTable('stock_locations').set({ name, code, branch_id: branchId, location_type: locationType as any }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+    this.invalidateLocationsCache(scope.tenantId);
     await this.audit.log('تعديل مخزن', `تم تحديث المخزن #${id} بواسطة ${actor.username}`, actor);
     return { ok: true, locationId: String(id), ...(await this.listLocations(actor)) };
   }
 
   async deleteLocation(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.scope(actor);
     const location = await this.db.selectFrom('stock_locations').select(['id', 'is_active']).where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!location) throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
 
@@ -358,12 +426,14 @@ export class SettingsService {
 
       // Try to hard delete
       await this.db.deleteFrom('stock_locations').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      this.invalidateLocationsCache(scope.tenantId);
       await this.audit.log('حذف مخزن نهائي', `تم حذف المخزن #${id} نهائياً بواسطة ${actor.username}`, actor);
     } catch (error: any) {
       // If foreign key constraint fails (e.g. stock_movements), fallback to soft delete
       if (error.code === '23503') {
         if (location.is_active) {
           await this.db.updateTable('stock_locations').set({ is_active: false }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+          this.invalidateLocationsCache(scope.tenantId);
           await this.audit.log('أرشفة مخزن', `تم أرشفة المخزن #${id} لوجود حركات سابقة بواسطة ${actor.username}`, actor);
         }
       } else {

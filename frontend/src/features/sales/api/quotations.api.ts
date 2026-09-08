@@ -2,11 +2,15 @@ import { http } from '@/lib/http';
 
 export interface QuotationItem {
   id?: number;
-  productId: number;
-  productName: string;
+  productId?: number;
+  productName?: string;
+  product_name?: string;
   unitName?: string;
   quantity: number;
-  unitPrice: number;
+  unitPrice?: number;
+  unit_price?: number;
+  tax_rate?: number;
+  tax_amount?: number;
   discount?: number;
   total: number;
   notes?: string;
@@ -36,19 +40,28 @@ export interface QuotationRecord {
   items?: QuotationItem[];
 }
 
+export type Quotation = QuotationRecord;
+
 export interface CreateQuotationPayload {
   customerId?: number | null;
-  customerName: string;
+  customerName?: string;
+  customer_name?: string;
   customerPhone?: string;
+  customer_phone?: string;
   customerAddress?: string;
+  customer_address?: string;
   branchId?: number | null;
   subtotal: number;
   discountAmount?: number;
   taxAmount?: number;
-  totalAmount: number;
+  tax_amount?: number;
+  totalAmount?: number;
+  total_amount?: number;
   validUntil?: string;
+  valid_until?: string;
   notes?: string;
   termsConditions?: string;
+  terms_conditions?: string;
   items: QuotationItem[];
 }
 
@@ -81,7 +94,17 @@ export const quotationsApi = {
     }),
 
   convertToSale: (id: number) =>
-    http<{ ok: boolean; message: string; saleId: number; quotationId: number }>(`/api/quotations/${id}/convert-to-sale`, {
+    http<{ ok: boolean; message: string; saleId: number; quotationId: number; sale_id?: number }>(`/api/quotations/${id}/convert-to-sale`, {
       method: 'POST',
     }),
+
+  // Aliases for compatibility
+  getQuotations: (params?: { status?: string; search?: string }) =>
+    quotationsApi.list(params),
+
+  createQuotation: (payload: any) =>
+    quotationsApi.create(payload),
+
+  deleteQuotation: (id: number) =>
+    quotationsApi.delete(id),
 };

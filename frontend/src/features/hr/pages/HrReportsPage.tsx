@@ -3,18 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
-import { CustomSelect } from '@/shared/ui/custom-select';
-import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrEmployeeAsset, HrLeaveRequest, HrLoan, HrPayrollRun } from '@/types/domain';
-import {
-  UsersIcon,
-  ClockIcon,
-  CalendarIcon,
-  WalletIcon,
-  BriefcaseIcon,
-  BanknotesIcon,
-  AlertTriangleIcon,
-} from '@/features/hr/components/HrIcons';
 import {
   useHrAttendance,
   useHrEmployeeAssets,
@@ -22,7 +11,7 @@ import {
   useHrReportsSummary,
   useHrWorkspace,
 } from '@/features/hr/hooks/useHr';
-import { countText, employeeMatches, money, monthStartDate, normalize, reportTypeOptions, text, todayDate, type ReportType } from '@/features/hr/pages/reports/hr-reports.helpers';
+import { countText, employeeMatches, money, monthStartDate, normalize, text, todayDate, type ReportType } from '@/features/hr/pages/reports/hr-reports.helpers';
 import {
   employeeName,
   hasDueLoan,
@@ -35,6 +24,10 @@ import {
   needsAssetReview,
   payrollRunNeedsReview,
 } from '@/features/hr/pages/reports/hr-reports.page-helpers';
+import { HrReportsKpiBar } from '@/features/hr/pages/reports/HrReportsKpiBar';
+import { HrReportsFiltersToolbar } from '@/features/hr/pages/reports/HrReportsFiltersToolbar';
+import { HrReportsOverviewGrid } from '@/features/hr/pages/reports/HrReportsOverviewGrid';
+import { HrReportsDetailSections } from '@/features/hr/pages/reports/HrReportsDetailSections';
 
 export function HrReportsPage() {
   const navigate = useNavigate();
@@ -127,401 +120,59 @@ export function HrReportsPage() {
           }
         />
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          {/* Compact Single-Row KPI Summary Bar */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>لوحة المؤشرات المختصرة للموارد البشرية</span>
-              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>اضغط على أي مؤشر لتصفية نوع التقرير فوراً</span>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
-              {[
-                { label: 'إجمالي الموظفين', value: employeesReport.total, onClick: () => setReportType('employees'), isAlert: false, active: reportType === 'employees' },
-                { label: 'ملفات ناقصة', value: employeesReport.missingBasics, onClick: () => setReportType('employees'), isAlert: employeesReport.missingBasics > 0, active: reportType === 'employees' },
-                { label: 'سجلات الحضور', value: attendanceReport.total, onClick: () => setReportType('attendance'), isAlert: false, active: reportType === 'attendance' },
-                { label: 'طلبات الإجازة', value: leavesReport.total, onClick: () => setReportType('leaves'), isAlert: false, active: reportType === 'leaves' },
-                { label: 'سلف مفتوحة', value: loansReport.open, onClick: () => setReportType('loans'), isAlert: false, active: reportType === 'loans' },
-                { label: 'صافي المرتبات', value: payrollReport.totalNet, onClick: () => setReportType('payroll'), isAlert: false, active: reportType === 'payroll' },
-                { label: 'عُهد للمراجعة', value: assetsReport.needsReview, onClick: () => setReportType('assets'), isAlert: assetsReport.needsReview > 0, active: reportType === 'assets' },
-                { label: 'تنبيهات', value: alerts.length, onClick: () => setReportType('alerts'), isAlert: alerts.length > 0, active: reportType === 'alerts' },
-              ].map((stat, idx) => (
-                <div
-                  key={idx}
-                  onClick={stat.onClick}
-                  style={{
-                    background: stat.active ? '#eff6ff' : '#ffffff',
-                    border: `1px solid ${stat.active ? '#3b82f6' : stat.isAlert ? '#fca5a5' : '#e2e8f0'}`,
-                    borderRadius: '6px',
-                    padding: '8px 10px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px',
-                    transition: 'all 0.15s ease',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                    minWidth: 0,
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#94a3b8')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = stat.active ? '#3b82f6' : stat.isAlert ? '#fca5a5' : '#e2e8f0')}
-                >
-                  <span style={{ fontSize: '0.725rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.label}>
-                    {stat.label}
-                  </span>
-                  <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : stat.active ? '#1d4ed8' : '#0f172a', lineHeight: 1.2 }}>
-                    {stat.value}
-                  </strong>
-                </div>
-              ))}
-            </div>
-          </div>
+          <HrReportsKpiBar
+            reportType={reportType}
+            setReportType={setReportType}
+            employeesReport={employeesReport}
+            attendanceReport={attendanceReport}
+            leavesReport={leavesReport}
+            loansReport={loansReport}
+            payrollReport={payrollReport}
+            assetsReport={assetsReport}
+            alertsCount={alerts.length}
+          />
 
-          {/* Integrated Filters Toolbar - Single Row */}
-          <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '14px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="بحث بالاسم أو الكود..."
-              style={{ width: '190px', minWidth: '150px', height: '34px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
-            />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>من:</span>
-              <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} style={{ height: '34px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff', boxSizing: 'border-box' }} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>إلى:</span>
-              <input type="date" value={to} onChange={(event) => setTo(event.target.value)} style={{ height: '34px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff', boxSizing: 'border-box' }} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>الشهر:</span>
-              <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={{ height: '34px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff', boxSizing: 'border-box' }} />
-            </div>
-
-            <div style={{ width: '150px' }}>
-              <CustomSelect
-                value={departmentFilter}
-                onChange={(val) => setDepartmentFilter(val)}
-                options={[
-                  { value: 'all', label: 'كل الأقسام' },
-                  ...departmentOptions.map((option) => ({ value: option.value, label: option.label })),
-                ]}
-              />
-            </div>
-
-            <div style={{ width: '160px' }}>
-              <CustomSelect
-                value={reportType}
-                onChange={(val) => setReportType(val as ReportType)}
-                options={reportTypeOptions}
-              />
-            </div>
-
-          </div>
+          <HrReportsFiltersToolbar
+            search={search}
+            setSearch={setSearch}
+            from={from}
+            setFrom={setFrom}
+            to={to}
+            setTo={setTo}
+            month={month}
+            setMonth={setMonth}
+            departmentFilter={departmentFilter}
+            setDepartmentFilter={setDepartmentFilter}
+            departmentOptions={departmentOptions}
+            reportType={reportType}
+            setReportType={setReportType}
+          />
 
           <QueryFeedback isLoading={loading} isError={isError} error={error} isEmpty={!hasAnyData} loadingText="جارٍ تحميل التقارير..." errorTitle="تعذر تحميل تقارير الموارد البشرية" emptyTitle="لا توجد بيانات كافية لعرض التقرير.">
             {reportType === 'all' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* 2-Column High-Density Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
-                  {/* Employees Summary Card */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <UsersIcon size={16} style={{ color: 'var(--primary, #170c5c)' }} />
-                        <span>تقرير الموظفين</span>
-                      </strong>
-                      <Button variant="secondary" onClick={() => setReportType('employees')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض التفاصيل</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الإجمالي</span><strong style={{ fontSize: '0.95rem' }}>{employeesReport.total}</strong></div>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>نشط</span><strong style={{ fontSize: '0.95rem', color: '#166534' }}>{employeesReport.active}</strong></div>
-                      <div style={{ background: '#fff', border: `1px solid ${employeesReport.missingBasics > 0 ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>ملفات ناقصة</span><strong style={{ fontSize: '0.95rem', color: employeesReport.missingBasics > 0 ? '#dc2626' : '#0f172a' }}>{employeesReport.missingBasics}</strong></div>
-                    </div>
-                  </div>
-
-                  {/* Attendance Summary Card */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <ClockIcon size={16} style={{ color: 'var(--primary, #170c5c)' }} />
-                        <span>تقرير الحضور</span>
-                      </strong>
-                      <Button variant="secondary" onClick={() => setReportType('attendance')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض التفاصيل</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>سجلات الفترة</span><strong style={{ fontSize: '0.95rem' }}>{attendanceReport.total}</strong></div>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>حاضر</span><strong style={{ fontSize: '0.95rem', color: '#166534' }}>{attendanceReport.present}</strong></div>
-                      <div style={{ background: '#fff', border: `1px solid ${attendanceReport.absent !== '0' ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>غياب / استثناء</span><strong style={{ fontSize: '0.95rem', color: attendanceReport.absent !== '0' ? '#dc2626' : '#0f172a' }}>{attendanceReport.absent}</strong></div>
-                    </div>
-                  </div>
-
-                  {/* Leaves Summary Card */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <CalendarIcon size={16} style={{ color: 'var(--primary, #170c5c)' }} />
-                        <span>تقرير الإجازات</span>
-                      </strong>
-                      <Button variant="secondary" onClick={() => setReportType('leaves')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض التفاصيل</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الطلبات</span><strong style={{ fontSize: '0.95rem' }}>{leavesReport.total}</strong></div>
-                      <div style={{ background: '#fff', border: `1px solid ${leavesReport.pending !== '0' ? '#fde047' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>قيد المراجعة</span><strong style={{ fontSize: '0.95rem', color: leavesReport.pending !== '0' ? '#ca8a04' : '#0f172a' }}>{leavesReport.pending}</strong></div>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>معتمدة</span><strong style={{ fontSize: '0.95rem', color: '#166534' }}>{leavesReport.approved}</strong></div>
-                    </div>
-                  </div>
-
-                  {/* Loans Summary Card */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <WalletIcon size={16} style={{ color: 'var(--primary, #170c5c)' }} />
-                        <span>تقرير السلف والخصومات</span>
-                      </strong>
-                      <Button variant="secondary" onClick={() => setReportType('loans')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض التفاصيل</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>سلف مفتوحة</span><strong style={{ fontSize: '0.95rem' }}>{loansReport.open}</strong></div>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>مستحق الشهر</span><strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{money(loansReport.dueAmount)}</strong></div>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>المتبقي</span><strong style={{ fontSize: '0.95rem', color: '#2563eb' }}>{money(loansReport.remainingAmount)}</strong></div>
-                    </div>
-                  </div>
-
-                  {/* Payroll Summary Card */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <BanknotesIcon size={16} style={{ color: 'var(--primary, #170c5c)' }} />
-                        <span>تقرير المرتبات</span>
-                      </strong>
-                      <Button variant="secondary" onClick={() => setReportType('payroll')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض التفاصيل</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>المسيرات</span><strong style={{ fontSize: '0.95rem' }}>{payrollReport.runs}</strong></div>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>صافي المرتبات</span><strong style={{ fontSize: '0.95rem', color: '#166534' }}>{payrollReport.totalNet}</strong></div>
-                      <div style={{ background: '#fff', border: `1px solid ${payrollReport.needsReview !== '0' ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>يحتاج مراجعة</span><strong style={{ fontSize: '0.95rem', color: payrollReport.needsReview !== '0' ? '#dc2626' : '#0f172a' }}>{payrollReport.needsReview}</strong></div>
-                    </div>
-                  </div>
-
-                  {/* Assets Summary Card */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <BriefcaseIcon size={16} style={{ color: 'var(--primary, #170c5c)' }} />
-                        <span>تقرير العُهد</span>
-                      </strong>
-                      <Button variant="secondary" onClick={() => setReportType('assets')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>عرض التفاصيل</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '6px' }}>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الإجمالي</span><strong style={{ fontSize: '0.95rem' }}>{assetsReport.total}</strong></div>
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>مسلّمة</span><strong style={{ fontSize: '0.95rem', color: '#166534' }}>{assetsReport.assigned}</strong></div>
-                      <div style={{ background: '#fff', border: `1px solid ${assetsReport.needsReview > 0 ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px' }}><span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>تالف / مفقود</span><strong style={{ fontSize: '0.95rem', color: assetsReport.needsReview > 0 ? '#dc2626' : '#0f172a' }}>{assetsReport.needsReview}</strong></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Alerts Section */}
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <strong style={{ fontSize: '0.9rem', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <AlertTriangleIcon size={16} style={{ color: '#ea580c' }} />
-                      <span>تنبيهات تحتاج مراجعة</span>
-                    </strong>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{alerts.length} تنبيه</span>
-                  </div>
-                  {alerts.length ? (
-                    <DataTable
-                      density="compact"
-                      rows={alerts}
-                      rowKey={(row) => row.id}
-                      onRowClick={(row) => navigate(row.to)}
-                      columns={[
-                        { key: 'type', header: 'النوع', cell: (row) => row.type },
-                        { key: 'target', header: 'الموظف/الفترة', cell: (row) => row.target },
-                        { key: 'note', header: 'التنبيه', cell: (row) => row.note },
-                        { key: 'action', header: 'الإجراء', cell: (row) => <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); navigate(row.to); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{row.action}</Button> },
-                      ]}
-                    />
-                  ) : (
-                    <p className="muted" style={{ margin: 0, fontSize: '0.825rem' }}>لا توجد تنبيهات عاجلة، كافة العمليات تسير بشكل سليم.</p>
-                  )}
-                </div>
-              </div>
+              <HrReportsOverviewGrid
+                setReportType={setReportType}
+                employeesReport={employeesReport}
+                attendanceReport={attendanceReport}
+                leavesReport={leavesReport}
+                loansReport={loansReport}
+                payrollReport={payrollReport}
+                assetsReport={assetsReport}
+                alerts={alerts}
+              />
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Button variant="secondary" onClick={() => setReportType('all')} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>&rarr; رجوع لجميع التقارير</Button>
-                </div>
-
-                {reportType === 'employees' && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير الموظفين التفصيلي</strong>
-                      <Button variant="secondary" onClick={() => navigate('/hr/employees')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح صفحة الموظفين</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '8px', marginBottom: 12 }}>
-                      {[
-                        { label: 'إجمالي النتائج', value: employeesReport.total },
-                        { label: 'نشط', value: employeesReport.active },
-                        { label: 'غير نشط', value: employeesReport.inactive },
-                        { label: 'بدون رقم قومي', value: employeesReport.missingNationalId, isAlert: employeesReport.missingNationalId > 0 },
-                        { label: 'بدون قسم/مسمى', value: employeesReport.missingDepartmentOrTitle, isAlert: employeesReport.missingDepartmentOrTitle > 0 },
-                        { label: 'دوام ناقص', value: employeesReport.missingWorkSchedule, isAlert: employeesReport.missingWorkSchedule > 0 },
-                      ].map((stat, idx) => (
-                        <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
-                          <strong style={{ fontSize: '0.95rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : '#0f172a' }}>{stat.value}</strong>
-                        </div>
-                      ))}
-                    </div>
-                    <DataTable density="compact" rowKey={(row) => String(row.id)} rows={filteredEmployees.slice(0, 40)} onRowClick={(row) => navigate(`/hr/employees/${row.id}`)} columns={[{ key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) }, { key: 'name', header: 'اسم الموظف', cell: employeeName }, { key: 'department', header: 'القسم', cell: (row) => text(row.departmentName) }, { key: 'jobTitle', header: 'المسمى الوظيفي', cell: (row) => text(row.jobTitleName) }, { key: 'nationalId', header: 'الرقم القومي', cell: (row) => normalize(row.nationalId) ? 'موجود' : 'غير مسجل' }, { key: 'status', header: 'الحالة', cell: (row) => isActiveEmployee(row) ? 'نشط' : 'غير نشط' }]} />
-                  </div>
-                )}
-
-                {reportType === 'attendance' && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير الحضور التفصيلي</strong>
-                      <Button variant="secondary" onClick={() => navigate('/hr/attendance')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح الحضور</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '8px' }}>
-                      {[
-                        { label: 'إجمالي سجلات الفترة', value: attendanceReport.total },
-                        { label: 'حاضر', value: attendanceReport.present },
-                        { label: 'غائب', value: attendanceReport.absent, isAlert: attendanceReport.absent !== '0' },
-                        { label: 'متأخر', value: attendanceReport.late },
-                        { label: 'غير مسجل / يحتاج مراجعة', value: attendanceReport.needsReview, isAlert: attendanceReport.needsReview !== '0' },
-                      ].map((stat, idx) => (
-                        <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
-                          <strong style={{ fontSize: '0.95rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : '#0f172a' }}>{stat.value}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {reportType === 'leaves' && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير الإجازات التفصيلي</strong>
-                      <Button variant="secondary" onClick={() => navigate('/hr/leaves')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح الإجازات</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '8px' }}>
-                      {[
-                        { label: 'إجمالي الطلبات', value: leavesReport.total },
-                        { label: 'قيد المراجعة', value: leavesReport.pending, isAlert: leavesReport.pending !== '0' },
-                        { label: 'معتمدة', value: leavesReport.approved },
-                        { label: 'مرفوضة', value: leavesReport.rejected },
-                        { label: 'غير مدفوعة / أيام', value: leavesReport.unpaid },
-                      ].map((stat, idx) => (
-                        <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
-                          <strong style={{ fontSize: '0.95rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : '#0f172a' }}>{stat.value}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {reportType === 'loans' && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير السلف والخصومات</strong>
-                      <Button variant="secondary" onClick={() => navigate('/hr/loans')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح السلف</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '8px' }}>
-                      {[
-                        { label: 'إجمالي السلف', value: loansReport.total },
-                        { label: 'سلف مفتوحة', value: loansReport.open },
-                        { label: 'أقساط مستحقة', value: loansReport.dueCount, isAlert: loansReport.dueCount > 0 },
-                        { label: 'مستحق هذا الشهر', value: money(loansReport.dueAmount) },
-                        { label: 'إجمالي المتبقي', value: money(loansReport.remainingAmount) },
-                      ].map((stat, idx) => (
-                        <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
-                          <strong style={{ fontSize: '0.95rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : '#0f172a' }}>{stat.value}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {reportType === 'payroll' && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير المرتبات</strong>
-                      <Button variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح المرتبات</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
-                      {[
-                        { label: 'عدد المسيرات', value: payrollReport.runs },
-                        { label: 'حالة المسير', value: payrollReport.selectedRunStatus },
-                        { label: 'الموظفون', value: payrollReport.employeesInRun },
-                        { label: 'إجمالي الأساسي', value: payrollReport.totalBase },
-                        { label: 'إجمالي الخصومات', value: payrollReport.totalDeduction },
-                        { label: 'السلف / الأقساط', value: payrollReport.totalLoan },
-                        { label: 'صافي المرتبات', value: payrollReport.totalNet },
-                        { label: 'يحتاج مراجعة', value: payrollReport.needsReview, isAlert: payrollReport.needsReview !== '0' },
-                      ].map((stat, idx) => (
-                        <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
-                          <strong style={{ fontSize: '0.95rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : '#0f172a' }}>{stat.value}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {reportType === 'assets' && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>تقرير العُهد</strong>
-                      <Button variant="secondary" onClick={() => navigate('/hr/assets')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>فتح العُهد</Button>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '8px' }}>
-                      {[
-                        { label: 'إجمالي العُهد', value: assetsReport.total },
-                        { label: 'مسلّمة', value: assetsReport.assigned },
-                        { label: 'مرتجعة', value: assetsReport.returned },
-                        { label: 'تالفة', value: assetsReport.damaged, isAlert: assetsReport.damaged > 0 },
-                        { label: 'مفقودة', value: assetsReport.lost, isAlert: assetsReport.lost > 0 },
-                        { label: 'مفتوحة', value: assetsReport.open },
-                        { label: 'تحتاج مراجعة', value: assetsReport.needsReview, isAlert: assetsReport.needsReview > 0 },
-                      ].map((stat, idx) => (
-                        <div key={idx} style={{ background: '#ffffff', border: `1px solid ${stat.isAlert ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{stat.label}</span>
-                          <strong style={{ fontSize: '0.95rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : '#0f172a' }}>{stat.value}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {reportType === 'alerts' && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                    <strong style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', marginBottom: '8px' }}>تنبيهات تحتاج مراجعة</strong>
-                    {alerts.length ? (
-                      <DataTable
-                        density="compact"
-                        rows={alerts}
-                        rowKey={(row) => row.id}
-                        onRowClick={(row) => navigate(row.to)}
-                        columns={[
-                          { key: 'type', header: 'النوع', cell: (row) => row.type },
-                          { key: 'target', header: 'الموظف/الفترة', cell: (row) => row.target },
-                          { key: 'note', header: 'التنبيه', cell: (row) => row.note },
-                          { key: 'action', header: 'الإجراء', cell: (row) => <Button type="button" variant="secondary" onClick={(event) => { event.stopPropagation(); navigate(row.to); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{row.action}</Button> },
-                        ]}
-                      />
-                    ) : (
-                      <p className="muted" style={{ margin: 0 }}>لا توجد تنبيهات ظاهرة حسب الفلاتر الحالية.</p>
-                    )}
-                  </div>
-                )}
-              </div>
+              <HrReportsDetailSections
+                reportType={reportType}
+                setReportType={setReportType}
+                filteredEmployees={filteredEmployees}
+                employeesReport={employeesReport}
+                attendanceReport={attendanceReport}
+                leavesReport={leavesReport}
+                loansReport={loansReport}
+                payrollReport={payrollReport}
+                assetsReport={assetsReport}
+                alerts={alerts}
+              />
             )}
           </QueryFeedback>
         </div>

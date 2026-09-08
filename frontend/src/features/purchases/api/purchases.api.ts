@@ -270,11 +270,15 @@ export interface GenerateDraftOrdersPayload {
     supplierId: number;
     locationId?: number;
     notes?: string;
+    note?: string;
     items: Array<{
       productId: number;
       qty: number;
+      quantity?: number;
       cost?: number;
+      costPrice?: number;
       name?: string;
+      productName?: string;
     }>;
   }>;
   notes?: string;
@@ -283,6 +287,16 @@ export interface GenerateDraftOrdersPayload {
 export interface GenerateDraftOrdersResponse {
   ok: boolean;
   count: number;
+  orders?: Array<{
+    id: number;
+    docNo?: string;
+    supplierId: number;
+    supplierName?: string;
+    total: number;
+    itemsCount: number;
+    status: string;
+    lifecycleStatus: string;
+  }>;
   createdOrders: Array<{
     id: number;
     docNo?: string;

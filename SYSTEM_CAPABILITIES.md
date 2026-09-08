@@ -288,6 +288,9 @@
 | **الفروع وتخصيص المخازن والخزائن** | 🟢 | 100% | `branches.service.ts`, `BranchesSettingsPage.tsx` | إنشاء عدة فروع وتعيين مخزن وخزينة وطابعة افتراضية لكل فرع وكاشير. |
 | **التوجيه التفاعلي والتوهج البصري لأخطاء الإعدادات (Interactive Error Navigation & Glow)** | 🟢 | 100% | `SettingsMainForm.tsx`, `settings.schema.ts` | توجيه تلقائي باللغة العربية الفصحى عند حدوث أي خطأ في الحفظ، نقل المستخدم مباشرة للتبويب الصحيح، والتمرير السلس لحقل الخطأ، مع إضاءة الكارت بتأثير توهج ناعم نابض (Glow Pulse) وتركيز المؤشر عليه فورياً، وإتاحة أزرار تفاعلية في شريط التنبيهات العلوي للنقر والانتقال لأي حقل ناقص. |
 | **النسخ الاحتياطي والاسترجاع الآمن (Backup & Restore)** | 🟢 | 100% | `BACKUP_RESTORE.md`, `portable/tools/` | أخذ نسخة احتياطية مشفرة بضغطة زر، واسترجاع فوري لقاعدة البيانات عند الطوارئ. |
+| **كاش الذاكرة المؤقت الفائق للإعدادات والفروع والمخازن (Settings & Branches In-Memory Caching Engine)** | 🟢 | 100% | `settings.service.ts` | تخزين مؤقت لإعدادات المنشأة والفروع النشطة والمخازن في الذاكرة بـ TTL 3 دقائق مع إبطال فوري للذاكرة (Cache Invalidation) عند أي إضافة أو تعديل أو حذف لضمان سرعة الاستجابة وتفادي آلاف الاستعلامات المتكررة. |
+| **التحميل الكسول المخصص لتبويبات الإعدادات (Settings Subsections Lazy Code-Splitting)** | 🟢 | 100% | `SettingsSectionContent.tsx` | فصل التبويبات الفرعية الكبيرة (بوابة الواتساب، التيليجرام، المتجر، التحديثات، تجربة البيانات، الساس) وتحميلها بنظام `React.lazy` و `Suspense` لتقليص حجم كود صفحة الإعدادات الأساسية وتحميلها فورياً. |
+
 
 ---
 
@@ -1356,6 +1359,247 @@
   5. **نموذج مخالصة وإخلاء طرف رسمي قابل للطباعة (Official Clearance Document):** شهادة مخالصة نهائية متكاملة بصيغة قانونية تحتوي على إقرار الموظف باستلام مستحقاته وإبراء ذمة المنشأة مع مساحات لتواقيع الموظف وإدارة الموارد البشرية والإدارة المالية.
 
 ---
+
+## 76. معمارية تقسيم الملفات والوحدات وتحسين سرعة وصيانة النظام (Modularization & High-Performance Architecture)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري والأداء المؤسسي (Clean Modular Architecture & Performance).
+* **معيار المقارنة الدولي:** Clean Architecture & Domain-Driven Component Slicing.
+* **مسارات الكود والوحدات المقسمة:**
+  1. **إدارة الصيانة (Maintenance Module):**
+     - تم تقليص `MaintenanceTicketsPage.tsx` من 1,961 سطر إلى 696 سطر (تخفيض بنسبة 65%).
+     - استخراج الأيقونات والتكوينات إلى `frontend/src/features/maintenance/components/MaintenanceConstants.tsx`.
+     - استخراج نافذة الاستلام والإيصال إلى `frontend/src/features/maintenance/components/MaintenanceCreateTicketModal.tsx`.
+     - استخراج تفاصيل الصيانة وصرف القطع وعمولة الفني إلى `frontend/src/features/maintenance/components/MaintenanceDetailModal.tsx`.
+     - استخراج تسوية الحساب والتسليم إلى `frontend/src/features/maintenance/components/MaintenanceSettlementModal.tsx`.
+  2. **إدارة أوامر البيع (Sales Orders Module):**
+     - تم استخراج منتقي المنتجات والباركود (Combobox Portal) المعقد من `SalesOrdersPage.tsx` إلى المكون المستقل `frontend/src/features/sales/components/OrderItemProductPicker.tsx` (تخفيض 287 سطر).
+  3. **إدارة المنصة والسوبر أدمن (SaaS Admin Module):**
+     - تم تقليص `SaasTenantsPage.tsx` من 1,704 سطر إلى 1,274 سطر باستخراج نافذة توليد النسخ التجريبية وإدارة بيانات الدخول إلى `frontend/src/features/saas-admin/components/CreateTrialTenantModal.tsx`.
+  4. **كاش الباك إند فائق السرعة (Backend In-Memory Cache Engine):**
+     - تفعيل كاش ذاكرة فائق السرعة لبيانات الإعدادات والفروع والمواقع في `backend/src/modules/settings/settings.service.ts` مع إبطال فوري وتلقائي عند الحفظ أو التعديل لتسريع الاستجابة.
+  5. **تقسيم كود الإعدادات (Lazy Code-Splitting):**
+     - تحويل الأقسام الثانوية في `SettingsSectionContent.tsx` إلى `React.lazy` و `Suspense` لتسريع تحميل واجهة الإعدادات وتقليل حجم حزمة الجافاسكريبت المبدئية.
+  6. **تنظيف وتحسين ملفات التنسيق (CSS Optimization):**
+     - إزالة 1,115 سطر من الأكواد المكررة في `frontend/src/styles/partials/document-form-prototype.css` وتوحيد أنماط الدارك مود.
+  7. **إدارة الشيكات والأوراق المالية (PDC Cheques Module):**
+     - تم تقليص `PdcChequesPage.tsx` من 1,643 سطر إلى 969 سطر (تخفيض أكثر من 670 سطر).
+  3. **الامتثال لمتطلبات الفوترة الخليجية:** طباعة التاريخ الهجري على إيصالات وفواتير الكاشير والضريبة لضمان التوافق التام مع متطلبات السوق السعودي والخليجي.
+
+---
+
+## 65. أوامر البيع وحجز المخزون المؤقت (Sales Orders & Stock Reservation Engine)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 17 Sales Orders & Stock Allocation / Reservation Engine.
+* **روابط وشاشات الوصول:** `/sales/orders` (القائمة الجانبية: المبيعات ➔ أوامر البيع وحجز المخزون).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000059_sales_orders_stock_reservation.ts`, `backend/src/database/database.types.ts` (`products.reserved_qty`, `sales_orders`, `sales_order_items`).
+  * **الباك إند:** `backend/src/modules/sales/services/sales-orders.service.ts`, `backend/src/modules/sales/controllers/sales-orders.controller.ts`, `backend/src/modules/sales/sales.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/sales/api/sales-orders.api.ts`, `frontend/src/features/sales/pages/SalesOrdersPage.tsx`, `frontend/src/features/sales/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **حجز المخزون المؤقت الآلي (Real-Time Stock Reservation):** فور تأكيد أمر البيع، يتم حجز الكميات المطلوبة في المخزون (`reserved_qty`) لمنع بيعها أو تكرار حجزها في نقاط البيع (POS) أو المتجر الإلكتروني، مع احتساب دقيق للرصيد المتاح للبيع للآخرين (`available_qty = stock_qty - reserved_qty`).
+  2. **صلاحية الحجز ومتابعة التسليم:** تحديد تاريخ انتهاء لصلاحية الحجز وتاريخ التسليم المتوقع لكل طلبية.
+  3. **التحويل بنقرة واحدة إلى فاتورة بيع فعلية (1-Click Convert to Sale Invoice):** تحويل أمر البيع المؤكد مباشرة إلى فاتورة بيع مرحلة في نظام المبيعات، مع فك الحجز آلياً وخصم الكميات من المخزون الفعلي دون أي تدخل يدوي أو ازدواجية.
+  4. **إلغاء أمر البيع وفك الحجز الفوري:** إمكانية إلغاء أمر البيع بضغطة زر لفك حجز المخزون فورياً وإعادته للرصيد المتاح للبيع.
+  5. **لوحة فحص جاهزية المخزون (Stock Readiness Modal):** فحص فوري لكل بند في أمر البيع ومقارنة الكمية المطلوبة بالكمية المحجوزة والرصيد الفعلي بالمستودع والرصيد المتاح للآخرين.
+
+## 66. دورة أوامر الشراء واعتماد الموردين والاستلام المخزني (Purchase Orders & Goods Receipt)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Purchase Orders (PO) & 3-Way Matching Flow.
+* **روابط وشاشات الوصول:** `/purchases/orders` (القائمة الجانبية: المشتريات والموردين ➔ أوامر الشراء PO).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000060_purchase_orders_and_unbuild.ts`, `backend/src/database/database.types.ts` (`purchase_orders`, `purchase_order_items`).
+  * **الباك إند:** `backend/src/modules/purchases/services/purchase-orders.service.ts`, `backend/src/modules/purchases/controllers/purchase-orders.controller.ts`, `backend/src/modules/purchases/purchases.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/purchases/api/purchase-orders.api.ts`, `frontend/src/features/purchases/pages/PurchaseOrdersPage.tsx`, `frontend/src/features/purchases/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **إصدار واعتماد أوامر الشراء الرسمية (Purchase Orders):** إنشاء أوامر شراء بمسودة أولية مع الموردين، حساب المجاميع والضرائب والخصومات، وتأكيد الأمر بنقرة زر واحدة لإرساله للمورد.
+  2. **دورة الاستلام المخزني الجزئي والكامل (Goods Receipt Flow):** نافذة مخصصة لإثبات استلام الشحنات والبضائع الواردة، وتغذية أرصدة المخزون الفعلية فورياً، مع تصنيف دقيق لحالة الاستلام (`partially_received` أو `received`).
+  3. **التحويل المباشر لفاتورة مشتريات رسمية (Convert to Bill):** تحويل أمر الشراء المستلم بضغطة زر واحدة إلى فاتورة مشتريات مرحلة في حسابات الموردين دون إعادة إدخال البيانات، مع حفظ رقم الفاتورة المرجعي.
+  4. **إلغاء وحذف الأوامر المسودة والملغاة:** حوكمة صارمة لمنع التعديل على الأوامر التي تم ترحيلها لفواتير رسمية.
+
+---
+
+## 67. إضافات التصنيع الذكية (Smart Manufacturing: Unbuild Orders, By-Products & MTO)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Manufacturing MRP (Unbuild / Disassembly, By-products, Make-to-Order).
+* **روابط وشاشات الوصول:** `/manufacturing/work-orders` (نافذة أوامر التفكيك) و `/sales/orders` (زر توليد أمر التصنيع المباشر MTO).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000060_purchase_orders_and_unbuild.ts`, `backend/src/database/database.types.ts` (`manufacturing_unbuild_orders`).
+  * **الباك إند:** `backend/src/modules/manufacturing/services/manufacturing.service.ts`, `backend/src/modules/manufacturing/controllers/manufacturing.controller.ts`, `backend/src/modules/manufacturing/dto/manufacturing.dto.ts`.
+  * **الفرونت إند:** `frontend/src/features/manufacturing/api/work-orders.api.ts`, `frontend/src/features/manufacturing/pages/WorkOrdersListPage.tsx`, `frontend/src/features/sales/pages/SalesOrdersPage.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **أوامر التفكيك واسترجاع المواد الخام (Unbuild Orders / Disassembly):** إمكانية تفكيك أي كمية من منتج تام الصنع بنقرة زر واحدة؛ يقوم النظام بخصم المنتج التام من المخزن وإعادة كافة المواد الخام والمكونات إلى مخزن الخامات استناداً إلى نسب شجرة المنتج (BOM)، مع تقييد حركات المخزون المعكوسة.
+  2. **تسجيل المنتجات الثانوية والهالك (By-products Recording):** دعم مخرجات التصنيع الثانوية المفيدة أثناء إنهاء أمر الإنتاج وإضافتها كأرصدة مخزنية صالحة للبيع أو الاستخدام.
+  3. **التصنيع عند الطلب المرتبط بالمبيعات (Make-to-Order - MTO):** عند مراجعة أمر البيع في شاشة `/sales/orders`، يمكن للمستخدم بنقرة زر واحدة توليد أمر تشغيل وإنتاج فوري (Work Order) للنواقص المصنعة وربطها برقم أمر البيع كمرجع.
+
+---
+
+## 68. دستور وتوحيد التيبوجرافي المؤسسي وأحجام الخطوط (Enterprise Typography Hierarchy)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **مسارات الكود الأساسية:** `frontend/src/styles/partials/base.css`, `frontend/src/shared/components/page-header.tsx`, `d:\zn\GEMINI.md`.
+* **الميزات والقدرات المفعلة:**
+  1. **متغيرات CSS قياسية مركزية (Typography Tokens):** تعريف متغيرات ثابتة لأحجام الخطوط (`--font-page-title: 1.15rem`, `--font-section-title: 0.98rem`, `--font-body: 0.8125rem`, `--font-subtitle: 0.8125rem`, `--font-table-head: 0.78rem`, `--font-badge: 0.72rem`, `--font-micro: 0.6875rem`).
+  2. **إعادة ضبط عناصر HTML الأساسية (Base HTML Scale Resets):** إلزام وسوم `h1`, `h2`, `h3`, `h4`, `p`, `small`, `th`, `td` بأوزان وأحجام منضبطة تمنع المتصفح من تكبير أي عنوان أو هيدر لجدول تلقائياً وتمنع التفاوت البصري بين الشاشات.
+  3. **توثيق دستوري إلزامي:** تقييد السلم الهرمي في دستور النظام `GEMINI.md` كقاعدة إلزامية دائمة لكافة المطورين.
+
+---
+
+## 69. نظام حفظ واسترجاع المسودات التلقائي عديم الحمل (Zero-Overhead Auto-Draft Persistence Engine)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Google Docs / Linear Autosave & Draft Protection Standard.
+* **روابط وشاشات الوصول المشمولة:**
+  1. إذن صرف المخزون الجديد (`/inventory/new-issue-order`).
+  2. فاتورة / أمر المشتريات الجديدة (`/purchases/new`).
+  3. أوامر البيع وحجز المخزون (`/sales/orders`).
+  4. أوامر الشراء PO مع الموردين (`/purchases/orders`).
+  5. عروض الأسعار للعملاء (`/sales/quotations`).
+* **مسارات الكود الأساسية:**
+  * **الخطاف العام (Universal Hook):** `frontend/src/shared/hooks/use-form-draft.ts`.
+  * **مكون التنبيه المؤسسي (UI Banner):** `frontend/src/shared/components/DraftRestoredBanner.tsx`.
+  * **صفحات التنفيذ:** `NewIssueOrderPage.tsx`, `useNewPurchaseOrderController.ts`, `SalesOrdersPage.tsx`, `PurchaseOrdersPage.tsx`, `QuotationsPage.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **حماية المدخلات من الفقدان العرضي:** في حال قام المستخدم بإدخال عدة أصناف أو بيانات في إذن صرف أو فاتورة مشتريات أو أمر بيع، ثم انتقل بالخطأ إلى صفحة أخرى أو نقر على رابط في القائمة الجانبية أو أغلق المتصفح، تظل كافة البيانات المحررة والأصناف محفوظة في المتصفح محلياً دون فقدان أي بند.
+  2. **صفر حمل على السيرفر وانعدام البطء (Zero CPU/Server Load):** يتم الحفظ داخل متصفح المستخدم (`localStorage`) عبر محرك تأخير ذكي (Debounce 400ms) مع مقارنة البصمة الحركية (`Snapshot Check`)، فلا يتم الحفظ إلا عند حدوث تغيير حقيقي، مع تفريغ فوري (`flushDraft`) قبل مغادرة الصفحة أو عند إغلاق التبويب (`beforeunload`).
+  3. **تطهير وتفريغ تلقائي للمسودة:** يتم مسح المسودة تلقائياً وفورياً بمجرد تأكيد وحفظ العملية بنجاح أو عند قيام المستخدم بإلغاء المسودة أو تصفير النموذج لضمان نظافة التخزين وعدم بقاء مخلفات قديمة.
+  4. **شريط استرجاع مؤسسي أنيق (DraftRestoredBanner):** إشعار بصري ناعم مطابق للدستور المؤسسي بدون إيموجيز يُنبه المستخدم بأنه تم استرجاع مدخلات المسودة السابقة تلقائياً مع زر مباشر لمسح المسودة والبدء من جديد بنقرة واحدة.
+
+---
+
+## 70. قوائم أسعار العملاء وشرائح الكميات (Customer Price Lists & Volume Tiers)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Sales Pricelists (Multiple Prices per Product & Volume Discounts).
+* **روابط وشاشات الوصول:** `/sales/price-lists` (القائمة الجانبية: المبيعات ➔ قوائم أسعار العملاء).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000061_customer_price_lists.ts`, `backend/src/database/database.types.ts` (`price_lists`, `price_list_items`).
+  * **الباك إند:** `backend/src/modules/sales/services/price-lists.service.ts`, `backend/src/modules/sales/controllers/price-lists.controller.ts`, `backend/src/modules/sales/sales.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/sales/api/price-lists.api.ts`, `frontend/src/features/sales/pages/PriceListsPage.tsx`, `frontend/src/features/sales/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **قوائم تسعير مخصصة للعملاء والفئات:** إمكانية إنشاء قوائم أسعار متعددة (جملة، تجزئة، موزعين، VIP) وتعيين عملة وتواريخ صلاحية لكل قائمة.
+  2. **شرائح أسعار تصاعدية حسب الكمية (Volume Discount Tiers):** دعم تحديد أسعار تفضيلية تلقائية بناءً على كميات الشراء (مثلاً: من 10 إلى 50 قطعة بسعر، ومن 51 إلى 100 قطعة بسعر أقل).
+  3. **أولوية التسعير الذكية (Pricing Hierarchy):** أولوية تلقائية تطبق السعر الأفضل أو المخصص للعميل في شاشات عروض الأسعار وأوامر البيع مع بيان فرق الخصم الممنوح.
+
+---
+
+## 71. طلبات عروض أسعار الموردين ومصفوفة المقارنة والترسية (Vendor RFQs & Comparison Matrix)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Purchase RFQ & Vendor Tender Comparison Matrix.
+* **روابط وشاشات الوصول:** `/purchases/rfqs` (القائمة الجانبية: المشتريات والموردين ➔ طلبات عروض الأسعار RFQ).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000062_purchase_rfqs.ts`, `backend/src/database/database.types.ts` (`purchase_rfqs`, `purchase_rfq_items`, `purchase_rfq_vendor_bids`).
+  * **الباك إند:** `backend/src/modules/purchases/services/purchase-rfqs.service.ts`, `backend/src/modules/purchases/controllers/purchase-rfqs.controller.ts`, `backend/src/modules/purchases/purchases.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/purchases/api/purchase-rfqs.api.ts`, `frontend/src/features/purchases/pages/PurchaseRfqsPage.tsx`, `frontend/src/features/purchases/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **إدارة دورة طلبات عروض الأسعار المفتوحة (Purchase RFQs):** إنشاء طلبات تسعير بأصناف وكميات محددة مع تحديد موعد استحقاق نهائي لاستقبال العطاءات.
+  2. **تسجيل ومقارنة عروض الموردين المتنافسة (Bid Comparison Matrix):** جدول مقارنة بصري تفاعلي يقارن الأسعار المقدمة ومواعيد التسليم المقترحة وشروط الدفع بين مختلف الموردين.
+  3. **الترسية وتوليد أمر الشراء بضغطة زر (1-Click Award to PO):** اختيار العرض الفائز وترسيته بنقرة واحدة لتحويله تلقائياً إلى أمر شراء رسمي (PO) في موديول المشتريات وإغلاق المناقصة.
+
+---
+
+## 72. تسوية وتخصيص المدفوعات والقيود العكسية الآلية (Invoice Payment Allocation & Auto-Reversals)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Invoicing Reconciliation / Matching & Reversal Journal Entries.
+* **روابط وشاشات الوصول:** `/accounting/payment-allocation` و `/accounting/journal-entries`.
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000063_payment_allocations_and_reversals.ts`, `backend/src/database/database.types.ts` (`payment_allocations`).
+  * **الباك إند:** `backend/src/modules/accounting/services/payment-allocation.service.ts`, `backend/src/modules/accounting/accounting.service.ts`, `backend/src/modules/accounting/accounting.controller.ts`.
+  * **الفرونت إند:** `frontend/src/features/accounting/pages/PaymentAllocationPage.tsx`, `frontend/src/features/accounting/pages/AccountingJournalEntriesPage.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **تسوية وتخصيص الدفعات غير المربوطة بالفواتير:** ربط سندات القبض والدفع المفتوحة بفواتير المبيعات والمشتريات المعلقة للعميل أو المورد مع بيان المبلغ المتبقي لكل فاتورة.
+  2. **محرك التسوية الآلي بالوارِد أولاً يُصرَف أولاً (FIFO Auto-Reconciliation):** توزيع تلقائي فوري لأي دفعة على الفواتير المفتوحة الأقدم تاريخياً وتحديث حالة السداد ومبالغ الفواتير بدقة سنت واحد.
+  3. **إلغاء وعكس القيود اليومية آلياً (Auto-Reversal Entries):** نافذة رسمية لإلغاء أي قيد مرحل مع تدوين سبب الإلغاء، وتوليد القيد العكسي المعادل فورياً وربطه محاسبياً بالقيد الأصلي لمنع التلاعب وحفظ التدقيق المالي.
+
+---
+
+## 73. أماكن التخزين والأرفف والجرد الفوري بالباركود (Warehouse Bins, Shelves & Mobile Audit)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Storage Locations / Putaway Rules & Barcode Stock Audit.
+* **روابط وشاشات الوصول:** `/inventory/bins` (القائمة الجانبية: المخزون والأصناف ➔ أماكن التخزين والأرفف).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000064_warehouse_bin_locations.ts`, `backend/src/database/database.types.ts` (`warehouse_bins`, `product_bin_allocations`).
+  * **الباك إند:** `backend/src/modules/inventory/services/warehouse-bins.service.ts`, `backend/src/modules/inventory/controllers/warehouse-bins.controller.ts`, `backend/src/modules/inventory/inventory.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/inventory/api/warehouse-bins.api.ts`, `frontend/src/features/inventory/pages/WarehouseBinsPage.tsx`, `frontend/src/features/inventory/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **دليل وهيكل أماكن التخزين الثلاثي (Aisle / Rack / Shelf / Bin):** إدارة الأرفف والمسارات التخزينية داخل كل مستودع وتعيين سعات تخزينية قصوى ونوع التخزين المخصص.
+  2. **تخصيص وربط مواقع الأصناف (Product Allocations):** تعيين موقع التخزين الأساسي والثانوي لكل صنف لتسهيل عمليات التجهيز والانتقاء (Picking & Putaway).
+  3. **الجرد الفوري بالباركود من الجوال وقارئ الباركود (Instant Barcode Stock Audit):** مسح كود الرف وكود الصنف لتسجيل الرصيد الفعلي ومقارنته بالرصيد الدفتري فورياً مع تبيان الفروقات وحفظ سجل التدقيق.
+
+---
+
+## 74. مصفوفة خيارات ومعدلات الأصناف ونقاط البيع (POS Item Modifiers & Fast Combos Matrix)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Foodics / Odoo POS Product Modifiers & Meal Attributes Matrix.
+* **روابط وشاشات الوصول:** `/products/modifiers` وشاشة الكاشير التفاعلية `/pos`.
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000065_pos_item_modifiers.ts`, `backend/src/database/database.types.ts` (`pos_modifier_groups`, `pos_modifier_options`, `product_pos_modifiers`).
+  * **الباك إند:** `backend/src/modules/addons/addons.service.ts`, `backend/src/modules/addons/addons.controller.ts`.
+  * **الفرونت إند:** `frontend/src/shared/api/addons.api.ts`, `frontend/src/features/products/pages/ProductModifiersPage.tsx`, `frontend/src/features/pos/components/pos-cart-panel/PosItemModifiersModal.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **إدارة مجموعات الخيارات والمعدلات (Modifier Groups):** إنشاء مجموعات منظمة (مثل: الحجم، نوع الخبز، درجة الطهي، الإضافات) مع ضبط قواعد الاختيار (إلزامي / اختياري، اختيار فردي Single-Choice أو متعدد Multiple-Choice مع حد أدنى وأقصى).
+  2. **تسعير الخيارات المستقل:** تعيين سعر إضافي وتكلفة لكل خيار معدل مع دعم الخيارات المجانية.
+  3. **نافذة كاشير سريعة ومحكومة القواعد (Sub-50ms POS Modifier Modal):** نافذة سريعة تفرض الاختيارات الإلزامية وتتيح التبديل والتعديل بنقرة واحدة، مع الربط التلقائي بأسعار الفاتورة وطباعة الإيصالات وشاشة المطبخ (KDS).
+
+---
+
+## 75. محرك تصفية المستحقات ومكافأة نهاية الخدمة والعهد (HR End of Service Settlement & Gratuity Engine)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Jisr / ZenHR / SAP B1 End of Service Indemnity & Clearance Engine.
+* **روابط وشاشات الوصول:** `/hr/settlements` (القائمة الجانبية: الإدارة والنظام ➔ مخالصات ونهاية الخدمة).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000066_hr_end_of_service_settlements.ts`, `backend/src/database/database.types.ts` (`hr_end_of_service_settlements`).
+  * **الباك إند:** `backend/src/modules/hr/services/end-of-service.service.ts`, `backend/src/modules/hr/controllers/end-of-service.controller.ts`, `backend/src/modules/hr/hr.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/hr/api/end-of-service.api.ts`, `frontend/src/features/hr/pages/HrEndOfServicePage.tsx`, `frontend/src/features/hr/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **حاسبة مكافأة نهاية الخدمة وفق أنظمة العمل (Saudi & Egyptian Labor Law Gratuity):** احتساب آلي للمكافأة طبقاً للمادتين 84 و 85 من نظام العمل السعودي (التفريق بين إنهاء العقد والاستقالة وسنوات الخدمة: أقل من سنتين، 2-5 سنوات، 5-10 سنوات، 10+ سنوات) وقانون العمل المصري المادة 125، أو السياسات المخصصة.
+  2. **تصفية شاملة للمستحقات والاستقطاعات:** احتساب بدل رصيد الإجازات السنوية المتبقية، وأيام الشهر الحالي، والخصم الآلي لكافة السلف والقروض غير المسددة من صافي المستحق.
+  3. **كشف العهد والأجهزة المسلمة وإقرار إخلاء الطرف:** استعراض مباشر لكافة الأجهزة والعهد العينية المسلمة للموظف (لابتوب، سيارات، عهد مالية) مع التحقق من استرجاعها وإثبات إخلاء الطرف.
+  4. **الترحيل المحاسبي بنقرة واحدة (1-Click Journal Entry):** توليد قيد اليومية المالي آلياً لمديونية مصروف/مخصص نهاية الخدمة وتسوية سلف الموظفين وصرف الصافي من الخزينة أو البنك مع ربط رقم القيد بالمخالصة لمنع الازدواجية.
+  5. **نموذج مخالصة وإخلاء طرف رسمي قابل للطباعة (Official Clearance Document):** شهادة مخالصة نهائية متكاملة بصيغة قانونية تحتوي على إقرار الموظف باستلام مستحقاته وإبراء ذمة المنشأة مع مساحات لتواقيع الموظف وإدارة الموارد البشرية والإدارة المالية.
+
+---
+
+## 76. معمارية تقسيم الملفات والوحدات وتحسين سرعة وصيانة النظام (Modularization & High-Performance Architecture)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري والأداء المؤسسي (Clean Modular Architecture & Performance).
+* **معيار المقارنة الدولي:** Clean Architecture & Domain-Driven Component Slicing.
+* **مسارات الكود والوحدات المقسمة:**
+  1. **إدارة الصيانة (Maintenance Module):**
+     - تم تقليص `MaintenanceTicketsPage.tsx` من 1,961 سطر إلى 696 سطر (تخفيض بنسبة 65%).
+     - استخراج الأيقونات والتكوينات إلى `frontend/src/features/maintenance/components/MaintenanceConstants.tsx`.
+     - استخراج نافذة الاستلام والإيصال إلى `frontend/src/features/maintenance/components/MaintenanceCreateTicketModal.tsx`.
+     - استخراج تفاصيل الصيانة وصرف القطع وعمولة الفني إلى `frontend/src/features/maintenance/components/MaintenanceDetailModal.tsx`.
+     - استخراج تسوية الحساب والتسليم إلى `frontend/src/features/maintenance/components/MaintenanceSettlementModal.tsx`.
+  2. **إدارة أوامر البيع (Sales Orders Module):**
+     - تم استخراج منتقي المنتجات والباركود (Combobox Portal) المعقد من `SalesOrdersPage.tsx` إلى المكون المستقل `frontend/src/features/sales/components/OrderItemProductPicker.tsx` (تخفيض 287 سطر).
+  3. **إدارة المنصة والسوبر أدمن (SaaS Admin Module):**
+     - تم تقليص `SaasTenantsPage.tsx` من 1,704 سطر إلى 1,274 سطر باستخراج نافذة توليد النسخ التجريبية وإدارة بيانات الدخول إلى `frontend/src/features/saas-admin/components/CreateTrialTenantModal.tsx`.
+  4. **كاش الباك إند فائق السرعة (Backend In-Memory Cache Engine):**
+     - تفعيل كاش ذاكرة فائق السرعة لبيانات الإعدادات والفروع والمواقع في `backend/src/modules/settings/settings.service.ts` مع إبطال فوري وتلقائي عند الحفظ أو التعديل لتسريع الاستجابة.
+  5. **تقسيم كود الإعدادات (Lazy Code-Splitting):**
+     - تحويل الأقسام الثانوية في `SettingsSectionContent.tsx` إلى `React.lazy` و `Suspense` لتسريع تحميل واجهة الإعدادات وتقليل حجم حزمة الجافاسكريبت المبدئية.
+  6. **تنظيف وتحسين ملفات التنسيق (CSS Optimization):**
+     - إزالة 1,115 سطر من الأكواد المكررة في `frontend/src/styles/partials/document-form-prototype.css` وتوحيد أنماط الدارك مود.
+  7. **إدارة الشيكات والأوراق المالية (PDC Cheques Module):**
+     - تم تقليص `PdcChequesPage.tsx` من 1,643 سطر إلى 969 سطر (تخفيض أكثر من 670 سطر).
+     - استخراج نافذة تسجيل ورقة قبض / دفع جديدة بكامل منطق الفاليديشن والعملات والتواريخ إلى `frontend/src/features/accounting/components/PdcChequeCreateModal.tsx`.
+     - استخراج نافذة دورة حياة الشيك (إيداع بنكي، تحصيل، صرف، ارتداد مع الغرامات، تظهير لمورد) إلى `frontend/src/features/accounting/components/PdcChequeActionModal.tsx`.
+     - استخراج معاينة وطباعة السند المالي الرسمي للشيك إلى `frontend/src/features/accounting/components/PdcChequeVoucherModal.tsx`.
+  8. **كاش خطط وباقات الساس وميزات النظام (SaaS & Feature Plans In-Memory Cache):**
+     - إضافة كاش ذاكرة ذكي في `backend/src/modules/saas-admin/saas-admin.service.ts` لطلبات استعلام الباقات ومصفوفة الميزات (5 دقائق TTL) مع إبطال فوري عند الإنشاء أو التعديل لتسريع الاستجابة وتخفيف الحمل على قاعدة البيانات.
+  9. **تحسين أداء الرسوم ومسارات الـ CSS (CSS Composition & Zero Perpetual Loops):**
+     - إزالة الأنيميشن المستمر `reportFloat` اللانهائي في `frontend/src/styles/partials/features.css` لمنع استهلاك المعالج والـ GPU المستمر، والتأكد من صفر لاج في الرسوم البيانية التفاعلية.
+  10. **تفكيك وتدقيق صفحات النظام الكبرى (Enterprise Page Modularization - Categories 1 & 2):**
+      - تم بنجاح تفكيك وتقليص كافة صفحات الفئة الأولى (> 600 سطر) والفئة الثانية (500 إلى 600 سطر) لتصبح جميعها رشيقة وتحت سقف 400 سطر (معظمها بين 150 و 260 سطر) بنسبة إنجاز 100% وبصفر أخطاء TypeScript:
+      - **قوائم الأسعار (`PriceListsPage.tsx`):** من 625 إلى 260 سطر باستخراج `PriceListModal.tsx` و `PriceListCard.tsx`.
+      - **حضور وانصراف الموظفين (`HrAttendancePage.tsx`):** من 624 إلى 341 سطر باستخراج `AttendanceKpiSummary.tsx`, `DailyAttendanceTable.tsx`, `AttendanceExceptionsTable.tsx`, `ManualAttendanceModal.tsx`.
+      - **تصنيفات المنتجات (`ProductCategoriesPage.tsx`):** من 613 إلى 337 سطر باستخراج `CategoriesDataTable.tsx`, `CategoryFormModal.tsx`, `CategoryTransferProductsModal.tsx`, `CategoryTransferWarehouseModal.tsx`.
+      - **الأصول الثابتة والإهلاك (`AccountingFixedAssetsPage.tsx`):** من 598 إلى 265 سطر باستخراج `AddFixedAssetModal.tsx`, `DepreciateModals.tsx`, `FixedAssetsTable.tsx`, `FixedAssetsLogsTable.tsx`.
+      - **تخصيص وسداد الفواتير (`PaymentAllocationPage.tsx`):** من 592 إلى 257 سطر باستخراج `PartnerSelectorBar.tsx`, `UnallocatedPaymentsCard.tsx`, `OpenInvoicesCard.tsx`.
+      - **إقرار ضريبة القيمة المضافة (`VatDeclarationPage.tsx`):** من 576 إلى 194 سطر باستخراج `VatPeriodSelector.tsx`, `VatSalesTable.tsx`, `VatPurchasesTable.tsx`, `VatSummaryBox.tsx`.
+      - **شاشة العميل (`CustomerFacingDisplayPage.tsx`):** من 564 إلى 203 سطر باستخراج `CfdHeader.tsx`, `CfdIdleView.tsx`, `CfdScanningView.tsx`, `CfdCompletedView.tsx`.
+      - **نواقص الصيدلية (`PharmacyShortagesPage.tsx`):** من 549 إلى 198 سطر باستخراج `ShortagesKpiGrid.tsx`, `ShortageQuickAddBar.tsx`, `ShortageFilterBar.tsx`, `ShortagesTable.tsx`, `ShortageDetailModal.tsx`.
+      - **تعديل بيانات الموظف (`EmployeeEditPage.tsx`):** من 541 إلى 217 سطر باستخراج أقسام البيانات الأساسية، التعويضات والرواتب، بيانات الوظيفة، سياسة الحضور، والبيانات البنكية.
+      - **إنشاء وتعديل تركيبة المنتج BOM (`NewBomPage.tsx` & `EditBomPage.tsx`):** من 536 و 526 سطر إلى 253 و 249 سطر عبر استخراج مكونات مشتركة `BomLinesTable.tsx`, `BomCostSummaryCard.tsx`, `bom-types.ts`.
+      - **تقارير الموارد البشرية (`HrReportsPage.tsx`):** من 532 إلى 173 سطر باستخراج `HrReportsKpiBar.tsx`, `HrReportsFiltersToolbar.tsx`, `HrReportsOverviewGrid.tsx`, `HrReportsDetailSections.tsx`.
+      - **مجموعات خيارات وإضافات المنتجات (`ProductModifiersPage.tsx`):** من 512 إلى 216 سطر باستخراج `ModifierGroupCard.tsx` و `ModifierGroupModal.tsx`.
+      - **الروشتات والتأمين الصحي (`PharmacyPrescriptionsPage.tsx`):** من 510 إلى 151 سطر باستخراج `PrescriptionsKpiGrid.tsx`, `PrescriptionsFilterBar.tsx`, `PrescriptionsTable.tsx`, `PrescriptionModal.tsx`.
+      - الالتزام التام بكافة معايير النظام البصري: اتجاه RTL، أيقونات SVG رسمية حصرياً، نوافذ عبر `StandardDialog` و `DialogShell` (صفر أخطاء clipping أو أوفري عشوائي)، واستبعاد كلاسات تيلويند نهائياً.
+
+---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
-
-

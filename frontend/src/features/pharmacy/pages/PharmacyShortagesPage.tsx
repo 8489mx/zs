@@ -1,23 +1,17 @@
-import { XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
-import { CustomSelect } from '@/shared/ui/custom-select';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { pharmacyApi } from '../api/pharmacy.api';
 import type { PharmacyShortage } from '../types/pharmacy.types';
 import { MAJOR_DISTRIBUTORS } from '../constants/pharmacy.constants';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import {
-  IconShortage,
-  IconPlus,
-  IconRefresh,
-  IconEdit,
-  IconSave,
-  IconCheck,
-  IconSearch,
-} from '../components/PharmacyIcons';
+import { IconPlus, IconRefresh } from '../components/PharmacyIcons';
+import { ShortagesKpiGrid } from '../components/shortages/ShortagesKpiGrid';
+import { ShortageQuickAddBar } from '../components/shortages/ShortageQuickAddBar';
+import { ShortageFilterBar } from '../components/shortages/ShortageFilterBar';
+import { ShortagesTable } from '../components/shortages/ShortagesTable';
+import { ShortageDetailModal } from '../components/shortages/ShortageDetailModal';
 
 export default function PharmacyShortagesPage() {
   useAppToolbar([
@@ -144,404 +138,59 @@ export default function PharmacyShortagesPage() {
         />
 
         {/* 4 Summary KPI Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
-            <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>مطلوب إدراجه بالطلبية</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>{neededCount}</div>
-            </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c' }}>
-              <IconShortage size={18} />
-            </div>
-          </div>
+        <ShortagesKpiGrid
+          neededCount={neededCount}
+          urgentCount={urgentCount}
+          customerCount={customerCount}
+          receivedCount={receivedCount}
+        />
 
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
-            <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>نواقص عاجلة جداً</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#b91c1c', marginTop: '2px' }}>{urgentCount}</div>
-            </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c' }}>
-              <AlertTriangleIcon size={18} />
-            </div>
-          </div>
-
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
-            <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>طلبات خاصة لعملاء</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{customerCount}</div>
-            </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>
-              <IconShortage size={18} />
-            </div>
-          </div>
-
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
-            <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>أصناف تم استلامها</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>{receivedCount}</div>
-            </div>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
-              <IconCheck size={18} />
-            </div>
-          </div>
-        </div>
-
-        {/* 1-Step Instant Quick Add One-Liner Bar */}
-        <form
+        {/* Quick Add Bar */}
+        <ShortageQuickAddBar
+          quickName={quickName}
+          setQuickName={setQuickName}
+          quickQty={quickQty}
+          setQuickQty={setQuickQty}
+          quickDist={quickDist}
+          setQuickDist={setQuickDist}
+          quickPriority={quickPriority}
+          setQuickPriority={setQuickPriority}
+          isPending={upsertMutation.isPending}
           onSubmit={handleQuickAdd}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '10px 14px',
-            marginBottom: '14px',
-            flexWrap: 'wrap',
-            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.02)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0f172a', fontWeight: 700, fontSize: '0.82rem' }}>
-            <IconPlus size={15} color="var(--primary, #1e1b4b)" />
-            <span>إضافة فورية للكشكول:</span>
-          </div>
-
-          <input
-            type="text"
-            required
-            className="purchase-prototype-field-input"
-            placeholder="اسم الدواء الناقص..."
-            value={quickName}
-            onChange={(e) => setQuickName(e.target.value)}
-            style={{ flex: '1 1 200px', fontSize: '0.84rem' }}
-          />
-
-          <input
-            type="number"
-            min="1"
-            className="purchase-prototype-field-input"
-            placeholder="العدد"
-            value={quickQty}
-            onChange={(e) => setQuickQty(Number(e.target.value) || 1)}
-            style={{ width: '70px', fontSize: '0.84rem', textAlign: 'center' }}
-            title="الكمية المطلوبة بالعلب"
-          />
-
-          <div style={{ width: '150px' }}>
-            <CustomSelect
-              value={quickDist}
-              onChange={(val) => setQuickDist(val)}
-              options={MAJOR_DISTRIBUTORS.map((d) => ({ value: d, label: d }))}
-            />
-          </div>
-
-          <div style={{ width: '130px' }}>
-            <CustomSelect
-              value={quickPriority}
-              onChange={(val) => setQuickPriority(val as any)}
-              options={[
-                { value: 'normal', label: 'عادي' },
-                { value: 'urgent', label: 'عاجل جداً' },
-                { value: 'customer_request', label: 'طلب مريض' },
-              ]}
-            />
-          </div>
-
-
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={upsertMutation.isPending || !quickName.trim()}
-            style={{ whiteSpace: 'nowrap', padding: '6px 14px' }}
-          >
-            {upsertMutation.isPending ? 'جاري الإضافة...' : '+ إدراج بالكشكول'}
-          </Button>
-        </form>
+        />
 
         {/* Filter Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', background: '#ffffff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '14px', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.02)' }}>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button
-              type="button"
-              className={'btn btn-sm ' + (statusFilter === 'all' ? 'btn-primary' : 'btn-secondary')}
-              onClick={() => { setStatusFilter('all'); setPage(1); }}
-            >
-              الكل ({totalItems})
-            </button>
-            <button
-              type="button"
-              className={'btn btn-sm ' + (statusFilter === 'needed' ? 'btn-primary' : 'btn-secondary')}
-              onClick={() => { setStatusFilter('needed'); setPage(1); }}
-            >
-              مطلوب
-            </button>
-            <button
-              type="button"
-              className={'btn btn-sm ' + (statusFilter === 'ordered' ? 'btn-primary' : 'btn-secondary')}
-              onClick={() => { setStatusFilter('ordered'); setPage(1); }}
-            >
-              تم الطلب
-            </button>
-            <button
-              type="button"
-              className={'btn btn-sm ' + (statusFilter === 'received' ? 'btn-primary' : 'btn-secondary')}
-              onClick={() => { setStatusFilter('received'); setPage(1); }}
-            >
-              تم الاستلام
-            </button>
-            <button
-              type="button"
-              className={'btn btn-sm ' + (statusFilter === 'unavailable' ? 'btn-primary' : 'btn-secondary')}
-              onClick={() => { setStatusFilter('unavailable'); setPage(1); }}
-            >
-              غير متوفر بالسوق
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', flex: '1 1 340px', maxWidth: '520px', alignItems: 'center' }}>
-            <div style={{ width: '140px' }}>
-              <CustomSelect
-                value={priorityFilter}
-                onChange={(val) => { setPriorityFilter(val); setPage(1); }}
-                options={[
-                  { value: 'all', label: 'كل الأولويات' },
-                  { value: 'urgent', label: 'عاجل جداً' },
-                  { value: 'customer_request', label: 'طلب عميل' },
-                  { value: 'normal', label: 'عادي' },
-                ]}
-              />
-            </div>
-
-
-            <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                type="text"
-                className="purchase-prototype-field-input"
-                placeholder="بحث باسم الدواء، المادة الفعالة، الموزع..."
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                style={{ width: '100%', paddingInlineStart: '34px', boxSizing: 'border-box' }}
-              />
-              <div style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '10px', color: '#94a3b8', display: 'flex' }}>
-                <IconSearch size={16} />
-              </div>
-            </div>
-          </div>
-        </div>
+        <ShortageFilterBar
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          priorityFilter={priorityFilter}
+          setPriorityFilter={setPriorityFilter}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          totalItems={totalItems}
+          onPageReset={() => setPage(1)}
+        />
 
         {/* Table */}
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'right' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                <th style={{ padding: '10px 14px' }}>اسم الدواء الناقص</th>
-                <th style={{ padding: '10px 14px' }}>المادة الفعالة</th>
-                <th style={{ padding: '10px 14px' }}>الموزع المفضل</th>
-                <th style={{ padding: '10px 14px' }}>الكمية</th>
-                <th style={{ padding: '10px 14px' }}>الأولوية</th>
-                <th style={{ padding: '10px 14px' }}>الحالة</th>
-                <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>جاري التحميل...</td>
-                </tr>
-              ) : shortagesList.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>لا توجد نواقص مسجلة</td>
-                </tr>
-              ) : (
-                shortagesList.map((s: PharmacyShortage) => (
-                  <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px' }}>
-                      <strong style={{ color: '#0f172a' }}>{s.product_name}</strong>
-                      {s.customer_name && (
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                          طالب الصنف: {s.customer_name} {s.customer_phone ? ('(' + s.customer_phone + ')') : ''}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: '10px 14px', color: '#0f766e', fontWeight: 600 }}>
-                      {s.active_ingredient || '—'}
-                    </td>
-                    <td style={{ padding: '10px 14px', color: '#475569' }}>
-                      {s.suggested_distributor || 'أي موزع'}
-                    </td>
-                    <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>
-                      {s.requested_quantity} علبة
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span
-                        style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          background: s.priority === 'urgent' ? '#fee2e2' : '#f1f5f9',
-                          color: s.priority === 'urgent' ? '#b91c1c' : '#475569',
-                          border: s.priority === 'urgent' ? '1px solid #fca5a5' : '1px solid #e2e8f0',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {s.priority === 'urgent' ? 'عاجل جداً' : s.priority === 'customer_request' ? 'طلب عميل' : 'عادي'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <div style={{ width: '130px' }}>
-                        <CustomSelect
-                          value={s.status}
-                          onChange={(val) => statusMutation.mutate({ id: s.id, status: val })}
-                          options={[
-                            { value: 'needed', label: 'مطلوب' },
-                            { value: 'ordered', label: 'تم الطلب' },
-                            { value: 'received', label: 'تم الاستلام' },
-                            { value: 'unavailable', label: 'غير متوفر بالسوق' },
-                          ]}
-                        />
-                      </div>
-                    </td>
+        <ShortagesTable
+          shortages={shortagesList}
+          isLoading={isLoading}
+          onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
+          onEdit={(s) => {
+            setEditingShortage(s);
+            setModalOpen(true);
+          }}
+        />
 
-                    <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                      <Button
-                        variant="secondary"
-                        className="btn-sm"
-                        onClick={() => {
-                          setEditingShortage(s);
-                          setModalOpen(true);
-                        }}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <IconEdit size={14} />
-                        <span>تعديل</span>
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {modalOpen && editingShortage && (
-          <DialogShell
-            open={modalOpen}
-            onClose={() => setModalOpen(false)}
-            width="min(640px, 95vw)"
-            ariaLabel={editingShortage.id ? 'تعديل بيانات الصنف الناقص' : 'تسجيل صنف مفصل في كشكول النواقص'}
-          >
-            <div dir="rtl" style={{ background: '#ffffff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                  {editingShortage.id ? 'تعديل بيانات الصنف الناقص' : 'تسجيل صنف مفصل في كشكول النواقص'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  style={{ border: 'none', background: '#f1f5f9', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontWeight: 700 }}
-                ><XIcon size={16} /></button>
-              </div>
-
-              <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      اسم الدواء الناقص <span style={{ color: '#dc2626' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      className="purchase-prototype-field-input"
-                      value={editingShortage.product_name || ''}
-                      onChange={(e) => setEditingShortage({ ...editingShortage, product_name: e.target.value })}
-                      placeholder="اسم الدواء والشكل..."
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      المادة الفعالة
-                    </label>
-                    <input
-                      type="text"
-                      className="purchase-prototype-field-input"
-                      value={editingShortage.active_ingredient || ''}
-                      onChange={(e) => setEditingShortage({ ...editingShortage, active_ingredient: e.target.value })}
-                      placeholder="المادة الفعالة (اختياري)..."
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      الشركة الموزعة المفضلة
-                    </label>
-                    <CustomSelect
-                      value={editingShortage.suggested_distributor || MAJOR_DISTRIBUTORS[0]}
-                      onChange={(val) => setEditingShortage({ ...editingShortage, suggested_distributor: val })}
-                      options={MAJOR_DISTRIBUTORS.map((d) => ({ value: d, label: d }))}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      الكمية المطلوبة (العلب)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      className="purchase-prototype-field-input"
-                      value={editingShortage.requested_quantity ?? 1}
-                      onChange={(e) => setEditingShortage({ ...editingShortage, requested_quantity: parseFloat(e.target.value) || 1 })}
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      الأولوية
-                    </label>
-                    <CustomSelect
-                      value={editingShortage.priority || 'normal'}
-                      onChange={(val) => setEditingShortage({ ...editingShortage, priority: val as any })}
-                      options={[
-                        { value: 'urgent', label: 'عاجل جداً (نقص شديد)' },
-                        { value: 'customer_request', label: 'طلب مريض محجوز' },
-                        { value: 'normal', label: 'عادي (طلبية دورية)' },
-                      ]}
-                    />
-                  </div>
-
-
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                      اسم العميل (في حال الحجز)
-                    </label>
-                    <input
-                      type="text"
-                      className="purchase-prototype-field-input"
-                      value={editingShortage.customer_name || ''}
-                      onChange={(e) => setEditingShortage({ ...editingShortage, customer_name: e.target.value })}
-                      placeholder="اسم العميل..."
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                  <Button variant="secondary" onClick={() => setModalOpen(false)}>إلغاء</Button>
-                  <Button variant="primary" type="submit" disabled={upsertMutation.isPending} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <IconSave size={15} />
-                    <span>{upsertMutation.isPending ? 'جاري الحفظ...' : 'حفظ في كشكول النواقص'}</span>
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </DialogShell>
-        )}
+        {/* Modal */}
+        <ShortageDetailModal
+          isOpen={modalOpen && !!editingShortage}
+          onClose={() => setModalOpen(false)}
+          shortage={editingShortage}
+          setShortage={setEditingShortage}
+          isPending={upsertMutation.isPending}
+          onSubmit={handleSave}
+        />
       </main>
     </div>
   );

@@ -29,11 +29,13 @@ export interface PurchaseRfq {
   expected_delivery_date: string | null;
   winning_supplier_id: number | null;
   winning_supplier_name: string | null;
+  awarded_supplier_id?: number | null;
   converted_po_id: number | null;
   notes: string | null;
   items_count?: number;
   suppliers_count?: number;
   items?: PurchaseRfqItem[];
+  bids?: any[];
   comparison_matrix?: SupplierBidComparison[];
   created_at: string;
   updated_at: string;

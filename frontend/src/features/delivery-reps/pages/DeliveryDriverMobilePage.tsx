@@ -1,48 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { deliveryRepsApi, DeliveryRep, DeliveryOrder, SettleOrderPayload } from '../api/delivery-reps.api';
-import { Button } from '@/shared/ui/button';
+import { deliveryRepsApi, type DeliveryOrder, type DeliveryRep, type SettleOrderPayload } from '@/features/delivery-reps/api/delivery-reps.api';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
-import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
-import { BarcodeIcon, RefreshCwIcon, PrinterIcon, TruckIcon, PackageIcon, CheckIcon, ClockIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { VanSaleNewInvoiceModal } from '../components/VanSaleNewInvoiceModal';
 import { DeliverySettlementModal } from '../components/DeliverySettlementModal';
+import { DeliveryOrderCard } from '../components/DeliveryOrderCard';
+import { DeliveryDriverHeader } from '../components/DeliveryDriverHeader';
+import { PackageIcon } from '@/shared/components/icons/AppIcons';
 
 interface OfflineQueueItem {
   orderId: number;
-  docNo: string;
-  customerName: string;
-  total: number;
-  payload?: SettleOrderPayload;
-  settledAt: string;
+  cashCollected: number;
+  deliverySignature?: string;
+  deliveryPhotoUrl?: string;
+  deliveryNotes?: string;
+  timestamp: string;
 }
 
 export function DeliveryDriverMobilePage() {
   const queryClient = useQueryClient();
   const [selectedRepId, setSelectedRepId] = useState<number>(() => {
-    const saved = localStorage.getItem('zs_driver_rep_id');
-    return saved ? Number(saved) : 0;
+    return Number(localStorage.getItem('z_active_delivery_rep_id')) || 1;
   });
+
   const [statusFilter, setStatusFilter] = useState<'pending' | 'settled' | 'all'>('pending');
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [scannedCode, setScannedCode] = useState('');
   const [vanSaleModalOpen, setVanSaleModalOpen] = useState(false);
   const [activeSettleOrder, setActiveSettleOrder] = useState<DeliveryOrder | null>(null);
 
   // Offline Queue State
   const [offlineQueue, setOfflineQueue] = useState<OfflineQueueItem[]>(() => {
     try {
-      const saved = localStorage.getItem('zs_driver_offline_queue');
-      return saved ? JSON.parse(saved) : [];
+      const stored = localStorage.getItem('z_driver_offline_settlements');
+      return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
     }
   });
   const [isSyncingOffline, setIsSyncingOffline] = useState(false);
 
-  // PWA Install Prompt State
+  // PWA Install Prompt
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
   useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
@@ -52,617 +50,244 @@ export function DeliveryDriverMobilePage() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  const handleInstallPwa = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
-    } else {
-      alert('لتثبيت شاشة المندوب كتطبيق:\n• أندرويد (Chrome): اضغط على القائمة (⋮) ثم "تثبيت التطبيق" أو "إضافة للشاشة الرئيسية".\n• آيفون (Safari): اضغط زر المشاركة ثم "إضافة إلى الصفحة الرئيسية" (Add to Home Screen).');
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
     }
   };
 
-  const { data: repsList = [] } = useQuery<DeliveryRep[]>({
+  // Queries
+  const { data: reps = [] } = useQuery<DeliveryRep[]>({
     queryKey: ['delivery-reps-list'],
-    queryFn: deliveryRepsApi.list,
+    queryFn: () => deliveryRepsApi.list(),
   });
 
-  useEffect(() => {
-    if (!selectedRepId && repsList.length > 0) {
-      const firstId = repsList[0].id;
-      setSelectedRepId(firstId);
-      localStorage.setItem('zs_driver_rep_id', String(firstId));
-    }
-  }, [repsList, selectedRepId]);
-
-  const { data: orders = [], isLoading, refetch } = useQuery<DeliveryOrder[]>({
-    queryKey: ['driver-orders', selectedRepId],
-    queryFn: () => (selectedRepId ? deliveryRepsApi.listOrders(selectedRepId) : Promise.resolve([])),
+  const { data: orders = [], refetch: refetchOrders, isLoading: ordersLoading } = useQuery<DeliveryOrder[]>({
+    queryKey: ['delivery-rep-orders', selectedRepId],
+    queryFn: () => deliveryRepsApi.listOrders(selectedRepId),
     enabled: Boolean(selectedRepId),
-    refetchInterval: 15000,
+    refetchInterval: 15_000,
   });
 
-  const saveToOfflineQueue = (order: DeliveryOrder, payload?: SettleOrderPayload) => {
-    const item: OfflineQueueItem = {
-      orderId: order.id,
-      docNo: order.docNo,
-      customerName: order.customerName,
-      total: order.total,
-      payload,
-      settledAt: new Date().toISOString(),
-    };
-    const updated = [item, ...offlineQueue.filter((q) => q.orderId !== order.id)];
-    setOfflineQueue(updated);
-    localStorage.setItem('zs_driver_offline_queue', JSON.stringify(updated));
-    setActiveSettleOrder(null);
-    alert('تم حفظ تسليم الطلب محلياً بنجاح في وضع الأوفلاين! سيتم مزامنته تلقائياً فور عودة الإنترنت.');
-  };
+  // Mutations
+  const settleMutation = useMutation({
+    mutationFn: ({ orderId, payload }: { orderId: number; payload?: SettleOrderPayload }) =>
+      deliveryRepsApi.settleOrder(orderId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delivery-rep-orders'] });
+      setActiveSettleOrder(null);
+    },
+    onError: (err: any, variables) => {
+      if (!navigator.onLine || err.message?.includes('Network') || err.message?.includes('network')) {
+        const item: OfflineQueueItem = {
+          orderId: variables.orderId,
+          cashCollected: (variables.payload as any)?.cashCollected ?? 0,
+          deliverySignature: variables.payload?.signatureDataUrl,
+          deliveryPhotoUrl: variables.payload?.proofPhotoUrl,
+          deliveryNotes: variables.payload?.notes,
+          timestamp: new Date().toISOString(),
+        };
+        const updated = [...offlineQueue, item];
+        setOfflineQueue(updated);
+        localStorage.setItem('z_driver_offline_settlements', JSON.stringify(updated));
+        alert('تم حفظ إثبات التسليم بنجاح في وضع عدم الاتصال (Offline). ستتم المزامنة تلقائياً فور عودة الإنترنت.');
+        setActiveSettleOrder(null);
+      } else {
+        alert(err?.response?.data?.message || 'تعذر تأكيد استلام الشحنة.');
+      }
+    },
+  });
 
   const syncOfflineQueue = async () => {
     if (offlineQueue.length === 0 || isSyncingOffline) return;
     setIsSyncingOffline(true);
-    const remaining = [...offlineQueue];
-    for (const item of offlineQueue) {
+    const queue = [...offlineQueue];
+    const remaining: OfflineQueueItem[] = [];
+
+    for (const item of queue) {
       try {
-        await deliveryRepsApi.settleOrder(item.orderId, item.payload);
-        const idx = remaining.findIndex((r) => r.orderId === item.orderId);
-        if (idx >= 0) remaining.splice(idx, 1);
-      } catch (err) {
-        console.error('Offline sync item failed:', err);
+        await deliveryRepsApi.settleOrder(item.orderId, {
+          signatureDataUrl: item.deliverySignature,
+          proofPhotoUrl: item.deliveryPhotoUrl,
+          notes: item.deliveryNotes,
+        });
+      } catch (e) {
+        remaining.push(item);
       }
     }
+
     setOfflineQueue(remaining);
-    localStorage.setItem('zs_driver_offline_queue', JSON.stringify(remaining));
+    localStorage.setItem('z_driver_offline_settlements', JSON.stringify(remaining));
     setIsSyncingOffline(false);
-    queryClient.invalidateQueries({ queryKey: ['driver-orders', selectedRepId] });
-    if (remaining.length === 0) {
-      alert('تمت مزامنة جميع الشحنات المعلقة مع السيرفر بنجاح!');
-    }
+    queryClient.invalidateQueries({ queryKey: ['delivery-rep-orders'] });
   };
 
   useEffect(() => {
     const handleOnline = () => {
-      void syncOfflineQueue();
+      if (offlineQueue.length > 0) {
+        syncOfflineQueue();
+      }
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
   }, [offlineQueue]);
 
-  const settleMutation = useMutation({
-    mutationFn: ({ saleId, payload }: { saleId: number; payload?: SettleOrderPayload }) =>
-      deliveryRepsApi.settleOrder(saleId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['driver-orders', selectedRepId] });
-      setActiveSettleOrder(null);
-      alert('تم تأكيد تسليم وتحصيل الطلب بنجاح!');
-    },
-    onError: (err: any, vars) => {
-      if (!navigator.onLine || err?.message?.includes('Network') || err?.message?.includes('Failed to fetch')) {
-        if (activeSettleOrder) {
-          saveToOfflineQueue(activeSettleOrder, vars.payload);
-        }
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o: DeliveryOrder) => {
+      const isSettled = Boolean(o.settledAt);
+      if (statusFilter === 'pending') return !isSettled;
+      if (statusFilter === 'settled') return isSettled;
+      return true;
+    });
+  }, [orders, statusFilter]);
+
+  const pendingCount = useMemo(() => orders.filter((o: DeliveryOrder) => !o.settledAt).length, [orders]);
+  const settledCount = useMemo(() => orders.filter((o: DeliveryOrder) => Boolean(o.settledAt)).length, [orders]);
+  const totalCollected = useMemo(() => orders.filter((o: DeliveryOrder) => Boolean(o.settledAt)).reduce((sum: number, o: DeliveryOrder) => sum + Number(o.total || 0), 0), [orders]);
+  const pendingAmount = useMemo(() => orders.filter((o: DeliveryOrder) => !o.settledAt).reduce((sum: number, o: DeliveryOrder) => sum + Number(o.total || 0), 0), [orders]);
+
+  const handleBarcodeScanned = (code: string) => {
+    setScannerOpen(false);
+    const match = orders.find((o: DeliveryOrder) => o.docNo?.toLowerCase() === code.trim().toLowerCase());
+    if (match) {
+      if (match.settledAt) {
+        alert(`الشحنة #${match.docNo} تم تسليمها بالفعل مسبقاً.`);
       } else {
-        alert(err.message || 'فشل تأكيد تسليم الطلب');
+        handleOpenSettleModal(match);
       }
-    },
-  });
-
-
-  const handleCall = (phone?: string) => {
-    if (!phone) return alert('رقم هاتف العميل غير متوفر');
-    window.location.href = `tel:${phone.replace(/[^0-9+]/g, '')}`;
+    } else {
+      alert(`لم يتم العثور على شحنة تطابق الباركود: ${code}`);
+    }
   };
 
-  const handleWhatsApp = (phone?: string, docNo?: string) => {
-    if (!phone) return alert('رقم هاتف العميل غير متوفر');
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const target = cleanPhone.startsWith('01') ? `2${cleanPhone}` : cleanPhone;
-    const msg = `مرحباً، أنا مندوب التوصيل بخصوص طلبك رقم ${docNo || ''}. أنا في طريقي إليك!`;
-    window.open(`https://wa.me/${target}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+  const handleCall = (phone: string) => {
+    if (!phone) return;
+    window.location.href = `tel:${phone}`;
   };
 
-  const handleOpenMap = (address?: string) => {
-    if (!address) return alert('عنوان العميل غير محدد');
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
+  const handleWhatsApp = (phone: string, docNo: string) => {
+    if (!phone) return;
+    const cleanPhone = phone.replace(/\D/g, '');
+    const msg = encodeURIComponent(`مرحباً، أنا مندوب التوصيل بخصوص الشحنة رقم #${docNo}. أرجو تأكيد موقع الاستلام.`);
+    window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
+  };
+
+  const handleOpenMap = (address: string) => {
+    if (!address) return;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    window.open(url, '_blank');
   };
 
   const handlePrintDeliveryReceipt = (order: DeliveryOrder) => {
-    const html = `
-      <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px;">
-        <h3 style="margin: 0; font-size: 14px;">إشعار تسليم شحنة</h3>
-        <p style="margin: 2px 0 0; font-size: 11px;">طلب رقم: <b>#${order.docNo}</b></p>
-      </div>
-      <div style="font-size: 11px; margin-bottom: 6px;">
-        <div><b>العميل:</b> ${order.customerName || 'عميل نقدي'}</div>
-        <div><b>الهاتف:</b> ${order.customerPhone || 'غير مسجل'}</div>
-        <div><b>العنوان:</b> ${order.deliveryStatus || 'غير محدد'}</div>
-        <div><b>التاريخ:</b> ${new Date().toLocaleDateString('ar-EG')}</div>
-      </div>
-      <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 6px;">
-        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
-          <span>المطلوب تحصيله:</span>
-          <span>${Number(order.total || 0).toLocaleString()} ج.م</span>
-        </div>
-      </div>
-      <div style="text-align: center; font-size: 10px; color: #555;">
-        شكراً لتعاملكم معنا!
-      </div>
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    if (!printWindow) return;
+    const content = `
+      <html dir="rtl">
+        <head>
+          <title>إيصال تسليم #${order.docNo}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 15px; font-size: 13px; line-height: 1.5; }
+            .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 12px; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+            .total { font-size: 16px; font-weight: bold; border-top: 1px solid #000; padding-top: 6px; margin-top: 8px; }
+            .footer { text-align: center; margin-top: 20px; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h3>إيصال تسليم طلب</h3>
+            <div>رقم الطلب: #${order.docNo}</div>
+            <div>التاريخ: ${new Date().toLocaleDateString('ar-EG')}</div>
+          </div>
+          <div class="row"><span>العميل:</span><strong>${order.customerName}</strong></div>
+          <div class="row"><span>الهاتف:</span><span>${order.customerPhone || '—'}</span></div>
+          <div class="row"><span>العنوان:</span><span>${order.customerAddress || order.deliveryStatus || '—'}</span></div>
+          <div class="row total"><span>المبلغ المطلوب:</span><span>${Number(order.total).toLocaleString('ar-EG')} ج.م</span></div>
+          ${order.settledAt ? '<div class="row" style="color: green;"><span>حالة التحصيل:</span><strong>تم التحصيل بالكامل</strong></div>' : ''}
+          <div class="footer">شكراً لتعاملكم معنا!</div>
+          <script>window.print(); window.close();</script>
+        </body>
+      </html>
     `;
-    printSmallReceiptDocument(html, { title: `إيصال #${order.docNo}`, widthMm: 58 });
+    printWindow.document.write(content);
+    printWindow.document.close();
   };
 
   const handleOpenSettleModal = (order: DeliveryOrder) => {
     setActiveSettleOrder(order);
   };
 
-  const handleSettleConfirm = (payload: SettleOrderPayload) => {
-    if (!activeSettleOrder) return;
-    settleMutation.mutate({ saleId: activeSettleOrder.id, payload });
-  };
-
-  const filteredOrders = orders.filter((o) => {
-    if (scannedCode) {
-      const matchDoc = String(o.docNo || '').toLowerCase().includes(scannedCode.toLowerCase());
-      const matchId = String(o.id) === scannedCode;
-      const matchPhone = String(o.customerPhone || '').includes(scannedCode);
-      if (!matchDoc && !matchId && !matchPhone) return false;
-    }
-    if (statusFilter === 'pending') return !o.settledAt;
-    if (statusFilter === 'settled') return Boolean(o.settledAt);
-    return true;
-  });
-
-  const pendingCount = orders.filter((o) => !o.settledAt).length;
-  const pendingAmount = orders.filter((o) => !o.settledAt).reduce((sum, o) => sum + Number(o.total || 0), 0);
-  const settledCount = orders.filter((o) => Boolean(o.settledAt)).length;
-
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px 14px', width: '100%', boxSizing: 'border-box' }} dir="rtl">
-      {/* PWA Install Banner */}
-      {deferredPrompt && (
-        <div
-          style={{
-            background: '#e0e7ff',
-            border: '1px solid #c7d2fe',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            marginBottom: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#1e1b4b' }}>
-            <div>
-              <strong>تثبيت شاشة المندوب:</strong> شاشة كاملة وسرعة وصول بدون متصفح.
+    <div className="page-stack page-shell mobile-driver-portal" dir="rtl" style={{ background: '#f8fafc', minHeight: '100vh', padding: '12px' }}>
+      <main style={{ maxWidth: '600px', margin: '0 auto' }}>
+        <DeliveryDriverHeader
+          selectedRepId={selectedRepId}
+          setSelectedRepId={setSelectedRepId}
+          reps={reps}
+          refetchOrders={refetchOrders}
+          isSyncingOffline={isSyncingOffline}
+          offlineQueueCount={offlineQueue.length}
+          syncOfflineQueue={syncOfflineQueue}
+          setScannerOpen={setScannerOpen}
+          setVanSaleModalOpen={setVanSaleModalOpen}
+          deferredPrompt={deferredPrompt}
+          handleInstallPWA={handleInstallPWA}
+          pendingCount={pendingCount}
+          settledCount={settledCount}
+          totalCollected={totalCollected}
+          pendingAmount={pendingAmount}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+        />
+
+        {/* Orders List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {ordersLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+              جاري تحميل شحنات اليوم...
             </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleInstallPwa}
-            style={{
-              background: '#170e5e',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              fontSize: '11.5px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            تثبيت الآن
-          </button>
-        </div>
-      )}
-
-      {/* Offline Pending Sync Banner */}
-      {offlineQueue.length > 0 && (
-        <div
-          style={{
-            background: '#fffbeb',
-            border: '1px solid #fde68a',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            marginBottom: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#92400e' }}>
-            <PackageIcon size={18} color="#92400e" />
-            <div>
-              <strong>شحنات بانتظار المزامنة:</strong> لديك {offlineQueue.length} طلب سُلم أوفلاين.
+          ) : filteredOrders.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <PackageIcon size={36} color="#94a3b8" />
+              <h4 style={{ margin: '10px 0 4px', fontSize: '15px', color: '#0f172a' }}>لا توجد طلبات مطابقة</h4>
+              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>لا توجد شحنات مسندة إليك تحت هذا الفلتر في الوقت الحالي.</p>
             </div>
-          </div>
-          <button
-            type="button"
-            onClick={syncOfflineQueue}
-            disabled={isSyncingOffline}
-            style={{
-              background: '#b45309',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              fontSize: '11.5px',
-              fontWeight: 800,
-              cursor: isSyncingOffline ? 'not-allowed' : 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {isSyncingOffline ? 'جاري الرفع...' : 'مزامنة الآن ⟳'}
-          </button>
-        </div>
-      )}
-
-      {/* Driver Header */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', marginBottom: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>شاشة مندوب التوصيل</h2>
-            <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>متابعة الشحنات، التواصل مع العملاء، وتأكيد التحصيل</div>
-          </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <Button
-              variant="secondary"
-              onClick={() => setScannerOpen(true)}
-              style={{ padding: '6px 10px', fontSize: '12px', background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-            >
-              <BarcodeIcon size={14} color="#0369a1" />
-              <span>مسح باركود</span>
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => refetch()}
-              style={{ padding: '6px 10px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-            >
-              <RefreshCwIcon size={13} color="#475569" />
-              <span>تحديث</span>
-            </Button>
-          </div>
-        </div>
-
-        {scannedCode && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', marginBottom: '10px', background: '#eff6ff', borderRadius: '6px', fontSize: '12px', color: '#1e40af' }}>
-            <span>تصفية حسب الباركود: <b>{scannedCode}</b></span>
-            <button
-              type="button"
-              onClick={() => setScannedCode('')}
-              style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-            >
-              <XIcon size={12} color="#ef4444" />
-              <span>إلغاء التصفية</span>
-            </button>
-          </div>
-        )}
-
-        {/* Rep Selector */}
-        <div>
-          <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-            المندوب النشط:
-          </label>
-          <select
-            value={selectedRepId}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setSelectedRepId(val);
-              localStorage.setItem('zs_driver_rep_id', String(val));
-            }}
-            style={{
-              width: '100%',
-              padding: '8px 10px',
-              borderRadius: '8px',
-              border: '1.5px solid #cbd5e1',
-              fontSize: '13px',
-              fontWeight: 700,
-              color: '#0f172a',
-              background: '#ffffff',
-            }}
-          >
-            {repsList.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name} {r.phone ? `(${r.phone})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* KPI Counters */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>مطلوب تسليمها</div>
-          <div style={{ fontSize: '18px', fontWeight: 900, color: '#ea580c', marginTop: '2px' }}>{pendingCount}</div>
-        </div>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>المطلوب تحصيله</div>
-          <div style={{ fontSize: '16px', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>{pendingAmount.toLocaleString('ar-EG')} ج.م</div>
-        </div>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#64748b' }}>تم تسليمها</div>
-          <div style={{ fontSize: '18px', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{settledCount}</div>
-        </div>
-      </div>
-
-      {/* Direct Van Sale Action Button */}
-      <div style={{ marginBottom: '14px' }}>
-        <button
-          type="button"
-          onClick={() => setVanSaleModalOpen(true)}
-          style={{
-            width: '100%',
-            padding: '12px',
-            borderRadius: '10px',
-            border: 'none',
-            background: '#170e5e',
-            color: '#ffffff',
-            fontSize: '14px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            boxShadow: '0 2px 4px rgba(23,14,94,0.15)',
-          }}
-        >
-          <TruckIcon size={16} color="#ffffff" />
-          <span>+ بيع مباشر من السيارة (Van Sale)</span>
-        </button>
-      </div>
-
-      {/* Status Filter Tabs */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
-        {[
-          { id: 'pending', label: `قيد التوصيل (${pendingCount})` },
-          { id: 'settled', label: `تم التسليم (${settledCount})` },
-          { id: 'all', label: `الكل (${orders.length})` },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setStatusFilter(tab.id as any)}
-            style={{
-              flex: 1,
-              padding: '8px 6px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              background: statusFilter === tab.id ? '#170e5e' : '#ffffff',
-              color: statusFilter === tab.id ? '#ffffff' : '#475569',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Orders List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {isLoading ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>جاري تحميل الطلبات...</div>
-        ) : filteredOrders.length === 0 ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            لا توجد طلبات في هذه الحالة حالياً.
-          </div>
-        ) : (
-          filteredOrders.map((order) => {
-            const isSettled = Boolean(order.settledAt);
-            return (
-              <div
+          ) : (
+            filteredOrders.map((order: DeliveryOrder) => (
+              <DeliveryOrderCard
                 key={order.id}
-                style={{
-                  background: '#ffffff',
-                  border: `1px solid ${isSettled ? '#bbf7d0' : '#e2e8f0'}`,
-                  borderRadius: '12px',
-                  padding: '14px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}
-              >
-                {/* Card Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#170e5e', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                      #{order.docNo}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8', marginInlineStart: '6px' }}>
-                      {new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
+                order={order}
+                handleCall={handleCall}
+                handleWhatsApp={handleWhatsApp}
+                handleOpenMap={handleOpenMap}
+                handlePrintDeliveryReceipt={handlePrintDeliveryReceipt}
+                handleOpenSettleModal={handleOpenSettleModal}
+                isSettlePending={settleMutation.isPending}
+                activeSettleOrderId={activeSettleOrder?.id}
+              />
+            ))
+          )}
+        </div>
+      </main>
 
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      background: isSettled ? '#dcfce7' : '#ffedd5',
-                      color: isSettled ? '#166534' : '#c2410c',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    {isSettled ? (
-                      <>
-                        <CheckIcon size={12} color="#166534" />
-                        <span>تم التسليم والتحصيل</span>
-                      </>
-                    ) : (
-                      <>
-                        <ClockIcon size={12} color="#c2410c" />
-                        <span>قيد التوصيل</span>
-                      </>
-                    )}
-                  </span>
-                </div>
-
-                {/* Customer & Address */}
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                    {order.customerName}
-                  </div>
-                  {order.deliveryStatus && (
-                    <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
-                      {order.deliveryStatus}
-                    </div>
-                  )}
-                </div>
-
-                {/* Amount to collect */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>المبلغ المطلوب تحصيله:</span>
-                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#16a34a' }}>
-                    {Number(order.total).toLocaleString('ar-EG')} ج.م
-                  </span>
-                </div>
-
-                {/* Quick Actions Bar */}
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleCall(order.customerPhone || '')}
-                    style={{
-                      flex: 1,
-                      padding: '7px',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      background: '#ffffff',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    اتصال
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleWhatsApp(order.customerPhone || '', order.docNo)}
-                    style={{
-                      flex: 1,
-                      padding: '7px',
-                      borderRadius: '8px',
-                      border: '1px solid #86efac',
-                      background: '#f0fdf4',
-                      color: '#166534',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    واتساب
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenMap(order.customerAddress || order.deliveryStatus || '')}
-                    style={{
-                      flex: 1,
-                      padding: '7px',
-                      borderRadius: '8px',
-                      border: '1px solid #bfdbfe',
-                      background: '#eff6ff',
-                      color: '#1d4ed8',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    الخريطة
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handlePrintDeliveryReceipt(order)}
-                    style={{
-                      padding: '7px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid #e2e8f0',
-                      background: '#f8fafc',
-                      color: '#334155',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <PrinterIcon size={13} color="#334155" />
-                    <span>إيصال</span>
-                  </button>
-                </div>
-
-                {/* Settle / Proof Info */}
-                {isSettled ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '4px' }}>
-                    {order.deliverySignature && (
-                      <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        <CheckIcon size={11} color="#3730a3" />
-                        <span>توقيع العميل معتمد</span>
-                      </span>
-                    )}
-                    {order.deliveryPhotoUrl && (
-                      <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        <CheckIcon size={11} color="#92400e" />
-                        <span>صورة إثبات التسليم مرفقة</span>
-                      </span>
-                    )}
-                    {order.deliveryNotes && (
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>
-                        ملاحظة: {order.deliveryNotes}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <Button
-                    variant="primary"
-                    disabled={settleMutation.isPending}
-                    onClick={() => handleOpenSettleModal(order)}
-                    style={{ width: '100%', padding: '10px', fontSize: '13px', fontWeight: 800, background: '#16a34a', border: 'none', borderRadius: '10px' }}
-                  >
-                    {settleMutation.isPending && activeSettleOrder?.id === order.id
-                      ? 'جاري التأكيد...'
-                      : 'تسليم وتحصيل (توقيع وكاميرا أوفلاين)'}
-                  </Button>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-
+      {/* Barcode Camera Scanner */}
       <CameraBarcodeScannerModal
         isOpen={scannerOpen}
         onClose={() => setScannerOpen(false)}
-        onScan={(barcode) => {
-          setScannedCode(barcode);
-          setScannerOpen(false);
-        }}
-        title="مسح باركود شحنة أو فاتورة"
+        onScan={handleBarcodeScanned}
+        title="مسح باركود الشحنة للتحصيل المباشر"
       />
 
+      {/* Van Sale Modal */}
       {vanSaleModalOpen && (
         <VanSaleNewInvoiceModal
           open={vanSaleModalOpen}
           onClose={() => setVanSaleModalOpen(false)}
           repId={selectedRepId}
-          repName={repsList.find((r) => r.id === selectedRepId)?.name}
-          onSuccess={() => refetch()}
+          onSuccess={() => refetchOrders()}
         />
       )}
 
@@ -671,9 +296,14 @@ export function DeliveryDriverMobilePage() {
         order={activeSettleOrder}
         isOpen={Boolean(activeSettleOrder)}
         isSubmitting={settleMutation.isPending}
-        onConfirm={handleSettleConfirm}
         onClose={() => setActiveSettleOrder(null)}
+        onConfirm={(payload) => {
+          if (!activeSettleOrder) return;
+          settleMutation.mutate({ orderId: activeSettleOrder.id, payload });
+        }}
       />
     </div>
   );
 }
+
+export default DeliveryDriverMobilePage;

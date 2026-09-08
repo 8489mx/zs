@@ -2,31 +2,13 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { tenantSubscriptionApi, TenantSubscriptionData } from '../api/tenant-subscription.api';
 import { settingsApi } from '../api/settings.api';
-import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
-
-const REGIONAL_PRICING: Record<string, { label: string; unit: string; basic: number; pro: number; ultimate: number; omnichannel: number }> = {
-  EGP: { label: 'مصر (EGP)', unit: 'ج.م', basic: 3500, pro: 7500, ultimate: 15000, omnichannel: 24000 },
-  SAR: { label: 'السعودية (SAR)', unit: 'ر.س', basic: 350, pro: 750, ultimate: 1500, omnichannel: 2400 },
-  KWD: { label: 'الكويت (KWD)', unit: 'د.ك', basic: 30, pro: 60, ultimate: 120, omnichannel: 195 },
-  QAR: { label: 'قطر (QAR)', unit: 'ر.ق', basic: 350, pro: 750, ultimate: 1500, omnichannel: 2400 },
-  AED: { label: 'الإمارات (AED)', unit: 'د.إ', basic: 350, pro: 750, ultimate: 1500, omnichannel: 2400 },
-  BHD: { label: 'البحرين (BHD)', unit: 'د.ب', basic: 35, pro: 75, ultimate: 150, omnichannel: 240 },
-  OMR: { label: 'عُمان (OMR)', unit: 'ر.ع', basic: 35, pro: 75, ultimate: 150, omnichannel: 240 },
-  USD: { label: 'عالمي (USD)', unit: '$', basic: 99, pro: 199, ultimate: 399, omnichannel: 599 },
-};
-
-function PlanFeatureItem({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#ecfdf5', color: '#059669', flexShrink: 0 }}>
-        <CheckIcon size={10} strokeWidth={3} />
-      </span>
-      <span>{children}</span>
-    </div>
-  );
-}
+import { XIcon } from '@/shared/components/icons/AppIcons';
+import { REGIONAL_PRICING } from '../components/subscription/pricing-data';
+import { CurrentSubscriptionHeroCard } from '../components/subscription/CurrentSubscriptionHeroCard';
+import { SubscriptionPlansCards } from '../components/subscription/SubscriptionPlansCards';
+import { UpgradeRenewalModal } from '../components/subscription/UpgradeRenewalModal';
+import { SubscriptionPaymentsTable } from '../components/subscription/SubscriptionPaymentsTable';
 
 export function TenantSubscriptionPage() {
   const [isAnnual, setIsAnnual] = useState(true);
@@ -112,13 +94,6 @@ export function TenantSubscriptionPage() {
   const { tenant, subscription, usage, statusMeta, availablePlans, payments } = data;
   const isTrial = tenant.status === 'trial';
   const planName = subscription?.planName || (isTrial ? 'الفترة التجريبية المجانية' : 'خطة مخصصة');
-  const daysLeft = statusMeta.daysRemaining ?? 0;
-
-  const usersLimit = usage.users.max;
-  const usersPercent = usersLimit ? Math.min(100, Math.round((usage.users.current / usersLimit) * 100)) : null;
-
-  const branchesLimit = usage.branches.max;
-  const branchesPercent = branchesLimit ? Math.min(100, Math.round((usage.branches.current / branchesLimit) * 100)) : null;
 
   const defaultCurrency = String(settingsData?.currency || 'EGP').toUpperCase();
   const activeCurrency = userSelectedCurrency || (REGIONAL_PRICING[defaultCurrency] ? defaultCurrency : 'EGP');
@@ -220,20 +195,14 @@ export function TenantSubscriptionPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', paddingBottom: '40px' }} dir="rtl">
-      
       {/* 1. Request Success Notification Banner */}
       {requestSuccessMessage && (
         <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#065f46', fontWeight: 700 }}>
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', background: '#10b981', color: '#ffffff' }}>
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            </span>
             <span>{requestSuccessMessage}</span>
           </div>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setRequestSuccessMessage(null)}
             style={{ background: 'transparent', border: 'none', color: '#065f46', cursor: 'pointer', fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
@@ -243,613 +212,108 @@ export function TenantSubscriptionPage() {
         </div>
       )}
 
-      {/* 2. Hero Card: Current Subscription Status (Compact Enterprise White Card) */}
-      <div
-        style={{
-          background: '#ffffff',
-          borderRadius: '10px',
-          border: '1px solid #e2e8f0',
-          padding: '12px 18px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '12px',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span
-              style={{
-                fontSize: '11px',
-                background: '#f0f3ff',
-                color: '#170e5e',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontWeight: 700,
-                border: '1px solid #d8e0fc',
-              }}
-            >
-              {isTrial ? 'فترة تجريبية نشطة' : 'اشتراك رسمي مفعّل'}
-            </span>
-            <span
-              style={{
-                fontSize: '11px',
-                background: '#f8fafc',
-                color: '#475569',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontWeight: 700,
-                border: '1px solid #e2e8f0',
-              }}
-            >
-              نسخة سحابية
-            </span>
-          </div>
+      {/* 2. Hero Card: Current Subscription Status */}
+      <CurrentSubscriptionHeroCard
+        tenant={tenant}
+        subscription={subscription}
+        statusMeta={statusMeta}
+        usage={usage}
+        onUpgradeClick={() => setSelectedPlanForUpgrade(proPlanObj)}
+      />
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              {planName}
-            </h2>
-            <span style={{ color: '#64748b', fontSize: '12px' }}>
-              المنشأة: <strong style={{ color: '#0f172a' }}>{tenant.businessName}</strong> ({tenant.slug})
-            </span>
-          </div>
-        </div>
-
-        {/* Countdown & Action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              textAlign: 'center',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              padding: '6px 14px',
-              borderRadius: '8px',
-            }}
-          >
-            <div style={{ fontSize: '20px', fontWeight: 900, color: '#170e5e', lineHeight: 1 }}>
-              {statusMeta.daysRemaining === null || statusMeta.daysRemaining > 365 ? '∞' : daysLeft}
-            </div>
-            <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', fontWeight: 700 }}>
-              {statusMeta.daysRemaining === null || statusMeta.daysRemaining > 365
-                ? 'اشتراك نشط'
-                : daysLeft > 0
-                ? 'يوم متبقي'
-                : 'منتهي'}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-              تاريخ التجديد:{' '}
-              <strong style={{ color: '#0f172a' }}>
-                {subscription?.endsAt
-                  ? new Date(subscription.endsAt).toLocaleDateString('ar-EG')
-                  : tenant.trialEndsAt
-                  ? new Date(tenant.trialEndsAt).toLocaleDateString('ar-EG')
-                  : 'غير محدد'}
-              </strong>
-            </div>
+      {/* 3. Pricing Matrix Controls: Billing Toggle & Currency Selector */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>دورة الفوترة:</span>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
             <button
               type="button"
-              onClick={() => {
-                const targetPlan = availablePlans[0] || { id: 1, name: 'الباقة الاحترافية', price: 7500, currency: 'EGP' };
-                setSelectedPlanForUpgrade(targetPlan);
-              }}
+              onClick={() => setIsAnnual(false)}
               style={{
-                background: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
                 padding: '6px 14px',
+                borderRadius: '6px',
+                border: 'none',
+                background: !isAnnual ? '#ffffff' : 'transparent',
+                color: !isAnnual ? '#170e5e' : '#64748b',
                 fontWeight: 700,
                 fontSize: '12px',
                 cursor: 'pointer',
-                transition: 'background 0.15s',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#110a47')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#170e5e')}
             >
-              تجديد / ترقية الباقة
+              شهري
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAnnual(true)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '6px',
+                border: 'none',
+                background: isAnnual ? '#ffffff' : 'transparent',
+                color: isAnnual ? '#170e5e' : '#64748b',
+                fontWeight: 700,
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>سنوي (وفر شهرين مجاناً)</span>
             </button>
           </div>
         </div>
-      </div>
 
-      {/* 3. Resource Usage & Quotas - Compact */}
-      <div>
-        <h3 style={{ margin: '0 0 8px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span>استهلاك الموارد والمحددات لباقاتك</span>
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-          {/* Users Quota */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>المستخدمين النشطين</span>
-            </div>
-            <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              {usage.users.current} <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>/ {usersLimit ? `${usersLimit} مسموح` : 'غير محدود'}</span>
-            </div>
-            {usersPercent !== null && (
-              <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${usersPercent}%`, height: '100%', background: usersPercent > 85 ? '#ef4444' : '#170e5e', transition: 'width 0.3s' }} />
-              </div>
-            )}
-          </div>
-
-          {/* Branches Quota */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>الفروع المفتوحة</span>
-            </div>
-            <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              {usage.branches.current} <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>/ {branchesLimit ? `${branchesLimit} مسموح` : 'غير محدود'}</span>
-            </div>
-            {branchesPercent !== null && (
-              <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${branchesPercent}%`, height: '100%', background: branchesPercent > 85 ? '#ef4444' : '#170e5e', transition: 'width 0.3s' }} />
-              </div>
-            )}
-          </div>
-
-          {/* Warehouses Count */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>المخازن ومواقع التخزين</span>
-            </div>
-            <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              {usage.locations.current} <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>موقع تخزين</span>
-            </div>
-          </div>
-
-          {/* Total Invoices */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>إجمالي الفواتير الصادرة</span>
-            </div>
-            <div style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-              {usage.sales.current.toLocaleString('ar-EG')} <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 600 }}>فاتورة</span>
-            </div>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>عملة العرض:</span>
+          <select
+            value={activeCurrency}
+            onChange={(e) => setUserSelectedCurrency(e.target.value)}
+            style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}
+          >
+            {Object.keys(REGIONAL_PRICING).map((curr) => (
+              <option key={curr} value={curr}>
+                {REGIONAL_PRICING[curr].label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* 4. Upgrade / Available Plans Section - Compact */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px 20px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <div>
-            <h3 style={{ margin: '0 0 2px', fontSize: '15px', fontWeight: 900, color: '#0f172a' }}>
-              باقات الاشتراك والترقية السحابية
-            </h3>
-            <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b' }}>
-              اختر الخطة المناسبة لحجم نشاطك وتمتع بتحديثات سحابية مستمرة ودعم فني متواصل
-            </p>
-          </div>
+      {/* 4. Plan Cards Grid */}
+      <SubscriptionPlansCards
+        activeCurrency={activeCurrency}
+        isAnnual={isAnnual}
+        onSelectPlan={setSelectedPlanForUpgrade}
+        basicPlanObj={basicPlanObj}
+        proPlanObj={proPlanObj}
+        enterprisePlanObj={enterprisePlanObj}
+        omnichannelPlanObj={omnichannelPlanObj}
+        basicPrice={basicPrice}
+        proPrice={proPrice}
+        enterprisePrice={enterprisePrice}
+        omnichannelPrice={omnichannelPrice}
+        unit={regionalPricing.unit}
+      />
 
-          {/* Controls: Currency Selector + Monthly/Annual Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {/* Currency Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '2px 8px', gap: '6px' }}>
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>العملة:</span>
-              <select
-                value={activeCurrency}
-                onChange={(e) => setUserSelectedCurrency(e.target.value)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '11.5px',
-                  fontWeight: 800,
-                  color: '#0f172a',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  outline: 'none',
-                }}
-              >
-                {Object.entries(REGIONAL_PRICING).map(([code, p]) => (
-                  <option key={code} value={code}>{p.label}</option>
-                ))}
-              </select>
-            </div>
+      {/* 5. Payments History Table */}
+      <SubscriptionPaymentsTable
+        payments={payments}
+        onPrintReceipt={handlePrintReceipt}
+      />
 
-            {/* Monthly / Annual Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px' }}>
-              <button
-                type="button"
-                onClick={() => setIsAnnual(false)}
-                style={{
-                  border: 'none',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: !isAnnual ? '#ffffff' : 'transparent',
-                  color: !isAnnual ? '#0f172a' : '#64748b',
-                  boxShadow: !isAnnual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                دفع شهري
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAnnual(true)}
-                style={{
-                  border: 'none',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '11.5px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  background: isAnnual ? '#0f172a' : 'transparent',
-                  color: isAnnual ? '#ffffff' : '#64748b',
-                  boxShadow: isAnnual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <span>دفع سنوي</span>
-                <span style={{ fontSize: '9.5px', background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                  وفّر شهرين
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Pricing Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
-          
-          {/* 1. Starter Plan */}
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fafafa', position: 'relative' }}>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>الباقة الأساسية</div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
-                {basicPrice.toLocaleString('ar-EG')} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{regionalPricing.unit} / {isAnnual ? 'سنة' : 'شهر'}</span>
-              </div>
-              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>مناسبة للمحلات الفردية ونقاط البيع السريعة</p>
-              
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
-                <PlanFeatureItem>نقطة بيع وكاشير سريع (POS)</PlanFeatureItem>
-                <PlanFeatureItem>إدارة الأصناف والمنتجات والباركود</PlanFeatureItem>
-                <PlanFeatureItem>ورديات العمل وتقفيل الكاشير</PlanFeatureItem>
-                <PlanFeatureItem>صندوق النقدية والمصروفات اليومية</PlanFeatureItem>
-                <PlanFeatureItem>حتى <strong>فرع واحد</strong> و <strong>2 مستخدمين</strong></PlanFeatureItem>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: basicPlanObj.id, name: basicPlanObj.name, price: basicPrice, currency: regionalPricing.unit })}
-              style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
-            >
-              اختيار الأساسية
-            </button>
-          </div>
-
-          {/* 2. Professional Plan (Featured) */}
-          <div style={{ border: '1.5px solid #170e5e', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#ffffff', position: 'relative', boxShadow: '0 4px 12px rgba(23, 14, 94, 0.08)' }}>
-            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: '#170e5e', color: '#ffffff', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '12px' }}>
-              الأكثر طلباً
-            </div>
-
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e', textTransform: 'uppercase' }}>الباقة الاحترافية (Pro)</div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
-                {proPrice.toLocaleString('ar-EG')} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{regionalPricing.unit} / {isAnnual ? 'سنة' : 'شهر'}</span>
-              </div>
-              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للشركات المتوسطة وسلاسل الفروع وتجار الجملة</p>
-              
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
-                <PlanFeatureItem><strong>كل ميزات الأساسية</strong></PlanFeatureItem>
-                <PlanFeatureItem>إدارة المشتريات والموردين الكاملة</PlanFeatureItem>
-                <PlanFeatureItem>المخزون المتقدم وحركات الجرد والتسويات</PlanFeatureItem>
-                <PlanFeatureItem>التقارير المتقدمة وسجل النشاط والتدقيق</PlanFeatureItem>
-                <PlanFeatureItem>حتى <strong>3 فروع</strong> و <strong>6 مستخدمين</strong></PlanFeatureItem>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: proPlanObj.id, name: proPlanObj.name, price: proPrice, currency: regionalPricing.unit })}
-              style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: 'none', background: '#170e5e', color: '#ffffff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
-            >
-              ترقية للاحترافية الآن
-            </button>
-          </div>
-
-          {/* 3. Ultimate ERP Plan */}
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fafafa', position: 'relative' }}>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase' }}>الباقة المتكاملة (Ultimate ERP)</div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
-                {enterprisePrice.toLocaleString('ar-EG')} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{regionalPricing.unit} / {isAnnual ? 'سنة' : 'شهر'}</span>
-              </div>
-              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للمؤسسات الكبرى، المصانع، والمحاسبة المتقدمة</p>
-              
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
-                <PlanFeatureItem><strong>كل ميزات الاحترافية</strong></PlanFeatureItem>
-                <PlanFeatureItem>شجرة الحسابات، القيود اليومية، ومراكز التكلفة</PlanFeatureItem>
-                <PlanFeatureItem>إدارة وإهلاك الأصول الثابتة والتقسيط</PlanFeatureItem>
-                <PlanFeatureItem>الفاتورة الإلكترونية والإقرار الضريبي</PlanFeatureItem>
-                <PlanFeatureItem>شؤون الموظفين والمرتبات المتقدمة (HR)</PlanFeatureItem>
-                <PlanFeatureItem>مناديب التوصيل، الشحن، ونقاط ولاء العملاء</PlanFeatureItem>
-                <PlanFeatureItem>إدارة الصيانة وسيريال الأجهزة (IMEI)</PlanFeatureItem>
-                <PlanFeatureItem>موديولات التصنيع، الاستيراد، الصيدليات، والمطاعم</PlanFeatureItem>
-                <PlanFeatureItem>حتى <strong>10 فروع</strong> و <strong>15 مستخدماً</strong></PlanFeatureItem>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: enterprisePlanObj.id, name: enterprisePlanObj.name, price: enterprisePrice, currency: regionalPricing.unit })}
-              style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
-            >
-              اختيار المتكاملة
-            </button>
-          </div>
-
-          {/* 4. Omnichannel Enterprise Plan */}
-          <div style={{ border: '1.5px solid #d97706', borderRadius: '10px', padding: '16px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fffbeb', position: 'relative', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.1)' }}>
-            <div style={{ position: 'absolute', top: '-10px', right: '16px', background: '#d97706', color: '#ffffff', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '12px' }}>
-              المنظومة الأقوى
-            </div>
-
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#b45309', textTransform: 'uppercase' }}>التجارة الشاملة (Omnichannel)</div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
-                {omnichannelPrice.toLocaleString('ar-EG')} <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{regionalPricing.unit} / {isAnnual ? 'سنة' : 'شهر'}</span>
-              </div>
-              <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 12px' }}>للمؤسسات التي تدير فروعاً ومتجراً إلكترونياً متكاملاً</p>
-              
-              <div style={{ borderTop: '1px solid #fde68a', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11.5px', color: '#334155' }}>
-                <PlanFeatureItem><strong>كل ميزات الباقة المتكاملة (ERP) بالكامل</strong></PlanFeatureItem>
-                <PlanFeatureItem><strong>متجر إلكتروني متكامل للعملاء (Storefront)</strong></PlanFeatureItem>
-                <PlanFeatureItem>استقبال ومعالجة طلبات الأونلاين الحية لحظياً</PlanFeatureItem>
-                <PlanFeatureItem>ربط بوابات الدفع الإلكتروني (Paymob / XPay / Stripe)</PlanFeatureItem>
-                <PlanFeatureItem>كتالوج الويب وإدارة العروض وتتبع الشحن</PlanFeatureItem>
-                <PlanFeatureItem><strong>فروع ومستخدمين غير محدودين</strong></PlanFeatureItem>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedPlanForUpgrade({ id: omnichannelPlanObj.id, name: omnichannelPlanObj.name, price: omnichannelPrice, currency: regionalPricing.unit })}
-              style={{ marginTop: '14px', padding: '7px 12px', borderRadius: '6px', border: 'none', background: '#d97706', color: '#ffffff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}
-            >
-              ترقية للشاملة الآن
-            </button>
-          </div>
-
-        </div>
-      </div>
-
-      {/* 5. Billing & Invoices History */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '28px' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>سجل المدفوعات وإيصالات السداد</span>
-        </h3>
-
-        {payments.length === 0 ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '12px' }}>
-            لا توجد إيصالات سداد مسجلة حتى الآن.
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #f1f5f9', color: '#64748b', textAlign: 'center' }}>
-                  <th style={{ padding: '10px', fontWeight: 800 }}>رقم الإيصال</th>
-                  <th style={{ padding: '10px', fontWeight: 800 }}>الباقة</th>
-                  <th style={{ padding: '10px', fontWeight: 800 }}>المبلغ المسدد</th>
-                  <th style={{ padding: '10px', fontWeight: 800 }}>طريقة الدفع</th>
-                  <th style={{ padding: '10px', fontWeight: 800 }}>تاريخ السداد</th>
-                  <th style={{ padding: '10px', fontWeight: 800 }}>الإجراء</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((p) => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>
-                    <td style={{ padding: '12px', fontFamily: 'monospace', fontWeight: 700 }}>#{p.id}</td>
-                    <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{p.planName || 'تجديد اشتراك'}</td>
-                    <td style={{ padding: '12px', fontWeight: 800, color: '#059669' }}>
-                      {Number(p.amount).toLocaleString('ar-EG')} {p.currency}
-                    </td>
-                    <td style={{ padding: '12px', color: '#475569' }}>{p.method}</td>
-                    <td style={{ padding: '12px', color: '#64748b' }}>
-                      {p.paidAt ? new Date(p.paidAt).toLocaleDateString('ar-EG') : '-'}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handlePrintReceipt(p)}
-                        style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', color: '#0f172a' }}
-                      >
-                        طباعة إيصال
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* 6. Upgrade / Renewal Modal with XPay & Online Checkout */}
-      {selectedPlanForUpgrade && (
-        <DialogShell
-          open={Boolean(selectedPlanForUpgrade)}
-          onClose={() => setSelectedPlanForUpgrade(null)}
-          ariaLabel={`ترقية / تجديد: ${selectedPlanForUpgrade.name}`}
-          width="640px"
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', padding: '16px 20px' }} dir="rtl">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
-                ترقية / تجديد: {selectedPlanForUpgrade.name}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSelectedPlanForUpgrade(null)}
-                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px 8px', display: 'inline-flex', alignItems: 'center' }}
-                aria-label="إغلاق"
-              >
-                <XIcon size={18} />
-              </button>
-            </div>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{selectedPlanForUpgrade.name}</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>المدة: {isAnnual ? 'سنة واحدة (12 شهراً)' : 'شهر واحد'}</div>
-              </div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: '#2563eb' }}>
-                {selectedPlanForUpgrade.price.toLocaleString('ar-EG')} {selectedPlanForUpgrade.currency}
-              </div>
-            </div>
-
-            {/* Payment Method Selector */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#334155', marginBottom: '8px' }}>
-                اختر طريقة السداد (دفع آلي وتفعيل فوري):
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                
-                {/* 1. XPay (Featured) */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('xpay')}
-                  style={{
-                    border: paymentMethod === 'xpay' ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                    background: paymentMethod === 'xpay' ? '#eff6ff' : '#ffffff',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    fontSize: '12.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    textAlign: 'right',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '3px',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#0f172a' }}>بوابة XPay الإلكترونية</span>
-                    <span style={{ fontSize: '10px', background: '#dbeafe', color: '#1d4ed8', padding: '1px 5px', borderRadius: '4px' }}>آلي فوري</span>
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                    فيزا / ماستركارد / ميزة / محافظ / تقسيط
-                  </span>
-                </button>
-
-                {/* 2. Paymob */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('paymob')}
-                  style={{
-                    border: paymentMethod === 'paymob' ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                    background: paymentMethod === 'paymob' ? '#eff6ff' : '#ffffff',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    fontSize: '12.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    textAlign: 'right',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '3px',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#0f172a' }}>بوابة Paymob</span>
-                    <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', padding: '1px 5px', borderRadius: '4px' }}>أونلاين</span>
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                    فودافون كاش / بطاقات بنكية
-                  </span>
-                </button>
-
-                {/* 3. InstaPay */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('instapay')}
-                  style={{
-                    border: paymentMethod === 'instapay' ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                    background: paymentMethod === 'instapay' ? '#eff6ff' : '#ffffff',
-                    borderRadius: '8px',
-                    padding: '10px',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    textAlign: 'right',
-                  }}
-                >
-                  إنستاباي InstaPay (تحويل فوري)
-                </button>
-
-                {/* 4. Bank Transfer */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('bank_transfer')}
-                  style={{
-                    border: paymentMethod === 'bank_transfer' ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                    background: paymentMethod === 'bank_transfer' ? '#eff6ff' : '#ffffff',
-                    borderRadius: '8px',
-                    padding: '10px',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    textAlign: 'right',
-                  }}
-                >
-                  تحويل بنكي مباشر
-                </button>
-              </div>
-            </div>
-
-            {/* If offline method selected, show note field */}
-            {paymentMethod !== 'xpay' && paymentMethod !== 'paymob' && (
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  ملاحظات أو رقم المرجع / الحوالة (اختياري):
-                </label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="مثال: تم التحويل من حساب رقم 010xxxxxx"
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
-                />
-              </div>
-            )}
-
-            {/* Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-              <Button variant="secondary" onClick={() => setSelectedPlanForUpgrade(null)}>
-                إلغاء
-              </Button>
-              <Button
-                variant="primary"
-                disabled={requestMutation.isPending || onlinePaymentMutation.isPending}
-                onClick={handleConfirmAction}
-              >
-                {requestMutation.isPending || onlinePaymentMutation.isPending
-                  ? 'جاري المعالجة...'
-                  : paymentMethod === 'xpay' || paymentMethod === 'paymob'
-                    ? 'الانتقال للدفع الإلكتروني والتفعيل الآلي'
-                    : 'تأكيد طلب الترقية / التجديد'}
-              </Button>
-            </div>
-          </div>
-        </DialogShell>
-      )}
-
+      {/* 6. Upgrade / Renewal Modal */}
+      <UpgradeRenewalModal
+        selectedPlan={selectedPlanForUpgrade}
+        onClose={() => setSelectedPlanForUpgrade(null)}
+        isAnnual={isAnnual}
+        paymentMethod={paymentMethod}
+        onPaymentMethodChange={setPaymentMethod}
+        notes={notes}
+        onNotesChange={setNotes}
+        onConfirm={handleConfirmAction}
+        isSubmitting={requestMutation.isPending || onlinePaymentMutation.isPending}
+      />
     </div>
   );
 }

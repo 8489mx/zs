@@ -5,16 +5,19 @@ import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
 import { vatDeclarationApi, type VatDeclarationData } from '@/features/sales/api/vat-declaration.api';
-import { PrinterIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
+import { PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { VatPeriodSelector, type PeriodPreset } from '../components/vat-declaration/VatPeriodSelector';
+import { VatSalesTable } from '../components/vat-declaration/VatSalesTable';
+import { VatPurchasesTable } from '../components/vat-declaration/VatPurchasesTable';
+import { VatSummaryBox } from '../components/vat-declaration/VatSummaryBox';
 
 export function VatDeclarationPage() {
   const [country, setCountry] = useState<'EG' | 'SA'>('EG');
-  const [periodPreset, setPeriodPreset] = useState<'current_month' | 'last_month' | 'q1' | 'q2' | 'q3' | 'q4' | 'custom'>('current_month');
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('current_month');
   const [customFrom, setCustomFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
   const [customTo, setCustomTo] = useState(new Date().toISOString().split('T')[0]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Compute active date boundaries based on preset
   const dateRange = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -92,7 +95,6 @@ export function VatDeclarationPage() {
   return (
     <div className="page-stack page-shell vat-declaration-workspace" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
-        {/* Header & Controls */}
         <PageHeader
           title="الإقرار الضريبي الرسمي (VAT Declaration)"
           description="توليد واحتساب أوعية وضريبة القيمة المضافة مطابقة لـ نموذج 10 المصري وهيئة الزكاة والضريبة والجمارك ZATCA."
@@ -117,459 +119,75 @@ export function VatDeclarationPage() {
           }
         />
 
-        {/* KPI Cards Grid */}
         <StatsGrid items={stats} />
 
-        {/* Filter Controls (Country & Period) */}
+        <VatPeriodSelector
+          country={country}
+          setCountry={setCountry}
+          periodPreset={periodPreset}
+          setPeriodPreset={setPeriodPreset}
+          customFrom={customFrom}
+          setCustomFrom={setCustomFrom}
+          customTo={customTo}
+          setCustomTo={setCustomTo}
+        />
+
+        {/* Printable Section */}
         <div
+          id="official-vat-declaration-print"
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '12px',
             backgroundColor: '#ffffff',
-            padding: '12px 16px',
-            borderRadius: '12px',
             border: '1px solid #e2e8f0',
-            marginTop: '16px',
-            marginBottom: '20px',
-          }}
-        >
-          {/* Country Tabs */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setCountry('EG')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                border: 'none',
-                backgroundColor: country === 'EG' ? '#170e5e' : '#f1f5f9',
-                color: country === 'EG' ? '#ffffff' : '#475569',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <span>نموذج 10 (مصلحة الضرائب المصرية 14%)</span>
-            </button>
-            <button
-              onClick={() => setCountry('SA')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                border: 'none',
-                backgroundColor: country === 'SA' ? '#170e5e' : '#f1f5f9',
-                color: country === 'SA' ? '#ffffff' : '#475569',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <span>إقرار القيمة المضافة (ZATCA السعودية 15%)</span>
-            </button>
-          </div>
-
-          {/* Period Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>الفترة:</span>
-            <select
-              value={periodPreset}
-              onChange={(e) => setPeriodPreset(e.target.value as any)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '13px',
-                backgroundColor: '#ffffff',
-                outline: 'none',
-              }}
-            >
-              <option value="current_month">الشهر الحالي</option>
-              <option value="last_month">الشهر السابق</option>
-              <option value="q1">الربع الأول (Q1)</option>
-              <option value="q2">الربع الثاني (Q2)</option>
-              <option value="q3">الربع الثالث (Q3)</option>
-              <option value="q4">الربع الرابع (Q4)</option>
-              <option value="custom">فترة مخصصة</option>
-            </select>
-
-            {periodPreset === 'custom' && (
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <input
-                  type="date"
-                  value={customFrom}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
-                />
-                <span>إلى</span>
-                <input
-                  type="date"
-                  value={customTo}
-                  onChange={(e) => setCustomTo(e.target.value)}
-                  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-      {/* Official Form Presentation Card (Printable Section) */}
-      <div
-        id="official-vat-declaration-print"
-        style={{
-          backgroundColor: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
-          padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-        }}
-      >
-        {/* Form Official Header */}
-        <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>
-                {country === 'EG'
-                  ? 'جمهورية مصر العربية - مصلحة الضرائب المصرية'
-                  : 'المملكة العربية السعودية - هيئة الزكاة والضريبة والجمارك (ZATCA)'}
-              </div>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#475569', marginTop: '2px' }}>
-                {country === 'EG'
-                  ? 'إقرار ضريبة القيمة المضافة (نموذج رقم 10 ض.ق.م)'
-                  : 'إقرار ضريبة القيمة المضافة الدوري'}
-              </div>
-            </div>
-            <div style={{ textAlign: 'left', fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>
-              <div><strong>المنشأة:</strong> {data?.entity.business_name || '-'}</div>
-              <div><strong>الرقم الضريبي:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{data?.entity.tax_id || '-'}</span></div>
-              <div><strong>الفترة الضريبية:</strong> من {data?.period.from} إلى {data?.period.to}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 1: Sales / Output Tax */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ backgroundColor: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', fontWeight: 'bold', color: '#1e293b', fontSize: '14px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>أولاً: المبيعات والمخرجات (Sales & Output Tax)</span>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>ضريبة المبيعات المستحقة</span>
-          </div>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #cbd5e1', color: '#64748b', fontSize: '12px' }}>
-                <th style={{ padding: '8px 12px', width: '50px' }}>البند</th>
-                <th style={{ padding: '8px 12px' }}>البيان والتوصيف الرسمي</th>
-                <th style={{ padding: '8px 12px', width: '160px' }}>القيمة الصافية (الوعاء)</th>
-                <th style={{ padding: '8px 12px', width: '140px' }}>الضريبة المستحقة</th>
-                <th style={{ padding: '8px 12px', width: '70px', textAlign: 'center' }}>نسخ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold' }}>1</td>
-                <td style={{ padding: '10px 12px' }}>
-                  التوريدات والسلع الخاضعة للنسبة الأساسية ({data?.period.standard_rate_percent || (country === 'SA' ? 15 : 14)}%)
-                </td>
-                <td style={{ padding: '10px 12px', fontWeight: '600' }}>
-                  {formatCurrency(data?.output_tax.standard_rated_base || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold', color: '#166534' }}>
-                  {formatCurrency(data?.output_tax.standard_rated_tax || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => copyToClipboard(data?.output_tax.standard_rated_tax || 0, 'out_std')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {copiedKey === 'out_std' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
-                  </button>
-                </td>
-              </tr>
-
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold' }}>2</td>
-                <td style={{ padding: '10px 12px' }}>
-                  الصادرات أو التوريدات الخاضعة للنسبة الصفرية (0%)
-                </td>
-                <td style={{ padding: '10px 12px' }}>
-                  {formatCurrency(data?.output_tax.zero_rated_base || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', color: '#64748b' }}>0.00</td>
-                <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => copyToClipboard(data?.output_tax.zero_rated_base || 0, 'out_zero')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {copiedKey === 'out_zero' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
-                  </button>
-                </td>
-              </tr>
-
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold' }}>3</td>
-                <td style={{ padding: '10px 12px' }}>
-                  التوريدات والسلع المعفاة من الضريبة
-                </td>
-                <td style={{ padding: '10px 12px' }}>
-                  {formatCurrency(data?.output_tax.exempt_base || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', color: '#64748b' }}>0.00</td>
-                <td style={{ padding: '10px 12px', textAlign: 'center' }}>-</td>
-              </tr>
-
-              <tr style={{ borderBottom: '1px solid #cbd5e1', backgroundColor: '#fff7ed' }}>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold' }}>4</td>
-                <td style={{ padding: '10px 12px' }}>
-                  مردودات المبيعات وإشعارات الخصم الدائنة (يُخصم من الضريبة)
-                </td>
-                <td style={{ padding: '10px 12px', color: '#9a3412' }}>
-                  -{formatCurrency(data?.output_tax.returns_base || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold', color: '#9a3412' }}>
-                  -{formatCurrency(data?.output_tax.returns_tax || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => copyToClipboard(data?.output_tax.returns_tax || 0, 'out_ret')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {copiedKey === 'out_ret' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
-                  </button>
-                </td>
-              </tr>
-
-              {/* Total Output Tax */}
-              <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
-                <td colSpan={2} style={{ padding: '12px', color: '#0f172a' }}>
-                  إجمالي ضريبة المخرجات الخاضعة للتوريد (أ)
-                </td>
-                <td style={{ padding: '12px' }}>
-                  {formatCurrency(data?.output_tax.total_sales_base || 0)}
-                </td>
-                <td style={{ padding: '12px', fontSize: '15px', color: '#166534' }}>
-                  {formatCurrency(data?.output_tax.total_output_vat || 0)}
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => copyToClipboard(data?.output_tax.total_output_vat || 0, 'out_tot')}
-                    style={{ background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '11px', padding: '3px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {copiedKey === 'out_tot' ? <CheckIcon size={12} color="#ffffff" /> : 'نسخ'}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Section 2: Purchases / Input Tax */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ backgroundColor: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', fontWeight: 'bold', color: '#1e293b', fontSize: '14px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>ثانياً: المشتريات والمدخلات (Purchases & Input Tax)</span>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>الضريبة القابلة للخصم</span>
-          </div>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #cbd5e1', color: '#64748b', fontSize: '12px' }}>
-                <th style={{ padding: '8px 12px', width: '50px' }}>البند</th>
-                <th style={{ padding: '8px 12px' }}>البيان والتوصيف الرسمي</th>
-                <th style={{ padding: '8px 12px', width: '160px' }}>القيمة الصافية (الوعاء)</th>
-                <th style={{ padding: '8px 12px', width: '140px' }}>الضريبة القابلة للخصم</th>
-                <th style={{ padding: '8px 12px', width: '70px', textAlign: 'center' }}>نسخ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold' }}>5</td>
-                <td style={{ padding: '10px 12px' }}>
-                  المشتريات المحلية الخاضعة للنسبة الأساسية ({data?.period.standard_rate_percent || (country === 'SA' ? 15 : 14)}%)
-                </td>
-                <td style={{ padding: '10px 12px', fontWeight: '600' }}>
-                  {formatCurrency(data?.input_tax.standard_rated_base || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold', color: '#0f172a' }}>
-                  {formatCurrency(data?.input_tax.standard_rated_tax || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => copyToClipboard(data?.input_tax.standard_rated_tax || 0, 'in_std')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {copiedKey === 'in_std' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
-                  </button>
-                </td>
-              </tr>
-
-              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold' }}>6</td>
-                <td style={{ padding: '10px 12px' }}>
-                  المشتريات المعفاة أو غير الخاضعة للضريبة
-                </td>
-                <td style={{ padding: '10px 12px' }}>
-                  {formatCurrency(data?.input_tax.zero_rated_base || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', color: '#64748b' }}>0.00</td>
-                <td style={{ padding: '10px 12px', textAlign: 'center' }}>-</td>
-              </tr>
-
-              <tr style={{ borderBottom: '1px solid #cbd5e1', backgroundColor: '#fff7ed' }}>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold' }}>7</td>
-                <td style={{ padding: '10px 12px' }}>
-                  مردودات المشتريات وإشعارات الإضافة (تُخصم من ضريبة المدخلات)
-                </td>
-                <td style={{ padding: '10px 12px', color: '#9a3412' }}>
-                  -{formatCurrency(data?.input_tax.returns_base || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', fontWeight: 'bold', color: '#9a3412' }}>
-                  -{formatCurrency(data?.input_tax.returns_tax || 0)}
-                </td>
-                <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => copyToClipboard(data?.input_tax.returns_tax || 0, 'in_ret')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {copiedKey === 'in_ret' ? <CheckIcon size={12} color="#166534" /> : 'نسخ'}
-                  </button>
-                </td>
-              </tr>
-
-              {/* Total Input Tax */}
-              <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
-                <td colSpan={2} style={{ padding: '12px', color: '#0f172a' }}>
-                  إجمالي ضريبة المدخلات المخصومة (ب)
-                </td>
-                <td style={{ padding: '12px' }}>
-                  {formatCurrency(data?.input_tax.total_purchases_base || 0)}
-                </td>
-                <td style={{ padding: '12px', fontSize: '15px', color: '#0f172a' }}>
-                  {formatCurrency(data?.input_tax.total_input_vat || 0)}
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => copyToClipboard(data?.input_tax.total_input_vat || 0, 'in_tot')}
-                    style={{ background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '11px', padding: '3px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {copiedKey === 'in_tot' ? <CheckIcon size={12} color="#ffffff" /> : 'نسخ'}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Section 3: Final Net VAT Due / Refund Box */}
-        <div
-          style={{
-            border: '2px solid #170e5e',
             borderRadius: '12px',
-            padding: '20px',
-            backgroundColor: '#f8fafc',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '16px',
-            marginBottom: '28px',
+            padding: '24px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
           }}
         >
-          <div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>
-              {country === 'EG'
-                ? 'ثالثاً: صافي الضريبة المستحقة للسداد (الخانة 15 في نموذج 10)'
-                : 'ثالثاً: صافي ضريبة القيمة المضافة المستحقة للسداد / الاسترداد (ZATCA)'}
-            </div>
-            <div style={{ fontSize: '13px', color: '#64748b' }}>
-              معادلة الاحتساب الرسمية: ضريبة المخرجات ({formatCurrency(data?.output_tax.total_output_vat || 0)}) - ضريبة المدخلات ({formatCurrency(data?.input_tax.total_input_vat || 0)})
-            </div>
-          </div>
-
-          <div style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
-                {data?.summary.status === 'payable' ? 'صافي المبلغ الواجب سداده' : 'رصيد دائن للاسترداد / الترحيل'}
+          {/* Official Header */}
+          <div style={{ borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>
+                  {country === 'EG'
+                    ? 'جمهورية مصر العربية - مصلحة الضرائب المصرية'
+                    : 'المملكة العربية السعودية - هيئة الزكاة والضريبة والجمارك (ZATCA)'}
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#475569', marginTop: '2px' }}>
+                  {country === 'EG'
+                    ? 'إقرار ضريبة القيمة المضافة (نموذج رقم 10 ض.ق.م)'
+                    : 'إقرار ضريبة القيمة المضافة الدوري'}
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: '28px',
-                  fontWeight: 'bold',
-                  color: data?.summary.status === 'payable' ? '#166534' : '#1d4ed8',
-                }}
-              >
-                {formatCurrency(Math.abs(data?.summary.net_vat_due || 0))}
+              <div style={{ textAlign: 'left', fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>
+                <div><strong>المنشأة:</strong> {data?.entity.business_name || '-'}</div>
+                <div><strong>الرقم الضريبي:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{data?.entity.tax_id || '-'}</span></div>
+                <div><strong>الفترة الضريبية:</strong> من {data?.period.from} إلى {data?.period.to}</div>
               </div>
             </div>
-
-            <button
-              onClick={() => copyToClipboard(Math.abs(data?.summary.net_vat_due || 0), 'net_vat')}
-              style={{
-                backgroundColor: '#170e5e',
-                color: '#ffffff',
-                padding: '10px 16px',
-                borderRadius: '8px',
-                fontWeight: '600',
-                fontSize: '13px',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              {copiedKey === 'net_vat' ? (
-                <>
-                  <CheckIcon size={14} color="#ffffff" />
-                  <span>تم النسخ</span>
-                </>
-              ) : (
-                'نسخ الصافي'
-              )}
-            </button>
           </div>
+
+          <VatSalesTable
+            data={data}
+            country={country}
+            copiedKey={copiedKey}
+            onCopy={copyToClipboard}
+          />
+
+          <VatPurchasesTable
+            data={data}
+            country={country}
+            copiedKey={copiedKey}
+            onCopy={copyToClipboard}
+          />
+
+          <VatSummaryBox
+            data={data}
+            country={country}
+            copiedKey={copiedKey}
+            onCopy={copyToClipboard}
+          />
         </div>
-
-        {/* Official Signatures Box for A4 Print */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '24px',
-            textAlign: 'center',
-            paddingTop: '20px',
-            borderTop: '1px dashed #cbd5e1',
-            marginTop: '20px',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '40px' }}>
-              المحاسب المسؤول / مدخل البيانات
-            </div>
-            <div style={{ borderBottom: '1px solid #94a3b8', width: '180px', margin: '0 auto' }} />
-          </div>
-
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '40px' }}>
-              المدير المالي / مراجع الحسابات
-            </div>
-            <div style={{ borderBottom: '1px solid #94a3b8', width: '180px', margin: '0 auto' }} />
-          </div>
-
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', marginBottom: '40px' }}>
-              اعتماد صاحب المنشأة / المفوض
-            </div>
-            <div style={{ borderBottom: '1px solid #94a3b8', width: '180px', margin: '0 auto' }} />
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
+      </main>
+    </div>
   );
 }

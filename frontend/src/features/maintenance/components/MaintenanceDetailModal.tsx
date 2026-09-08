@@ -1,0 +1,558 @@
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/shared/ui/button';
+import { DialogShell } from '@/shared/components/dialog-shell';
+import { AlertTriangleIcon, CheckIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { MaintenanceIcons as Icons, statusConfig } from './MaintenanceConstants';
+import { extractTicketDiscount } from './MaintenanceReceiptModal';
+import { maintenanceApi } from '../api/maintenance.api';
+import type { MaintenanceTicket, MaintenanceStatus } from '@/types/domain-models/maintenance';
+import type { getMaintenanceProfile } from '../constants/maintenance-profiles';
+
+interface MaintenanceDetailModalProps {
+  ticket: MaintenanceTicket | null;
+  onClose: () => void;
+  onOpenSettlement: (ticket: MaintenanceTicket) => void;
+  onSendWhatsApp: (ticket: MaintenanceTicket) => void;
+  onPrintReceipt: (ticket: MaintenanceTicket) => void;
+  maintenanceProfile: ReturnType<typeof getMaintenanceProfile>;
+  commissionRate: number;
+  products: any[];
+}
+
+export function MaintenanceDetailModal({
+  ticket,
+  onClose,
+  onOpenSettlement,
+  onSendWhatsApp,
+  onPrintReceipt,
+  maintenanceProfile,
+  commissionRate,
+  products,
+}: MaintenanceDetailModalProps) {
+  const queryClient = useQueryClient();
+  const [currentTicket, setCurrentTicket] = useState<MaintenanceTicket | null>(ticket);
+
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [partSearchText, setPartSearchText] = useState('');
+  const [partQty, setPartQty] = useState(1);
+  const [partPrice, setPartPrice] = useState(0);
+  const [editingCost, setEditingCost] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentTicket(ticket);
+    setEditingCost(null);
+  }, [ticket]);
+
+  const refreshCurrentTicket = async (ticketId: string) => {
+    void queryClient.invalidateQueries({ queryKey: ['maintenance-tickets'] });
+    const res = await maintenanceApi.get(ticketId);
+    setCurrentTicket(res.ticket);
+  };
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status, finalCost, collectedAmount, technicianNotes }: { id: string; status: MaintenanceStatus; finalCost?: number; collectedAmount?: number; technicianNotes?: string }) =>
+      maintenanceApi.updateStatus(id, { status, finalCost, collectedAmount, technicianNotes }),
+    onSuccess: () => {
+      if (currentTicket) void refreshCurrentTicket(currentTicket.id);
+    },
+  });
+
+  const addPartMutation = useMutation({
+    mutationFn: ({ ticketId, payload }: { ticketId: string; payload: any }) =>
+      maintenanceApi.addPart(ticketId, payload),
+    onSuccess: () => {
+      setSelectedProductId('');
+      setPartSearchText('');
+      setPartQty(1);
+      setPartPrice(0);
+      if (currentTicket) void refreshCurrentTicket(currentTicket.id);
+    },
+  });
+
+  const removePartMutation = useMutation({
+    mutationFn: ({ ticketId, partId }: { ticketId: string; partId: string }) =>
+      maintenanceApi.removePart(ticketId, partId),
+    onSuccess: () => {
+      if (currentTicket) void refreshCurrentTicket(currentTicket.id);
+    },
+  });
+
+  const handleAddPartSubmit = () => {
+    if (!currentTicket || !selectedProductId) return;
+    const prod = (products || []).find((p: any) => String(p.id) === selectedProductId);
+    if (!prod) return;
+
+    addPartMutation.mutate({
+      ticketId: currentTicket.id,
+      payload: {
+        productId: Number(prod.id),
+        productName: prod.name,
+        qty: Number(partQty || 1),
+        unitCost: Number(prod.costPrice || 0),
+        unitPrice: Number(partPrice || 0),
+      },
+    });
+  };
+
+  if (!currentTicket) return null;
+
+  const totalCost = currentTicket.finalCost || currentTicket.expectedCost || 0;
+  const partsCost = (currentTicket.parts || []).reduce((acc, p) => acc + (p.qty * (p.unitCost || 0)), 0);
+  const partsPrice = (currentTicket.parts || []).reduce((acc, p) => acc + (p.qty * (p.unitPrice || 0)), 0);
+  const partsProfit = Math.max(0, partsPrice - partsCost);
+  const laborPrice = Math.max(0, totalCost - partsPrice);
+  const technicianCommission = laborPrice * (commissionRate / 100);
+  const storeProfit = Math.max(0, (laborPrice - technicianCommission) + partsProfit);
+
+  return (
+    <DialogShell
+      open={Boolean(currentTicket)}
+      onClose={onClose}
+      width="min(880px, 96vw)"
+      ariaLabel={`تذكرة رقم ${currentTicket.ticketNo}`}
+    >
+      <div className="page-stack" dir="rtl" style={{ gap: '14px', padding: '20px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                بطاقة صيانة الجهاز:{' '}
+                <span style={{ fontFamily: 'monospace', color: '#0f172a', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '5px' }}>
+                  {currentTicket.ticketNo}
+                </span>
+              </h3>
+              <span
+                style={{
+                  padding: '3px 10px',
+                  borderRadius: '5px',
+                  fontSize: '0.775rem',
+                  fontWeight: 700,
+                  background: '#ffffff',
+                  color: '#475569',
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                {statusConfig[currentTicket.status]?.label || currentTicket.status}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px' }}>
+              تاريخ الاستلام: {new Date(currentTicket.receivedAt).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <Button
+              variant="secondary"
+              onClick={() => onSendWhatsApp(currentTicket)}
+              style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+              <Icons.WhatsApp />
+              <span>إرسال واتساب</span>
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => onPrintReceipt(currentTicket)}
+              style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+              <Icons.Printer />
+              <span>طباعة</span>
+            </Button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', width: '30px', height: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+            >
+              <XIcon size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Status Stepper / Switcher */}
+        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
+            مرحلة عمل وصيانة الجهاز:
+          </div>
+          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+            {(['received', 'inspecting', 'in_progress', 'repaired', 'delivered', 'unrepairable'] as MaintenanceStatus[]).map((st) => {
+              const isCurrent = currentTicket.status === st;
+              const cfg = statusConfig[st];
+              return (
+                <button
+                  key={st}
+                  type="button"
+                  disabled={updateStatusMutation.isPending}
+                  onClick={() => {
+                    if (st === 'delivered') {
+                      onOpenSettlement(currentTicket);
+                    } else {
+                      updateStatusMutation.mutate({ id: currentTicket.id, status: st });
+                    }
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    border: isCurrent ? '1px solid #cbd5e1' : '1px solid #e2e8f0',
+                    background: isCurrent ? '#ffffff' : '#f8fafc',
+                    color: isCurrent ? '#0f172a' : '#64748b',
+                    boxShadow: isCurrent ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                    transition: 'background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isCurrent ? cfg?.dot || '#cbd5e1' : '#cbd5e1' }} />
+                  <span>{cfg?.label || st}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Customer, Device & Passcode Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '8px', fontSize: '0.825rem' }}>
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+            <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+              <Icons.User />
+              <span>العميل:</span>
+            </div>
+            <strong style={{ color: '#0f172a' }}>{currentTicket.customerName}</strong>
+            <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '1px' }} dir="ltr">{currentTicket.customerPhone}</div>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+            <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+              <Icons.Device />
+              <span>الجهاز:</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '1px' }}>
+              {currentTicket.deviceBrand && (
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  {currentTicket.deviceBrand}
+                </span>
+              )}
+              <strong style={{ color: '#0f172a' }}>{currentTicket.deviceModel}</strong>
+            </div>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#64748b' }}>
+              <span dir="ltr">{maintenanceProfile.serialLabel}: {currentTicket.serialNumber || '—'}</span>
+            </div>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+            <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+              <Icons.Lock />
+              <span>{maintenanceProfile.passcodeLabel}:</span>
+            </div>
+            <strong dir="ltr" style={{ color: '#0f172a', fontFamily: 'monospace' }}>{currentTicket.passcode || 'بدون قفل'}</strong>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+            <div style={{ color: '#64748b', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+              <Icons.Shield />
+              <span>فترة الضمان:</span>
+            </div>
+            <strong style={{ color: '#0f172a' }}>{currentTicket.warrantyDays || 30} يوماً</strong>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px' }}>عطل الجهاز المشتكى منه:</div>
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.5 }}>
+            {currentTicket.problemDescription}
+          </div>
+        </div>
+
+        {/* Parts Dispatch Area */}
+        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Icons.Wrench />
+              <span>صرف قطع الغيار من المخزن على الكود ({currentTicket.ticketNo})</span>
+            </h4>
+            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{(currentTicket.parts || []).length} قطعة مسجلة</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 85px 105px auto', gap: '8px', marginBottom: '8px', background: '#f8fafc', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center' }}>
+            <SearchableCombobox
+              inline
+              inputClassName="purchase-prototype-field-input"
+              placeholder="ابحث عن قطعة غيار في المخزن بالاسم أو الباركود..."
+              value={partSearchText}
+              onChange={setPartSearchText}
+              options={(products || []).map((p: any) => ({
+                id: String(p.id),
+                name: p.name,
+                stock: p.stock ?? p.stock_qty ?? 0,
+                retailPrice: p.retailPrice ?? p.retail_price ?? 0,
+                barcode: p.barcode || '',
+              }))}
+              getLabel={(p) => `${p.name} (متاح: ${p.stock}) - ${p.retailPrice} ج.م`}
+              getMeta={(p) => `${p.barcode} ${p.name}`}
+              onSelect={(p) => {
+                setSelectedProductId(p.id);
+                setPartSearchText(p.name);
+                setPartPrice(Number(p.retailPrice || 0));
+              }}
+            />
+            <input
+              type="number"
+              min="1"
+              placeholder="الكمية"
+              className="purchase-prototype-field-input"
+              value={partQty}
+              onChange={(e) => setPartQty(Number(e.target.value))}
+              style={{ height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.825rem', width: '100%', boxSizing: 'border-box', margin: 0 }}
+            />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="السعر"
+              className="purchase-prototype-field-input"
+              value={partPrice}
+              onChange={(e) => setPartPrice(Number(e.target.value))}
+              style={{ height: '36px', padding: '0 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.825rem', width: '100%', boxSizing: 'border-box', margin: 0 }}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleAddPartSubmit}
+              disabled={!selectedProductId || addPartMutation.isPending}
+              style={{ height: '36px', padding: '0 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', margin: 0, fontWeight: 700, fontSize: '0.825rem' }}
+            >
+              {addPartMutation.isPending ? 'جاري...' : '+ صرف'}
+            </Button>
+          </div>
+
+          {(currentTicket.parts || []).length > 0 ? (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right', color: '#475569', fontSize: '0.78rem' }}>
+                  <th style={{ padding: '7px 10px' }}>القطعة</th>
+                  <th style={{ padding: '7px 10px' }}>الكمية</th>
+                  <th style={{ padding: '7px 10px' }}>سعر الوحدة</th>
+                  <th style={{ padding: '7px 10px' }}>الإجمالي</th>
+                  <th style={{ padding: '7px 10px', textAlign: 'center' }}>إلغاء الصرف</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentTicket.parts?.map((p) => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '7px 10px', fontWeight: 600, color: '#0f172a' }}>{p.productName}</td>
+                    <td style={{ padding: '7px 10px' }}>{p.qty}</td>
+                    <td style={{ padding: '7px 10px' }}>{p.unitPrice.toFixed(2)} ج.م</td>
+                    <td style={{ padding: '7px 10px', fontWeight: 700, color: '#0f172a' }}>{p.totalPrice.toFixed(2)} ج.م</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        style={{ color: '#9f1239', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                        onClick={() => removePartMutation.mutate({ ticketId: currentTicket.id, partId: p.id })}
+                        title="إلغاء وإرجاع للمخزن"
+                      >
+                        <XIcon size={12} color="#9f1239" />
+                        <span>إرجاع</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', padding: '12px', background: '#f8fafc', borderRadius: '6px', border: '1px dashed #e2e8f0' }}>
+              لم يتم صرف أي قطع غيار على هذا الجهاز بعد.
+            </div>
+          )}
+        </div>
+
+        {/* Profit & Labor Commission Breakdown */}
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+          <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Icons.Coins />
+              <span>حساب أرباح الصيانة وعمولة الفني:</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}>
+              <span style={{ color: '#64748b' }}>تعديل إجمالي الحساب:</span>
+              <input
+                type="number"
+                min="0"
+                step="10"
+                className="purchase-prototype-field-input"
+                value={editingCost ?? totalCost}
+                onChange={(e) => setEditingCost(Number(e.target.value))}
+                style={{ width: '90px', padding: '3px 6px', borderRadius: '5px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, textAlign: 'center', fontSize: '0.85rem' }}
+              />
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                disabled={editingCost === null || editingCost === totalCost || updateStatusMutation.isPending}
+                onClick={() => {
+                  if (editingCost !== null) {
+                    updateStatusMutation.mutate({ id: currentTicket.id, status: currentTicket.status, finalCost: editingCost });
+                    setEditingCost(null);
+                  }
+                }}
+                style={{ padding: '3px 10px', fontSize: '0.75rem', fontWeight: 700 }}
+              >
+                تحديث الحساب
+              </button>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '0.78rem', textAlign: 'center' }}>
+            <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div style={{ color: '#64748b', marginBottom: '1px' }}>قطع الغيار (قطاعي)</div>
+              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{partsPrice.toFixed(2)} ج.م</strong>
+              {partsProfit > 0 && <div style={{ fontSize: '0.68rem', color: '#16a34a', marginTop: '1px', fontWeight: 600 }}>ربح بضاعة: +{partsProfit.toFixed(0)}</div>}
+            </div>
+            <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div style={{ color: '#64748b', marginBottom: '1px' }}>صافي المصنعية</div>
+              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{laborPrice.toFixed(2)} ج.م</strong>
+            </div>
+            <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div style={{ color: '#64748b', marginBottom: '1px' }}>عمولة الفني ({commissionRate}%)</div>
+              <strong style={{ color: '#0f172a', fontSize: '0.875rem' }}>{technicianCommission.toFixed(2)} ج.م</strong>
+            </div>
+            <div style={{ background: '#fff', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <div style={{ color: '#64748b', marginBottom: '1px' }}>صافي ربح المحل</div>
+              <strong style={{ color: '#16a34a', fontSize: '0.875rem' }}>{storeProfit.toFixed(2)} ج.م</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Settlement / Financial Card */}
+        {currentTicket.status === 'delivered' ? (() => {
+          const discountInfo = extractTicketDiscount(currentTicket.technicianNotes);
+          const netTotal = Math.max(0, totalCost - discountInfo.amount);
+          const advancePaid = currentTicket.advancePayment || 0;
+          const collectedAtDelivery = Math.max(0, netTotal - advancePaid);
+
+          return (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>إجمالي حساب الصيانة والتسليم:</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
+                    {totalCost.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                  </strong>
+                  {discountInfo.amount > 0 && (
+                    <span style={{ fontSize: '0.75rem', color: '#475569', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      خصم: -{discountInfo.amount.toFixed(2)} ج.م (الصافي: {netTotal.toFixed(2)} ج.م)
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckIcon size={12} color="#16a34a" />
+                  <span>تم السداد والتحصيل في الخزينة بالكامل</span>
+                  {advancePaid > 0 ? ` (مقدم: ${advancePaid.toFixed(2)} ج.م + عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)` : ` (المحصل عند الاستلام: ${collectedAtDelivery.toFixed(2)} ج.م)`}
+                </div>
+                {discountInfo.amount > 0 && (
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
+                    سبب الخصم: {discountInfo.reason}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>الرصيد المتبقي:</div>
+                  <strong style={{ fontSize: '1.2rem', color: '#16a34a', fontWeight: 800 }}>
+                    0.00 <span style={{ fontSize: '0.75rem' }}>ج.م (خالص)</span>
+                  </strong>
+                </div>
+                <span style={{ padding: '6px 12px', borderRadius: '6px', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.85rem', border: '1px solid #dcfce7', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckIcon size={13} color="#166534" />
+                  <span>تم تسليم الجهاز</span>
+                </span>
+              </div>
+            </div>
+          );
+        })() : (currentTicket.status === 'unrepairable' || currentTicket.status === 'cancelled') ? (() => {
+          const advancePaid = currentTicket.advancePayment || 0;
+          const isUnrep = currentTicket.status === 'unrepairable';
+          return (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '0.825rem', color: isUnrep ? '#9f1239' : '#475569', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <XIcon size={13} color={isUnrep ? '#9f1239' : '#475569'} />
+                  <span>{isUnrep ? 'تعذر إصلاح الجهاز (تم إلغاء رسوم الصيانة)' : 'تم إلغاء تذكرة الصيانة'}</span>
+                </div>
+                {advancePaid > 0 ? (
+                  <div style={{ fontSize: '0.78rem', color: '#c2410c', marginTop: '3px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <AlertTriangleIcon size={14} color="#c2410c" />
+                    <span>مستحق رد العربون للعميل بالكامل: {advancePaid.toFixed(2)} ج.م عند تسليم الجهاز</span>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                    لا توجد أي مستحقات مالية مطلوبة من العميل.
+                  </div>
+                )}
+              </div>
+
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>المطلوب تحصيله:</div>
+                <strong style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 700 }}>
+                  0.00 <span style={{ fontSize: '0.75rem' }}>ج.م</span>
+                </strong>
+              </div>
+            </div>
+          );
+        })() : (
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>إجمالي حساب الصيانة والقطع:</div>
+              <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
+                {(currentTicket.finalCost || currentTicket.expectedCost || 0).toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+              </strong>
+              {currentTicket.advancePayment > 0 && (
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px', fontWeight: 600 }}>
+                  (المدفوع مقدماً: {currentTicket.advancePayment.toFixed(2)} ج.م)
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>المتبقي للتحصيل:</div>
+                <strong style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
+                  {Math.max(0, (currentTicket.finalCost || currentTicket.expectedCost || 0) - (currentTicket.advancePayment || 0)).toFixed(2)} <span style={{ fontSize: '0.75rem', color: '#64748b' }}>ج.م</span>
+                </strong>
+              </div>
+
+              <Button
+                variant="primary"
+                onClick={() => onOpenSettlement(currentTicket)}
+                disabled={updateStatusMutation.isPending}
+                style={{ padding: '7px 18px', fontWeight: 700, fontSize: '0.85rem' }}
+              >
+                تسليم الجهاز والتحصيل
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <Button variant="secondary" onClick={onClose} style={{ fontSize: '0.85rem' }}>
+            إغلاق
+          </Button>
+        </div>
+      </div>
+    </DialogShell>
+  );
+}

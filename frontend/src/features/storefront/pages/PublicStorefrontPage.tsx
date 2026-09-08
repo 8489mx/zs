@@ -1,25 +1,15 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import '@/styles/partials/storefront.css';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { storefrontApi } from '../api/storefront.api';
-import { CartItem, CreateOnlineOrderResponse, StorefrontProduct, StorefrontCategory, StorefrontInfo, OnlineOrderRecord } from '../types/storefront.types';
 import { StorefrontHeader } from '../components/StorefrontHeader';
 import { StorefrontSubNav } from '../components/StorefrontSubNav';
 import { StorefrontCategoryShowcase } from '../components/StorefrontCategoryShowcase';
-import { StorefrontCategoriesModal } from '../components/StorefrontCategoriesModal';
-import { StorefrontProductCard } from '../components/StorefrontProductCard';
-import { StorefrontHorizontalCarousel } from '../components/StorefrontHorizontalCarousel';
-import { StorefrontLiveCartDock } from '../components/StorefrontLiveCartDock';
-import { StorefrontCheckoutModal } from '../components/StorefrontCheckoutModal';
-import { StorefrontSuccessModal } from '../components/StorefrontSuccessModal';
 import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel';
-import { StorefrontMyOrdersModal } from '../components/StorefrontMyOrdersModal';
-import { StorefrontReviewModal } from '../components/StorefrontReviewModal';
-import { IconFlame, IconFolder, IconSearch, IconArrowUpRight, IconStore } from '../components/StorefrontIcons';
+import { StorefrontMultiRowHome } from '../components/StorefrontMultiRowHome';
+import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
+import { StorefrontModals } from '../components/StorefrontModals';
+import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
+import { IconStore } from '../components/StorefrontIcons';
 import { UtensilsIcon } from '@/shared/components/icons/AppIcons';
-
-const ITEMS_PER_PAGE = 24;
-const arCollator = new Intl.Collator('ar', { sensitivity: 'base' });
 
 export function PublicStorefrontPage() {
   const { slug, tableNo } = useParams<{ slug?: string; tableNo?: string }>();
@@ -27,367 +17,63 @@ export function PublicStorefrontPage() {
   const tableParam = (tableNo || searchParams.get('table') || '').trim();
   const cleanSlug = String(slug || 'default').trim();
 
-  // Queries for live Storefront data (Always fresh from server)
-  const infoQuery = useQuery({
-    queryKey: ['storefront-info', cleanSlug],
-    queryFn: () => storefrontApi.getInfo(cleanSlug),
-    enabled: Boolean(cleanSlug),
-    staleTime: 30 * 1000,
-  });
-
-  const catalogQuery = useQuery({
-    queryKey: ['storefront-catalog', cleanSlug],
-    queryFn: () => storefrontApi.getCatalog(cleanSlug),
-    enabled: Boolean(cleanSlug),
-    staleTime: 30 * 1000,
-  });
-
-  // State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
-  const [inStockOnly, setInStockOnly] = useState(false);
-  const [onlyDeals, setOnlyDeals] = useState(false);
-  const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'name'>('featured');
-  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-  const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
-  const [editingOrderNumber, setEditingOrderNumber] = useState<string | undefined>(undefined);
-  const [confirmedOrder, setConfirmedOrder] = useState<CreateOnlineOrderResponse | null>(null);
-  const [reviewProduct, setReviewProduct] = useState<StorefrontProduct | null>(null);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-
-  // Favorites State (Persisted per slug)
-  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(() => {
-    const set = new Set<number>();
-    try {
-      const saved = localStorage.getItem(`zs_fav_ids_${cleanSlug}`);
-      if (saved) {
-        const arr = JSON.parse(saved);
-        if (Array.isArray(arr)) {
-          arr.forEach((id: number) => set.add(Number(id)));
-        }
-      }
-      // Also scan legacy individual zs_fav_${id}
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('zs_fav_') && !key.startsWith('zs_fav_ids_')) {
-          if (localStorage.getItem(key) === 'true') {
-            const id = Number(key.replace('zs_fav_', ''));
-            if (!isNaN(id)) set.add(id);
-          }
-        }
-      }
-    } catch {}
-    return set;
-  });
-  const [onlyFavorites, setOnlyFavorites] = useState(false);
-
-
-  const handleToggleFavorite = useCallback((productId: number) => {
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(productId)) {
-        next.delete(productId);
-        try { localStorage.removeItem(`zs_fav_${productId}`); } catch {}
-      } else {
-        next.add(productId);
-        try { localStorage.setItem(`zs_fav_${productId}`, 'true'); } catch {}
-      }
-      try {
-        localStorage.setItem(`zs_fav_ids_${cleanSlug}`, JSON.stringify(Array.from(next)));
-      } catch {}
-      return next;
-    });
-  }, [cleanSlug]);
-
-  const handleToggleFavorites = useCallback(() => {
-    setOnlyFavorites((prev) => {
-      const next = !prev;
-      if (next) {
-        setSelectedCategory('all');
-        setOnlyDeals(false);
-        setSearchTerm('');
-        setTimeout(() => {
-          const el = document.getElementById('storefront-products-section');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 50);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleOpenReviewModal = useCallback((product: StorefrontProduct) => {
-    setReviewProduct(product);
-    setIsReviewModalOpen(true);
-  }, []);
-
-  const handleReviewSubmitted = useCallback(() => {
-    catalogQuery.refetch();
-  }, [catalogQuery]);
-
-  // Reset pagination when category, search, or filters change
-  useEffect(() => {
-    setVisibleCount(ITEMS_PER_PAGE);
-  }, [selectedCategory, searchTerm, onlyDeals, onlyFavorites]);
-
-  // Cart State (Persisted per slug)
-  const cartStorageKey = `zs_storefront_cart_${cleanSlug}`;
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(cartStorageKey);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(cartStorageKey, JSON.stringify(cartItems));
-    } catch {}
-  }, [cartItems, cartStorageKey]);
-
-  // Auto-sanitize cart against active store catalog
-  // Automatically purges ghost items from other tenants, old sessions, or deleted products
-  useEffect(() => {
-    if (!catalogQuery.data?.products || catalogQuery.data.products.length === 0) return;
-    const activeProductMap = new Map<string, StorefrontProduct>();
-    for (const p of catalogQuery.data.products as StorefrontProduct[]) {
-      activeProductMap.set(String(p.id), p);
-    }
-    setCartItems((prev) => {
-      let changed = false;
-      const updated = prev
-        .filter((item) => {
-          const exists = activeProductMap.has(String(item.product.id));
-          if (!exists) changed = true;
-          return exists;
-        })
-        .map((item) => {
-          const fresh = activeProductMap.get(String(item.product.id))!;
-          if (fresh.price !== item.product.price || fresh.name !== item.product.name) {
-            changed = true;
-            return { ...item, product: fresh };
-          }
-          return item;
-        });
-
-      return changed ? updated : prev;
-    });
-  }, [catalogQuery.data?.products]);
-
-  // Cart operations (memoized to keep React.memo effective)
-  const cartMap = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const item of cartItems) {
-      map.set(Number(item.product.id), item.quantity);
-    }
-    return map;
-  }, [cartItems]);
-
-  const handleAddToCart = useCallback((product: StorefrontProduct) => {
-    setCartItems((prev) => {
-      const pNum = Number(product.id);
-      const existingIndex = prev.findIndex((i) => Number(i.product.id) === pNum);
-      if (existingIndex > -1) {
-        const next = [...prev];
-        next[existingIndex] = {
-          ...next[existingIndex],
-          quantity: next[existingIndex].quantity + 1,
-        };
-        return next;
-      }
-      return [...prev, { product, quantity: 1 }];
-    });
-  }, []);
-
-  const handleUpdateQuantity = useCallback((productId: number, qty: number) => {
-    setCartItems((prev) => {
-      const pNum = Number(productId);
-      if (qty <= 0) {
-        return prev.filter((i) => Number(i.product.id) !== pNum);
-      }
-      return prev.map((item) =>
-        Number(item.product.id) === pNum ? { ...item, quantity: qty } : item
-      );
-    });
-  }, []);
-
-  const handleClearCart = useCallback(() => {
-    setCartItems([]);
-  }, []);
-
-  const handleGoHome = useCallback(() => {
-    setSearchTerm('');
-    setSelectedCategory('all');
-    setOnlyDeals(false);
-    setOnlyFavorites(false);
-    setInStockOnly(false);
-    setSortBy('featured');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-  const handleEditOrder = useCallback((order: OnlineOrderRecord) => {
-    const rawProds: StorefrontProduct[] = catalogQuery.data?.products || [];
-    const newCart: CartItem[] = [];
-    for (const item of order.items) {
-      const prod = rawProds.find((p) => Number(p.id) === Number(item.productId));
-      if (prod) {
-        newCart.push({ product: prod, quantity: item.quantity });
-      } else {
-        newCart.push({
-          product: {
-            id: item.productId,
-            name: item.name,
-            price: item.unitPrice,
-            costPrice: 0,
-            stockQty: 999,
-            unitName: 'قطعة',
-            inStock: true,
-          } as any,
-          quantity: item.quantity,
-        });
-      }
-    }
-    setCartItems(newCart);
-    setEditingOrderNumber(order.orderNumber);
-    setIsCartOpen(true);
-  }, [catalogQuery.data?.products]);
-
-  // Raw Products
-  const rawProducts: StorefrontProduct[] = catalogQuery.data?.products || [];
-  const categories: StorefrontCategory[] = catalogQuery.data?.categories || [];
-
-  const isSmartDealsOn = Boolean(infoQuery.data?.smartDealsEnabled);
-
-  const dealsProducts = useMemo(() => {
-    if (isSmartDealsOn) {
-      // Pick top 8 in-stock products as curated smart marketing deals
-      return rawProducts.filter((p) => p.price > 0 && p.inStock).slice(0, 8);
-    }
-    // Strict Real Deals: only products with explicit real discount (or empty if none)
-    return rawProducts.filter((p) => Boolean((p as any).hasDiscount));
-  }, [rawProducts, isSmartDealsOn]);
-
-  const smartDealProductIds = useMemo(() => {
-    return new Set(dealsProducts.map((p) => p.id));
-  }, [dealsProducts]);
-
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<number | 'all', number>();
-    counts.set('all', rawProducts.length);
-    for (const p of rawProducts) {
-      if (p.categoryId) {
-        const cid = Number(p.categoryId);
-        counts.set(cid, (counts.get(cid) || 0) + 1);
-      }
-    }
-    return counts;
-  }, [rawProducts]);
-
-  // Filtered & Sorted Products
-  const filteredProducts = useMemo(() => {
-    let list = [...rawProducts];
-
-    // Category filter
-    if (selectedCategory !== 'all') {
-      list = list.filter((p) => Number(p.categoryId) === Number(selectedCategory));
-    }
-
-    // In-stock only filter
-    if (inStockOnly) {
-      list = list.filter((p) => p.inStock && p.stockQty > 0);
-    }
-
-    // Only deals
-    if (onlyDeals) {
-      list = dealsProducts;
-    }
-
-    // Only favorites filter
-    if (onlyFavorites) {
-      list = list.filter((p) => favoriteIds.has(Number(p.id)));
-    }
-
-    // Search filter
-    if (searchTerm.trim()) {
-      const q = searchTerm.trim().toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.barcode.includes(q) ||
-          p.categoryName.toLowerCase().includes(q)
-      );
-    }
-
-    // Sorting
-    list.sort((a, b) => {
-      if (sortBy === 'featured') {
-        const aScore = (a.inStock ? 2 : 0) + (a.price > 0 ? 1 : 0);
-        const bScore = (b.inStock ? 2 : 0) + (b.price > 0 ? 1 : 0);
-        if (aScore !== bScore) return bScore - aScore;
-        return arCollator.compare(a.name, b.name);
-      }
-      if (sortBy === 'price-asc') return a.price - b.price;
-      if (sortBy === 'price-desc') return b.price - a.price;
-      if (sortBy === 'name') return arCollator.compare(a.name, b.name);
-      return 0;
-    });
-
-    return list;
-  }, [rawProducts, selectedCategory, inStockOnly, onlyDeals, onlyFavorites, favoriteIds, dealsProducts, searchTerm, sortBy]);
-
-  // Homepage curated top categories (Limit to Top 8 categories by product count)
-  const topHomepageSections = useMemo(() => {
-    const groups: { categoryId: number; categoryName: string; products: StorefrontProduct[]; totalCount: number }[] = [];
-
-    // Sort categories by product count descending
-    const sortedCats = [...categories].sort(
-      (a, b) => (categoryCounts.get(Number(b.id)) || 0) - (categoryCounts.get(Number(a.id)) || 0)
-    );
-
-    // Pick top 8 categories that have products
-    for (const cat of sortedCats) {
-      const catId = Number(cat.id);
-      let prods = rawProducts.filter((p) => Number(p.categoryId) === catId);
-      if (inStockOnly) {
-        prods = prods.filter((p) => p.inStock && p.stockQty > 0);
-      }
-      if (prods.length > 0) {
-        prods.sort((a, b) => {
-          const aScore = (a.inStock ? 2 : 0) + (a.price > 0 ? 1 : 0);
-          const bScore = (b.inStock ? 2 : 0) + (b.price > 0 ? 1 : 0);
-          return bScore - aScore;
-        });
-
-        groups.push({
-          categoryId: cat.id,
-          categoryName: cat.name,
-          products: prods.slice(0, 10), // Up to 10 for carousel, quad cards take 4
-          totalCount: prods.length,
-        });
-
-        if (groups.length >= 8) break; // Maximum 8 distinct category rows on home!
-      }
-    }
-    return groups;
-  }, [categories, rawProducts, categoryCounts, inStockOnly]);
-
-  // Totals
-  const cartCount = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
-    [cartItems]
-  );
-  const cartSubtotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
-    [cartItems]
-  );
-
-  const isHomepageMultiRow = selectedCategory === 'all' && !searchTerm.trim() && !onlyDeals && !onlyFavorites;
+  const {
+    infoQuery,
+    catalogQuery,
+    info,
+    searchTerm,
+    setSearchTerm,
+    selectedCategory,
+    setSelectedCategory,
+    inStockOnly,
+    setInStockOnly,
+    onlyDeals,
+    setOnlyDeals,
+    sortBy,
+    setSortBy,
+    setVisibleCount,
+    isCategoriesModalOpen,
+    setIsCategoriesModalOpen,
+    isCartOpen,
+    setIsCartOpen,
+    isCheckoutOpen,
+    setIsCheckoutOpen,
+    isMyOrdersOpen,
+    setIsMyOrdersOpen,
+    editingOrderNumber,
+    setEditingOrderNumber,
+    confirmedOrder,
+    setConfirmedOrder,
+    reviewProduct,
+    setReviewProduct,
+    isReviewModalOpen,
+    setIsReviewModalOpen,
+    favoriteIds,
+    onlyFavorites,
+    setOnlyFavorites,
+    handleToggleFavorite,
+    handleToggleFavorites,
+    handleOpenReviewModal,
+    handleReviewSubmitted,
+    cartItems,
+    cartMap,
+    cartCount,
+    cartSubtotal,
+    handleAddToCart,
+    handleUpdateQuantity,
+    handleClearCart,
+    handleGoHome,
+    handleEditOrder,
+    categories,
+    dealsProducts,
+    smartDealProductIds,
+    categoryCounts,
+    filteredProducts,
+    topHomepageSections,
+    paginatedProducts,
+    hasMore,
+    isHomepageMultiRow,
+  } = usePublicStorefront(cleanSlug);
 
   if (catalogQuery.isLoading || infoQuery.isLoading) {
     return (
@@ -478,24 +164,6 @@ export function PublicStorefrontPage() {
     );
   }
 
-  const info: StorefrontInfo = infoQuery.data || {
-    tenantId: '',
-    slug: cleanSlug,
-    businessName: '',
-    enabled: true,
-    title: '',
-    bio: '',
-    announcement: '',
-    bannerUrl: '',
-    deliveryFee: 0,
-    minOrder: 0,
-    whatsappPhone: '',
-    currency: 'EGP',
-    smartDealsEnabled: false,
-  };
-  const paginatedProducts = filteredProducts.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredProducts.length;
-
   return (
     <div
       dir="rtl"
@@ -563,8 +231,7 @@ export function PublicStorefrontPage() {
         </div>
       )}
 
-
-      {/* Top Promotional Billboard Banner Carousel (Multi-image auto-sliding slideshow) */}
+      {/* Top Promotional Billboard Banner Carousel */}
       {!searchTerm && ((info.bannerUrls && info.bannerUrls.length > 0) || info.bannerUrl) && (
         <StorefrontBannerCarousel
           banners={info.bannerUrls && info.bannerUrls.length > 0 ? info.bannerUrls : (info.bannerUrl ? [info.bannerUrl] : [])}
@@ -600,7 +267,7 @@ export function PublicStorefrontPage() {
         favoritesCount={favoriteIds.size}
       />
 
-      {/* Horizontal Circular Category Showcase (Top 10 + More) */}
+      {/* Horizontal Circular Category Showcase */}
       {isHomepageMultiRow && (
         <StorefrontCategoryShowcase
           categories={categories}
@@ -612,53 +279,7 @@ export function PublicStorefrontPage() {
       )}
 
       {/* Main Content Area */}
-      <style>{`
-        .storefront-products-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 16px;
-        }
-        .storefront-homepage-sections {
-          display: flex;
-          flex-direction: column;
-          gap: 28px;
-        }
-        @media (max-width: 640px) {
-          .storefront-main-content {
-            padding: 8px 10px 80px !important;
-          }
-          .storefront-main-content .storefront-section-card {
-            padding: 10px !important;
-            border-radius: 12px !important;
-          }
-          .storefront-homepage-sections {
-            gap: 12px !important;
-          }
-          .storefront-products-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 8px !important;
-          }
-          .storefront-deals-header {
-            margin-bottom: 10px !important;
-            padding-bottom: 8px !important;
-          }
-          .storefront-deals-subtitle {
-            display: none !important;
-          }
-          .storefront-cat-shelf-header {
-            margin-bottom: 10px !important;
-            padding-bottom: 8px !important;
-          }
-          .storefront-home-btn-label {
-            display: none !important;
-          }
-          .storefront-filter-header {
-            padding: 8px 10px !important;
-            gap: 8px !important;
-            margin-bottom: 12px !important;
-          }
-        }
-      `}</style>
+
       <main
         className="storefront-main-content"
         style={{
@@ -669,608 +290,103 @@ export function PublicStorefrontPage() {
           padding: '20px 20px 80px',
         }}
       >
-        {/* CASE 1: Curated Multi-Row Homepage (Ultra-Fast: 36 Cards Max) */}
         {isHomepageMultiRow ? (
-          <div className="storefront-homepage-sections">
-            {/* Row 1: Deals Spotlight */}
-            {dealsProducts.length > 0 && (
-              <div
-                className="storefront-section-card"
-                style={{
-                  background: '#ffffff',
-                  borderRadius: '16px',
-                  border: '1px solid #fee2e2',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.04)',
-                }}
-              >
-                <div
-                  className="storefront-deals-header"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '16px',
-                    borderBottom: '1px solid #fef2f2',
-                    paddingBottom: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span
-                      style={{
-                        background: '#ef4444',
-                        color: '#ffffff',
-                        fontSize: '12.5px',
-                        fontWeight: 800,
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <IconFlame size={14} color="#ffffff" strokeWidth={2.2} />
-                      <span>عروض وتخفيضات حصرية</span>
-                    </span>
-                    <span className="storefront-deals-subtitle" style={{ fontSize: '12.5px', color: '#64748b' }}>
-                      أقوى الخصومات والأسعار المخفضة
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setOnlyDeals(true)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#dc2626',
-                      fontSize: '12.5px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <span>عرض كل العروض ({dealsProducts.length})</span>
-                    <IconArrowUpRight size={14} strokeWidth={2.2} />
-                  </button>
-                </div>
-
-                <div className="storefront-products-grid">
-                  {dealsProducts.slice(0, 4).map((product) => (
-                    <StorefrontProductCard
-                      key={product.id}
-                      product={product}
-                      cartQuantity={cartMap.get(product.id) || 0}
-                      whatsappPhone={info.whatsappPhone}
-                      onAddToCart={handleAddToCart}
-                      onUpdateQuantity={handleUpdateQuantity}
-                      isSmartDeal={true}
-                      onOpenReviewModal={handleOpenReviewModal}
-                      isFavorite={favoriteIds.has(product.id)}
-                      onToggleFavorite={handleToggleFavorite}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Wide Horizontal Category Cards (Full Width Shelves) */}
-            {topHomepageSections.map((section, idx) => (
-              <React.Fragment key={section.categoryId}>
-                {/* Visual Accent: Section 3 renders as a smooth Horizontal Carousel */}
-                {idx === 2 ? (
-                  <StorefrontHorizontalCarousel
-                    title={`الأكثر طلباً في قسم ${section.categoryName}`}
-                    badge="رائج الآن"
-                    totalCount={section.totalCount}
-                    products={section.products}
-                    cartMap={cartMap}
-                    whatsappPhone={info.whatsappPhone}
-                    onAddToCart={handleAddToCart}
-                    onUpdateQuantity={handleUpdateQuantity}
-                    onOpenReviewModal={handleOpenReviewModal}
-                    onViewAll={() => {
-                      setSelectedCategory(section.categoryId);
-                      window.scrollTo({ top: 120, behavior: 'smooth' });
-                    }}
-                  />
-                ) : (
-                  <div
-                    className="storefront-section-card"
-                    style={{
-                      background: '#ffffff',
-                      borderRadius: '16px',
-                      border: '1px solid #e2e8f0',
-                      padding: '20px',
-                      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
-                    }}
-                  >
-                    {/* Wide Shelf Header */}
-                    <div
-                      className="storefront-cat-shelf-header"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '16px',
-                        borderBottom: '1px solid #f1f5f9',
-                        paddingBottom: '12px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span
-                          style={{
-                            background: '#170e5e',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            fontWeight: 800,
-                            padding: '4px 12px',
-                            borderRadius: '6px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                          }}
-                        >
-                          {section.categoryName}
-                        </span>
-                        <span className="storefront-deals-subtitle" style={{ fontSize: '12.5px', color: '#64748b' }}>
-                          أفضل منتجات {section.categoryName} بأسعار الجملة
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCategory(section.categoryId);
-                          window.scrollTo({ top: 120, behavior: 'smooth' });
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#170e5e',
-                          fontSize: '12.5px',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <span>عرض كل أصناف القسم ({section.totalCount})</span>
-                        <IconArrowUpRight size={14} strokeWidth={2.2} />
-                      </button>
-                    </div>
-
-                    {/* 4 Full Sized Product Cards in Horizontal Row */}
-                    <div className="storefront-products-grid">
-                      {section.products.slice(0, 4).map((product) => (
-                        <StorefrontProductCard
-                          key={product.id}
-                          product={product}
-                          cartQuantity={cartMap.get(product.id) || 0}
-                          whatsappPhone={info.whatsappPhone}
-                          onAddToCart={handleAddToCart}
-                          onUpdateQuantity={handleUpdateQuantity}
-                          onOpenReviewModal={handleOpenReviewModal}
-                          isFavorite={favoriteIds.has(product.id)}
-                          onToggleFavorite={handleToggleFavorite}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
-
-            {/* Bottom Invitation Banner to browse remaining categories */}
-            <div
-              style={{
-                background: '#ffffff',
-                border: '1.5px dashed #cbd5e1',
-                borderRadius: '16px',
-                padding: '28px 20px',
-                textAlign: 'center',
-              }}
-            >
-              <h4 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                استكشف باقي أقسام المتجر ({categories.length} قسم متاح)
-              </h4>
-              <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-                نوفر تشكيلة واسعة من كافة المواد الغذائية والمنظفات ومستلزمات البيت
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsCategoriesModalOpen(true)}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '10px',
-                  background: '#170e5e',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontSize: '13.5px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(23, 14, 94, 0.2)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <IconFolder size={16} strokeWidth={2} />
-                <span>تصفح جميع الأقسام والمنتجات</span>
-              </button>
-            </div>
-          </div>
+          <StorefrontMultiRowHome
+            dealsProducts={dealsProducts}
+            topHomepageSections={topHomepageSections}
+            categories={categories}
+            cartMap={cartMap}
+            info={info}
+            favoriteIds={favoriteIds}
+            onAddToCart={handleAddToCart}
+            onUpdateQuantity={handleUpdateQuantity}
+            onOpenReviewModal={handleOpenReviewModal}
+            onToggleFavorite={handleToggleFavorite}
+            onSelectDeals={() => setOnlyDeals(true)}
+            onSelectCategory={(id) => setSelectedCategory(id)}
+            onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
+          />
         ) : (
-          /* CASE 2: Category View / Search View / Favorites View (with Pagination for high performance) */
-          <div id="storefront-products-section">
-            {/* Filter & Sorting Controls Bar (Always strictly 1 line on all screens) */}
-            <div
-              className="storefront-filter-header"
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '8px 12px',
-                display: 'flex',
-                flexWrap: 'nowrap',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '8px',
-                marginBottom: '16px',
-                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
-              }}
-            >
-              {/* Home Return Button (Clean Icon) */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCategory('all');
-                  setOnlyDeals(false);
-                  setOnlyFavorites(false);
-                  setSearchTerm('');
-                }}
-                title="العودة للصفحة الرئيسية"
-                aria-label="العودة للصفحة الرئيسية"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  color: '#170e5e',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                  padding: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#e2e8f0';
-                  e.currentTarget.style.borderColor = '#94a3b8';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#f8fafc';
-                  e.currentTarget.style.borderColor = '#cbd5e1';
-                }}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-              </button>
-
-              {/* Title & Count (One Line Truncated with Ellipsis) */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  minWidth: 0,
-                  flex: 1,
-                  overflow: 'hidden',
-                }}
-              >
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    color: '#0f172a',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                  title={
-                    searchTerm
-                      ? `نتائج البحث عن "${searchTerm}"`
-                      : onlyFavorites
-                      ? 'المنتجات المفضلة'
-                      : onlyDeals
-                      ? 'العروض والتخفيضات'
-                      : `${categories.find((c) => c.id === selectedCategory)?.name || 'القسم'}`
-                  }
-                >
-                  {searchTerm
-                    ? `بحث: "${searchTerm}"`
-                    : onlyFavorites
-                    ? 'المنتجات المفضلة'
-                    : onlyDeals
-                    ? 'العروض والتخفيضات'
-                    : `${categories.find((c) => c.id === selectedCategory)?.name || 'القسم المختار'}`}
-                </h2>
-                <span
-                  style={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    background: onlyFavorites ? '#fef2f2' : '#f0f3ff',
-                    color: onlyFavorites ? '#dc2626' : '#170e5e',
-                    border: onlyFavorites ? '1px solid #fecaca' : 'none',
-                    padding: '2px 6px',
-                    borderRadius: '5px',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {filteredProducts.length} صنف
-                </span>
-              </div>
-
-              {/* Compact Sorting Icon Button with Native Select Overlay */}
-              <div
-                title="ترتيب المنتجات"
-                style={{
-                  position: 'relative',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  color: '#1e293b',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="21" y1="6" x2="3" y2="6" />
-                  <line x1="17" y1="12" x2="7" y2="12" />
-                  <line x1="13" y1="18" x2="11" y2="18" />
-                </svg>
-
-                {/* Invisible Native Select overlay for seamless mobile wheel / desktop picker */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  aria-label="ترتيب المنتجات"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer',
-                    appearance: 'none',
-                    WebkitAppearance: 'none',
-                  }}
-                >
-                  <option value="featured">المتوفر أولاً (افتراضي)</option>
-                  <option value="price-asc">السعر: من الأقل للأعلى</option>
-                  <option value="price-desc">السعر: من الأعلى للأقل</option>
-                  <option value="name">أبجدياً (أ - ي)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Product Cards Grid */}
-            {filteredProducts.length === 0 ? (
-              <div
-                style={{
-                  background: '#ffffff',
-                  borderRadius: '14px',
-                  border: '1px dashed #cbd5e1',
-                  padding: '50px 20px',
-                  textAlign: 'center',
-                  color: '#64748b',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-                  {onlyFavorites ? (
-                    <svg
-                      width="44"
-                      height="44"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#f43f5e"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                  ) : (
-                    <IconSearch size={36} color="#94a3b8" />
-                  )}
-                </div>
-                <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>
-                  {onlyFavorites ? 'قائمتك المفضلة فارغة حالياً' : 'لا توجد منتجات مطابقة'}
-                </h3>
-                <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#94a3b8' }}>
-                  {onlyFavorites
-                    ? 'اضغط على رمز القلب في أي منتج لإضافته إلى قائمتك المفضلة والوصول إليه بسرعة في أي وقت.'
-                    : 'جرب البحث باسم صنف آخر أو تصفح الأقسام الأخرى.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    setOnlyDeals(false);
-                    setOnlyFavorites(false);
-                    setSearchTerm('');
-                  }}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '8px',
-                    background: '#170e5e',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {onlyFavorites ? 'تصفح جميع المنتجات' : 'العودة للصفحة الرئيسية'}
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="storefront-products-grid">
-                  {paginatedProducts.map((product) => (
-                    <StorefrontProductCard
-                      key={product.id}
-                      product={product}
-                      cartQuantity={cartMap.get(product.id) || 0}
-                      whatsappPhone={info.whatsappPhone}
-                      onAddToCart={handleAddToCart}
-                      onUpdateQuantity={handleUpdateQuantity}
-                      isSmartDeal={smartDealProductIds.has(product.id)}
-                      onOpenReviewModal={handleOpenReviewModal}
-                      isFavorite={favoriteIds.has(product.id)}
-                      onToggleFavorite={handleToggleFavorite}
-                    />
-                  ))}
-                </div>
-
-                {/* "Load More" Button for large categories */}
-                {hasMore && (
-                  <div style={{ textAlign: 'center', marginTop: '28px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setVisibleCount((prev) => prev + ITEMS_PER_PAGE)}
-                      style={{
-                        padding: '10px 24px',
-                        borderRadius: '10px',
-                        background: '#ffffff',
-                        border: '1.5px solid #cbd5e1',
-                        color: '#0f172a',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-                      }}
-                    >
-                      عرض المزيد من المنتجات ({filteredProducts.length - visibleCount} متبقي) ↓
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          <StorefrontFilteredGrid
+            searchTerm={searchTerm}
+            onlyFavorites={onlyFavorites}
+            onlyDeals={onlyDeals}
+            selectedCategory={selectedCategory}
+            categories={categories}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            onGoHome={handleGoHome}
+            filteredProducts={filteredProducts}
+            paginatedProducts={paginatedProducts}
+            hasMore={hasMore}
+            onLoadMore={() => setVisibleCount((prev) => prev + ITEMS_PER_PAGE)}
+            cartMap={cartMap}
+            info={info}
+            smartDealProductIds={smartDealProductIds}
+            favoriteIds={favoriteIds}
+            onAddToCart={handleAddToCart}
+            onUpdateQuantity={handleUpdateQuantity}
+            onOpenReviewModal={handleOpenReviewModal}
+            onToggleFavorite={handleToggleFavorite}
+          />
         )}
       </main>
 
-      {/* Categories Mega Modal (Amazon Style) */}
-      <StorefrontCategoriesModal
-        isOpen={isCategoriesModalOpen}
-        onClose={() => setIsCategoriesModalOpen(false)}
+      {/* Modals & Live Cart */}
+      <StorefrontModals
+        isCategoriesModalOpen={isCategoriesModalOpen}
+        onCloseCategoriesModal={() => setIsCategoriesModalOpen(false)}
         categories={categories}
         categoryCounts={categoryCounts}
-        selectedCategoryId={selectedCategory}
+        selectedCategory={selectedCategory}
         onSelectCategory={(id) => {
           setSelectedCategory(id);
           setOnlyDeals(false);
           window.scrollTo({ top: 300, behavior: 'smooth' });
         }}
-      />
-
-      {/* Unified Live Cart: Floating Pill when collapsed, full-height blur drawer when expanded */}
-      <StorefrontLiveCartDock
         cartItems={cartItems}
         info={info}
-        deliveryFee={info.deliveryFee}
-        minOrder={info.minOrder}
-        isOpen={isCartOpen}
-        onOpen={() => setIsCartOpen(true)}
-        onClose={() => setIsCartOpen(false)}
+        isCartOpen={isCartOpen}
+        onOpenCart={() => setIsCartOpen(true)}
+        onCloseCart={() => setIsCartOpen(false)}
         onUpdateQuantity={handleUpdateQuantity}
         onClearCart={handleClearCart}
         onProceedToCheckout={() => {
           setIsCartOpen(false);
           setIsCheckoutOpen(true);
         }}
-      />
-
-      {/* Checkout Modal */}
-      <StorefrontCheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => {
+        isCheckoutOpen={isCheckoutOpen}
+        onCloseCheckout={() => {
           setIsCheckoutOpen(false);
           setEditingOrderNumber(undefined);
         }}
-        cartItems={cartItems}
-        info={info}
-        deliveryFee={info.deliveryFee}
-        tenantSlug={cleanSlug}
+        cleanSlug={cleanSlug}
         editingOrderNumber={editingOrderNumber}
-        orderType={tableParam ? 'dine_in' : 'delivery'}
-        tableNumber={tableParam || undefined}
+        tableParam={tableParam}
         onEditSuccess={() => {
           setIsCheckoutOpen(false);
           setEditingOrderNumber(undefined);
           handleClearCart();
           setIsMyOrdersOpen(true);
         }}
-        onOrderSuccess={(orderData: CreateOnlineOrderResponse) => {
+        onOrderSuccess={(orderData) => {
           setConfirmedOrder(orderData);
           setIsCheckoutOpen(false);
           setEditingOrderNumber(undefined);
           handleClearCart();
         }}
-      />
-
-      {/* Success Modal */}
-      <StorefrontSuccessModal
-        isOpen={Boolean(confirmedOrder)}
-        orderData={confirmedOrder}
-        whatsappPhone={info.whatsappPhone}
-        onClose={() => setConfirmedOrder(null)}
+        confirmedOrder={confirmedOrder}
+        onCloseSuccessModal={() => setConfirmedOrder(null)}
         onTrackOrder={() => {
           setConfirmedOrder(null);
           setIsMyOrdersOpen(true);
         }}
-      />
-
-      {/* Customer My Orders Modal */}
-      <StorefrontMyOrdersModal
-        isOpen={isMyOrdersOpen}
-        onClose={() => setIsMyOrdersOpen(false)}
-        slug={cleanSlug}
-        info={info}
+        isMyOrdersOpen={isMyOrdersOpen}
+        onCloseMyOrders={() => setIsMyOrdersOpen(false)}
         onEditOrder={handleEditOrder}
-      />
-
-      {/* Customer Product Review Modal */}
-      <StorefrontReviewModal
-        isOpen={isReviewModalOpen}
-        product={reviewProduct}
-        slug={cleanSlug}
-        onClose={() => {
+        isReviewModalOpen={isReviewModalOpen}
+        reviewProduct={reviewProduct}
+        onCloseReviewModal={() => {
           setIsReviewModalOpen(false);
           setReviewProduct(null);
         }}

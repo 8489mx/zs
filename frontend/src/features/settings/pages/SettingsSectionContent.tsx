@@ -1,3 +1,4 @@
+import React, { Suspense } from 'react';
 import { NavLink } from 'react-router-dom';
 import type { SettingsSectionKey } from '@/features/settings/pages/settings.page-config';
 import {
@@ -9,14 +10,22 @@ import {
   renderTaxIntegrationSection,
   type SharedSettingsSectionProps,
 } from '@/features/settings/pages/settings-section-content/render-section';
-import { SystemUpdatesSection } from '@/features/settings/components/workspace-sections/SystemUpdatesSection';
-import { TenantSubscriptionPage } from '@/features/settings/pages/TenantSubscriptionPage';
-import { StorefrontSettingsTab } from '@/features/storefront/components/StorefrontSettingsTab';
-import { SettingsWhatsAppGatewaySection } from '@/features/settings/components/workspace-sections/SettingsWhatsAppGatewaySection';
-import { SettingsTelegramAlertsSection } from '@/features/settings/components/workspace-sections/SettingsTelegramAlertsSection';
-import { SettingsDemoDataWizardSection } from '@/features/settings/components/workspace-sections/SettingsDemoDataWizardSection';
-import { SettingsDailyDigestSection } from '@/features/settings/components/workspace-sections/SettingsDailyDigestSection';
-import { SettingsMarketplacesSection } from '@/features/settings/components/workspace-sections/SettingsMarketplacesSection';
+
+// Code-split heavy & secondary sections to drastically reduce initial Settings bundle
+const SystemUpdatesSection = React.lazy(() => import('@/features/settings/components/workspace-sections/SystemUpdatesSection').then(m => ({ default: m.SystemUpdatesSection })));
+const TenantSubscriptionPage = React.lazy(() => import('@/features/settings/pages/TenantSubscriptionPage').then(m => ({ default: m.TenantSubscriptionPage })));
+const StorefrontSettingsTab = React.lazy(() => import('@/features/storefront/components/StorefrontSettingsTab').then(m => ({ default: m.StorefrontSettingsTab })));
+const SettingsWhatsAppGatewaySection = React.lazy(() => import('@/features/settings/components/workspace-sections/SettingsWhatsAppGatewaySection').then(m => ({ default: m.SettingsWhatsAppGatewaySection })));
+const SettingsTelegramAlertsSection = React.lazy(() => import('@/features/settings/components/workspace-sections/SettingsTelegramAlertsSection').then(m => ({ default: m.SettingsTelegramAlertsSection })));
+const SettingsDemoDataWizardSection = React.lazy(() => import('@/features/settings/components/workspace-sections/SettingsDemoDataWizardSection').then(m => ({ default: m.SettingsDemoDataWizardSection })));
+const SettingsDailyDigestSection = React.lazy(() => import('@/features/settings/components/workspace-sections/SettingsDailyDigestSection').then(m => ({ default: m.SettingsDailyDigestSection })));
+const SettingsMarketplacesSection = React.lazy(() => import('@/features/settings/components/workspace-sections/SettingsMarketplacesSection').then(m => ({ default: m.SettingsMarketplacesSection })));
+
+const LazySectionFallback = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '220px', color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>
+    جاري تحميل القسم...
+  </div>
+);
 
 type QueryState = { isLoading: boolean; isError: boolean; error?: unknown; isSuccess?: boolean; data?: unknown };
 
@@ -52,8 +61,20 @@ interface SettingsSectionContentProps extends SharedSettingsSectionProps {
 
 export function SettingsSectionContent({ section, ...props }: SettingsSectionContentProps) {
   if (section === 'core') return renderCoreSection(props);
-  if (section === 'demo-data') return <SettingsDemoDataWizardSection />;
-  if (section === 'subscription') return <TenantSubscriptionPage />;
+  if (section === 'demo-data') {
+    return (
+      <Suspense fallback={<LazySectionFallback />}>
+        <SettingsDemoDataWizardSection />
+      </Suspense>
+    );
+  }
+  if (section === 'subscription') {
+    return (
+      <Suspense fallback={<LazySectionFallback />}>
+        <TenantSubscriptionPage />
+      </Suspense>
+    );
+  }
   if (section === 'storefront' || section === 'marketplaces') {
     return (
       <div className="page-stack">
@@ -91,7 +112,9 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
             الربط مع أمازون ونون
           </NavLink>
         </div>
-        {section === 'storefront' ? <StorefrontSettingsTab /> : <SettingsMarketplacesSection />}
+        <Suspense fallback={<LazySectionFallback />}>
+          {section === 'storefront' ? <StorefrontSettingsTab /> : <SettingsMarketplacesSection />}
+        </Suspense>
       </div>
     );
   }
@@ -132,16 +155,30 @@ export function SettingsSectionContent({ section, ...props }: SettingsSectionCon
             الملخص اليومي للمدير
           </NavLink>
         </div>
-        {section === 'whatsapp' ? <SettingsWhatsAppGatewaySection /> : <SettingsDailyDigestSection />}
+        <Suspense fallback={<LazySectionFallback />}>
+          {section === 'whatsapp' ? <SettingsWhatsAppGatewaySection /> : <SettingsDailyDigestSection />}
+        </Suspense>
       </div>
     );
   }
   if (section === 'reference') return renderReferenceSection(props);
   if (section === 'backup') return renderBackupSection(props);
   if (section === 'users') return renderUsersSection(props);
-  if (section === 'system-updates') return <SystemUpdatesSection />;
+  if (section === 'system-updates') {
+    return (
+      <Suspense fallback={<LazySectionFallback />}>
+        <SystemUpdatesSection />
+      </Suspense>
+    );
+  }
   if (section === 'lan-network') return renderLanNetworkSection();
   if (section === 'tax-integration') return renderTaxIntegrationSection();
-  if (section === 'monitoring') return <SettingsTelegramAlertsSection />;
+  if (section === 'monitoring') {
+    return (
+      <Suspense fallback={<LazySectionFallback />}>
+        <SettingsTelegramAlertsSection />
+      </Suspense>
+    );
+  }
   return null;
 }

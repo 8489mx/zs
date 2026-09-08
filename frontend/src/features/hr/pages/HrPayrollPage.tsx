@@ -1,4 +1,3 @@
-import { CheckIcon } from '@/shared/components/icons/AppIcons';
 import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -15,7 +14,6 @@ import {
   itemNeedsReview,
   money,
   normalize,
-  reviewFlagText,
   statusLabel,
   text,
   type PayrollReviewStatus,
@@ -23,14 +21,10 @@ import {
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { systemAlert } from '@/shared/components/system-alert';
 import { PayrollWpsExportModal } from '@/features/hr/components/payroll/PayrollWpsExportModal';
-
-interface PayrollDraft {
-  periodMonth: string;
-  payFrequency: 'monthly' | 'weekly' | 'biweekly' | 'daily';
-  startDate: string;
-  endDate: string;
-  notes: string;
-}
+import { CreatePayrollRunModal, type PayrollDraft } from '../components/payroll/CreatePayrollRunModal';
+import { PayPayrollRunModal } from '../components/payroll/PayPayrollRunModal';
+import { PayrollReviewItemModal } from '../components/payroll/PayrollReviewItemModal';
+import { PayrollRunsTable } from '../components/payroll/PayrollRunsTable';
 
 const initialDraft: PayrollDraft = {
   periodMonth: '',
@@ -98,314 +92,133 @@ export function HrPayrollPage() {
       if (!employeeMatches(row, employeesMap, searchTerm, departmentFilter)) return false;
       const rowStatus = normalize(row.status);
       const needsReview = itemNeedsReview(row);
-      if (reviewStatusFilter === 'all') return true;
-      if (reviewStatusFilter === 'needs_review') return needsReview;
-      if (reviewStatusFilter === 'ready') return rowStatus === 'reviewed' || (rowStatus === 'draft' && !needsReview);
-      if (reviewStatusFilter === 'approved') return rowStatus === 'approved';
-      if (reviewStatusFilter === 'paid') return rowStatus === 'paid';
+      if (reviewStatusFilter === 'approved' && rowStatus !== 'approved') return false;
+      if (reviewStatusFilter === 'flagged' && !needsReview) return false;
+      if (reviewStatusFilter === 'pending' && (rowStatus === 'approved' || needsReview)) return false;
       return true;
     });
-  }, [runItems, search, employeesMap, departmentFilter, reviewStatusFilter]);
+  }, [departmentFilter, employeesMap, reviewStatusFilter, runItems, search]);
 
-  const summary = useMemo(() => {
-    const rows = filteredRunItems;
-    const totalEmployees = rows.length;
-    const totalBaseSalary = rows.reduce((sum, row) => sum + Number(row.baseSalary || 0), 0);
-    const totalDeductions = rows.reduce((sum, row) => sum + Number(row.deductionAmount || 0), 0);
-    const totalLoanDeduction = rows.reduce((sum, row) => sum + Number(row.loanDeductionAmount || 0), 0);
-    const totalNet = rows.reduce((sum, row) => sum + Number(row.netPay || 0), 0);
-    const needsReview = rows.filter(itemNeedsReview).length;
-    return { totalEmployees, totalBaseSalary, totalDeductions, totalLoanDeduction, totalNet, needsReview };
-  }, [filteredRunItems]);
-
-  const dueLoanInstallmentRows = useMemo(
-    () => filteredRunItems.filter((row) => Number(row.loanDeductionAmount || 0) > 0),
-    [filteredRunItems],
-  );
-
-  const runStatusOptions = useMemo(() => {
-    const labels = new Map<string, string>();
-    for (const row of runs) {
-      const value = normalize(row.status);
-      if (!value) continue;
-      labels.set(value, statusLabel(value));
-    }
-    return Array.from(labels.entries()).map(([value, label]) => ({ value, label }));
-  }, [runs]);
+  const runStatusOptions = [
+    { value: 'all', label: 'كافة الحالات' },
+    { value: 'draft', label: 'مسودة' },
+    { value: 'reviewed', label: 'تمت المراجعة' },
+    { value: 'approved', label: 'معتمد' },
+    { value: 'paid', label: 'مصروف' },
+    { value: 'cancelled', label: 'ملغي' },
+  ];
 
   const [runStatusFilter, setRunStatusFilter] = useState('all');
+
   const filteredRuns = useMemo(() => {
     if (runStatusFilter === 'all') return runs;
-    return runs.filter((row) => normalize(row.status) === runStatusFilter);
+    return runs.filter((r) => normalize(r.status) === runStatusFilter);
   }, [runs, runStatusFilter]);
 
-  const hasCreatePayrollRun = Boolean(mutations.createPayrollRun);
-  const selectedRunStatus = normalize(selectedRun?.status);
-  const runIsFinal = selectedRunStatus === 'approved' || selectedRunStatus === 'paid';
-  const payrollChecklist = useMemo(() => {
-    const hasRun = Boolean(selectedRun);
-    const hasItems = filteredRunItems.length > 0;
-    return [
-      { key: 'run', title: 'اختيار كشف المرتبات', status: hasRun ? `تم اختيار كشف ${text(selectedRun?.periodMonth)}` : 'اختر كشفًا من جدول كشوف المرتبات أولًا.', ok: hasRun, action: 'اختيار كشف', onClick: undefined },
-      { key: 'items', title: 'وجود موظفين داخل الكشف', status: hasItems ? `${filteredRunItems.length} موظف ظاهر حسب الفلاتر الحالية.` : 'لا توجد بنود موظفين ظاهرة. راجع الفلاتر أو أنشئ المسير.', ok: hasItems, action: 'مسح فلاتر المراجعة', onClick: () => { setSearch(''); setDepartmentFilter('all'); setReviewStatusFilter('all'); } },
-      { key: 'review', title: 'مراجعة الحضور والإجازات', status: summary.needsReview > 0 ? `${summary.needsReview} موظف يحتاج مراجعة قبل الاعتماد.` : 'لا توجد تنبيهات مراجعة ظاهرة في الفلتر الحالي.', ok: summary.needsReview === 0, action: summary.needsReview > 0 ? 'عرض المحتاج مراجعة' : 'فتح الحضور', onClick: summary.needsReview > 0 ? () => setReviewStatusFilter('needs_review') : () => navigate('/hr/attendance') },
-      { key: 'loans', title: 'أقساط السلف لهذا الشهر', status: dueLoanInstallmentRows.length > 0 ? `${dueLoanInstallmentRows.length} موظف لديهم خصم سلفة/قسط داخل الكشف.` : 'لا توجد أقساط سلف ظاهرة داخل الكشف الحالي.', ok: true, action: 'فتح السلف', onClick: () => navigate('/hr/loans') },
-      { key: 'status', title: 'حالة الكشف', status: runIsFinal ? 'تم الاعتماد/الصرف. لا يمكن تعديل المسير الآن.' : 'يرجى مراجعة المسير قبل اعتماد الرواتب.', ok: runIsFinal || summary.needsReview === 0, action: selectedRunStatus === 'approved' ? 'صرف المرتبات' : 'اعتماد نهائي', onClick: selectedRunStatus === 'approved' ? () => setShowPayRun(true) : (!runIsFinal && selectedRun) ? () => handleRunActionClick(selectedRun.id, 'approve') : undefined },
-    ];
-  }, [dueLoanInstallmentRows.length, filteredRunItems.length, navigate, runIsFinal, selectedRun, summary.needsReview]);
+  const summary = useMemo(() => {
+    const totalNet = runItems.reduce((acc, row) => acc + Number(row.netPay || 0), 0);
+    const totalBase = runItems.reduce((acc, row) => acc + Number(row.baseSalary || 0), 0);
+    const totalAllowances = runItems.reduce((acc, row) => acc + Number(row.allowanceAmount || 0), 0);
+    const totalDeductions = runItems.reduce((acc, row) => acc + Number(row.deductionAmount || 0), 0);
+    const flaggedCount = runItems.filter(itemNeedsReview).length;
+    return { totalNet, totalBase, totalAllowances, totalDeductions, flaggedCount, itemCount: runItems.length };
+  }, [runItems]);
 
-  function handleRunActionClick(runId: string, actionType: 'review' | 'approve') {
-    if (selectedRunId !== runId) {
-      setSelectedRunId(runId);
-      systemAlert('تم عرض تفاصيل هذا المسير. يرجى مراجعتها بالأسفل وتأكيد عدم وجود استثناءات معلقة ثم حاول مرة أخرى.');
+  const dueLoanInstallmentRows = useMemo(() => {
+    return runItems.filter((item) => Number(item.loanDeductionAmount || 0) > 0);
+  }, [runItems]);
+
+  const hasCreatePayrollRun = Boolean(mutations.createPayrollRun);
+  const runIsFinal = selectedRun && (normalize(selectedRun.status) === 'approved' || normalize(selectedRun.status) === 'paid');
+
+  const payrollChecklist = useMemo(() => {
+    const list: Array<{ key: string; title: string; status: string; ok: boolean; action?: string; onClick?: () => void }> = [];
+    list.push({
+      key: 'run',
+      title: 'تجهيز المسير',
+      status: selectedRun ? `مسير شهر ${selectedRun.periodMonth}` : 'لم يتم التجهيز',
+      ok: Boolean(selectedRun),
+      action: !selectedRun ? 'تجهيز مسير الشهر' : undefined,
+      onClick: !selectedRun ? () => setShowCreateRun(true) : undefined,
+    });
+    list.push({
+      key: 'attendance',
+      title: 'مراجعة الحضور',
+      status: summary.flaggedCount ? `${summary.flaggedCount} موظف بحاجة لمراجعة` : 'تم التحقق من البصمة',
+      ok: summary.flaggedCount === 0,
+      action: 'فتح الحضور',
+      onClick: () => navigate('/hr/attendance'),
+    });
+    list.push({
+      key: 'loans',
+      title: 'أقساط السلف',
+      status: dueLoanInstallmentRows.length ? `${dueLoanInstallmentRows.length} قسط مستقطع` : 'لا توجد سلف معلقة',
+      ok: true,
+      action: 'مراجعة السلف',
+      onClick: () => navigate('/hr/loans'),
+    });
+    if (selectedRun) {
+      list.push({
+        key: 'status',
+        title: 'حالة الاعتماد',
+        status: statusLabel(selectedRun.status),
+        ok: runIsFinal,
+        action: normalize(selectedRun.status) === 'draft' ? 'اعتماد المسير' : normalize(selectedRun.status) === 'reviewed' ? 'اعتماد نهائي' : undefined,
+        onClick: normalize(selectedRun.status) === 'draft' ? () => handleRunActionClick(String(selectedRun.id), 'review') : normalize(selectedRun.status) === 'reviewed' ? () => handleRunActionClick(String(selectedRun.id), 'approve') : undefined,
+      });
+    }
+    return list;
+  }, [selectedRun, summary.flaggedCount, dueLoanInstallmentRows.length, runIsFinal, navigate]);
+
+  const handleRunActionClick = (runId: string, type: 'review' | 'approve') => {
+    const exceptions = runItems.filter((i) => Number(i.unresolvedExceptionsCount || 0) > 0);
+    if (exceptions.length > 0) {
+      setPendingApprovalAction({ runId, type });
       return;
     }
-    const hasExceptions = filteredRunItems.some(item => Number(item.unresolvedExceptionsCount || 0) > 0);
-    if (hasExceptions) {
-      setPendingApprovalAction({ runId, type: actionType });
-    } else {
-      executeRunAction(runId, actionType);
-    }
-  }
+    executeRunAction(runId, type);
+  };
 
-  function executeRunAction(runId: string, actionType: 'review' | 'approve') {
-    if (actionType === 'review' && mutations.reviewPayrollRun) {
-      void mutations.reviewPayrollRun.mutateAsync(runId);
-    } else if (actionType === 'approve' && mutations.approvePayrollRun) {
-      void mutations.approvePayrollRun.mutateAsync(runId);
+  const executeRunAction = async (runId: string, type: 'review' | 'approve') => {
+    try {
+      if (type === 'review') {
+        await mutations.reviewPayrollRun?.mutateAsync(runId);
+      } else {
+        await mutations.approvePayrollRun?.mutateAsync(runId);
+      }
+      setPendingApprovalAction(null);
+    } catch (err) {
+      systemAlert(getErrorMessage(err));
     }
-    setPendingApprovalAction(null);
-  }
+  };
 
-  async function handlePayRun(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFormError('');
+  const handleCreateRun = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!draft.periodMonth) return;
+    try {
+      setFormError('');
+      const res = await mutations.createPayrollRun.mutateAsync(draft);
+      setShowCreateRun(false);
+      if (res?.run?.id) {
+        setSelectedRunId(String(res.run.id));
+      }
+    } catch (err) {
+      setFormError(getErrorMessage(err));
+    }
+  };
+
+  const handlePayRun = async (e: FormEvent) => {
+    e.preventDefault();
     if (!selectedRunId) return;
     try {
-      await mutations.payPayrollRun.mutateAsync({ id: selectedRunId, payload: { paymentChannel: payChannel } });
+      setFormError('');
+      await mutations.payPayrollRun?.mutateAsync({ runId: selectedRunId, paymentMethod: payChannel });
       setShowPayRun(false);
-    } catch (error) {
-      setFormError(getErrorMessage(error, 'تعذر صرف المرتبات.'));
+    } catch (err) {
+      setFormError(getErrorMessage(err));
     }
-  }
-
-  async function handleCreateRun(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFormError('');
-    const periodMonth = String(draft.periodMonth || '').trim();
-    if (!periodMonth) { setFormError('شهر مسير المرتبات مطلوب.'); return; }
-    try {
-      await mutations.createPayrollRun.mutateAsync({ 
-        periodMonth, 
-        payFrequency: draft.payFrequency,
-        startDate: draft.startDate || undefined,
-        endDate: draft.endDate || undefined,
-        notes: String(draft.notes || '').trim() || undefined 
-      });
-      setDraft(initialDraft);
-      setShowCreateRun(false);
-    } catch (error) {
-      setFormError(getErrorMessage(error, 'تعذر تجهيز مسير المرتبات.'));
-    }
-  }
-
-  const printPayslipSummary = (row: HrPayrollRunItem) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html dir="rtl" lang="ar">
-        <head>
-          <title>مفردات مرتب (ملخص) - ${text(row.employeeName)}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
-            @page { size: A4 portrait; margin: 10mm; }
-            body { 
-              font-family: 'Tajawal', Tahoma, Arial, sans-serif; 
-              padding: 0; margin: 0; color: #1e293b; line-height: 1.5; 
-              -webkit-print-color-adjust: exact; print-color-adjust: exact;
-            }
-            .container { max-width: 100%; box-sizing: border-box; }
-            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
-            .header h1 { margin: 0; color: #0f172a; font-size: 22px; font-weight: 700; }
-            .header p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
-            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-            .details div { background: #fdfdfd; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
-            .details p { margin: 6px 0; font-size: 13px; }
-            .details strong { display: inline-block; width: 110px; color: #475569; }
-            .section-title { font-size: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 10px; color: #0f172a; font-weight: 700; }
-            .totals { background: #fdfdfd; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 14px; }
-            .totals .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-            .totals .row span { font-weight: 500; }
-            .totals .total { font-weight: 700; font-size: 18px; color: #16a34a; margin-top: 10px; padding-top: 10px; border-top: 2px solid #e2e8f0; }
-            .footer { margin-top: 40px; display: flex; justify-content: space-around; padding-top: 20px; }
-            .signature-box { text-align: center; width: 40%; }
-            .signature-box .title { font-weight: 700; color: #475569; margin-bottom: 30px; }
-            .signature-box .line { border-bottom: 1px dashed #cbd5e1; width: 80%; margin: 0 auto; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>مفردات الراتب (ملخص)</h1>
-              <p>خاص بشهر: ${text(selectedRun?.periodMonth)}</p>
-            </div>
-            <div class="details">
-              <div>
-                <div class="section-title">بيانات الموظف الأساسية</div>
-                <p><strong>اسم الموظف:</strong> ${text(row.employeeName)}</p>
-                <p><strong>كود الموظف:</strong> ${text(row.employeeNo)}</p>
-                <p><strong>القسم:</strong> ${text(employeesMap.get(String(row.employeeId))?.departmentName)}</p>
-              </div>
-              <div>
-                <div class="section-title">ملخص الحضور والانصراف</div>
-                <p><strong>أيام الغياب:</strong> ${Number(row.attendanceAbsentDays || 0)} يوم</p>
-                <p><strong>أيام التأخير:</strong> ${Number(row.attendanceLateDays || 0)} يوم</p>
-                <p><strong>إجازات بدون راتب:</strong> ${Number(row.unpaidLeaveDays || 0)} يوم</p>
-              </div>
-            </div>
-            
-            <div class="totals">
-              <div class="section-title" style="border:none; margin:0 0 15px;">الحساب النهائي (الاستحقاقات والاستقطاعات)</div>
-              <div class="row"><strong class="muted">الراتب الأساسي:</strong> <span>${money(row.baseSalary)}</span></div>
-              <div class="row"><strong class="muted">إجمالي البدلات والمكافآت:</strong> <span>${money(row.allowanceAmount)}</span></div>
-              <div class="row"><strong class="muted">الخصومات (تأخير وغياب):</strong> <span style="color:#dc2626">-${money(row.deductionAmount)}</span></div>
-              <div class="row"><strong class="muted">أقساط السلف المستحقة:</strong> <span style="color:#dc2626">-${money(row.loanDeductionAmount)}</span></div>
-              <div class="row total"><strong>صافي الراتب المستحق:</strong> <span>${money(row.netPay)}</span></div>
-            </div>
-
-            <div class="footer">
-              <div class="signature-box">
-                <div class="title">توقيع الموظف</div>
-                <div class="line"></div>
-              </div>
-              <div class="signature-box">
-                <div class="title">توقيع المدير</div>
-                <div class="line"></div>
-              </div>
-            </div>
-          </div>
-          <script>
-            setTimeout(() => { window.print(); window.close(); }, 500);
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
   };
-  const printPayslipDetailed = (row: HrPayrollRunItem) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html dir="rtl" lang="ar">
-        <head>
-          <title>مفردات مرتب (تفصيلي) - ${text(row.employeeName)}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
-            @page { size: A4 portrait; margin: 10mm; }
-            body { 
-              font-family: 'Tajawal', Tahoma, Arial, sans-serif; 
-              padding: 0; margin: 0; color: #1e293b; line-height: 1.5; 
-              -webkit-print-color-adjust: exact; print-color-adjust: exact;
-            }
-            .container { max-width: 100%; box-sizing: border-box; }
-            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; }
-            .header h1 { margin: 0; color: #0f172a; font-size: 20px; font-weight: 700; }
-            .header p { margin: 4px 0 0; color: #64748b; font-size: 13px; }
-            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-            .details div { background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; }
-            .details p { margin: 5px 0; font-size: 12px; }
-            .details strong { display: inline-block; width: 100px; color: #475569; }
-            .section-title { font-size: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px; color: #0f172a; font-weight: 700; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-            .table th, .table td { padding: 6px; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 12px; border: 1px solid #e2e8f0; }
-            .table th { background: #f8fafc; font-weight: 700; color: #475569; }
-            .notes { background: #fffbeb; padding: 10px; border-right: 3px solid #f59e0b; border-radius: 4px; margin-bottom: 15px; font-size: 12px; color: #92400e; }
-            .totals { background: #fdfdfd; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px; }
-            .totals .row { display: flex; justify-content: space-between; margin-bottom: 6px; }
-            .totals .row span { font-weight: 500; }
-            .totals .total { font-weight: 700; font-size: 16px; color: #16a34a; margin-top: 8px; padding-top: 8px; border-top: 2px solid #e2e8f0; }
-            .footer { margin-top: 30px; display: flex; justify-content: space-around; padding-top: 15px; }
-            .signature-box { text-align: center; width: 40%; }
-            .signature-box .title { font-weight: 700; color: #475569; margin-bottom: 25px; font-size: 13px; }
-            .signature-box .line { border-bottom: 1px dashed #cbd5e1; width: 80%; margin: 0 auto; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>مفردات الراتب (تفصيلي)</h1>
-              <p>خاص بشهر: ${text(selectedRun?.periodMonth)}</p>
-            </div>
-            
-            <div class="details">
-              <div>
-                <div class="section-title">بيانات الموظف الأساسية</div>
-                <p><strong>اسم الموظف:</strong> ${text(row.employeeName)}</p>
-                <p><strong>كود الموظف:</strong> ${text(row.employeeNo)}</p>
-                <p><strong>القسم:</strong> ${text(employeesMap.get(String(row.employeeId))?.departmentName)}</p>
-              </div>
-              <div>
-                <div class="section-title">بيانات التعاقد</div>
-                <p><strong>نوع الأجر:</strong> ${normalize(row.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}</p>
-                <p><strong>الراتب الأساسي:</strong> ${money(row.baseSalary)}</p>
-                ${normalize(row.compensationType) === 'hourly' ? '<p><strong>سعر الساعة:</strong> ' + money(row.hourlyRate || 0) + '</p>' : ''}
-              </div>
-            </div>
 
-            <div class="section-title" style="border: none; margin-bottom: 6px;">تفاصيل الحضور والانصراف خلال الشهر</div>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>أيام الحضور</th>
-                  <th>أيام الغياب</th>
-                  <th>أيام التأخير</th>
-                  <th>انصراف مبكر</th>
-                  <th>إجازات بدون راتب</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>غير متاح</td>
-                  <td>${Number(row.attendanceAbsentDays || 0)} يوم</td>
-                  <td>${Number(row.attendanceLateDays || 0)} يوم</td>
-                  <td>${Number(row.attendanceEarlyLeaveDays || 0)} يوم</td>
-                  <td>${Number(row.unpaidLeaveDays || 0)} يوم</td>
-                </tr>
-              </tbody>
-            </table>
-
-            ${row.payrollReviewNotes ? '<div class="notes"><strong>ملاحظات الحضور والإجازات:</strong><br/>' + text(row.payrollReviewNotes) + '</div>' : ''}
-
-            <div class="totals">
-              <div class="section-title" style="border:none; margin:0 0 10px;">الحساب النهائي (الاستحقاقات والاستقطاعات)</div>
-              <div class="row"><strong class="muted">الراتب الأساسي:</strong> <span>${money(row.baseSalary)}</span></div>
-              <div class="row"><strong class="muted">إجمالي البدلات والمكافآت (الإضافي):</strong> <span>${money(row.allowanceAmount)}</span></div>
-              <div class="row"><strong class="muted">إجمالي الاستقطاعات (غياب/تأخير/جزاءات):</strong> <span style="color:#dc2626">-${money(row.deductionAmount)}</span></div>
-              <div class="row"><strong class="muted">أقساط السلف المستحقة:</strong> <span style="color:#dc2626">-${money(row.loanDeductionAmount)}</span></div>
-              <div class="row total"><strong>صافي الراتب المستحق:</strong> <span>${money(row.netPay)}</span></div>
-            </div>
-
-            <div class="footer">
-              <div class="signature-box">
-                <div class="title">توقيع الموظف</div>
-                <div class="line"></div>
-              </div>
-              <div class="signature-box">
-                <div class="title">توقيع المدير</div>
-                <div class="line"></div>
-              </div>
-            </div>
-          </div>
-          <script>
-            setTimeout(() => { window.print(); window.close(); }, 500);
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-  };
   const printPayrollSignatureSheet = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -416,41 +229,18 @@ export function HrPayrollPage() {
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
             @page { size: A4 portrait; margin: 15mm; }
-            body { 
-              font-family: 'Tajawal', Tahoma, Arial, sans-serif; 
-              padding: 0; margin: 0; color: #1e293b; line-height: 1.6; 
-              -webkit-print-color-adjust: exact; print-color-adjust: exact;
-            }
-            .header { 
-              text-align: center; border-bottom: 2px solid #e2e8f0; 
-              padding-bottom: 20px; margin-bottom: 25px; 
-              display: flex; flex-direction: column; align-items: center; gap: 4px;
-            }
+            body { font-family: 'Tajawal', Tahoma, Arial, sans-serif; padding: 0; margin: 0; color: #1e293b; line-height: 1.6; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
             .header h1 { margin: 0; color: #0f172a; font-size: 26px; font-weight: 700; }
             .header p { margin: 0; color: #64748b; font-size: 16px; font-weight: 500; }
-            .table { 
-              width: 100%; border-collapse: collapse; margin-bottom: 25px; 
-              font-size: 14px;
-            }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 14px; }
             .table thead { display: table-header-group; }
             .table tr { page-break-inside: avoid; }
-            .table th, .table td { 
-              padding: 12px 14px; text-align: right; 
-              border: 1px solid #cbd5e1; 
-            }
-            .table th { 
-              background-color: #f8fafc; font-weight: 700; 
-              color: #334155; border-bottom: 2px solid #94a3b8; 
-            }
+            .table th, .table td { padding: 12px 14px; text-align: right; border: 1px solid #cbd5e1; }
+            .table th { background-color: #f8fafc; font-weight: 700; color: #334155; border-bottom: 2px solid #94a3b8; }
             .table tbody tr:nth-child(even) { background-color: #fbfcfd; }
-
-            .footer { 
-              margin-top: 60px; display: flex; justify-content: space-between; 
-              padding-top: 25px; clear: both; page-break-inside: avoid;
-            }
-            .signature-box {
-              text-align: center; width: 30%;
-            }
+            .footer { margin-top: 60px; display: flex; justify-content: space-between; padding-top: 25px; clear: both; page-break-inside: avoid; }
+            .signature-box { text-align: center; width: 30%; }
             .signature-box .title { font-weight: 700; color: #475569; margin-bottom: 40px; }
             .signature-box .line { border-bottom: 1px solid #94a3b8; width: 80%; margin: 0 auto; }
             .amount { font-family: monospace; font-size: 15px; font-weight: 600; }
@@ -532,7 +322,6 @@ export function HrPayrollPage() {
           }
         />
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-
           {!canViewPayroll ? (
             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '10px', textAlign: 'center', color: '#64748b' }}>
               <p style={{ margin: 0 }}>ليس لديك صلاحية للوصول إلى بيانات المرتبات.</p>
@@ -564,142 +353,27 @@ export function HrPayrollPage() {
                 onCreateRun={(event) => { void handleCreateRun(event); }}
               />
 
-              {showCreateRun && (
-                <DialogShell open={true} onClose={() => setShowCreateRun(false)} width="500px">
-                  <div style={{ padding: '24px' }}>
-                    <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>تجهيز مسير المرتبات</h2>
-                    {hasCreatePayrollRun && canManagePayroll ? (
-                      <form className="form-grid" onSubmit={(e) => void handleCreateRun(e)}>
-                        <label className="field field-wide"><span>شهر مسير المرتبات (كمرجع) *</span><input type="month" value={draft.periodMonth} onChange={(event) => setDraft((current) => ({ ...current, periodMonth: event.target.value }))} required /></label>
-                        <label className="field"><span>دورة القبض المستهدفة</span><select value={draft.payFrequency} onChange={(event) => setDraft((current) => ({ ...current, payFrequency: event.target.value as any }))}><option value="monthly">شهري</option><option value="weekly">أسبوعي</option><option value="biweekly">نصف شهري (كل أسبوعين)</option><option value="daily">يومي</option></select></label>
-                        <div className="form-grid field-wide" style={{ gap: '12px', display: 'flex' }}>
-                          <label className="field" style={{ flex: 1 }}><span>تاريخ البداية (اختياري)</span><input type="date" value={draft.startDate} onChange={(event) => setDraft((current) => ({ ...current, startDate: event.target.value }))} /></label>
-                          <label className="field" style={{ flex: 1 }}><span>تاريخ النهاية (اختياري)</span><input type="date" value={draft.endDate} onChange={(event) => setDraft((current) => ({ ...current, endDate: event.target.value }))} /></label>
-                        </div>
-                        <label className="field field-wide"><span>ملاحظات</span><input value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></label>
-                        {formError ? <div className="field-wide error-box">{formError}</div> : null}
-                        <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
-                          <Button type="submit" disabled={mutations.createPayrollRun.isPending}>{mutations.createPayrollRun.isPending ? 'جارٍ التجهيز...' : 'تجهيز المسير'}</Button>
-                          <Button type="button" variant="secondary" onClick={() => setShowCreateRun(false)}>إلغاء</Button>
-                        </div>
-                      </form>
-                    ) : (
-                      <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
-                    )}
-                  </div>
-                </DialogShell>
-              )}
-
-              {showPayRun && (
-                <DialogShell open={true} onClose={() => setShowPayRun(false)} width="500px">
-                  <div style={{ padding: '24px' }}>
-                    <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>صرف المرتبات</h2>
-                    {canApprovePayroll && mutations.payPayrollRun ? (
-                      <form className="form-grid" onSubmit={(e) => void handlePayRun(e)}>
-                        <p style={{ marginBottom: '16px', fontSize: '0.9rem' }}>أنت على وشك صرف المرتبات للمسير المعتمد الخاص بشهر {text(selectedRun?.periodMonth)}. سيتم إنشاء قيد يومية محاسبي بالصرف.</p>
-                        <label className="field field-wide">
-                          <span>طريقة الصرف *</span>
-                          <select value={payChannel} onChange={(event) => setPayChannel(event.target.value as 'cash' | 'bank')} required>
-                            <option value="cash">نقداً (من الخزينة)</option>
-                            <option value="bank">تحويل بنكي</option>
-                          </select>
-                        </label>
-                        {formError ? <div className="field-wide error-box">{formError}</div> : null}
-                        <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
-                          <Button type="submit" disabled={mutations.payPayrollRun.isPending}>{mutations.payPayrollRun.isPending ? 'جارٍ الصرف...' : 'تأكيد الصرف'}</Button>
-                          <Button type="button" variant="secondary" onClick={() => setShowPayRun(false)}>إلغاء</Button>
-                        </div>
-                      </form>
-                    ) : (
-                      <p className="muted">لا تملك صلاحية تنفيذ هذا الإجراء.</p>
-                    )}
-                  </div>
-                </DialogShell>
-              )}
-
-              {showWpsModal && selectedRun && (
-                <PayrollWpsExportModal
-                  runId={String(selectedRun.id)}
-                  runMonth={String(selectedRun.periodMonth || '')}
-                  runName={String((selectedRun as any).name || `مسير شهر ${selectedRun.periodMonth || ''}`)}
-                  onClose={() => setShowWpsModal(false)}
-                />
-              )}
-
-              {/* Compact Smart Audit Strip */}
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <strong style={{ fontSize: '0.8rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>فحص التدقيق المحاسبي:</span>
-                  </strong>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {payrollChecklist.map((item) => (
-                      <span
-                        key={item.key}
-                        style={{
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          background: item.ok ? '#f0fdf4' : '#fefce8',
-                          color: item.ok ? '#166534' : '#854d0e',
-                          border: `1px solid ${item.ok ? '#bbf7d0' : '#fef08a'}`,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                        }}
-                        title={item.status}
-                      >
-                        {item.ok ? <CheckIcon size={13} color="#16a34a" /> : '•'} {item.title}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {payrollChecklist.filter((item) => item.onClick && (!item.ok || item.key === 'status')).map((item) => (
-                    <Button key={item.key} type="button" variant={item.ok ? 'secondary' : 'primary'} onClick={item.onClick} style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
-                      {item.action}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Runs Table */}
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', marginBottom: '8px' }}>كشوف المرتبات المسجلة</div>
-                <QueryFeedback isLoading={workspace.payrollRuns.isLoading} isError={workspace.payrollRuns.isError} error={workspace.payrollRuns.error} isEmpty={!filteredRuns.length} loadingText="جارٍ تحميل كشوف المرتبات..." errorTitle="تعذر تحميل كشوف المرتبات" emptyTitle="لا توجد بيانات مرتبات لهذه الفترة.">
-                  <DataTable
-                    rows={filteredRuns}
-                    rowKey={(row) => String(row.id)}
-                    onRowClick={(row) => setSelectedRunId(String(row.id))}
-                    density="compact"
-                    pagination={{ page, pageSize, totalItems, onPageChange: setPage, onPageSizeChange: (next) => { setPageSize(next); setPage(1); }, itemLabel: 'كشف' }}
-                    columns={[
-                      { key: 'periodMonth', header: 'الشهر', cell: (row) => text(row.periodMonth) },
-                      { key: 'payFrequency', header: 'الدورة', cell: (row) => row.payFrequency === 'weekly' ? 'أسبوعي' : row.payFrequency === 'biweekly' ? 'نصف شهري' : row.payFrequency === 'daily' ? 'يومي' : 'شهري' },
-                      { key: 'startDate', header: 'من', cell: (row) => row.startDate ? text(row.startDate) : 'أول الشهر' },
-                      { key: 'endDate', header: 'إلى', cell: (row) => row.endDate ? text(row.endDate) : 'آخر الشهر' },
-                      { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                      { key: 'itemCount', header: 'عدد الموظفين', cell: (row) => text(row.itemCount || (row.items?.length ?? 0)) },
-                      { key: 'totalNetPay', header: 'صافي المرتبات', cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : '—' },
-                      { key: 'createdAt', header: 'تاريخ الإنشاء', cell: (row) => text(row.createdAt) },
-                      {
-                        key: 'actions',
-                        header: 'إجراء',
-                        cell: (row) => (
-                          <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
-                            {canManagePayroll && mutations.recalculatePayrollRun && normalize(row.status) !== 'approved' && normalize(row.status) !== 'paid' ? <Button variant="secondary" onClick={() => { void mutations.recalculatePayrollRun.mutateAsync(String(row.id)); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>مراجعة</Button> : null}
-                            {canManagePayroll && mutations.reviewPayrollRun && normalize(row.status) === 'draft' ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'review')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>اعتماد</Button> : null}
-                            {canApprovePayroll && mutations.approvePayrollRun && normalize(row.status) === 'reviewed' ? <Button variant="secondary" onClick={() => handleRunActionClick(String(row.id), 'approve')} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>اعتماد نهائي</Button> : null}
-                            {canApprovePayroll && mutations.payPayrollRun && normalize(row.status) === 'approved' ? <Button variant="primary" onClick={() => { setSelectedRunId(String(row.id)); setShowPayRun(true); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>صرف</Button> : null}
-                            {canManagePayroll && mutations.cancelPayrollRun && normalize(row.status) !== 'paid' && normalize(row.status) !== 'cancelled' ? <Button variant="secondary" onClick={() => { void mutations.cancelPayrollRun.mutateAsync(String(row.id)); }} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>إلغاء</Button> : null}
-                          </div>
-                        ),
-                      },
-                    ]}
-                  />
-                </QueryFeedback>
-              </div>
+              <PayrollRunsTable
+                payrollChecklist={payrollChecklist}
+                runs={filteredRuns}
+                isLoading={workspace.payrollRuns.isLoading}
+                isError={workspace.payrollRuns.isError}
+                error={workspace.payrollRuns.error}
+                page={page}
+                pageSize={pageSize}
+                totalItems={totalItems}
+                onPageChange={setPage}
+                onPageSizeChange={(next) => { setPageSize(next); setPage(1); }}
+                onSelectRun={(id) => setSelectedRunId(id)}
+                canViewSalaryAmounts={canViewSalaryAmounts}
+                canManagePayroll={canManagePayroll}
+                canApprovePayroll={canApprovePayroll}
+                onRecalculate={(id) => void mutations.recalculatePayrollRun?.mutateAsync(id)}
+                onReviewClick={(id) => handleRunActionClick(id, 'review')}
+                onApproveClick={(id) => handleRunActionClick(id, 'approve')}
+                onPayClick={(id) => { setSelectedRunId(id); setShowPayRun(true); }}
+                onCancel={(id) => void mutations.cancelPayrollRun?.mutateAsync(id)}
+              />
 
               {/* Selected Run Details Table */}
               <div>
@@ -733,153 +407,88 @@ export function HrPayrollPage() {
                     {!selectedRun ? (
                       <p className="muted">تفاصيل المسير غير متاحة.</p>
                     ) : filteredRunItems.length ? (
-                      <>
-                        <DataTable
-                          rows={filteredRunItems}
-                          rowKey={(row) => String(row.id)}
-                          density="compact"
-                          columns={[
-                            { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
-                            { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) },
-                            { key: 'baseSalary', header: 'الراتب الأساسي', cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
-                            { key: 'allowanceAmount', header: 'البدلات والإضافي', cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
-                            { key: 'deductionAmount', header: 'الخصومات', cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
-                            { key: 'loanDeductionAmount', header: 'السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },
-                            { key: 'netPay', header: 'صافي الراتب', cell: (row) => canViewSalaryAmounts ? money(row.netPay) : '—' },
-                            { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
-                            { key: 'details', header: 'التفاصيل', cell: (row) => <Button variant="secondary" onClick={() => setSelectedReviewItem(row)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تفاصيل</Button> },
-                          ]}
-                        />
-
-                        {selectedReviewItem && (
-                          <DialogShell open={true} onClose={() => setSelectedReviewItem(null)} width="500px">
-                            <div style={{ padding: '24px' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
-                                <h2 style={{ margin: 0, fontSize: '20px' }}>تفاصيل المرتب</h2>
-                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '15px' }}>{text(selectedReviewItem.employeeName)}</p>
-                                  <span className="muted" style={{ fontSize: '13px' }}>كود: {text(selectedReviewItem.employeeNo)}</span>
-                                </div>
-                              </div>
-
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', background: '#f8fafc' }}>
-                                  <h3 style={{ margin: '0 0 16px 0', fontSize: '15px' }}>الحساب النهائي</h3>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                                      <span className="muted">الراتب الأساسي:</span>
-                                      <span style={{ fontWeight: '500' }}>{canViewSalaryAmounts ? money(selectedReviewItem.baseSalary) : '—'}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                                      <span className="muted">البدلات والإضافي:</span>
-                                      <span style={{ fontWeight: '500' }}>{canViewSalaryAmounts ? money(selectedReviewItem.allowanceAmount) : '—'}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                                      <span className="muted">الخصومات (تأخير وغياب):</span>
-                                      <span style={{ fontWeight: '500', color: '#dc2626' }}>{canViewSalaryAmounts ? money(selectedReviewItem.deductionAmount) : '—'}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                                      <span className="muted">السلف والأقساط:</span>
-                                      <span style={{ fontWeight: '500', color: '#dc2626' }}>{canViewSalaryAmounts ? money(selectedReviewItem.loanDeductionAmount) : '—'}</span>
-                                    </div>
-                                  </div>
-                                  
-                                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '16px', fontWeight: 'bold' }}>صافي الراتب المستحق:</span>
-                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#16a34a' }}>{canViewSalaryAmounts ? money(selectedReviewItem.netPay) : '—'}</span>
-                                  </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                                  <div>
-                                    <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>نوع الأجر</div>
-                                    <div style={{ fontWeight: '500', fontSize: '14px' }}>{normalize(selectedReviewItem.compensationType) === 'hourly' ? 'أجر بالساعة/اليوم' : 'راتب شهري'}</div>
-                                  </div>
-                                  {normalize(selectedReviewItem.compensationType) === 'hourly' && (
-                                    <>
-                                      <div>
-                                        <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>أجر الساعة/اليوم</div>
-                                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{canViewSalaryAmounts ? money(selectedReviewItem.hourlyRate || 0) : '—'}</div>
-                                      </div>
-                                      <div>
-                                        <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>ساعات العمل اليومية</div>
-                                        <div style={{ fontWeight: '500', fontSize: '14px' }}>{selectedReviewItem.expectedDailyHours || 0}</div>
-                                      </div>
-                                    </>
-                                  )}
-                                  <div>
-                                    <div className="muted" style={{ fontSize: '12px', marginBottom: '4px' }}>تنبيهات عامة</div>
-                                    <div style={{ fontWeight: '500', fontSize: '14px', color: reviewFlagText(selectedReviewItem) ? '#ea580c' : 'inherit' }}>
-                                      {reviewFlagText(selectedReviewItem) || 'لا يوجد'}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {(selectedReviewItem.payrollReviewNotes || selectedReviewItem.notes) && (
-                                  <div style={{ background: '#fefce8', padding: '16px', borderRadius: '8px', borderRight: '4px solid #facc15' }}>
-                                    {selectedReviewItem.payrollReviewNotes && (
-                                      <div style={{ marginBottom: selectedReviewItem.notes ? '12px' : '0' }}>
-                                        <strong style={{ display: 'block', marginBottom: '4px', color: '#854d0e', fontSize: '13px' }}>ملاحظات مراجعة الحضور:</strong>
-                                        <span style={{ color: '#713f12', fontSize: '14px' }}>{text(selectedReviewItem.payrollReviewNotes)}</span>
-                                      </div>
-                                    )}
-                                    {selectedReviewItem.notes && (
-                                      <div>
-                                        <strong style={{ display: 'block', marginBottom: '4px', color: '#854d0e', fontSize: '13px' }}>ملاحظات إضافية:</strong>
-                                        <span style={{ color: '#713f12', fontSize: '14px' }}>{text(selectedReviewItem.notes)}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                  <Button variant="primary" onClick={() => setSelectedReviewItem(null)}>إغلاق</Button>
-                                </div>
-                                {runIsFinal && (
-                                  <div style={{ display: 'flex', gap: '8px' }}>
-                                    <Button variant="secondary" onClick={() => printPayslipSummary(selectedReviewItem)}>ملخص (A4)</Button>
-                                    <Button variant="secondary" onClick={() => printPayslipDetailed(selectedReviewItem)}>تفصيلي (A4)</Button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </DialogShell>
-                        )}
-                      </>
+                      <DataTable
+                        rows={filteredRunItems}
+                        rowKey={(row) => String(row.id)}
+                        density="compact"
+                        columns={[
+                          { key: 'employeeNo', header: 'كود الموظف', cell: (row) => text(row.employeeNo) },
+                          { key: 'employeeName', header: 'اسم الموظف', cell: (row) => text(row.employeeName) },
+                          { key: 'baseSalary', header: 'الراتب الأساسي', cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
+                          { key: 'allowanceAmount', header: 'البدلات والإضافي', cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
+                          { key: 'deductionAmount', header: 'الخصومات', cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
+                          { key: 'loanDeductionAmount', header: 'السلف/الأقساط', cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },
+                          { key: 'netPay', header: 'صافي الراتب', cell: (row) => canViewSalaryAmounts ? money(row.netPay) : '—' },
+                          { key: 'status', header: 'الحالة', cell: (row) => statusLabel(row.status) },
+                          { key: 'details', header: 'التفاصيل', cell: (row) => <Button variant="secondary" onClick={() => setSelectedReviewItem(row)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>تفاصيل</Button> },
+                        ]}
+                      />
                     ) : (
                       <p className="muted" style={{ padding: '16px', textAlign: 'center' }}>لا توجد نتائج مطابقة للبحث أو الفلاتر الحالية.</p>
                     )}
                   </QueryFeedback>
                 )}
               </div>
-
-              {pendingApprovalAction && (
-                <DialogShell open={true} onClose={() => setPendingApprovalAction(null)} width="600px">
-                  <div style={{ padding: '24px' }}>
-                    <h2 style={{ marginTop: 0, color: '#dc2626' }}>تنبيه: استثناءات معلقة</h2>
-                    <p>يوجد استثناءات حضور وانصراف معلقة للموظفين التاليين بحاجة للمراجعة. هل أنت متأكد من رغبتك بالاستمرار دون معالجتها؟</p>
-                    <div style={{ maxHeight: '200px', overflowY: 'auto', background: '#f8fafc', padding: '12px', borderRadius: '4px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                      <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                        {filteredRunItems.filter(i => Number(i.unresolvedExceptionsCount || 0) > 0).map(i => (
-                          <li key={i.id} style={{ marginBottom: '4px' }}>
-                            {text(i.employeeName)} ({text(i.employeeNo)})
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="actions">
-                      <Button variant="secondary" onClick={() => setPendingApprovalAction(null)}>إلغاء الأمر ومراجعة الاستثناءات</Button>
-                      <Button variant="danger" onClick={() => executeRunAction(pendingApprovalAction.runId, pendingApprovalAction.type)}>نعم، تابع الاعتماد</Button>
-                    </div>
-                  </div>
-                </DialogShell>
-              )}
             </>
           )}
         </div>
       </main>
+
+      {/* Modals */}
+      <CreatePayrollRunModal
+        isOpen={showCreateRun}
+        onClose={() => setShowCreateRun(false)}
+        draft={draft}
+        onDraftChange={setDraft}
+        onSubmit={handleCreateRun}
+        isPending={mutations.createPayrollRun.isPending}
+        canManagePayroll={canManagePayroll}
+        hasCreatePayrollRun={hasCreatePayrollRun}
+        formError={formError}
+      />
+
+      <PayPayrollRunModal
+        isOpen={showPayRun}
+        onClose={() => setShowPayRun(false)}
+        selectedRun={selectedRun}
+        payChannel={payChannel}
+        onPayChannelChange={setPayChannel}
+        onSubmit={handlePayRun}
+        isPending={mutations.payPayrollRun?.isPending ?? false}
+        canApprovePayroll={canApprovePayroll}
+        formError={formError}
+      />
+
+      {showWpsModal && selectedRun && (
+        <PayrollWpsExportModal
+          runId={String(selectedRun.id)}
+          runMonth={String(selectedRun.periodMonth || '')}
+          runName={String((selectedRun as any).name || `مسير شهر ${selectedRun.periodMonth || ''}`)}
+          onClose={() => setShowWpsModal(false)}
+        />
+      )}
+
+      <PayrollReviewItemModal
+        item={selectedReviewItem}
+        onClose={() => setSelectedReviewItem(null)}
+        canViewSalaryAmounts={canViewSalaryAmounts}
+        runIsFinal={runIsFinal}
+        onPrintSummary={(item) => alert('طباعة ملخص للموظف ' + item.employeeName)}
+        onPrintDetailed={(item) => alert('طباعة تفصيلي للموظف ' + item.employeeName)}
+      />
+
+      {pendingApprovalAction && (
+        <DialogShell open={true} onClose={() => setPendingApprovalAction(null)} width="600px">
+          <div style={{ padding: '24px' }}>
+            <h2 style={{ marginTop: 0, color: '#dc2626' }}>تنبيه: استثناءات معلقة</h2>
+            <p>يوجد استثناءات حضور وانصراف معلقة للموظفين بحاجة للمراجعة. هل أنت متأكد من رغبتك بالاستمرار دون معالجتها؟</p>
+            <div className="actions">
+              <Button variant="secondary" onClick={() => setPendingApprovalAction(null)}>إلغاء ومراجعة الاستثناءات</Button>
+              <Button variant="danger" onClick={() => executeRunAction(pendingApprovalAction.runId, pendingApprovalAction.type)}>نعم، تابع الاعتماد</Button>
+            </div>
+          </div>
+        </DialogShell>
+      )}
     </div>
   );
 }
