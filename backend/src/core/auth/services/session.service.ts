@@ -430,14 +430,19 @@ export class SessionService {
     const sessionId = randomUUID();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    await this.db.insertInto('sessions').values({ id: sessionId, user_id: user.id, tenant_id: tenantContext.tenantId, account_id: tenantContext.accountId, expires_at: expiresAt, last_seen_at: now, ip_address: meta?.ipAddress?.slice(0, 255) || '', user_agent: meta?.userAgent?.slice(0, 500) || '' }).execute();
+
+    // Parallel: session insert + user security update (independent operations)
     const userSecurityUpdates: Record<string, unknown> = { failed_login_count: 0, last_login_at: now, locked_until: null };
     if (passwordCheck.needsRehash) {
       const upgradedPassword = await createPasswordRecord(password);
       userSecurityUpdates.password_hash = upgradedPassword.hash;
       userSecurityUpdates.password_salt = upgradedPassword.salt;
     }
-    await this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute();
+    await Promise.all([
+      this.db.insertInto('sessions').values({ id: sessionId, user_id: user.id, tenant_id: tenantContext.tenantId, account_id: tenantContext.accountId, expires_at: expiresAt, last_seen_at: now, ip_address: meta?.ipAddress?.slice(0, 255) || '', user_agent: meta?.userAgent?.slice(0, 500) || '' }).execute(),
+      this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute(),
+    ]);
+
     const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
     const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
     const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : user.role;
@@ -499,8 +504,10 @@ export class SessionService {
   }
 
   async buildLoginPayload(auth: AuthContext): Promise<Record<string, unknown>> {
-    const profile = await this.getSessionUserProfile(auth);
-    const tenant = await this.getTenantPayload(auth);
+    const [profile, tenant] = await Promise.all([
+      this.getSessionUserProfile(auth),
+      this.getTenantPayload(auth),
+    ]);
     return { user: { id: profile.id, username: profile.username, role: profile.role, permissions: profile.permissions, displayName: profile.displayName, branchIds: profile.branchIds, defaultBranchId: profile.defaultBranchId, tenantId: profile.tenantId, accountId: profile.accountId }, tenant, mustChangePassword: profile.mustChangePassword };
   }
 

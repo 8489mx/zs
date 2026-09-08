@@ -104,8 +104,8 @@
   background: rgba(255, 255, 255, 0.85);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(15, 23, 42, 0.02);
   padding: 12px;
-  backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 1200;
   animation: appAccountMenuFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top right;
@@ -210,7 +210,7 @@
   font-weight: 700;
   line-height: 1.2;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
@@ -505,7 +505,7 @@
   padding: 0 14px;
   text-align: center;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .purchase-prototype-popover-option:hover {
@@ -542,7 +542,7 @@
   font-weight: 600;
   color: #0f172a;
   outline: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .purchase-prototype-popover-row input:focus {
@@ -1607,7 +1607,7 @@
 
 .purchase-prototype-dark .purchase-prototype-sticky-stack {
   background: rgba(11, 15, 25, 0.94);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(4px);
 }
 
 .purchase-prototype-dark .purchase-prototype-workspace-toolbar {
@@ -3988,7 +3988,7 @@
   border-color: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
-  transition: all 0.2s ease !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
   border-bottom: 1px solid rgba(203, 213, 225, 0.4) !important;
   border-radius: 0 !important;
   padding-inline: 4px !important;
@@ -4064,7 +4064,7 @@
   min-width: 80px;
   height: 44px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   color: #475569;
 }
 .document-smart-button:hover {
@@ -4149,7 +4149,7 @@
   font-weight: 700;
   margin-inline-start: 16px;
   letter-spacing: 0.2px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .document-prototype-status-badge.is-draft {
@@ -4209,7 +4209,7 @@
   margin: 4px 8px !important;
   padding: 8px 12px !important;
   border: 1px solid transparent !important;
-  transition: all 0.2s ease !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
 }
 
 .document-prototype-shell .purchase-prototype-combobox-create::before {
@@ -4260,7 +4260,7 @@
   margin: 4px 8px !important;
   padding: 8px 12px !important;
   border: 1px solid transparent !important;
-  transition: all 0.2s ease !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
 }
 
 .purchase-prototype-combobox-create::before {
@@ -4516,7 +4516,7 @@
   cursor: pointer;
   font-size: 13px;
   color: #0f172a;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .purchase-prototype-dark .purchase-prototype-search-item {
@@ -4618,7 +4618,7 @@
   border-radius: 8px;
   margin: 2px 0 !important;
   padding: 8px 12px !important;
-  transition: all 0.2s ease !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
 }
 
 .app-account-menu-identity {
@@ -4648,7 +4648,7 @@
   min-height: 32px !important;
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
-  transition: all 0.2s ease !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
   width: 250px !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -4752,8 +4752,8 @@
 /* --- Fixes for Cards inside document prototype shell (Settings pages) --- */
 .document-prototype-shell .card {
   background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
@@ -4792,7 +4792,7 @@
   border: 1px solid rgba(203, 213, 225, 0.6) !important;
   border-radius: 8px !important;
   padding: 8px 12px !important;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .document-prototype-shell .card input:focus,
 .document-prototype-shell .card select:focus,

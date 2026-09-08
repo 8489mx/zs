@@ -12,6 +12,32 @@ import { formatBranchStockLocationName } from '../../common/utils/branch-stock.u
 export class SettingsService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
 
+  // ── Plan features TTL cache (5 min) ─────────────────────────────────────
+  private readonly _planFeaturesCache = new Map<string, { features: string[]; expiresAt: number }>();
+  private readonly PLAN_FEATURES_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  private async getPlanFeatures(tenantId: string, planId: string | null | undefined): Promise<string[]> {
+    if (!planId) return [];
+    const cacheKey = `${tenantId}:${planId}`;
+    const cached = this._planFeaturesCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.features;
+    const rows = await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', planId as any).execute();
+    const features = rows.map(f => f.feature_code as string);
+    this._planFeaturesCache.set(cacheKey, { features, expiresAt: Date.now() + this.PLAN_FEATURES_TTL_MS });
+    return features;
+  }
+
+  invalidatePlanFeaturesCache(tenantId?: string) {
+    if (tenantId) {
+      for (const key of this._planFeaturesCache.keys()) {
+        if (key.startsWith(`${tenantId}:`)) this._planFeaturesCache.delete(key);
+      }
+    } else {
+      this._planFeaturesCache.clear();
+    }
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   private scope(actor: AuthContext) { return requireTenantScope(actor); }
   private tenantPredicate(actor: AuthContext, alias?: string) {
     const { tenantId, accountId } = this.scope(actor);
@@ -169,7 +195,7 @@ export class SettingsService {
     if (actor.role !== 'super_admin') {
       const activeBranches = await this.db.selectFrom('branches').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
       const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features']).where('id', '=', scope.tenantId).executeTakeFirst();
-      const planFeatures = tenant?.plan_id ? (await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', tenant.plan_id).execute()).map(f => f.feature_code) : [];
+      const planFeatures = await this.getPlanFeatures(scope.tenantId, tenant?.plan_id as any);
       const extraFeatures = Array.isArray(tenant?.extra_features) ? tenant?.extra_features : typeof tenant?.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
       const allFeatures = new Set([...planFeatures, ...extraFeatures]);
       
@@ -228,7 +254,7 @@ export class SettingsService {
     if (actor.role !== 'super_admin') {
       const activeLocations = await this.db.selectFrom('stock_locations').select(['id']).where(this.tenantPredicate(actor)).where('is_active', '=', true).execute();
       const tenant = await this.db.selectFrom('tenants').select(['id', 'plan_id', 'extra_features']).where('id', '=', scope.tenantId).executeTakeFirst();
-      const planFeatures = tenant?.plan_id ? (await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', tenant.plan_id).execute()).map(f => f.feature_code) : [];
+      const planFeatures = await this.getPlanFeatures(scope.tenantId, tenant?.plan_id as any);
       const extraFeatures = Array.isArray(tenant?.extra_features) ? tenant?.extra_features : typeof tenant?.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
       const allFeatures = new Set([...planFeatures, ...extraFeatures]);
       

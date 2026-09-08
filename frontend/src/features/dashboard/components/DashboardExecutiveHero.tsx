@@ -739,7 +739,7 @@ export function DashboardExecutiveHero({
               strokeWidth={3}
               fillOpacity={1}
               fill="url(#chartSalesGrad)"
-              isAnimationActive={true}
+              isAnimationActive={false}
               animationDuration={1200}
               animationEasing="ease-out"
               dot={(props: any) => {
@@ -769,7 +769,7 @@ export function DashboardExecutiveHero({
                 strokeDasharray="4 4"
                 fillOpacity={1}
                 fill="url(#chartPurchasesGrad)"
-                isAnimationActive={true}
+                isAnimationActive={false}
                 animationDuration={1200}
                 animationEasing="ease-out"
                 dot={(props: any) => {

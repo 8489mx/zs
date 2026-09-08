@@ -1,7 +1,7 @@
 import { compare, genSalt, hash } from 'bcryptjs';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
-const BCRYPT_ROUNDS = 12;
+const BCRYPT_ROUNDS = 10;
 const LEGACY_SALT_BYTES = 16;
 const BCRYPT_PREFIXES = ['$2a$', '$2b$', '$2y$'];
 

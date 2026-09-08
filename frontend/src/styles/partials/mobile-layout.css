@@ -449,8 +449,8 @@
     max-width: 100% !important;
     height: auto !important;
     background: rgba(255, 255, 255, 0.92) !important;
-    backdrop-filter: blur(24px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
     border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
     border-bottom: none !important;
     border-left: none !important;
@@ -510,7 +510,7 @@
     justify-content: center;
     width: 28px;
     height: 24px;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
   }
 
   .mobile-bottom-nav-item.is-active .mobile-bottom-nav-icon {
@@ -629,7 +629,7 @@
   background: #ffffff;
   cursor: pointer;
   text-align: center;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
@@ -743,7 +743,7 @@
     font-weight: 700;
     color: #475569;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -789,15 +789,15 @@
     left: 10px;
     right: 10px;
     background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(28px) saturate(200%);
-    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border: 1px solid rgba(226, 232, 240, 0.95);
     color: #0f172a;
     padding: 6px 10px;
     border-radius: 18px;
     box-shadow: 0 16px 40px -6px rgba(23, 12, 92, 0.22), 0 2px 10px rgba(0, 0, 0, 0.06);
     z-index: 985;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     box-sizing: border-box;
     animation: slideUpMobileCart 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     max-height: 420px;
@@ -919,7 +919,7 @@
     gap: 5px;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(23, 12, 92, 0.32);
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     flex-shrink: 0;
@@ -1772,7 +1772,7 @@
   justify-content: center !important;
   font-size: 14px !important;
   cursor: pointer !important;
-  transition: all 0.15s ease !important;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease !important;
 }
 
 .z-scanner-btn-close:hover {
@@ -2073,8 +2073,8 @@
     background: rgba(15, 23, 42, 0.98) !important;
     border-color: rgba(56, 189, 248, 0.9) !important;
     box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5), 0 0 0 1.5px rgba(56, 189, 248, 0.6) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
     padding: 6px 4px !important;
   }
 
@@ -2099,8 +2099,8 @@
     background: #ffffff !important;
     border-color: #2563eb !important;
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16), 0 0 0 2px rgba(37, 99, 235, 0.22) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
     padding: 6px 4px !important;
   }
 
@@ -2960,7 +2960,7 @@
   color: #0f172a;
   outline: none;
   box-sizing: border-box;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 
 .price-checker-input:focus {
@@ -3021,7 +3021,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
   flex-shrink: 0;
 }
 
@@ -3288,7 +3288,7 @@
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
 }
 
 .price-checker-btn-pos:active {
@@ -3339,7 +3339,7 @@
   border-radius: 10px;
   text-align: right;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
 }
 
 .price-checker-result-item:hover {
@@ -3400,7 +3400,7 @@
   border: 2px dashed #cbd5e1;
   border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 
 .initial-scan-card:hover {
@@ -3493,7 +3493,7 @@
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
   border: 1px solid transparent;
 }
 
@@ -3711,7 +3711,7 @@
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
 }
 
 .cash-drawer-stat-card .stat-info {

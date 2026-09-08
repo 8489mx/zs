@@ -268,7 +268,7 @@
   font-weight: 500;
   color: #1e293b;
   outline: none;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   box-sizing: border-box;
 }
 html[dir="rtl"] .login-input-pro, [dir="rtl"] .login-input-pro {
@@ -349,7 +349,7 @@ html[dir="rtl"] .login-input-pro.has-toggle, [dir="rtl"] .login-input-pro.has-to
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
   box-shadow: 0 4px 6px -1px rgba(23, 12, 92, 0.2);
   margin-top: 8px;
 }
@@ -456,7 +456,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 .login-card, .loading-card {
   width: min(440px, 100%);
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(4px);
   border-radius: 16px;
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 10px 30px -5px rgba(0, 0, 0, 0.08);
@@ -567,7 +567,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   padding: 0 10px;
   gap: 8px;
   box-sizing: border-box;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sidebar-search-pill:hover {
@@ -656,7 +656,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   flex-shrink: 0;
   padding: 0;
   opacity: 0;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 
 .sidebar-search-pill.is-expanded .sidebar-search-close-btn {
@@ -724,7 +724,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   border-radius: 8px;
   border: 1px solid rgba(226, 232, 240, 0.6);
   background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
@@ -734,7 +734,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   color: #475569;
   cursor: pointer;
   font-weight: 700;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 .sidebar-group-trigger:hover {
   background: #f8fafc;
@@ -819,7 +819,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   width: 100%;
   color: #475569;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, font-weight 0.15s ease;
 }
 .sidebar-link-sub .sidebar-icon {
   width: 6px;
@@ -871,7 +871,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   direction: rtl;
   color: #475569;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   text-decoration: none;
 }
 .sidebar-link::before { display: none; }
@@ -898,7 +898,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   background: var(--icon-bg, #f1f5f9);
   color: var(--icon-fg, #64748b);
   border: 1px solid var(--icon-border, transparent);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-link-chevron-spacer {
@@ -926,7 +926,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 .sidebar-footer-actions { display: flex; gap: 8px; align-items: center; }
 .sidebar-logout-btn {
   flex: 1;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   background: #f1f5f9;
   border: 1px solid transparent;
   color: #64748b;
@@ -954,7 +954,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   flex: 0 0 32px;
   padding: 0;
   margin: 0;
@@ -1306,7 +1306,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   background: var(--icon-bg, #f1f5f9);
   color: var(--icon-fg, #64748b);
   border: 1px solid var(--icon-border, transparent);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 .sidebar-icon svg { width: 18px; height: 18px; display:block; }
 .main-col { flex: 1 1 0; min-width: 0; width: 100%; max-width: 100%; height: 100%; min-height: 100%; min-height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
@@ -1347,7 +1347,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1375,7 +1375,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1414,7 +1414,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
 }
 .dark .sidebar-logout-btn {
   flex: 1;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.2);
   color: #ef4444;
@@ -1468,7 +1468,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   padding: 8px 12px;
   border-radius: 8px;
   border: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1484,7 +1484,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   padding: 8px 12px;
   border-radius: 8px;
   border: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1522,7 +1522,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   padding: 8px 12px;
   border-radius: 8px;
   border: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1548,7 +1548,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   padding: 8px 12px;
   border-radius: 8px;
   border: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1659,3 +1659,4 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   display: none !important;
 }
 .grid-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
+

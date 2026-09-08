@@ -134,7 +134,7 @@ div.custom-combobox-dropdown::-webkit-scrollbar-button {
   cursor: pointer !important;
   width: 100% !important;
   box-sizing: border-box !important;
-  transition: all 0.15s ease !important;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease !important;
 }
 
 /* ==========================================================================

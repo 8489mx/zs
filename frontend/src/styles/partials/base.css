@@ -541,3 +541,19 @@ h1, h2, h3, h4, h5, h6 {
 .dark .app-sidebar-logo-text {
   color: var(--sidebar-text);
 }
+
+/* ==========================================================================
+   Global Performance: prefers-reduced-motion
+   Disables all animations and transitions when user/OS requests it.
+   Also applied automatically on low-end devices via matchMedia.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -77,7 +77,7 @@ export function ShiftAnalysisChart({ data, height = 300 }: ShiftAnalysisChartPro
           <Bar 
             dataKey="sales" 
             radius={[6, 6, 0, 0]} 
-            isAnimationActive={true}
+            isAnimationActive={false}
             animationDuration={1500}
             animationEasing="ease-out"
             animationBegin={150}

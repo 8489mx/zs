@@ -2543,7 +2543,7 @@
   border-radius: 12px;
   background-color: #ffffff;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.2s ease-in-out;
   position: relative;
 }
 
@@ -2698,7 +2698,7 @@
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .hr-nav-text-full {
@@ -2720,3 +2720,21 @@
 }
 
 
+
+/* ============================================================
+   Performance: Respect prefers-reduced-motion & pause infinite
+   animations when not visible (reduces CPU drain)
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .report-floating-chip,
+  .setup-pulse,
+  .z-shine-text,
+  .pulse-text-anim,
+  [class*="reportFloat"],
+  [class*="setupPulse"],
+  [class*="pulse-text"],
+  [class*="spin"] {
+    animation: none !important;
+    transition: none !important;
+  }
+}

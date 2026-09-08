@@ -181,7 +181,7 @@
   border: 1px solid #4338ca;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   box-shadow: 0 1px 3px rgba(23, 12, 92, 0.2);
 }
 
@@ -203,7 +203,7 @@
   border: 1px solid #cbd5e1;
   color: #334155;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .tenant-more-btn:hover,
@@ -286,7 +286,7 @@
   border-radius: 9px;
   text-align: right;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
   width: 100%;
   box-sizing: border-box;
 }
@@ -358,7 +358,7 @@
   color: #334155;
   text-align: right;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
   box-sizing: border-box;
 }
 
@@ -572,7 +572,7 @@
   padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   flex-shrink: 0;
 }
 
@@ -621,7 +621,7 @@
   font-size: 12.5px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .saas-copy-all-btn:hover {
@@ -638,7 +638,7 @@
   font-size: 12.5px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .saas-close-action-btn:hover {
@@ -662,7 +662,7 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .tenant-renew-btn:hover {
@@ -717,7 +717,7 @@
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .saas-filter-tab-btn:hover {
