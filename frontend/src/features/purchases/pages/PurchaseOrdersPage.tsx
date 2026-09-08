@@ -440,57 +440,57 @@ export function PurchaseOrdersPage() {
           </div>
 
           {/* Table */}
-          <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
-                  <tr>
-                    <th className="p-3">رقم الأمر</th>
-                    <th className="p-3">المورد</th>
-                    <th className="p-3">تاريخ الأمر</th>
-                    <th className="p-3">تاريخ التوريد المتوقع</th>
-                    <th className="p-3">مستودع الاستلام</th>
-                    <th className="p-3">الإجمالي</th>
-                    <th className="p-3">الحالة</th>
-                    <th className="p-3 text-center">إجراءات</th>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>رقم الأمر</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>المورد</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ الأمر</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ التوريد المتوقع</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>مستودع الاستلام</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الإجمالي</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الحالة</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>إجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-slate-400">
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
                         جاري تحميل أوامر الشراء...
                       </td>
                     </tr>
                   ) : orders.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-slate-400">
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
                         لا توجد أوامر شراء مطابقة للبحث
                       </td>
                     </tr>
                   ) : (
                     orders.map((order) => (
-                      <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-3 font-semibold text-[#170e5e]">{order.order_number}</td>
-                        <td className="p-3 font-medium text-slate-700">
-                          <div>{order.supplier_name}</div>
+                      <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '11px 16px', fontWeight: 600, color: '#170e5e' }}>{order.order_number}</td>
+                        <td style={{ padding: '11px 16px' }}>
+                          <div style={{ fontWeight: 600, color: '#0f172a' }}>{order.supplier_name}</div>
                           {order.supplier_phone && (
-                            <div className="text-[10px] text-slate-400">{order.supplier_phone}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{order.supplier_phone}</div>
                           )}
                         </td>
-                        <td className="p-3 text-slate-500">
+                        <td style={{ padding: '11px 16px', color: '#475569' }}>
                           {order.created_at ? String(order.created_at).slice(0, 10) : '—'}
                         </td>
-                        <td className="p-3 text-slate-500">
+                        <td style={{ padding: '11px 16px', color: '#475569' }}>
                           {order.expected_delivery_date ? String(order.expected_delivery_date).slice(0, 10) : '—'}
                         </td>
-                        <td className="p-3 text-slate-600">{order.warehouse_name || 'المخزن الرئيسي'}</td>
-                        <td className="p-3 font-bold text-slate-800">
+                        <td style={{ padding: '11px 16px', color: '#334155' }}>{order.warehouse_name || 'المخزن الرئيسي'}</td>
+                        <td style={{ padding: '11px 16px', fontWeight: 700, color: '#0f172a' }}>
                           {formatCurrency(Number(order.total_amount || 0))}
                         </td>
-                        <td className="p-3">{getStatusBadge(order.status)}</td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td style={{ padding: '11px 16px' }}>{getStatusBadge(order.status)}</td>
+                        <td style={{ padding: '11px 16px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                             <Button
                               variant="secondary"
                               onClick={() => {
@@ -499,8 +499,8 @@ export function PurchaseOrdersPage() {
                               }}
                               className="h-7 px-2 text-slate-600 hover:text-[#170e5e]"
                             >
-                              <EyeIcon className="w-3.5 h-3.5 ml-1" />
-                              عرض
+                              <EyeIcon size={13} color="#475569" />
+                              <span>عرض</span>
                             </Button>
 
                             {order.status === 'confirmed' || order.status === 'partially_received' ? (
@@ -509,8 +509,8 @@ export function PurchaseOrdersPage() {
                                 onClick={() => openReceiveModal(order)}
                                 className="h-7 px-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
                               >
-                                <PackageIcon className="w-3.5 h-3.5 ml-1" />
-                                استلام
+                                <PackageIcon size={13} color="#047857" />
+                                <span>استلام</span>
                               </Button>
                             ) : null}
                           </div>

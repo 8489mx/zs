@@ -57,3 +57,22 @@
     2. جسم النافذة `.standard-dialog-body` بمسافات داخلية محكمة وشبكة حقول متناسقة.
     3. فوتر قياسي `.standard-dialog-footer` بأزرار مؤسسية منسقة (زر الإلغاء الرمادي `secondary` وزر الإجراء الكحلي الأساسي `#170e5e`).
   - النموذج المرجعي القياسي المعتمد للنوافذ هو: `frontend/src/shared/components/StandardModalExample.tsx`.
+
+## 10. Strict Typography Hierarchy Standard (دستور التيبوجرافي القياسي وأحجام الخطوط الموحدة)
+- **ممنوع نهائياً وبشكل قاطع** استخدام أحجام خطوط عشوائية أو عناوين متضخمة تكسر التناسق المؤسسي.
+- المنظومة تعتمد سلماً هرمياً صارماً وموحداً للتيبوجرافي (Typography Hierarchy) معرفاً عبر متغيرات الـ CSS (`base.css`):
+  1. **عنوان الصفحة الرئيسي (Page Title - H1 / `.page-header-title`):**
+     - الحجم: `var(--font-page-title)` = `1.15rem` (18.4px) | الوزن: `800` (Extra Bold) | اللون: `#0f172a` | ارتفاع السطر: `1.25`.
+  2. **عنوان القسم أو البطاقة (Section / Card Title - H2, H3 / `.section-title`):**
+     - الحجم: `var(--font-section-title)` = `0.98rem` (15.6px) | الوزن: `700` (Bold) | اللون: `#1e293b` | ارتفاع السطر: `1.35`.
+  3. **العنوان الفرعي والوصف التوضيحي (Subtitle / Description - `.page-header-description`):**
+     - الحجم: `var(--font-subtitle)` = `0.8125rem` (13px) | الوزن: `400` (Regular) | اللون: `#64748b` | ارتفاع السطر: `1.5`.
+  4. **هيدر وأعمدة الجداول (Table Headers - `thead th`, `th`):**
+     - الحجم: `var(--font-table-head)` = `0.78rem` (12.5px) | الوزن: `600` (Semi-Bold) | اللون: `#475569` | الخلفية: `#f8fafc` | الحشو: `10px 14px`.
+  5. **نصوص وخلايا الجداول والمدخلات (Body / Table Cells / Inputs - `td`, `input`):**
+     - الحجم: `var(--font-body)` = `0.8125rem` (13px) | الوزن: `500` - `600` | اللون: `#0f172a`.
+  6. **الشارات والحالات والكبسولات (Badges / Status Pills - `.badge`, `.nav-pill`):**
+     - الحجم: `var(--font-badge)` = `0.72rem` (11.5px) | الوزن: `600` (Semi-Bold) | الحشو: `3px 8px`.
+  7. **التلميحات والنصوص المصغرة والباركود (Micro-copy / Captions - `small`, `.text-micro`):**
+     - الحجم: `var(--font-micro)` = `0.6875rem` (11px) | الوزن: `500` | اللون: `#94a3b8`.
+

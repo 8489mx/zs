@@ -101,19 +101,19 @@ export default function VanSalesAdminManagementPage() {
           <div className="py-16 text-center text-slate-400 font-bold">لا توجد رحلات توزيع مسجلة</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs border-collapse">
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
               <thead>
-                <tr className="bg-slate-50 text-slate-700 border-b border-slate-200 font-bold">
-                  <th className="p-3"># الرحلة</th>
-                  <th className="p-3">المندوب وسيارة الفان</th>
-                  <th className="p-3">المستودع المصدر</th>
-                  <th className="p-3 text-center">الحالة</th>
-                  <th className="p-3 text-center">قيمة البضاعة المحمّلة</th>
-                  <th className="p-3 text-center">المبيعات المحققة</th>
-                  <th className="p-3 text-center">الكاش المحصل</th>
-                  <th className="p-3 text-center">المبيعات الآجلة</th>
-                  <th className="p-3 text-center">عجز / زيادة</th>
-                  <th className="p-3">تاريخ الفتح / الإغلاق</th>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}># الرحلة</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>المندوب وسيارة الفان</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>المستودع المصدر</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الحالة</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>قيمة البضاعة المحمّلة</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>المبيعات المحققة</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الكاش المحصل</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>المبيعات الآجلة</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>عجز / زيادة</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ الفتح / الإغلاق</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

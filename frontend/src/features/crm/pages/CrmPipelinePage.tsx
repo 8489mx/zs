@@ -447,14 +447,12 @@ export function CrmPipelinePage() {
 
       {/* Main Content Area */}
       {viewMode === 'kanban' ? (
-        /* Kanban Columns Container */
+        /* Kanban Vertical Layout - كل مرحلة row كامل العرض */
         <div
           style={{
             display: 'flex',
-            gap: '14px',
-            overflowX: 'auto',
-            paddingBottom: '16px',
-            alignItems: 'stretch',
+            flexDirection: 'column',
+            gap: '10px',
           }}
         >
           {STAGES.map((stage) => {
@@ -465,62 +463,74 @@ export function CrmPipelinePage() {
               <div
                 key={stage.key}
                 style={{
-                  minWidth: '250px',
-                  width: '250px',
-                  flexShrink: 0,
-                  background: '#f8fafc',
-                  borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  padding: '12px',
-                  minHeight: '450px',
+                  background: '#ffffff',
+                  borderRadius: '10px',
+                  border: '1px solid #e8edf2',
+                  borderRight: `3px solid ${stage.color}66`,
+                  padding: '10px 14px',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: '14px',
                 }}
               >
-                {/* Stage Header */}
+                {/* Stage Header - عمود ثابت على اليمين */}
                 <div
                   style={{
-                    background: '#ffffff',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                    border: '1px solid #e2e8f0',
+                    minWidth: '155px',
+                    width: '155px',
+                    flexShrink: 0,
+                    alignSelf: 'flex-start',
+                    paddingLeft: '12px',
+                    borderLeft: '1px solid #f1f5f9',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span
-                        style={{
-                          width: '10px',
-                          height: '10px',
-                          borderRadius: '50%',
-                          background: stage.color,
-                        }}
-                      />
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
-                        {stage.label}
-                      </span>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '6px' }}>
+                    <span
+                      style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: stage.color,
+                        flexShrink: 0,
+                        opacity: 0.8,
+                      }}
+                    />
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155', lineHeight: 1.3 }}>
+                      {stage.label}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span
                       style={{
                         fontSize: '11px',
-                        fontWeight: 700,
-                        background: stage.bg,
-                        color: stage.color,
-                        padding: '2px 8px',
+                        fontWeight: 600,
+                        background: '#f1f5f9',
+                        color: '#64748b',
+                        padding: '1px 7px',
                         borderRadius: '999px',
                       }}
                     >
-                      {stageDeals.length}
+                      {stageDeals.length} صفقة
                     </span>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px', fontWeight: 600 }}>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '5px', fontWeight: 500 }}>
                     {formatCurrency(stageTotalAmount)}
                   </div>
                 </div>
 
-                {/* Deal Cards in this Stage */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Deal Cards - أفقي مع wrap */}
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                    alignItems: 'flex-start',
+                    minHeight: '72px',
+                  }}
+                >
                   {stageDeals.map((deal) => {
                     const priorityConfig = PRIORITIES[deal.priority] || PRIORITIES.medium;
                     const stageIndex = STAGES.findIndex((s) => s.key === deal.stage);
@@ -532,11 +542,13 @@ export function CrmPipelinePage() {
                         style={{
                           background: '#ffffff',
                           borderRadius: '10px',
-                          padding: '12px',
+                          padding: '10px 12px',
                           border: '1px solid #e2e8f0',
                           cursor: 'pointer',
                           boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                          width: '220px',
+                          flexShrink: 0,
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = 'translateY(-2px)';
@@ -548,8 +560,8 @@ export function CrmPipelinePage() {
                         }}
                       >
                         {/* Title & Priority Badge */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
                             {deal.title}
                           </span>
                           <span
@@ -558,9 +570,10 @@ export function CrmPipelinePage() {
                               fontWeight: 600,
                               background: priorityConfig.bg,
                               color: priorityConfig.color,
-                              padding: '2px 6px',
+                              padding: '1px 5px',
                               borderRadius: '4px',
                               whiteSpace: 'nowrap',
+                              flexShrink: 0,
                             }}
                           >
                             {priorityConfig.label}
@@ -568,7 +581,7 @@ export function CrmPipelinePage() {
                         </div>
 
                         {/* Customer / Company */}
-                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
                           {deal.companyName || deal.contactName || 'بدون جهة اتصال'}
                         </div>
 
@@ -578,16 +591,16 @@ export function CrmPipelinePage() {
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginTop: '10px',
-                            paddingTop: '8px',
+                            marginTop: '8px',
+                            paddingTop: '6px',
                             borderTop: '1px solid #f1f5f9',
                           }}
                         >
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#170e5e' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#170e5e' }}>
                             {formatCurrency(deal.expectedAmount)}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                            {deal.probability}% احتمالية
+                          <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>
+                            {deal.probability}%
                           </span>
                         </div>
 
@@ -597,7 +610,7 @@ export function CrmPipelinePage() {
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginTop: '8px',
+                            marginTop: '6px',
                           }}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -605,7 +618,7 @@ export function CrmPipelinePage() {
                             disabled={stageIndex === 0}
                             onClick={() => handleStageChange(deal, STAGES[stageIndex - 1].key)}
                             style={{
-                              padding: '2px 8px',
+                              padding: '1px 7px',
                               fontSize: '11px',
                               background: stageIndex === 0 ? '#f1f5f9' : '#e2e8f0',
                               border: 'none',
@@ -624,7 +637,7 @@ export function CrmPipelinePage() {
                             disabled={stageIndex === STAGES.length - 1}
                             onClick={() => handleStageChange(deal, STAGES[stageIndex + 1].key)}
                             style={{
-                              padding: '2px 8px',
+                              padding: '1px 7px',
                               fontSize: '11px',
                               background: stageIndex === STAGES.length - 1 ? '#f1f5f9' : '#170e5e',
                               color: stageIndex === STAGES.length - 1 ? '#94a3b8' : '#ffffff',
@@ -644,12 +657,13 @@ export function CrmPipelinePage() {
                   {stageDeals.length === 0 && (
                     <div
                       style={{
-                        padding: '24px 12px',
-                        textAlign: 'center',
+                        padding: '16px 24px',
                         color: '#94a3b8',
                         fontSize: '12px',
                         border: '1px dashed #cbd5e1',
                         borderRadius: '8px',
+                        alignSelf: 'center',
+                        background: '#ffffff',
                       }}
                     >
                       لا توجد صفقات في هذه المرحلة

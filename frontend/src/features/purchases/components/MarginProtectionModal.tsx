@@ -251,10 +251,10 @@ export function MarginProtectionModal({
             </div>
           ) : (
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              <table className="w-full text-right text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-700">
-                  <tr>
-                    <th className="p-3 w-10 text-center">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                    <th style={{ padding: '10px 14px', width: '40px', textAlign: 'center', fontWeight: 600, fontSize: '12.5px' }}>
                       <input
                         type="checkbox"
                         checked={selectedProductIds.size === displayItems.length}
@@ -262,12 +262,12 @@ export function MarginProtectionModal({
                         className="rounded border-slate-300 accent-[#170e5e]"
                       />
                     </th>
-                    <th className="p-3">اسم الصنف والباركود</th>
-                    <th className="p-3 text-center">التكلفة (السابقة ← الجديدة)</th>
-                    <th className="p-3 text-center">سعر البيع الحالي</th>
-                    <th className="p-3 text-center">الهامش الحالي</th>
-                    <th className="p-3 text-center bg-blue-50/50">السعر المقترح للكاشير</th>
-                    <th className="p-3 text-center">الهامش بعد التعديل</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>اسم الصنف والباركود</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>التكلفة (السابقة ← الجديدة)</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>سعر البيع الحالي</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الهامش الحالي</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center', backgroundColor: '#f0f9ff' }}>السعر المقترح للكاشير</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الهامش بعد التعديل</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

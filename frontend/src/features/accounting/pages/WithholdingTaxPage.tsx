@@ -464,22 +464,22 @@ export function WithholdingTaxPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold">
-                    <th className="py-3 px-4">م</th>
-                    <th className="py-3 px-4">اسم الممول / المورد</th>
-                    <th className="py-3 px-4">الرقم الضريبي / الملف</th>
-                    <th className="py-3 px-4">رقم الفاتورة</th>
-                    <th className="py-3 px-4">تاريخ التعامل</th>
-                    <th className="py-3 px-4">نوع التعامل والنسبة</th>
-                    <th className="py-3 px-4">الوعاء الخاضع للضريبة</th>
-                    <th className="py-3 px-4">الضريبة المخصومة</th>
-                    <th className="py-3 px-4 text-center">الحالة</th>
-                    <th className="py-3 px-4 text-center">الإجراءات</th>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>م</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>اسم الممول / المورد</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الرقم الضريبي / الملف</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>رقم الفاتورة</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ التعامل</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>نوع التعامل والنسبة</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الوعاء الخاضع للضريبة</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الضريبة المخصومة</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الحالة</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الإجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {filteredTransactions.map((t, index) => {
                     const typeInfo = WHT_TYPE_LABELS[t.wht_type] || WHT_TYPE_LABELS.custom;
                     return (

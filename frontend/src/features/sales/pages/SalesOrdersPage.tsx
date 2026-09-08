@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   salesOrdersApi,
@@ -25,10 +26,310 @@ import {
   EyeIcon,
 } from '@/shared/components/icons/AppIcons';
 import { useAppToolbar } from '@/stores/toolbar-store';
+import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
+import { matchesArabic } from '@/lib/arabic-normalization';
+import type { Product } from '@/types/domain';
+
+interface SalesOrderItemFormRow extends SalesOrderItem {
+  productId: number;
+  productName: string;
+  stockOnHand?: number;
+  barcode?: string;
+}
+
+function OrderItemProductPicker({
+  value,
+  selectedProductId,
+  stockOnHand,
+  unitName,
+  quantity,
+  products,
+  onChangeText,
+  onSelectProduct,
+}: {
+  value: string;
+  selectedProductId: number;
+  stockOnHand?: number;
+  unitName?: string;
+  quantity: number;
+  products: Product[];
+  onChangeText: (text: string) => void;
+  onSelectProduct: (product: Product) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [coords, setCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
+
+  const setOpen = useCallback((open: boolean) => {
+    setIsOpen(open);
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Dropdown width: at least the input width, with a comfortable minimum of 360px
+    const dropdownWidth = Math.max(rect.width, 360);
+
+    // In RTL, align right edge of dropdown with right edge of input
+    let left = rect.right - dropdownWidth;
+    // Boundary checks to ensure it stays in screen
+    if (left < 10) left = 10;
+    if (left + dropdownWidth > window.innerWidth - 10) {
+      left = Math.max(10, window.innerWidth - dropdownWidth - 10);
+    }
+
+    // Decide whether to open above or below
+    const openUpwards = spaceBelow < 220 && spaceAbove > spaceBelow;
+    const maxHeight = Math.min(260, Math.max(120, (openUpwards ? spaceAbove : spaceBelow) - 16));
+
+    if (openUpwards) {
+      setCoords({
+        bottom: window.innerHeight - rect.top + 4,
+        left,
+        width: dropdownWidth,
+        maxHeight,
+      });
+    } else {
+      setCoords({
+        top: rect.bottom + 4,
+        left,
+        width: dropdownWidth,
+        maxHeight,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+
+    const handleScrollOrResize = () => {
+      updatePosition();
+    };
+
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+
+    return () => {
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+    };
+  }, [isOpen, updatePosition]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        inputRef.current && !inputRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, setOpen]);
+
+  const query = value.trim();
+  const filtered = useMemo(() => {
+    if (!query) {
+      return products.slice(0, 15);
+    }
+    return products
+      .filter((p) => {
+        if (matchesArabic(p.name, query)) return true;
+        if (p.barcode && p.barcode.includes(query)) return true;
+        if (p.sku && p.sku.toLowerCase().includes(query.toLowerCase())) return true;
+        if (p.styleCode && p.styleCode.toLowerCase().includes(query.toLowerCase())) return true;
+        return false;
+      })
+      .slice(0, 20);
+  }, [products, query]);
+
+  const isExceedingStock = selectedProductId > 0 && quantity > (stockOnHand || 0);
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <div style={{ position: 'relative' }}>
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="ابحث باسم الصنف أو الباركود أو الكود..."
+          value={value}
+          onChange={(e) => {
+            onChangeText(e.target.value);
+            setOpen(true);
+            updatePosition();
+          }}
+          onFocus={() => {
+            updatePosition();
+            setOpen(true);
+          }}
+          style={{
+            width: '100%',
+            padding: '7px 32px 7px 10px',
+            backgroundColor: '#ffffff',
+            border: selectedProductId > 0 ? '1px solid #3b82f6' : '1px solid #cbd5e1',
+            borderRadius: '6px',
+            fontSize: '12px',
+            boxSizing: 'border-box',
+            outline: 'none',
+          }}
+        />
+        <span
+          style={{
+            position: 'absolute',
+            right: '10px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <SearchIcon size={14} color={selectedProductId > 0 ? '#3b82f6' : '#94a3b8'} />
+        </span>
+      </div>
+
+      {/* Stock availability indicator */}
+      {selectedProductId > 0 && (
+        <div style={{ marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '10.5px' }}>
+          <span
+            style={{
+              padding: '1px 6px',
+              borderRadius: '4px',
+              backgroundColor: (stockOnHand || 0) > 0 ? '#f0fdf4' : '#fef2f2',
+              color: (stockOnHand || 0) > 0 ? '#15803d' : '#b91c1c',
+              border: `1px solid ${(stockOnHand || 0) > 0 ? '#bbf7d0' : '#fecaca'}`,
+              fontWeight: 600,
+            }}
+          >
+            المتوفر بالمخزن: {stockOnHand ?? 0} {unitName || 'قطعة'}
+          </span>
+          {isExceedingStock && (
+            <span style={{ color: '#c2410c', fontWeight: 700, fontSize: '10px' }}>
+              الكمية تتجاوز رصيد المخزن
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Search Dropdown Portal - Rendered in document.body to guarantee zero clipping & highest z-index */}
+      {isOpen && coords && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          dir="rtl"
+          style={{
+            position: 'fixed',
+            top: coords.top !== undefined ? `${coords.top}px` : 'auto',
+            bottom: coords.bottom !== undefined ? `${coords.bottom}px` : 'auto',
+            left: `${coords.left}px`,
+            width: `${coords.width}px`,
+            maxHeight: `${coords.maxHeight}px`,
+            backgroundColor: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            boxShadow: '0 16px 36px -4px rgba(0, 0, 0, 0.25), 0 4px 12px -2px rgba(0, 0, 0, 0.1)',
+            overflowY: 'auto',
+            zIndex: 25000,
+            boxSizing: 'border-box',
+          }}
+        >
+          {filtered.length > 0 ? (
+            filtered.map((prod) => {
+              const stock = Number(prod.stock ?? 0);
+              const price = Number(prod.retailPrice || prod.wholesalePrice || 0);
+              const hasStock = stock > 0;
+              const isSelected = selectedProductId === Number(prod.id);
+
+              return (
+                <div
+                  key={prod.id}
+                  onMouseDown={(e) => {
+                    // Prevent input blur before click fires
+                    e.preventDefault();
+                  }}
+                  onClick={() => {
+                    onSelectProduct(prod);
+                    setOpen(false);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderBottom: '1px solid #f1f5f9',
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    transition: 'background-color 0.12s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) e.currentTarget.style.backgroundColor = '#ffffff';
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {prod.name}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '11px', color: '#64748b' }}>
+                      {prod.barcode && <span>باركود: {prod.barcode}</span>}
+                      {prod.sku && <span>SKU: {prod.sku}</span>}
+                      {prod.styleCode && <span>كود: {prod.styleCode}</span>}
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'left', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#170e5e' }}>
+                      {formatCurrency(price)}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: hasStock ? '#ecfdf5' : '#fef2f2',
+                        color: hasStock ? '#065f46' : '#991b1b',
+                        border: `1px solid ${hasStock ? '#a7f3d0' : '#fecaca'}`,
+                      }}
+                    >
+                      {hasStock ? `متوفر: ${stock}` : 'غير متوفر'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div style={{ padding: '14px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>
+              لا توجد أصناف مطابقة للبحث "{query}"
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
 
 export function SalesOrdersPage() {
   useAppToolbar([{ label: 'المبيعات', to: '/sales' }, { label: 'أوامر البيع وحجز المخزون' }]);
   const queryClient = useQueryClient();
+  const { data: catalogProducts = [] } = useProductsQuery();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -44,8 +345,8 @@ export function SalesOrdersPage() {
   const [autoReserve, setAutoReserve] = useState(true);
   const [notes, setNotes] = useState('');
   const termsConditions = 'يتم حجز الأصناف المحددة بالمخزون لحين استلام العميل وسداد قيمة الفاتورة.';
-  const [items, setItems] = useState<Array<SalesOrderItem & { productId: number; productName: string }>>([
-    { productId: 1, productName: '', unitName: 'قطعة', quantity: 1, unitPrice: 0, discount: 0, total: 0 },
+  const [items, setItems] = useState<SalesOrderItemFormRow[]>([
+    { productId: 0, productName: '', unitName: 'قطعة', quantity: 1, unitPrice: 0, discount: 0, total: 0, stockOnHand: 0 },
   ]);
 
   const { data, isLoading } = useQuery({
@@ -136,11 +437,11 @@ export function SalesOrdersPage() {
     setAutoReserve(true);
     setNotes('');
     setItems([
-      { productId: 1, productName: '', unitName: 'قطعة', quantity: 1, unitPrice: 0, discount: 0, total: 0 },
+      { productId: 0, productName: '', unitName: 'قطعة', quantity: 1, unitPrice: 0, discount: 0, total: 0, stockOnHand: 0 },
     ]);
   };
 
-  const handleItemChange = (index: number, field: keyof SalesOrderItem, value: any) => {
+  const handleItemChange = (index: number, field: keyof SalesOrderItemFormRow, value: any) => {
     const updated = [...items];
     const item = { ...updated[index], [field]: value };
     const qty = Number(field === 'quantity' ? value : item.quantity) || 0;
@@ -151,17 +452,39 @@ export function SalesOrdersPage() {
     setItems(updated);
   };
 
+  const handleSelectProduct = (index: number, prod: Product) => {
+    const updated = [...items];
+    const qty = Number(updated[index]?.quantity) || 1;
+    const price = Number(prod.retailPrice || prod.wholesalePrice || 0);
+    const discount = Number(updated[index]?.discount) || 0;
+    const unit = prod.units?.[0]?.name || 'قطعة';
+    const stock = Number(prod.stock ?? 0);
+
+    updated[index] = {
+      ...updated[index],
+      productId: Number(prod.id),
+      productName: prod.name,
+      unitName: unit,
+      unitPrice: price,
+      stockOnHand: stock,
+      barcode: prod.barcode || '',
+      total: Math.max(0, qty * price - discount),
+    };
+    setItems(updated);
+  };
+
   const handleAddItem = () => {
     setItems([
       ...items,
       {
-        productId: items.length + 1,
+        productId: 0,
         productName: '',
         unitName: 'قطعة',
         quantity: 1,
         unitPrice: 0,
         discount: 0,
         total: 0,
+        stockOnHand: 0,
       },
     ]);
   };
@@ -386,33 +709,33 @@ export function SalesOrdersPage() {
           </div>
 
         {/* Orders Table */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse">
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
-                  <th className="p-3.5">رقم أمر البيع</th>
-                  <th className="p-3.5">العميل</th>
-                  <th className="p-3.5">تاريخ التسليم / الصلاحية</th>
-                  <th className="p-3.5">المبلغ الإجمالي</th>
-                  <th className="p-3.5">حالة الأمر وحجز المخزون</th>
-                  <th className="p-3.5 text-center">الإجراءات</th>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>رقم أمر البيع</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>العميل</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ التسليم / الصلاحية</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>المبلغ الإجمالي</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>حالة الأمر وحجز المخزون</th>
+                  <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="text-center p-8 text-slate-500">
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
                       جاري تحميل أوامر البيع...
                     </td>
                   </tr>
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center p-8">
-                      <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '32px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#94a3b8' }}>
                         <PackageIcon size={32} color="#cbd5e1" />
-                        <p className="font-semibold text-slate-600">لا توجد أوامر بيع مطابقة</p>
-                        <p className="text-xs text-slate-400">
+                        <p style={{ fontWeight: 600, color: '#475569', margin: 0 }}>لا توجد أوامر بيع مطابقة</p>
+                        <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
                           اضغط على "أمر بيع جديد" لإنشاء طلبية وحجز المخزون للعميل
                         </p>
                       </div>
@@ -420,35 +743,35 @@ export function SalesOrdersPage() {
                   </tr>
                 ) : (
                   orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="p-3.5 font-bold text-slate-900">
-                        <span className="font-mono text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                    <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '11px 16px', fontWeight: 600 }}>
+                        <span style={{ fontFamily: 'monospace', color: '#170e5e', backgroundColor: '#eef2ff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e0e7ff', fontWeight: 700 }}>
                           {order.order_number}
                         </span>
                       </td>
-                      <td className="p-3.5">
-                        <div className="font-bold text-slate-900">{order.customer_name}</div>
+                      <td style={{ padding: '11px 16px' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{order.customer_name}</div>
                         {order.customer_phone && (
-                          <div className="text-[11px] text-slate-500 font-mono">{order.customer_phone}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{order.customer_phone}</div>
                         )}
                       </td>
-                      <td className="p-3.5 text-slate-600">
+                      <td style={{ padding: '11px 16px', color: '#475569' }}>
                         {order.delivery_date ? (
                           <div>تسليم: {new Date(order.delivery_date).toLocaleDateString('ar-EG')}</div>
                         ) : (
                           <div>{new Date(order.created_at).toLocaleDateString('ar-EG')}</div>
                         )}
                         {order.reservation_expires_at && (
-                          <div className="text-[11px] text-amber-700 font-medium">
+                          <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 500 }}>
                             صلاحية الحجز: {new Date(order.reservation_expires_at).toLocaleDateString('ar-EG')}
                           </div>
                         )}
                       </td>
-                      <td className="p-3.5 font-bold text-slate-900">
+                      <td style={{ padding: '11px 16px', fontWeight: 700, color: '#0f172a' }}>
                         {formatCurrency(Number(order.total_amount))}
                       </td>
-                      <td className="p-3.5">{getStatusBadge(order.status)}</td>
-                      <td className="p-3.5 text-center">
+                      <td style={{ padding: '11px 16px' }}>{getStatusBadge(order.status)}</td>
+                      <td style={{ padding: '11px 16px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
                           {/* View Details */}
                           <button
@@ -607,7 +930,7 @@ export function SalesOrdersPage() {
         <DialogShell
           open={true}
           onClose={() => setIsCreateModalOpen(false)}
-          width="min(820px, 95vw)"
+          width="min(920px, 96vw)"
           ariaLabel="إنشاء أمر بيع جديد"
         >
           <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
@@ -725,72 +1048,154 @@ export function SalesOrdersPage() {
               </div>
 
               {/* Items Table */}
-              <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden' }}>
-                <div style={{ backgroundColor: '#f8fafc', padding: '10px 14px', fontWeight: 700, fontSize: '12px', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #cbd5e1' }}>
-                  <span>أصناف وكميات أمر البيع</span>
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', backgroundColor: '#ffffff' }}>
+                <div style={{ backgroundColor: '#f8fafc', padding: '10px 14px', fontWeight: 700, fontSize: '12px', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', borderRadius: '10px 10px 0 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <PackageIcon size={15} color="#170e5e" />
+                    <span>أصناف وكميات أمر البيع</span>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>({items.length} صنف)</span>
+                  </div>
                   <button
                     type="button"
                     onClick={handleAddItem}
                     style={{ fontSize: '12px', color: '#170e5e', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     <PlusIcon size={14} />
-                    <span>إضافة صنف</span>
+                    <span>إضافة صنف آخر</span>
                   </button>
                 </div>
-                <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
+
+                {/* Table Column Headers - Unified CSS Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(240px, 1fr) 75px 65px 100px 75px 105px 36px',
+                    gap: '10px',
+                    alignItems: 'center',
+                    backgroundColor: '#f8fafc',
+                    padding: '9px 12px',
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    color: '#475569',
+                  }}
+                >
+                  <div>الصنف / المنتج (بحث فوري)</div>
+                  <div style={{ textAlign: 'center' }}>الكمية</div>
+                  <div style={{ textAlign: 'center' }}>الوحدة</div>
+                  <div style={{ textAlign: 'center' }}>سعر الوحدة</div>
+                  <div style={{ textAlign: 'center' }}>الخصم</div>
+                  <div style={{ textAlign: 'center' }}>الإجمالي</div>
+                  <div style={{ textAlign: 'center' }} />
+                </div>
+
+                <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {items.map((it, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          type="text"
-                          placeholder="اسم الصنف أو كوده..."
-                          required
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(240px, 1fr) 75px 65px 100px 75px 105px 36px',
+                        gap: '10px',
+                        alignItems: 'flex-start',
+                        backgroundColor: '#ffffff',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <OrderItemProductPicker
                           value={it.productName}
-                          onChange={(e) => handleItemChange(idx, 'productName', e.target.value)}
-                          style={{ width: '100%', padding: '6px 10px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }}
+                          selectedProductId={it.productId}
+                          stockOnHand={it.stockOnHand}
+                          unitName={it.unitName}
+                          quantity={it.quantity}
+                          products={catalogProducts}
+                          onChangeText={(text) => handleItemChange(idx, 'productName', text)}
+                          onSelectProduct={(p) => handleSelectProduct(idx, p)}
                         />
                       </div>
-                      <div style={{ width: '80px' }}>
+                      <div>
                         <input
                           type="number"
                           min="1"
-                          placeholder="الكمية"
+                          placeholder="1"
                           value={it.quantity}
                           onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                          style={{ width: '100%', padding: '6px 10px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '7px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </div>
-                      <div style={{ width: '96px' }}>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="الوحدة"
+                          value={it.unitName || 'قطعة'}
+                          onChange={(e) => handleItemChange(idx, 'unitName', e.target.value)}
+                          style={{ width: '100%', padding: '7px 6px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '11px', textAlign: 'center', boxSizing: 'border-box', color: '#475569' }}
+                        />
+                      </div>
+                      <div>
                         <input
                           type="number"
                           step="0.01"
-                          placeholder="سعر الوحدة"
+                          placeholder="السعر"
                           value={it.unitPrice}
                           onChange={(e) => handleItemChange(idx, 'unitPrice', e.target.value)}
-                          style={{ width: '100%', padding: '6px 10px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '7px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </div>
-                      <div style={{ width: '80px' }}>
+                      <div>
                         <input
                           type="number"
                           step="0.01"
-                          placeholder="خصم"
+                          placeholder="0"
                           value={it.discount}
                           onChange={(e) => handleItemChange(idx, 'discount', e.target.value)}
-                          style={{ width: '100%', padding: '6px 10px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '7px 6px', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </div>
-                      <div style={{ width: '96px', textAlign: 'left', fontWeight: 700, fontSize: '12px', color: '#1e293b', paddingLeft: '4px' }}>
+                      <div style={{ textAlign: 'center', paddingTop: '8px', fontWeight: 800, fontSize: '12.5px', color: '#170e5e', whiteSpace: 'nowrap' }}>
                         {formatCurrency(Number(it.total))}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(idx)}
-                        disabled={items.length <= 1}
-                        style={{ padding: '4px', color: items.length <= 1 ? '#cbd5e1' : '#ef4444', background: 'none', border: 'none', cursor: items.length <= 1 ? 'not-allowed' : 'pointer' }}
-                      >
-                        <Trash2Icon size={15} />
-                      </button>
+                      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(idx)}
+                          disabled={items.length <= 1}
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '6px',
+                            border: '1px solid #f1f5f9',
+                            backgroundColor: '#f8fafc',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: items.length <= 1 ? '#cbd5e1' : '#94a3b8',
+                            cursor: items.length <= 1 ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (items.length > 1) {
+                              e.currentTarget.style.backgroundColor = '#fef2f2';
+                              e.currentTarget.style.borderColor = '#fecaca';
+                              e.currentTarget.style.color = '#ef4444';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (items.length > 1) {
+                              e.currentTarget.style.backgroundColor = '#f8fafc';
+                              e.currentTarget.style.borderColor = '#f1f5f9';
+                              e.currentTarget.style.color = '#94a3b8';
+                            }
+                          }}
+                          title="حذف هذا الصنف"
+                        >
+                          <Trash2Icon size={14} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

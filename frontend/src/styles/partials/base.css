@@ -20,6 +20,17 @@
   --sidebar-border:#e2e8f0;
   --shadow:0 8px 30px rgba(15, 23, 42, 0.04);
   --radius: 8px;
+
+  /* ========================================================
+     Z-SYSTEMS UNIFIED TYPOGRAPHY TOKENS (دستور أحجام الخطوط)
+     ======================================================== */
+  --font-page-title: 1.15rem;       /* 18.4px - عناوين الصفحات الرئيسية */
+  --font-section-title: 0.98rem;     /* 15.6px - عناوين الأقسام والبطاقات الداخلية */
+  --font-body: 0.8125rem;            /* 13px - النصوص وخلايا الجداول والمدخلات */
+  --font-subtitle: 0.8125rem;        /* 13px - الوصف التوضيحي أسفل العناوين */
+  --font-table-head: 0.78rem;        /* 12.5px - هيدر وأعمدة الجداول */
+  --font-badge: 0.72rem;             /* 11.5px - الشارات والحالات والكبسولات */
+  --font-micro: 0.6875rem;           /* 11px - النصوص الجانبية والتلميحات والباركود */
 }
 * { box-sizing: border-box; }
 html {
@@ -83,6 +94,49 @@ body {
 }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
+
+/* ========================================================
+   Standard Typography Scale Resets & Helpers
+   ======================================================== */
+h1, .page-header-title {
+  font-size: var(--font-page-title, 1.15rem);
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+  margin: 0;
+}
+
+h2, h3, .section-title, .card-title {
+  font-size: var(--font-section-title, 0.98rem);
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.35;
+  margin: 0;
+}
+
+h4, h5, h6 {
+  font-size: var(--font-body, 0.8125rem);
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.page-header-description, .section-header-subtitle, .text-subtitle {
+  font-size: var(--font-subtitle, 0.8125rem);
+  color: #64748b;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+small, .text-micro, .caption {
+  font-size: var(--font-micro, 0.6875rem);
+  color: #94a3b8;
+}
 input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), select, textarea {
   width: 100%;
   min-height: 40px;
@@ -231,17 +285,20 @@ textarea { min-height: 88px; resize: vertical; }
 }
 table { width: 100%; border-collapse: collapse; }
 th, td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
   text-align: right;
-  vertical-align: top;
+  vertical-align: middle;
   white-space: nowrap;
 }
-th {
-  background: var(--surface-2);
-  color: var(--muted);
+th, thead th {
+  background: var(--surface-2, #f8fafc);
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 600;
   position: sticky;
   top: 0;
+  border-bottom: 1px solid #e2e8f0;
 }
 .table-wrap table { min-width: 880px; }
 .table-wrap tbody tr:hover { background: rgba(23, 12, 92, 0.03); }

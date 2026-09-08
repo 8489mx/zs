@@ -600,21 +600,21 @@ export function PdcChequesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '13px' }}>
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold">
-                    <th className="py-3 px-4">رقم الشيك</th>
-                    <th className="py-3 px-4">الطرف (العميل / المورد)</th>
-                    <th className="py-3 px-4">البنك المسحوب عليه</th>
-                    <th className="py-3 px-4">المبلغ</th>
-                    <th className="py-3 px-4">تاريخ التحرير</th>
-                    <th className="py-3 px-4">تاريخ الاستحقاق</th>
-                    <th className="py-3 px-4 text-center">الحالة</th>
-                    <th className="py-3 px-4">بنك الإيداع / تفاصيل</th>
-                    <th className="py-3 px-4 text-center">الإجراءات</th>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>رقم الشيك</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>الطرف (العميل / المورد)</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>البنك المسحوب عليه</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>المبلغ</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ التحرير</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>تاريخ الاستحقاق</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الحالة</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px' }}>بنك الإيداع / تفاصيل</th>
+                    <th style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12.5px', textAlign: 'center' }}>الإجراءات</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {displayedCheques.map((c) => {
                     const statusInfo = STATUS_LABELS[c.status] || {
                       text: c.status,
