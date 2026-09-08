@@ -85,6 +85,7 @@ const iconPathMap: Record<string, string> = {
   crm: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   quotations: 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
   'sales-orders': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
+  'price-lists': 'M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01',
   purchases: 'M1 3h3l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L22 6H6M10 21a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm10 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z',
   'purchases-new': 'M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3v5h5M12 18v-6M9 15h6',
   inventory: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
@@ -313,6 +314,7 @@ export function AppShell({ children }: PropsWithChildren) {
       // 1. Sales & Customers
       'crm',
       'sales-orders',
+      'price-lists',
       'quotations',
       'sales',
       'returns',
@@ -324,24 +326,35 @@ export function AppShell({ children }: PropsWithChildren) {
 
       // 2. Purchases & Suppliers
       'purchases-orders',
+      'purchases-rfqs',
       'purchases',
+      'purchases-reorder',
       'purchase-returns',
       'suppliers',
 
       // 3. Products & Inventory
       'products',
       'product-categories',
+      'product-modifiers',
       'services',
       'pricing-center',
       'inventory',
       'inventory-issue-orders',
       'inventory-warehouses',
+      'inventory-bins',
       'inventory-tree',
 
       // 4. Finance & Accounting
       'treasury',
       'expenses',
       'accounts',
+      'accounting-payment-allocation',
+      'accounting-bank-reconciliation',
+      'accounting-cheques',
+      'accounting-withholding-tax',
+      'accounting-balance-sheet',
+      'accounting-cash-flow',
+      'accounting-aged-debts',
       'vat-declaration',
       'accounting-journal-entries',
       'accounting-accounts',
@@ -387,6 +400,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
       // 11. Admin & System
       'hr',
+      'hr-settlements',
       'audit',
       'settings',
       'saas-admin-tenants',
@@ -399,6 +413,7 @@ export function AppShell({ children }: PropsWithChildren) {
       pos: t('sidebar.pos', 'نقطة البيع'),
       crm: 'إدارة علاقات العملاء (CRM)',
       'sales-orders': 'أوامر البيع وحجز المخزون',
+      'price-lists': 'قوائم الأسعار والشرائح',
       sales: 'سجل الفواتير',
       quotations: 'عروض الأسعار',
       'online-orders': 'طلبات الأونلاين',
@@ -411,13 +426,17 @@ export function AppShell({ children }: PropsWithChildren) {
       kds: 'شاشة المطبخ (KDS)',
       signage: 'شاشات العروض والأسعار',
       'purchases-orders': 'أوامر الشراء (PO)',
+      'purchases-rfqs': 'طلبات عروض الأسعار (RFQ)',
+      'purchases-reorder': 'مقترح إعادة الطلب الذكي',
       purchases: 'سجل فواتير المشتريات',
       'purchase-returns': 'مرتجعات المشتريات',
       suppliers: t('sidebar.suppliers', 'الموردين'),
       products: 'قائمة الأصناف',
       'product-categories': 'أقسام الأصناف',
+      'product-modifiers': 'خيارات ومعدلات الأصناف',
       'pricing-center': 'مركز التسعير',
       'inventory-warehouses': 'أماكن التخزين والمستودعات',
+      'inventory-bins': 'أماكن التخزين والأرفف',
       'inventory-tree': 'الهيكل الشجري للمخازن',
       inventory: 'جرد وحركات المخزون',
       'inventory-issue-orders': 'سجل أذونات الصرف والتحويل',
@@ -428,6 +447,8 @@ export function AppShell({ children }: PropsWithChildren) {
       'accounting-accounts': 'شجرة الحسابات',
       'accounting-cost-centers': 'مراكز التكلفة',
       'accounting-journal-entries': 'القيود اليومية',
+      'accounting-payment-allocation': 'تسوية وتخصيص المدفوعات',
+      'accounting-bank-reconciliation': 'التسويات البنكية',
       'accounting-cheques': 'حافظة الشيكات (PDC)',
       'accounting-withholding-tax': 'الخصم والإضافة (ن41)',
       'accounting-balance-sheet': 'الميزانية العمومية',
@@ -459,6 +480,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'reports-balances': 'أرصدة وذمم الحسابات',
       'reports-employees': 'تقارير الموظفين',
       hr: 'الموارد البشرية',
+      'hr-settlements': 'مخالصات ونهاية الخدمة',
       audit: 'سجل النشاط',
       settings: 'الإعدادات العامة',
       'saas-admin-tenants': 'إدارة المشتركين',
@@ -488,16 +510,16 @@ export function AppShell({ children }: PropsWithChildren) {
         if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'kds' || item.key === 'signage') && settings?.posModuleEnabled === false) return false;
 
         // Purchases gating:
-        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'purchases-reorder' || item.key === 'reports-purchases') && (settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
+        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder' || item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && (settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
 
         // Advanced Inventory gating:
-        if ((item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'reports-inventory') && (settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
+        if ((item.key === 'inventory' || item.key === 'inventory-bins' || item.key === 'inventory-warehouses' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'reports-inventory') && (settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
 
         // Reports gating:
         if ((item.key?.startsWith('reports-') || item.key === 'audit') && !hasFeature('reports')) return false;
 
         // HR gating:
-        if ((item.key === 'hr' || item.key === 'reports-employees') && (settings?.hrModuleEnabled === false || !hasFeature('hr'))) return false;
+        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && (settings?.hrModuleEnabled === false || !hasFeature('hr'))) return false;
 
         // Accounting tree & journal gating:
         if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && !hasFeature('accounting')) return false;
@@ -524,14 +546,14 @@ export function AppShell({ children }: PropsWithChildren) {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     const hasAccounting = isPlatformAdminUser || !tenant?.features || tenant.features.includes('accounting');
     return [
-      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'signage'], iconKey: 'sales' },
-      { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-orders', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
-      { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-tree'], iconKey: 'inventory' },
-      { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
+      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'price-lists', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'signage'], iconKey: 'sales' },
+      { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
+      { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'product-modifiers', 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-bins', 'inventory-tree'], iconKey: 'inventory' },
+      { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
       ...(settings?.restaurantModuleEnabled ? [{
         key: 'restaurant-group',
         label: 'المطاعم والكافيهات',
-        itemKeys: ['kds'],
+        itemKeys: ['kds', 'product-modifiers'],
         iconKey: 'kds',
       }] : []),
       { key: 'mobile-group', label: maintenanceProfile.sidebarTitle, itemKeys: ['maintenance', 'trade-in', 'imei-history'], iconKey: 'mobile' },
@@ -545,7 +567,7 @@ export function AppShell({ children }: PropsWithChildren) {
         itemKeys: ['saas-admin-tenants', 'saas-admin-plans'],
         iconKey: 'saas-admin-tenants',
       }] : []),
-      { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'audit', 'settings'], iconKey: 'admin' },
+      { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'], iconKey: 'admin' },
     ];
   }, [t, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, tenant?.features, user]);
 

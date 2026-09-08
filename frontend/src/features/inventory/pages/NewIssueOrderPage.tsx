@@ -14,6 +14,8 @@ import { referenceDataApi } from '@/services/reference-data.api';
 import { queryKeys } from '@/app/query-keys';
 import { useAppToolbar } from '@/stores/toolbar-store';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
+import { useFormDraft } from '@/shared/hooks/use-form-draft';
+import { DraftRestoredBanner } from '@/shared/components/DraftRestoredBanner';
 
 type LineItem = {
   id: number;
@@ -53,6 +55,48 @@ export function NewIssueOrderPage() {
   const currentPayloadRef = useRef<string | null>(null);
 
   const [issueMode, setIssueMode] = useState<'final_issue' | 'transfer_to_branch_stock'>('final_issue');
+
+  const draftData = useMemo(() => ({
+    fromLocationId,
+    fromLocationQuery,
+    toLocationId,
+    toLocationQuery,
+    recipientName,
+    note,
+    issueMode,
+    lines,
+  }), [fromLocationId, fromLocationQuery, toLocationId, toLocationQuery, recipientName, note, issueMode, lines]);
+
+  const { clearDraft, isDraftRestored, dismissRestoredNotice } = useFormDraft({
+    key: 'z_draft_inventory_issue_order',
+    data: draftData,
+    isEmpty: (d) => {
+      const hasHeader = Boolean(d.recipientName?.trim() || d.note?.trim() || (d.toLocationId && d.toLocationId !== ''));
+      const hasLines = Array.isArray(d.lines) && d.lines.some(l => Boolean(l.productId || l.productName?.trim()));
+      return !hasHeader && !hasLines;
+    },
+    onRestore: (saved) => {
+      if (saved.fromLocationId) setFromLocationId(saved.fromLocationId);
+      if (saved.fromLocationQuery) setFromLocationQuery(saved.fromLocationQuery);
+      if (saved.toLocationId) setToLocationId(saved.toLocationId);
+      if (saved.toLocationQuery) setToLocationQuery(saved.toLocationQuery);
+      if (saved.recipientName) setRecipientName(saved.recipientName);
+      if (saved.note) setNote(saved.note);
+      if (saved.issueMode) setIssueMode(saved.issueMode);
+      if (Array.isArray(saved.lines) && saved.lines.length > 0) {
+        setLines(saved.lines);
+      }
+    },
+  });
+
+  const handleClearDraft = () => {
+    clearDraft();
+    setLines([{ id: Date.now(), productId: '', qty: 1, fromLocationId: '' }]);
+    setToLocationId('');
+    setToLocationQuery('');
+    setRecipientName('');
+    setNote('');
+  };
 
   const handleCameraScanForLine = async (scannedCode: string) => {
     if (cameraScanLineId !== null) {
@@ -449,10 +493,12 @@ export function NewIssueOrderPage() {
       }
 
       if (successfulTransfers.length > 0) {
+        clearDraft();
         idempotencyKeyRef.current = null;
         currentPayloadRef.current = null;
         setCreatedTransfers(successfulTransfers);
       } else {
+        clearDraft();
         idempotencyKeyRef.current = null;
         currentPayloadRef.current = null;
         navigate('/inventory');
@@ -497,11 +543,18 @@ export function NewIssueOrderPage() {
   };
 
   const handleNewTransfer = () => {
+    clearDraft();
     setCreatedTransfers([]);
     setLines([{ id: Date.now(), productId: '', qty: 1, fromLocationId: '' }]);
     setToLocationId('');
+    setToLocationQuery('');
     setRecipientName('');
     setNote('');
+  };
+
+  const handleCancelDraft = () => {
+    clearDraft();
+    navigate('/inventory');
   };
 
   return (
@@ -548,7 +601,7 @@ export function NewIssueOrderPage() {
                 variant="secondary"
                 type="button"
                 className="purchase-prototype-toolbar-action purchase-prototype-toolbar-action-secondary"
-                onClick={() => navigate('/inventory')}
+                onClick={handleCancelDraft}
                 style={{ color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
               >
                 <span aria-hidden="true" className="purchase-prototype-save-icon">
@@ -572,6 +625,15 @@ export function NewIssueOrderPage() {
             </div>
           }
         />
+        {isDraftRestored && (
+          <div style={{ padding: '0 24px', marginTop: '16px' }}>
+            <DraftRestoredBanner
+              show={isDraftRestored}
+              onClear={handleClearDraft}
+              onDismiss={dismissRestoredNotice}
+            />
+          </div>
+        )}
         {errorMsg && (
           <div style={{ padding: '0 24px', marginTop: '16px', marginBottom: '-8px' }}>
             <div role="alert" aria-live="polite" style={{

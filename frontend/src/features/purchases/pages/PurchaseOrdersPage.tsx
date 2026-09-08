@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   purchaseOrdersApi,
@@ -12,6 +12,8 @@ import { Button } from '@/shared/ui/button';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { formatCurrency } from '@/lib/format';
+import { useFormDraft } from '@/shared/hooks/use-form-draft';
+import { DraftRestoredBanner } from '@/shared/components/DraftRestoredBanner';
 import {
   PlusIcon,
   SearchIcon,
@@ -49,6 +51,37 @@ export function PurchaseOrdersPage() {
   const [items, setItems] = useState<Array<PurchaseOrderItem & { productId: number; productName: string }>>([
     { productId: 1, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, taxRate: 0, discount: 0, total: 0 },
   ]);
+
+  const draftData = useMemo(() => ({
+    selectedSupplierId,
+    supplierName,
+    supplierPhone,
+    warehouseName,
+    expectedDeliveryDate,
+    notes,
+    items,
+  }), [selectedSupplierId, supplierName, supplierPhone, warehouseName, expectedDeliveryDate, notes, items]);
+
+  const { clearDraft, isDraftRestored, dismissRestoredNotice } = useFormDraft({
+    key: 'z_draft_purchase_order_po',
+    data: draftData,
+    isEmpty: (d) => {
+      const hasHeader = Boolean(d.selectedSupplierId || d.supplierName?.trim() || d.notes?.trim());
+      const hasItems = Array.isArray(d.items) && d.items.some(it => Boolean(it.productName?.trim() || it.unitCost > 0));
+      return !hasHeader && !hasItems;
+    },
+    onRestore: (saved) => {
+      if (saved.selectedSupplierId) setSelectedSupplierId(saved.selectedSupplierId);
+      if (saved.supplierName) setSupplierName(saved.supplierName);
+      if (saved.supplierPhone) setSupplierPhone(saved.supplierPhone);
+      if (saved.warehouseName) setWarehouseName(saved.warehouseName);
+      if (saved.expectedDeliveryDate) setExpectedDeliveryDate(saved.expectedDeliveryDate);
+      if (saved.notes) setNotes(saved.notes);
+      if (Array.isArray(saved.items) && saved.items.length > 0) {
+        setItems(saved.items);
+      }
+    },
+  });
 
   // Fetch Suppliers
   const { data: suppliersData } = useQuery({
@@ -162,6 +195,7 @@ export function PurchaseOrdersPage() {
   });
 
   const resetForm = () => {
+    clearDraft();
     setSelectedSupplierId(null);
     setSupplierName('');
     setSupplierPhone('');
@@ -549,6 +583,11 @@ export function PurchaseOrdersPage() {
           </div>
 
           <form onSubmit={handleSubmitCreate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <DraftRestoredBanner
+              show={isDraftRestored}
+              onClear={resetForm}
+              onDismiss={dismissRestoredNotice}
+            />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               <div className="field">
                 <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>المورد *</label>

@@ -72,7 +72,6 @@ export class AgedDebtsService {
         'created_at',
         'total',
         'paid_amount',
-        'due_date',
         'status',
       ])
       .where('tenant_id', '=', tenantId)

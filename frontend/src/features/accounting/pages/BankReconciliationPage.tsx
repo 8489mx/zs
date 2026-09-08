@@ -4,7 +4,8 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { formatCurrency } from '@/lib/format';
-import { CheckIcon, XIcon, SearchIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { CheckIcon, XIcon, SearchIcon, RefreshCwIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
+import { PageHeader } from '@/shared/components/page-header';
 import {
   bankReconciliationApi,
   accountingApi,
@@ -180,49 +181,52 @@ export function BankReconciliationPage() {
   const currentStatement = workspaceQuery.data?.statement;
 
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', boxSizing: 'border-box' }}>
-      {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
-            التسويات البنكية ومطابقة كشوف الحساب (Bank Reconciliation)
-          </h2>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-            مطابقة كشوف الحسابات البنكية الواردة مع قيود وحركات الأستاذ العام وتسوية الفروقات والعمولات
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {selectedStatementId !== null ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setSelectedStatementId(null);
-                setSelectedStatementLineId(null);
-                setSelectedGlLineId(null);
-              }}
-              style={{ fontSize: '13px', fontWeight: 700 }}
-            >
-              ← العودة لقائمة كشوف الحسابات
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => {
-                setIsCreateModalOpen(true);
-                if (bankAccounts.length > 0 && !newStmtAccountId) {
-                  setNewStmtAccountId(Number(bankAccounts[0].id));
-                }
-              }}
-              style={{ background: '#170e5e', borderColor: '#170e5e', fontSize: '13px', fontWeight: 800 }}
-            >
-              + إضافة / استيراد كشف حساب بنكي
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="page-stack page-shell bank-reconciliation-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+        <PageHeader
+          title="التسويات البنكية ومطابقة كشوف الحساب (Bank Reconciliation)"
+          description="مطابقة كشوف الحسابات البنكية الواردة مع قيود وحركات الأستاذ العام وتسوية الفروقات والعمولات"
+          badge={<span className="nav-pill">المحاسبة والتسويات</span>}
+          actions={
+            selectedStatementId !== null ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setSelectedStatementId(null);
+                  setSelectedStatementLineId(null);
+                  setSelectedGlLineId(null);
+                }}
+                style={{ fontSize: '13px', fontWeight: 700 }}
+              >
+                ← العودة لقائمة كشوف الحسابات
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  setIsCreateModalOpen(true);
+                  if (bankAccounts.length > 0 && !newStmtAccountId) {
+                    setNewStmtAccountId(Number(bankAccounts[0].id));
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#170e5e',
+                  borderColor: '#170e5e',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                }}
+              >
+                <PlusIcon size={16} />
+                إضافة / استيراد كشف حساب بنكي
+              </Button>
+            )
+          }
+        />
 
       {/* Global Status Message */}
       {statusMessage && (
@@ -954,6 +958,7 @@ export function BankReconciliationPage() {
           </Card>
         </DialogShell>
       )}
+      </main>
     </div>
   );
 }

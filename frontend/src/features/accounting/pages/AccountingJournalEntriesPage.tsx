@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/format';
 import { accountingApi, type JournalEntryDetail, type JournalEntryLine, type JournalEntryListItem } from '@/features/accounting/api/accounting.api';
 import { ManualJournalEntryDialog } from '../components/ManualJournalEntryDialog';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 
 function mapStatusLabel(status: string) {
   if (status === 'posted') return 'مرحّل';
@@ -72,6 +73,32 @@ export function AccountingJournalEntriesPage() {
   function handleSelectEntry(entryId: string) {
     setSelectedEntryId(entryId);
     setShouldAutoScrollToDetails(true);
+  }
+
+  const [isReverseOpen, setIsReverseOpen] = useState(false);
+  const [reverseReason, setReverseReason] = useState('');
+  const [reversing, setReversing] = useState(false);
+  const [reverseFeedback, setReverseFeedback] = useState<{ text: string; error?: boolean } | null>(null);
+
+  async function handleReverseSubmit() {
+    if (!selectedEntryId || !reverseReason.trim()) return;
+    setReversing(true);
+    setReverseFeedback(null);
+    try {
+      const res = await accountingApi.reverseJournalEntry(String(selectedEntryId), reverseReason.trim());
+      setReverseFeedback({ text: res.message || 'تم عكس القيد بنجاح' });
+      query.refetch();
+      detailQuery.refetch();
+      setTimeout(() => {
+        setIsReverseOpen(false);
+        setReverseReason('');
+        setReverseFeedback(null);
+      }, 1500);
+    } catch (err: any) {
+      setReverseFeedback({ text: err?.message || 'تعذر عكس القيد اليومي', error: true });
+    } finally {
+      setReversing(false);
+    }
   }
 
   return (
@@ -187,7 +214,7 @@ export function AccountingJournalEntriesPage() {
       {selectedEntryId ? (
         <div ref={detailsRef}>
           <FormSection title="تفاصيل القيد">
-            <div className="actions">
+            <div className="actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
                 type="button"
                 variant="secondary"
@@ -198,6 +225,25 @@ export function AccountingJournalEntriesPage() {
               >
                 العودة للقيود اليومية
               </Button>
+              {detailEntry && detailEntry.status === 'posted' && !detailEntry.sourceType?.endsWith('_reversal') && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => {
+                    setReverseReason('');
+                    setReverseFeedback(null);
+                    setIsReverseOpen(true);
+                  }}
+                  style={{
+                    backgroundColor: '#dc2626',
+                    borderColor: '#dc2626',
+                    color: '#fff',
+                    fontWeight: 700,
+                  }}
+                >
+                  عكس وإلغاء القيد آلياً (Reverse)
+                </Button>
+              )}
             </div>
 
             <QueryFeedback
@@ -277,6 +323,82 @@ export function AccountingJournalEntriesPage() {
           handleSelectEntry(String(entry.id));
         }}
       />
+
+      <StandardDialog
+        open={isReverseOpen}
+        onClose={() => {
+          if (!reversing) {
+            setIsReverseOpen(false);
+            setReverseFeedback(null);
+          }
+        }}
+        title="عكس وإلغاء القيد المحاسبي آلياً"
+        subtitle={`سيتم إنشاء قيد يومية عكسي يقلب كافة بنود المدين والدائن للقيد رقم ${detailEntry?.entryNo || ''}`}
+        width="520px"
+        footerActions={
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsReverseOpen(false)}
+              disabled={reversing}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={handleReverseSubmit}
+              disabled={reversing || !reverseReason.trim()}
+              style={{ backgroundColor: '#dc2626', borderColor: '#dc2626', color: '#fff', fontWeight: 700 }}
+            >
+              {reversing ? 'جاري العكس...' : 'تأكيد العكس وترحيل القيد المعكوس'}
+            </Button>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '8px 0' }} dir="rtl">
+          {reverseFeedback && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                backgroundColor: reverseFeedback.error ? '#fef2f2' : '#f0fdf4',
+                color: reverseFeedback.error ? '#991b1b' : '#166534',
+                border: `1px solid ${reverseFeedback.error ? '#fecaca' : '#bbf7d0'}`,
+              }}
+            >
+              {reverseFeedback.text}
+            </div>
+          )}
+
+          <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6 }}>
+            وفق المعايير المحاسبية المعتمدة (IFRS و Odoo)، لا يتم حذف القيود المرحلة نهائياً بل يتم إنشاء قيد تسوية عكسي (Reversal Entry) مع وسم القيد الحالي كـ <strong>ملغي (Cancelled)</strong> للحفاظ على تتبع التدقيق المحاسبي (Audit Trail).
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px', color: '#1e293b' }}>
+              سبب عكس القيد <span style={{ color: '#dc2626' }}>*</span>
+            </label>
+            <textarea
+              value={reverseReason}
+              onChange={(e) => setReverseReason(e.target.value)}
+              placeholder="اكتب سبب عكس القيد بالتفصيل (مثل: خطأ في توجيه الحساب أو إلغاء المعاملة)..."
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                outline: 'none',
+              }}
+            />
+          </div>
+        </div>
+      </StandardDialog>
       </main>
     </div>
   );

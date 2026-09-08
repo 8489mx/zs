@@ -8,10 +8,12 @@ const warehousesGridPage = createLazyRoute(() => import('@/features/inventory/pa
 const warehouseDetailsPage = createLazyRoute(() => import('@/features/inventory/pages/WarehouseDetailsPage').then((module) => ({ default: module.WarehouseDetailsPage })));
 const inventoryTreePage = createLazyRoute(() => import('@/features/inventory/pages/InventoryTreePage').then((module) => ({ default: module.InventoryTreePage })));
 const inventoryBatchesPage = createLazyRoute(() => import('@/features/inventory/pages/InventoryBatchesPage').then((module) => ({ default: module.InventoryBatchesPage })));
+const warehouseBinsPage = createLazyRoute(() => import('@/features/inventory/pages/WarehouseBinsPage').then((module) => ({ default: module.WarehouseBinsPage })));
 
 export const inventoryRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'inventory', element: inventoryPage },
+    { path: 'inventory/bins', element: warehouseBinsPage },
     { path: 'inventory/warehouses', element: warehousesGridPage },
     { path: 'inventory/warehouses-management', element: <Navigate to="/inventory/warehouses" replace /> },
     { path: 'inventory/warehouses/:id', element: warehouseDetailsPage },
@@ -35,6 +37,7 @@ export const inventoryRouteModule: FeatureRouteModule = {
     },
     { key: 'inventory-batches', label: 'التشغيلات والصلاحيات', to: '/inventory/batches' },
     { key: 'inventory-warehouses', label: 'أماكن المخزون', to: '/inventory/warehouses' },
+    { key: 'inventory-bins', label: 'أماكن التخزين والأرفف', to: '/inventory/bins' },
     { key: 'inventory-tree', label: 'شجرة المخازن', to: '/inventory/tree' },
     { key: 'inventory-issue-order-new', label: 'إذن صرف جديد', to: '/inventory/issue-order/new' },
     { key: 'inventory-issue-orders', label: 'سجل أذونات الصرف', to: '/inventory/transfers' }

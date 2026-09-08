@@ -29,6 +29,8 @@ import { useAppToolbar } from '@/stores/toolbar-store';
 import { useProductsQuery } from '@/shared/hooks/use-catalog-queries';
 import { matchesArabic } from '@/lib/arabic-normalization';
 import type { Product } from '@/types/domain';
+import { useFormDraft } from '@/shared/hooks/use-form-draft';
+import { DraftRestoredBanner } from '@/shared/components/DraftRestoredBanner';
 
 interface SalesOrderItemFormRow extends SalesOrderItem {
   productId: number;
@@ -349,6 +351,39 @@ export function SalesOrdersPage() {
     { productId: 0, productName: '', unitName: 'قطعة', quantity: 1, unitPrice: 0, discount: 0, total: 0, stockOnHand: 0 },
   ]);
 
+  const draftData = useMemo(() => ({
+    customerName,
+    customerPhone,
+    customerAddress,
+    deliveryDate,
+    reservationExpiresAt,
+    autoReserve,
+    notes,
+    items,
+  }), [customerName, customerPhone, customerAddress, deliveryDate, reservationExpiresAt, autoReserve, notes, items]);
+
+  const { clearDraft, isDraftRestored, dismissRestoredNotice } = useFormDraft({
+    key: 'z_draft_sales_order',
+    data: draftData,
+    isEmpty: (d) => {
+      const hasHeader = Boolean(d.customerName?.trim() || d.customerPhone?.trim() || d.notes?.trim());
+      const hasItems = Array.isArray(d.items) && d.items.some(it => Boolean(it.productId > 0 || it.productName?.trim()));
+      return !hasHeader && !hasItems;
+    },
+    onRestore: (saved) => {
+      if (saved.customerName) setCustomerName(saved.customerName);
+      if (saved.customerPhone) setCustomerPhone(saved.customerPhone);
+      if (saved.customerAddress) setCustomerAddress(saved.customerAddress);
+      if (saved.deliveryDate) setDeliveryDate(saved.deliveryDate);
+      if (saved.reservationExpiresAt) setReservationExpiresAt(saved.reservationExpiresAt);
+      if (typeof saved.autoReserve === 'boolean') setAutoReserve(saved.autoReserve);
+      if (saved.notes) setNotes(saved.notes);
+      if (Array.isArray(saved.items) && saved.items.length > 0) {
+        setItems(saved.items);
+      }
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ['sales-orders-list', statusFilter, search],
     queryFn: () =>
@@ -429,6 +464,7 @@ export function SalesOrdersPage() {
   });
 
   const resetForm = () => {
+    clearDraft();
     setCustomerName('');
     setCustomerPhone('');
     setCustomerAddress('');
@@ -957,6 +993,11 @@ export function SalesOrdersPage() {
             </div>
 
             <form onSubmit={handleSubmitOrder} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <DraftRestoredBanner
+                show={isDraftRestored}
+                onClear={resetForm}
+                onDismiss={dismissRestoredNotice}
+              />
               {/* Customer and General Details */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                 <div className="field">

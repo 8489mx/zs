@@ -9,7 +9,7 @@ export const dashboardRouteModule: FeatureRouteModule = {
     { path: 'mobile/owner', element: createLazyRoute(() => import('@/features/dashboard/pages/OwnerMobileDashboardPage').then((module) => ({ default: module.OwnerMobileDashboardPage }))) },
   ],
   navigation: [
-    { key: 'dashboard', label: 'الرئيسية', to: '/' },
+    { key: 'dashboard', label: 'الرئيسية', to: '/', end: true },
     { key: 'owner-companion', label: 'متابعة المالك', to: '/owner-companion' },
     { key: 'owner-mobile', label: 'لوحة المالك (موبايل)', to: '/owner-mobile' },
   ]

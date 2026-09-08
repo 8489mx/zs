@@ -28,6 +28,7 @@ import { CashFlowService } from './services/cash-flow.service';
 import { AgedDebtsService } from './services/aged-debts.service';
 import { PdcChequesService, CreatePdcChequeDto, UpdateChequeStatusDto } from './services/pdc-cheques.service';
 import { WithholdingTaxService, CreateWhtTransactionDto, ExtractFromPurchasesDto } from './services/withholding-tax.service';
+import { PaymentAllocationService, AllocatePaymentDto } from './services/payment-allocation.service';
 
 @Controller('api/accounting')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -41,6 +42,7 @@ export class AccountingController {
     private readonly agedDebtsService: AgedDebtsService,
     private readonly pdcChequesService: PdcChequesService,
     private readonly withholdingTaxService: WithholdingTaxService,
+    private readonly paymentAllocationService: PaymentAllocationService,
   ) {}
 
   @Get('accounts')
@@ -91,6 +93,15 @@ export class AccountingController {
   @Get('journal-entries/:id')
   getJournalEntry(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.getJournalEntry(id, req.authContext!);
+  }
+
+  @Post('journal-entries/:id/reverse')
+  reverseJournalEntry(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('reason') reason: string,
+    @Req() req: RequestWithAuth
+  ): Promise<Record<string, unknown>> {
+    return this.accountingService.reverseJournalEntry(id, reason, req.authContext!);
   }
 
   @Get('reports/financial-summary')
@@ -403,6 +414,50 @@ export class AccountingController {
     @Req() req: RequestWithAuth,
   ): Promise<any> {
     return this.withholdingTaxService.deleteTransaction(req.authContext!, id);
+  }
+
+  // --- Payment Allocations & Invoice Reconciliation (تخصيص وتسوية المدفوعات على الفواتير) ---
+  @Get('payment-allocations/open-invoices')
+  getOpenInvoices(
+    @Query('partnerType') partnerType: 'customer' | 'supplier',
+    @Query('partnerId', ParseIntPipe) partnerId: number,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.paymentAllocationService.getOpenInvoices(partnerType, partnerId, req.authContext!);
+  }
+
+  @Get('payment-allocations/unallocated-payments')
+  getUnallocatedPayments(
+    @Query('partnerType') partnerType: 'customer' | 'supplier',
+    @Query('partnerId', ParseIntPipe) partnerId: number,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.paymentAllocationService.getUnallocatedPayments(partnerType, partnerId, req.authContext!);
+  }
+
+  @Post('payment-allocations/allocate')
+  allocatePayment(
+    @Body() dto: AllocatePaymentDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.paymentAllocationService.allocatePayment(dto, req.authContext!);
+  }
+
+  @Post('payment-allocations/auto-fifo')
+  autoAllocateFIFO(
+    @Body() body: { partnerType: 'customer' | 'supplier'; partnerId: number; paymentId: number },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.paymentAllocationService.autoAllocateFIFO(body.partnerType, body.partnerId, body.paymentId, req.authContext!);
+  }
+
+  @Get('payment-allocations/invoice')
+  getInvoiceAllocations(
+    @Query('invoiceType') invoiceType: 'sale' | 'purchase',
+    @Query('invoiceId', ParseIntPipe) invoiceId: number,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.paymentAllocationService.getInvoiceAllocations(invoiceType, invoiceId, req.authContext!);
   }
 }
 

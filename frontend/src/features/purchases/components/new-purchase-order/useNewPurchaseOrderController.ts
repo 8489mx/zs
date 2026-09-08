@@ -1276,6 +1276,91 @@ export function useNewPurchaseOrderController() {
     }
   }, []);
 
+  // Debounced auto-save to localStorage on form changes
+  useEffect(() => {
+    if (!hasLoadedDraftRef.current || typeof window === 'undefined') {
+      return;
+    }
+
+    if (!computeHasMeaningfulData()) {
+      if (lastSavedSnapshotRef.current) {
+        window.localStorage.removeItem(PURCHASE_DRAFT_STORAGE_KEY);
+        lastSavedSnapshotRef.current = '';
+      }
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      try {
+        const payload = buildDraftPayload(documentStatus);
+        const snapshot = JSON.stringify(payload);
+        if (snapshot !== lastSavedSnapshotRef.current) {
+          window.localStorage.setItem(PURCHASE_DRAFT_STORAGE_KEY, snapshot);
+          lastSavedSnapshotRef.current = snapshot;
+        }
+      } catch {
+        // quota exceeded or blocked
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    supplier,
+    date,
+    requiredDate,
+    currency,
+    company,
+    contact,
+    shippingAddress,
+    taxRate,
+    discount,
+    discountMode,
+    customTaxRate,
+    costCenter,
+    project,
+    termsTemplate,
+    notes,
+    lines,
+    documentStatus,
+  ]);
+
+  // Flush dirty state on beforeunload or unmount
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (hasLoadedDraftRef.current && computeHasMeaningfulData() && typeof window !== 'undefined') {
+        try {
+          const payload = buildDraftPayload(documentStatus);
+          window.localStorage.setItem(PURCHASE_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      handleBeforeUnload();
+    };
+  }, [
+    supplier,
+    date,
+    requiredDate,
+    currency,
+    company,
+    contact,
+    shippingAddress,
+    taxRate,
+    discount,
+    discountMode,
+    customTaxRate,
+    costCenter,
+    project,
+    termsTemplate,
+    notes,
+    lines,
+    documentStatus,
+  ]);
+
   useEffect(() => {
     if (!inlineMessage) {
       return;

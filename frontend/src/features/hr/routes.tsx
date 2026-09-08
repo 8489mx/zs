@@ -28,7 +28,11 @@ export const hrRouteModule: FeatureRouteModule = {
     { path: 'hr/attendance', element: createLazyRoute(() => import('@/features/hr/pages/HrAttendancePage').then((module) => ({ default: withHrGate(module.HrAttendancePage) }))) },
     { path: 'hr/leaves', element: createLazyRoute(() => import('@/features/hr/pages/HrLeavesPage').then((module) => ({ default: withHrGate(module.HrLeavesPage) }))) },
     { path: 'hr/assets', element: createLazyRoute(() => import('@/features/hr/pages/HrAssetsPage').then((module) => ({ default: withHrGate(module.HrAssetsPage) }))) },
+    { path: 'hr/settlements', element: createLazyRoute(() => import('@/features/hr/pages/HrEndOfServicePage').then((module) => ({ default: withHrGate(module.HrEndOfServicePage) }))) },
     { path: 'hr/reports', element: createLazyRoute(() => import('@/features/hr/pages/HrReportsPage').then((module) => ({ default: withHrGate(module.HrReportsPage) }))) },
   ],
-  navigation: [{ key: 'hr', label: 'الموارد البشرية', to: '/hr' }],
+  navigation: [
+    { key: 'hr', label: 'الموارد البشرية', to: '/hr' },
+    { key: 'hr-settlements', label: 'مخالصات ونهاية الخدمة', to: '/hr/settlements' },
+  ],
 };

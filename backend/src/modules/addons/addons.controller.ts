@@ -34,4 +34,45 @@ export class AddonsController {
   deleteAddon(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.addonsService.deleteAddon(id, req.authContext!);
   }
+
+  // --- Modifier Groups & Meal Combos Matrix ---
+
+  @Get('modifier-groups')
+  @RequirePermissions('products')
+  listModifierGroups(@Req() req: RequestWithAuth) {
+    return this.addonsService.listModifierGroups(req.authContext!);
+  }
+
+  @Post('modifier-groups')
+  @RequirePermissions('products')
+  createModifierGroup(@Body() payload: any, @Req() req: RequestWithAuth) {
+    return this.addonsService.createModifierGroup(payload, req.authContext!);
+  }
+
+  @Put('modifier-groups/:id')
+  @RequirePermissions('products')
+  updateModifierGroup(@Param('id', ParseIntPipe) id: number, @Body() payload: any, @Req() req: RequestWithAuth) {
+    return this.addonsService.updateModifierGroup(id, payload, req.authContext!);
+  }
+
+  @Delete('modifier-groups/:id')
+  @RequirePermissions('products')
+  deleteModifierGroup(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.addonsService.deleteModifierGroup(id, req.authContext!);
+  }
+
+  @Get('products/:productId/modifiers')
+  getProductModifiers(@Param('productId', ParseIntPipe) productId: number, @Req() req: RequestWithAuth) {
+    return this.addonsService.getProductModifiers(productId, req.authContext!);
+  }
+
+  @Post('products/:productId/modifiers')
+  @RequirePermissions('products')
+  linkProductModifiers(
+    @Param('productId', ParseIntPipe) productId: number,
+    @Body('groupIds') groupIds: number[],
+    @Req() req: RequestWithAuth
+  ) {
+    return this.addonsService.linkProductModifiers(productId, groupIds, req.authContext!);
+  }
 }

@@ -249,6 +249,14 @@ export const accountingApi = {
     return http<{ entries: JournalEntryListItem[]; pagination: Record<string, unknown> }>(`/api/accounting/journal-entries${suffix ? `?${suffix}` : ''}`);
   },
   journalEntry: (id: string) => http<{ entry: JournalEntryDetail }>(`/api/accounting/journal-entries/${encodeURIComponent(id)}`),
+  reverseJournalEntry: (id: string, reason: string) =>
+    http<{ ok: boolean; message: string; reversalEntryId: number; reversalEntryNo: string }>(
+      `/api/accounting/journal-entries/${encodeURIComponent(id)}/reverse`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }
+    ),
   financialSummary: (query: Record<string, string | number | undefined>) => {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
@@ -857,6 +865,63 @@ export const withholdingTaxApi = {
     http<{ success: boolean }>(`/api/accounting/withholding-tax/${id}`, {
       method: 'DELETE',
     }),
+};
+
+export interface OpenInvoiceItem {
+  id: number;
+  docNo: string;
+  total: number;
+  paidAmount: number;
+  remainingAmount: number;
+  date: string;
+  status: string;
+}
+
+export interface UnallocatedPaymentItem {
+  id: number;
+  docNo?: string | null;
+  amount: number;
+  allocatedAmount: number;
+  unallocatedAmount: number;
+  date: string;
+  note: string;
+}
+
+export interface AllocateItemInput {
+  invoiceId: number;
+  amount: number;
+}
+
+export interface AllocatePaymentDto {
+  partnerType: 'customer' | 'supplier';
+  partnerId: number;
+  paymentType: 'customer_payment' | 'supplier_payment' | 'direct';
+  paymentId?: number | null;
+  allocations: AllocateItemInput[];
+  notes?: string;
+}
+
+export const paymentAllocationApi = {
+  getOpenInvoices: (partnerType: 'customer' | 'supplier', partnerId: number) =>
+    http<OpenInvoiceItem[]>(`/api/accounting/payment-allocations/open-invoices?partnerType=${partnerType}&partnerId=${partnerId}`),
+
+  getUnallocatedPayments: (partnerType: 'customer' | 'supplier', partnerId: number) =>
+    http<UnallocatedPaymentItem[]>(`/api/accounting/payment-allocations/unallocated-payments?partnerType=${partnerType}&partnerId=${partnerId}`),
+
+  allocatePayment: (data: AllocatePaymentDto) =>
+    http<{ success: boolean; totalAllocated: number; count: number }>('/api/accounting/payment-allocations/allocate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  autoAllocateFIFO: (partnerType: 'customer' | 'supplier', partnerId: number, paymentId: number) =>
+    http<{ success: boolean; totalAllocated: number; count: number }>('/api/accounting/payment-allocations/auto-fifo', {
+      method: 'POST',
+      body: JSON.stringify({ partnerType, partnerId, paymentId }),
+    }),
+
+  getInvoiceAllocations: (invoiceType: 'sale' | 'purchase', invoiceId: number) =>
+    http<any[]>(`/api/accounting/payment-allocations/invoice?invoiceType=${invoiceType}&invoiceId=${invoiceId}`),
 };
 
 

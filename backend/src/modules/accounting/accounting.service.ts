@@ -864,6 +864,128 @@ export class AccountingService {
     };
   }
 
+  async reverseJournalEntry(entryId: number, reason: string, auth: AuthContext): Promise<{ ok: boolean; message: string; reversalEntryId: number; reversalEntryNo: string }> {
+    this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    const userId = Number(auth.userId || 0) || null;
+
+    const trimmedReason = String(reason || '').trim();
+    if (!trimmedReason) {
+      throw new BadRequestException('سبب عكس القيد مطلوب');
+    }
+
+    const entry = await this.db
+      .selectFrom('journal_entries')
+      .selectAll()
+      .where('id', '=', entryId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!entry) {
+      throw new NotFoundException('القيد اليومي غير موجود');
+    }
+
+    if (entry.status !== 'posted') {
+      throw new BadRequestException('لا يمكن عكس قيد غير مرحل أو تم إلغاؤه مسبقاً');
+    }
+
+    if (entry.reversed_by_entry_id) {
+      throw new BadRequestException('تم عكس هذا القيد بالفعل مسبقاً');
+    }
+
+    const lines = await this.db
+      .selectFrom('journal_entry_lines')
+      .selectAll()
+      .where('journal_entry_id', '=', entryId)
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
+
+    if (!lines.length) {
+      throw new BadRequestException('لا توجد سطور في هذا القيد لعكسها');
+    }
+
+    const result = await this.db.transaction().execute(async (trx) => {
+      const tempEntryNo = `JE-REV-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const inserted = await trx
+        .insertInto('journal_entries')
+        .values({
+          entry_no: tempEntryNo,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          entry_date: sql`CURRENT_DATE`,
+          description: `قيد عكسي للقيد رقم ${entry.entry_no}: ${trimmedReason}`,
+          source_type: `${entry.source_type}_reversal`,
+          source_id: entry.id,
+          status: 'posted',
+          branch_id: entry.branch_id,
+          location_id: entry.location_id,
+          created_by: userId,
+          posted_by: userId,
+          posted_at: sql`NOW()`,
+          reversal_of_entry_id: entry.id,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      const revId = Number(inserted.id);
+      const officialEntryNo = `JE-${String(revId).padStart(8, '0')}`;
+
+      await trx
+        .updateTable('journal_entries')
+        .set({ entry_no: officialEntryNo, updated_at: sql`NOW()` } as any)
+        .where('id', '=', revId)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
+      // Mirror lines: swap debit and credit
+      const reversalLines = lines.map((l) => ({
+        journal_entry_id: revId,
+        tenant_id: scope.tenantId,
+        account_id: l.account_id,
+        cost_center_id: l.cost_center_id || null,
+        description: `عكس: ${l.description || ''}`.trim(),
+        debit: Number(l.credit || 0),
+        credit: Number(l.debit || 0),
+        partner_type: l.partner_type,
+        partner_id: l.partner_id,
+        branch_id: l.branch_id,
+        location_id: l.location_id,
+      }));
+
+      await trx
+        .insertInto('journal_entry_lines')
+        .values(reversalLines as any)
+        .execute();
+
+      // Mark original entry as cancelled and link to reversal
+      await trx
+        .updateTable('journal_entries')
+        .set({
+          status: 'cancelled',
+          cancelled_by: userId,
+          cancelled_at: sql`NOW()`,
+          cancel_reason: trimmedReason,
+          reversed_by_entry_id: revId,
+          updated_at: sql`NOW()`,
+        } as any)
+        .where('id', '=', entry.id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
+      return {
+        reversalEntryId: revId,
+        reversalEntryNo: officialEntryNo,
+      };
+    });
+
+    return {
+      ok: true,
+      message: `تم عكس القيد وإلغاؤه بنجاح وإنشاء القيد العكسي برقم ${result.reversalEntryNo}`,
+      reversalEntryId: result.reversalEntryId,
+      reversalEntryNo: result.reversalEntryNo,
+    };
+  }
+
   async getFinancialSummary(filters: FinancialSummaryQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
 

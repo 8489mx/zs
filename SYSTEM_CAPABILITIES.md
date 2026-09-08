@@ -1243,5 +1243,119 @@
   3. **توثيق دستوري إلزامي:** تقييد السلم الهرمي في دستور النظام `GEMINI.md` كقاعدة إلزامية دائمة لكافة المطورين.
 
 ---
+
+## 69. نظام حفظ واسترجاع المسودات التلقائي عديم الحمل (Zero-Overhead Auto-Draft Persistence Engine)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Google Docs / Linear Autosave & Draft Protection Standard.
+* **روابط وشاشات الوصول المشمولة:**
+  1. إذن صرف المخزون الجديد (`/inventory/new-issue-order`).
+  2. فاتورة / أمر المشتريات الجديدة (`/purchases/new`).
+  3. أوامر البيع وحجز المخزون (`/sales/orders`).
+  4. أوامر الشراء PO مع الموردين (`/purchases/orders`).
+  5. عروض الأسعار للعملاء (`/sales/quotations`).
+* **مسارات الكود الأساسية:**
+  * **الخطاف العام (Universal Hook):** `frontend/src/shared/hooks/use-form-draft.ts`.
+  * **مكون التنبيه المؤسسي (UI Banner):** `frontend/src/shared/components/DraftRestoredBanner.tsx`.
+  * **صفحات التنفيذ:** `NewIssueOrderPage.tsx`, `useNewPurchaseOrderController.ts`, `SalesOrdersPage.tsx`, `PurchaseOrdersPage.tsx`, `QuotationsPage.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **حماية المدخلات من الفقدان العرضي:** في حال قام المستخدم بإدخال عدة أصناف أو بيانات في إذن صرف أو فاتورة مشتريات أو أمر بيع، ثم انتقل بالخطأ إلى صفحة أخرى أو نقر على رابط في القائمة الجانبية أو أغلق المتصفح، تظل كافة البيانات المحررة والأصناف محفوظة في المتصفح محلياً دون فقدان أي بند.
+  2. **صفر حمل على السيرفر وانعدام البطء (Zero CPU/Server Load):** يتم الحفظ داخل متصفح المستخدم (`localStorage`) عبر محرك تأخير ذكي (Debounce 400ms) مع مقارنة البصمة الحركية (`Snapshot Check`)، فلا يتم الحفظ إلا عند حدوث تغيير حقيقي، مع تفريغ فوري (`flushDraft`) قبل مغادرة الصفحة أو عند إغلاق التبويب (`beforeunload`).
+  3. **تطهير وتفريغ تلقائي للمسودة:** يتم مسح المسودة تلقائياً وفورياً بمجرد تأكيد وحفظ العملية بنجاح أو عند قيام المستخدم بإلغاء المسودة أو تصفير النموذج لضمان نظافة التخزين وعدم بقاء مخلفات قديمة.
+  4. **شريط استرجاع مؤسسي أنيق (DraftRestoredBanner):** إشعار بصري ناعم مطابق للدستور المؤسسي بدون إيموجيز يُنبه المستخدم بأنه تم استرجاع مدخلات المسودة السابقة تلقائياً مع زر مباشر لمسح المسودة والبدء من جديد بنقرة واحدة.
+
+---
+
+## 70. قوائم أسعار العملاء وشرائح الكميات (Customer Price Lists & Volume Tiers)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Sales Pricelists (Multiple Prices per Product & Volume Discounts).
+* **روابط وشاشات الوصول:** `/sales/price-lists` (القائمة الجانبية: المبيعات ➔ قوائم أسعار العملاء).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000061_customer_price_lists.ts`, `backend/src/database/database.types.ts` (`price_lists`, `price_list_items`).
+  * **الباك إند:** `backend/src/modules/sales/services/price-lists.service.ts`, `backend/src/modules/sales/controllers/price-lists.controller.ts`, `backend/src/modules/sales/sales.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/sales/api/price-lists.api.ts`, `frontend/src/features/sales/pages/PriceListsPage.tsx`, `frontend/src/features/sales/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **قوائم تسعير مخصصة للعملاء والفئات:** إمكانية إنشاء قوائم أسعار متعددة (جملة، تجزئة، موزعين، VIP) وتعيين عملة وتواريخ صلاحية لكل قائمة.
+  2. **شرائح أسعار تصاعدية حسب الكمية (Volume Discount Tiers):** دعم تحديد أسعار تفضيلية تلقائية بناءً على كميات الشراء (مثلاً: من 10 إلى 50 قطعة بسعر، ومن 51 إلى 100 قطعة بسعر أقل).
+  3. **أولوية التسعير الذكية (Pricing Hierarchy):** أولوية تلقائية تطبق السعر الأفضل أو المخصص للعميل في شاشات عروض الأسعار وأوامر البيع مع بيان فرق الخصم الممنوح.
+
+---
+
+## 71. طلبات عروض أسعار الموردين ومصفوفة المقارنة والترسية (Vendor RFQs & Comparison Matrix)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Purchase RFQ & Vendor Tender Comparison Matrix.
+* **روابط وشاشات الوصول:** `/purchases/rfqs` (القائمة الجانبية: المشتريات والموردين ➔ طلبات عروض الأسعار RFQ).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000062_purchase_rfqs.ts`, `backend/src/database/database.types.ts` (`purchase_rfqs`, `purchase_rfq_items`, `purchase_rfq_vendor_bids`).
+  * **الباك إند:** `backend/src/modules/purchases/services/purchase-rfqs.service.ts`, `backend/src/modules/purchases/controllers/purchase-rfqs.controller.ts`, `backend/src/modules/purchases/purchases.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/purchases/api/purchase-rfqs.api.ts`, `frontend/src/features/purchases/pages/PurchaseRfqsPage.tsx`, `frontend/src/features/purchases/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **إدارة دورة طلبات عروض الأسعار المفتوحة (Purchase RFQs):** إنشاء طلبات تسعير بأصناف وكميات محددة مع تحديد موعد استحقاق نهائي لاستقبال العطاءات.
+  2. **تسجيل ومقارنة عروض الموردين المتنافسة (Bid Comparison Matrix):** جدول مقارنة بصري تفاعلي يقارن الأسعار المقدمة ومواعيد التسليم المقترحة وشروط الدفع بين مختلف الموردين.
+  3. **الترسية وتوليد أمر الشراء بضغطة زر (1-Click Award to PO):** اختيار العرض الفائز وترسيته بنقرة واحدة لتحويله تلقائياً إلى أمر شراء رسمي (PO) في موديول المشتريات وإغلاق المناقصة.
+
+---
+
+## 72. تسوية وتخصيص المدفوعات والقيود العكسية الآلية (Invoice Payment Allocation & Auto-Reversals)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Invoicing Reconciliation / Matching & Reversal Journal Entries.
+* **روابط وشاشات الوصول:** `/accounting/payment-allocation` و `/accounting/journal-entries`.
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000063_payment_allocations_and_reversals.ts`, `backend/src/database/database.types.ts` (`payment_allocations`).
+  * **الباك إند:** `backend/src/modules/accounting/services/payment-allocation.service.ts`, `backend/src/modules/accounting/accounting.service.ts`, `backend/src/modules/accounting/accounting.controller.ts`.
+  * **الفرونت إند:** `frontend/src/features/accounting/pages/PaymentAllocationPage.tsx`, `frontend/src/features/accounting/pages/AccountingJournalEntriesPage.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **تسوية وتخصيص الدفعات غير المربوطة بالفواتير:** ربط سندات القبض والدفع المفتوحة بفواتير المبيعات والمشتريات المعلقة للعميل أو المورد مع بيان المبلغ المتبقي لكل فاتورة.
+  2. **محرك التسوية الآلي بالوارِد أولاً يُصرَف أولاً (FIFO Auto-Reconciliation):** توزيع تلقائي فوري لأي دفعة على الفواتير المفتوحة الأقدم تاريخياً وتحديث حالة السداد ومبالغ الفواتير بدقة سنت واحد.
+  3. **إلغاء وعكس القيود اليومية آلياً (Auto-Reversal Entries):** نافذة رسمية لإلغاء أي قيد مرحل مع تدوين سبب الإلغاء، وتوليد القيد العكسي المعادل فورياً وربطه محاسبياً بالقيد الأصلي لمنع التلاعب وحفظ التدقيق المالي.
+
+---
+
+## 73. أماكن التخزين والأرفف والجرد الفوري بالباركود (Warehouse Bins, Shelves & Mobile Audit)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Odoo 18 Storage Locations / Putaway Rules & Barcode Stock Audit.
+* **روابط وشاشات الوصول:** `/inventory/bins` (القائمة الجانبية: المخزون والأصناف ➔ أماكن التخزين والأرفف).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000064_warehouse_bin_locations.ts`, `backend/src/database/database.types.ts` (`warehouse_bins`, `product_bin_allocations`).
+  * **الباك إند:** `backend/src/modules/inventory/services/warehouse-bins.service.ts`, `backend/src/modules/inventory/controllers/warehouse-bins.controller.ts`, `backend/src/modules/inventory/inventory.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/inventory/api/warehouse-bins.api.ts`, `frontend/src/features/inventory/pages/WarehouseBinsPage.tsx`, `frontend/src/features/inventory/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **دليل وهيكل أماكن التخزين الثلاثي (Aisle / Rack / Shelf / Bin):** إدارة الأرفف والمسارات التخزينية داخل كل مستودع وتعيين سعات تخزينية قصوى ونوع التخزين المخصص.
+  2. **تخصيص وربط مواقع الأصناف (Product Allocations):** تعيين موقع التخزين الأساسي والثانوي لكل صنف لتسهيل عمليات التجهيز والانتقاء (Picking & Putaway).
+  3. **الجرد الفوري بالباركود من الجوال وقارئ الباركود (Instant Barcode Stock Audit):** مسح كود الرف وكود الصنف لتسجيل الرصيد الفعلي ومقارنته بالرصيد الدفتري فورياً مع تبيان الفروقات وحفظ سجل التدقيق.
+
+---
+
+## 74. مصفوفة خيارات ومعدلات الأصناف ونقاط البيع (POS Item Modifiers & Fast Combos Matrix)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Foodics / Odoo POS Product Modifiers & Meal Attributes Matrix.
+* **روابط وشاشات الوصول:** `/products/modifiers` وشاشة الكاشير التفاعلية `/pos`.
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000065_pos_item_modifiers.ts`, `backend/src/database/database.types.ts` (`pos_modifier_groups`, `pos_modifier_options`, `product_pos_modifiers`).
+  * **الباك إند:** `backend/src/modules/addons/addons.service.ts`, `backend/src/modules/addons/addons.controller.ts`.
+  * **الفرونت إند:** `frontend/src/shared/api/addons.api.ts`, `frontend/src/features/products/pages/ProductModifiersPage.tsx`, `frontend/src/features/pos/components/pos-cart-panel/PosItemModifiersModal.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **إدارة مجموعات الخيارات والمعدلات (Modifier Groups):** إنشاء مجموعات منظمة (مثل: الحجم، نوع الخبز، درجة الطهي، الإضافات) مع ضبط قواعد الاختيار (إلزامي / اختياري، اختيار فردي Single-Choice أو متعدد Multiple-Choice مع حد أدنى وأقصى).
+  2. **تسعير الخيارات المستقل:** تعيين سعر إضافي وتكلفة لكل خيار معدل مع دعم الخيارات المجانية.
+  3. **نافذة كاشير سريعة ومحكومة القواعد (Sub-50ms POS Modifier Modal):** نافذة سريعة تفرض الاختيارات الإلزامية وتتيح التبديل والتعديل بنقرة واحدة، مع الربط التلقائي بأسعار الفاتورة وطباعة الإيصالات وشاشة المطبخ (KDS).
+
+---
+
+## 75. محرك تصفية المستحقات ومكافأة نهاية الخدمة والعهد (HR End of Service Settlement & Gratuity Engine)
+* **حالة الوحدة:** 🟢 مكتمل 100% ومطابق لدستور النظام البصري (0 Emojis & Clean Enterprise SaaS).
+* **معيار المقارنة الدولي:** Jisr / ZenHR / SAP B1 End of Service Indemnity & Clearance Engine.
+* **روابط وشاشات الوصول:** `/hr/settlements` (القائمة الجانبية: الإدارة والنظام ➔ مخالصات ونهاية الخدمة).
+* **مسارات الكود الأساسية:**
+  * **قاعدة البيانات:** `backend/src/database/migrations/2040000000066_hr_end_of_service_settlements.ts`, `backend/src/database/database.types.ts` (`hr_end_of_service_settlements`).
+  * **الباك إند:** `backend/src/modules/hr/services/end-of-service.service.ts`, `backend/src/modules/hr/controllers/end-of-service.controller.ts`, `backend/src/modules/hr/hr.module.ts`.
+  * **الفرونت إند:** `frontend/src/features/hr/api/end-of-service.api.ts`, `frontend/src/features/hr/pages/HrEndOfServicePage.tsx`, `frontend/src/features/hr/routes.tsx`.
+* **الميزات والقدرات المفعلة:**
+  1. **حاسبة مكافأة نهاية الخدمة وفق أنظمة العمل (Saudi & Egyptian Labor Law Gratuity):** احتساب آلي للمكافأة طبقاً للمادتين 84 و 85 من نظام العمل السعودي (التفريق بين إنهاء العقد والاستقالة وسنوات الخدمة: أقل من سنتين، 2-5 سنوات، 5-10 سنوات، 10+ سنوات) وقانون العمل المصري المادة 125، أو السياسات المخصصة.
+  2. **تصفية شاملة للمستحقات والاستقطاعات:** احتساب بدل رصيد الإجازات السنوية المتبقية، وأيام الشهر الحالي، والخصم الآلي لكافة السلف والقروض غير المسددة من صافي المستحق.
+  3. **كشف العهد والأجهزة المسلمة وإقرار إخلاء الطرف:** استعراض مباشر لكافة الأجهزة والعهد العينية المسلمة للموظف (لابتوب، سيارات، عهد مالية) مع التحقق من استرجاعها وإثبات إخلاء الطرف.
+  4. **الترحيل المحاسبي بنقرة واحدة (1-Click Journal Entry):** توليد قيد اليومية المالي آلياً لمديونية مصروف/مخصص نهاية الخدمة وتسوية سلف الموظفين وصرف الصافي من الخزينة أو البنك مع ربط رقم القيد بالمخالصة لمنع الازدواجية.
+  5. **نموذج مخالصة وإخلاء طرف رسمي قابل للطباعة (Official Clearance Document):** شهادة مخالصة نهائية متكاملة بصيغة قانونية تحتوي على إقرار الموظف باستلام مستحقاته وإبراء ذمة المنشأة مع مساحات لتواقيع الموظف وإدارة الموارد البشرية والإدارة المالية.
+
+---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
+
 

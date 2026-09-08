@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { quotationsApi, QuotationRecord, CreateQuotationPayload, QuotationItem } from '../api/quotations.api';
 import { DialogShell } from '@/shared/components/dialog-shell';
@@ -7,6 +7,8 @@ import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { useAuthStore } from '@/stores/auth-store';
 import { Trash2Icon , XIcon } from '@/shared/components/icons/AppIcons';
+import { useFormDraft } from '@/shared/hooks/use-form-draft';
+import { DraftRestoredBanner } from '@/shared/components/DraftRestoredBanner';
 
 export function QuotationsPage() {
   const queryClient = useQueryClient();
@@ -25,6 +27,37 @@ export function QuotationsPage() {
   const [items, setItems] = useState<QuotationItem[]>([
     { productId: 1, productName: '', unitName: 'قطعة', quantity: 1, unitPrice: 0, discount: 0, total: 0 },
   ]);
+
+  const draftData = useMemo(() => ({
+    customerName,
+    customerPhone,
+    customerAddress,
+    validUntil,
+    notes,
+    termsConditions,
+    items,
+  }), [customerName, customerPhone, customerAddress, validUntil, notes, termsConditions, items]);
+
+  const { clearDraft, isDraftRestored, dismissRestoredNotice } = useFormDraft({
+    key: 'z_draft_sales_quotation',
+    data: draftData,
+    isEmpty: (d) => {
+      const hasHeader = Boolean(d.customerName?.trim() || d.customerPhone?.trim() || d.notes?.trim());
+      const hasItems = Array.isArray(d.items) && d.items.some(it => Boolean(it.productName?.trim()));
+      return !hasHeader && !hasItems;
+    },
+    onRestore: (saved) => {
+      if (saved.customerName) setCustomerName(saved.customerName);
+      if (saved.customerPhone) setCustomerPhone(saved.customerPhone);
+      if (saved.customerAddress) setCustomerAddress(saved.customerAddress);
+      if (saved.validUntil) setValidUntil(saved.validUntil);
+      if (saved.notes) setNotes(saved.notes);
+      if (saved.termsConditions) setTermsConditions(saved.termsConditions);
+      if (Array.isArray(saved.items) && saved.items.length > 0) {
+        setItems(saved.items);
+      }
+    },
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['quotations-list', statusFilter, search],
@@ -65,6 +98,7 @@ export function QuotationsPage() {
   });
 
   const resetForm = () => {
+    clearDraft();
     setCustomerName('');
     setCustomerPhone('');
     setCustomerAddress('');
@@ -459,6 +493,12 @@ export function QuotationsPage() {
                 style={{ background: 'transparent', border: 'none', fontSize: '18px', color: '#64748b', cursor: 'pointer', padding: '4px 8px' }}
               ><XIcon size={15} /></button>
             </div>
+
+            <DraftRestoredBanner
+              show={isDraftRestored}
+              onClear={resetForm}
+              onDismiss={dismissRestoredNotice}
+            />
 
             {/* Customer Details */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>

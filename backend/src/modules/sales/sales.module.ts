@@ -23,17 +23,20 @@ import { KdsController } from './controllers/kds.controller';
 import { KdsService } from './services/kds.service';
 import { SalesOrdersController } from './controllers/sales-orders.controller';
 import { SalesOrdersService } from './services/sales-orders.service';
+import { PriceListsController } from './controllers/price-lists.controller';
+import { PriceListsService } from './services/price-lists.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, SettingsModule],
   controllers: [
-    SalesController,
+    PriceListsController,
+    PosTerminalController,
     QuotationsController,
     SalesOrdersController,
-    PosTerminalController,
     CustomerInstallmentsController,
     CashierFraudRadarController,
     KdsController,
+    SalesController,
   ],
   providers: [
     SalesService,
@@ -43,6 +46,7 @@ import { SalesOrdersService } from './services/sales-orders.service';
     SalesWriteService,
     QuotationsService,
     SalesOrdersService,
+    PriceListsService,
     PosTerminalService,
     CustomerInstallmentsService,
     CashierFraudRadarService,
@@ -53,6 +57,7 @@ import { SalesOrdersService } from './services/sales-orders.service';
     SalesFinanceService,
     QuotationsService,
     SalesOrdersService,
+    PriceListsService,
     PosTerminalService,
     CustomerInstallmentsService,
     CashierFraudRadarService,

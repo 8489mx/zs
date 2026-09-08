@@ -134,6 +134,8 @@ export interface JournalEntryTable {
   cancelled_by: number | null;
   cancelled_at: Date | null;
   cancel_reason: string;
+  reversed_by_entry_id?: number | null;
+  reversal_of_entry_id?: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -304,6 +306,7 @@ export interface CustomerTable {
   is_active: boolean;
   metadata: any | null;
   loyalty_points: ColumnType<number, number | undefined, number | undefined>;
+  price_list_id?: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
@@ -322,6 +325,7 @@ export interface ProductTable {
   color: string | null;
   size: string | null;
   bin_location: string | null;
+  primary_bin_id?: number | null;
   default_location_id: number | null;
   cost_price: number;
   retail_price: number;
@@ -1150,6 +1154,7 @@ export interface PurchaseTable {
   tax_amount: number;
   prices_include_tax: boolean;
   total: number;
+  paid_amount?: ColumnType<number, number | undefined, number | undefined>;
   note: string;
   status: string;
   branch_id: number | null;
@@ -2108,6 +2113,21 @@ export interface Database {
   withholding_tax_transactions: WithholdingTaxTransactionTable;
   sales_orders: SalesOrderTable;
   sales_order_items: SalesOrderItemTable;
+  purchase_orders: PurchaseOrderTable;
+  purchase_order_items: PurchaseOrderItemTable;
+  manufacturing_unbuild_orders: ManufacturingUnbuildOrderTable;
+  price_lists: PriceListTable;
+  price_list_items: PriceListItemTable;
+  purchase_rfqs: PurchaseRfqTable;
+  purchase_rfq_items: PurchaseRfqItemTable;
+  purchase_rfq_vendor_bids: PurchaseRfqVendorBidTable;
+  payment_allocations: PaymentAllocationTable;
+  warehouse_bins: WarehouseBinTable;
+  product_bin_allocations: ProductBinAllocationTable;
+  pos_modifier_groups: PosModifierGroupTable;
+  pos_modifier_options: PosModifierOptionTable;
+  product_pos_modifiers: ProductPosModifierTable;
+  hr_end_of_service_settlements: HrEndOfServiceSettlementTable;
 }
 export interface HrEmployeeAdjustmentTable {
   id: Generated<number>;
@@ -2678,5 +2698,210 @@ export interface ManufacturingUnbuildOrderTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
+export interface PriceListTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  name: string;
+  code: string;
+  currency: ColumnType<string, string | undefined, string | undefined>;
+  type: ColumnType<string, string | undefined, string | undefined>; // percentage, fixed_override, markup_cost
+  default_discount_percent: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  is_default: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
 
+export interface PriceListItemTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  price_list_id: number;
+  product_id: number | null;
+  product_name: string | null;
+  category_id: number | null;
+  min_quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  fixed_price: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  discount_percent: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface PurchaseRfqTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  rfq_number: string;
+  title: string;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  deadline_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  expected_delivery_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  winning_supplier_id: number | null;
+  winning_supplier_name: string | null;
+  converted_po_id: number | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface PurchaseRfqItemTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  rfq_id: number;
+  product_id: number;
+  product_name: string;
+  unit_name: string | null;
+  target_quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  specifications: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface PurchaseRfqVendorBidTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  rfq_id: number;
+  rfq_item_id: number;
+  supplier_id: number;
+  supplier_name: string;
+  supplier_phone: string | null;
+  quoted_unit_cost: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  tax_rate: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  delivery_lead_days: ColumnType<number, number | undefined, number | undefined>;
+  payment_terms: string | null;
+  is_winner: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface PaymentAllocationTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  partner_type: string; // 'customer' | 'supplier'
+  partner_id: number;
+  payment_type: string; // 'customer_payment' | 'supplier_payment' | 'direct'
+  payment_id: number | null;
+  invoice_type: string; // 'sale' | 'purchase'
+  invoice_id: number;
+  allocated_amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  allocation_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface WarehouseBinTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  location_id: number;
+  code: string;
+  barcode: string;
+  aisle: string | null;
+  rack: string | null;
+  shelf: string | null;
+  bin: string | null;
+  capacity: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ProductBinAllocationTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  bin_id: number;
+  product_id: number;
+  quantity: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  is_primary: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface PosModifierGroupTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  name: string;
+  name_en: string | null;
+  selection_type: ColumnType<string, string | undefined, string | undefined>; // 'single' | 'multiple'
+  is_mandatory: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  min_selections: ColumnType<number, number | undefined, number | undefined>;
+  max_selections: ColumnType<number, number | undefined, number | undefined>;
+  display_order: ColumnType<number, number | undefined, number | undefined>;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface PosModifierOptionTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  group_id: number;
+  name: string;
+  name_en: string | null;
+  price: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  cost_price: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  is_default: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  display_order: ColumnType<number, number | undefined, number | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface ProductPosModifierTable {
+  id: Generated<number>;
+  tenant_id: string;
+  account_id: string;
+  product_id: number;
+  modifier_group_id: number;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface HrEndOfServiceSettlementTable {
+  id: Generated<number>;
+  tenant_id: string;
+  settlement_no: string;
+  employee_id: number;
+  settlement_date: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  hire_date: ColumnType<Date, string | Date, string | Date>;
+  termination_date: ColumnType<Date, string | Date, string | Date>;
+  contract_type: ColumnType<string, string | undefined, string | undefined>;
+  termination_reason: ColumnType<string, string | undefined, string | undefined>;
+  law_type: ColumnType<string, string | undefined, string | undefined>;
+  service_years: ColumnType<number, number | string | undefined, number | string | undefined>;
+  service_months: ColumnType<number, number | undefined, number | undefined>;
+  service_days: ColumnType<number, number | undefined, number | undefined>;
+  last_basic_salary: ColumnType<number, number | string | undefined, number | string | undefined>;
+  last_total_salary: ColumnType<number, number | string | undefined, number | string | undefined>;
+  gratuity_percentage: ColumnType<number, number | string | undefined, number | string | undefined>;
+  gratuity_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  remaining_leave_days: ColumnType<number, number | string | undefined, number | string | undefined>;
+  leave_encashment_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  pending_salary_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  notice_period_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  other_entitlements_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  unpaid_loans_deduction: ColumnType<number, number | string | undefined, number | string | undefined>;
+  assets_deduction: ColumnType<number, number | string | undefined, number | string | undefined>;
+  other_deductions: ColumnType<number, number | string | undefined, number | string | undefined>;
+  net_settlement_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  custody_cleared: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  clearance_checklist: ColumnType<any, any | undefined, any | undefined>;
+  clearance_notes: string | null;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  journal_entry_id: number | null;
+  payment_method: string | null;
+  treasury_or_bank_account_id: number | null;
+  notes: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
 

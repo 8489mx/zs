@@ -4,15 +4,18 @@ import { XIcon } from '@/shared/components/icons/AppIcons';
 import { Button } from '@/shared/ui/button';
 
 export interface StandardDialogProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   title: ReactNode;
   subtitle?: string;
   children: ReactNode;
   width?: string;
+  maxWidth?: string;
   zIndex?: number;
   ariaLabel?: string;
   footerActions?: ReactNode;
+  footer?: ReactNode;
 }
 
 /**
@@ -26,22 +29,28 @@ export interface StandardDialogProps {
  */
 export function StandardDialog({
   open,
+  isOpen,
   onClose,
   title,
   subtitle,
   children,
-  width = 'min(720px, 95vw)',
+  width,
+  maxWidth,
   zIndex = 10000,
   ariaLabel,
   footerActions,
+  footer,
 }: StandardDialogProps) {
-  if (!open) return null;
+  const isVisible = open !== undefined ? open : Boolean(isOpen);
+  if (!isVisible) return null;
+  const resolvedWidth = width || maxWidth || 'min(720px, 95vw)';
+  const resolvedFooter = footerActions || footer;
 
   return (
     <DialogShell
-      open={open}
+      open={isVisible}
       onClose={onClose}
-      width={width}
+      width={resolvedWidth}
       zIndex={zIndex}
       ariaLabel={ariaLabel || (typeof title === 'string' ? title : 'نافذة منبثقة')}
     >
@@ -69,9 +78,9 @@ export function StandardDialog({
         </div>
 
         {/* Optional Footer */}
-        {footerActions && (
+        {resolvedFooter && (
           <div className="standard-dialog-footer">
-            {footerActions}
+            {resolvedFooter}
           </div>
         )}
       </div>

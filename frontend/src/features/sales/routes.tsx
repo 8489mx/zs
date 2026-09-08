@@ -5,6 +5,7 @@ export const salesRouteModule: FeatureRouteModule = {
   routes: [
     { path: 'sales', element: createLazyRoute(() => import('@/features/sales/pages/SalesPage').then((module) => ({ default: module.SalesPage }))) },
     { path: 'sales/orders', element: createLazyRoute(() => import('@/features/sales/pages/SalesOrdersPage').then((module) => ({ default: module.SalesOrdersPage }))) },
+    { path: 'sales/price-lists', element: createLazyRoute(() => import('@/features/sales/pages/PriceListsPage').then((module) => ({ default: module.PriceListsPage }))) },
     { path: 'quotations', element: createLazyRoute(() => import('@/features/sales/pages/QuotationsPage').then((module) => ({ default: module.QuotationsPage }))) },
     { path: 'online-orders', element: createLazyRoute(() => import('@/features/storefront/pages/MerchantOnlineOrdersPage').then((module) => ({ default: module.MerchantOnlineOrdersPage }))) },
     { path: 'tax-dispatcher', element: createLazyRoute(() => import('@/features/sales/pages/TaxDispatcherPage').then((module) => ({ default: module.TaxDispatcherPage }))) },
@@ -12,8 +13,9 @@ export const salesRouteModule: FeatureRouteModule = {
     { path: 'vat-declaration', element: createLazyRoute(() => import('@/features/sales/pages/VatDeclarationPage').then((module) => ({ default: module.VatDeclarationPage }))) }
   ],
   navigation: [
-    { key: 'sales', label: 'المبيعات', to: '/sales' },
+    { key: 'sales', label: 'المبيعات', to: '/sales', end: true },
     { key: 'sales-orders', label: 'أوامر البيع وحجز المخزون', to: '/sales/orders' },
+    { key: 'price-lists', label: 'قوائم الأسعار والشرائح', to: '/sales/price-lists' },
     { key: 'quotations', label: 'عروض الأسعار', to: '/quotations' },
     { key: 'installments', label: 'مبيعات التقسيط', to: '/installments' },
     { key: 'online-orders', label: 'طلبات الأونلاين', to: '/online-orders' },

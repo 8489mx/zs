@@ -4,7 +4,7 @@ function RouteLoadingFallback() {
   return null;
 }
 
-export type LazyLoader = () => Promise<{ default: ComponentType<unknown> }>;
+export type LazyLoader = () => Promise<{ default: ComponentType<any> }>;
 
 const registeredLoaders = new Set<LazyLoader>();
 

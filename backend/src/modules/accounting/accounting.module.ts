@@ -10,6 +10,7 @@ import { CashFlowService } from './services/cash-flow.service';
 import { AgedDebtsService } from './services/aged-debts.service';
 import { PdcChequesService } from './services/pdc-cheques.service';
 import { WithholdingTaxService } from './services/withholding-tax.service';
+import { PaymentAllocationService } from './services/payment-allocation.service';
 
 @Module({
   imports: [DatabaseModule, AuthFoundationModule],
@@ -23,6 +24,7 @@ import { WithholdingTaxService } from './services/withholding-tax.service';
     AgedDebtsService,
     PdcChequesService,
     WithholdingTaxService,
+    PaymentAllocationService,
   ],
   exports: [
     AccountingService,
@@ -33,6 +35,7 @@ import { WithholdingTaxService } from './services/withholding-tax.service';
     AgedDebtsService,
     PdcChequesService,
     WithholdingTaxService,
+    PaymentAllocationService,
   ],
 })
 export class AccountingModule {}

@@ -75,11 +75,16 @@ export const accountingRouteModule: FeatureRouteModule = {
       path: 'accounting/withholding-tax',
       element: createLazyRoute(() => import('@/features/accounting/pages/WithholdingTaxPage').then((module) => ({ default: withAccountingGate(module.WithholdingTaxPage) }))),
     },
+    {
+      path: 'accounting/payment-allocation',
+      element: createLazyRoute(() => import('@/features/accounting/pages/PaymentAllocationPage').then((module) => ({ default: withAccountingGate(module.PaymentAllocationPage) }))),
+    },
   ],
   navigation: [
     { key: 'accounting-accounts', label: 'شجرة الحسابات', to: '/accounting/accounts' },
     { key: 'accounting-cost-centers', label: 'مراكز التكلفة', to: '/accounting/cost-centers' },
     { key: 'accounting-journal-entries', label: 'القيود اليومية', to: '/accounting/journal-entries' },
+    { key: 'accounting-payment-allocation', label: 'تسوية وتخصيص المدفوعات', to: '/accounting/payment-allocation' },
     { key: 'accounting-cheques', label: 'حافظة الشيكات (PDC)', to: '/accounting/cheques' },
     { key: 'accounting-withholding-tax', label: 'الخصم والإضافة (نموذج 41)', to: '/accounting/withholding-tax' },
     { key: 'accounting-balance-sheet', label: 'الميزانية العمومية', to: '/accounting/balance-sheet' },

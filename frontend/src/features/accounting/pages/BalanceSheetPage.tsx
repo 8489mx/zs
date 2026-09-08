@@ -4,6 +4,7 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CheckIcon, XIcon, DownloadIcon, PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { PageHeader } from '@/shared/components/page-header';
 import {
   financialReportsApi,
   type BalanceSheetReportData,
@@ -69,29 +70,25 @@ export function BalanceSheetPage() {
   };
 
   return (
-    <div className="page-stack page-shell balance-sheet-workspace" dir="rtl" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
-            الميزانية العمومية وقائمة المركز المالي
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-            Statement of Financial Position (IAS 1 / IFRS Standard) مع التحقق المحاسبي الآلي للتوازن
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!report}>
-            <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
-            تصدير CSV
-          </Button>
-          <Button type="button" variant="secondary" onClick={handlePrint} disabled={!report}>
-            <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
-            طباعة معتمدة
-          </Button>
-        </div>
-      </div>
+    <div className="page-stack page-shell balance-sheet-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+        <PageHeader
+          title="الميزانية العمومية وقائمة المركز المالي"
+          description="Statement of Financial Position (IAS 1 / IFRS Standard) مع التحقق المحاسبي الآلي للتوازن"
+          badge={<span className="nav-pill">القوائم المالية المعتمدة</span>}
+          actions={
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!report}>
+                <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
+                تصدير CSV
+              </Button>
+              <Button type="button" variant="secondary" onClick={handlePrint} disabled={!report}>
+                <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
+                طباعة معتمدة
+              </Button>
+            </div>
+          }
+        />
 
       {/* Filter Control Card */}
       <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', marginBottom: '16px' }}>
@@ -391,6 +388,7 @@ export function BalanceSheetPage() {
           </div>
         </>
       )}
+      </main>
     </div>
   );
 }

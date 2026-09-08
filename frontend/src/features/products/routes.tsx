@@ -22,11 +22,16 @@ export const productsRouteModule: FeatureRouteModule = {
     {
       path: 'products/imei-history',
       element: createLazyRoute(() => import('./pages/ImeiHistoryPage').then((m) => ({ default: m.ImeiHistoryPage }))),
+    },
+    {
+      path: 'products/modifiers',
+      element: createLazyRoute(() => import('./pages/ProductModifiersPage').then((m) => ({ default: m.ProductModifiersPage }))),
     }
   ],
   navigation: [
     { key: 'products', label: 'الأصناف', to: '/products', end: true },
     { key: 'product-categories', label: 'أقسام الأصناف', to: '/products/categories' },
+    { key: 'product-modifiers', label: 'خيارات ومعدلات الأصناف', to: '/products/modifiers' },
     { key: 'imei-history', label: 'سجل وتتبع IMEI', to: '/products/imei-history' }
   ]
 };
