@@ -6,7 +6,7 @@ export function FirstRunSetupChecklist() {
 
   if (!flow.enabled || flow.isLoading) return null;
 
-  const show = flow.isError || !flow.isComplete;
+  const show = !flow.isComplete;
   if (!show) return null;
 
   const progressPercentage = Math.round((flow.completedCount / flow.totalCount) * 100) || 0;

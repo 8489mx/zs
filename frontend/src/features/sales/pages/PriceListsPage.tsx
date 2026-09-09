@@ -1,10 +1,10 @@
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, useMemo, type FC } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { AppIcons, PlusIcon } from '@/shared/components/icons/AppIcons';
 import { Button } from '@/shared/ui/button';
 import { priceListsApi, PriceList, UpsertPriceListPayload } from '../api/price-lists.api';
 import { PriceListModal } from '../components/price-lists/PriceListModal';
-import { PriceListCard } from '../components/price-lists/PriceListCard';
 
 export const PriceListsPage: FC = () => {
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
@@ -113,15 +113,26 @@ export const PriceListsPage: FC = () => {
     }
   };
 
-  const filteredLists = priceLists.filter(
-    (l) =>
-      l.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.code.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredLists = useMemo(() => {
+    if (!search.trim()) return priceLists;
+    const q = search.trim().toLowerCase();
+    return priceLists.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        l.code.toLowerCase().includes(q),
+    );
+  }, [priceLists, search]);
+
+  const stats = useMemo(() => [
+    { key: 'total', label: 'إجمالي قوائم الأسعار', value: String(priceLists.length) },
+    { key: 'active', label: 'القوائم المفعلة للبيع', value: String(priceLists.filter((l) => l.is_active).length) },
+    { key: 'default', label: 'القائمة الافتراضية للنظام', value: priceLists.find((l) => l.is_default)?.name || 'غير محددة' },
+    { key: 'items', label: 'إجمالي الشرائح والقواعد', value: `${priceLists.reduce((acc, l) => acc + (Number(l.items_count) || 0), 0)} قاعدة` },
+  ], [priceLists]);
 
   return (
-    <div className="page-stack page-shell price-lists-page" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+    <div className="page-stack page-shell price-lists-workspace" dir="rtl">
+      <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="قوائم الأسعار وشرائح العملاء (Customer Price Lists)"
           description="إدارة قوائم أسعار الجملة، الموزعين، والخصومات المتدرجة حسب كمية الشراء (Volume Tiers)"
@@ -130,14 +141,6 @@ export const PriceListsPage: FC = () => {
             <Button
               variant="primary"
               onClick={openCreateModal}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: '#170e5e',
-                borderColor: '#170e5e',
-                fontWeight: 700,
-              }}
             >
               <PlusIcon size={16} />
               إنشاء قائمة أسعار جديدة
@@ -145,102 +148,179 @@ export const PriceListsPage: FC = () => {
           }
         />
 
-        {/* Control Bar */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px',
-            gap: '16px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ position: 'relative', minWidth: '280px', flex: 1, maxWidth: '400px' }}>
-            <input
-              type="text"
-              placeholder="بحث باسم أو كود القائمة..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                paddingInlineStart: '36px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                fontSize: 'var(--font-body)',
-              }}
-            />
-            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
-              <AppIcons.Search size={16} />
-            </span>
+        <StatsGrid items={stats} />
+
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 800, color: '#0f172a' }}>
+              قوائم الأسعار المعرفة ({filteredLists.length})
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ position: 'relative', width: '280px' }}>
+                <input
+                  type="text"
+                  placeholder="بحث باسم أو كود القائمة..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '7px 12px',
+                    paddingInlineStart: '32px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    fontSize: 'var(--font-body)',
+                    outline: 'none',
+                  }}
+                />
+                <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
+                  <AppIcons.Search size={15} />
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: 'var(--font-table-head)', color: '#64748b' }}>
-              إجمالي القوائم: <strong>{priceLists.length}</strong>
-            </span>
-          </div>
-        </div>
-
-        {/* Grid of Price Lists */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-            جاري تحميل قوائم الأسعار...
-          </div>
-        ) : filteredLists.length === 0 ? (
           <div
             style={{
               backgroundColor: '#ffffff',
-              borderRadius: '12px',
+              borderRadius: '8px',
               border: '1px solid #e2e8f0',
-              padding: '48px 24px',
-              textAlign: 'center',
+              overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             }}
           >
-            <div style={{ display: 'inline-flex', padding: '16px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#170e5e', marginBottom: '16px' }}>
-              <AppIcons.Tag size={32} />
-            </div>
-            <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-              لا توجد قوائم أسعار مسجلة
-            </h3>
-            <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '480px', margin: '0 auto 20px' }}>
-              أنشئ قوائم أسعار مخصصة لجملة وموزعي المحل مع تحديد خصومات تلقائية وشرائح كميات متدرجة.
-            </p>
-            <button
-              onClick={openCreateModal}
-              style={{
-                backgroundColor: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              + إضافة أول قائمة أسعار
-            </button>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>كود القائمة</th>
+                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>اسم القائمة</th>
+                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>العملة ونوع التسعير</th>
+                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>الخصم العام</th>
+                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>الأصناف والشرائح</th>
+                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569' }}>الحالة</th>
+                  <th style={{ padding: '12px 16px', fontSize: 'var(--font-table-head)', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                      جاري تحميل قوائم الأسعار...
+                    </td>
+                  </tr>
+                ) : filteredLists.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '48px 20px', textAlign: 'center' }}>
+                      <div style={{ display: 'inline-flex', padding: '14px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#170e5e', marginBottom: '12px' }}>
+                        <AppIcons.Tag size={32} />
+                      </div>
+                      <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                        لا توجد قوائم أسعار مسجلة
+                      </div>
+                      <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '440px', margin: '0 auto 16px' }}>
+                        أنشئ قوائم أسعار مخصصة لجملة وموزعي المحل مع تحديد خصومات تلقائية وشرائح كميات متدرجة.
+                      </div>
+                      <Button variant="primary" onClick={openCreateModal}>
+                        <PlusIcon size={16} />
+                        إنشاء أول قائمة أسعار
+                      </Button>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredLists.map((list) => (
+                    <tr key={list.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: '#170e5e', fontFamily: 'monospace' }}>
+                        {list.code}
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 700, color: '#1e293b' }}>{list.name}</span>
+                          {list.is_default && (
+                            <span style={{ fontSize: 'var(--font-micro)', backgroundColor: '#e0e7ff', color: '#170e5e', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                              افتراضية
+                            </span>
+                          )}
+                        </div>
+                        {list.notes && (
+                          <div style={{ fontSize: 'var(--font-micro)', color: '#64748b', marginTop: '2px' }}>
+                            {list.notes}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 'var(--font-body)', color: '#475569' }}>
+                        {list.currency} ({list.type === 'percentage' ? 'نسبة مئوية' : list.type === 'fixed_override' ? 'سعر مخصص' : 'هامش ربح'})
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 'var(--font-body)', fontWeight: 700, color: '#0f172a' }}>
+                        {list.default_discount_percent > 0 ? `${list.default_discount_percent}%` : '—'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 'var(--font-body)' }}>
+                        <span style={{ fontWeight: 700, color: '#170e5e' }}>{list.items_count || 0}</span> صنف / شريحة
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: 'var(--font-badge)',
+                            fontWeight: 700,
+                            backgroundColor: list.is_active ? '#dcfce7' : '#fee2e2',
+                            color: list.is_active ? '#166534' : '#991b1b',
+                          }}
+                        >
+                          {list.is_active ? 'نشطة' : 'معطلة'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(list)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              backgroundColor: '#f1f5f9',
+                              border: '1px solid #e2e8f0',
+                              color: '#334155',
+                              fontSize: 'var(--font-table-head)',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              outline: 'none',
+                            }}
+                          >
+                            <AppIcons.Edit size={14} /> تعديل
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(list.id)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              backgroundColor: '#fff1f2',
+                              border: '1px solid #fecdd3',
+                              color: '#e11d48',
+                              fontSize: 'var(--font-table-head)',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              outline: 'none',
+                            }}
+                          >
+                            <AppIcons.Trash size={14} /> حذف
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-              gap: '16px',
-            }}
-          >
-            {filteredLists.map((list) => (
-              <PriceListCard
-                key={list.id}
-                list={list}
-                onEdit={openEditModal}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
-        )}
+        </section>
 
         {isModalOpen && (
           <PriceListModal
@@ -253,7 +333,7 @@ export const PriceListsPage: FC = () => {
             onSave={handleSave}
           />
         )}
-      </main>
+      </div>
     </div>
   );
 };

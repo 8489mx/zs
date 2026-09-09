@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
@@ -82,68 +83,50 @@ export function AgedDebtsPage() {
   };
 
   return (
-    <div className="page-stack page-shell aged-debts-workspace" dir="rtl" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
-            تقرير أعمار الديون التحليلي
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-            Aged Partner Balances — تحليل فترات الاستحقاق والتأخير للعملاء والموردين لتعزيز التدفقات والتحصيل
-          </p>
-        </div>
+    <div className="page-stack page-shell aged-debts-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+        <PageHeader
+          title="تقرير أعمار الديون التحليلي"
+          description="Aged Partner Balances — تحليل فترات الاستحقاق والتأخير للعملاء والموردين لتعزيز التدفقات والتحصيل."
+          badge={
+            data ? (
+              <span className="nav-pill">
+                {data.totalPartnersCount} {activeTab === 'receivables' ? 'عميل' : 'مورد'}
+              </span>
+            ) : null
+          }
+          actions={
+            <div className="actions compact-actions">
+              <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!data}>
+                <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
+                تصدير CSV
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => window.print()} disabled={!data}>
+                <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
+                طباعة
+              </Button>
+            </div>
+          }
+        />
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!data}>
-            <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
-            تصدير CSV
+        {/* Main Tabs */}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button
+            type="button"
+            variant={activeTab === 'receivables' ? 'primary' : 'secondary'}
+            onClick={() => setActiveTab('receivables')}
+          >
+            أعمار ديون العملاء (المدينون - Receivables)
           </Button>
-          <Button type="button" variant="secondary" onClick={() => window.print()} disabled={!data}>
-            <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
-            طباعة
+
+          <Button
+            type="button"
+            variant={activeTab === 'payables' ? 'primary' : 'secondary'}
+            onClick={() => setActiveTab('payables')}
+          >
+            أعمار ديون الموردين (الدائنون - Payables)
           </Button>
         </div>
-      </div>
-
-      {/* Main Tabs Card */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('receivables')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '10px',
-            fontSize: '0.9rem',
-            fontWeight: 800,
-            cursor: 'pointer',
-            border: activeTab === 'receivables' ? '2px solid #170e5e' : '1px solid #e2e8f0',
-            backgroundColor: activeTab === 'receivables' ? '#170e5e' : '#ffffff',
-            color: activeTab === 'receivables' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          أعمار ديون العملاء (المدينون - Receivables)
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('payables')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '10px',
-            fontSize: '0.9rem',
-            fontWeight: 800,
-            cursor: 'pointer',
-            border: activeTab === 'payables' ? '2px solid #170e5e' : '1px solid #e2e8f0',
-            backgroundColor: activeTab === 'payables' ? '#170e5e' : '#ffffff',
-            color: activeTab === 'payables' ? '#ffffff' : '#475569',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          أعمار ديون الموردين (الدائنون - Payables)
-        </button>
-      </div>
 
       {/* Filter and Search Bar */}
       <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', marginBottom: '16px' }}>
@@ -381,6 +364,7 @@ export function AgedDebtsPage() {
           </Card>
         </>
       )}
+      </main>
     </div>
   );
 }

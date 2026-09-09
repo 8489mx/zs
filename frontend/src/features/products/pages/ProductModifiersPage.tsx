@@ -1,6 +1,7 @@
 import { useState, useEffect, type FC } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
+import { Button } from '@/shared/ui/button';
 import {
   addonsApi,
   ModifierGroup,
@@ -144,32 +145,19 @@ export const ProductModifiersPage: FC = () => {
 
   return (
     <div className="page-stack page-shell" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+      <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="مجموعات خيارات وإضافات الأصناف (Item Modifiers & Add-ons)"
           description="إدارة مصفوفة الخيارات والإضافات ودرجات الطهي والوجبات الكومبو المدمجة فورياً مع شاشة الكاشير والمطبخ (KDS) والإيصال الحراري."
           badge={<span className="nav-pill">المطاعم ونقاط البيع</span>}
           actions={
-            <button
-              type="button"
+            <Button
+              variant="primary"
               onClick={handleOpenCreate}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                backgroundColor: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 700,
-                fontSize: '13px',
-                cursor: 'pointer',
-              }}
             >
               <AppIcons.Plus size={16} />
-              إضافة مجموعة خيارات جديدة (New Group)
-            </button>
+              إضافة مجموعة خيارات جديدة
+            </Button>
           }
         />
 
@@ -229,7 +217,7 @@ export const ProductModifiersPage: FC = () => {
           modalFeedback={modalFeedback}
           onSave={handleSaveGroup}
         />
-      </main>
+      </div>
     </div>
   );
 };

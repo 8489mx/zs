@@ -819,7 +819,7 @@ html[dir="rtl"] .demo-sparkles, [dir="rtl"] .demo-sparkles {
   width: 100%;
   color: #475569;
   text-decoration: none;
-  transition: background-color 0.15s ease, color 0.15s ease, font-weight 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 .sidebar-link-sub .sidebar-icon {
   width: 6px;

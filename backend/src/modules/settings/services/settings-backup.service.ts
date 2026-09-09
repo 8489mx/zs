@@ -192,7 +192,13 @@ export class SettingsBackupService {
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
   private assertRestoreConfirmation(payload: unknown): void { const confirmation = isObjectRecord(payload) ? String(payload.confirmation || payload.restoreConfirmation || '').trim() : ''; if (confirmation !== RESTORE_CONFIRMATION_TEXT) throw new AppError(`Type ${RESTORE_CONFIRMATION_TEXT} to confirm backup restore`, 'BACKUP_RESTORE_CONFIRMATION_REQUIRED', 400); }
   private normalizeEnvelope(payload: unknown): BackupEnvelope { if (!isObjectRecord(payload)) throw new AppError('Backup payload must be an object', 'BACKUP_INVALID', 400); const meta = isObjectRecord(payload.meta) ? { version: String(payload.meta.version || '1.0.0'), exportedAt: String(payload.meta.exportedAt || payload.meta.exported_at || ''), source: String(payload.meta.source || 'manual'), tenantId: String(payload.meta.tenantId || ''), accountId: String(payload.meta.accountId || '') } : { version: '1.0.0', exportedAt: '', source: 'manual' }; const tablesRaw = isObjectRecord(payload.tables) ? payload.tables : {}; const tables: Partial<Record<BackupTableName, unknown[]>> = {}; for (const table of BACKUP_TABLES) tables[table] = Array.isArray(tablesRaw[table]) ? tablesRaw[table] as unknown[] : []; return { meta, tables }; }
-  private normalizeFolderPath(value: unknown): string { const candidate = String(value || '').trim(); return candidate || DEFAULT_BACKUP_FOLDER; }
+  private normalizeFolderPath(value: unknown): string {
+    const candidate = String(value || '').trim();
+    if (!candidate || candidate === '\\\\?' || candidate === '\\?' || /[?*<>"|]/.test(candidate)) {
+      return DEFAULT_BACKUP_FOLDER;
+    }
+    return candidate;
+  }
   private normalizeFrequency(value: unknown): 'daily' | 'weekly' { return String(value || '').toLowerCase() === 'weekly' ? 'weekly' : 'daily'; }
   private normalizeTime(value: unknown): string { const raw = String(value || '').trim(); const match = raw.match(/^(\d{1,2}):(\d{2})$/); if (!match) return '03:00'; const hours = Math.min(23, Math.max(0, Number(match[1] || 0))); const minutes = Math.min(59, Math.max(0, Number(match[2] || 0))); return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`; }
   private normalizeWeeklyDay(value: unknown): number { const day = Number(value); return Number.isFinite(day) ? Math.min(6, Math.max(0, Math.floor(day))) : 0; }
@@ -223,7 +229,25 @@ export class SettingsBackupService {
 
     return `ZERP-${storeSlug}-${userSlug}-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}.zip`;
   }
-  private async ensureWritableFolder(folderPath: string): Promise<void> { await fs.mkdir(folderPath, { recursive: true }); const probeFile = path.join(folderPath, `.zs-write-test-${Date.now()}.tmp`); await fs.writeFile(probeFile, 'ok', 'utf8'); await fs.unlink(probeFile); }
+  private async ensureWritableFolder(folderPath: string): Promise<void> {
+    const raw = String(folderPath || '').trim();
+    if (!raw || raw === '\\\\?' || raw === '\\?' || /[?*<>"|]/.test(raw)) {
+      throw new AppError('مسار المجلد غير صالح أو يحتوي على رموز غير مسموحة', 'INVALID_BACKUP_PATH', 400);
+    }
+    try {
+      await fs.mkdir(raw, { recursive: true });
+      const probeFile = path.join(raw, `.zs-write-test-${Date.now()}.tmp`);
+      await fs.writeFile(probeFile, 'ok', 'utf8');
+      await fs.unlink(probeFile);
+    } catch (err: any) {
+      if (err instanceof AppError) throw err;
+      throw new AppError(
+        `تعذر الوصول أو الكتابة في المجلد المحدد (${folderPath}): ${err?.message || 'تأكد من صحة المسار وصلاحيات الكتابة'}`,
+        'BACKUP_FOLDER_NOT_WRITABLE',
+        400,
+      );
+    }
+  }
   private async rotateOldBackups(folderPath: string, maxRetention: number = 30): Promise<void> {
     try {
       const files = await fs.readdir(folderPath);

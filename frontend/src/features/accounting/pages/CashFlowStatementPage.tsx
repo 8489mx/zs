@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { PageHeader } from '@/shared/components/page-header';
 import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
@@ -83,29 +84,31 @@ export function CashFlowStatementPage() {
   };
 
   return (
-    <div className="page-stack page-shell cash-flow-workspace" dir="rtl" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#0f172a' }}>
-            قائمة التدفقات النقدية المعيارية
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-            Statement of Cash Flows (IAS 7) — تصنيف حركة السيولة النقدية ومطابقتها التلقائية مع واقع الخزائن والبنوك
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!report}>
-            <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
-            تصدير CSV
-          </Button>
-          <Button type="button" variant="secondary" onClick={handlePrint} disabled={!report}>
-            <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
-            طباعة معتمدة
-          </Button>
-        </div>
-      </div>
+    <div className="page-stack page-shell cash-flow-workspace" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+        <PageHeader
+          title="قائمة التدفقات النقدية المعيارية"
+          description="Statement of Cash Flows (IAS 7) — تصنيف حركة السيولة النقدية ومطابقتها التلقائية مع واقع الخزائن والبنوك."
+          badge={
+            report ? (
+              <span className="nav-pill">
+                {report.isReconciled ? 'السيولة متطابقة مع البنوك' : 'يوجد فرق تسوية'}
+              </span>
+            ) : null
+          }
+          actions={
+            <div className="actions compact-actions">
+              <Button type="button" variant="secondary" onClick={handleExportCsv} disabled={!report}>
+                <DownloadIcon size={14} style={{ marginInlineEnd: '6px' }} />
+                تصدير CSV
+              </Button>
+              <Button type="button" variant="secondary" onClick={handlePrint} disabled={!report}>
+                <PrinterIcon size={14} style={{ marginInlineEnd: '6px' }} />
+                طباعة معتمدة
+              </Button>
+            </div>
+          }
+        />
 
       {/* Filter Control Card */}
       <Card style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', marginBottom: '16px' }}>
@@ -336,6 +339,7 @@ export function CashFlowStatementPage() {
           </div>
         </>
       )}
+      </main>
     </div>
   );
 }

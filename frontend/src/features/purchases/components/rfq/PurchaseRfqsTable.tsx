@@ -16,43 +16,11 @@ export function PurchaseRfqsTable({
   onOpenMatrix,
   onDelete,
 }: PurchaseRfqsTableProps) {
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-        <p>جاري تحميل طلبات عروض الأسعار...</p>
-      </div>
-    );
-  }
-
-  if (rfqs.length === 0) {
-    return (
-      <div
-        style={{
-          textAlign: 'center',
-          padding: '60px 20px',
-          backgroundColor: '#ffffff',
-          borderRadius: '12px',
-          border: '1px dashed #cbd5e1',
-        }}
-      >
-        <div style={{ color: '#94a3b8', marginBottom: '12px' }}>
-          <AppIcons.Box size={40} />
-        </div>
-        <h3 style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-          لا توجد طلبات عروض أسعار حالياً
-        </h3>
-        <p style={{ fontSize: 'var(--font-subtitle)', color: '#64748b' }}>
-          يمكنك بدء استدراج عروض الأسعار والمفاضلة بين الموردين بإنشاء أول طلب الآن.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div
       style={{
         backgroundColor: '#ffffff',
-        borderRadius: '12px',
+        borderRadius: '8px',
         border: '1px solid #e2e8f0',
         overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
@@ -71,7 +39,28 @@ export function PurchaseRfqsTable({
           </tr>
         </thead>
         <tbody>
-          {rfqs.map((rfq) => {
+          {loading ? (
+            <tr>
+              <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                جاري تحميل طلبات عروض الأسعار...
+              </td>
+            </tr>
+          ) : rfqs.length === 0 ? (
+            <tr>
+              <td colSpan={7} style={{ padding: '48px 20px', textAlign: 'center' }}>
+                <div style={{ color: '#94a3b8', marginBottom: '12px' }}>
+                  <AppIcons.Box size={36} />
+                </div>
+                <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                  لا توجد طلبات عروض أسعار حالياً
+                </div>
+                <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', maxWidth: '440px', margin: '0 auto' }}>
+                  يمكنك بدء استدراج عروض الأسعار والمفاضلة بين الموردين بإنشاء أول طلب الآن.
+                </div>
+              </td>
+            </tr>
+          ) : (
+            rfqs.map((rfq) => {
             const badge = getRfqStatusBadge(rfq.status);
             const bidsCount = rfq.bids?.length || 0;
             const itemsCount = rfq.items?.length || 0;
@@ -167,7 +156,7 @@ export function PurchaseRfqsTable({
                 </td>
               </tr>
             );
-          })}
+          }))}
         </tbody>
       </table>
     </div>

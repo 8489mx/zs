@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import { accountingApi, type OpeningBalancesPreviewResponse } from '@/features/accounting/api/accounting.api';
 import { AccountingAccountsMapSection } from '../components/settings/AccountingAccountsMapSection';
 import { AccountingOpeningBalancesSection } from '../components/settings/AccountingOpeningBalancesSection';
@@ -149,34 +150,34 @@ export function AccountingSettingsPage() {
 
   return (
     <div className="page-stack page-shell accounting-settings-workspace" dir="rtl">
-      <main className="page-content workspace-body" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="إعدادات الحسابات والأرصدة الافتتاحية"
-          description="إدارة شجرة الحسابات المرتبطة تلقائياً، إدخال الأرصدة الافتتاحية، وتحديد تواريخ إقفال الفترات المالية والضريبية"
+          description="إدارة شجرة الحسابات المرتبطة تلقائياً، إدخال الأرصدة الافتتاحية، وتحديد تواريخ إقفال الفترات المالية والضريبية."
         />
 
-        <div className="filter-pill-row" style={{ marginBottom: 16 }}>
-          <button
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <Button
             type="button"
-            className={`filter-pill ${activeSection === 'accounts-map' ? 'active' : ''}`}
+            variant={activeSection === 'accounts-map' ? 'primary' : 'secondary'}
             onClick={() => setActiveSection('accounts-map')}
           >
             ربط الحسابات
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className={`filter-pill ${activeSection === 'opening-balances' ? 'active' : ''}`}
+            variant={activeSection === 'opening-balances' ? 'primary' : 'secondary'}
             onClick={() => setActiveSection('opening-balances')}
           >
             الأرصدة الافتتاحية
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className={`filter-pill ${activeSection === 'lock-dates' ? 'active' : ''}`}
+            variant={activeSection === 'lock-dates' ? 'primary' : 'secondary'}
             onClick={() => setActiveSection('lock-dates')}
           >
             إقفال الفترات المالية
-          </button>
+          </Button>
         </div>
 
         {activeSection === 'accounts-map' ? (

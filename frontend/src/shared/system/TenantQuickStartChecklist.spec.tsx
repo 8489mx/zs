@@ -125,4 +125,53 @@ describe('TenantQuickStartChecklist', () => {
     expect(window.localStorage.getItem('zs_quickstart_dismissed_t-123')).toBe('true');
     expect(container.firstChild).toBeNull();
   });
+
+  it('does not render while queries are loading (prevents flash of uncalculated steps)', () => {
+    useSettingsQueryMock.mockReturnValue({
+      isLoading: true,
+      data: undefined,
+    });
+
+    useDashboardOverviewMock.mockReturnValue({
+      isLoading: true,
+      data: undefined,
+    });
+
+    const { container } = render(
+      <MemoryRouter>
+        <TenantQuickStartChecklist />
+      </MemoryRouter>
+    );
+
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByText('دليل البداية السريعة لتشغيل المنشأة')).not.toBeInTheDocument();
+  });
+
+  it('does not render when tenant has already completed onboarding', () => {
+    useSettingsQueryMock.mockReturnValue({
+      isLoading: false,
+      data: {
+        storeName: 'محل البركة',
+        onboardingCompleted: true,
+      },
+    });
+
+    useDashboardOverviewMock.mockReturnValue({
+      isLoading: false,
+      data: {
+        summary: { totalProducts: 0, sales: { count: 0 } },
+        stats: { todaySalesCount: 0 },
+      },
+    });
+
+    const { container } = render(
+      <MemoryRouter>
+        <TenantQuickStartChecklist />
+      </MemoryRouter>
+    );
+
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByText('دليل البداية السريعة لتشغيل المنشأة')).not.toBeInTheDocument();
+  });
 });
+

@@ -17,7 +17,8 @@ import {
 export function TenantQuickStartChecklist() {
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
-  const { data: settings } = useSettingsQuery();
+  const settingsQuery = useSettingsQuery();
+  const settings = settingsQuery?.data;
   const overview = useDashboardOverview();
 
   const tenantKey = tenant?.id || 'default';
@@ -28,8 +29,34 @@ export function TenantQuickStartChecklist() {
     return window.localStorage.getItem(storageKey) === 'true';
   });
 
+  const isStorageDismissed = typeof window !== 'undefined' && (
+    window.localStorage.getItem(storageKey) === 'true' ||
+    (tenant?.id ? window.localStorage.getItem(`zs_quickstart_dismissed_${tenant.id}`) === 'true' : false) ||
+    window.localStorage.getItem('zs_quickstart_dismissed_default') === 'true'
+  );
+
   // Do not show for platform super admins or when dismissed
-  if (isDismissed || !user || isPlatformAdmin(user)) {
+  if (isDismissed || isStorageDismissed || !user || isPlatformAdmin(user)) {
+    return null;
+  }
+
+  // 1. Prevent flicker/glitch: Never render while settings or overview data is still loading from the API
+  if (Boolean(settingsQuery?.isLoading) || Boolean(overview?.isLoading) || !settings || !overview?.data) {
+    return null;
+  }
+
+  // 2. If the user has already completed onboarding, never show the quick start checklist
+  const isOnboardingCompleted =
+    (settings as any)?.onboardingCompleted === true ||
+    (settings as any)?.onboardingCompleted === 'true' ||
+    (tenant as any)?.onboardingCompleted === true;
+
+  if (isOnboardingCompleted) {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(storageKey, 'true');
+      } catch {}
+    }
     return null;
   }
 

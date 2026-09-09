@@ -1,12 +1,12 @@
 import { FormSection } from '@/shared/components/form-section';
-import { DataTable } from '@/shared/components/data-table';
+import { Button } from '@/shared/ui/button';
 import { AlertTriangleIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency } from '@/lib/format';
 
 interface PricingSimulationSectionProps {
   summary: any;
-  previewRows: any[];
   previewLoading: boolean;
+  runPreview: () => void;
   matchedTotal: number;
   affectedTotal: number;
   skippedTotal: number;
@@ -19,110 +19,172 @@ interface PricingSimulationSectionProps {
 }
 
 export function PricingSimulationSection({
-  previewRows,
+  summary,
   previewLoading,
+  runPreview,
   matchedTotal,
   affectedTotal,
   skippedTotal,
+  invBefore,
   invAfter,
   invDiff,
+  marginBefore,
   marginAfter,
   marginDiff,
 }: PricingSimulationSectionProps) {
   return (
-    <FormSection
-      title="المحاكاة المالية الفورية"
-      description="تقدير شامل لتأثير القرار على إجمالي قيمة المخزون الحالي، هامش الربحية، وهوامش الأمان قبل الحفظ."
-    >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '14px' }}>
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>أصناف النطاق المستهدف</span>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{matchedTotal} صنف</div>
-          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>مطابقة للفلاتر</span>
-        </div>
-
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>الأصناف المتأثرة فعلياً</span>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>{affectedTotal} صنف</div>
-          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>تم استبعاد {skippedTotal} صنف</span>
-        </div>
-
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>قيمة المخزون بالبيع</span>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{formatCurrency(invAfter)}</div>
-          <span style={{ fontSize: '0.72rem', color: invDiff >= 0 ? '#16a34a' : '#dc2626', fontWeight: 700 }}>
-            {invDiff >= 0 ? `+${formatCurrency(invDiff)}` : formatCurrency(invDiff)}
-          </span>
-        </div>
-
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>إجمالي هامش الربح</span>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{formatCurrency(marginAfter)}</div>
-          <span style={{ fontSize: '0.72rem', color: marginDiff >= 0 ? '#16a34a' : '#dc2626', fontWeight: 700 }}>
-            {marginDiff >= 0 ? `+${formatCurrency(marginDiff)}` : formatCurrency(marginDiff)}
-          </span>
-        </div>
-      </div>
-
-      <DataTable
-        getRowKey={(row: any, i) => String(row.id || row.barcode || i)}
-        data={previewRows}
-        loading={previewLoading}
-        emptyMessage="لم يتم تشغيل المعاينة بعد. اضغط على 'معاينة الأثر' بالأعلى لتوليد التقرير."
-        columns={[
-          {
-            id: 'name',
-            header: 'الصنف',
-            render: (row: any) => (
-              <div>
-                <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.name}</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{row.barcode || row.sku || '—'}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <FormSection
+        title="المحاكاة المالية الفورية"
+        className="h-full"
+        bodyClassName="flex-1 flex flex-col justify-between"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', justifyContent: 'space-between' }}>
+          
+          {/* 1. Inventory Value Comparative */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>
+              قيمة المخزون (بسعر البيع)
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.82rem', color: '#64748b' }}>{formatCurrency(invBefore)}</span>
+                <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>←</span>
+                <strong style={{ fontSize: '0.94rem', color: '#0f172a', fontWeight: 700 }}>{formatCurrency(invAfter)}</strong>
               </div>
-            ),
-          },
-          {
-            id: 'cost',
-            header: 'التكلفة',
-            render: (row: any) => formatCurrency(row.costPrice),
-          },
-          {
-            id: 'retailBefore',
-            header: 'القطاعي الحالي',
-            render: (row: any) => formatCurrency(row.retailPriceBefore),
-          },
-          {
-            id: 'retailAfter',
-            header: 'القطاعي المقترح',
-            render: (row: any) => (
-              <span style={{ fontWeight: 800, color: '#170e5e' }}>
-                {formatCurrency(row.retailPriceAfter)}
+              {invDiff !== 0 && (
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: invDiff > 0 ? '#f0fdf4' : '#fef2f2',
+                    color: invDiff > 0 ? '#16a34a' : '#dc2626',
+                    border: invDiff > 0 ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                  }}
+                >
+                  {invDiff > 0 ? `+${formatCurrency(invDiff)}` : formatCurrency(invDiff)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 2. Profit Margin Comparative */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>
+              هامش الربح الإجمالي للمخزون
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.82rem', color: '#64748b' }}>{formatCurrency(marginBefore)}</span>
+                <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>←</span>
+                <strong style={{ fontSize: '0.94rem', color: '#0f172a', fontWeight: 700 }}>{formatCurrency(marginAfter)}</strong>
+              </div>
+              {marginDiff !== 0 && (
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: marginDiff > 0 ? '#f0fdf4' : '#fef2f2',
+                    color: marginDiff > 0 ? '#16a34a' : '#dc2626',
+                    border: marginDiff > 0 ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                  }}
+                >
+                  {marginDiff > 0 ? `+${formatCurrency(marginDiff)}` : formatCurrency(marginDiff)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 3. Direct Impact Breakdown */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
+              تفصيل نطاق الأصناف المتأثرة
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
+              <div style={{ background: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>المشمول</div>
+                <strong style={{ fontSize: '0.92rem', color: '#0f172a', fontWeight: 700 }}>{matchedTotal}</strong>
+              </div>
+              <div style={{ background: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.7rem', color: '#16a34a' }}>سيتأثر</div>
+                <strong style={{ fontSize: '0.92rem', color: '#16a34a', fontWeight: 700 }}>{affectedTotal}</strong>
+              </div>
+              <div style={{ background: '#ffffff', padding: '4px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.7rem', color: '#b45309' }}>مستثنى</div>
+                <strong style={{ fontSize: '0.92rem', color: '#b45309', fontWeight: 700 }}>{skippedTotal}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Cost Safety Indicator */}
+          {summary ? (
+            <div
+              style={{
+                padding: '7px 10px',
+                borderRadius: '6px',
+                background: summary.belowCostCount > 0 ? '#fffbeb' : '#f0fdf4',
+                border: summary.belowCostCount > 0 ? '1px solid #fde68a' : '1px solid #bbf7d0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  color: summary.belowCostCount > 0 ? '#92400e' : '#166534',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {summary.belowCostCount > 0 ? (
+                  <>
+                    <AlertTriangleIcon size={14} color="#d97706" />
+                    <span>{summary.belowCostCount} صنف سينخفض عن سعر الشراء والتكلفة!</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircleIcon size={14} color="#16a34a" />
+                    <span>جميع الأسعار المعدلة أعلى من سعر التكلفة</span>
+                  </>
+                )}
               </span>
-            ),
-          },
-          {
-            id: 'stock',
-            header: 'الرصيد',
-            render: (row: any) => `${row.stockQty} وحدة`,
-          },
-          {
-            id: 'status',
-            header: 'الحالة',
-            render: (row: any) => (
-              row.status === 'applied' ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#16a34a', fontSize: '0.75rem', fontWeight: 700 }}>
-                  <CheckCircleIcon size={13} color="#16a34a" />
-                  <span>تعديل</span>
-                </span>
-              ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#d97706', fontSize: '0.75rem', fontWeight: 700 }}>
-                  <AlertTriangleIcon size={13} color="#d97706" />
-                  <span>مستثنى ({row.statusReason})</span>
-                </span>
-              )
-            ),
-          },
-        ]}
-      />
-    </FormSection>
+            </div>
+          ) : (
+            <div
+              style={{
+                padding: '7px 10px',
+                borderRadius: '6px',
+                background: '#f8fafc',
+                border: '1px dashed #cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 600 }}>
+                اضغط على تحديث المعاينة لاحتساب الأثر وفحص التكلفة
+              </span>
+            </div>
+          )}
+
+          {/* 5. Action CTA */}
+          <Button
+            onClick={runPreview}
+            disabled={previewLoading}
+            style={{ width: '100%', minHeight: '38px', fontSize: '0.86rem', fontWeight: 700, marginTop: 'auto' }}
+          >
+            {previewLoading ? 'جاري الحساب...' : 'تحديث المعاينة الآن'}
+          </Button>
+
+        </div>
+      </FormSection>
+    </div>
   );
 }

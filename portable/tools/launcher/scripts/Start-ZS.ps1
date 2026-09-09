@@ -121,6 +121,24 @@ try {
     exit 0
   }
 
+  $startLockFile = Join-Path $paths.RuntimeRunDir 'starting.lock'
+  if (Test-Path $startLockFile) {
+    try {
+      $lockContent = Get-Content -Path $startLockFile -ErrorAction SilentlyContinue | Out-String
+      if (-not [string]::IsNullOrWhiteSpace($lockContent)) {
+        $lockTime = [DateTime]::Parse($lockContent.Trim())
+        if (((Get-Date) - $lockTime).TotalSeconds -lt 25) {
+          Write-LauncherLog -Paths $paths -Name $logName -Message 'Another startup sequence is already in progress. Skipping duplicate launch.'
+          Write-Host 'Startup is already in progress, please wait...'
+          exit 0
+        }
+      }
+    } catch {
+      # Ignore parse errors and proceed
+    }
+  }
+  Set-Content -Path $startLockFile -Value ((Get-Date).ToString('o')) -Encoding ascii
+
   $nodeExe = Resolve-NodeExe -Paths $paths -EnvMap $envMap
   $npmExe = Resolve-NpmExe -Paths $paths -EnvMap $envMap
   $backendEntry = Get-EnvValue -EnvMap $envMap -Key 'BACKEND_ENTRY' -Default 'dist/main.js'
@@ -272,6 +290,10 @@ try {
   Write-LauncherLog -Paths $paths -Name $logName -Message ("Start failed: " + $errorDetails)
   Write-Error $errorDetails
   exit 1
+} finally {
+  if ($startLockFile -and (Test-Path $startLockFile)) {
+    Remove-Item -Path $startLockFile -Force -ErrorAction SilentlyContinue
+  }
 }
 
 

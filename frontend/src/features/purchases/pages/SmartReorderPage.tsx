@@ -166,16 +166,20 @@ export function SmartReorderPage() {
 
   return (
     <div className="page-stack page-shell purchases-workspace smart-reorder-workspace" dir="rtl">
-      <main className="page-content workspace-body" style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         {/* 1. Header */}
         <PageHeader
           title="مقترح إعادة الطلب والتوريد الذكي"
-          description="حساب نقطة إعادة الطلب وتوليد مسودات أوامر شراء مجمعة تلقائياً حسب الموردين استناداً إلى سرعة الاستهلاك وأيام التغطية"
+          description="حساب نقطة إعادة الطلب وتوليد مسودات أوامر شراء مجمعة تلقائياً حسب الموردين استناداً إلى سرعة الاستهلاك وأيام التغطية."
+          badge={
+            <span className="nav-pill">
+              {summary?.outOfStockCount ? `${summary.outOfStockCount} صنف نافد` : `${summary?.totalMonitoredProducts || 0} صنف مراقب`}
+            </span>
+          }
           actions={
-            <div className="actions compact-actions" style={{ gap: '10px' }}>
+            <div className="actions compact-actions">
               <Button
                 variant="primary"
-                style={{ backgroundColor: '#170e5e', borderColor: '#170e5e', color: '#ffffff', fontWeight: 600 }}
                 onClick={handleOpenAllConfirm}
                 disabled={isLoading || totalSelectedItemsCount === 0 || generateMutation.isPending}
               >

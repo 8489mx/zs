@@ -730,16 +730,10 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [isPosRoute]);
 
   useEffect(() => {
-    const resetScroll = () => {
-      const contentWrap = document.querySelector('.content-wrap') as HTMLElement | null;
-      const pageStack = document.querySelector('.content-wrap .page-stack') as HTMLElement | null;
-      if (contentWrap) contentWrap.scrollTop = 0;
-      if (pageStack) pageStack.scrollTop = 0;
-      window.scrollTo(0, 0);
-    };
-    resetScroll();
-    const frameId = window.requestAnimationFrame(resetScroll);
-    return () => window.cancelAnimationFrame(frameId);
+    const contentWrap = document.querySelector('.content-wrap') as HTMLElement | null;
+    if (contentWrap && contentWrap.scrollTop > 0) {
+      contentWrap.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
   }, [location.pathname]);
 
   useEffect(() => {

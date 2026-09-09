@@ -101,6 +101,7 @@ export function buildFirstRunSetupFlowState({
   const hasBranchAndLocation = branches.length > 0 && branches.some(b => !!b.defaultStockLocationId);
   const hasLocaleSettings = hasValue(settings?.currency) && hasValue(settings?.timezone);
   const hasInvoiceSettings = true; // Tax defaults to disabled (0%), never blocks onboarding flow
+  const isOnboardingComplete = (settings as any)?.onboardingCompleted === true || (settings as any)?.onboardingCompleted === 'true';
 
   const steps: SetupFlowStep[] = [
     {
@@ -199,7 +200,7 @@ export function buildFirstRunSetupFlowState({
     currentStepIndex,
     completedCount,
     totalCount,
-    isComplete: currentStep === null,
+    isComplete: isOnboardingComplete || currentStep === null,
     resolvedStoreName,
   };
 }
@@ -232,7 +233,7 @@ export function useFirstRunSetupFlow() {
     users: usersQuery.data || [],
     settings: settingsQuery.data,
   }), [branchesQuery.data, deploymentMode, locationsQuery.data, sessionStoreName, settingsQuery.data, tenant, user, usersQuery.data]);
-  const isLoading = enabled && [branchesQuery, locationsQuery, usersQuery, settingsQuery].some((query) => query.isLoading);
+  const isLoading = enabled && [branchesQuery, locationsQuery, usersQuery, settingsQuery].some((query) => query.isLoading || (query as any).isPending);
   const isError = enabled && [branchesQuery, locationsQuery, usersQuery, settingsQuery].some((query) => query.isError);
 
   const refresh = async () => {

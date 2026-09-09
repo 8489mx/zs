@@ -1,5 +1,6 @@
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, useMemo, type FC } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
 import { AppIcons, PlusIcon } from '@/shared/components/icons/AppIcons';
 import { Button } from '@/shared/ui/button';
 import {
@@ -190,17 +191,26 @@ export const PurchaseRfqsPage: FC = () => {
     }
   };
 
-  const filteredRfqs = rfqs.filter((r) => {
-    const matchSearch =
-      r.title.toLowerCase().includes(search.toLowerCase()) ||
-      r.rfq_number.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const filteredRfqs = useMemo(() => {
+    return rfqs.filter((r) => {
+      const matchSearch =
+        r.title.toLowerCase().includes(search.toLowerCase()) ||
+        r.rfq_number.toLowerCase().includes(search.toLowerCase());
+      const matchStatus = statusFilter === 'all' || r.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [rfqs, search, statusFilter]);
+
+  const stats = useMemo(() => [
+    { key: 'total', label: 'إجمالي طلبات الأسعار', value: String(rfqs.length) },
+    { key: 'draft', label: 'مسودات قيد الإعداد', value: String(rfqs.filter((r) => r.status === 'draft').length) },
+    { key: 'bids', label: 'عروض مستلمة بانتظار الترسية', value: String(rfqs.filter((r) => r.status === 'bids_received').length) },
+    { key: 'converted', label: 'معتمدة ومحولة لأمر شراء', value: String(rfqs.filter((r) => r.status === 'converted_to_po').length) },
+  ], [rfqs]);
 
   return (
-    <div className="page-stack page-shell purchase-rfqs-page" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '100px' }}>
+    <div className="page-stack page-shell purchase-rfqs-workspace" dir="rtl">
+      <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="طلبات عروض أسعار الموردين (Vendor RFQs)"
           description="دورة استدراج عروض الأسعار من الموردين، المفاضلة التلقائية، واعتماد العرض الفائز بنقرة واحدة لأمر شراء (PO)"
@@ -209,14 +219,6 @@ export const PurchaseRfqsPage: FC = () => {
             <Button
               variant="primary"
               onClick={openCreateModal}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: '#170e5e',
-                borderColor: '#170e5e',
-                fontWeight: 700,
-              }}
             >
               <PlusIcon size={16} />
               طلب عرض سعر جديد
@@ -224,72 +226,67 @@ export const PurchaseRfqsPage: FC = () => {
           }
         />
 
-        {/* Filter and stats */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px',
-            gap: '16px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                type="text"
-                placeholder="بحث بالرقم أو العنوان..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+        <StatsGrid items={stats} />
+
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ fontSize: 'var(--font-section-title)', fontWeight: 800, color: '#0f172a' }}>
+              طلبات عروض الأسعار ({filteredRfqs.length})
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', width: '260px' }}>
+                <input
+                  type="text"
+                  placeholder="بحث بالرقم أو العنوان..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '7px 12px',
+                    paddingInlineStart: '32px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    fontSize: 'var(--font-body)',
+                    outline: 'none',
+                  }}
+                />
+                <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
+                  <AppIcons.Search size={15} />
+                </span>
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  paddingInlineStart: '36px',
+                  padding: '7px 12px',
                   borderRadius: '8px',
                   border: '1px solid #cbd5e1',
                   backgroundColor: '#ffffff',
-                  fontSize: 'var(--font-body)',
+                  fontSize: 'var(--font-table-head)',
+                  fontWeight: 600,
+                  color: '#334155',
+                  outline: 'none',
                 }}
-              />
-              <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
-                <AppIcons.Search size={16} />
-              </span>
+              >
+                <option value="all">كافة الحالات</option>
+                <option value="draft">مسودة</option>
+                <option value="bids_received">تم استلام عروض</option>
+                <option value="converted_to_po">تم التحويل لأمر شراء (PO)</option>
+              </select>
             </div>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                fontSize: 'var(--font-table-head)',
-                fontWeight: 600,
-                color: '#334155',
-              }}
-            >
-              <option value="all">كافة الحالات</option>
-              <option value="draft">مسودة</option>
-              <option value="bids_received">تم استلام عروض</option>
-              <option value="converted_to_po">تم التحويل لأمر شراء (PO)</option>
-            </select>
           </div>
 
-          <div style={{ display: 'flex', gap: '16px', fontSize: 'var(--font-table-head)', color: '#64748b' }}>
-            <span>إجمالي الطلبات: <strong>{rfqs.length}</strong></span>
-          </div>
-        </div>
-
-        {/* RFQ List Table */}
-        <PurchaseRfqsTable
-          rfqs={filteredRfqs}
-          loading={loading}
-          onOpenMatrix={openComparisonMatrix}
-          onDelete={handleDelete}
-        />
-      </main>
+          <PurchaseRfqsTable
+            rfqs={filteredRfqs}
+            loading={loading}
+            onOpenMatrix={openComparisonMatrix}
+            onDelete={handleDelete}
+          />
+        </section>
+      </div>
 
       {/* Create RFQ Modal */}
       <CreateRfqModal

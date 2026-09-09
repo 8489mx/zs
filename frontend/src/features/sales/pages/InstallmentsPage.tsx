@@ -182,7 +182,7 @@ export function InstallmentsPage() {
 
   return (
     <div className="page-stack page-shell installments-workspace" dir="rtl">
-      <main className="document-prototype-column" style={{ paddingBottom: '32px' }}>
+      <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="نظام إدارة أقساط العملاء (Installments Engine)"
           description="جدولة وتوزيع مبيعات الآجل على أقساط شهرية، احتساب نسب الفائدة، ومتابعة التحصيلات والإيصالات."
@@ -274,7 +274,7 @@ export function InstallmentsPage() {
             />
           )}
         </section>
-      </main>
+      </div>
 
       <CreateInstallmentPlanModal
         open={createPlanModalOpen}

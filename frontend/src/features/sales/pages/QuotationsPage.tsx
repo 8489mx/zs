@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { quotationsApi, QuotationItem } from '@/features/sales/api/quotations.api';
-import { PlusIcon } from '@/shared/components/icons/AppIcons';
 import { CreateQuotationModal } from '../components/quotations/CreateQuotationModal';
 import { QuotationsTable } from '../components/quotations/QuotationsTable';
 import { printQuotation } from '../components/quotations/printQuotation';
@@ -158,63 +157,61 @@ export function QuotationsPage() {
 
   return (
     <div className="page-stack page-shell quotations-workspace" dir="rtl">
-      <main className="page-content workspace-body" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
+      <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="عروض الأسعار (Quotations)"
-          description="إنشاء وإدارة عروض الأسعار الرسمية للعملاء، طباعتها أو تحويلها مباشرة إلى فواتير مبيعات نهائية"
+          description="إنشاء وإدارة عروض الأسعار الرسمية للعملاء، طباعتها أو تحويلها مباشرة إلى فواتير مبيعات نهائية."
+          badge={<span className="nav-pill">{data?.quotations?.length || 0} عرض سعر</span>}
           actions={
-            <Button
-              variant="primary"
-              onClick={() => setIsCreateModalOpen(true)}
-              style={{ background: '#170e5e', borderColor: '#170e5e', color: '#ffffff', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <PlusIcon size={16} />
-              <span>إنشاء عرض سعر جديد</span>
-            </Button>
+            <div className="actions compact-actions">
+              <Button
+                variant="primary"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                + إنشاء عرض سعر جديد
+              </Button>
+            </div>
           }
         />
 
-        {/* Filters Toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', background: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {[
-              { key: 'all', label: 'الكل' },
-              { key: 'draft', label: 'مسودات' },
-              { key: 'sent', label: 'مرسلة' },
-              { key: 'accepted', label: 'مقبولة' },
-              { key: 'converted', label: 'محولة لفواتير' },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setStatusFilter(tab.key)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  border: statusFilter === tab.key ? '1px solid #170e5e' : '1px solid #cbd5e1',
-                  background: statusFilter === tab.key ? '#170e5e' : '#ffffff',
-                  color: statusFilter === tab.key ? '#ffffff' : '#475569',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
+        {/* Quotations Content Section */}
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[
+                { key: 'all', label: 'الكل' },
+                { key: 'draft', label: 'مسودات' },
+                { key: 'sent', label: 'مرسلة' },
+                { key: 'accepted', label: 'مقبولة' },
+                { key: 'converted', label: 'محولة لفواتير' },
+              ].map((tab) => (
+                <Button
+                  key={tab.key}
+                  type="button"
+                  variant={statusFilter === tab.key ? 'primary' : 'secondary'}
+                  onClick={() => setStatusFilter(tab.key)}
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
+
+            <input
+              type="text"
+              placeholder="بحث برقم العرض أو اسم العميل..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                minWidth: '260px',
+                outline: 'none',
+              }}
+            />
           </div>
 
-          <input
-            type="text"
-            placeholder="بحث برقم العرض أو اسم العميل..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ minWidth: '260px', padding: '7px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px' }}
-          />
-        </div>
-
-        {/* Quotations List */}
-        <section style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
           {isLoading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>جاري تحميل عروض الأسعار...</div>
           ) : !data?.quotations || data.quotations.length === 0 ? (
@@ -257,7 +254,7 @@ export function QuotationsPage() {
           onSubmit={handleSubmitQuotation}
           isPending={createMutation.isPending}
         />
-      </main>
+      </div>
     </div>
   );
 }

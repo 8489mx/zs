@@ -190,8 +190,8 @@ export function PricingScopeFormulaSection({
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.76rem', color: '#475569' }}>
                 <input
                   type="checkbox"
-                  checked={payload.safeguards.preventBelowCost}
-                  onChange={(event) => setPayload((current: any) => ({ ...current, safeguards: { ...current.safeguards, preventBelowCost: event.target.checked } }))}
+                  checked={Boolean(payload?.safeguards?.preventBelowCost)}
+                  onChange={(event) => setPayload((current: any) => ({ ...current, safeguards: { ...(current?.safeguards || {}), preventBelowCost: event.target.checked } }))}
                   style={{ width: '14px', height: '14px' }}
                 />
                 <span>منع البيع تحت التكلفة</span>
@@ -199,8 +199,12 @@ export function PricingScopeFormulaSection({
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.76rem', color: '#475569' }}>
                 <input
                   type="checkbox"
-                  checked={payload.safeguards.skipActiveOffers}
-                  onChange={(event) => setPayload((current: any) => ({ ...current, safeguards: { ...current.safeguards, skipActiveOffers: event.target.checked } }))}
+                  checked={Boolean(payload?.safeguards?.skipActiveOffers ?? payload?.options?.skipActiveOffers)}
+                  onChange={(event) => setPayload((current: any) => ({
+                    ...current,
+                    options: { ...(current?.options || {}), skipActiveOffers: event.target.checked },
+                    safeguards: { ...(current?.safeguards || {}), skipActiveOffers: event.target.checked }
+                  }))}
                   style={{ width: '14px', height: '14px' }}
                 />
                 <span>تخطي العروض النشطة</span>
@@ -208,8 +212,12 @@ export function PricingScopeFormulaSection({
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.76rem', color: '#475569' }}>
                 <input
                   type="checkbox"
-                  checked={payload.safeguards.skipManualExceptions}
-                  onChange={(event) => setPayload((current: any) => ({ ...current, safeguards: { ...current.safeguards, skipManualExceptions: event.target.checked } }))}
+                  checked={Boolean(payload?.safeguards?.skipManualExceptions ?? payload?.options?.skipManualExceptions)}
+                  onChange={(event) => setPayload((current: any) => ({
+                    ...current,
+                    options: { ...(current?.options || {}), skipManualExceptions: event.target.checked },
+                    safeguards: { ...(current?.safeguards || {}), skipManualExceptions: event.target.checked }
+                  }))}
                   style={{ width: '14px', height: '14px' }}
                 />
                 <span>تخطي الاستثناءات اليدوية</span>
@@ -218,7 +226,7 @@ export function PricingScopeFormulaSection({
 
             <div style={{ flex: '1 1 200px', maxWidth: '300px' }}>
               <input
-                value={payload.reason}
+                value={payload?.reason || ''}
                 onChange={(event) => setPayload((current: any) => ({ ...current, reason: event.target.value }))}
                 placeholder="سبب التعديل (مثال: زيادة تكلفة المورد)..."
                 style={{ height: '32px', width: '100%', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}

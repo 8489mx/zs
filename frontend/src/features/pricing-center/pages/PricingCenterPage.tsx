@@ -3,6 +3,7 @@ import { Button } from '@/shared/ui/button';
 import { usePricingCenterPageController } from '@/features/pricing-center/hooks/usePricingCenterPageController';
 import { PricingScopeFormulaSection } from '../components/PricingScopeFormulaSection';
 import { PricingSimulationSection } from '../components/PricingSimulationSection';
+import { PricingPreviewTableSection } from '../components/PricingPreviewTableSection';
 import { PricingRunsHistorySection } from '../components/PricingRunsHistorySection';
 
 export function PricingCenterPage() {
@@ -42,7 +43,7 @@ export function PricingCenterPage() {
 
   return (
     <div className="page-stack page-shell pricing-center-page" dir="rtl">
-      <main className="document-prototype-column" style={{ maxWidth: '1280px', paddingBottom: '60px' }}>
+      <div className="document-prototype-column" style={{ width: '100%', paddingBottom: '60px' }}>
         <PageHeader
           title="مركز التسعير الجماعي"
           badge={<span className="nav-pill">تعديل الأسعار</span>}
@@ -88,7 +89,7 @@ export function PricingCenterPage() {
           </div>
         ) : null}
 
-        {/* Setup Section */}
+        {/* Setup & Simulation Grid */}
         <div className="pricing-center-top-grid">
           <PricingScopeFormulaSection
             payload={payload}
@@ -96,22 +97,26 @@ export function PricingCenterPage() {
             suppliers={suppliers}
             categories={categories}
           />
+          <PricingSimulationSection
+            summary={summary}
+            previewLoading={previewMutation.isPending}
+            runPreview={runPreview}
+            matchedTotal={matchedTotal}
+            affectedTotal={affectedTotal}
+            skippedTotal={skippedTotal}
+            invBefore={invBefore}
+            invAfter={invAfter}
+            invDiff={invDiff}
+            marginBefore={marginBefore}
+            marginAfter={marginAfter}
+            marginDiff={marginDiff}
+          />
         </div>
 
-        {/* Simulation Section */}
-        <PricingSimulationSection
-          summary={summary}
+        {/* Preview Results Table Section */}
+        <PricingPreviewTableSection
           previewRows={previewRows}
           previewLoading={previewMutation.isPending}
-          matchedTotal={matchedTotal}
-          affectedTotal={affectedTotal}
-          skippedTotal={skippedTotal}
-          invBefore={invBefore}
-          invAfter={invAfter}
-          invDiff={invDiff}
-          marginBefore={marginBefore}
-          marginAfter={marginAfter}
-          marginDiff={marginDiff}
         />
 
         {/* History Section */}
@@ -121,7 +126,7 @@ export function PricingCenterPage() {
           onUndo={undoPricingRun}
           undoPending={undoMutation.isPending}
         />
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,44 @@
 import { Suspense, lazy, type ComponentType, type ReactNode } from 'react';
 
 function RouteLoadingFallback() {
-  return null;
+  return (
+    <div
+      className="page-stack page-shell route-loading-placeholder"
+      dir="rtl"
+      aria-busy="true"
+      style={{
+        minHeight: '60vh',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        opacity: 0.6,
+        pointerEvents: 'none',
+      }}
+    >
+      <div
+        style={{
+          height: '44px',
+          width: '100%',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          background: 'linear-gradient(90deg, #f8fafc 25%, #f1f5f9 50%, #f8fafc 75%)',
+          backgroundSize: '200% 100%',
+          animation: 'routeShimmer 1.4s infinite ease-in-out',
+        }}
+      />
+      <div
+        style={{
+          height: '280px',
+          width: '100%',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          background: '#ffffff',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        }}
+      />
+    </div>
+  );
 }
 
 export type LazyLoader = () => Promise<{ default: ComponentType<any> }>;

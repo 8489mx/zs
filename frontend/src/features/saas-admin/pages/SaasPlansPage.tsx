@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { saasAdminApi, type SaasPlan } from '@/features/saas-admin/api/saas-admin.api';
 import { PageHeader } from '@/shared/components/page-header';
+import { StatsGrid } from '@/shared/components/stats-grid';
+import { Button } from '@/shared/ui/button';
 import { DataTable, type DataTableColumn } from '@/shared/components/data-table';
 import { PlusIcon } from '@/shared/components/icons/AppIcons';
 import { CreateSaasPlanModal } from '../components/CreateSaasPlanModal';
@@ -12,6 +14,7 @@ export function SaasPlansPage() {
   const [feedback, setFeedback] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<SaasPlan | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [newPlan, setNewPlan] = useState({
     code: '',
@@ -123,12 +126,29 @@ export function SaasPlansPage() {
     });
   };
 
+  const filteredPlans = useMemo(() => {
+    if (!searchQuery.trim()) return plans;
+    const q = searchQuery.trim().toLowerCase();
+    return plans.filter((p) => 
+      p.code?.toLowerCase().includes(q) ||
+      p.name?.toLowerCase().includes(q) ||
+      p.feature_plan_name?.toLowerCase().includes(q)
+    );
+  }, [plans, searchQuery]);
+
+  const stats = useMemo(() => [
+    { key: 'total_plans', label: 'إجمالي الباقات المعرفة', value: String(plans.length) },
+    { key: 'active_plans', label: 'الباقات المفعلة للبيع', value: String(plans.filter((p) => p.is_active).length) },
+    { key: 'total_subscribers', label: 'إجمالي المنشآت المشتركة', value: `${plans.reduce((acc, p) => acc + (Number(p.subscribers_count) || 0), 0)} منشأة` },
+    { key: 'feature_plans', label: 'حزم الميزات المرتبطة', value: `${featurePlansQuery.data?.length || 0} حزمة` },
+  ], [plans, featurePlansQuery.data]);
+
   const columns: DataTableColumn<SaasPlan>[] = [
     {
       id: 'code',
       header: 'كود الباقة',
       render: (row: SaasPlan) => (
-        <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#170e5e' }}>
+        <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#170e5e', fontSize: '13px' }}>
           {row.code}
         </span>
       ),
@@ -139,9 +159,9 @@ export function SaasPlansPage() {
       header: 'اسم الباقة',
       render: (row: SaasPlan) => (
         <div>
-          <div style={{ fontWeight: 700, color: '#0f172a' }}>{row.name}</div>
+          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>{row.name}</div>
           {row.feature_plan_name && (
-            <div style={{ fontSize: '11px', color: '#6366f1' }}>
+            <div style={{ fontSize: '11px', color: '#6366f1', marginTop: '2px' }}>
               باقة ميزات: {row.feature_plan_name}
             </div>
           )}
@@ -154,7 +174,7 @@ export function SaasPlansPage() {
       header: 'السعر وفترة الفوترة',
       render: (row: SaasPlan) => (
         <div>
-          <span style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a' }}>
+          <span style={{ fontWeight: 800, fontSize: '13.5px', color: '#0f172a' }}>
             {row.price} {row.currency}
           </span>
           <span style={{ fontSize: '11px', color: '#64748b', marginRight: '4px' }}>
@@ -168,7 +188,7 @@ export function SaasPlansPage() {
       id: 'limits',
       header: 'الحدود المسموحة',
       render: (row: SaasPlan) => (
-        <div style={{ fontSize: '12px', color: '#475569' }}>
+        <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.4 }}>
           <div>مستخدمين: {row.max_users === 0 || row.max_users === null ? 'غير محدود' : row.max_users}</div>
           <div>فروع: {row.max_branches === 0 || row.max_branches === null ? 'غير محدود' : row.max_branches}</div>
         </div>
@@ -178,7 +198,7 @@ export function SaasPlansPage() {
       id: 'subscribers_count',
       header: 'المشتركين',
       render: (row: SaasPlan) => (
-        <span className="badge badge-gray" style={{ fontWeight: 700 }}>
+        <span className="badge badge-gray" style={{ fontWeight: 700, fontSize: '11px', padding: '3px 8px', borderRadius: '6px' }}>
           {row.subscribers_count || 0} منشأة
         </span>
       ),
@@ -192,7 +212,7 @@ export function SaasPlansPage() {
           type="button"
           onClick={() => toggleMutation.mutate({ id: row.id, is_active: !row.is_active })}
           className={`badge ${row.is_active ? 'badge-success' : 'badge-danger'}`}
-          style={{ cursor: 'pointer', border: 'none' }}
+          style={{ cursor: 'pointer', border: 'none', padding: '3px 8px', fontSize: '11px', fontWeight: 700, borderRadius: '6px' }}
           title="انقر لتغيير حالة التفعيل"
         >
           {row.is_active ? 'مفعلة' : 'معطلة'}
@@ -204,28 +224,28 @@ export function SaasPlansPage() {
       header: 'الإجراءات',
       render: (row: SaasPlan) => (
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
+          <Button
             type="button"
-            className="button button-secondary"
+            variant="secondary"
             onClick={() => setEditingPlan(row)}
-            style={{ fontSize: '12px', padding: '4px 10px' }}
+            style={{ fontSize: '12px', padding: '4px 10px', minHeight: '28px' }}
           >
             تعديل
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="button button-danger"
+            variant="danger"
             onClick={() => {
               if (window.confirm(`هل أنت متأكد من حذف الباقة "${row.name}"؟`)) {
                 deleteMutation.mutate(row.id);
               }
             }}
-            style={{ fontSize: '12px', padding: '4px 10px' }}
+            style={{ fontSize: '12px', padding: '4px 10px', minHeight: '28px' }}
             disabled={(row.subscribers_count || 0) > 0}
             title={(row.subscribers_count || 0) > 0 ? 'لا يمكن حذف باقة لها مشتركون حاليون' : ''}
           >
             حذف
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -233,38 +253,63 @@ export function SaasPlansPage() {
 
   return (
     <div className="page-stack page-shell saas-plans-workspace" dir="rtl">
-      <main className="page-content workspace-body" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
+      <div className="document-prototype-column" style={{ paddingBottom: '32px' }}>
         <PageHeader
           title="باقات الاشتراكات السحابية (SaaS Plans)"
-          description="تحديد باقات الأسعار وفترات الفوترة وحدود المستخدمين والفروع للمشتركين في المنصة"
+          description="تحديد باقات الأسعار وفترات الفوترة وحدود المستخدمين والفروع للمشتركين في المنصة."
+          badge={<span className="nav-pill" style={{ background: '#ede9fe', color: '#6d28d9', borderColor: '#c4b5fd' }}>SaaS Admin</span>}
           actions={
-            <button
-              type="button"
-              className="button button-primary"
+            <Button
+              variant="primary"
               onClick={() => setIsCreateModalOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
             >
               <PlusIcon size={16} />
-              <span>إضافة باقة جديدة</span>
-            </button>
+              إضافة باقة جديدة
+            </Button>
           }
         />
 
+        <StatsGrid items={stats} />
+
         {feedback && (
-          <div style={{ padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', color: '#1e40af', marginBottom: '14px', fontSize: '13px' }}>
+          <div style={{ padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', color: '#1e40af', fontSize: '13px' }}>
             {feedback}
           </div>
         )}
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-          <DataTable
-            getRowKey={(row) => String(row.id)}
-            columns={columns}
-            data={plans}
-            loading={isLoading}
-            emptyMessage="لا توجد باقات اشتراك مضافة حتى الآن"
-          />
-        </div>
+        <section className="document-prototype-section">
+          <div className="section-header-compact-row" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+              قائمة باقات الأسعار المتاحة للمستأجرين ({filteredPlans.length})
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="بحث بكود الباقة أو الاسم..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '13px',
+                  width: '240px',
+                  outline: 'none',
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+            <DataTable
+              getRowKey={(row) => String(row.id)}
+              columns={columns}
+              data={filteredPlans}
+              loading={isLoading}
+              emptyMessage="لا توجد باقات اشتراك مضافة حتى الآن"
+            />
+          </div>
+        </section>
 
         <CreateSaasPlanModal
           open={isCreateModalOpen}
@@ -283,7 +328,7 @@ export function SaasPlansPage() {
           isPending={updateMutation.isPending}
           featurePlans={featurePlansQuery.data || []}
         />
-      </main>
+      </div>
     </div>
   );
 }

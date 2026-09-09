@@ -273,12 +273,60 @@ input[type="radio"]:active,
 }
 
 /* ========================================================
-   HIGH-PERFORMANCE DATA TABLE & LIST RENDERING (60FPS SCROLL)
+   HIGH-PERFORMANCE DATA TABLE & LIST RENDERING (STABLE SIZING)
    ======================================================== */
 table tbody tr,
 .data-table-body tr,
 .data-table-row {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 44px;
+  /* Avoid content-visibility on table rows to prevent layout jumps */
 }
+
+/* ========================================================
+   GLOBAL SUPPRESSION OF TRANSIENT BLACK FOCUS STROKES & OUTLINES
+   ======================================================== */
+*:focus:not(input):not(select):not(textarea):not(button):not(a):not([contenteditable="true"]),
+*:focus-visible:not(input):not(select):not(textarea):not(button):not(a):not([contenteditable="true"]),
+[tabindex]:not(input):not(select):not(textarea):not(button):not(a):focus,
+[tabindex]:not(input):not(select):not(textarea):not(button):not(a):focus-visible,
+main:focus, main:focus-visible,
+section:focus, section:focus-visible,
+article:focus, article:focus-visible,
+header:focus, header:focus-visible,
+nav:focus, nav:focus-visible,
+aside:focus, aside:focus-visible,
+div:focus, div:focus-visible,
+.page-stack:focus, .page-stack:focus-visible,
+.page-shell:focus, .page-shell:focus-visible,
+.document-prototype-column:focus, .document-prototype-column:focus-visible,
+.document-prototype-section:focus, .document-prototype-section:focus-visible,
+.workspace-body:focus, .workspace-body:focus-visible,
+.workspace-panel:focus, .workspace-panel:focus-visible,
+.page-header:focus, .page-header:focus-visible,
+.card:focus, .card:focus-visible,
+.stat-card:focus, .stat-card:focus-visible,
+.panel:focus, .panel:focus-visible,
+.content-wrap:focus, .content-wrap:focus-visible,
+.main-col:focus, .main-col:focus-visible,
+.data-table-container:focus, .data-table-container:focus-visible,
+.table-wrap:focus, .table-wrap:focus-visible,
+.empty-state:focus, .empty-state:focus-visible,
+[tabindex="-1"]:focus, [tabindex="-1"]:focus-visible {
+  outline: none !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+}
+
+button:focus,
+.btn:focus,
+.button:focus {
+  outline: none !important;
+}
+
+button:focus-visible,
+.btn:focus-visible,
+.button:focus-visible {
+  outline: 2px solid rgba(23, 14, 94, 0.25) !important;
+  outline-offset: 1px !important;
+}
+
 

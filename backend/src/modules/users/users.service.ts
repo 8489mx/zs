@@ -411,15 +411,26 @@ export class UsersService {
     }
 
     const { tenantId } = this.scope(actor);
-    await this.tx.runInTransaction(this.db, async (trx) => {
-      await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${id}`.execute(trx);
-      await trx.deleteFrom('sessions').where('user_id', '=', id).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
-      
-      // Nullify audit logs actor reference scoped strictly to current tenant to allow deleting users who only have login/audit history
-      await sql`update audit_logs set created_by = null where tenant_id = ${tenantId} and created_by = ${id}`.execute(trx);
+    try {
+      await this.tx.runInTransaction(this.db, async (trx) => {
+        await sql`delete from user_branches where tenant_id = ${tenantId} and user_id = ${id}`.execute(trx);
+        await trx.deleteFrom('sessions').where('user_id', '=', id).where(sql<boolean>`tenant_id = ${tenantId}`).execute();
+        
+        // Nullify audit logs actor reference scoped strictly to current tenant to allow deleting users who only have login/audit history
+        await sql`update audit_logs set created_by = null where tenant_id = ${tenantId} and created_by = ${id}`.execute(trx);
 
-      await trx.deleteFrom('users').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
-    });
+        await trx.deleteFrom('users').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      });
+    } catch (err: any) {
+      if (err?.code === '23503' || String(err?.message || '').includes('violates foreign key constraint')) {
+        throw new AppError(
+          'لا يمكن حذف هذا المستخدم لوجود فواتير أو حركات مخزنية مسجلة باسمه. يمكنك تعطيل حسابه بدلاً من الحذف للحفاظ على السجلات المالية.',
+          'USER_HAS_TRANSACTIONS',
+          400,
+        );
+      }
+      throw err;
+    }
     await this.audit.log('حذف مستخدم', `تم حذف المستخدم ${existing.username} بواسطة ${actor.username}`, actor);
 
     const usersState = await this.listUsers({ includeInactive: true, page: 1, pageSize: 1000 }, actor);

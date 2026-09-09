@@ -97,6 +97,7 @@ export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDe
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
         <button
+          type="button"
           onClick={() => onEdit(list)}
           style={{
             display: 'inline-flex',
@@ -110,11 +111,13 @@ export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDe
             fontSize: 'var(--font-table-head)',
             cursor: 'pointer',
             fontWeight: 600,
+            outline: 'none',
           }}
         >
           <AppIcons.Edit size={14} /> تعديل
         </button>
         <button
+          type="button"
           onClick={() => onDelete(list.id)}
           style={{
             display: 'inline-flex',
@@ -128,6 +131,7 @@ export const PriceListCard: React.FC<PriceListCardProps> = ({ list, onEdit, onDe
             fontSize: 'var(--font-table-head)',
             cursor: 'pointer',
             fontWeight: 600,
+            outline: 'none',
           }}
         >
           <AppIcons.Trash size={14} /> حذف

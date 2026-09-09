@@ -33,8 +33,23 @@
   --font-micro: 0.6875rem;           /* 11px - النصوص الجانبية والتلميحات والباركود */
 }
 * { box-sizing: border-box; }
+*:focus:not(input):not(select):not(textarea):not(button):not(a):not([contenteditable="true"]),
+*:focus-visible:not(input):not(select):not(textarea):not(button):not(a):not([contenteditable="true"]),
+main:focus, main:focus-visible,
+section:focus, section:focus-visible,
+article:focus, article:focus-visible,
+header:focus, header:focus-visible,
+nav:focus, nav:focus-visible,
+div:focus, div:focus-visible,
+.card:focus, .card:focus-visible,
+.panel:focus, .panel:focus-visible {
+  outline: none !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+}
+
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   height: 100%;
 }
 html, body, #root, .app-root, .app-layout {
@@ -543,17 +558,44 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
-   Global Performance: prefers-reduced-motion
-   Disables all animations and transitions when user/OS requests it.
-   Also applied automatically on low-end devices via matchMedia.
+   Global Performance & Smooth Transitions
+   Respects user preferences without breaking visual smoothness.
    ========================================================================== */
+@keyframes pageEnterSmooth {
+  0% {
+    opacity: 0.88;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-wrap > .page-stack,
+.content-wrap > .page-shell,
+.content-wrap > main {
+  animation: pageEnterSmooth 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+@keyframes routeShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .content-wrap > .page-stack,
+  .content-wrap > .page-shell,
+  .content-wrap > main {
+    animation: none !important;
+  }
 }
+

@@ -32,7 +32,13 @@ const defaultPayload: PricingPreviewPayload = {
     skipCustomerPrices: true,
     skipManualExceptions: false,
   },
-};
+  safeguards: {
+    preventBelowCost: true,
+    skipActiveOffers: true,
+    skipManualExceptions: false,
+  },
+  reason: '',
+} as any;
 
 export function usePricingCenterPageController() {
   const queryClient = useQueryClient();
