@@ -238,6 +238,12 @@ try {
     }
   }
 
+  $compileCacheDir = Join-Path $paths.RuntimeDataDir '.compile_cache'
+  if (-not (Test-Path $compileCacheDir)) {
+    New-Item -ItemType Directory -Path $compileCacheDir -Force | Out-Null
+  }
+  $env:NODE_COMPILE_CACHE = $compileCacheDir
+
   $backendProc = Start-ProcessHiddenTracked `
     -FilePath $nodeExe `
     -WorkingDirectory $paths.AppBackendDir `

@@ -1,3 +1,14 @@
+// Enable Node.js 22+ built-in V8 compile cache for accelerated startup
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { enableCompileCache } = require('node:module');
+  if (typeof enableCompileCache === 'function') {
+    enableCompileCache();
+  }
+} catch {
+  // Gracefully ignored on platforms without compile cache
+}
+
 import * as Sentry from '@sentry/node';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { json, urlencoded } from 'express';

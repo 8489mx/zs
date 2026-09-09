@@ -1,6 +1,7 @@
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 
 class PostgresManager {
   constructor(appPath, isPackaged) {
@@ -114,22 +115,44 @@ class PostgresManager {
     });
   }
 
-  async waitForReady(retries = 50) {
+  async waitForReady(retries = 60) {
     console.log('Waiting for PostgreSQL to accept connections...');
     const psqlExe = path.join(this.postgresBinDir, 'psql.exe');
     
+    const checkPort = () => new Promise((resolve) => {
+      const sock = new net.Socket();
+      sock.setTimeout(300);
+      sock.once('connect', () => {
+        sock.destroy();
+        resolve(true);
+      });
+      sock.once('error', () => {
+        sock.destroy();
+        resolve(false);
+      });
+      sock.once('timeout', () => {
+        sock.destroy();
+        resolve(false);
+      });
+      sock.connect(Number(this.dbPort), '127.0.0.1');
+    });
+
     for (let i = 0; i < retries; i++) {
-      try {
-        execSync(`"${psqlExe}" -h 127.0.0.1 -p ${this.dbPort} -U ${this.dbUser} -d postgres -tAc "SELECT 1;"`, { 
-          env: { ...process.env, PGPASSWORD: this.dbPass },
-          stdio: 'ignore'
-        });
-        console.log('PostgreSQL is ready.');
-        return true;
-      } catch (err) {
-        // Not ready yet.
+      const portOpen = await checkPort();
+      if (portOpen) {
+        try {
+          execSync(`"${psqlExe}" -h 127.0.0.1 -p ${this.dbPort} -U ${this.dbUser} -d postgres -tAc "SELECT 1;"`, { 
+            env: { ...process.env, PGPASSWORD: this.dbPass },
+            stdio: 'ignore',
+            timeout: 1500
+          });
+          console.log('PostgreSQL is ready.');
+          return true;
+        } catch (err) {
+          // Port is open but server is still initializing
+        }
       }
-      await new Promise(res => setTimeout(res, 200));
+      await new Promise(res => setTimeout(res, 100));
     }
     throw new Error('PostgreSQL did not become ready in time.');
   }

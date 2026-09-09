@@ -1,3 +1,11 @@
+// Enable Node.js 22+ built-in V8 compile cache for accelerated startup
+try {
+  const { enableCompileCache } = require('node:module');
+  if (typeof enableCompileCache === 'function') {
+    enableCompileCache();
+  }
+} catch {}
+
 const { app, BrowserWindow, ipcMain, dialog, session, Menu, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -457,7 +465,13 @@ app.whenReady().then(async () => {
   }
 
   // Always run migrations on startup to handle manual data folder replacements
-  const versionMarkerPath = path.join(dataDir, '.last_migrated_version');
+  // Ensure compile cache directory exists for fast V8 bytecode caching
+  const compileCacheDir = path.join(dataDir, '.compile_cache');
+  try {
+    if (!fsLib.existsSync(compileCacheDir)) {
+      fsLib.mkdirSync(compileCacheDir, { recursive: true });
+    }
+  } catch (err) {}
 
   // Provide environment variables for the backend
   const backendEnv = {
@@ -469,6 +483,7 @@ app.whenReady().then(async () => {
     APP_HOST: currentConfig.runtimeMode === 'lan_server' ? '0.0.0.0' : '127.0.0.1',
     APP_MODE: 'SELF_CONTAINED',
     NODE_ENV: 'production',
+    NODE_COMPILE_CACHE: compileCacheDir,
     SESSION_SECRET: sessionSecret,
     SESSION_CSRF_SECRET: csrfSecret,
     CORS_ORIGINS: `http://localhost:${currentConfig.port || 3001},http://127.0.0.1:${currentConfig.port || 3001},file://`,
@@ -480,6 +495,7 @@ app.whenReady().then(async () => {
   };
 
   let backendProcess = null;
+  let backendSignaledReady = false;
   let isQuitting = false;
 
   const backendLogPath = path.join(dataDir, '../logs', 'backend.log');
@@ -522,6 +538,13 @@ app.whenReady().then(async () => {
 
     backendProcess.on('error', (err) => {
       console.error('Backend process error:', err);
+    });
+
+    backendProcess.on('message', (msg) => {
+      if (msg === 'ready') {
+        console.log('[ELECTRON] Backend signaled ready via IPC.');
+        backendSignaledReady = true;
+      }
     });
 
     // When the backend exits cleanly (code 0, no signal), it means it triggered
@@ -922,26 +945,32 @@ Write-Output "$disk|$cpu|$uuid|$bb|$mac"
 
     return new Promise((resolve) => {
       let attempts = 0;
+      const targetPort = Number(currentConfig.port || 3001);
       const ping = () => {
+        if (backendSignaledReady) {
+          return resolve(true);
+        }
         attempts++;
-        if (attempts > 150) {
+        if (attempts > 300) {
           return resolve(true); 
         }
         const socket = new net.Socket();
-        socket.setTimeout(1000);
-        socket.on('connect', () => {
+        socket.setTimeout(800);
+        socket.once('connect', () => {
           socket.destroy();
           resolve(true);
         });
-        socket.on('error', () => {
+        socket.once('error', () => {
           socket.destroy();
-          setTimeout(ping, 200);
+          if (backendSignaledReady) return resolve(true);
+          setTimeout(ping, 100);
         });
-        socket.on('timeout', () => {
+        socket.once('timeout', () => {
           socket.destroy();
-          setTimeout(ping, 200);
+          if (backendSignaledReady) return resolve(true);
+          setTimeout(ping, 100);
         });
-        socket.connect(3001, '127.0.0.1');
+        socket.connect(targetPort, '127.0.0.1');
       };
       ping();
     });
