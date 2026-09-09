@@ -12,6 +12,10 @@ const STATIC_ROUTE_RULES: RouteBreadcrumbRule[] = [
   { prefix: '/dashboard', exact: true, crumbs: [{ label: 'الرئيسية' }] },
 
   // Sales & Customers
+  { prefix: '/sales/orders', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المبيعات', to: '/sales' }, { label: 'أوامر البيع وحجز المخزون' }] },
+  { prefix: '/sales/price-lists', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المبيعات', to: '/sales' }, { label: 'قوائم الأسعار والشرائح' }] },
+  { prefix: '/quotations', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المبيعات', to: '/sales' }, { label: 'عروض الأسعار' }] },
+  { prefix: '/displays', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المبيعات', to: '/sales' }, { label: 'شاشات العرض' }] },
   { prefix: '/sales', exact: true, crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المبيعات', to: '/sales' }, { label: 'سجل الفواتير' }] },
   { prefix: '/returns', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المبيعات', to: '/sales' }, { label: 'مرتجعات المبيعات' }] },
   { prefix: '/customers', crumbs: [{ label: 'الرئيسية', to: '/' }, { label: 'المبيعات', to: '/sales' }, { label: 'العملاء' }] },
@@ -115,6 +119,7 @@ const STATIC_ROUTE_RULES: RouteBreadcrumbRule[] = [
 
 const MODULE_SECTION_NAMES: Record<string, { label: string; to: string }> = {
   sales: { label: 'المبيعات', to: '/sales' },
+  displays: { label: 'المبيعات', to: '/sales' },
   purchases: { label: 'المشتريات والموردين', to: '/purchases' },
   inventory: { label: 'المخزون والأصناف', to: '/inventory' },
   products: { label: 'المخزون والأصناف', to: '/inventory' },

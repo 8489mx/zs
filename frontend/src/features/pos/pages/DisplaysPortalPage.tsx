@@ -1,5 +1,8 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/shared/components/page-header";
+import { useAppToolbar } from "@/stores/toolbar-store";
+import { useSettingsQuery } from "@/shared/hooks/use-catalog-queries";
 
 interface DisplayCard {
   key: string;
@@ -14,6 +17,22 @@ interface DisplayCard {
 
 export function DisplaysPortalPage() {
   const navigate = useNavigate();
+  const { data: settings } = useSettingsQuery();
+
+  const isRestaurant = settings?.restaurantModuleEnabled === true;
+
+  const breadcrumbs = useMemo(
+    () => [
+      {
+        label: isRestaurant ? "المطاعم والكافيهات" : "المبيعات",
+        to: isRestaurant ? undefined : "/sales",
+      },
+      { label: "شاشات العرض" },
+    ],
+    [isRestaurant]
+  );
+
+  useAppToolbar(breadcrumbs);
 
   // Order in RTL:
   // 1. Right: شاشة العروض والأسعار
