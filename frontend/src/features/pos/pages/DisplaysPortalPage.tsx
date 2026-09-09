@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSettingsQuery } from "@/shared/hooks/use-catalog-queries";
 
 interface DisplayCard {
@@ -59,10 +59,12 @@ export function DisplaysPortalPage() {
         justifyContent: "center",
         padding: "40px 24px",
         direction: "rtl",
+        boxSizing: "border-box",
+        width: "100%",
       }}
     >
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: 48 }}>
+      <div style={{ textAlign: "center", marginBottom: 40, width: "100%", maxWidth: 960, margin: "0 auto 40px" }}>
         <div
           style={{
             width: 64,
@@ -95,26 +97,37 @@ export function DisplaysPortalPage() {
         </p>
       </div>
 
-      {/* Grid */}
+      {/* Cards Container */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns:
-            availableCards.length === 1
-              ? "1fr"
-              : availableCards.length === 2
-              ? "1fr 1fr"
-              : "repeat(3, 1fr)",
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          alignItems: "stretch",
           gap: 24,
           width: "100%",
-          maxWidth: 960,
+          maxWidth: 1040,
+          margin: "0 auto",
+          boxSizing: "border-box",
         }}
       >
         {availableCards.map((card) => (
-          <button
+          <div
             key={card.key}
+            role="button"
+            tabIndex={0}
             onClick={() => navigate(card.path)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate(card.path);
+              }
+            }}
             style={{
+              flex: "0 1 300px",
+              width: 300,
+              maxWidth: "100%",
               background: "#ffffff",
               border: "1px solid #e2e8f0",
               borderRadius: 16,
@@ -124,24 +137,27 @@ export function DisplaysPortalPage() {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
+              justifyContent: "space-between",
               gap: 16,
+              whiteSpace: "normal",
               transition: "box-shadow 0.15s, transform 0.15s, border-color 0.15s",
               boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+              boxSizing: "border-box",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.boxShadow =
+              e.currentTarget.style.boxShadow =
                 "0 8px 24px rgba(0,0,0,0.12)";
-              (e.currentTarget as HTMLButtonElement).style.transform =
+              e.currentTarget.style.transform =
                 "translateY(-2px)";
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
+              e.currentTarget.style.borderColor =
                 card.color;
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.boxShadow =
+              e.currentTarget.style.boxShadow =
                 "0 1px 4px rgba(0,0,0,0.06)";
-              (e.currentTarget as HTMLButtonElement).style.transform =
+              e.currentTarget.style.transform =
                 "translateY(0)";
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
+              e.currentTarget.style.borderColor =
                 "#e2e8f0";
             }}
           >
@@ -172,8 +188,8 @@ export function DisplaysPortalPage() {
               </svg>
             </div>
 
-            {/* Title */}
-            <div>
+            {/* Title & Description */}
+            <div style={{ width: "100%", textAlign: "center" }}>
               <div
                 style={{
                   fontSize: "0.98rem",
@@ -189,6 +205,8 @@ export function DisplaysPortalPage() {
                   fontSize: "0.8125rem",
                   color: "#64748b",
                   lineHeight: 1.6,
+                  whiteSpace: "normal",
+                  wordBreak: "break-word",
                 }}
               >
                 {card.description}
@@ -221,7 +239,7 @@ export function DisplaysPortalPage() {
                 <path d="M19 12H5M5 12l7-7M5 12l7 7" />
               </svg>
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>
