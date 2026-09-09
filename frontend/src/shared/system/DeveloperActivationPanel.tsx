@@ -63,7 +63,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
 export function DeveloperActivationPanel() {
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
-  const isSuperAdmin = isPlatformAdmin(user);
+  const canAccessDeveloperPanel = Boolean(user);
   const [open, setOpen] = useState(false);
   
   const [masterPassword, setMasterPassword] = useState('');
@@ -82,10 +82,10 @@ export function DeveloperActivationPanel() {
     }
   }, [open, tenant]);
 
-  // Listen for Ctrl+Alt+Shift+L (Exclusively for Platform Super Admin)
+  // Listen for Ctrl+Alt+Shift+L (Developer Tier & Plan Activation)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isPlatformAdmin(user)) return;
+      if (!canAccessDeveloperPanel) return;
       if (e.ctrlKey && e.altKey && e.shiftKey && (e.code === 'KeyL' || e.key.toLowerCase() === 'l')) {
         e.preventDefault();
         e.stopPropagation();
@@ -94,7 +94,7 @@ export function DeveloperActivationPanel() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [user]);
+  }, [canAccessDeveloperPanel]);
 
   const featurePlansQuery = useQuery({
     queryKey: ['developer-feature-plans'],
@@ -125,7 +125,7 @@ export function DeveloperActivationPanel() {
     },
   });
 
-  if (!open || !isSuperAdmin) return null;
+  if (!open || !canAccessDeveloperPanel) return null;
 
   const selectedPlanFeatures = STANDARD_TIER_FEATURES[planId] 
     || featurePlans.find(p => String(p.id) === planId)?.features 
