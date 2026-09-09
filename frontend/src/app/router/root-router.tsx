@@ -173,6 +173,10 @@ const router = createRouter([
     element: <Navigate to="/pos/customer-display" replace />,
   },
   {
+    path: '/displays',
+    element: createLazyRoute(() => import('@/features/pos/pages/DisplaysPortalPage').then((module) => ({ default: module.DisplaysPortalPage }))),
+  },
+  {
     path: '/kds',
     element: createLazyRoute(() => import('@/features/pos/pages/KitchenDisplayPage').then((module) => ({ default: module.KitchenDisplayPage }))),
   },

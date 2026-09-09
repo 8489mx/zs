@@ -21,7 +21,8 @@ export const salesRouteModule: FeatureRouteModule = {
     { key: 'online-orders', label: 'طلبات الأونلاين', to: '/online-orders' },
     { key: 'tax-dispatcher', label: 'الضرائب (ETA)', to: '/tax-dispatcher' },
     { key: 'vat-declaration', label: 'الإقرار الضريبي (ن10 و ZATCA)', to: '/vat-declaration' },
+    { key: 'displays', label: 'شاشات العرض', to: '/displays' },
     { key: 'kds', label: 'شاشة المطبخ (KDS)', to: '/kds' },
-    { key: 'signage', label: 'شاشات العروض والأسعار', to: '/signage' }
+    { key: 'signage', label: 'شاشات العروض والأسعار', to: '/signage' },
   ]
 };

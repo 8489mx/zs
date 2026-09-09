@@ -22,11 +22,7 @@ export function KitchenDisplayPage() {
   const [currentTime, setCurrentTime] = useState<string>('');
 
   const handleBack = () => {
-    if (window.history.length > 1 && window.history.state?.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate('/dashboard');
-    }
+    navigate('/displays');
   };
   const [lastRecallMessage, setLastRecallMessage] = useState<string | null>(null);
   const previousTicketIdsRef = useRef<Set<number>>(new Set());

@@ -4,6 +4,7 @@ import {
   ClockIcon,
   Maximize2Icon,
   Minimize2Icon,
+  ArrowRightIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface CfdHeaderProps {
@@ -13,6 +14,7 @@ interface CfdHeaderProps {
   currentDate: string;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  onBack?: () => void;
 }
 
 export const CfdHeader: React.FC<CfdHeaderProps> = ({
@@ -22,6 +24,7 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
   currentDate,
   isFullscreen,
   onToggleFullscreen,
+  onBack,
 }) => {
   return (
     <header className="cfd-header">
@@ -49,6 +52,30 @@ export const CfdHeader: React.FC<CfdHeaderProps> = ({
           <span className="cfd-status-dot" aria-hidden="true" />
           <span>بث مباشر للكاشير</span>
         </div>
+
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '7px 13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              fontWeight: 700,
+              fontSize: '12px',
+            }}
+            title="العودة لبورتال الشاشات"
+          >
+            <ArrowRightIcon size={15} color="#ffffff" strokeWidth={2.5} />
+            <span>الشاشات</span>
+          </button>
+        )}
 
         <button
           type="button"

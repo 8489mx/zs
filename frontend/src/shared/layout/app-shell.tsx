@@ -79,6 +79,7 @@ const iconPathMap: Record<string, string> = {
   pos: 'M4 5h16v10H4V5zM8 19h8M10 15v4M14 15v4',
   kds: 'M18 2v8a3 3 0 0 1-3 3h-1v9h-2v-9H7a3 3 0 0 1-3-3V2h2v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2h2z',
   signage: 'M2 3h20v14H2V3zm6 18h8m-4-4v4',
+  displays: 'M2 3h20v14H2V3zm6 18h8m-4-4v4',
   'online-orders': 'M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6M9 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   'cash-drawer': 'M3 10h18v10H3V10zm3-6h12v4H6V4zm6 9v2m-4 0h8',
   sales: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
@@ -517,7 +518,11 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'delivery-reps' && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps'))) return false;
         if (item.key === 'kds' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         if (item.key === 'product-modifiers' && settings?.restaurantModuleEnabled !== true) return false;
-        if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'kds' || item.key === 'signage') && settings?.posModuleEnabled === false) return false;
+        // kds and signage are accessed via /displays portal - hide them as direct sidebar items
+        if (item.key === 'kds' || item.key === 'signage') return false;
+        // displays portal: visible when POS is enabled
+        if (item.key === 'displays' && settings?.posModuleEnabled === false) return false;
+        if ((item.key === 'pos' || item.key === 'cash-drawer') && settings?.posModuleEnabled === false) return false;
 
         // Enterprise Sales gating (CRM, Sales Orders, Price Lists, Quotations):
         if ((item.key === 'crm' || item.key === 'sales-orders' || item.key === 'price-lists' || item.key === 'quotations') && settings?.enableEnterpriseFeatures !== true) return false;
@@ -562,14 +567,14 @@ export function AppShell({ children }: PropsWithChildren) {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     const hasAccounting = isPlatformAdminUser || !tenant?.features || tenant.features.includes('accounting');
     return [
-      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'price-lists', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'signage'], iconKey: 'sales' },
+      { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'price-lists', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'displays'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
       { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', ...(settings?.restaurantModuleEnabled ? [] : ['product-modifiers']), 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-order-new'], iconKey: 'inventory' },
       { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
       ...(settings?.restaurantModuleEnabled ? [{
         key: 'restaurant-group',
         label: 'المطاعم والكافيهات',
-        itemKeys: ['kds', 'product-modifiers'],
+        itemKeys: ['displays', 'product-modifiers'],
         iconKey: 'kds',
       }] : []),
       { key: 'mobile-group', label: maintenanceProfile.sidebarTitle, itemKeys: ['maintenance', 'trade-in', 'imei-history'], iconKey: 'mobile' },

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { CustomerDisplayPayload } from '@/features/pos/types/pos-customer-display.types';
 import {
   getCustomerDisplayInitialState,
@@ -48,6 +49,7 @@ const DEFAULT_PROMOTIONS: PromotionItem[] = [
 ];
 
 export function CustomerFacingDisplayPage() {
+  const navigate = useNavigate();
   const [payload, setPayload] = useState<CustomerDisplayPayload>(() => {
     return (
       getCustomerDisplayInitialState() || {
@@ -170,6 +172,7 @@ export function CustomerFacingDisplayPage() {
         currentDate={currentDate}
         isFullscreen={isFullscreen}
         onToggleFullscreen={handleToggleFullscreen}
+        onBack={() => navigate('/displays')}
       />
 
       <main className="cfd-main">

@@ -30,11 +30,7 @@ export function DigitalSignagePage() {
   const [currentDate, setCurrentDate] = useState<string>('');
 
   const handleGoBack = () => {
-    if (window.history.length > 1 && window.history.state?.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate('/dashboard');
-    }
+    navigate('/displays');
   };
 
   // Keyboard navigation & Esc listener
