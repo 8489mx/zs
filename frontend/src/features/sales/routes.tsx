@@ -10,7 +10,8 @@ export const salesRouteModule: FeatureRouteModule = {
     { path: 'online-orders', element: createLazyRoute(() => import('@/features/storefront/pages/MerchantOnlineOrdersPage').then((module) => ({ default: module.MerchantOnlineOrdersPage }))) },
     { path: 'tax-dispatcher', element: createLazyRoute(() => import('@/features/sales/pages/TaxDispatcherPage').then((module) => ({ default: module.TaxDispatcherPage }))) },
     { path: 'installments', element: createLazyRoute(() => import('@/features/sales/pages/InstallmentsPage').then((module) => ({ default: module.InstallmentsPage }))) },
-    { path: 'vat-declaration', element: createLazyRoute(() => import('@/features/sales/pages/VatDeclarationPage').then((module) => ({ default: module.VatDeclarationPage }))) }
+    { path: 'vat-declaration', element: createLazyRoute(() => import('@/features/sales/pages/VatDeclarationPage').then((module) => ({ default: module.VatDeclarationPage }))) },
+    { path: 'displays', element: createLazyRoute(() => import('@/features/pos/pages/DisplaysPortalPage').then((module) => ({ default: module.DisplaysPortalPage }))) }
   ],
   navigation: [
     { key: 'sales', label: 'المبيعات', to: '/sales', end: true },
