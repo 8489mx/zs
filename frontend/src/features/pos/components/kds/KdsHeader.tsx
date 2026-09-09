@@ -1,5 +1,5 @@
 import React from 'react';
-import { UtensilsIcon, BellIcon, BellOffIcon, Maximize2Icon } from '@/shared/components/icons/AppIcons';
+import { UtensilsIcon, BellIcon, BellOffIcon, Maximize2Icon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 
 interface KdsHeaderProps {
   currentTime: string;
@@ -8,6 +8,7 @@ interface KdsHeaderProps {
   onRecallLastServed: () => void;
   isRecalling: boolean;
   onToggleFullscreen: () => void;
+  onBack?: () => void;
 }
 
 export const KdsHeader: React.FC<KdsHeaderProps> = ({
@@ -17,6 +18,7 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
   onRecallLastServed,
   isRecalling,
   onToggleFullscreen,
+  onBack,
 }) => {
   return (
     <header
@@ -93,6 +95,33 @@ export const KdsHeader: React.FC<KdsHeaderProps> = ({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Back to System Button */}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '7px 14px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 6px rgba(23, 14, 94, 0.2)',
+                transition: 'all 0.15s ease',
+              }}
+              title="العودة للنظام (Esc)"
+            >
+              <ArrowRightIcon size={14} color="#ffffff" strokeWidth={2.5} />
+              <span>العودة للنظام</span>
+            </button>
+          )}
+
           {/* Sound Toggle */}
           <button
             type="button"

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   kdsApi,
@@ -13,11 +14,20 @@ import { KdsStandbyState } from '../components/kds/KdsStandbyState';
 import { KdsTicketCard } from '../components/kds/KdsTicketCard';
 
 export function KitchenDisplayPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedStation, setSelectedStation] = useState<KdsStation>('all');
   const [selectedOrderType, setSelectedOrderType] = useState<string>('all');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<string>('');
+
+  const handleBack = () => {
+    if (window.history.length > 1 && window.history.state?.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard');
+    }
+  };
   const [lastRecallMessage, setLastRecallMessage] = useState<string | null>(null);
   const previousTicketIdsRef = useRef<Set<number>>(new Set());
 
@@ -167,6 +177,7 @@ export function KitchenDisplayPage() {
         onRecallLastServed={() => recallMutation.mutate()}
         isRecalling={recallMutation.isPending}
         onToggleFullscreen={handleToggleFullscreen}
+        onBack={handleBack}
       />
 
       {/* 2. Executive Kitchen KPI Strip */}

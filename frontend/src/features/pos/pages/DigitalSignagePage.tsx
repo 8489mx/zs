@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi } from '@/features/products/api/products.api';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
@@ -8,22 +9,50 @@ import { SignageHeroCard } from '../components/signage/SignageHeroCard';
 import { SignageSideDeck } from '../components/signage/SignageSideDeck';
 import { SignageMarqueeFooter } from '../components/signage/SignageMarqueeFooter';
 import { SignageSettingsDrawer } from '../components/signage/SignageSettingsDrawer';
+import { SignageNavDrawer } from '../components/signage/SignageNavDrawer';
 
 export function DigitalSignagePage() {
   const settingsQuery = useSettingsQuery();
   const settings = settingsQuery.data;
 
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [slideIntervalSec, setSlideIntervalSec] = useState<number>(8);
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [showSettingsDrawer, setShowSettingsDrawer] = useState<boolean>(false);
+  const [showNavDrawer, setShowNavDrawer] = useState<boolean>(false);
   const [customTickerText, setCustomTickerText] = useState<string>(
     'أهلاً بكم في صالة العرض • عروض وتخفيضات كبرى على مدار الأسبوع • امسح كود الـ QR للتسوق من هاتفك فورياً • نضمن لكم أعلى جودة بأفضل سعر'
   );
   const [viewFilter, setViewFilter] = useState<'offers' | 'all'>('offers');
   const [currentTime, setCurrentTime] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
+
+  const handleGoBack = () => {
+    if (window.history.length > 1 && window.history.state?.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  // Keyboard navigation & Esc listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showNavDrawer) {
+          setShowNavDrawer(false);
+        } else if (showSettingsDrawer) {
+          setShowSettingsDrawer(false);
+        } else if (!document.fullscreenElement) {
+          handleGoBack();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showNavDrawer, showSettingsDrawer]);
 
   // Clock ticker
   useEffect(() => {
@@ -173,6 +202,8 @@ export function DigitalSignagePage() {
         progressPercent={progressPercent}
         onToggleFullscreen={handleToggleFullscreen}
         onToggleSettings={() => setShowSettingsDrawer((prev) => !prev)}
+        onBack={handleGoBack}
+        onToggleNavMenu={() => setShowNavDrawer((prev) => !prev)}
       />
 
       {/* Main Promo Stage */}
@@ -244,6 +275,14 @@ export function DigitalSignagePage() {
           onCustomTickerTextChange={setCustomTickerText}
         />
       )}
+
+      {/* Quick Navigation Drawer */}
+      <SignageNavDrawer
+        isOpen={showNavDrawer}
+        onClose={() => setShowNavDrawer(false)}
+        onBack={handleGoBack}
+        storeName={storeName}
+      />
     </div>
   );
 }

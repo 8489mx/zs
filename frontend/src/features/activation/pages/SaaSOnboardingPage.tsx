@@ -70,9 +70,18 @@ export function SaaSOnboardingPage() {
     return <Navigate to="/" replace />;
   }
 
-  // إذا كان العميل يمتلك منتجات بالفعل وأتم التهيئة، يتم توجيهه للرئيسية لمنع الإزعاج.
+  const hasEstablishedData = Boolean(
+    hasProducts ||
+    (currentSettings?.storeName && currentSettings.storeName !== 'Z Systems' && currentSettings.storeName !== 'المتجر الافتراضي' && currentSettings.storeName.trim().length > 0) ||
+    currentSettings?.phone ||
+    currentSettings?.address ||
+    currentSettings?.logoData ||
+    currentSettings?.taxNumber
+  );
+
+  // إذا كان العميل يمتلك منتجات أو بيانات منشأة مسبقة وأتم التهيئة، يتم توجيهه للرئيسية لمنع الإزعاج.
   // أما إذا كان لا يمتلك أي أصناف بعد (رصيد الأصناف 0)، يُسمح له دائماً بدخول صفحة التهيئة وتعديلها بحرية!
-  if (!isPreview && hasProducts && currentSettings && (currentSettings as any).onboardingCompleted === true) {
+  if (!isPreview && hasEstablishedData && (currentSettings as any)?.onboardingCompleted === true) {
     return <Navigate to="/" replace />;
   }
 

@@ -1,5 +1,11 @@
 import React from 'react';
-import { ShoppingCartIcon, Maximize2Icon, SettingsIcon } from '@/shared/components/icons/AppIcons';
+import {
+  ShoppingCartIcon,
+  Maximize2Icon,
+  SettingsIcon,
+  ArrowRightIcon,
+  MenuIcon,
+} from '@/shared/components/icons/AppIcons';
 
 interface SignageHeaderProps {
   storeName: string;
@@ -8,6 +14,8 @@ interface SignageHeaderProps {
   progressPercent: number;
   onToggleFullscreen: () => void;
   onToggleSettings: () => void;
+  onBack: () => void;
+  onToggleNavMenu: () => void;
 }
 
 export const SignageHeader: React.FC<SignageHeaderProps> = ({
@@ -17,6 +25,8 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
   progressPercent,
   onToggleFullscreen,
   onToggleSettings,
+  onBack,
+  onToggleNavMenu,
 }) => {
   return (
     <>
@@ -120,6 +130,56 @@ export const SignageHeader: React.FC<SignageHeaderProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Back to System Button */}
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                background: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '10px',
+                padding: '8px 14px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontWeight: 800,
+                fontSize: '12.5px',
+                boxShadow: '0 2px 6px rgba(23, 14, 94, 0.25)',
+                transition: 'all 0.15s ease',
+              }}
+              title="العودة للنظام أو لوحة التحكم (Esc)"
+            >
+              <ArrowRightIcon size={16} color="#ffffff" strokeWidth={2.5} />
+              <span>العودة للنظام</span>
+            </button>
+
+            {/* Quick Menu / Sidebar Drawer Button */}
+            <button
+              type="button"
+              onClick={onToggleNavMenu}
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                color: '#1e293b',
+                borderRadius: '10px',
+                padding: '8px 12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 700,
+                fontSize: '12.5px',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
+                transition: 'all 0.15s ease',
+              }}
+              title="فتح القائمة الرئيسية والتنقل السريع بين الأقسام"
+            >
+              <MenuIcon size={17} color="#170e5e" strokeWidth={2.2} />
+              <span>القائمة السريعة</span>
+            </button>
+
             <button
               type="button"
               onClick={onToggleFullscreen}

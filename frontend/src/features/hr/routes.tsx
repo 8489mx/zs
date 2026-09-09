@@ -32,7 +32,25 @@ export const hrRouteModule: FeatureRouteModule = {
     { path: 'hr/reports', element: createLazyRoute(() => import('@/features/hr/pages/HrReportsPage').then((module) => ({ default: withHrGate(module.HrReportsPage) }))) },
   ],
   navigation: [
-    { key: 'hr', label: 'الموارد البشرية', to: '/hr' },
-    { key: 'hr-settlements', label: 'مخالصات ونهاية الخدمة', to: '/hr/settlements' },
+    {
+      key: 'hr',
+      label: 'الموارد البشرية',
+      to: '/hr',
+      end: true,
+      activePaths: [
+        '/hr',
+        '/hr/employees',
+        '/hr/employees/new',
+        '/hr/payroll',
+        '/hr/attendance',
+        '/hr/leaves',
+        '/hr/loans',
+        '/hr/documents',
+        '/hr/assets',
+        '/hr/reports',
+        '/hr/settings',
+      ],
+    },
+    { key: 'hr-settlements', label: 'مخالصات ونهاية الخدمة', to: '/hr/settlements', end: true },
   ],
 };

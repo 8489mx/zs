@@ -787,6 +787,33 @@ export function LockIcon({ size = 18, color = 'currentColor', strokeWidth = 2, c
   );
 }
 
+export function ArrowRightIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+export function ArrowLeftIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
+export function HomeIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+
 export const AppIcons = {
   Plus: PlusIcon,
   Trash: TrashIcon,
@@ -815,6 +842,9 @@ export const AppIcons = {
   Warehouse: WarehouseIcon,
   Lock: LockIcon,
   Menu: MenuIcon,
+  ArrowRight: ArrowRightIcon,
+  ArrowLeft: ArrowLeftIcon,
+  Home: HomeIcon,
 };
 
 export default AppIcons;

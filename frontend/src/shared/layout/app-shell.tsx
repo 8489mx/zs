@@ -213,7 +213,14 @@ export function AppShell({ children }: PropsWithChildren) {
   const isPlatformUser = isPlatformAdmin(user);
   const isTenantAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const previewOnboarding = new URLSearchParams(location.search).get('onboarding') === '1';
-  const shouldRedirectToOnboarding = previewOnboarding || (!isPlatformUser && isTenantAdmin && settings && (settings as any).onboardingCompleted !== true && (settings as any).onboardingCompleted !== 'true');
+  const hasEstablishedStoreData = Boolean(
+    (settings?.storeName && settings.storeName !== 'Z Systems' && settings.storeName !== 'المتجر الافتراضي' && settings.storeName.trim().length > 0) ||
+    settings?.phone ||
+    settings?.address ||
+    settings?.logoData ||
+    settings?.taxNumber
+  );
+  const shouldRedirectToOnboarding = previewOnboarding || (!isPlatformUser && isTenantAdmin && settings && (settings as any).onboardingCompleted !== true && (settings as any).onboardingCompleted !== 'true' && !hasEstablishedStoreData);
 
   useEffect(() => {
     if (shouldRedirectToOnboarding && location.pathname !== '/onboarding') {
@@ -503,28 +510,35 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key?.startsWith('pharmacy-') && (settings?.enablePharmacyModule !== true || !hasFeature('pharmacy'))) return false;
         if (item.key?.startsWith('manufacturing-') && (settings?.manufacturingModuleEnabled !== true || !hasFeature('manufacturing'))) return false;
         if (item.key === 'services' && settings?.servicesModuleEnabled !== true) return false;
-        if (item.key === 'online-orders' && (settings?.storefrontModuleEnabled === false || !hasFeature('storefront'))) return false;
-        if (item.key === 'installments' && (settings?.installmentsModuleEnabled === false || !hasFeature('installments'))) return false;
-        if (item.key === 'vat-declaration' && (settings?.taxDeclarationModuleEnabled === false || !hasFeature('vat_declaration'))) return false;
-        if (item.key === 'accounting-fixed-assets' && (settings?.fixedAssetsModuleEnabled === false || !hasFeature('fixed_assets'))) return false;
-        if (item.key === 'delivery-reps' && (settings?.deliveryFleetModuleEnabled === false || !hasFeature('deliveryReps'))) return false;
+        if (item.key === 'online-orders' && (settings?.storefrontModuleEnabled !== true || !hasFeature('storefront'))) return false;
+        if (item.key === 'installments' && (settings?.installmentsModuleEnabled !== true || !hasFeature('installments'))) return false;
+        if (item.key === 'vat-declaration' && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration'))) return false;
+        if (item.key === 'accounting-fixed-assets' && (settings?.fixedAssetsModuleEnabled !== true || !hasFeature('fixed_assets'))) return false;
+        if (item.key === 'delivery-reps' && (settings?.deliveryFleetModuleEnabled !== true || !hasFeature('deliveryReps'))) return false;
         if (item.key === 'kds' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
+        if (item.key === 'product-modifiers' && settings?.restaurantModuleEnabled !== true) return false;
         if ((item.key === 'pos' || item.key === 'cash-drawer' || item.key === 'kds' || item.key === 'signage') && settings?.posModuleEnabled === false) return false;
 
+        // Enterprise Sales gating (CRM, Sales Orders, Price Lists, Quotations):
+        if ((item.key === 'crm' || item.key === 'sales-orders' || item.key === 'price-lists' || item.key === 'quotations') && settings?.enableEnterpriseFeatures !== true) return false;
+
         // Purchases gating:
-        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder' || item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && (settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
+        if ((item.key === 'purchases-orders' || item.key === 'purchases-rfqs' || item.key === 'purchases-reorder') && (settings?.enableEnterpriseFeatures !== true || settings?.purchasesModuleEnabled === false || !hasFeature('purchases'))) return false;
+        if ((item.key === 'purchases-new' || item.key === 'purchases' || item.key === 'purchase-returns' || item.key === 'suppliers' || item.key === 'reports-purchases') && (settings?.purchasesModuleEnabled !== true || !hasFeature('purchases'))) return false;
 
         // Advanced Inventory gating:
-        if ((item.key === 'inventory' || item.key === 'inventory-bins' || item.key === 'inventory-warehouses' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'reports-inventory') && (settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
+        if ((item.key === 'inventory-bins' || item.key === 'inventory-tree' || item.key === 'inventory-issue-orders' || item.key === 'inventory-issue-order-new' || item.key === 'pricing-center') && (settings?.enableEnterpriseFeatures !== true || settings?.inventoryModuleEnabled === false || !hasFeature('inventory'))) return false;
+        if ((item.key === 'inventory' || item.key === 'inventory-warehouses' || item.key === 'reports-inventory') && (settings?.inventoryModuleEnabled !== true || !hasFeature('inventory'))) return false;
 
         // Reports gating:
         if ((item.key?.startsWith('reports-') || item.key === 'audit') && !hasFeature('reports')) return false;
+        if (item.key === 'reports-balances' && settings?.enableEnterpriseFeatures !== true) return false;
 
         // HR gating:
-        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && (settings?.hrModuleEnabled === false || !hasFeature('hr'))) return false;
+        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && (settings?.hrModuleEnabled !== true || !hasFeature('hr'))) return false;
 
         // Accounting tree & journal gating:
-        if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && !hasFeature('accounting')) return false;
+        if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && item.key !== 'accounting-fixed-assets' && (settings?.enableEnterpriseFeatures !== true || !hasFeature('accounting'))) return false;
 
         return true;
       })
@@ -534,7 +548,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled]);
+  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => {
@@ -550,7 +564,7 @@ export function AppShell({ children }: PropsWithChildren) {
     return [
       { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'price-lists', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'signage'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
-      { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'product-modifiers', 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-order-new'], iconKey: 'inventory' },
+      { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', ...(settings?.restaurantModuleEnabled ? [] : ['product-modifiers']), 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-order-new'], iconKey: 'inventory' },
       { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
       ...(settings?.restaurantModuleEnabled ? [{
         key: 'restaurant-group',
@@ -571,7 +585,7 @@ export function AppShell({ children }: PropsWithChildren) {
       }] : []),
       { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'], iconKey: 'admin' },
     ];
-  }, [t, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, tenant?.features, user]);
+  }, [t, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableEnterpriseFeatures, tenant?.features, user]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {
@@ -774,15 +788,21 @@ export function AppShell({ children }: PropsWithChildren) {
   const cleanWorkspaceName = workspaceName.replace(/^\s*["'”“]+|["'”“]+\s*$/g, '').trim() || workspaceName;
 
   function renderNavItem(item: NonNullable<(typeof visibleNavigationItems)[number]>, keyPrefix: string) {
+    const isHrParentConflict = item.key === 'hr' && location.pathname.startsWith('/hr/settlements');
+    const computeActive = (isActive: boolean) => {
+      if (isHrParentConflict) return false;
+      return item.activePaths?.includes(location.pathname) || isActive;
+    };
+
     return (
       <NavLink 
         key={`${keyPrefix}-${item.key}`} 
         to={item.to} 
-        end={item.end} 
+        end={item.end ?? (item.key === 'hr' || item.key === 'dashboard')} 
         data-key={item.key} 
         data-tooltip={effectiveSidebarCollapsed ? item.label : undefined}
         style={({ isActive }) => {
-          const isPathActive = item.activePaths?.includes(location.pathname) || isActive;
+          const isPathActive = computeActive(isActive);
           const tone = isPathActive ? activeIconTone : defaultIconTone;
           return { '--icon-bg': tone.bg, '--icon-border': tone.border, '--icon-fg': tone.fg, '--icon-glow': tone.glow } as CSSProperties;
         }} 
@@ -802,7 +822,7 @@ export function AppShell({ children }: PropsWithChildren) {
           }
         }}
         className={({ isActive }) => {
-          const isPathActive = item.activePaths?.includes(location.pathname) || isActive;
+          const isPathActive = computeActive(isActive);
           return `sidebar-link ${keyPrefix === 'group' ? 'sidebar-link-sub ' : ''}${isPathActive ? 'active' : ''}`.trim();
         }}
       >
