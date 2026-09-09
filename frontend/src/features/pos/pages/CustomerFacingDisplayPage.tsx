@@ -128,6 +128,23 @@ export function CustomerFacingDisplayPage() {
     return () => clearTimeout(timer);
   }, [payload.status, payload.updatedAt]);
 
+  // Keyboard shortcuts for exiting fullscreen or returning to displays
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'Escape' ||
+        (e.altKey && e.key === 'Backspace') ||
+        (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight'))
+      ) {
+        if (!document.fullscreenElement) {
+          navigate('/displays');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
+
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});

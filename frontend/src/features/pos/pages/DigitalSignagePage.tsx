@@ -36,7 +36,11 @@ export function DigitalSignagePage() {
   // Keyboard navigation & Esc listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (
+        e.key === 'Escape' ||
+        (e.altKey && e.key === 'Backspace') ||
+        (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight'))
+      ) {
         if (showNavDrawer) {
           setShowNavDrawer(false);
         } else if (showSettingsDrawer) {

@@ -773,13 +773,31 @@ export function AppShell({ children }: PropsWithChildren) {
     };
     const handleGlobalShortcut = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return;
-      if (!event.altKey || !event.shiftKey || event.key !== 'F9') return;
-      event.preventDefault();
-      setQuickAttendanceOpen(true);
+      
+      // Quick Attendance: Alt + Shift + F9
+      if (event.altKey && event.shiftKey && event.key === 'F9') {
+        event.preventDefault();
+        setQuickAttendanceOpen(true);
+        return;
+      }
+
+      // Global Navigation Back: Alt + Backspace | Alt + LeftArrow | Alt + RightArrow
+      if (
+        (event.altKey && event.key === 'Backspace') ||
+        (event.altKey && event.key === 'ArrowLeft') ||
+        (event.altKey && event.key === 'ArrowRight')
+      ) {
+        event.preventDefault();
+        if (window.history.length > 1 && window.history.state?.idx > 0) {
+          navigate(-1);
+        } else {
+          navigate('/dashboard');
+        }
+      }
     };
     window.addEventListener('keydown', handleGlobalShortcut);
     return () => window.removeEventListener('keydown', handleGlobalShortcut);
-  }, []);
+  }, [navigate]);
 
   async function handleLogout() {
     try {

@@ -24,6 +24,23 @@ export function KitchenDisplayPage() {
   const handleBack = () => {
     navigate('/displays');
   };
+
+  // Keyboard navigation & Esc listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'Escape' ||
+        (e.altKey && e.key === 'Backspace') ||
+        (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight'))
+      ) {
+        if (!document.fullscreenElement) {
+          handleBack();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   const [lastRecallMessage, setLastRecallMessage] = useState<string | null>(null);
   const previousTicketIdsRef = useRef<Set<number>>(new Set());
 

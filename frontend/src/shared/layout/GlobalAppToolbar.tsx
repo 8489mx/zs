@@ -8,6 +8,7 @@ import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
 import { FullScreenToggleButton } from '@/shared/components/FullScreenToggleButton';
 import { AiBusinessCopilotModal } from '@/features/ai-copilot/components/AiBusinessCopilotModal';
 import { AiRobotIcon } from '@/shared/ui/AiRobotIcon';
+import { ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 
 export function GlobalAppToolbar() {
   const navigate = useNavigate();
@@ -17,6 +18,15 @@ export function GlobalAppToolbar() {
   const { data: updateInfo } = useOfflineUpdateCheck('desktop');
 
   const activeBreadcrumbs = resolveAutoBreadcrumbs(location.pathname, breadcrumbs);
+  const isHome = location.pathname === '/' || location.pathname === '/dashboard';
+
+  const handleGoBack = () => {
+    if (window.history.length > 1 && window.history.state?.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   return (
     <div className="purchase-prototype-workspace-toolbar">
@@ -33,6 +43,44 @@ export function GlobalAppToolbar() {
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
+
+        {!isHome && (
+          <button
+            type="button"
+            onClick={handleGoBack}
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              width: '30px',
+              height: '30px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#475569',
+              marginLeft: '6px',
+              flexShrink: 0,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.borderColor = '#cbd5e1';
+              e.currentTarget.style.color = '#0f172a';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.color = '#475569';
+            }}
+            title="رجوع للصفحة السابقة (Alt + Backspace)"
+            aria-label="Back"
+          >
+            <ArrowRightIcon size={15} strokeWidth={2.4} />
+          </button>
+        )}
+
         <div className="purchase-prototype-breadcrumb">
           {activeBreadcrumbs.map((crumb, index) => {
             const isLast = index === activeBreadcrumbs.length - 1;
