@@ -5,7 +5,7 @@ import { printTransferDocument } from '@/lib/inventory-printing';
 import { InventoryWorkspaceHeader } from '@/features/inventory/components/InventoryWorkspaceHeader';
 import { InventorySectionTabs } from '@/features/inventory/pages/InventorySectionTabs';
 import { StatsGrid } from '@/shared/components/stats-grid';
-import { InventoryMovementCard, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, StockTransferComposerCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
+import { InventoryMovementCard, InventoryStatusCard, StockCountComposerCard, StockCountMonitorCard, TransferMonitorCard, DamagedStockCard } from '@/features/inventory/components/InventoryWorkspaceSections';
 import { InventoryPostSessionDialog, InventoryTransferActionDialog } from '@/features/inventory/components/InventoryWorkspaceDialogs';
 import { InventoryActionsPanel } from '@/features/inventory/components/InventoryActionsPanel';
 import { useInventoryWorkspaceController } from '@/features/inventory/hooks/useInventoryWorkspaceController';
@@ -145,29 +145,6 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
               }
               inventory.setCreatedTransfer(null);
             }}
-          />
-
-          <StockTransferComposerCard
-            products={(() => {
-              const fromLoc = inventory.transferForm.fromLocationId;
-              if (!fromLoc) return inventory.products;
-              const locationStocks = Array.isArray(inventory.actionCatalog.locationStocksQuery.data) ? inventory.actionCatalog.locationStocksQuery.data : [];
-              return inventory.products.map(p => {
-                const stockRec = locationStocks.find(s => String(s.productId) === String(p.id) && String(s.locationId) === String(fromLoc));
-                return { ...p, stock: stockRec ? stockRec.qty : 0 };
-              }).filter(p => (p.stock as number) > 0);
-            })()}
-            locations={inventory.locations}
-            form={inventory.transferForm}
-            items={inventory.transferItems}
-            isPending={inventory.createTransferMutation.isPending}
-            isError={inventory.createTransferMutation.isError}
-            isSuccess={inventory.createTransferMutation.isSuccess}
-            error={inventory.createTransferMutation.error}
-            onFormChange={(patch) => inventory.setTransferForm((current) => ({ ...current, ...patch }))}
-            onAddItem={inventory.addTransferItem}
-            onRemoveItem={(index) => inventory.setTransferItems((current) => current.filter((_, currentIndex: number) => currentIndex !== index))}
-            onSubmit={() => inventory.createTransferMutation.mutate()}
           />
         </>
       ) : null}

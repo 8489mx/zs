@@ -341,8 +341,13 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={line.unitPrice}
+                        value={line.unitPrice !== undefined && line.unitPrice !== null ? line.unitPrice : 0}
                         aria-invalid={Boolean(rowErrors.price)}
+                        onFocus={(event) => event.target.select()}
+                        onBlur={(event) => {
+                          const parsed = parseLocalizedNumber(event.target.value);
+                          props.onUpdateLine(line.id, 'unitPrice', Number.isFinite(parsed) && parsed >= 0 ? parsed : 0);
+                        }}
                         onChange={(event) => {
                           props.markDocumentDirty();
                           props.setLineError(line.id, 'price', undefined);
@@ -555,7 +560,12 @@ export function PurchaseOrderItemsTable(props: ItemsTableProps) {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={line.unitPrice}
+                      value={line.unitPrice !== undefined && line.unitPrice !== null ? line.unitPrice : 0}
+                      onFocus={(event) => event.target.select()}
+                      onBlur={(event) => {
+                        const parsed = parseLocalizedNumber(event.target.value);
+                        props.onUpdateLine(line.id, 'unitPrice', Number.isFinite(parsed) && parsed >= 0 ? parsed : 0);
+                      }}
                       onChange={(event) => {
                         props.markDocumentDirty();
                         props.setLineError(line.id, 'price', undefined);

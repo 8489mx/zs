@@ -577,12 +577,15 @@ export function useNewPurchaseOrderController() {
           return line;
         }
 
+        const priceCandidate = Number(option.price ?? (option as any).costPrice ?? 0);
+        const validUnitPrice = Number.isFinite(priceCandidate) && priceCandidate >= 0 ? priceCandidate : 0;
+
         const newLine = {
           ...line,
           productId: option.id,
           itemName: option.name,
           qty: line.qty > 0 ? line.qty : 1,
-          unitPrice: option.price,
+          unitPrice: validUnitPrice,
           warehouse: suggestedLocation.warehouse,
           warehouseId: suggestedLocation.warehouseId,
           category,
@@ -618,12 +621,15 @@ export function useNewPurchaseOrderController() {
       rawSettings?.currentLocationId
     );
 
+    const priceCandidate = Number(option.price ?? (option as any).costPrice ?? 0);
+    const validUnitPrice = Number.isFinite(priceCandidate) && priceCandidate >= 0 ? priceCandidate : 0;
+
     const newLine: PrototypeLine = {
       id: newLineId,
       productId: option.id,
       itemName: option.name,
       qty: 1,
-      unitPrice: option.price,
+      unitPrice: validUnitPrice,
       warehouse: suggestedLocation.warehouse,
       warehouseId: suggestedLocation.warehouseId,
       category,
@@ -632,7 +638,6 @@ export function useNewPurchaseOrderController() {
       trackSerials: Boolean(option.trackSerials),
       serials: [],
     };
-
 
     setLines((current) => [...current, newLine]);
     setPendingFocusQtyLineId(newLineId);
@@ -681,6 +686,9 @@ export function useNewPurchaseOrderController() {
       if (existing) {
         return current.map((line) => (line.id === existing.id ? { ...line, qty: line.qty + 1 } : line));
       }
+      const priceCandidate = Number(matchedProduct.price ?? (matchedProduct as any).costPrice ?? 0);
+      const validUnitPrice = Number.isFinite(priceCandidate) && priceCandidate >= 0 ? priceCandidate : 0;
+
       return [
         ...current,
         {
@@ -688,7 +696,7 @@ export function useNewPurchaseOrderController() {
           productId: matchedProduct.id,
           itemName: matchedProduct.name,
           qty: 1,
-          unitPrice: matchedProduct.price,
+          unitPrice: validUnitPrice,
           warehouseId: suggestedLocation.warehouseId,
           warehouse: suggestedLocation.warehouse,
           categoryId: matchedProduct.categoryId,
@@ -843,10 +851,22 @@ export function useNewPurchaseOrderController() {
 
   const handleProductCreateSuccess = (product: any) => {
     setProductCreateModalState(prev => ({ ...prev, isOpen: false }));
+    const rawPrice = product.price ?? product.costPrice ?? product.purchasePrice ?? product.retailPrice ?? 0;
+    const priceNum = Number(rawPrice);
+    const safePrice = Number.isFinite(priceNum) && priceNum >= 0 ? priceNum : 0;
+    const mappedOption: ProductOption = {
+      ...product,
+      id: String(product.id),
+      name: product.name,
+      price: safePrice,
+      code: product.styleCode || product.sku || product.barcode || `PRD-${product.id}`,
+      type: product.itemKind === 'service' || product.productType === 'service' ? 'service' : 'stock',
+      costPrice: product.costPrice
+    };
     if (productCreateModalState.lineId !== null) {
-      handleProductSelect(productCreateModalState.lineId, product as ProductOption);
+      handleProductSelect(productCreateModalState.lineId, mappedOption);
     } else {
-      addProductAsLine(product as ProductOption);
+      addProductAsLine(mappedOption);
     }
   };
 
@@ -964,10 +984,15 @@ export function useNewPurchaseOrderController() {
       addFirstTarget({ kind: 'field', field: 'currency' });
     }
 
-    const validRows = lines.filter((line) => {
-      const isBlankRow = !line.productId && !line.itemName.trim() && line.qty === 1 && line.unitPrice === 0 && !line.warehouse.trim();
-      return !isBlankRow;
-    });
+    const checkIsBlankRow = (line: PrototypeLine) => {
+      const hasProduct = Boolean(line.productId || line.itemName.trim());
+      const hasQty = Number.isFinite(line.qty) && line.qty > 0 && line.qty !== 1;
+      const hasPrice = Number.isFinite(line.unitPrice) && line.unitPrice > 0;
+      const hasWarehouse = Boolean(line.warehouse && line.warehouse.trim());
+      return !hasProduct && !hasQty && !hasPrice && !hasWarehouse;
+    };
+
+    const validRows = lines.filter((line) => !checkIsBlankRow(line));
 
     if (!validRows.length) {
       if (!firstInvalidTarget) {
@@ -981,8 +1006,7 @@ export function useNewPurchaseOrderController() {
 
     const seenProducts = new Map<string, string>();
     lines.forEach((line) => {
-      const isBlankRow = !line.productId && !line.itemName.trim() && line.qty === 1 && line.unitPrice === 0 && !line.warehouse.trim();
-      if (isBlankRow) {
+      if (checkIsBlankRow(line)) {
         return;
       }
 
@@ -1006,8 +1030,12 @@ export function useNewPurchaseOrderController() {
         addFirstTarget({ kind: 'line', lineId: line.id, field: 'qty' });
       }
 
-      const priceValue = Number.isFinite(line.unitPrice) ? line.unitPrice : parseLocalizedNumber(String(line.unitPrice));
-      if (!Number.isFinite(priceValue) || priceValue < 0) {
+      const rawPrice = line.unitPrice;
+      const parsedPrice = typeof rawPrice === 'number' && Number.isFinite(rawPrice)
+        ? rawPrice
+        : parseLocalizedNumber(String(rawPrice ?? ''));
+      const priceValue = Number.isFinite(parsedPrice) ? parsedPrice : 0;
+      if (priceValue < 0) {
         rowErrors.price = t('price_not_negative_error');
         addFirstTarget({ kind: 'line', lineId: line.id, field: 'price' });
       }
@@ -1025,8 +1053,7 @@ export function useNewPurchaseOrderController() {
     });
 
     const hasAnyValidLine = lines.some((line) => {
-      const isBlankRow = !line.productId && !line.itemName.trim() && line.qty === 1 && line.unitPrice === 0 && !line.warehouse.trim();
-      if (isBlankRow || !line.productId) {
+      if (checkIsBlankRow(line) || !line.productId) {
         return false;
       }
       return true;
@@ -1139,18 +1166,22 @@ export function useNewPurchaseOrderController() {
       termsTemplate,
     };
 
-    const items = lines.filter(line => line.productId).map(line => ({
-      productId: line.productId as string,
-      name: line.itemName,
-      qty: line.qty,
-      cost: line.unitPrice,
-      total: line.qty * line.unitPrice,
-      unitName: 'Piece',
-      unitMultiplier: 1,
-      locationId: line.warehouseId,
-      categoryId: line.categoryId,
-      serials: line.serials && line.serials.length > 0 ? line.serials : undefined,
-    }));
+    const items = lines.filter(line => line.productId).map(line => {
+      const lineCost = Number.isFinite(Number(line.unitPrice)) && Number(line.unitPrice) >= 0 ? Number(line.unitPrice) : 0;
+      const lineQty = Number.isFinite(Number(line.qty)) && Number(line.qty) > 0 ? Number(line.qty) : 1;
+      return {
+        productId: line.productId as string,
+        name: line.itemName,
+        qty: lineQty,
+        cost: lineCost,
+        total: lineQty * lineCost,
+        unitName: 'Piece',
+        unitMultiplier: 1,
+        locationId: line.warehouseId,
+        categoryId: line.categoryId,
+        serials: line.serials && line.serials.length > 0 ? line.serials : undefined,
+      };
+    });
 
     try {
       setIsPolling(true);

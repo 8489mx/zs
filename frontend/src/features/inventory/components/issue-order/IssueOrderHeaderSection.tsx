@@ -1,5 +1,6 @@
 import React from 'react';
 import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { Field } from '@/shared/ui/field';
 
 interface IssueOrderHeaderSectionProps {
   fromLocationQuery: string;
@@ -40,8 +41,8 @@ export const IssueOrderHeaderSection: React.FC<IssueOrderHeaderSectionProps> = (
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {/* Row 1: Source Warehouse & Destination Branch (2 columns) */}
-        <div className="product-form-grid-2">
+        {/* Row 1: Source Warehouse, Destination Branch & Issue Mode (3 columns on 1 line) */}
+        <div className="product-form-grid-3">
           <SearchableCombobox
             label="من مخزن (مخزن الصرف)"
             placeholder="اختر المخزن..."
@@ -73,25 +74,22 @@ export const IssueOrderHeaderSection: React.FC<IssueOrderHeaderSectionProps> = (
             createLabel={(q) => `إضافة "${q}"`}
             inputClassName="purchase-prototype-field-input"
           />
+
+          <Field label="وضع الصرف">
+            <select
+              className="purchase-prototype-field-input"
+              value={issueMode}
+              onChange={(e) => setIssueMode(e.target.value as any)}
+            >
+              <option value="final_issue">صرف نهائي (يتم خصم الرصيد فوراً)</option>
+              <option value="transfer_to_branch_stock">تحويل إلى رصيد فرع (يبقى في الطريق حتى يتم استلامه)</option>
+            </select>
+          </Field>
         </div>
 
-        {/* Row 2: Issue Mode (Full Width) */}
-        <div className="field">
-          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>وضع الصرف</label>
-          <select
-            className="purchase-prototype-field-input"
-            value={issueMode}
-            onChange={(e) => setIssueMode(e.target.value as any)}
-          >
-            <option value="final_issue">صرف نهائي (يتم خصم الرصيد فوراً)</option>
-            <option value="transfer_to_branch_stock">تحويل إلى رصيد فرع (يبقى في الطريق حتى يتم استلامه)</option>
-          </select>
-        </div>
-
-        {/* Row 3: Dispatcher & Recipient (2 columns) */}
+        {/* Row 2: Dispatcher & Recipient (2 columns) */}
         <div className="product-form-grid-2">
-          <div className="field">
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>مسئول الصرف</label>
+          <Field label="مسئول الصرف">
             <input
               type="text"
               className="purchase-prototype-field-input purchase-prototype-readonly-input"
@@ -99,10 +97,9 @@ export const IssueOrderHeaderSection: React.FC<IssueOrderHeaderSectionProps> = (
               readOnly
               disabled
             />
-          </div>
+          </Field>
 
-          <div className="field">
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>اسم المستلم / السائق</label>
+          <Field label="اسم المستلم / السائق">
             <input
               type="text"
               className="purchase-prototype-field-input"
@@ -110,7 +107,7 @@ export const IssueOrderHeaderSection: React.FC<IssueOrderHeaderSectionProps> = (
               onChange={(e) => setRecipientName(e.target.value)}
               placeholder="اكتب اسم المستلم هنا..."
             />
-          </div>
+          </Field>
         </div>
       </div>
     </section>

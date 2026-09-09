@@ -343,6 +343,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'inventory-warehouses',
       'inventory-bins',
       'inventory-tree',
+      'inventory-issue-order-new',
 
       // 4. Finance & Accounting
       'treasury',
@@ -440,6 +441,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'inventory-tree': 'الهيكل الشجري للمخازن',
       inventory: 'جرد وحركات المخزون',
       'inventory-issue-orders': 'سجل أذونات الصرف والتحويل',
+      'inventory-issue-order-new': 'إذن صرف جديد',
       services: 'الخدمات',
       treasury: 'الخزينة والبنوك',
       expenses: 'المصروفات',
@@ -548,7 +550,7 @@ export function AppShell({ children }: PropsWithChildren) {
     return [
       { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'price-lists', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher', 'signage'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
-      { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'product-modifiers', 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-bins', 'inventory-tree'], iconKey: 'inventory' },
+      { key: 'inventory-group', label: t('sidebar.inventory-group', 'المخزون والأصناف'), itemKeys: ['products', 'product-categories', 'product-modifiers', 'services', 'pricing-center', 'inventory', 'inventory-issue-orders', 'inventory-warehouses', 'inventory-bins', 'inventory-tree', 'inventory-issue-order-new'], iconKey: 'inventory' },
       { key: 'accounting-group', label: hasAccounting ? t('sidebar.accounting-group', 'المالية والمحاسبة') : 'الخزينة والمصروفات', itemKeys: ['treasury', 'expenses', 'accounts', 'accounting-payment-allocation', 'accounting-bank-reconciliation', 'accounting-cheques', 'accounting-withholding-tax', 'accounting-balance-sheet', 'accounting-cash-flow', 'accounting-aged-debts', 'vat-declaration', 'accounting-journal-entries', 'accounting-accounts', 'accounting-cost-centers', 'accounting-fixed-assets', 'accounting-settings'], iconKey: 'treasury' },
       ...(settings?.restaurantModuleEnabled ? [{
         key: 'restaurant-group',

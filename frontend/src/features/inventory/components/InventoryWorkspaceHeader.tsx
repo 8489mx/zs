@@ -30,7 +30,7 @@ export function InventoryWorkspaceHeader({
   const [isSmartRestockOpen, setIsSmartRestockOpen] = useState(false);
 
   const primaryAction = currentSection === 'transfers'
-    ? { to: '/inventory/transfers', label: 'تحويل جديد' }
+    ? { to: '/inventory/issue-order/new', label: 'إذن صرف جديد' }
     : currentSection === 'counts'
       ? { to: '/inventory/counts', label: 'جلسة جرد' }
       : currentSection === 'damaged'

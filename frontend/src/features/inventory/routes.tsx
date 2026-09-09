@@ -39,7 +39,7 @@ export const inventoryRouteModule: FeatureRouteModule = {
     { key: 'inventory-warehouses', label: 'أماكن المخزون', to: '/inventory/warehouses' },
     { key: 'inventory-bins', label: 'أماكن التخزين والأرفف', to: '/inventory/bins' },
     { key: 'inventory-tree', label: 'شجرة المخازن', to: '/inventory/tree' },
-    { key: 'inventory-issue-order-new', label: 'إذن صرف جديد', to: '/inventory/issue-order/new' },
-    { key: 'inventory-issue-orders', label: 'سجل أذونات الصرف', to: '/inventory/transfers' }
+    { key: 'inventory-issue-orders', label: 'سجل أذونات الصرف', to: '/inventory/transfers' },
+    { key: 'inventory-issue-order-new', label: 'إذن صرف جديد', to: '/inventory/issue-order/new' }
   ]
 };
