@@ -258,7 +258,25 @@ export class SessionService {
     const rawCompanyCode = meta?.companyCode?.trim();
     let resolvedTenantId = rawCompanyCode;
 
-    if (rawCompanyCode) {
+    const isDesktop = process.env.APP_MODE === 'SELF_CONTAINED' 
+      || process.env.PORTABLE_MODE === 'true' 
+      || process.env.IS_ELECTRON === 'true';
+
+    if (isDesktop) {
+      // In offline/desktop mode, the local database belongs exclusively to the store.
+      // Strictly resolve to the local tenant (prioritizing 'default' or any tenant other than 'zs').
+      try {
+        const localTenant = await this.db
+          .selectFrom('tenants')
+          .select(['id', 'slug'])
+          .where('id', '!=', 'zs')
+          .orderBy('created_at', 'asc')
+          .executeTakeFirst();
+        resolvedTenantId = localTenant?.id || 'default';
+      } catch {
+        resolvedTenantId = 'default';
+      }
+    } else if (rawCompanyCode) {
       try {
         const tenantMatch = await this.db
           .selectFrom('tenants')
@@ -402,7 +420,9 @@ export class SessionService {
             new Set(validCandidates.map((c) => String(c.tenant_id || '').trim())),
           ).filter(Boolean);
 
-          if (candidateTenantIds.length > 1) {
+          if (isDesktop) {
+            user = validCandidates.find((c) => c.tenant_id !== 'zs') || validCandidates[0];
+          } else if (candidateTenantIds.length > 1) {
             // Truly multiple tenants: fetch tenant details for the Tenant Switcher
             let tenantRows: any[] = [];
             try {

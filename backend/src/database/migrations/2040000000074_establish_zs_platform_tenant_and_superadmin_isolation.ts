@@ -2,6 +2,17 @@ import { sql, type Kysely } from 'kysely';
 
 export const migration = {
   async up(db: Kysely<unknown>): Promise<void> {
+    // CRITICAL: NEVER establish platform root tenant 'zs' in desktop / self-contained / portable mode!
+    // In desktop mode, client store data belongs to tenant_id = 'default'.
+    const isDesktop = process.env.APP_MODE === 'SELF_CONTAINED' 
+      || process.env.PORTABLE_MODE === 'true' 
+      || process.env.IS_ELECTRON === 'true';
+
+    if (isDesktop) {
+      console.log('[Migration 74] Skipped in desktop/self-contained mode to protect client store data.');
+      return;
+    }
+
     // 1. Ensure platform root tenant 'zs' exists and is active
     await sql`
       DO $$

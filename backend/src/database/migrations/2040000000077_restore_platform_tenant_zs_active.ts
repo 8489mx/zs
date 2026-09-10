@@ -17,39 +17,40 @@ export const migration = {
         v_plan_id INT;
       BEGIN
         SELECT id INTO v_plan_id FROM saas_plans ORDER BY id LIMIT 1;
+        -- Ensure perpetual active subscription exists for default and zs
+        FOR v_plan_id IN SELECT id FROM saas_plans ORDER BY id LIMIT 1 LOOP
+          NULL;
+        END LOOP;
         IF v_plan_id IS NULL THEN
           v_plan_id := 1;
         END IF;
 
-        IF NOT EXISTS (SELECT 1 FROM tenant_subscriptions WHERE tenant_id = 'zs') THEN
-          INSERT INTO tenant_subscriptions (
-            tenant_id,
-            plan_id,
-            status,
-            starts_at,
-            ends_at,
-            grace_ends_at,
-            auto_renew,
-            created_at,
-            updated_at
-          ) VALUES (
-            'zs',
-            v_plan_id,
-            'active',
-            NOW(),
-            NOW() + INTERVAL '100 years',
-            NOW() + INTERVAL '100 years',
-            true,
-            NOW(),
-            NOW()
-          );
-        ELSE
-          UPDATE tenant_subscriptions
-          SET status = 'active',
-              ends_at = NOW() + INTERVAL '100 years',
-              grace_ends_at = NOW() + INTERVAL '100 years',
-              updated_at = NOW()
-          WHERE tenant_id = 'zs';
+        IF EXISTS (SELECT 1 FROM tenants WHERE id = 'default') THEN
+          IF NOT EXISTS (SELECT 1 FROM tenant_subscriptions WHERE tenant_id = 'default') THEN
+            INSERT INTO tenant_subscriptions (
+              tenant_id, plan_id, status, starts_at, ends_at, grace_ends_at, auto_renew, created_at, updated_at
+            ) VALUES (
+              'default', v_plan_id, 'active', NOW(), NOW() + INTERVAL '100 years', NOW() + INTERVAL '100 years', true, NOW(), NOW()
+            );
+          ELSE
+            UPDATE tenant_subscriptions
+            SET status = 'active', ends_at = NOW() + INTERVAL '100 years', grace_ends_at = NOW() + INTERVAL '100 years', updated_at = NOW()
+            WHERE tenant_id = 'default';
+          END IF;
+        END IF;
+
+        IF EXISTS (SELECT 1 FROM tenants WHERE id = 'zs') THEN
+          IF NOT EXISTS (SELECT 1 FROM tenant_subscriptions WHERE tenant_id = 'zs') THEN
+            INSERT INTO tenant_subscriptions (
+              tenant_id, plan_id, status, starts_at, ends_at, grace_ends_at, auto_renew, created_at, updated_at
+            ) VALUES (
+              'zs', v_plan_id, 'active', NOW(), NOW() + INTERVAL '100 years', NOW() + INTERVAL '100 years', true, NOW(), NOW()
+            );
+          ELSE
+            UPDATE tenant_subscriptions
+            SET status = 'active', ends_at = NOW() + INTERVAL '100 years', grace_ends_at = NOW() + INTERVAL '100 years', updated_at = NOW()
+            WHERE tenant_id = 'zs';
+          END IF;
         END IF;
       END $$;
     `.execute(db);

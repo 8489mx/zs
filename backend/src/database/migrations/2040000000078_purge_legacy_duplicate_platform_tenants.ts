@@ -2,12 +2,24 @@ import { sql, type Kysely } from 'kysely';
 
 export const migration = {
   async up(db: Kysely<unknown>): Promise<void> {
+    // CRITICAL: NEVER run duplicate platform tenant purging in desktop / self-contained / portable mode!
+    // In desktop installations, client store data is stored under tenant_id = 'default'.
+    const isDesktop = process.env.APP_MODE === 'SELF_CONTAINED' 
+      || process.env.PORTABLE_MODE === 'true' 
+      || process.env.IS_ELECTRON === 'true';
+
+    if (isDesktop) {
+      console.log('[Migration 78] Skipped in desktop/self-contained mode to protect client store data.');
+      return;
+    }
+
     await sql`
       DO $$
       DECLARE
         v_tenant_id TEXT;
         v_rec RECORD;
         v_pass INT;
+        v_has_real_data BOOLEAN;
       BEGIN
         -- Identify and loop through legacy duplicate platform tenants ('default', 'zsystems', 'zsystems-main', etc.)
         -- Strictly PRESERVE the real platform tenant 'zs' and any legitimate tenants like 'elmohandis'
@@ -20,6 +32,27 @@ export const migration = {
               OR (business_name IN ('Z-Systems', 'Z Systems') AND id != 'zs')
             )
         LOOP
+          -- CRITICAL SAFETY GUARD: If this tenant has actual customer products or sales, NEVER delete it!
+          v_has_real_data := FALSE;
+          BEGIN
+            SELECT EXISTS (SELECT 1 FROM products WHERE tenant_id = v_tenant_id) INTO v_has_real_data;
+          EXCEPTION WHEN OTHERS THEN
+            v_has_real_data := FALSE;
+          END;
+
+          IF NOT v_has_real_data THEN
+            BEGIN
+              SELECT EXISTS (SELECT 1 FROM sales WHERE tenant_id = v_tenant_id) INTO v_has_real_data;
+            EXCEPTION WHEN OTHERS THEN
+              NULL;
+            END;
+          END IF;
+
+          IF v_has_real_data THEN
+            RAISE NOTICE 'Skipping tenant % because it contains real customer data (products or sales)', v_tenant_id;
+            CONTINUE;
+          END IF;
+
           RAISE NOTICE 'Purging legacy duplicate tenant: %', v_tenant_id;
 
           -- 1. Multi-pass deletion of all records in tables having a 'tenant_id' column

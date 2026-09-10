@@ -91,6 +91,7 @@ export function LoginPage() {
     handleClearRememberedTenant,
     showCompanyCodeInput,
     setShowCompanyCodeInput,
+    isDesktop,
   } = useLoginForm();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -159,7 +160,7 @@ export function LoginPage() {
             )}
 
             <div className="login-form-pro" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); form.handleSubmit(onSubmit)(); } }}>
-              {rememberedCompanyCode && !showCompanyCodeInput ? (() => {
+              {!isDesktop && rememberedCompanyCode && !showCompanyCodeInput ? (() => {
                 const isRememberedUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rememberedCompanyCode);
                 const rememberedTenantLabel = rememberedCompanyName
                   ? (isRememberedUuid || rememberedCompanyName === rememberedCompanyCode
@@ -206,7 +207,7 @@ export function LoginPage() {
                 );
               })() : null}
 
-              {showCompanyCodeInput ? (
+              {!isDesktop && showCompanyCodeInput ? (
                 <div className="login-field-group">
                   <div className="login-field-label flex-between">
                     <label htmlFor="login-companyCode">كود أو معرف المنشأة (اختياري)</label>
@@ -293,7 +294,7 @@ export function LoginPage() {
                 )}
               </div>
 
-              {!rememberedCompanyCode && !showCompanyCodeInput ? (
+              {!isDesktop && !rememberedCompanyCode && !showCompanyCodeInput ? (
                 <div style={{ marginBottom: '16px', textAlign: 'left' }}>
                   <button
                     type="button"

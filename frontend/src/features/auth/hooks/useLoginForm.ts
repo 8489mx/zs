@@ -25,6 +25,15 @@ export interface DisambiguationTenant {
   slug: string;
 }
 
+export const isDesktopApp = typeof window !== 'undefined' && (
+  Boolean((window as any).electronAPI) ||
+  Boolean((window as any).process?.versions?.electron) ||
+  window.navigator.userAgent.toLowerCase().includes('electron') ||
+  import.meta.env.MODE === 'electron' ||
+  import.meta.env.MODE === 'portable' ||
+  window.location.protocol === 'file:'
+);
+
 export function useLoginForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -35,19 +44,25 @@ export function useLoginForm() {
   const [showCompanyCodeInput, setShowCompanyCodeInput] = useState(false);
 
   const [rememberedCompanyCode, setRememberedCompanyCode] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined' || isDesktopApp) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('zs_last_company_code');
+        localStorage.removeItem('zs_last_company_name');
+      }
+      return null;
+    }
     const searchParams = new URLSearchParams(window.location.search);
     return searchParams.get('c') || searchParams.get('tenant') || localStorage.getItem('zs_last_company_code') || null;
   });
 
   const [rememberedCompanyName, setRememberedCompanyName] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined' || isDesktopApp) return null;
     return localStorage.getItem('zs_last_company_name') || null;
   });
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: '', password: '', companyCode: rememberedCompanyCode || '' }
+    defaultValues: { username: '', password: '', companyCode: isDesktopApp ? '' : (rememberedCompanyCode || '') }
   });
 
   useEffect(() => {
@@ -65,7 +80,9 @@ export function useLoginForm() {
     setIsSubmitting(true);
 
     try {
-      const activeCompanyCode = values.companyCode?.trim() || rememberedCompanyCode?.trim() || undefined;
+      const activeCompanyCode = isDesktopApp
+        ? undefined
+        : (values.companyCode?.trim() || rememberedCompanyCode?.trim() || undefined);
 
       const loginResult = await authApi.login({
         username: values.username.trim(),
@@ -110,7 +127,7 @@ export function useLoginForm() {
       setSession({ user, tenant, storeName, theme });
       const friendlyCompanyCode = String(tenant?.slug || user?.tenantId || '').trim();
       const friendlyCompanyName = String(tenant?.businessName || storeName || friendlyCompanyCode).trim();
-      if (friendlyCompanyCode && typeof localStorage !== 'undefined') {
+      if (!isDesktopApp && friendlyCompanyCode && typeof localStorage !== 'undefined') {
         localStorage.setItem('zs_last_company_code', friendlyCompanyCode);
         if (friendlyCompanyName) {
           localStorage.setItem('zs_last_company_name', friendlyCompanyName);
@@ -181,5 +198,6 @@ export function useLoginForm() {
     handleClearRememberedTenant,
     showCompanyCodeInput,
     setShowCompanyCodeInput,
+    isDesktop: isDesktopApp,
   };
 }
