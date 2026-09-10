@@ -2,7 +2,9 @@ import { Module } from '@nestjs/common';
 import { EtaAuthService } from './services/eta-auth/eta-auth.service';
 import { EtaSerializerService } from './services/eta-serializer/eta-serializer.service';
 import { EtaSubmissionService } from './services/eta-submission/eta-submission.service';
+import { EtaSignatureBridgeService } from './services/eta-submission/eta-signature-bridge.service';
 import { ZatcaPhase2Service } from './services/zatca/zatca-phase2.service';
+import { ZatcaOnboardingService } from './services/zatca/zatca-onboarding.service';
 import { TaxSettingsService } from './services/tax-settings/tax-settings.service';
 import { TaxSettingsController } from './controllers/tax-settings/tax-settings.controller';
 import { EtaInvoicesController } from './controllers/eta-invoices/eta-invoices.controller';
@@ -16,7 +18,9 @@ import { VatDeclarationController } from './controllers/vat-declaration/vat-decl
     EtaAuthService,
     EtaSerializerService,
     EtaSubmissionService,
+    EtaSignatureBridgeService,
     ZatcaPhase2Service,
+    ZatcaOnboardingService,
     TaxSettingsService,
     VatDeclarationService,
   ],
@@ -28,8 +32,11 @@ import { VatDeclarationController } from './controllers/vat-declaration/vat-decl
   ],
   exports: [
     EtaSubmissionService,
+    EtaSignatureBridgeService,
     ZatcaPhase2Service,
+    ZatcaOnboardingService,
     VatDeclarationService,
   ]
 })
 export class TaxIntegrationModule {}
+

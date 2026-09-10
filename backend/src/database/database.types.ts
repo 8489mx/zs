@@ -3042,6 +3042,28 @@ export interface ForexRevaluationLineTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
 }
 
+export interface ZatcaEgsUnitTable {
+  id: Generated<string>;
+  tenant_id: string;
+  branch_id: number | null;
+  device_uuid: string;
+  device_name: string;
+  custom_id: string | null;
+  private_key_pem: string;
+  public_key_pem: string;
+  csr_content: string | null;
+  compliance_csid: string | null;
+  compliance_secret: string | null;
+  production_csid: string | null;
+  production_secret: string | null;
+  status: 'unregistered' | 'compliance_passed' | 'production_active' | 'revoked';
+  last_icv: ColumnType<number, number | string | undefined, number | string | undefined>;
+  last_invoice_hash: string;
+  environment: 'sandbox' | 'simulation' | 'production';
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface Database {
   tamper_audit_logs: TamperAuditLogTable;
   approval_rules: ApprovalRuleTable;
@@ -3051,6 +3073,7 @@ export interface Database {
   cost_center_allocation_splits: CostCenterAllocationSplitTable;
   forex_revaluation_runs: ForexRevaluationRunTable;
   forex_revaluation_lines: ForexRevaluationLineTable;
+  zatca_egs_units: ZatcaEgsUnitTable;
 }
 
 

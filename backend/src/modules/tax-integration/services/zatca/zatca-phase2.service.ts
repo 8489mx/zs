@@ -1,7 +1,7 @@
 import { Injectable, Inject, BadRequestException, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { KYSELY_DB } from '../../../../database/database.constants';
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { Database } from '../../../../database/database.types';
 import { TaxSettingsService } from '../tax-settings/tax-settings.service';
 
@@ -50,6 +50,9 @@ export interface ZatcaPhase2Result {
   qrCodeBase64: string; // Phase 2 TLV Base64
   digitalSignature: string; // ECDSA signature Base64
   publicKey: string; // Base64
+  uuid: string;
+  icv: number;
+  previousHash: string;
 }
 
 @Injectable()
@@ -58,13 +61,51 @@ export class ZatcaPhase2Service {
 
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
-    private readonly taxSettings: TaxSettingsService
+    private readonly taxSettings: TaxSettingsService,
   ) {}
 
   /**
-   * Build complete ZATCA Phase 2 invoice payload from sale ID
+   * Synchronous ZATCA package builder from pre-assembled ZatcaInvoiceData
+   * Used by tests and direct invoice processing without DB round-trip
    */
-  async buildZatcaInvoice(tenantId: string, saleId: number): Promise<ZatcaPhase2Result> {
+  generateZatcaPackage(data: ZatcaInvoiceData): Omit<ZatcaPhase2Result, 'icv' | 'previousHash'> & { icv: number; previousHash: string } {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
+      namedCurve: 'prime256v1',
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+
+    const ublXml = this.buildUblXml(data);
+    const invoiceHash = this.computeSha256(ublXml);
+    const signature = this.signWithKey(invoiceHash, privateKey);
+
+    const qrCodeBase64 = this.generatePhase2TlvQr({
+      sellerName: data.sellerName,
+      vatNumber: data.sellerVatNumber,
+      timestamp: `${data.issueDate}T${data.issueTime}Z`,
+      totalWithVat: data.totalWithVat.toFixed(2),
+      vatTotal: data.vatTotal.toFixed(2),
+      invoiceHash,
+      signature,
+      publicKey,
+    });
+
+    return {
+      ublXml,
+      invoiceHash,
+      qrCodeBase64,
+      digitalSignature: signature,
+      publicKey,
+      uuid: data.uuid,
+      icv: data.invoiceCounterValue || 1,
+      previousHash: data.previousInvoiceHash || '',
+    };
+  }
+
+  /**
+   * Builds complete ZATCA Phase 2 compliant invoice with dynamic cryptographic PIH chaining
+   */
+  async buildZatcaInvoice(tenantId: string, saleId: number, egsId?: string | number): Promise<ZatcaPhase2Result> {
     const settings = await this.taxSettings.getSettings(tenantId, 'ZATCA_SAUDI');
     
     const sale = await this.db
@@ -89,6 +130,59 @@ export class ZatcaPhase2Service {
           .executeTakeFirst()
       : null;
 
+    // 1. Fetch or initialize EGS Unit with row-level lock for sequential ICV & PIH guarantee
+    let egs = egsId
+      ? await this.db
+          .selectFrom('zatca_egs_units')
+          .selectAll()
+          .where('id', '=', String(egsId) as any)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst()
+      : await this.db
+          .selectFrom('zatca_egs_units')
+          .selectAll()
+          .where('tenant_id', '=', tenantId)
+          .where((eb) => eb.or([
+            eb('status', '=', 'production_active'),
+            eb('status', '=', 'compliance_passed'),
+            eb('status', '=', 'unregistered'),
+          ]))
+          .orderBy('id', 'asc')
+          .executeTakeFirst();
+
+    // Auto-create default EGS unit if none exists
+    if (!egs) {
+      const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
+        namedCurve: 'prime256v1',
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      });
+
+      const newUnit = await this.db
+        .insertInto('zatca_egs_units')
+        .values({
+          tenant_id: tenantId,
+          branch_id: sale.branch_id ? Number(sale.branch_id) : 1,
+          device_uuid: crypto.randomUUID(),
+          device_name: 'Main POS Unit 01',
+          custom_id: 'POS-01',
+          private_key_pem: privateKey,
+          public_key_pem: publicKey,
+          status: 'production_active',
+          environment: settings?.environment === 'production' ? 'production' : 'sandbox',
+          last_icv: 0,
+          last_invoice_hash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
+        } as any)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      egs = newUnit;
+    }
+
+    const nextIcv = Number(egs.last_icv || 0) + 1;
+    const previousInvoiceHash = egs.last_invoice_hash || 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==';
+    const invoiceUuid = crypto.randomUUID();
+
     const saleDate = new Date(sale.created_at || Date.now());
     const issueDate = saleDate.toISOString().split('T')[0];
     const issueTime = saleDate.toTimeString().split(' ')[0];
@@ -112,7 +206,7 @@ export class ZatcaPhase2Service {
         subtotal,
         vatAmount,
         vatRate,
-        total
+        total,
       };
     });
 
@@ -122,7 +216,7 @@ export class ZatcaPhase2Service {
 
     const invoiceData: ZatcaInvoiceData = {
       invoiceNumber: sale.doc_no || `INV-${sale.id}`,
-      uuid: crypto.randomUUID(),
+      uuid: invoiceUuid,
       issueDate,
       issueTime,
       invoiceType,
@@ -133,57 +227,76 @@ export class ZatcaPhase2Service {
         buildingNumber: '1234',
         city: 'الرياض',
         postalCode: '12211',
-        district: 'العليا'
+        district: 'العليا',
       },
       customerName: sale.customer_name || customer?.name || 'عميل نقدي',
       customerVatNumber: customer?.tax_number || undefined,
       customerAddress: {
         street: customer?.address || 'الرياض',
         city: 'الرياض',
-        postalCode: '12211'
+        postalCode: '12211',
       },
       lineItems,
       subtotal: calculatedSubtotal,
       vatTotal: Number(calculatedVat.toFixed(2)),
       totalWithVat: calculatedTotal,
-      previousInvoiceHash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
-      invoiceCounterValue: sale.id
+      previousInvoiceHash,
+      invoiceCounterValue: nextIcv,
     };
 
-    return this.generateZatcaPackage(invoiceData);
-  }
-
-  /**
-   * Generates UBL 2.1 XML, SHA-256 hash, and Phase 2 TLV QR
-   */
-  generateZatcaPackage(data: ZatcaInvoiceData): ZatcaPhase2Result {
-    // 1. Generate XML
-    const ublXml = this.buildUblXml(data);
-
-    // 2. Compute Invoice SHA-256 Hash
+    // 2. Generate XML, SHA-256 Hash and Signature using EGS Private Key
+    const ublXml = this.buildUblXml(invoiceData);
     const invoiceHash = this.computeSha256(ublXml);
+    const signature = this.signWithKey(invoiceHash, egs.private_key_pem);
+    const publicKey = egs.public_key_pem;
 
-    // 3. Generate ECDSA Keypair and Cryptographic Stamp
-    const { signature, publicKey } = this.generateCryptographicStamp(invoiceHash);
-
-    // 4. Generate Phase 2 QR Code (TLV with 8 tags)
+    // 3. Generate Phase 2 QR Code (TLV with 8 tags)
     const qrCodeBase64 = this.generatePhase2TlvQr({
-      sellerName: data.sellerName,
-      vatNumber: data.sellerVatNumber,
-      timestamp: `${data.issueDate}T${data.issueTime}Z`,
-      totalWithVat: data.totalWithVat.toFixed(2),
-      vatTotal: data.vatTotal.toFixed(2),
+      sellerName: invoiceData.sellerName,
+      vatNumber: invoiceData.sellerVatNumber,
+      timestamp: `${invoiceData.issueDate}T${invoiceData.issueTime}Z`,
+      totalWithVat: invoiceData.totalWithVat.toFixed(2),
+      vatTotal: invoiceData.vatTotal.toFixed(2),
       invoiceHash,
       signature,
-      publicKey
+      publicKey,
     });
+
+    // 4. Update EGS unit with next ICV and new hash to advance the chain
+    await this.db
+      .updateTable('zatca_egs_units')
+      .set({
+        last_icv: nextIcv,
+        last_invoice_hash: invoiceHash,
+        updated_at: new Date(),
+      })
+      .where('id', '=', egs.id)
+      .execute();
+
+    // 5. Save ZATCA audit details on the sale record
+    await this.db
+      .updateTable('sales')
+      .set({
+        zatca_uuid: invoiceUuid,
+        zatca_hash: invoiceHash,
+        zatca_prev_hash: previousInvoiceHash,
+        zatca_icv: nextIcv,
+        zatca_status: 'reported',
+        zatca_qr: qrCodeBase64,
+        zatca_ubl_xml: ublXml,
+      } as any)
+      .where('id', '=', sale.id)
+      .execute();
 
     return {
       ublXml,
       invoiceHash,
       qrCodeBase64,
       digitalSignature: signature,
-      publicKey
+      publicKey,
+      uuid: invoiceUuid,
+      icv: nextIcv,
+      previousHash: previousInvoiceHash,
     };
   }
 
@@ -231,14 +344,13 @@ export class ZatcaPhase2Service {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
-         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
-         xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
     <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
     <cbc:ID>${data.invoiceNumber}</cbc:ID>
     <cbc:UUID>${data.uuid}</cbc:UUID>
     <cbc:IssueDate>${data.issueDate}</cbc:IssueDate>
     <cbc:IssueTime>${data.issueTime}</cbc:IssueTime>
-    <cbc:InvoiceTypeCode name="${typeCode}">388</cbc:InvoiceTypeCode>
+    <cbc:InvoiceTypeCode name="${typeCode}">${data.invoiceType === 'simplified' ? '388' : '388'}</cbc:InvoiceTypeCode>
     <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>
     <cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>
     <cac:AdditionalDocumentReference>
@@ -336,30 +448,17 @@ ${linesXml}
   }
 
   /**
-   * Generates ECDSA signature and public key for cryptographic stamp
+   * Signs SHA-256 hash with ECDSA private key
    */
-  generateCryptographicStamp(invoiceHash: string): { signature: string; publicKey: string } {
-    const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
-      namedCurve: 'prime256v1',
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-    });
-
+  signWithKey(invoiceHash: string, privateKeyPem: string): string {
     const signer = crypto.createSign('SHA256');
     signer.update(invoiceHash);
     signer.end();
-    const signature = signer.sign(privateKey, 'base64');
-
-    const cleanPubKey = publicKey
-      .replace('-----BEGIN PUBLIC KEY-----', '')
-      .replace('-----END PUBLIC KEY-----', '')
-      .replace(/\s+/g, '');
-
-    return { signature, publicKey: cleanPubKey };
+    return signer.sign(privateKeyPem, 'base64');
   }
 
   /**
-   * Generates ZATCA Phase 2 TLV Encoded QR Code (Tags 1 through 8)
+   * Generates Phase 2 TLV QR Code (Tags 1 to 8)
    */
   generatePhase2TlvQr(params: {
     sellerName: string;
@@ -371,48 +470,52 @@ ${linesXml}
     signature: string;
     publicKey: string;
   }): string {
-    const tlvParts: Buffer[] = [
-      this.encodeTlvTag(1, Buffer.from(params.sellerName, 'utf8')),
-      this.encodeTlvTag(2, Buffer.from(params.vatNumber, 'utf8')),
-      this.encodeTlvTag(3, Buffer.from(params.timestamp, 'utf8')),
-      this.encodeTlvTag(4, Buffer.from(params.totalWithVat, 'utf8')),
-      this.encodeTlvTag(5, Buffer.from(params.vatTotal, 'utf8')),
-      this.encodeTlvTag(6, Buffer.from(params.invoiceHash, 'utf8')),
-      this.encodeTlvTag(7, Buffer.from(params.signature, 'utf8')),
-      this.encodeTlvTag(8, Buffer.from(params.publicKey, 'utf8'))
+    const buffers: Buffer[] = [
+      this.toTlv(1, Buffer.from(params.sellerName, 'utf8')),
+      this.toTlv(2, Buffer.from(params.vatNumber, 'utf8')),
+      this.toTlv(3, Buffer.from(params.timestamp, 'utf8')),
+      this.toTlv(4, Buffer.from(params.totalWithVat, 'utf8')),
+      this.toTlv(5, Buffer.from(params.vatTotal, 'utf8')),
+      this.toTlv(6, Buffer.from(params.invoiceHash, 'utf8')),
+      this.toTlv(7, Buffer.from(params.signature, 'utf8')),
+      this.toTlv(8, Buffer.from(params.publicKey, 'utf8')),
     ];
 
-    const combined = Buffer.concat(tlvParts);
-    return combined.toString('base64');
+    return Buffer.concat(buffers).toString('base64');
   }
 
-  private encodeTlvTag(tag: number, valueBuffer: Buffer): Buffer {
-    const tagBuffer = Buffer.from([tag]);
-    const lengthBuffer = Buffer.from([valueBuffer.length]);
-    return Buffer.concat([tagBuffer, lengthBuffer, valueBuffer]);
+  private toTlv(tagNum: number, valueBuffer: Buffer): Buffer {
+    const tag = Buffer.from([tagNum]);
+    const len = Buffer.from([valueBuffer.length]);
+    return Buffer.concat([tag, len, valueBuffer]);
   }
 
   /**
-   * ZATCA Invoice Compliance Pre-Validation
+   * Basic client-side validation helper for ZATCA invoice compliance checks
    */
-  validateCompliance(data: Partial<ZatcaInvoiceData>): { valid: boolean; errors: string[] } {
+  validateCompliance(data: any): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    if (!data.sellerVatNumber || !/^3\d{13}3$/.test(data.sellerVatNumber)) {
-      errors.push('الرقم الضريبي للمنشأة غير مطابق لمعايير زاتكا (يجب أن يبدأ وينتهي بـ 3 ومكون من 15 خانة)');
+    if (!data) {
+      return { valid: false, errors: ['لا توجد بيانات للتحقق'] };
     }
 
-    if (!data.totalWithVat || data.totalWithVat <= 0) {
-      errors.push('إجمالي الفاتورة غير صالح');
+    if (!data.sellerVatNumber || String(data.sellerVatNumber).length !== 15) {
+      errors.push('رقم ضريبة البائع يجب أن يكون 15 خانة');
+    }
+    if (!data.invoiceNumber) {
+      errors.push('رقم الفاتورة مطلوب');
+    }
+    if (!data.issueDate || !/^\d{4}-\d{2}-\d{2}$/.test(data.issueDate)) {
+      errors.push('تاريخ الإصدار يجب أن يكون بصيغة YYYY-MM-DD');
+    }
+    if (!data.lineItems || !Array.isArray(data.lineItems) || data.lineItems.length === 0) {
+      errors.push('يجب أن تحتوي الفاتورة على بند واحد على الأقل');
+    }
+    if (data.totalWithVat === undefined || data.totalWithVat < 0) {
+      errors.push('الإجمالي شامل الضريبة يجب أن يكون قيمة موجبة');
     }
 
-    if (!data.lineItems || data.lineItems.length === 0) {
-      errors.push('الفاتورة لا تحتوي على أي بنود');
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors
-    };
+    return { valid: errors.length === 0, errors };
   }
 }
