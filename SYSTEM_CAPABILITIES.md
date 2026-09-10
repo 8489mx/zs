@@ -2067,7 +2067,8 @@
         - معالج تسجيل وربط تفاعلي متكامل بالـ OTP عبر منصة فاتورة `ZatcaOnboardingWizardModal.tsx` وخدمة `ZatcaOnboardingService` لإصدار شهادة الامتثال (Compliance CSID) وتفعيل شهادة الإنتاج (Production CSID).
       - **جسر توقيع الفاتورة المصرية بالتوكن المحلي (ETA USB Token CAdES-BES Signer Bridge):**
         - خدمة `EtaSignatureBridgeService` لتوليد الـ Canonical JSON المعياري للوثيقة وحساب الـ SHA-256 Hash.
-        - نافذة `EtaTokenSignerModal.tsx` و endpoints مخصصة لاستقبال وربط التوقيع الرقمي المعتمد من أجهزة الـ USB Token المحلية (Egypt Trust / Misr Clearing) وتحديث حالة الوثيقة إلى جاهزة للإرسال.
+        - نافذة `EtaTokenSignerModal.tsx` تدعم الفحص التلقائي لجسر التوقيع المحلي على المنفذ 8585 مع عرض مؤشر الاتصال الأخضر وبيانات الشهادة، وإمكانية التوقيع والختم بضغطة زر واحدة (1-Click Auto Sign).
+        - أداة سطح المكتب المستقلة `tools/zs-eta-signer/` بحجم خفيف (~16KB كملف تنفيذي `zs-eta-signer.exe` مبني بـ C# .NET المدمج بدون أي متطلبات تثبيت، بالإضافة لنسخة Node.js) تعمل كـ Microservice على `http://127.0.0.1:8585` مع مسارات `/health`, `/certificates`, `/sign` وتدعم بطاقات وشهادات Egypt Trust ومصر للمقاصة.
       - **الطباعة الحرارية المباشرة وفتح درج النقدية الصامت (ESC/POS Direct Hardware Bridge):**
         - محرك `escpos-printer.ts` الذي يدعم بروتوكولات WebUSB و WebSerial لإرسال أوامر ESC/POS المباشرة إلى طابعات الإيصالات الحرارية وفتح درج النقدية التلقائي بدون الاعتماد على نافذة حوار المتصفح التقليدية.
 

@@ -1,0 +1,12 @@
+{
+  "name": "zs-eta-signer",
+  "version": "1.0.0",
+  "description": "ZS Local ETA USB Token Signer Bridge - Egyptian Tax Authority e-Invoicing",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Z-Systems",
+  "license": "UNLICENSED",
+  "private": true
+}
