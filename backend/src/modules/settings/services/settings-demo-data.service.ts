@@ -284,8 +284,8 @@ export class SettingsDemoDataService {
       throw new AppError('فقط السوبر أدمن هو المخول بتنفيذ هذه العملية', 'SUPER_ADMIN_REQUIRED', 403);
     }
 
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
-    if (tenantId === 'default' || tenantId === 'dev-tenant' || tenantId === platformTenantId) {
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    if (tenantId === 'zs' || tenantId === 'default' || tenantId === 'dev-tenant' || tenantId === platformTenantId) {
       throw new AppError('لا يمكن تصفير بيانات المنصة المركزية', 'CANNOT_WIPE_PLATFORM_TENANT', 400);
     }
 

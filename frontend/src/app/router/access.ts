@@ -459,13 +459,13 @@ export function isPlatformAdmin(user: AuthUser | null | undefined) {
   if (!user) return false;
   if (user.role !== 'super_admin') return false;
 
-  const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || 'default').trim();
+  const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || 'zs').trim();
   const tenantId = String(user?.tenantId || '').trim();
   const accountId = String(user?.accountId || '').trim();
   const hasExplicitTenant = tenantId.length > 0;
 
-  const isPlatformTenant = tenantId === configuredPlatformTenantId || tenantId === 'default' || tenantId === 'dev-tenant';
-  const canUseAccountFallback = !hasExplicitTenant && (accountId === 'default' || accountId === configuredPlatformTenantId);
+  const isPlatformTenant = tenantId === configuredPlatformTenantId || tenantId === 'zs' || tenantId === 'default' || tenantId === 'dev-tenant';
+  const canUseAccountFallback = !hasExplicitTenant && (accountId === 'zs' || accountId === 'default' || accountId === configuredPlatformTenantId);
 
   return Boolean(isPlatformTenant || canUseAccountFallback);
 }
@@ -514,8 +514,7 @@ export function getRouteFeatureRequirement(target: string) {
 }
 
 export function hasRequiredFeature(target: string, user?: AuthUser | null): boolean {
-  const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
-  if (isPlatformAdmin(user) || isMasterDeveloperUser) return true;
+  if (isPlatformAdmin(user)) return true;
 
   const requiredFeature = getRouteFeatureRequirement(target);
   if (!requiredFeature) return true;
@@ -533,14 +532,14 @@ export function canAccessPath(user: AuthUser | null | undefined, target: string)
     if (isDesktopOfflineApp()) return false;
     return isPlatformAdmin(user);
   }
-  if (isPlatformAdmin(user) || (user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs')) return true;
+  if (isPlatformAdmin(user)) return true;
   if (!hasRequiredFeature(target, user)) return false;
   return hasAnyPermission(user, getRoutePermissionRequirement(target));
 }
 
 export function canAccessNavigationItem(user: AuthUser | null | undefined, item: NavigationItemDefinition) {
   if (item.platformOnly) return isPlatformAdmin(user);
-  if (isPlatformAdmin(user) || (user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs')) return true;
+  if (isPlatformAdmin(user)) return true;
   if (!hasRequiredFeature(item.to, user) || (item.key && !hasRequiredFeature(item.key, user))) return false;
   return hasAnyPermission(user, getRoutePermissionRequirement(item.key || item.to));
 }

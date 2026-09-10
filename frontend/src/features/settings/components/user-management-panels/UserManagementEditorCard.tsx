@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import type { Branch } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { PASSWORD_MIN_LENGTH_HINT } from '@/config/security';
+import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { formatDateTime } from '@/features/settings/components/user-management.shared';
 import {
@@ -60,6 +62,9 @@ export function UserManagementEditorCard({
       : selectedDraftDisableProtection === 'last_active_privileged'
         ? 'آخر حساب إداري فعّال'
         : '';
+
+  const currentUser = useAuthStore((s) => s.user);
+  const isPlatformUser = isPlatformAdmin(currentUser);
 
   const [selectedCountry, setSelectedCountry] = useState<string>(() => {
     return draft.phone ? detectCountryFromPhone(draft.phone) : 'EG';
@@ -409,12 +414,14 @@ export function UserManagementEditorCard({
           <select
             style={{ ...inputStyle, cursor: 'pointer', paddingInlineEnd: '28px' }}
             value={draft.role}
-            onChange={(e) => onApplyRolePermissions(e.target.value === 'admin' ? 'admin' : 'cashier')}
-            disabled={draft.role === 'super_admin'}
+            onChange={(e) => onApplyRolePermissions(e.target.value as 'super_admin' | 'admin' | 'cashier')}
+            disabled={draft.role === 'super_admin' && !isPlatformUser}
           >
             <option value="cashier">كاشير (مستخدم مبيعات وتشغيل)</option>
             <option value="admin">مدير / مالك المنشأة (كامل صلاحيات المنشأة)</option>
-            {draft.role === 'super_admin' ? (
+            {isPlatformUser ? (
+              <option value="super_admin">سوبر أدمن (إدارة المنصة المركزية)</option>
+            ) : draft.role === 'super_admin' ? (
               <option value="super_admin" disabled>
                 سوبر أدمن (إدارة المنصة المركزية)
               </option>

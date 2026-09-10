@@ -11,8 +11,7 @@ import type { DashboardTopItem } from '../api/dashboard.types';
 
 export function OwnerCompanionPage() {
   const user = useAuthStore((s) => s.user);
-  const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
-  const isPlatformAdminUser = isPlatformAdmin(user) || isMasterDeveloperUser;
+  const isPlatformAdminUser = isPlatformAdmin(user);
   const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;
 
   if (!hasReportsFeature) {

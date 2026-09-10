@@ -196,8 +196,8 @@ export class UsersService {
     await this.ensureUniquePhone(cleanPhone, actor);
     assertStrongPassword(payload.password);
 
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
-    const isPlatformTenant = scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    const isPlatformTenant = scope.tenantId === 'zs' || scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
     const isPlatformAdmin = actor.role === 'super_admin' && isPlatformTenant;
 
     if (!isPlatformAdmin) {
@@ -214,8 +214,7 @@ export class UsersService {
     }
 
     let effectiveRole = payload.role;
-    const isMasterDeveloperUser = String(payload.username || '').trim().toLowerCase() === 'zs';
-    if (effectiveRole === 'super_admin' && !isMasterDeveloperUser) {
+    if (effectiveRole === 'super_admin' && !isPlatformTenant) {
       effectiveRole = 'admin';
     }
 
@@ -278,9 +277,11 @@ export class UsersService {
       await this.ensureUniquePhone(updatedPhone, actor, id);
     }
 
+    const scope = this.scope(actor);
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    const isPlatformTenant = scope.tenantId === 'zs' || scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
     let effectiveRole = payload.role;
-    const isMasterDeveloperUser = String(payload.username || existing.username || '').trim().toLowerCase() === 'zs';
-    if (effectiveRole === 'super_admin' && !isMasterDeveloperUser) {
+    if (effectiveRole === 'super_admin' && !isPlatformTenant) {
       effectiveRole = 'admin';
     }
 

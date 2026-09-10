@@ -230,10 +230,9 @@ export class SessionService {
     if (row.locked_until && row.locked_until > new Date()) return null;
     const tenantContext = this.resolveUserTenantContext(row);
     try { await this.assertTenantLoginAllowed(tenantContext.tenantId); } catch { return null; }
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
-    const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
-    const isMasterDeveloperUser = String(row.username || '').trim().toLowerCase() === 'zs';
-    const effectiveRole = (row.role === 'super_admin' && !isPlatformTenant && !isMasterDeveloperUser) ? 'admin' : row.role;
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
+    const effectiveRole = (row.role === 'super_admin' && !isPlatformTenant) ? 'admin' : row.role;
     const permissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(row.permissions_json)])) : safeJsonArray(row.permissions_json);
     const auth: AuthContext = { userId: row.user_id, sessionId: row.session_id, username: row.username, role: effectiveRole, permissions, planId: row.plan_id || undefined, extraFeatures: safeJsonArray(row.extra_features), ...tenantContext };
 
@@ -471,10 +470,9 @@ export class SessionService {
       this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute(),
     ]);
 
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
-    const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
-    const isMasterDeveloperUser = String(user.username || '').trim().toLowerCase() === 'zs';
-    const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant && !isMasterDeveloperUser) ? 'admin' : user.role;
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(tenantContext.tenantId || '').trim());
+    const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : user.role;
     const userPermissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : safeJsonArray(user.permissions_json);
     return { sessionId, expiresAt, auth: { userId: user.id, sessionId, username: user.username, role: effectiveRole, permissions: userPermissions, ...tenantContext } };
   }
@@ -525,10 +523,9 @@ export class SessionService {
     const defaultBranchId = user.default_branch_id ? String(user.default_branch_id) : '';
     if (defaultBranchId && !branchIds.includes(defaultBranchId)) branchIds.push(defaultBranchId);
     const userTenantContext = this.resolveUserTenantContext(user);
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
-    const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(userTenantContext.tenantId || '').trim());
-    const isMasterDeveloperUser = String(user.username || '').trim().toLowerCase() === 'zs';
-    const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant && !isMasterDeveloperUser) ? 'admin' : String(user.role || auth.role);
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(userTenantContext.tenantId || '').trim());
+    const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : String(user.role || auth.role);
     const effectivePermissions = effectiveRole === 'super_admin' ? Array.from(new Set([...SUPER_ADMIN_PERMISSIONS, ...safeJsonArray(user.permissions_json)])) : (safeJsonArray(user.permissions_json) || auth.permissions);
     return { id: Number(user.id), username: String(user.username || auth.username), role: effectiveRole, permissions: effectivePermissions, displayName: String(user.display_name || user.username || auth.username), branchIds, defaultBranchId, ...userTenantContext, mustChangePassword: Boolean(user.must_change_password), passwordHash: String(user.password_hash || ''), passwordSalt: String(user.password_salt || '') };
   }

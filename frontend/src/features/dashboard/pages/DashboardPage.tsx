@@ -25,8 +25,7 @@ import {
 
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
-  const isPlatformAdminUser = isPlatformAdmin(user) || isMasterDeveloperUser;
+  const isPlatformAdminUser = isPlatformAdmin(user);
   const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;
 
   if (!hasReportsFeature) {

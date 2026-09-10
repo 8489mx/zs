@@ -42,19 +42,20 @@ export class SaasAdminService {
     const platformTenantId = this.getPlatformTenantId();
     const tenantId = String(auth.tenantId || '').trim();
 
-    const isAllowedTenant = tenantId === 'default' || tenantId === 'dev-tenant' || (platformTenantId && tenantId === platformTenantId);
+    const isAllowedTenant = tenantId === 'zs' || tenantId === 'default' || tenantId === 'dev-tenant' || (platformTenantId && tenantId === platformTenantId);
     if (!tenantId || !isAllowedTenant) {
       throw new ForbiddenException('غير مسموح: هذه الشاشة مخصصة لمسؤول المنصة فقط.');
     }
   }
 
   private getPlatformTenantId(): string {
-    return String(process.env.PLATFORM_TENANT_ID || 'default').trim() || 'default';
+    return String(process.env.PLATFORM_TENANT_ID || 'zs').trim() || 'zs';
   }
 
   private assertNotPlatformTenantTarget(targetTenantId: string): void {
     const platformTenantId = this.getPlatformTenantId();
-    if (String(targetTenantId || '').trim() === platformTenantId) {
+    const tid = String(targetTenantId || '').trim();
+    if (tid === platformTenantId || tid === 'zs' || tid === 'default' || tid === 'dev-tenant') {
       throw new ForbiddenException('لا يمكن تعديل حالة نسخة المنصة من هذه الصفحة.');
     }
   }

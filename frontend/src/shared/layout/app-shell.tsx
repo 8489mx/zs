@@ -496,8 +496,7 @@ export function AppShell({ children }: PropsWithChildren) {
       'saas-admin-tenants': 'إدارة المشتركين',
       'saas-admin-plans': 'باقات الاشتراكات',
     };
-    const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
-    const isPlatformAdminUser = isPlatformAdmin(user) || isMasterDeveloperUser;
+    const isPlatformAdminUser = isPlatformAdmin(user);
     const hasFeature = (feat: string) => isPlatformAdminUser || Boolean(tenant?.features?.includes(feat));
 
     return navigationItems
@@ -558,8 +557,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => {
-    const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
-    const isPlatformAdminUser = isPlatformAdmin(user) || isMasterDeveloperUser;
+    const isPlatformAdminUser = isPlatformAdmin(user);
     const hasStorefront = isPlatformAdminUser || Boolean(tenant?.features?.includes('storefront'));
     const storefrontActive = hasStorefront && settings?.storefrontModuleEnabled === true;
     const hasReports = isPlatformAdminUser || Boolean(tenant?.features?.includes('reports'));
@@ -571,8 +569,7 @@ export function AppShell({ children }: PropsWithChildren) {
     return [...dashKeys, 'pos', ...(storefrontActive ? ['online-orders'] : []), 'cash-drawer'];
   }, [settings?.posModuleEnabled, settings?.storefrontModuleEnabled, tenant?.features, user]);
   const sidebarGroups = useMemo<SidebarGroupDefinition[]>(() => {
-    const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
-    const isPlatformAdminUser = isPlatformAdmin(user) || isMasterDeveloperUser;
+    const isPlatformAdminUser = isPlatformAdmin(user);
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     const hasAccounting = isPlatformAdminUser || Boolean(tenant?.features?.includes('accounting'));
     const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));

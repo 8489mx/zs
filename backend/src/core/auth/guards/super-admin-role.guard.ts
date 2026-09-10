@@ -11,8 +11,8 @@ export class SuperAdminRoleGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
-    const isPlatformTenant = ['default', 'dev-tenant', platformTenantId].includes(String(auth.tenantId || '').trim());
+    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(auth.tenantId || '').trim());
 
     if (auth.role !== 'super_admin' || !isPlatformTenant) {
       throw new ForbiddenException('Only SaaS Platform Super Admin can access this resource');

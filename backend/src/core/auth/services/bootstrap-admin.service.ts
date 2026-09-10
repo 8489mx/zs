@@ -20,16 +20,17 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
 
   private async sanitizeSuperAdminRoles(): Promise<void> {
     try {
+      const platformTenantId = String(this.configService.get<string>('PLATFORM_TENANT_ID') || 'zs').trim();
       const result = await sql`
         UPDATE users 
         SET role = 'admin'
         WHERE role = 'super_admin'
-          AND LOWER(TRIM(username)) != 'zs';
+          AND tenant_id NOT IN ('zs', 'default', 'dev-tenant', ${platformTenantId});
       `.execute(this.db);
 
       const numUpdated = Number((result as any)?.numUpdatedRows || 0);
       if (numUpdated > 0) {
-        this.logger.warn(`Security isolation: Sanitized ${numUpdated} user(s) from 'super_admin' to 'admin' (preserving 'zs' as sole super_admin).`);
+        this.logger.warn(`Security isolation: Sanitized ${numUpdated} user(s) from 'super_admin' to 'admin' (strictly permitted only in platform tenant).`);
       }
     } catch (error: any) {
       this.logger.debug?.(`Role sanitization skipped: ${error.message}`);
@@ -57,6 +58,10 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
 
     const passwordRecord = await createPasswordRecord(input.password);
 
+    const platformTenantId = String(this.configService.get<string>('PLATFORM_TENANT_ID') || 'zs').trim();
+    const targetTenantId = input.role === 'super_admin' ? platformTenantId : scope.tenantId;
+    const targetAccountId = input.role === 'super_admin' ? platformTenantId : scope.accountId;
+
     try {
       await this.db
         .insertInto('users')
@@ -73,8 +78,8 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
         locked_until: null,
         last_login_at: null,
         must_change_password: true,
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
+        tenant_id: targetTenantId,
+        account_id: targetAccountId,
       })
       .execute();
     } catch (e: any) {

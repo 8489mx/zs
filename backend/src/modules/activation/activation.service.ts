@@ -329,8 +329,8 @@ export class ActivationService {
 
         const usersScoped = await this.columnExists('users', 'tenant_id', trx);
         const usersHaveAccountId = usersScoped && await this.columnExists('users', 'account_id', trx);
-        const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
-        const isPlatform = ['default', 'dev-tenant', platformTenantId].includes(String(scope.tenantId || '').trim());
+        const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'zs').trim();
+        const isPlatform = ['zs', 'default', 'dev-tenant', platformTenantId].includes(String(scope.tenantId || '').trim());
         const userValues: Record<string, unknown> = {
           username: dto.adminUsername.trim(),
           password_hash: passwordRecord.hash,

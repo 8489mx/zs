@@ -8,8 +8,7 @@ export function useFeatureGate(featureCode: string): boolean {
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
 
-  const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
-  if (isPlatformAdmin(user) || isMasterDeveloperUser) {
+  if (isPlatformAdmin(user)) {
     return true;
   }
 

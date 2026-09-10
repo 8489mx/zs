@@ -15,7 +15,7 @@ export function useSaasTenants() {
   const canAccess: boolean = Boolean(isPlatformAdmin(user));
   const configuredPlatformTenantId = String(import.meta.env?.VITE_PLATFORM_TENANT_ID || '').trim();
   const currentTenantId = String(user?.tenantId || '').trim();
-  const platformTenantId = configuredPlatformTenantId || currentTenantId || 'default';
+  const platformTenantId = configuredPlatformTenantId || currentTenantId || 'zs';
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
