@@ -88,22 +88,22 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   const hasExplicitCsrfSecret = typeof config.SESSION_CSRF_SECRET === 'string' && config.SESSION_CSRF_SECRET.trim().length >= 16;
   const appMode = normalizeAppMode(config.APP_MODE);
 
-  const isPortable = process.env.PORTABLE_MODE === 'true';
+  const isPortable = process.env.PORTABLE_MODE === 'true' && appMode !== 'SELF_CONTAINED';
 
-    const dbHost = isPortable ? 'localhost' : (config.DATABASE_HOST ?? config.DB_HOST);
+    const dbHost = (config.DATABASE_HOST ?? config.DB_HOST) || (isPortable ? 'localhost' : undefined);
     const isLocalHost = typeof dbHost === 'string' && isLocalDatabaseHost(dbHost);
     const forceDisableSsl = isPortable || appMode === 'SELF_CONTAINED' || isLocalHost;
 
     const raw = {
       ...config,
       APP_MODE: appMode,
-      APP_PORT: isPortable ? 3001 : (config.PORT ?? config.APP_PORT ?? 3001),
+      APP_PORT: (config.PORT ?? config.APP_PORT) ? Number(config.PORT ?? config.APP_PORT) : 3001,
       APP_HOST: config.HOST ?? config.APP_HOST ?? '0.0.0.0',
       DATABASE_HOST: dbHost,
-      DATABASE_PORT: isPortable ? 5432 : (config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT),
-      DATABASE_NAME: isPortable ? 'pglite' : (config.DATABASE_NAME ?? config.DB_NAME),
-      DATABASE_USER: isPortable ? 'pglite' : (config.DATABASE_USER ?? config.DB_USER),
-      DATABASE_PASSWORD: isPortable ? 'pglite' : (config.DATABASE_PASSWORD ?? config.DB_PASSWORD),
+      DATABASE_PORT: (config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT) ? Number(config.DATABASE_PORT ?? config.DB_PORT ?? config.PGPORT) : (isPortable ? 5432 : 5432),
+      DATABASE_NAME: config.DATABASE_NAME ?? config.DB_NAME ?? (isPortable ? 'pglite' : undefined),
+      DATABASE_USER: config.DATABASE_USER ?? config.DB_USER ?? (isPortable ? 'pglite' : undefined),
+      DATABASE_PASSWORD: config.DATABASE_PASSWORD ?? config.DB_PASSWORD ?? (isPortable ? 'pglite' : undefined),
       DATABASE_SSL: forceDisableSsl ? 'false' : (config.DATABASE_SSL ?? config.DB_SSL ?? 'false'),
       DATABASE_SSL_REJECT_UNAUTHORIZED: forceDisableSsl ? 'false' : (config.DATABASE_SSL_REJECT_UNAUTHORIZED ?? 'false'),
     DATABASE_POOL_MAX: config.DATABASE_POOL_MAX ?? 10,

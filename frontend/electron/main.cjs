@@ -520,7 +520,7 @@ app.whenReady().then(async () => {
     ...process.env,
     ...pgManager.getEnvironmentVariables(),
     Z_DATA_DIR: dataDir,
-    PORTABLE_MODE: 'true',
+    PORTABLE_MODE: 'false',
     IS_ELECTRON: 'true',
     TENANT_ID: 'default',
     ACCOUNT_ID: 'default',
