@@ -556,10 +556,48 @@ export class SalesWriteService {
         if (!normalized.branchId) {
           throw new AppError('يجب تحديد الفرع لعمليات البيع عبر الكاشير.', 'POS_BRANCH_REQUIRED', 400);
         }
-        branch = await trx.selectFrom('branches').select(['default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock']).where('id', '=', normalized.branchId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+        branch = await trx
+          .selectFrom('branches')
+          .select(['id', 'name', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock'])
+          .where('id', '=', normalized.branchId)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+
+        const branchLabel = branch?.name ? `"${branch.name}"` : `#${normalized.branchId}`;
+
         if (!branch?.default_stock_location_id) {
-          throw new AppError('لا يوجد مخزون افتراضي نشط لهذا الفرع، يرجى تحديده من الإعدادات قبل البيع.', 'POS_DEFAULT_STOCK_REQUIRED', 400);
+          throw new AppError(
+            `الفرع ${branchLabel} لا يملك مخزناً افتراضياً. يرجى الذهاب إلى الإعدادات > الفروع وتعيين مخزن افتراضي صحيح لهذا الفرع قبل البيع.`,
+            'POS_DEFAULT_STOCK_REQUIRED',
+            400,
+          );
         }
+
+        // Verify the assigned default stock location actually exists and is active
+        const defaultLocation = await trx
+          .selectFrom('stock_locations')
+          .select(['id', 'name', 'is_active'])
+          .where('id', '=', branch.default_stock_location_id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+
+        if (!defaultLocation) {
+          throw new AppError(
+            `المخزن الافتراضي المرتبط بالفرع ${branchLabel} تم حذفه أو لا يوجد. يرجى الذهاب إلى الإعدادات > الفروع وتعيين مخزن افتراضي صحيح.`,
+            'POS_DEFAULT_STOCK_DELETED',
+            400,
+          );
+        }
+
+        if (!defaultLocation.is_active) {
+          const locationLabel = defaultLocation.name ? `"${defaultLocation.name}"` : `#${defaultLocation.id}`;
+          throw new AppError(
+            `المخزن الافتراضي ${locationLabel} للفرع ${branchLabel} معطّل. يرجى تفعيل المخزن أو تغيير المخزن الافتراضي من الإعدادات > الفروع.`,
+            'POS_DEFAULT_STOCK_INACTIVE',
+            400,
+          );
+        }
+
         normalized.locationId = branch.default_stock_location_id;
       }
 
@@ -1407,10 +1445,48 @@ export class SalesWriteService {
         if (!normalized.branchId) {
           throw new AppError('يجب تحديد الفرع لعمليات البيع عبر الكاشير.', 'POS_BRANCH_REQUIRED', 400);
         }
-        branch = await trx.selectFrom('branches').select(['default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock']).where('id', '=', normalized.branchId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+        branch = await trx
+          .selectFrom('branches')
+          .select(['id', 'name', 'default_stock_location_id', 'sales_stock_mode', 'allow_external_sales_stock'])
+          .where('id', '=', normalized.branchId)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+
+        const branchLabel = branch?.name ? `"${branch.name}"` : `#${normalized.branchId}`;
+
         if (!branch?.default_stock_location_id) {
-          throw new AppError('لا يوجد مخزون افتراضي نشط لهذا الفرع، يرجى تحديده من الإعدادات قبل البيع.', 'POS_DEFAULT_STOCK_REQUIRED', 400);
+          throw new AppError(
+            `الفرع ${branchLabel} لا يملك مخزناً افتراضياً. يرجى الذهاب إلى الإعدادات > الفروع وتعيين مخزن افتراضي صحيح لهذا الفرع قبل البيع.`,
+            'POS_DEFAULT_STOCK_REQUIRED',
+            400,
+          );
         }
+
+        // Verify the assigned default stock location actually exists and is active
+        const defaultLocation = await trx
+          .selectFrom('stock_locations')
+          .select(['id', 'name', 'is_active'])
+          .where('id', '=', branch.default_stock_location_id)
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+
+        if (!defaultLocation) {
+          throw new AppError(
+            `المخزن الافتراضي المرتبط بالفرع ${branchLabel} تم حذفه أو لا يوجد. يرجى الذهاب إلى الإعدادات > الفروع وتعيين مخزن افتراضي صحيح.`,
+            'POS_DEFAULT_STOCK_DELETED',
+            400,
+          );
+        }
+
+        if (!defaultLocation.is_active) {
+          const locationLabel = defaultLocation.name ? `"${defaultLocation.name}"` : `#${defaultLocation.id}`;
+          throw new AppError(
+            `المخزن الافتراضي ${locationLabel} للفرع ${branchLabel} معطّل. يرجى تفعيل المخزن أو تغيير المخزن الافتراضي من الإعدادات > الفروع.`,
+            'POS_DEFAULT_STOCK_INACTIVE',
+            400,
+          );
+        }
+
         normalized.locationId = branch.default_stock_location_id;
       }
 

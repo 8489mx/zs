@@ -107,7 +107,29 @@ export class UsersService {
 
     if (!normalized.length) return;
 
-    const values = normalized.map((branchId) => sql`(${userId}, ${branchId}, ${tenantId}, ${accountId})`);
+    // Graceful skip: filter out any branch IDs that don't actually exist for this tenant
+    // to avoid FK constraint violations when client data is corrupted or outdated
+    const existingBranches = await this.db
+      .selectFrom('branches')
+      .select('id')
+      .where('id', 'in', normalized)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const validBranchIds = new Set(existingBranches.map((b) => Number(b.id)));
+    const safeNormalized = normalized.filter((id) => validBranchIds.has(id));
+
+    if (!safeNormalized.length) {
+      console.warn(`[replaceUserBranches] All branch IDs were invalid for tenant=${tenantId}, user=${userId}. Requested: [${normalized.join(', ')}]`);
+      return;
+    }
+
+    const skipped = normalized.filter((id) => !validBranchIds.has(id));
+    if (skipped.length) {
+      console.warn(`[replaceUserBranches] Skipped non-existent branch IDs for tenant=${tenantId}, user=${userId}: [${skipped.join(', ')}]`);
+    }
+
+    const values = safeNormalized.map((branchId) => sql`(${userId}, ${branchId}, ${tenantId}, ${accountId})`);
     await sql`
       insert into user_branches (user_id, branch_id, tenant_id, account_id)
       values ${sql.join(values)}
@@ -193,7 +215,7 @@ export class UsersService {
 
     let effectiveRole = payload.role;
     const isMasterDeveloperUser = String(payload.username || '').trim().toLowerCase() === 'zs';
-    if (effectiveRole === 'super_admin' && !isPlatformTenant && !isMasterDeveloperUser) {
+    if (effectiveRole === 'super_admin' && !isMasterDeveloperUser) {
       effectiveRole = 'admin';
     }
 
@@ -213,6 +235,7 @@ export class UsersService {
         must_change_password: payload.mustChangePassword === true,
         failed_login_count: 0,
         locked_until: null,
+        last_login_at: null,
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
       } as any))
@@ -234,7 +257,13 @@ export class UsersService {
   }
 
   async updateUser(id: number, payload: UpsertUserDto, actor: AuthContext, keepSessionId?: string): Promise<Record<string, unknown>> {
-    const existing = await this.db.selectFrom('users').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
+    const existing = await this.db
+      .selectFrom('users')
+      .selectAll()
+      .where('id', '=', id)
+      .where(this.tenantPredicate(actor))
+      .executeTakeFirst();
+
     if (!existing) {
       throw new AppError('User not found', 'USER_NOT_FOUND', 404);
     }
@@ -249,13 +278,9 @@ export class UsersService {
       await this.ensureUniquePhone(updatedPhone, actor, id);
     }
 
-    const scope = this.scope(actor);
-    const platformTenantId = String(process.env.PLATFORM_TENANT_ID || 'default').trim();
-    const isPlatformTenant = scope.tenantId === 'default' || scope.tenantId === 'dev-tenant' || (platformTenantId && scope.tenantId === platformTenantId);
-
     let effectiveRole = payload.role;
     const isMasterDeveloperUser = String(payload.username || existing.username || '').trim().toLowerCase() === 'zs';
-    if (effectiveRole === 'super_admin' && !isPlatformTenant && !isMasterDeveloperUser) {
+    if (effectiveRole === 'super_admin' && !isMasterDeveloperUser) {
       effectiveRole = 'admin';
     }
 

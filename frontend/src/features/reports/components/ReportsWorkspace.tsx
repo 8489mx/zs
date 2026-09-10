@@ -5,6 +5,7 @@ import { ReportsSectionContent } from '@/features/reports/components/ReportsSect
 import { ReportsRangeCard } from '@/features/reports/components/ReportsRangeCard';
 import { useReportsWorkspaceController } from '@/features/reports/hooks/useReportsWorkspaceController';
 import type { ReportsSectionKey } from '@/features/reports/pages/reports.page-config';
+import { ReportPrintMenu } from '@/shared/components/ReportPrintMenu';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
 import { referenceDataApi } from '@/services/reference-data.api';
@@ -25,7 +26,11 @@ export function ReportsWorkspace({ currentSection }: { currentSection: ReportsSe
         actions={(
           <div className="actions compact-actions">
             <Button variant="secondary" onClick={controller.exportExecutiveSummary} disabled={!controller.report}>تصدير</Button>
-            <Button variant="secondary" onClick={controller.printExecutiveSummary} disabled={!controller.report}>طباعة</Button>
+            <ReportPrintMenu
+              onPrintA4={() => controller.printExecutiveSummary('A4')}
+              onPrintReceipt={() => controller.printExecutiveSummary('receipt')}
+              disabled={!controller.report}
+            />
             <Button variant="secondary" onClick={() => void controller.copyExecutiveSummary()} disabled={!controller.report}>نسخ</Button>
           </div>
         )}

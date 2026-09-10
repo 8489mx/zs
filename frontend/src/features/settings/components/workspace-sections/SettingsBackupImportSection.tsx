@@ -6,7 +6,7 @@ import { ImportWorkbench } from '@/features/settings/components/ImportWorkbench'
 import { SnapshotList, type BackupSnapshotRecord } from '@/features/settings/components/SettingsWorkspacePrimitives';
 import { settingsApi, type BackupConfigResponse } from '@/features/settings/api/settings.api';
 import { useAuthStore } from '@/stores/auth-store';
-import { isPlatformAdmin } from '@/app/router/access';
+import { isPlatformAdmin, isDesktopOfflineApp } from '@/app/router/access';
 
 
 export interface BackupConfigQueryState {
@@ -359,7 +359,7 @@ function CloudBackupSettingsCard({ canManage }: { canManage: boolean }) {
 function DemoDataSandboxCard() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = isPlatformAdmin(user);
+  const isSuperAdmin = isPlatformAdmin(user) || isDesktopOfflineApp() || user?.role === 'super_admin' || user?.username?.trim().toLowerCase() === 'zs';
   const [modalMode, setModalMode] = useState<'seed' | 'wipe' | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -831,7 +831,10 @@ export function SettingsBackupImportSection({
   onExportData,
 }: SettingsBackupImportSectionProps) {
   const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = isPlatformAdmin(user);
+  const isPlatformSuperAdmin = isPlatformAdmin(user);
+  const isDesktopOffline = isDesktopOfflineApp();
+  const canRestore = isPlatformSuperAdmin || isDesktopOffline || user?.role === 'super_admin' || (user?.role === 'admin' && canManageBackups) || user?.username?.trim().toLowerCase() === 'zs';
+  const isSuperAdmin = isPlatformSuperAdmin || isDesktopOffline || user?.role === 'super_admin' || user?.username?.trim().toLowerCase() === 'zs';
   const [isSnapshotsOpen, setIsSnapshotsOpen] = useState(false);
   const summaryPairs = formatSummaryPairs(backupResult);
   const resolvedFolder = backupFolderPathDraft || backupConfigQuery.data?.folderPath || backupConfigQuery.data?.defaultFolderPath || 'D:\\ZS Backups';
@@ -1043,7 +1046,7 @@ export function SettingsBackupImportSection({
                   />
                 </label>
 
-                {isSuperAdmin ? (
+                {canRestore && canManageBackups ? (
                   <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px', background: '#ffffff', border: '1px dashed #fca5a5', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.15s ease' }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#b91c1c' }}>استعادة من ملف</span>
                     <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>تستبدل البيانات الحالية</span>
@@ -1060,7 +1063,7 @@ export function SettingsBackupImportSection({
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>استعادة من ملف</span>
                     <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                      خاص بمنصة الإدارة
+                      خاص بالإدارة
                     </span>
                   </div>
                 )}
@@ -1103,7 +1106,7 @@ export function SettingsBackupImportSection({
               <SnapshotList
                 snapshots={snapshots}
                 onDownload={handleSnapshotDownload}
-                onRestore={isSuperAdmin && canManageBackups ? onRequestRestoreSnapshot : () => undefined}
+                onRestore={canRestore && canManageBackups ? onRequestRestoreSnapshot : () => undefined}
                 restoringId={restoreSnapshotId}
               />
             </div>
@@ -1117,8 +1120,8 @@ export function SettingsBackupImportSection({
       {/* Demo Data Engine & Factory Reset Card */}
       <DemoDataSandboxCard />
 
-      {/* Database Maintenance Strip (Platform Admin only) */}
-      {isSuperAdmin && <DatabaseOptimizationCard canManage={canManageBackups} />}
+      {/* Database Maintenance Strip */}
+      {(isSuperAdmin || canManageBackups) && <DatabaseOptimizationCard canManage={canManageBackups} />}
 
       {/* Import / Export Workbench 2x2 Grid */}
       <QueryCard

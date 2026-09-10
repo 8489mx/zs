@@ -1,10 +1,10 @@
 import { QueryCard } from '@/shared/components/query-card';
+import { ReportPrintMenu } from '@/shared/components/ReportPrintMenu';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { relativePercent } from '@/features/reports/lib/reports-format';
 import { formatCurrency } from '@/lib/format';
 import type { ReportsSectionContentProps } from '@/features/reports/components/reports-section.types';
 
-import { Button } from '@/shared/ui/button';
 export function PurchasesReportSection({ report, reportQuery, printPurchasesRegisterReport }: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'printPurchasesRegisterReport'>) {
   const values = [
     report?.purchases.total || 0,
@@ -19,7 +19,23 @@ export function PurchasesReportSection({ report, reportQuery, printPurchasesRegi
       <QueryCard
         title="مؤشرات الشراء"
         description="فصل ملخص الشراء في تبويب مستقل يسهّل على الإدارة والمخزن مراجعة الوضع الشرائي بدون ازدحام."
-        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void printPurchasesRegisterReport(false)} disabled={!report?.purchases.count}>طباعة / PDF (ملخص)</Button><Button variant="secondary" onClick={() => void printPurchasesRegisterReport(true)} disabled={!report?.purchases.count}>طباعة / PDF (تفصيلي)</Button><span className="nav-pill">المشتريات</span></div>}
+        actions={(
+          <div className="actions compact-actions">
+            <ReportPrintMenu
+              label="طباعة (ملخص)"
+              onPrintA4={() => void printPurchasesRegisterReport(false, 'A4')}
+              onPrintReceipt={() => void printPurchasesRegisterReport(false, 'receipt')}
+              disabled={!report?.purchases.count}
+            />
+            <ReportPrintMenu
+              label="طباعة (تفصيلي)"
+              onPrintA4={() => void printPurchasesRegisterReport(true, 'A4')}
+              onPrintReceipt={() => void printPurchasesRegisterReport(true, 'receipt')}
+              disabled={!report?.purchases.count}
+            />
+            <span className="nav-pill">المشتريات</span>
+          </div>
+        )}
         isLoading={reportQuery.isLoading}
         isError={reportQuery.isError}
         error={reportQuery.error}

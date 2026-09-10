@@ -1,5 +1,6 @@
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
+import { ReportPrintMenu } from '@/shared/components/ReportPrintMenu';
 import { DataTable } from '@/shared/ui/data-table';
 import { Field } from '@/shared/ui/field';
 import { FormSection } from '@/shared/components/form-section';
@@ -41,7 +42,17 @@ export function BalancesReportSection({
       <QueryCard
         title="العملاء والموردون الأعلى رصيدًا"
         description="تبويب مخصص للذمم مع بحث وترقيم صفحات من الخادم، ويعرض مستحقات العملاء والموردين في قراءة واحدة."
-        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportCustomerBalances()} disabled={!summary?.totalItems}>تصدير Excel</Button><Button variant="secondary" onClick={() => void printCustomerBalances()} disabled={!summary?.totalItems}>طباعة</Button><span className="nav-pill">الذمم</span></div>}
+        actions={(
+          <div className="actions compact-actions">
+            <Button variant="secondary" onClick={() => void exportCustomerBalances()} disabled={!summary?.totalItems}>تصدير Excel</Button>
+            <ReportPrintMenu
+              onPrintA4={() => void printCustomerBalances('A4')}
+              onPrintReceipt={() => void printCustomerBalances('receipt')}
+              disabled={!summary?.totalItems}
+            />
+            <span className="nav-pill">الذمم</span>
+          </div>
+        )}
         className="reports-focus-card"
         isLoading={balancesQuery.isLoading}
         isError={balancesQuery.isError}

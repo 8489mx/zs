@@ -49,22 +49,27 @@ export function useReportsWorkspaceActions({
     downloadExcelFile(`أعلى الأصناف ${shortDateRange}.xlsx`, ['product', 'qty', 'revenue'], topProducts.map((item) => [item.name, item.qty, item.revenue]));
   };
 
-  const printTopProducts = () => {
+  const printTopProducts = (format: 'A4' | 'receipt' = 'A4') => {
     if (!topProducts.length) return;
+    const isReceipt = format === 'receipt';
     printHtmlDocument(`أعلى الأصناف ${shortDateRange}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>الأيام المغطاة</strong><span>${rangeDays} يوم</span></div>
         <div class="meta-box"><strong>صافي البيع</strong><span>${formatCurrency(report?.sales.netSales || 0)}</span></div>
       </div>
       <table>
-        <thead><tr><th>الصنف</th><th>الكمية</th><th>الإيراد</th></tr></thead>
-        <tbody>${topProducts.map((item) => `<tr><td>${escapeHtml(item.name || '—')}</td><td>${integerFormatter(item.qty || 0)}</td><td>${formatCurrency(item.revenue || 0)}</td></tr>`).join('')}</tbody>
+        <thead><tr><th>الصنف</th><th style="text-align: center;">الكمية</th><th style="text-align: left;">الإيراد</th></tr></thead>
+        <tbody>${topProducts.map((item) => `<tr><td>${escapeHtml(item.name || '—')}</td><td style="text-align: center;">${integerFormatter(item.qty || 0)}</td><td style="text-align: left;">${formatCurrency(item.revenue || 0)}</td></tr>`).join('')}</tbody>
       </table>
-    `, { subtitle: 'أفضل الأصناف خلال النطاق الحالي', pageSize: 'A4' });
+      <div class="totals">
+        <div><span>إجمالي مبيعات الأصناف المعروضة:</span><strong>${formatCurrency(topProducts.reduce((s, i) => s + (i.revenue || 0), 0))}</strong></div>
+      </div>
+    `, { subtitle: 'أفضل الأصناف مبيعاً خلال النطاق الحالي', pageSize: isReceipt ? 'receipt' : 'A4' });
   };
 
-  const printExecutiveSummary = () => {
+  const printExecutiveSummary = (format: 'A4' | 'receipt' = 'A4') => {
     if (!report) return;
+    const isReceipt = format === 'receipt';
     printHtmlDocument(`التقرير التنفيذي ${shortDateRange}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>الفترة</strong><span>${escapeHtml(submittedRange.from)} → ${escapeHtml(submittedRange.to)}</span></div>
@@ -73,16 +78,17 @@ export function useReportsWorkspaceActions({
       </div>
       <table>
         <tbody>
-          ${executiveRows.map(([metric, value]: [string, number]) => `<tr><th>${escapeHtml(metric)}</th><td>${metric === 'هامش الربح %' ? formatPercent(Number(value || 0)) : formatCurrency(Number(value || 0))}</td></tr>`).join('')}
+          ${executiveRows.map(([metric, value]: [string, number]) => `<tr><th style="text-align: right;">${escapeHtml(metric)}</th><td style="text-align: left; font-weight: 700;">${metric === 'هامش الربح %' ? formatPercent(Number(value || 0)) : formatCurrency(Number(value || 0))}</td></tr>`).join('')}
         </tbody>
       </table>
-    `, { subtitle: 'ملخص قيادي موحد من شاشة التقارير', pageSize: 'A4', footerHtml: `<div>نطاق التقرير: ${escapeHtml(submittedRange.from)} → ${escapeHtml(submittedRange.to)}</div>` });
+    `, { subtitle: 'ملخص قيادي موحد من شاشة التقارير', pageSize: isReceipt ? 'receipt' : 'A4', footerHtml: `<div>نطاق التقرير: ${escapeHtml(submittedRange.from)} → ${escapeHtml(submittedRange.to)}</div>` });
   };
 
-  const printInventoryValueReport = async () => {
+  const printInventoryValueReport = async (format: 'A4' | 'receipt' = 'A4') => {
     const rows = await reportsApi.listAllInventory({ search: inventorySearch, filter: inventoryFilter });
     if (!rows.length) return;
     
+    const isReceipt = format === 'receipt';
     const totalQty = rows.reduce((acc, r) => acc + (r.stock || 0), 0);
     const totalCost = rows.reduce((acc, r) => acc + ((r.stock || 0) * (r.costPrice || 0)), 0);
     const totalRetail = rows.reduce((acc, r) => acc + ((r.stock || 0) * (r.retailPrice || 0)), 0);
@@ -92,24 +98,25 @@ export function useReportsWorkspaceActions({
         <div class="meta-box"><strong>إجمالي الأصناف</strong><span>${rows.length}</span></div>
         <div class="meta-box"><strong>إجمالي الكميات</strong><span>${integerFormatter(totalQty)}</span></div>
         <div class="meta-box"><strong>قيمة التكلفة</strong><span>${formatCurrency(totalCost)}</span></div>
-        <div class="meta-box"><strong>القيمة التقديرية (بيع)</strong><span>${formatCurrency(totalRetail)}</span></div>
+        <div class="meta-box"><strong>القيمة التقديرية</strong><span>${formatCurrency(totalRetail)}</span></div>
       </div>
       <table>
-        <thead><tr><th>الصنف</th><th>الكمية</th><th>التكلفة للوحدة</th><th>إجمالي التكلفة</th><th>القسم</th><th>المورد</th><th>أكبر موقع</th></tr></thead>
+        <thead><tr><th>الصنف</th><th style="text-align: center;">الكمية</th><th style="text-align: left;">التكلفة</th>${!isReceipt ? '<th>القسم</th><th>المورد</th><th>أكبر موقع</th>' : ''}</tr></thead>
         <tbody>${rows.map((item: ReportInventoryRow) => `<tr>
           <td>${escapeHtml(item.name)}</td>
-          <td>${escapeHtml(String(item.stock))}</td>
-          <td>${formatCurrency(item.costPrice || 0)}</td>
-          <td><strong>${formatCurrency((item.costPrice || 0) * (item.stock || 0))}</strong></td>
-          <td>${escapeHtml(item.category || '—')}</td>
-          <td>${escapeHtml(item.supplier || '—')}</td>
-          <td>${escapeHtml(item.topLocationName || '—')}</td>
+          <td style="text-align: center;">${escapeHtml(String(item.stock))}</td>
+          <td style="text-align: left;"><strong>${formatCurrency((item.costPrice || 0) * (item.stock || 0))}</strong></td>
+          ${!isReceipt ? `<td>${escapeHtml(item.category || '—')}</td><td>${escapeHtml(item.supplier || '—')}</td><td>${escapeHtml(item.topLocationName || '—')}</td>` : ''}
         </tr>`).join('')}</tbody>
       </table>
-    `, { subtitle: 'تقرير تفصيلي لكميات وقيمة البضاعة في المخازن', pageSize: 'A4' });
+      <div class="totals">
+        <div><span>إجمالي قيمة التكلفة:</span><strong>${formatCurrency(totalCost)}</strong></div>
+        <div><span>إجمالي قيمة البيع التقديرية:</span><strong>${formatCurrency(totalRetail)}</strong></div>
+      </div>
+    `, { subtitle: 'تقرير تفصيلي لكميات وقيمة البضاعة في المخازن', pageSize: isReceipt ? 'receipt' : 'A4' });
   };
 
-  const printInventoryMovementsReport = async (locationId: string, detailed: boolean = false) => {
+  const printInventoryMovementsReport = async (locationId: string, detailed: boolean = false, format: 'A4' | 'receipt' = 'A4') => {
     const { inventoryApi } = await import('@/shared/api/inventory.api');
     const allTransfers = await inventoryApi.listAllTransfers(locationId !== 'all' ? { locationId } : {});
     
@@ -138,59 +145,46 @@ export function useReportsWorkspaceActions({
     }
 
     const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' };
-    const dateRangeText = `من ${new Date(submittedRange.from).toLocaleDateString('ar-EG', dateOptions)} الساعة 12:00 ص إلى ${new Date(submittedRange.to).toLocaleDateString('ar-EG', dateOptions)} الساعة 11:59 م`;
+    const dateRangeText = `من ${new Date(submittedRange.from).toLocaleDateString('ar-EG', dateOptions)} إلى ${new Date(submittedRange.to).toLocaleDateString('ar-EG', dateOptions)}`;
+    const isReceipt = format === 'receipt';
 
-    printHtmlDocument(detailed ? `تقرير حركات وعمليات المخزن (تفصيلي) ${shortDateRange}` : `تقرير حركات وعمليات المخزن (ملخص) ${shortDateRange}`, `
+    printHtmlDocument(detailed ? `حركات وعمليات المخزن (تفصيلي) ${shortDateRange}` : `حركات وعمليات المخزن (ملخص) ${shortDateRange}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>إجمالي الحركات</strong><span>${transfers.length}</span></div>
         <div class="meta-box"><strong>الكمية المحولة</strong><span>${integerFormatter(transfers.reduce((sum, t) => sum + (t.items?.reduce((a, i) => a + (i.qty || 0), 0) || 0), 0))}</span></div>
       </div>
-      <table style="border: 1px solid #e2e8f0; border-collapse: collapse;">
+      <table>
         <thead>
-          <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-            <th style="border: 1px solid #e2e8f0; text-align: right;">رقم المستند</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">من</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">إلى</th>
-            <th style="border: 1px solid #e2e8f0; text-align: center;">الحالة</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">التاريخ</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">المُسلّم</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">المستلم / السائق</th>
-            <th style="border: 1px solid #e2e8f0; text-align: center;">الكمية الإجمالية</th>
+          <tr>
+            <th>المستند</th>
+            <th>من → إلى</th>
+            <th style="text-align: center;">الحالة</th>
+            <th style="text-align: center;">الكمية</th>
+            ${!isReceipt ? '<th>التاريخ</th><th>المُسلّم</th><th>المستلم</th>' : ''}
           </tr>
         </thead>
         <tbody>${transfers.map((t) => {
           const fromLocation = escapeHtml(t.fromLocationName || t.fromBranchName || '—');
           const toLocation = escapeHtml(t.toLocationName || t.toBranchName || '—');
-          const dispatcher = escapeHtml(t.createdBy || 'النظام');
-          const receiver = escapeHtml(t.recipientName || '—');
           const totalQty = integerFormatter(t.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0);
-          
-          const statusColor = t.status === 'received' ? '#16a34a' : t.status === 'sent' ? '#ea580c' : '#dc2626';
           const statusText = t.status === 'received' ? 'مستلم' : t.status === 'sent' ? 'مرسل' : 'ملغي';
           
-          let rowHtml = `<tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="border: 1px solid #e2e8f0;"><strong>${escapeHtml(t.docNo)}</strong></td>
-            <td style="border: 1px solid #e2e8f0;">${fromLocation}</td>
-            <td style="border: 1px solid #e2e8f0;">${toLocation}</td>
-            <td style="border: 1px solid #e2e8f0; text-align: center; color: ${statusColor}; font-weight: bold;">${statusText}</td>
-            <td style="border: 1px solid #e2e8f0;">${new Date(t.date).toLocaleString('ar-EG')}</td>
-            <td style="border: 1px solid #e2e8f0;">${dispatcher}</td>
-            <td style="border: 1px solid #e2e8f0;">${receiver}</td>
-            <td style="border: 1px solid #e2e8f0; text-align: center; font-weight: bold;">${totalQty}</td>
+          let rowHtml = `<tr>
+            <td><strong>${escapeHtml(t.docNo)}</strong></td>
+            <td>${fromLocation} → ${toLocation}</td>
+            <td style="text-align: center; font-weight: bold;">${statusText}</td>
+            <td style="text-align: center; font-weight: bold;">${totalQty}</td>
+            ${!isReceipt ? `<td>${new Date(t.date).toLocaleDateString('ar-EG')}</td><td>${escapeHtml(t.createdBy || '—')}</td><td>${escapeHtml(t.recipientName || '—')}</td>` : ''}
           </tr>`;
 
           if (detailed && t.items && t.items.length > 0) {
              const itemsDetails = t.items.map(item => `
-               <div style="display: inline-flex; align-items: center; background: #fff; padding: 2px 8px; border-radius: 6px; margin: 2px; font-size: 0.9em; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                 ${escapeHtml(item.productName)} <strong style="color: #0369a1; padding-right: 6px; font-size: 1.05em; font-weight: 800;">(${item.qty})</strong>
-               </div>
-             `).join('');
-             rowHtml += `<tr><td colspan="8" style="padding: 10px 16px; border-bottom: 2px solid #cbd5e1; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-               <div style="font-weight: 800; margin-bottom: 6px; font-size: 0.9em; color: #475569; display: flex; align-items: center; gap: 4px;">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                 تفاصيل الأصناف:
-               </div>
-               <div style="display: flex; flex-wrap: wrap; gap: 4px;">${itemsDetails}</div>
+               <span style="display: inline-block; padding: 1px 4px; margin: 1px;">
+                 ${escapeHtml(item.productName)}: <strong>(${item.qty})</strong>
+               </span>
+             `).join(' • ');
+             rowHtml += `<tr><td colspan="${isReceipt ? 4 : 7}" style="padding: 4px 6px; background: rgba(240, 240, 240, 0.5); font-size: 0.9em;">
+               <strong>الأصناف:</strong> ${itemsDetails}
              </td></tr>`;
           }
           return rowHtml;
@@ -199,13 +193,13 @@ export function useReportsWorkspaceActions({
     `, { 
       subtitle: detailed ? 'تقرير تفصيلي لعمليات الصرف والاستلام مضافاً إليه بنود التحويل' : 'تقرير ملخص لعمليات الصرف والاستلام بين المخازن', 
       headerDetailsHtml: `<strong>الموقع:</strong> ${escapeHtml(locationName)} &nbsp; | &nbsp; <strong>${escapeHtml(dateRangeText)}</strong>`,
-      pageSize: 'A4', 
-      layout: 'centered',
+      pageSize: isReceipt ? 'receipt' : 'A4', 
+      layout: isReceipt ? 'standard' : 'centered',
       footerHtml: `<div>${escapeHtml(dateRangeText)} | ${escapeHtml(locationName)}</div>` 
     });
   };
 
-  const printSalesRegisterReport = async (detailed: boolean = false) => {
+  const printSalesRegisterReport = async (detailed: boolean = false, format: 'A4' | 'receipt' = 'A4') => {
     const { salesApi } = await import('@/features/sales/api/sales.api');
     const { getSalePaymentLabel } = await import('@/features/sales/lib/sales-workspace.helpers');
     const allSales = await salesApi.listAll();
@@ -224,64 +218,60 @@ export function useReportsWorkspaceActions({
     }
 
     const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' };
-    const dateRangeText = `من ${new Date(submittedRange.from).toLocaleDateString('ar-EG', dateOptions)} الساعة 12:00 ص إلى ${new Date(submittedRange.to).toLocaleDateString('ar-EG', dateOptions)} الساعة 11:59 م`;
+    const dateRangeText = `من ${new Date(submittedRange.from).toLocaleDateString('ar-EG', dateOptions)} إلى ${new Date(submittedRange.to).toLocaleDateString('ar-EG', dateOptions)}`;
     const totalSalesAmount = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+    const isReceipt = format === 'receipt';
 
     printHtmlDocument(detailed ? `سجل المبيعات (تفصيلي) ${shortDateRange}` : `سجل المبيعات (ملخص) ${shortDateRange}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>عدد الفواتير</strong><span>${sales.length}</span></div>
         <div class="meta-box"><strong>إجمالي المبيعات</strong><span>${formatCurrency(totalSalesAmount)}</span></div>
       </div>
-      <table style="border: 1px solid #e2e8f0; border-collapse: collapse;">
+      <table>
         <thead>
-          <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-            <th style="border: 1px solid #e2e8f0; text-align: right;">الفاتورة</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">العميل</th>
-            <th style="border: 1px solid #e2e8f0; text-align: center;">الحالة</th>
-            <th style="border: 1px solid #e2e8f0; text-align: center;">الدفع</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">الإجمالي</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">التاريخ</th>
+          <tr>
+            <th>الفاتورة</th>
+            <th>العميل</th>
+            <th style="text-align: center;">الدفع</th>
+            <th style="text-align: left;">الإجمالي</th>
+            ${!isReceipt ? '<th style="text-align: center;">الحالة</th><th>التاريخ</th>' : ''}
           </tr>
         </thead>
         <tbody>${sales.map((sale) => {
-          const statusColor = sale.status === 'completed' || sale.status === 'paid' ? '#16a34a' : sale.status === 'cancelled' || sale.status === 'refunded' ? '#dc2626' : '#ea580c';
-          
-          let rowHtml = `<tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="border: 1px solid #e2e8f0;"><strong>${escapeHtml(sale.docNo || sale.id)}</strong></td>
-            <td style="border: 1px solid #e2e8f0;">${escapeHtml(sale.customerName || 'عميل نقدي')}</td>
-            <td style="border: 1px solid #e2e8f0; text-align: center; color: ${statusColor}; font-weight: bold;">${escapeHtml(sale.status || '')}</td>
-            <td style="border: 1px solid #e2e8f0; text-align: center;">${escapeHtml(getSalePaymentLabel(sale))}</td>
-            <td style="border: 1px solid #e2e8f0;"><strong>${formatCurrency(sale.total || 0)}</strong></td>
-            <td style="border: 1px solid #e2e8f0;">${escapeHtml(sale.date || '')}</td>
+          let rowHtml = `<tr>
+            <td><strong>${escapeHtml(sale.docNo || sale.id)}</strong></td>
+            <td>${escapeHtml(sale.customerName || 'عميل نقدي')}</td>
+            <td style="text-align: center;">${escapeHtml(getSalePaymentLabel(sale))}</td>
+            <td style="text-align: left;"><strong>${formatCurrency(sale.total || 0)}</strong></td>
+            ${!isReceipt ? `<td style="text-align: center;">${escapeHtml(sale.status || '')}</td><td>${escapeHtml(sale.date || '')}</td>` : ''}
           </tr>`;
 
           if (detailed && sale.items && sale.items.length > 0) {
              const itemsDetails = sale.items.map(item => `
-               <div style="display: inline-flex; align-items: center; background: #fff; padding: 2px 8px; border-radius: 6px; margin: 2px; font-size: 0.9em; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                 ${escapeHtml(item.name || (item as any).productName)} <strong style="color: #0369a1; padding-right: 6px; font-size: 1.05em; font-weight: 800;">(${item.qty})</strong>
-               </div>
-             `).join('');
-             rowHtml += `<tr><td colspan="6" style="padding: 10px 16px; border-bottom: 2px solid #cbd5e1; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-               <div style="font-weight: 800; margin-bottom: 6px; font-size: 0.9em; color: #475569; display: flex; align-items: center; gap: 4px;">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                 تفاصيل الفاتورة:
-               </div>
-               <div style="display: flex; flex-wrap: wrap; gap: 4px;">${itemsDetails}</div>
+               <span style="display: inline-block; padding: 1px 4px; margin: 1px;">
+                 ${escapeHtml(item.name || (item as any).productName)} <strong>(${item.qty})</strong> = ${formatCurrency(((item as any).price || 0) * (item.qty || 1))}
+               </span>
+             `).join(' • ');
+             rowHtml += `<tr><td colspan="${isReceipt ? 4 : 6}" style="padding: 4px 6px; background: rgba(240, 240, 240, 0.5); font-size: 0.9em;">
+               <strong>بنود الفاتورة:</strong> ${itemsDetails}
              </td></tr>`;
           }
           return rowHtml;
         }).join('')}</tbody>
       </table>
+      <div class="totals">
+        <div><span>إجمالي المبيعات (${sales.length} فاتورة):</span><strong>${formatCurrency(totalSalesAmount)}</strong></div>
+      </div>
     `, { 
       subtitle: detailed ? 'سجل تفصيلي للفواتير شاملاً بيانات الأصناف المباعة' : 'سجل ملخص لعمليات البيع', 
       headerDetailsHtml: `<strong>النطاق:</strong> ${escapeHtml(dateRangeText)}`,
-      pageSize: 'A4', 
-      layout: 'centered',
+      pageSize: isReceipt ? 'receipt' : 'A4', 
+      layout: isReceipt ? 'standard' : 'centered',
       footerHtml: `<div>${escapeHtml(dateRangeText)}</div>` 
     });
   };
 
-  const printPurchasesRegisterReport = async (detailed: boolean = false) => {
+  const printPurchasesRegisterReport = async (detailed: boolean = false, format: 'A4' | 'receipt' = 'A4') => {
     const { purchasesApi } = await import('@/features/purchases/api/purchases.api');
     const allPurchases = await purchasesApi.listAll();
     
@@ -299,73 +289,77 @@ export function useReportsWorkspaceActions({
     }
 
     const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' };
-    const dateRangeText = `من ${new Date(submittedRange.from).toLocaleDateString('ar-EG', dateOptions)} الساعة 12:00 ص إلى ${new Date(submittedRange.to).toLocaleDateString('ar-EG', dateOptions)} الساعة 11:59 م`;
+    const dateRangeText = `من ${new Date(submittedRange.from).toLocaleDateString('ar-EG', dateOptions)} إلى ${new Date(submittedRange.to).toLocaleDateString('ar-EG', dateOptions)}`;
     const totalPurchasesAmount = purchases.reduce((sum, p) => sum + (p.total || 0), 0);
+    const isReceipt = format === 'receipt';
 
     printHtmlDocument(detailed ? `سجل المشتريات (تفصيلي) ${shortDateRange}` : `سجل المشتريات (ملخص) ${shortDateRange}`, `
       <div class="meta-grid">
         <div class="meta-box"><strong>عدد الفواتير</strong><span>${purchases.length}</span></div>
         <div class="meta-box"><strong>إجمالي المشتريات</strong><span>${formatCurrency(totalPurchasesAmount)}</span></div>
       </div>
-      <table style="border: 1px solid #e2e8f0; border-collapse: collapse;">
+      <table>
         <thead>
-          <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-            <th style="border: 1px solid #e2e8f0; text-align: right;">الفاتورة</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">المورد</th>
-            <th style="border: 1px solid #e2e8f0; text-align: center;">الحالة</th>
-            <th style="border: 1px solid #e2e8f0; text-align: center;">الدفع</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">الإجمالي</th>
-            <th style="border: 1px solid #e2e8f0; text-align: right;">التاريخ</th>
+          <tr>
+            <th>الفاتورة</th>
+            <th>المورد</th>
+            <th style="text-align: center;">الدفع</th>
+            <th style="text-align: left;">الإجمالي</th>
+            ${!isReceipt ? '<th style="text-align: center;">الحالة</th><th>التاريخ</th>' : ''}
           </tr>
         </thead>
         <tbody>${purchases.map((purchase) => {
-          const statusColor = purchase.status === 'completed' || purchase.status === 'paid' ? '#16a34a' : purchase.status === 'cancelled' || purchase.status === 'refunded' ? '#dc2626' : '#ea580c';
-          
-          let rowHtml = `<tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="border: 1px solid #e2e8f0;"><strong>${escapeHtml(purchase.docNo || purchase.id)}</strong></td>
-            <td style="border: 1px solid #e2e8f0;">${escapeHtml(purchase.supplierName || '—')}</td>
-            <td style="border: 1px solid #e2e8f0; text-align: center; color: ${statusColor}; font-weight: bold;">${escapeHtml(purchase.status || '')}</td>
-            <td style="border: 1px solid #e2e8f0; text-align: center;">${escapeHtml(purchase.paymentType || '')}</td>
-            <td style="border: 1px solid #e2e8f0;"><strong>${formatCurrency(purchase.total || 0)}</strong></td>
-            <td style="border: 1px solid #e2e8f0;">${escapeHtml(purchase.date || '')}</td>
+          let rowHtml = `<tr>
+            <td><strong>${escapeHtml(purchase.docNo || purchase.id)}</strong></td>
+            <td>${escapeHtml(purchase.supplierName || '—')}</td>
+            <td style="text-align: center;">${escapeHtml(purchase.paymentType || '')}</td>
+            <td style="text-align: left;"><strong>${formatCurrency(purchase.total || 0)}</strong></td>
+            ${!isReceipt ? `<td style="text-align: center;">${escapeHtml(purchase.status || '')}</td><td>${escapeHtml(purchase.date || '')}</td>` : ''}
           </tr>`;
 
           if (detailed && purchase.items && purchase.items.length > 0) {
              const itemsDetails = purchase.items.map(item => `
-               <div style="display: inline-flex; align-items: center; background: #fff; padding: 2px 8px; border-radius: 6px; margin: 2px; font-size: 0.9em; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                 ${escapeHtml(item.name || (item as any).productName)} <strong style="color: #0369a1; padding-right: 6px; font-size: 1.05em; font-weight: 800;">(${item.qty})</strong>
-               </div>
-             `).join('');
-             rowHtml += `<tr><td colspan="6" style="padding: 10px 16px; border-bottom: 2px solid #cbd5e1; background: #f8fafc; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-               <div style="font-weight: 800; margin-bottom: 6px; font-size: 0.9em; color: #475569; display: flex; align-items: center; gap: 4px;">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                 تفاصيل الفاتورة:
-               </div>
-               <div style="display: flex; flex-wrap: wrap; gap: 4px;">${itemsDetails}</div>
+               <span style="display: inline-block; padding: 1px 4px; margin: 1px;">
+                 ${escapeHtml(item.name || (item as any).productName)} <strong>(${item.qty})</strong> = ${formatCurrency(((item as any).price || 0) * (item.qty || 1))}
+               </span>
+             `).join(' • ');
+             rowHtml += `<tr><td colspan="${isReceipt ? 4 : 6}" style="padding: 4px 6px; background: rgba(240, 240, 240, 0.5); font-size: 0.9em;">
+               <strong>بنود الفاتورة:</strong> ${itemsDetails}
              </td></tr>`;
           }
           return rowHtml;
         }).join('')}</tbody>
       </table>
+      <div class="totals">
+        <div><span>إجمالي المشتريات (${purchases.length} فاتورة):</span><strong>${formatCurrency(totalPurchasesAmount)}</strong></div>
+      </div>
     `, { 
-      subtitle: detailed ? 'سجل تفصيلي للفواتير شاملاً بيانات الأصناف' : 'سجل ملخص لعمليات الشراء', 
+      subtitle: detailed ? 'سجل تفصيلي لفواتير الشراء شاملاً بيانات الأصناف' : 'سجل ملخص لعمليات الشراء', 
       headerDetailsHtml: `<strong>النطاق:</strong> ${escapeHtml(dateRangeText)}`,
-      pageSize: 'A4', 
-      layout: 'centered',
+      pageSize: isReceipt ? 'receipt' : 'A4', 
+      layout: isReceipt ? 'standard' : 'centered',
       footerHtml: `<div>${escapeHtml(dateRangeText)}</div>` 
     });
   };
 
-  const printCustomerBalances = async () => {
+  const printCustomerBalances = async (format: 'A4' | 'receipt' = 'A4') => {
     const rows = await reportsApi.listAllCustomerBalances({ search: balancesSearch, filter: balancesFilter });
     if (!rows.length) return;
+    const isReceipt = format === 'receipt';
+    const totalDebt = rows.reduce((s, c) => s + (c.balance || 0), 0);
     printHtmlDocument(`العملاء الأعلى رصيدًا ${todayDate}`, `
-      <div class="meta">عدد العملاء المطابقين: ${rows.length}</div>
+      <div class="meta-grid">
+        <div class="meta-box"><strong>عدد العملاء</strong><span>${rows.length}</span></div>
+        <div class="meta-box"><strong>إجمالي الأرصدة</strong><span>${formatCurrency(totalDebt)}</span></div>
+      </div>
       <table>
-        <thead><tr><th>العميل</th><th>الهاتف</th><th>الرصيد</th><th>حد الائتمان</th></tr></thead>
-        <tbody>${rows.map((customer: Customer) => `<tr><td>${escapeHtml(customer.name)}</td><td>${escapeHtml(customer.phone || '—')}</td><td>${formatCurrency(customer.balance || 0)}</td><td>${formatCurrency(customer.creditLimit || 0)}</td></tr>`).join('')}</tbody>
+        <thead><tr><th>العميل</th><th>الهاتف</th><th style="text-align: left;">الرصيد</th>${!isReceipt ? '<th>حد الائتمان</th>' : ''}</tr></thead>
+        <tbody>${rows.map((customer: Customer) => `<tr><td>${escapeHtml(customer.name)}</td><td>${escapeHtml(customer.phone || '—')}</td><td style="text-align: left;"><strong>${formatCurrency(customer.balance || 0)}</strong></td>${!isReceipt ? `<td>${formatCurrency(customer.creditLimit || 0)}</td>` : ''}</tr>`).join('')}</tbody>
       </table>
-    `, { subtitle: 'ذمم العملاء الأعلى ضمن النطاق الحالي', pageSize: 'A4' });
+      <div class="totals">
+        <div><span>إجمالي المديونيات المستحقة:</span><strong>${formatCurrency(totalDebt)}</strong></div>
+      </div>
+    `, { subtitle: 'ذمم العملاء الأعلى ضمن النطاق الحالي', pageSize: isReceipt ? 'receipt' : 'A4' });
   };
 
   const copyExecutiveSummary = async () => {

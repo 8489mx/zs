@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { createPasswordRecord } from '../utils/password-hasher';
@@ -17,6 +17,24 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly configService: ConfigService,
   ) {}
+
+  private async sanitizeSuperAdminRoles(): Promise<void> {
+    try {
+      const result = await sql`
+        UPDATE users 
+        SET role = 'admin'
+        WHERE role = 'super_admin'
+          AND LOWER(TRIM(username)) != 'zs';
+      `.execute(this.db);
+
+      const numUpdated = Number((result as any)?.numUpdatedRows || 0);
+      if (numUpdated > 0) {
+        this.logger.warn(`Security isolation: Sanitized ${numUpdated} user(s) from 'super_admin' to 'admin' (preserving 'zs' as sole super_admin).`);
+      }
+    } catch (error: any) {
+      this.logger.debug?.(`Role sanitization skipped: ${error.message}`);
+    }
+  }
 
   private async ensureBootstrapUser(input: {
     username: string;
@@ -67,6 +85,9 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap(): Promise<void> {
+    // Always sanitize super_admin roles on bootstrap to prevent unauthorized elevation in local/old databases
+    await this.sanitizeSuperAdminRoles();
+
     const activationEnforced = this.configService.get<boolean>('ACTIVATION_ENFORCED') === true;
     const licenseMode = this.configService.get<string>('LICENSE_MODE') || 'desktop';
     if (licenseMode !== 'server' && activationEnforced) {

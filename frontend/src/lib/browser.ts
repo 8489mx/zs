@@ -385,28 +385,102 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
           color: #111;
           font-size: 11px;
         }
-        body.receipt-mode { font-size: 11px; }
-        body.receipt-mode .print-shell {
-          padding: 1px 2mm 2px;
+        body.receipt-mode {
+          font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+          font-size: 11px;
+          line-height: 1.25;
+          color: #000;
+          background: #fff;
           width: 100%;
-          max-width: 100%;
-          margin: 0;
+          max-width: 80mm;
+          margin: 0 auto;
         }
-        body.receipt-mode .print-header {
-          grid-template-columns: 1fr;
-          gap: 6px;
+        body.receipt-mode .print-shell {
+          padding: 2px 2mm 4px;
+          width: 100%;
+          max-width: 80mm;
+          margin: 0 auto;
+          box-sizing: border-box;
+        }
+        body.receipt-mode .receipt-header {
+          text-align: center;
           margin-bottom: 6px;
+          padding-bottom: 6px;
+          border-bottom: 1.5px dashed #000;
         }
-        body.receipt-mode .brand-panel { padding: 6px 8px; border-radius: 8px; }
-        body.receipt-mode .brand-name { font-size: 15px; }
-        body.receipt-mode .brand-logo-image, body.receipt-mode .brand-logo-fallback { width: 38px; height: 38px; border-radius: 8px; }
-        body.receipt-mode .doc-panel { min-width: 0; padding: 6px 8px; }
-        body.receipt-mode .doc-title { font-size: 14px; }
-        body.receipt-mode table { font-size: 11px; }
-        body.receipt-mode th, body.receipt-mode td { padding: 4px 5px; }
-        body.receipt-mode .meta-grid, body.receipt-mode .summary-grid { grid-template-columns: 1fr; }
-        body.receipt-mode .totals { padding: 6px 8px; }
-        body.receipt-mode .print-footer { margin-top: 4px; }
+        body.receipt-mode table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+          margin: 4px 0;
+          table-layout: auto;
+        }
+        body.receipt-mode th, body.receipt-mode td {
+          border: none;
+          border-bottom: 1px dashed #666;
+          padding: 3px 2px;
+          text-align: right;
+          font-size: 11px;
+          line-height: 1.2;
+        }
+        body.receipt-mode th {
+          border-bottom: 1.5px solid #000;
+          font-weight: 800;
+          color: #000;
+          background: transparent;
+        }
+        body.receipt-mode tbody tr:nth-child(even) {
+          background: transparent;
+        }
+        body.receipt-mode .meta-grid, body.receipt-mode .summary-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 3px;
+          margin-bottom: 4px;
+        }
+        body.receipt-mode .meta-box, body.receipt-mode .summary-box {
+          border: 1px dashed #888;
+          border-radius: 4px;
+          padding: 3px 5px;
+          background: transparent;
+        }
+        body.receipt-mode .meta-box strong, body.receipt-mode .summary-box strong {
+          display: block;
+          font-size: 9.5px;
+          color: #333;
+          margin-bottom: 1px;
+        }
+        body.receipt-mode .meta-box span, body.receipt-mode .summary-box span {
+          font-size: 11px;
+          font-weight: 800;
+          color: #000;
+        }
+        body.receipt-mode .totals {
+          border: none;
+          border-top: 1.5px solid #000;
+          border-bottom: 1.5px solid #000;
+          padding: 4px 0;
+          margin-top: 6px;
+          border-radius: 0;
+          background: transparent;
+        }
+        body.receipt-mode .totals div {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          margin-bottom: 2px;
+        }
+        body.receipt-mode .print-footer {
+          text-align: center;
+          border: none;
+          border-top: 1px dashed #000;
+          padding-top: 4px;
+          font-size: 9.5px;
+          color: #444;
+          margin-top: 6px;
+          border-radius: 0;
+          background: transparent;
+        }
         body.report-mode .print-shell { max-width: 100%; }
         body.report-mode .print-content > *:first-child { margin-top: 0 !important; }
         body.report-mode .print-content > * { min-height: auto !important; }
@@ -431,7 +505,15 @@ export function printHtmlDocument(titleOrBody: string, bodyOrTitle: string, opti
     </head>
     <body class="${pageSize === 'receipt' ? 'receipt-mode' : 'report-mode'}">
       <div class="print-shell">
-        ${pageSize === 'receipt' ? '' : `
+        ${pageSize === 'receipt' ? `
+          <div class="receipt-header">
+            <div style="font-size: 14px; font-weight: 800; color: #000;">${escapeHtml(branding.brandName || branding.storeName || DEFAULT_STORE_NAME)}</div>
+            <div style="font-size: 12.5px; font-weight: 700; margin-top: 2px; color: #000;">${escapeHtml(title)}</div>
+            ${safeSubtitle ? `<div style="font-size: 10px; color: #333; margin-top: 1px;">${escapeHtml(safeSubtitle)}</div>` : ''}
+            ${headerDetailsHtml ? `<div style="font-size: 9.5px; margin-top: 2px; color: #222;">${headerDetailsHtml}</div>` : ''}
+            <div style="font-size: 9.5px; color: #444; margin-top: 2px;">تاريخ الطباعة: ${escapeHtml(printedAt)}</div>
+          </div>
+        ` : `
           <div class="print-header ${layout === 'centered' ? 'centered-layout' : ''}">
             ${layout === 'centered' ? '' : buildBrandPanelHtml(branding)}
             <div class="doc-panel">

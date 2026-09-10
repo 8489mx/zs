@@ -1,5 +1,6 @@
 import { QueryCard } from '@/shared/components/query-card';
 import { Button } from '@/shared/ui/button';
+import { ReportPrintMenu } from '@/shared/components/ReportPrintMenu';
 import { DataTable } from '@/shared/ui/data-table';
 import { Field } from '@/shared/ui/field';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
@@ -63,9 +64,22 @@ export function InventoryReportSection({
           <Button variant="secondary" onClick={() => void exportLowStock()} disabled={!summary?.totalItems}>
             {isDeadStock ? 'تصدير الراكد Excel' : 'تصدير Excel'}
           </Button>
-          <Button variant="secondary" onClick={() => void printInventoryValueReport()} disabled={!summary?.totalItems}>طباعة الجرد والقيمة</Button>
-          <Button variant="secondary" onClick={() => void printInventoryMovementsReport(locationId, false)}>طباعة / PDF (ملخص)</Button>
-          <Button variant="secondary" onClick={() => void printInventoryMovementsReport(locationId, true)}>طباعة / PDF (تفصيلي)</Button>
+          <ReportPrintMenu
+            label="طباعة الجرد والقيمة"
+            onPrintA4={() => void printInventoryValueReport('A4')}
+            onPrintReceipt={() => void printInventoryValueReport('receipt')}
+            disabled={!summary?.totalItems}
+          />
+          <ReportPrintMenu
+            label="طباعة حركات (ملخص)"
+            onPrintA4={() => void printInventoryMovementsReport(locationId, false, 'A4')}
+            onPrintReceipt={() => void printInventoryMovementsReport(locationId, false, 'receipt')}
+          />
+          <ReportPrintMenu
+            label="طباعة حركات (تفصيلي)"
+            onPrintA4={() => void printInventoryMovementsReport(locationId, true, 'A4')}
+            onPrintReceipt={() => void printInventoryMovementsReport(locationId, true, 'receipt')}
+          />
           <span className="nav-pill">{isDeadStock ? 'المخزون الراكد' : 'المخزون'}</span>
         </div>
       }

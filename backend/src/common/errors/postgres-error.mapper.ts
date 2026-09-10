@@ -137,10 +137,172 @@ function mapUniqueViolation(error: PgErrorLike, message: string, detail: string)
   });
 }
 
+const FOREIGN_KEY_TARGET_NAMES: Record<string, string> = {
+  location_id: 'المخزن أو موقع التخزين',
+  default_stock_location_id: 'المخزن الافتراضي للفرع',
+  branch_id: 'الفرع',
+  customer_id: 'العميل',
+  supplier_id: 'المورد',
+  product_id: 'الصنف أو المنتج',
+  component_product_id: 'المكون التصنيعي للصنف',
+  user_id: 'المستخدم',
+  created_by: 'المستخدم صاحب العملية',
+  updated_by: 'المستخدم المسؤول عن التعديل',
+  category_id: 'قسم الأصناف',
+  brand_id: 'الماركة التجارية',
+  unit_id: 'وحدة القياس',
+  treasury_id: 'الخزينة النقدية',
+  bank_account_id: 'الحساب البنكي',
+  account_id: 'الحساب المالي في شجرة الحسابات',
+  delivery_rep_id: 'مندوب التوصيل',
+  shift_id: 'وردية الكاشير',
+  bom_id: 'شجرة تصنيع الصنف (BOM)',
+  sale_id: 'فاتورة المبيعات',
+  purchase_id: 'فاتورة المشتريات',
+  parent_id: 'العنصر الرئيسي / الحساب الأب',
+};
+
+const TABLE_ARABIC_NAMES: Record<string, string> = {
+  stock_locations: 'المخازن ومواقع التخزين',
+  branches: 'الفروع ومنافذ البيع',
+  customers: 'العملاء',
+  suppliers: 'الموردين',
+  products: 'الأصناف',
+  catalog_products: 'دليل الأصناف',
+  users: 'المستخدمين',
+  treasuries: 'الخزائن النقدية',
+  bank_accounts: 'الحسابات البنكية',
+  chart_of_accounts: 'شجرة الحسابات',
+  delivery_representatives: 'مناديب التوصيل',
+  cashier_shifts: 'ورديات الكاشير',
+  sales: 'فواتير المبيعات',
+  sale_items: 'بنود فواتير المبيعات',
+  purchases: 'فواتير المشتريات',
+  purchase_items: 'بنود فواتير المشتريات',
+  journal_entries: 'قيود اليومية',
+  journal_entry_lines: 'أسطر قيود اليومية',
+};
+
+function mapForeignKeyViolation(error: PgErrorLike, message: string, detail: string): AppError {
+  const isProd = process.env.NODE_ENV === 'production';
+  const detailText = detail || '';
+
+  // 1. Case: Insert / Update referencing a missing parent entity
+  // Detail format: Key (field)=(val) is not present in table "table_name".
+  const notPresentMatch = detailText.match(/Key\s*\(([^)]+)\)=\(([^)]*)\)\s*is not present in table\s*"([^"]+)"/i);
+  if (notPresentMatch) {
+    const fieldName = notPresentMatch[1]?.trim().toLowerCase();
+    const value = notPresentMatch[2]?.trim();
+    const targetTable = notPresentMatch[3]?.trim().toLowerCase();
+
+    const fieldLabel = FOREIGN_KEY_TARGET_NAMES[fieldName] || fieldName;
+    const tableLabel = TABLE_ARABIC_NAMES[targetTable] || targetTable;
+
+    if (fieldName === 'location_id' || targetTable === 'stock_locations') {
+      return new AppError(
+        `المخزن المحدد (#${value}) غير موجود في قائمة المخازن. يرجى مراجعة إعدادات الفرع والمخازن من (الإعدادات > الفروع).`,
+        'DB_FOREIGN_KEY_NOT_FOUND',
+        409,
+        isProd ? undefined : { field: fieldName, value, targetTable }
+      );
+    }
+
+    if (fieldName === 'created_by' && targetTable === 'users') {
+      return new AppError(
+        'انتهت صلاحية جلسة المستخدم الحالية بعد تحديث قاعدة البيانات، يرجى إعادة تسجيل الدخول.',
+        'DB_USER_SESSION_EXPIRED',
+        401,
+        isProd ? undefined : { field: fieldName, value, targetTable }
+      );
+    }
+
+    if (fieldName === 'customer_id' || targetTable === 'customers') {
+      return new AppError(
+        `العميل المحدد لهذه العملية (رقم #${value}) غير موجود في قاعدة البيانات. يرجى اختيار عميل مسجل.`,
+        'DB_FOREIGN_KEY_NOT_FOUND',
+        409,
+        isProd ? undefined : { field: fieldName, value, targetTable }
+      );
+    }
+
+    if (fieldName === 'branch_id' || targetTable === 'branches') {
+      return new AppError(
+        `الفرع المحدد (رقم #${value}) غير موجود في قائمة الفروع. يرجى التأكد من اختيار فرع نشط.`,
+        'DB_FOREIGN_KEY_NOT_FOUND',
+        409,
+        isProd ? undefined : { field: fieldName, value, targetTable }
+      );
+    }
+
+    if (fieldName === 'supplier_id' || targetTable === 'suppliers') {
+      return new AppError(
+        `المورد المحدد (رقم #${value}) غير موجود في قاعدة البيانات. يرجى اختيار مورد مسجل.`,
+        'DB_FOREIGN_KEY_NOT_FOUND',
+        409,
+        isProd ? undefined : { field: fieldName, value, targetTable }
+      );
+    }
+
+    if (fieldName === 'product_id' || targetTable === 'products') {
+      return new AppError(
+        `الصنف المحدد (رقم #${value}) غير موجود في دليل الأصناف أو تم حذفه.`,
+        'DB_FOREIGN_KEY_NOT_FOUND',
+        409,
+        isProd ? undefined : { field: fieldName, value, targetTable }
+      );
+    }
+
+    return new AppError(
+      `تعذّر الحفظ: ${fieldLabel} المحدد (رقم ${value}) غير مسجل في قائمة ${tableLabel}.`,
+      'DB_FOREIGN_KEY_NOT_FOUND',
+      409,
+      isProd ? undefined : { field: fieldName, value, targetTable }
+    );
+  }
+
+  // 2. Case: Delete / Update where child records still reference this parent entity
+  // Detail format: Key (field)=(val) is still referenced from table "table_name".
+  const stillReferencedMatch = detailText.match(/Key\s*\(([^)]+)\)=\(([^)]*)\)\s*is still referenced from table\s*"([^"]+)"/i);
+  if (stillReferencedMatch) {
+    const fieldName = stillReferencedMatch[1]?.trim().toLowerCase();
+    const value = stillReferencedMatch[2]?.trim();
+    const referencingTable = stillReferencedMatch[3]?.trim().toLowerCase();
+
+    const referencingTableLabel = TABLE_ARABIC_NAMES[referencingTable] || referencingTable;
+
+    return new AppError(
+      `لا يمكن حذف هذا العنصر لوجود سجلات وحركات مرتبطة به في قائمة (${referencingTableLabel}). يجب حذف أو تسوية تلك السجلات أولاً.`,
+      'DB_FOREIGN_KEY_CONFLICT',
+      409,
+      isProd ? undefined : { field: fieldName, value, referencingTable }
+    );
+  }
+
+  // 3. Fallback by Constraint Name
+  const constraint = asText(error.constraint).toLowerCase();
+  if (constraint.includes('location_id')) {
+    return new AppError('المخزن المحدد غير مسجل في النظام. يرجى مراجعة وتعيين المخزن من (الإعدادات > الفروع).', 'DB_FOREIGN_KEY_NOT_FOUND', 409);
+  }
+  if (constraint.includes('customer_id')) {
+    return new AppError('العميل المحدد غير موجود في قاعدة البيانات.', 'DB_FOREIGN_KEY_NOT_FOUND', 409);
+  }
+  if (constraint.includes('branch_id')) {
+    return new AppError('الفرع المحدد غير موجود في قاعدة البيانات.', 'DB_FOREIGN_KEY_NOT_FOUND', 409);
+  }
+  if (constraint.includes('supplier_id')) {
+    return new AppError('المورد المحدد غير موجود في قاعدة البيانات.', 'DB_FOREIGN_KEY_NOT_FOUND', 409);
+  }
+  if (constraint.includes('product_id')) {
+    return new AppError('الصنف المحدد غير موجود في قاعدة البيانات.', 'DB_FOREIGN_KEY_NOT_FOUND', 409);
+  }
+
+  return new AppError(MSG_FOREIGN_KEY, 'DB_FOREIGN_KEY_VIOLATION', 409);
+}
+
 function mapKnownCode(code: KnownPgCode, error: PgErrorLike, message: string, detail: string): AppError {
   if (code === '23502') return mapNotNullViolation(error, message, detail);
   if (code === '23505') return mapUniqueViolation(error, message, detail);
-  if (code === '23503') return new AppError(MSG_FOREIGN_KEY, 'DB_FOREIGN_KEY_VIOLATION', 409);
+  if (code === '23503') return mapForeignKeyViolation(error, message, detail);
   if (code === '23514') return new AppError(MSG_INVALID_FIELD, 'DB_CHECK_VIOLATION', 400);
   if (code === '42703') return new AppError(MSG_UNDEFINED_COLUMN, 'DB_UNDEFINED_COLUMN', 500);
   if (code === '42P01') return new AppError(MSG_UNDEFINED_TABLE, 'DB_UNDEFINED_TABLE', 500);
@@ -159,7 +321,7 @@ function mapByRawMessage(error: PgErrorLike, message: string, detail: string): A
     return mapUniqueViolation(error, message, detail);
   }
   if (normalized.includes('violates foreign key constraint')) {
-    return new AppError(MSG_FOREIGN_KEY, 'DB_FOREIGN_KEY_VIOLATION', 409);
+    return mapForeignKeyViolation(error, message, detail);
   }
   if (normalized.startsWith('kysely query error')) {
     const nested = extractNestedDatabaseError(error.cause ?? error.error);

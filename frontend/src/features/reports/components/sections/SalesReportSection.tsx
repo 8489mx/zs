@@ -1,6 +1,7 @@
 import { QueryCard } from '@/shared/components/query-card';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
+import { ReportPrintMenu } from '@/shared/components/ReportPrintMenu';
 import { DataTable } from '@/shared/ui/data-table';
 import { ReportMetricCard } from '@/features/reports/components/ReportMetricCard';
 import { relativePercent } from '@/features/reports/lib/reports-format';
@@ -35,7 +36,23 @@ export function SalesReportSection({
       <QueryCard
         title="مؤشرات البيع"
         description="تركيز مباشر على أرقام المبيعات ضمن النطاق الحالي مع الاحتفاظ بتفاصيل التشغيل مثل عدد الفواتير وأعلى الأصناف."
-        actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void printSalesRegisterReport(false)} disabled={!report?.sales.count}>طباعة / PDF (ملخص)</Button><Button variant="secondary" onClick={() => void printSalesRegisterReport(true)} disabled={!report?.sales.count}>طباعة / PDF (تفصيلي)</Button><span className="nav-pill">المبيعات</span></div>}
+        actions={(
+          <div className="actions compact-actions">
+            <ReportPrintMenu
+              label="طباعة (ملخص)"
+              onPrintA4={() => void printSalesRegisterReport(false, 'A4')}
+              onPrintReceipt={() => void printSalesRegisterReport(false, 'receipt')}
+              disabled={!report?.sales.count}
+            />
+            <ReportPrintMenu
+              label="طباعة (تفصيلي)"
+              onPrintA4={() => void printSalesRegisterReport(true, 'A4')}
+              onPrintReceipt={() => void printSalesRegisterReport(true, 'receipt')}
+              disabled={!report?.sales.count}
+            />
+            <span className="nav-pill">المبيعات</span>
+          </div>
+        )}
         isLoading={reportQuery.isLoading}
         isError={reportQuery.isError}
         error={reportQuery.error}
@@ -62,7 +79,20 @@ export function SalesReportSection({
               <div className="detail-item"><div className="detail-label">صافي الربح</div><div className="detail-value">{formatCurrency(netProfit)}</div></div>
             </div>
           </FormSection>
-          <FormSection title="أعلى الأصناف" description="أفضل الأصناف مبيعًا داخل النطاق الحالي مع طباعة وتصدير مباشر." actions={<div className="actions compact-actions"><Button variant="secondary" onClick={() => void exportTopProducts()} disabled={!topProducts.length}>تصدير Excel</Button><Button variant="secondary" onClick={() => void printTopProducts()} disabled={!topProducts.length}>طباعة</Button></div>}>
+          <FormSection
+            title="أعلى الأصناف"
+            description="أفضل الأصناف مبيعًا داخل النطاق الحالي مع طباعة وتصدير مباشر."
+            actions={(
+              <div className="actions compact-actions">
+                <Button variant="secondary" onClick={() => void exportTopProducts()} disabled={!topProducts.length}>تصدير Excel</Button>
+                <ReportPrintMenu
+                  onPrintA4={() => void printTopProducts('A4')}
+                  onPrintReceipt={() => void printTopProducts('receipt')}
+                  disabled={!topProducts.length}
+                />
+              </div>
+            )}
+          >
             <DataTable
               ariaLabel="أعلى الأصناف"
               columns={[
