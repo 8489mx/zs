@@ -1,10 +1,14 @@
 import { useState, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '@/features/dashboard/api/dashboard.api';
 import { cashDrawerApi } from '@/lib/api/cash-drawer';
 import { formatCurrency } from '@/lib/format';
 import { Link } from 'react-router-dom';
 import { SmartphoneIcon, ShoppingCartIcon, BarChartIcon, FileTextIcon, RefreshCwIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
+import { useHasFeature } from '@/shared/hooks/use-permission';
+import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 
 type TimeRange = 'today' | 'yesterday' | 'week' | 'month';
 
@@ -28,6 +32,15 @@ function getRangeDates(range: TimeRange) {
 }
 
 export function OwnerMobileDashboardPage() {
+  const user = useAuthStore((s) => s.user);
+  const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
+  const isPlatformAdminUser = isPlatformAdmin(user) || isMasterDeveloperUser;
+  const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;
+
+  if (!hasReportsFeature) {
+    return <Navigate to="/pos" replace />;
+  }
+
   const [range, setRange] = useState<TimeRange>('today');
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
   const { from, to } = useMemo(() => getRangeDates(range), [range]);

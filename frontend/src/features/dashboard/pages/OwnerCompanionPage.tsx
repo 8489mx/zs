@@ -1,12 +1,24 @@
 import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../api/dashboard.api';
 import { useAuthStore } from '@/stores/auth-store';
+import { useHasFeature } from '@/shared/hooks/use-permission';
+import { isPlatformAdmin } from '@/app/router/access';
 import { Button } from '@/shared/ui/button';
 import { SmartphoneIcon, BellIcon } from '@/shared/components/icons/AppIcons';
 import type { DashboardTopItem } from '../api/dashboard.types';
 
 export function OwnerCompanionPage() {
+  const user = useAuthStore((s) => s.user);
+  const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
+  const isPlatformAdminUser = isPlatformAdmin(user) || isMasterDeveloperUser;
+  const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;
+
+  if (!hasReportsFeature) {
+    return <Navigate to="/pos" replace />;
+  }
+
   const tenant = useAuthStore((state) => state.tenant);
   const [lastUpdated, setLastUpdated] = useState<string>(new Date().toLocaleTimeString('ar-EG'));
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);

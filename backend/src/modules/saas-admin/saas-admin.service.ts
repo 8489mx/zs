@@ -14,6 +14,7 @@ import { TrialTenantProvisioningService } from './trial-tenant-provisioning.serv
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { AuthCacheService } from '../../core/auth/services/auth-cache.service';
 import { SettingsDemoDataService } from '../settings/services/settings-demo-data.service';
+import { SettingsService } from '../settings/settings.service';
 
 type TenantStatus = 'trial' | 'active' | 'expired' | 'suspended';
 
@@ -26,6 +27,7 @@ export class SaasAdminService {
     private readonly configService: ConfigService,
     private readonly sessionService: SessionService,
     private readonly demoDataService: SettingsDemoDataService,
+    private readonly settingsService: SettingsService,
     private readonly authCache: AuthCacheService = new AuthCacheService(),
   ) {}
 
@@ -923,7 +925,7 @@ export class SaasAdminService {
 
   async developerUpdateTenantPlan(dto: { tenantId?: string; planId?: string; extraFeatures?: string[] }) {
     // This is called by the offline developer activation panel. It bypasses normal platform auth.
-    let query = this.db.selectFrom('tenants').select(['id', 'slug']);
+    let query = this.db.selectFrom('tenants').select(['id', 'slug', 'plan_id', 'extra_features']);
     if (dto.tenantId) {
       query = query.where('id', '=', dto.tenantId);
     } else {
@@ -945,7 +947,7 @@ export class SaasAdminService {
         trial_starts_at: now,
         trial_ends_at: new Date(now.getTime() + 3650 * 24 * 60 * 60 * 1000)
       } as any).execute();
-      tenant = { id: 'default', slug: 'default' };
+      tenant = { id: 'default', slug: 'default', plan_id: null, extra_features: null };
     }
 
     if (!tenant) throw new NotFoundException('No local tenant found to update');
@@ -959,6 +961,12 @@ export class SaasAdminService {
     if (Object.keys(updateData).length > 0) {
       await this.db.updateTable('tenants').set(updateData).where('id', '=', tenant.id).execute();
       this.authCache.invalidateTenant(tenant.id);
+      
+      // Auto-sync the operational module switches for this tenant so newly activated features are immediately enabled!
+      const effectivePlanId = dto.planId !== undefined ? (dto.planId === '' ? null : dto.planId) : tenant.plan_id;
+      const effectiveExtra = dto.extraFeatures !== undefined ? dto.extraFeatures : (typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features || '[]') : tenant.extra_features || []);
+      await this.syncTenantModuleSettingsForPlan(tenant.id, effectivePlanId, effectiveExtra);
+
       // No auth context for this automated action, passing null is handled by the audit log silently or we just mock auth.
       try {
         await this.audit.log('تفعيل مطور', `تم تفعيل الباقة والميزات محلياً بواسطة لوحة المطورين`, { id: 'developer', role: 'super_admin' } as unknown as AuthContext, { targetTenantId: tenant.id });
@@ -968,6 +976,169 @@ export class SaasAdminService {
     }
 
     return { ok: true };
+  }
+
+  public async syncTenantModuleSettingsForPlan(tenantId: string, planId?: string | null, extraFeatures?: string[]): Promise<void> {
+    try {
+      const userRow = await this.db
+        .selectFrom('users')
+        .select('account_id')
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      const accountId = userRow?.account_id ?? 1;
+
+      const FALLBACK_PLAN_FEATURES: Record<string, string[]> = {
+        plan_basic: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+        basic: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+        BASIC: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+        '1': ['sales', 'catalog', 'sessions', 'cashDrawer'],
+
+        plan_pro: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+        pro: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+        PRO: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+        '2': ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+
+        plan_ultimate: [
+          'sales', 'catalog', 'sessions', 'cashDrawer',
+          'purchases', 'inventory', 'reports',
+          'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+          'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+          'manufacturing', 'import', 'pharmacy',
+        ],
+        ultimate: [
+          'sales', 'catalog', 'sessions', 'cashDrawer',
+          'purchases', 'inventory', 'reports',
+          'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+          'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+          'manufacturing', 'import', 'pharmacy',
+        ],
+        ULTIMATE: [
+          'sales', 'catalog', 'sessions', 'cashDrawer',
+          'purchases', 'inventory', 'reports',
+          'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+          'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+          'manufacturing', 'import', 'pharmacy',
+        ],
+        '3': [
+          'sales', 'catalog', 'sessions', 'cashDrawer',
+          'purchases', 'inventory', 'reports',
+          'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+          'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+          'manufacturing', 'import', 'pharmacy',
+        ],
+
+        plan_omnichannel: [
+          'sales', 'catalog', 'sessions', 'cashDrawer',
+          'purchases', 'inventory', 'reports',
+          'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+          'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+          'manufacturing', 'import', 'pharmacy',
+          'storefront',
+        ],
+        omnichannel: [
+          'sales', 'catalog', 'sessions', 'cashDrawer',
+          'purchases', 'inventory', 'reports',
+          'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+          'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+          'manufacturing', 'import', 'pharmacy',
+          'storefront',
+        ],
+        OMNICHANNEL: [
+          'sales', 'catalog', 'sessions', 'cashDrawer',
+          'purchases', 'inventory', 'reports',
+          'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+          'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+          'manufacturing', 'import', 'pharmacy',
+          'storefront',
+        ],
+        '4': [
+          'sales', 'catalog', 'sessions', 'cashDrawer',
+          'purchases', 'inventory', 'reports',
+          'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+          'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+          'manufacturing', 'import', 'pharmacy',
+          'storefront',
+        ],
+      };
+
+      let baseFeatures: string[] = [];
+      if (planId) {
+        const rows = await this.db
+          .selectFrom('plan_features')
+          .select('feature_code')
+          .where('plan_id', '=', planId as any)
+          .execute();
+        baseFeatures = rows.map(r => r.feature_code);
+        if (baseFeatures.length === 0 && FALLBACK_PLAN_FEATURES[planId]) {
+          baseFeatures = FALLBACK_PLAN_FEATURES[planId];
+        }
+      }
+
+      const extra = Array.isArray(extraFeatures) ? extraFeatures : [];
+      const excluded = new Set(extra.filter(f => f.startsWith('-')).map(f => f.slice(1)));
+      const added = extra.filter(f => !f.startsWith('-'));
+      const effectiveFeatures = new Set([
+        ...baseFeatures.filter(f => !excluded.has(f)),
+        ...added,
+      ]);
+
+      const FEATURE_TO_MODULE_MAP: Record<string, string[]> = {
+        sales: ['posModuleEnabled'],
+        purchases: ['purchasesModuleEnabled'],
+        inventory: ['inventoryModuleEnabled'],
+        hr: ['hrModuleEnabled'],
+        deliveryReps: ['deliveryFleetModuleEnabled'],
+        loyalty: ['loyaltyEnabled'],
+        maintenance: ['enableMobileStoreFeatures', 'servicesModuleEnabled'],
+        clothing: ['clothingModuleEnabled'],
+        restaurant: ['restaurantModuleEnabled', 'posShowCartMeta'],
+        accounting: ['enableEnterpriseFeatures'],
+        fixed_assets: ['fixedAssetsModuleEnabled'],
+        installments: ['installmentsModuleEnabled'],
+        taxIntegration: ['taxDeclarationModuleEnabled'],
+        vat_declaration: ['taxDeclarationModuleEnabled'],
+        manufacturing: ['manufacturingModuleEnabled'],
+        import: ['importModuleEnabled'],
+        pharmacy: ['enablePharmacyModule'],
+        storefront: ['storefrontModuleEnabled'],
+      };
+
+      const modulesToSet: Record<string, boolean> = {};
+
+      for (const feat of effectiveFeatures) {
+        const modKeys = FEATURE_TO_MODULE_MAP[feat] || [];
+        for (const k of modKeys) {
+          modulesToSet[k] = true;
+        }
+      }
+
+      // Ensure foundational operational defaults
+      if (effectiveFeatures.has('purchases')) {
+        modulesToSet['purchasesModuleEnabled'] = true;
+        modulesToSet['comboModuleEnabled'] = true;
+        modulesToSet['servicesModuleEnabled'] = true;
+      }
+      if (effectiveFeatures.has('inventory')) {
+        modulesToSet['inventoryModuleEnabled'] = true;
+      }
+      if (effectiveFeatures.has('sales')) {
+        modulesToSet['posModuleEnabled'] = true;
+        modulesToSet['weightedBarcodeEnabled'] = true;
+      }
+
+      for (const [key, value] of Object.entries(modulesToSet)) {
+        await sql`
+          INSERT INTO settings (key, value, tenant_id, account_id)
+          VALUES (${key}, ${JSON.stringify(value)}, ${tenantId}, ${accountId})
+          ON CONFLICT (tenant_id, key) DO UPDATE SET value = EXCLUDED.value, account_id = EXCLUDED.account_id
+        `.execute(this.db);
+      }
+
+      this.settingsService.invalidateSettingsCache(tenantId);
+      this.settingsService.invalidatePlanFeaturesCache(tenantId);
+    } catch (err) {
+      // Non-fatal
+    }
   }
 
   private sharedCookieDomain(): string | undefined {

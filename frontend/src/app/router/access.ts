@@ -195,121 +195,227 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
 };
 
 export const routeFeatureMap: Record<string, string | null> = {
-  dashboard: null,
-  '/': null,
+  dashboard: 'reports',
+  '/': 'reports',
+  'owner-companion': 'reports',
+  '/owner-companion': 'reports',
+  'owner-mobile': 'reports',
+  '/owner-mobile': 'reports',
+  'mobile/owner': 'reports',
+  '/mobile/owner': 'reports',
   catalog: 'catalog',
   products: 'catalog',
   'product-categories': 'catalog',
   services: 'catalog',
-  sales: 'sales',
+  'sales-orders': 'sales',
+  '/sales-orders': 'sales',
+  '/sales/orders': 'sales',
+  'price-lists': 'catalog',
+  '/price-lists': 'catalog',
+  '/sales/price-lists': 'catalog',
+  crm: 'sales',
+  '/crm': 'sales',
   quotations: 'sales',
   '/quotations': 'sales',
   installments: 'installments',
   '/installments': 'installments',
   'vat-declaration': 'vat_declaration',
   '/vat-declaration': 'vat_declaration',
-  displays: 'sales',
-  '/displays': 'sales',
+  displays: 'restaurant',
+  '/displays': 'restaurant',
+  kds: 'restaurant',
+  '/kds': 'restaurant',
+  signage: 'restaurant',
+  '/signage': 'restaurant',
+  '/pos/customer-display': 'restaurant',
   pos: 'sales',
+  '/pos': 'sales',
   returns: 'sales',
+  '/returns': 'sales',
   customers: 'sales',
+  '/customers': 'sales',
   'pricing-center': 'catalog',
+  '/pricing-center': 'catalog',
   'cash-drawer': 'cashDrawer',
+  '/cash-drawer': 'cashDrawer',
   treasury: 'cashDrawer',
   '/treasury': 'cashDrawer',
   expenses: 'cashDrawer',
   '/expenses': 'cashDrawer',
+
+  // Purchases
   purchases: 'purchases',
+  '/purchases': 'purchases',
+  'purchases-orders': 'purchases',
+  '/purchases/orders': 'purchases',
+  'purchases-rfqs': 'purchases',
+  '/purchases/rfqs': 'purchases',
   'purchases-new': 'purchases',
+  '/purchases/new': 'purchases',
+  'purchases-reorder': 'purchases',
+  '/purchases/reorder': 'purchases',
   'purchase-returns': 'purchases',
+  '/purchase-returns': 'purchases',
   suppliers: 'purchases',
+  '/suppliers': 'purchases',
+
+  // Inventory
   inventory: 'inventory',
+  '/inventory': 'inventory',
+  'inventory-batches': 'inventory',
+  '/inventory/batches': 'inventory',
+  'inventory-bins': 'inventory',
+  '/inventory/bins': 'inventory',
   'inventory-issue-orders': 'inventory',
+  '/inventory/transfers': 'inventory',
   'inventory-warehouses': 'inventory',
+  '/inventory/warehouses': 'inventory',
   'inventory-tree': 'inventory',
   '/inventory-tree': 'inventory',
+  '/inventory/tree': 'inventory',
+  'inventory-issue-order-new': 'inventory',
+  '/inventory/issue-order/new': 'inventory',
+
+  // Reports
   reports: 'reports',
+  '/reports': 'reports',
   'reports-overview': 'reports',
-  'reports-sales': 'reports',
-  'reports-treasury': 'reports',
-  'reports-inventory': 'reports',
-  'reports-purchases': 'reports',
-  'reports-balances': 'accounting',
-  'reports-employees': 'hr',
-  'reports/overview': 'reports',
   '/reports/overview': 'reports',
-  'reports/sales': 'reports',
+  'reports-sales': 'reports',
   '/reports/sales': 'reports',
-  'reports/treasury': 'reports',
+  'reports-treasury': 'reports',
   '/reports/treasury': 'reports',
-  'reports/inventory': 'reports',
+  'reports-inventory': 'reports',
   '/reports/inventory': 'reports',
-  'reports/purchases': 'reports',
+  'reports-purchases': 'reports',
   '/reports/purchases': 'reports',
-  'reports/balances': 'accounting',
+  'reports-balances': 'accounting',
   '/reports/balances': 'accounting',
-  'reports/employees': 'hr',
+  'reports-employees': 'hr',
   '/reports/employees': 'hr',
+  audit: 'reports',
+  '/audit': 'reports',
+
+  // HR
   hr: 'hr',
+  '/hr': 'hr',
   'hr-settlements': 'hr',
   '/hr/settlements': 'hr',
-  'hr/settlements': 'hr',
+
+  // Manufacturing
   manufacturing: 'manufacturing',
+  '/manufacturing': 'manufacturing',
   'manufacturing-components': 'manufacturing',
+  '/manufacturing/components': 'manufacturing',
   'manufacturing-boms': 'manufacturing',
+  '/manufacturing/boms': 'manufacturing',
   'manufacturing-work-orders': 'manufacturing',
+  '/manufacturing/work-orders': 'manufacturing',
+  'manufacturing-work-centers': 'manufacturing',
+  '/manufacturing/work-centers': 'manufacturing',
   'manufacturing-settings': 'manufacturing',
+  '/manufacturing/settings': 'manufacturing',
+
+  // Accounting
   accounting: 'accounting',
+  '/accounting': 'accounting',
+  accounts: 'accounting',
+  '/accounts': 'accounting',
   'accounting-accounts': 'accounting',
+  '/accounting/accounts': 'accounting',
   'accounting-cost-centers': 'accounting',
   '/accounting/cost-centers': 'accounting',
   'accounting-journal-entries': 'accounting',
+  '/accounting/journal-entries': 'accounting',
+  'accounting-payment-allocation': 'accounting',
+  '/accounting/payment-allocation': 'accounting',
+  'accounting-bank-reconciliation': 'accounting',
+  '/accounting/bank-reconciliation': 'accounting',
   'accounting-cheques': 'accounting',
   '/accounting/cheques': 'accounting',
   'accounting-withholding-tax': 'accounting',
   '/accounting/withholding-tax': 'accounting',
+  'accounting-balance-sheet': 'accounting',
+  '/accounting/balance-sheet': 'accounting',
+  'accounting-cash-flow': 'accounting',
+  '/accounting/cash-flow': 'accounting',
+  'accounting-aged-debts': 'accounting',
+  '/accounting/aged-debts': 'accounting',
   'accounting-fixed-assets': 'fixed_assets',
   '/accounting-fixed-assets': 'fixed_assets',
   '/accounting/fixed-assets': 'fixed_assets',
   'accounting-settings': 'accounting',
+  '/accounting/settings': 'accounting',
   'accounting-financial-summary': 'accounting',
+  '/accounting/financial-summary': 'accounting',
   'accounting-receivables-payables': 'accounting',
+  '/accounting/receivables-payables': 'accounting',
   'accounting-cash-movement': 'accounting',
+  '/accounting/cash-movement': 'accounting',
   'accounting-inventory-value': 'accounting',
+  '/accounting/inventory-value': 'accounting',
+
+  // Delivery & Van Sales
   'delivery-reps': 'deliveryReps',
   '/delivery-reps': 'deliveryReps',
-  accounts: 'accounting',
-  'inventory-issue-order-new': 'inventory',
+  'driver-mobile': 'deliveryReps',
+  '/driver-mobile': 'deliveryReps',
+  'van-sales-admin': 'deliveryReps',
+  '/van-sales/admin': 'deliveryReps',
+  '/inventory/van-sales': 'deliveryReps',
+
+  // Tax & Reference
   'tax-dispatcher': 'taxIntegration',
+  '/tax-dispatcher': 'taxIntegration',
   'settings/reference': null,
   'settings/tax-integration': 'taxIntegration',
-  audit: 'reports',
-  '/audit': 'reports',
+
+  // Online Storefront
   'online-orders': 'storefront',
   '/online-orders': 'storefront',
   storefront: 'storefront',
   '/storefront': 'storefront',
+
+  // Mobile / Maintenance
   maintenance: 'maintenance',
   '/maintenance': 'maintenance',
   'trade-in': 'maintenance',
   '/trade-in': 'maintenance',
   'imei-history': 'maintenance',
   '/imei-history': 'maintenance',
+  '/products/imei-history': 'maintenance',
+
+  // Pharmacy
   pharmacy: 'pharmacy',
   '/pharmacy': 'pharmacy',
   'pharmacy-dashboard': 'pharmacy',
+  '/pharmacy/dashboard': 'pharmacy',
   'pharmacy-drugs': 'pharmacy',
+  '/pharmacy/drugs': 'pharmacy',
   'pharmacy-prescriptions': 'pharmacy',
+  '/pharmacy/prescriptions': 'pharmacy',
   'pharmacy-shortages': 'pharmacy',
+  '/pharmacy/shortages': 'pharmacy',
   'pharmacy-batches': 'pharmacy',
+  '/pharmacy/batches': 'pharmacy',
   'pharmacy-clinical': 'pharmacy',
+  '/pharmacy/clinical': 'pharmacy',
+
+  // Import
   import: 'import',
   '/import': 'import',
   'import-shipments': 'import',
+  '/import/shipments': 'import',
   'import-supplier-credit': 'import',
+  '/import/supplier-credit': 'import',
   'import-profit-pool': 'import',
+  '/import/profit-pool': 'import',
+
+  // Other modules
   restaurant: 'restaurant',
   '/restaurant': 'restaurant',
+  'product-modifiers': 'restaurant',
+  '/products/modifiers': 'restaurant',
   clothing: 'clothing',
   '/clothing': 'clothing',
 };
@@ -388,25 +494,37 @@ export function getRoutePermissionRequirement(target: string) {
 export function getRouteFeatureRequirement(target: string) {
   const normalized = normalizeAccessKey(target);
   const directMatch = routeFeatureMap[normalized] ?? routeFeatureMap[`/${normalized}`];
-  if (directMatch) return directMatch;
+  if (directMatch !== undefined) return directMatch;
   const [rootSegment] = normalized.split('/').filter(Boolean);
   if (!rootSegment) return null;
-  return routeFeatureMap[rootSegment] ?? routeFeatureMap[`/${rootSegment}`] ?? null;
+  const rootMatch = routeFeatureMap[rootSegment] ?? routeFeatureMap[`/${rootSegment}`];
+  if (rootMatch !== undefined) return rootMatch;
+
+  // Prefix fallbacks to prevent any unmapped nested route or hyphenated subroute from leaking
+  if (rootSegment.startsWith('purchases')) return 'purchases';
+  if (rootSegment.startsWith('inventory')) return 'inventory';
+  if (rootSegment.startsWith('reports')) return 'reports';
+  if (rootSegment.startsWith('accounting')) return 'accounting';
+  if (rootSegment.startsWith('hr')) return 'hr';
+  if (rootSegment.startsWith('manufacturing')) return 'manufacturing';
+  if (rootSegment.startsWith('pharmacy')) return 'pharmacy';
+  if (rootSegment.startsWith('import')) return 'import';
+  if (rootSegment.startsWith('van-sales') || rootSegment.startsWith('driver-mobile')) return 'deliveryReps';
+  return null;
 }
 
 export function hasRequiredFeature(target: string, user?: AuthUser | null): boolean {
-  if (isPlatformAdmin(user) || (user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs')) return true;
+  const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
+  if (isPlatformAdmin(user) || isMasterDeveloperUser) return true;
 
   const requiredFeature = getRouteFeatureRequirement(target);
   if (!requiredFeature) return true;
   
   const tenant = useAuthStore.getState().tenant;
   if (!tenant) return true;
-
-  // Backward compatibility if no plan and features are configured
-  if (!tenant.planId && (!tenant.features || tenant.features.length === 0)) return true;
+  if (!tenant.features || !Array.isArray(tenant.features)) return false;
   
-  return tenant.features?.includes(requiredFeature) ?? false;
+  return tenant.features.includes(requiredFeature);
 }
 
 export function canAccessPath(user: AuthUser | null | undefined, target: string) {

@@ -7,6 +7,7 @@ import { XIcon } from '@/shared/components/icons/AppIcons';
 import { REGIONAL_PRICING } from '../components/subscription/pricing-data';
 import { CurrentSubscriptionHeroCard } from '../components/subscription/CurrentSubscriptionHeroCard';
 import { SubscriptionPlansCards } from '../components/subscription/SubscriptionPlansCards';
+import { DetailedPlanFeaturesMatrix } from '../components/subscription/DetailedPlanFeaturesMatrix';
 import { UpgradeRenewalModal } from '../components/subscription/UpgradeRenewalModal';
 import { SubscriptionPaymentsTable } from '../components/subscription/SubscriptionPaymentsTable';
 
@@ -296,13 +297,16 @@ export function TenantSubscriptionPage() {
         unit={regionalPricing.unit}
       />
 
-      {/* 5. Payments History Table */}
+      {/* 5. Detailed Features Matrix */}
+      <DetailedPlanFeaturesMatrix />
+
+      {/* 6. Payments History Table */}
       <SubscriptionPaymentsTable
         payments={payments}
         onPrintReceipt={handlePrintReceipt}
       />
 
-      {/* 6. Upgrade / Renewal Modal */}
+      {/* 7. Upgrade / Renewal Modal */}
       <UpgradeRenewalModal
         selectedPlan={selectedPlanForUpgrade}
         onClose={() => setSelectedPlanForUpgrade(null)}

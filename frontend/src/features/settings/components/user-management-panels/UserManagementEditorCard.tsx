@@ -4,8 +4,6 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import { PASSWORD_MIN_LENGTH_HINT } from '@/config/security';
 import type { ManagedUserRecord } from '@/features/settings/api/settings.api';
 import { formatDateTime } from '@/features/settings/components/user-management.shared';
-import { isPlatformAdmin } from '@/app/router/access';
-import { useAuthStore } from '@/stores/auth-store';
 import {
   COUNTRY_BY_CODE,
   detectCountryFromPhone,
@@ -39,7 +37,7 @@ const labelStyle: React.CSSProperties = {
 export function UserManagementEditorCard({
   branches,
   draft,
-  currentUserRole,
+  currentUserRole: _currentUserRole,
   isCurrentUserSelected,
   selectedDraftDisableProtection,
   canDirectlyDisableSelected,
@@ -48,7 +46,7 @@ export function UserManagementEditorCard({
 }: {
   branches: Branch[];
   draft: ManagedUserRecord;
-  currentUserRole: string;
+  currentUserRole?: string;
   isCurrentUserSelected: boolean;
   selectedDraftDisableProtection: 'super_admin' | 'current_user' | 'last_active_privileged' | null;
   canDirectlyDisableSelected: boolean;

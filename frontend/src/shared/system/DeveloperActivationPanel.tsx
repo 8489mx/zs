@@ -1,12 +1,12 @@
 import { XIcon } from '@/shared/components/icons/AppIcons';
 import { useEffect, useState } from 'react';
-import { useQuery, useMutation,  } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { getFriendlyApiErrorMessage } from '@/lib/api-error-message';
 
 import { useAuthStore } from '@/stores/auth-store';
-import { isDesktopOfflineApp, isPlatformAdmin } from '@/app/router/access';
+import { isDesktopOfflineApp } from '@/app/router/access';
 
 const AVAILABLE_FEATURES = [
   // 1. الباقة الأساسية (4 ميزات)
@@ -42,7 +42,15 @@ const AVAILABLE_FEATURES = [
 
 export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
   plan_basic: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+  basic: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+  BASIC: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+  '1': ['sales', 'catalog', 'sessions', 'cashDrawer'],
+
   plan_pro: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+  pro: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+  PRO: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+  '2': ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports'],
+
   plan_ultimate: [
     'sales', 'catalog', 'sessions', 'cashDrawer',
     'purchases', 'inventory', 'reports',
@@ -50,7 +58,53 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
     'manufacturing', 'import', 'pharmacy',
   ],
+  ultimate: [
+    'sales', 'catalog', 'sessions', 'cashDrawer',
+    'purchases', 'inventory', 'reports',
+    'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+    'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+    'manufacturing', 'import', 'pharmacy',
+  ],
+  ULTIMATE: [
+    'sales', 'catalog', 'sessions', 'cashDrawer',
+    'purchases', 'inventory', 'reports',
+    'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+    'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+    'manufacturing', 'import', 'pharmacy',
+  ],
+  '3': [
+    'sales', 'catalog', 'sessions', 'cashDrawer',
+    'purchases', 'inventory', 'reports',
+    'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+    'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+    'manufacturing', 'import', 'pharmacy',
+  ],
+
   plan_omnichannel: [
+    'sales', 'catalog', 'sessions', 'cashDrawer',
+    'purchases', 'inventory', 'reports',
+    'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+    'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+    'manufacturing', 'import', 'pharmacy',
+    'storefront',
+  ],
+  omnichannel: [
+    'sales', 'catalog', 'sessions', 'cashDrawer',
+    'purchases', 'inventory', 'reports',
+    'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+    'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+    'manufacturing', 'import', 'pharmacy',
+    'storefront',
+  ],
+  OMNICHANNEL: [
+    'sales', 'catalog', 'sessions', 'cashDrawer',
+    'purchases', 'inventory', 'reports',
+    'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+    'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+    'manufacturing', 'import', 'pharmacy',
+    'storefront',
+  ],
+  '4': [
     'sales', 'catalog', 'sessions', 'cashDrawer',
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',

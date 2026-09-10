@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { NavigationItemDefinition } from '@/app/router/types';
 import { canAccessNavigationItem, canAccessPath, findFirstAccessibleRoute, getFirstAccessibleRoute, getRoutePermissionRequirement, hasAnyPermission } from '@/app/router/access';
+import { useAuthStore } from '@/stores/auth-store';
 import type { AuthUser } from '@/types/auth';
 
 const adminUser: AuthUser = {
@@ -80,6 +81,24 @@ describe('router access guards', () => {
       expect(canAccessNavigationItem(superAdminUser, { key: 'saas-admin-plans', label: 'باقات الاشتراك', to: '/saas-admin/plans', platformOnly: true })).toBe(false);
     } finally {
       delete (window as any).electronRuntime;
+    }
+  });
+
+  it('restricts dashboard route when tenant lacks reports feature', () => {
+    useAuthStore.setState({
+      tenant: { id: 't-basic', name: 'Basic Store', plan_id: 'plan_basic', features: ['sales', 'catalog', 'sessions', 'cashDrawer'] } as any
+    });
+    try {
+      expect(canAccessPath(adminUser, '/')).toBe(false);
+      expect(canAccessNavigationItem(adminUser, { key: 'dashboard', label: 'الرئيسية', to: '/' })).toBe(false);
+
+      useAuthStore.setState({
+        tenant: { id: 't-pro', name: 'Pro Store', plan_id: 'plan_pro', features: ['sales', 'catalog', 'sessions', 'cashDrawer', 'reports'] } as any
+      });
+      expect(canAccessPath(adminUser, '/')).toBe(true);
+      expect(canAccessNavigationItem(adminUser, { key: 'dashboard', label: 'الرئيسية', to: '/' })).toBe(true);
+    } finally {
+      useAuthStore.setState({ tenant: null });
     }
   });
 });

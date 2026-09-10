@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/shared/components/page-header";
 import { useAppToolbar } from "@/stores/toolbar-store";
 import { useSettingsQuery } from "@/shared/hooks/use-catalog-queries";
+import { FeatureGate } from "@/shared/components/feature-gate";
 
 interface DisplayCard {
   key: string;
@@ -76,7 +77,8 @@ export function DisplaysPortalPage() {
   };
 
   return (
-    <div className="page-stack page-shell displays-portal-page" dir="rtl">
+    <FeatureGate feature="restaurant" featureName="شاشات العرض والتفاعل">
+      <div className="page-stack page-shell displays-portal-page" dir="rtl">
       <main
         className="document-prototype-column"
         style={{
@@ -321,6 +323,7 @@ export function DisplaysPortalPage() {
           ))}
         </div>
       </main>
-    </div>
+      </div>
+    </FeatureGate>
   );
 }

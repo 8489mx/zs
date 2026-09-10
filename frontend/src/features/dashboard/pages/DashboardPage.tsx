@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { FormSection } from '@/shared/components/form-section';
 import { LoadingState } from '@/shared/ui/loading-state';
@@ -13,6 +14,9 @@ import { ExecutiveBiGrid } from '@/features/dashboard/components/ExecutiveBiGrid
 import { DashboardDailyBrief } from '@/features/dashboard/components/DashboardDailyBrief';
 import { DashboardDailyDecisionGrid } from '@/features/dashboard/components/DashboardDailyDecisionGrid';
 import { formatCurrency } from '@/lib/format';
+import { useHasFeature } from '@/shared/hooks/use-permission';
+import { useAuthStore } from '@/stores/auth-store';
+import { isPlatformAdmin } from '@/app/router/access';
 import {
   buildDashboardAlerts,
   exportDashboardSnapshot,
@@ -20,6 +24,15 @@ import {
 } from '@/features/dashboard/lib/dashboard-page.utils';
 
 export function DashboardPage() {
+  const user = useAuthStore((s) => s.user);
+  const isMasterDeveloperUser = user?.role === 'super_admin' && String(user?.username || '').trim().toLowerCase() === 'zs';
+  const isPlatformAdminUser = isPlatformAdmin(user) || isMasterDeveloperUser;
+  const hasReportsFeature = useHasFeature('reports') || isPlatformAdminUser;
+
+  if (!hasReportsFeature) {
+    return <Navigate to="/pos" replace />;
+  }
+
   const overview = useDashboardOverview();
   const managerActions = useManagerActions(4);
   const managerOverview = useDashboardManagerOverview();

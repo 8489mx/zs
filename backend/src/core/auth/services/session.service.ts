@@ -149,10 +149,37 @@ export class SessionService {
       ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now) / (24 * 60 * 60 * 1000)))
       : null;
 
+    const FALLBACK_PLAN_FEATURES: Record<string, string[]> = {
+      plan_basic: ['sales', 'catalog', 'sessions', 'cashDrawer'],
+      plan_pro: ['sales', 'catalog', 'sessions', 'cashDrawer', 'purchases', 'inventory', 'reports', 'services'],
+      plan_ultimate: [
+        'sales', 'catalog', 'sessions', 'cashDrawer',
+        'purchases', 'inventory', 'reports', 'services',
+        'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+        'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+        'manufacturing', 'import', 'pharmacy',
+      ],
+      plan_omnichannel: [
+        'sales', 'catalog', 'sessions', 'cashDrawer',
+        'purchases', 'inventory', 'reports', 'services',
+        'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
+        'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
+        'manufacturing', 'import', 'pharmacy',
+        'storefront',
+      ],
+    };
+
     let planFeatures: string[] = [];
-    if (tenant.plan_id) {
-      const pFeatures = await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', tenant.plan_id).execute();
+    const effectivePlanId = tenant.plan_id || 'plan_basic';
+    try {
+      const pFeatures = await this.db.selectFrom('plan_features').select('feature_code').where('plan_id', '=', effectivePlanId).execute();
       planFeatures = pFeatures.map(f => f.feature_code);
+    } catch {
+      planFeatures = [];
+    }
+
+    if (planFeatures.length === 0 && FALLBACK_PLAN_FEATURES[effectivePlanId]) {
+      planFeatures = FALLBACK_PLAN_FEATURES[effectivePlanId];
     }
     
     const extraFeatures = Array.isArray(tenant.extra_features) ? tenant.extra_features : typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features) : [];
