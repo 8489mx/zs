@@ -121,7 +121,7 @@ export function TradeInPage() {
   };
 
   return (
-    <FeatureGate feature="tradein" featureName="شراء واستبدال المستعمل">
+    <FeatureGate feature="maintenance" featureName="الصيانة وشراء واستبدال الأجهزة">
       <div className="page-stack page-shell" dir="rtl">
         <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
           <PageHeader

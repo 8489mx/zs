@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
-import { Button } from '@/shared/ui/button';
+import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { useCreateShipmentMutation } from './api/shipments.api';
 import { useQuery } from '@tanstack/react-query';
 import { suppliersApi } from '@/shared/api/suppliers.api';
@@ -23,18 +22,18 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
     queryFn: () => suppliersApi.listAll(),
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!containerNumber) return;
-    
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!containerNumber.trim()) return alert('يرجى إدخال رقم الحاوية');
+
     await createMutation.mutateAsync({
-      containerNumber,
+      containerNumber: containerNumber.trim(),
       arrivalDate: arrivalDate || undefined,
       supplierId: supplierId || undefined,
-      billOfLading: billOfLading || undefined,
+      billOfLading: billOfLading.trim() || undefined,
       shippingDate: shippingDate || undefined,
     });
-    
+
     setContainerNumber('');
     setArrivalDate('');
     setSupplierId('');
@@ -44,78 +43,149 @@ export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
   };
 
   return (
-    <DialogShell open={open} onClose={onClose} width="400px" ariaLabel="إضافة حاوية جديدة">
-      <div style={{ padding: '24px' }} dir="rtl">
-        <div className="dialog-header" style={{ marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0 }}>إضافة حاوية جديدة</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="dialog-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="form-group">
-            <label>رقم الحاوية *</label>
-            <input 
-              type="text" 
-              className="input" 
-              required 
+    <StandardDialog
+      open={open}
+      onClose={onClose}
+      title="إضافة حاوية شحن جديدة"
+      subtitle="تسجيل بيانات الحاوية المستوردة وربطها بالمصنع ورقم بوليصة الشحن وتواريخ الإبحار والوصول."
+      width="min(580px, 95vw)"
+      footerActions={
+        <StandardDialogFooter
+          onCancel={onClose}
+          onSubmit={handleSubmit}
+          submitText={createMutation.isPending ? 'جاري الإضافة...' : 'إضافة الحاوية'}
+          cancelText="إلغاء"
+          isSubmitting={createMutation.isPending}
+        />
+      }
+    >
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+              رقم الحاوية <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <input
+              type="text"
+              required
               value={containerNumber}
               onChange={(e) => setContainerNumber(e.target.value)}
               placeholder="مثال: MSCU1234567"
+              style={{
+                width: '100%',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                padding: '0 12px',
+                fontSize: '0.84rem',
+                background: '#ffffff',
+                color: '#0f172a',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
             />
           </div>
-          <div className="form-group">
-            <label>المصنع / المورد</label>
-            <select 
-              className="input"
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+              المصنع / المورد الأجنبي
+            </label>
+            <select
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
+              style={{
+                width: '100%',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                padding: '0 12px',
+                fontSize: '0.84rem',
+                background: '#ffffff',
+                color: '#0f172a',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
             >
-              <option value="">-- إختيار المورد --</option>
-              {suppliersData?.suppliers?.map(sup => (
-                <option key={sup.id} value={sup.id}>{sup.name}</option>
+              <option value="">-- اختر المورد / المصنع --</option>
+              {suppliersData?.suppliers?.map((sup) => (
+                <option key={sup.id} value={sup.id}>
+                  {sup.name}
+                </option>
               ))}
             </select>
           </div>
 
-          <div className="form-group">
-            <label>رقم بوليصة الشحن (B/L)</label>
-            <input 
-              type="text" 
-              className="input" 
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+              رقم بوليصة الشحن (B/L)
+            </label>
+            <input
+              type="text"
               value={billOfLading}
               onChange={(e) => setBillOfLading(e.target.value)}
               placeholder="مثال: BL-12345"
+              style={{
+                width: '100%',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                padding: '0 12px',
+                fontSize: '0.84rem',
+                background: '#ffffff',
+                color: '#0f172a',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
             />
           </div>
 
-          <div className="form-group">
-            <label>تاريخ الشحن (مغادرة الميناء)</label>
-            <input 
-              type="date" 
-              className="input" 
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+              تاريخ الشحن (مغادرة الميناء)
+            </label>
+            <input
+              type="date"
               value={shippingDate}
               onChange={(e) => setShippingDate(e.target.value)}
+              style={{
+                width: '100%',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                padding: '0 12px',
+                fontSize: '0.84rem',
+                background: '#ffffff',
+                color: '#0f172a',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
             />
           </div>
 
-          <div className="form-group">
-            <label>تاريخ الوصول المتوقع</label>
-            <input 
-              type="date" 
-              className="input" 
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+              تاريخ الوصول المتوقع إلى الميناء / المخزن
+            </label>
+            <input
+              type="date"
               value={arrivalDate}
               onChange={(e) => setArrivalDate(e.target.value)}
+              style={{
+                width: '100%',
+                height: '38px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                padding: '0 12px',
+                fontSize: '0.84rem',
+                background: '#ffffff',
+                color: '#0f172a',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
             />
           </div>
-
-          <div className="actions compact-actions" style={{ marginTop: '1rem' }}>
-            <Button type="button" variant="secondary" onClick={onClose} disabled={createMutation.isPending}>
-              إلغاء
-            </Button>
-            <Button type="submit" variant="primary" disabled={createMutation.isPending}>
-              حفظ
-            </Button>
-          </div>
-        </form>
-      </div>
-    </DialogShell>
+        </div>
+      </form>
+    </StandardDialog>
   );
 }

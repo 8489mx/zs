@@ -138,8 +138,8 @@ export function MaintenanceTicketsPage() {
   };
 
   return (
-    <div className="page-stack page-shell maintenance-workspace" dir="rtl">
-      <main className="page-content workspace-body" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
+    <div className="page-stack page-shell" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title={`تذاكر الصيانة وإصلاح ${maintenanceProfile.shortTitle}`}
           description={`إدارة استلام، فحص، صيانة وتسليم ${maintenanceProfile.shortTitle} مع قطع الغيار والتكاليف المالية المترتبة`}

@@ -188,13 +188,13 @@ export function CustomSelect({
           className="purchase-prototype-field-input"
           style={{
             width: '100%',
-            height: '34px',
+            height: style?.height || '36px',
             background: disabled ? '#f8fafc' : '#ffffff',
-            padding: selectedOption?.icon && !isSearching ? '6px 26px 6px 32px' : '6px 26px 6px 10px',
-            borderRadius: '6px',
+            padding: selectedOption?.icon && !isSearching ? '0 26px 0 32px' : '0 28px 0 12px',
+            borderRadius: style?.borderRadius || '8px',
             border: '1px solid #cbd5e1',
             boxSizing: 'border-box',
-            fontSize: '0.82rem',
+            fontSize: style?.fontSize || '13px',
             color: '#0f172a',
             fontWeight: 500,
             cursor: disabled ? 'not-allowed' : 'text',

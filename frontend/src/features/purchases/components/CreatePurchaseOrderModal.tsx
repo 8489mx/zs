@@ -5,6 +5,8 @@ import { formatCurrency } from '@/lib/format';
 import { PlusIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { useFormDraft } from '@/shared/hooks/use-form-draft';
 import { DraftRestoredBanner } from '@/shared/components/DraftRestoredBanner';
+import { SearchableCombobox } from '@/shared/ui/searchable-combobox';
+import { matchesArabic } from '@/lib/arabic-normalization';
 import { CreatePurchaseOrderPayload, PurchaseOrderItem } from '../api/purchase-orders.api';
 
 interface CreatePurchaseOrderModalProps {
@@ -32,8 +34,30 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
   const [notes, setNotes] = useState('');
   const termsConditions = 'يتم فحص ومطابقة البضاعة الموردة مع أمر الشراء قبل الاستلام النهائي.';
   const [items, setItems] = useState<Array<PurchaseOrderItem & { productId: number; productName: string }>>([
-    { productId: 1, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, taxRate: 0, discount: 0, total: 0 },
+    { productId: 0, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, taxRate: 0, discount: 0, total: 0 },
   ]);
+
+  const productOptions = useMemo(() => {
+    return (products || []).map((p: any) => ({
+      id: String(p.id),
+      rawId: Number(p.id),
+      name: p.name || '',
+      barcode: p.barcode || '',
+      sku: p.sku || p.code || '',
+      costPrice: Number(p.costPrice ?? p.cost_price ?? 0),
+      unit: p.unit || 'قطعة',
+    }));
+  }, [products]);
+
+  const supplierOptions = useMemo(() => {
+    return (suppliers || []).map((s: any) => ({
+      id: String(s.id),
+      rawId: Number(s.id),
+      name: s.name || '',
+      phone: s.phone || '',
+      code: s.code || '',
+    }));
+  }, [suppliers]);
 
   const draftData = useMemo(() => ({
     selectedSupplierId,
@@ -54,7 +78,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
     setExpectedDeliveryDate('');
     setNotes('');
     setItems([
-      { productId: 1, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, taxRate: 0, discount: 0, total: 0 },
+      { productId: 0, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, taxRate: 0, discount: 0, total: 0 },
     ]);
   };
 
@@ -82,7 +106,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
   const handleAddItem = () => {
     setItems([
       ...items,
-      { productId: 1, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, taxRate: 0, discount: 0, total: 0 },
+      { productId: 0, productName: '', unitName: 'قطعة', quantity: 1, unitCost: 0, taxRate: 0, discount: 0, total: 0 },
     ]);
   };
 
@@ -91,22 +115,28 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
     setItems(items.filter((_, i) => i !== index));
   };
 
+  const handleProductSelect = (index: number, product: (typeof productOptions)[0]) => {
+    const updated = [...items];
+    const current = { ...updated[index] };
+    current.productId = product.rawId;
+    current.productName = product.name;
+    current.unitCost = product.costPrice;
+    current.unitName = product.unit;
+
+    const qty = Number(current.quantity) || 0;
+    const cost = Number(current.unitCost) || 0;
+    const disc = Number(current.discount) || 0;
+    current.total = Math.max(0, qty * cost - disc);
+
+    updated[index] = current;
+    setItems(updated);
+  };
+
   const handleItemChange = (index: number, field: string, value: any) => {
     const updated = [...items];
     const current = { ...updated[index] };
 
-    if (field === 'productId') {
-      const pId = Number(value);
-      current.productId = pId;
-      const found = products.find((p: any) => p.id === pId);
-      if (found) {
-        current.productName = found.name;
-        current.unitCost = Number(found.costPrice || found.cost_price || 0);
-        current.unitName = found.unit || 'قطعة';
-      }
-    } else {
-      (current as any)[field] = value;
-    }
+    (current as any)[field] = value;
 
     const qty = Number(current.quantity) || 0;
     const cost = Number(current.unitCost) || 0;
@@ -166,7 +196,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
       open={true}
       onClose={onClose}
       ariaLabel="إنشاء أمر شراء جديد للمورد"
-      width="min(880px, 96vw)"
+      width="min(940px, 96vw)"
     >
       <div dir="rtl" style={{ width: '100%', boxSizing: 'border-box' }}>
         <div className="standard-dialog-header">
@@ -193,37 +223,30 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
             <div className="field">
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>المورد *</label>
-              <select
-                value={selectedSupplierId || ''}
-                onChange={(e) => {
-                  const sId = Number(e.target.value);
-                  setSelectedSupplierId(sId || null);
-                  const found = suppliers.find((s: any) => s.id === sId);
+              <SearchableCombobox
+                placeholder="ابحث عن مورد بالاسم أو الهاتف..."
+                value={supplierName}
+                onChange={(val) => {
+                  setSupplierName(val);
+                  const found = suppliers.find((s: any) => s.name === val);
                   if (found) {
-                    setSupplierName(found.name);
+                    setSelectedSupplierId(Number(found.id));
                     setSupplierPhone(found.phone || '');
+                  } else {
+                    setSelectedSupplierId(null);
                   }
                 }}
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
-              >
-                <option value="">اختر المورد من القائمة أو أدخل يدوياً</option>
-                {suppliers.map((s: any) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} {s.phone ? `(${s.phone})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field">
-              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>اسم المورد (تأكيد) *</label>
-              <input
-                type="text"
-                value={supplierName}
-                onChange={(e) => setSupplierName(e.target.value)}
-                placeholder="أدخل اسم المورد"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
-                required
+                options={supplierOptions}
+                getLabel={(s) => s.name}
+                getMeta={(s) => s.phone ? `هاتف: ${s.phone}` : undefined}
+                search={(s, query) => matchesArabic(s.name, query) || (s.phone ? s.phone.includes(query) : false)}
+                onSelect={(s) => {
+                  setSelectedSupplierId(s.rawId);
+                  setSupplierName(s.name);
+                  setSupplierPhone(s.phone || '');
+                }}
+                showDropdownOnEmpty={true}
+                emptyLabel="لا يوجد مورد مطابق (يمكنك المتابعة بالاسم المدخل)"
               />
             </div>
 
@@ -234,7 +257,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                 value={supplierPhone}
                 onChange={(e) => setSupplierPhone(e.target.value)}
                 placeholder="رقم التواصل"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -245,7 +268,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                 value={warehouseName}
                 onChange={(e) => setWarehouseName(e.target.value)}
                 placeholder="اسم المستودع أو الفرع"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -255,7 +278,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                 type="date"
                 value={expectedDeliveryDate}
                 onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -266,7 +289,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="أي شروط أو متطلبات خاصة للتوريد"
-                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
               />
             </div>
           </div>
@@ -285,8 +308,8 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
               <table style={{ width: '100%', textAlign: 'right', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead style={{ color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
                   <tr>
-                    <th style={{ paddingBottom: '8px' }}>الصنف</th>
-                    <th style={{ paddingBottom: '8px', width: '90px' }}>الكمية</th>
+                    <th style={{ paddingBottom: '8px', minWidth: '240px' }}>الصنف (بحث بالاسم أو الباركود)</th>
+                    <th style={{ paddingBottom: '8px', width: '85px' }}>الكمية</th>
                     <th style={{ paddingBottom: '8px', width: '110px' }}>سعر التكلفة</th>
                     <th style={{ paddingBottom: '8px', width: '90px' }}>الخصم</th>
                     <th style={{ paddingBottom: '8px', width: '110px' }}>الإجمالي</th>
@@ -296,19 +319,23 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                 <tbody>
                   {items.map((it, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '6px 4px' }}>
-                        <select
-                          value={it.productId || ''}
-                          onChange={(e) => handleItemChange(idx, 'productId', e.target.value)}
-                          style={{ width: '100%', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#ffffff' }}
-                        >
-                          <option value="">اختر صنفاً</option>
-                          {products.map((p: any) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} (التكلفة الحالية: {formatCurrency(p.costPrice || p.cost_price || 0)})
-                            </option>
-                          ))}
-                        </select>
+                      <td style={{ padding: '6px 4px', minWidth: '240px' }}>
+                        <SearchableCombobox
+                          placeholder="ابحث باسم الصنف أو الباركود..."
+                          value={it.productName || ''}
+                          onChange={(val) => {
+                            handleItemChange(idx, 'productName', val);
+                          }}
+                          options={productOptions}
+                          getLabel={(p) => p.name}
+                          getMeta={(p) => (p.barcode ? `باركود: ${p.barcode} | التكلفة: ${formatCurrency(p.costPrice)}` : `التكلفة: ${formatCurrency(p.costPrice)}`)}
+                          search={(p, query) => {
+                            return matchesArabic(p.name, query) || (p.barcode ? p.barcode.includes(query) : false) || (p.sku ? p.sku.toLowerCase().includes(query.toLowerCase()) : false);
+                          }}
+                          onSelect={(p) => handleProductSelect(idx, p)}
+                          showDropdownOnEmpty={true}
+                          emptyLabel="لا توجد أصناف مطابقة"
+                        />
                       </td>
                       <td style={{ padding: '6px 4px' }}>
                         <input
@@ -316,7 +343,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                           min="1"
                           value={it.quantity}
                           onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                          style={{ width: '100%', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', textAlign: 'center' }}
+                          style={{ width: '100%', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </td>
                       <td style={{ padding: '6px 4px' }}>
@@ -326,7 +353,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                           min="0"
                           value={it.unitCost}
                           onChange={(e) => handleItemChange(idx, 'unitCost', e.target.value)}
-                          style={{ width: '100%', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', textAlign: 'center' }}
+                          style={{ width: '100%', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </td>
                       <td style={{ padding: '6px 4px' }}>
@@ -336,7 +363,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                           min="0"
                           value={it.discount}
                           onChange={(e) => handleItemChange(idx, 'discount', e.target.value)}
-                          style={{ width: '100%', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', textAlign: 'center' }}
+                          style={{ width: '100%', fontSize: '12px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', textAlign: 'center', boxSizing: 'border-box' }}
                         />
                       </td>
                       <td style={{ padding: '6px 4px', fontWeight: 700, color: '#1e293b' }}>
@@ -347,6 +374,7 @@ export const CreatePurchaseOrderModal: React.FC<CreatePurchaseOrderModalProps> =
                           type="button"
                           onClick={() => handleRemoveItem(idx)}
                           style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                          title="حذف البند"
                         >
                           <XIcon size={14} />
                         </button>

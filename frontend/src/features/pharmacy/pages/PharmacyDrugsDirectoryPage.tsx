@@ -152,7 +152,7 @@ export default function PharmacyDrugsDirectoryPage() {
 
   return (
     <div className="page-stack page-shell pharmacy-workspace" dir="rtl">
-      <main className="page-content workspace-body" style={{ maxWidth: '1440px', margin: '0 auto', padding: '16px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader
           title="دليل الأدوية المصري والمواد الفعالة (Drug Directory)"
           description="إدارة الأسماء التجارية، المواد الفعالة، التسعيرة الجبرية، وجداول الرقابة الدوائية مع محرك البدائل"

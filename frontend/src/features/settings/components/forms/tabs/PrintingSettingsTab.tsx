@@ -8,7 +8,7 @@ import { printSmallReceiptDocument } from '@/lib/small-receipt-printer';
 
 const checkboxGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))',
   gap: '6px',
 };
 
@@ -16,7 +16,7 @@ const checkboxStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  padding: '5px 8px',
+  padding: '6px 9px',
   borderRadius: '6px',
   border: '1px solid var(--border-color, #e2e8f0)',
   background: 'var(--surface-color, #ffffff)',
@@ -25,6 +25,7 @@ const checkboxStyle: CSSProperties = {
   fontWeight: 600,
   color: 'var(--text-color, #334155)',
   userSelect: 'none',
+  lineHeight: '1.3',
   transition: 'background 0.15s ease, border-color 0.15s ease',
 };
 
@@ -245,7 +246,7 @@ export function PrintingSettingsTab({
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDate')} disabled={disabled} />
                   إظهار تاريخ ووقت الفاتورة
                 </label>
-                <label className="settings-print-option" style={checkboxStyle}>
+                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: 'span 2' }}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowHijriDate')} disabled={disabled} />
                   إظهار التقويم الهجري (أم القرى)
                 </label>
@@ -273,7 +274,7 @@ export function PrintingSettingsTab({
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printDeliveryRepOnReceipt')} disabled={disabled} />
                   إظهار اسم المندوب
                 </label>
-                <label className="settings-print-option" style={checkboxStyle}>
+                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printDualReceiptForOnlineDelivery')} disabled={disabled} />
                   طباعة نسختين تلقائياً للدليفري والدفع الإلكتروني (عميل + محل)
                 </label>
@@ -290,15 +291,15 @@ export function PrintingSettingsTab({
                 <strong style={groupHeaderTitleStyle}>الأصناف وعروض التخفيض</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
-                <label className="settings-print-option" style={checkboxStyle}>
+                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowItemOffers')} disabled={disabled} />
                   إظهار عروض الأصناف (عرض: X بدلاً من Y)
                 </label>
-                <label className="settings-print-option" style={checkboxStyle}>
+                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowDiscountBreakdown')} disabled={disabled} />
                   تفصيل سطور الخصومات في الإجماليات
                 </label>
-                <label className="settings-print-option" style={checkboxStyle}>
+                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowSavingsBanner')} disabled={disabled} />
                   إظهار شريط إجمالي التوفير بالفاتورة
                 </label>
@@ -338,7 +339,7 @@ export function PrintingSettingsTab({
                 <strong style={groupHeaderTitleStyle}>التذييل ونمط الإيصال (الأسفل)</strong>
               </div>
               <div className="settings-print-options-grid" style={checkboxGridStyle}>
-                <label className="settings-print-option" style={checkboxStyle}>
+                <label className="settings-print-option" style={{ ...checkboxStyle, gridColumn: '1 / -1' }}>
                   <input type="checkbox" style={checkboxInputStyle} {...form.register('printShowInvoiceBarcode')} disabled={disabled} />
                   إظهار شريط باركود الفاتورة (Code 128)
                 </label>

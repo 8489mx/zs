@@ -352,7 +352,8 @@ export const usePartnerPayoutMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import-partners'] });
-      queryClient.invalidateQueries({ queryKey: ['import-profit-report'] });
+      queryClient.invalidateQueries({ queryKey: ['profit-report'] });
+      queryClient.invalidateQueries({ queryKey: ['partner-ledger'] });
       queryClient.invalidateQueries({ queryKey: ['treasury'] });
     },
   });

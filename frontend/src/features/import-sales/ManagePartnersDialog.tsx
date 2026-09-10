@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
-import { Field } from '@/shared/ui/field';
+import { AlertTriangleIcon, UsersIcon } from '@/shared/components/icons/AppIcons';
 import { usePartnersQuery, useCreatePartnerMutation, useDeletePartnerMutation, useUpdatePartnerMutation, Partner } from './api/shipments.api';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { CapitalTransactionDialog, PartnerLedgerDialog } from './PartnerLedgerComponents';
@@ -41,13 +40,13 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
+    if (!name.trim()) return;
     const percNum = Number(percentage) || 0;
     const capNum = Number(capitalAmount) || 0;
     if (capNum > 0 && !accountId) {
       return alert('الرجاء اختيار الخزينة لإيداع رأس المال الافتتاحي');
     }
-    await createMutation.mutateAsync({ name, percentage: percNum, capitalAmount: capNum, accountId: accountId || undefined } as any);
+    await createMutation.mutateAsync({ name: name.trim(), percentage: percNum, capitalAmount: capNum, accountId: accountId || undefined } as any);
     setName('');
     setPercentage('');
     setCapitalAmount('');
@@ -66,7 +65,6 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
   };
 
   const recalculateFromCapital = () => {
-    // Note: use localPartners because they have the latest capital_amount from the DB via useEffect sync
     const totalCap = localPartners.reduce((sum, p) => sum + (Number(p.capital_amount) || 0), 0);
     if (totalCap <= 0) return alert('إجمالي رأس المال صفر، لا يمكن حساب النسب.');
     
@@ -91,143 +89,325 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
 
   return (
     <>
-      <DialogShell open={open} onClose={onClose} width="950px">
-        <div style={{ padding: '32px', direction: 'rtl', background: 'var(--white)' }}>
-          <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold', color: 'var(--gray-900)' }}>إدارة الشركاء ورأس المال</h2>
-          <p style={{ color: 'var(--gray-500)', marginBottom: '24px', fontSize: '14px' }}>
-            قم بتحديد رأس المال لكل شريك عبر أزرار السحب والإيداع ليتم تسجيلها بتواريخها، ثم قم بحساب النسب تلقائياً.
-          </p>
-          
+      <StandardDialog 
+        open={open} 
+        onClose={onClose} 
+        title="إدارة الشركاء ورأس المال وتوزيع الأرباح"
+        subtitle="تحديد رأس مال كل شريك، إدارة عمليات السحب والإيداع، وضبط نسب توزيع الأرباح تلقائياً أو يدوياً."
+        width="min(860px, 95vw)"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} dir="rtl">
           {/* Add Partner Section */}
-          <div style={{ background: 'var(--gray-50)', padding: '24px', borderRadius: '12px', border: '1px solid var(--gray-200)', marginBottom: '32px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--gray-700)' }}>إضافة شريك جديد</h3>
-            <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '16px', alignItems: 'end' }}>
-              <Field label="اسم الشريك">
-                <input type="text" value={name} onChange={e => setName(e.target.value)} required className="input" placeholder="مثال: أحمد" />
-              </Field>
-              <Field label="النسبة المئوية (اختياري)">
-                <input type="number" step="0.01" min="0" max="100" value={percentage} onChange={e => setPercentage(e.target.value)} className="input" placeholder="%" />
-              </Field>
-              <Field label="رأس المال الافتتاحي">
-                <input type="number" step="0.01" min="0" value={capitalAmount} onChange={e => setCapitalAmount(e.target.value)} className="input" placeholder="المبلغ" />
-              </Field>
-              <Field label="الخزينة/البنك (للإيداع)">
-                <select className="input" value={accountId} onChange={e => setAccountId(e.target.value)} required={Number(capitalAmount) > 0}>
-                  <option value="">-- اختر --</option>
-                  {treasuryAccounts?.map((a: any) => (
-                    <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Button type="submit" variant="primary" disabled={createMutation.isPending} style={{ height: '42px' }}>إضافة شريك</Button>
+          <div style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.88rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>إضافة شريك جديد</span>
+            </h4>
+            <form onSubmit={handleAdd}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'end' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '5px' }}>
+                    اسم الشريك <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    value={name} 
+                    onChange={e => setName(e.target.value)} 
+                    required 
+                    placeholder="مثال: أحمد محمد"
+                    style={{
+                      width: '100%',
+                      height: '36px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 10px',
+                      fontSize: '0.82rem',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '5px' }}>
+                    النسبة المئوية (%)
+                  </label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0" 
+                    max="100" 
+                    value={percentage} 
+                    onChange={e => setPercentage(e.target.value)} 
+                    placeholder="اختياري %"
+                    style={{
+                      width: '100%',
+                      height: '36px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 10px',
+                      fontSize: '0.82rem',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '5px' }}>
+                    رأس المال الافتتاحي
+                  </label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0" 
+                    value={capitalAmount} 
+                    onChange={e => setCapitalAmount(e.target.value)} 
+                    placeholder="0.00 ج.م"
+                    style={{
+                      width: '100%',
+                      height: '36px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 10px',
+                      fontSize: '0.82rem',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '5px' }}>
+                    الخزينة / البنك للإيداع
+                  </label>
+                  <select 
+                    value={accountId} 
+                    onChange={e => setAccountId(e.target.value)} 
+                    required={Number(capitalAmount) > 0}
+                    style={{
+                      width: '100%',
+                      height: '36px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      padding: '0 10px',
+                      fontSize: '0.82rem',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="">-- اختر الخزينة --</option>
+                    {treasuryAccounts?.map((a: any) => (
+                      <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Button 
+                    type="submit" 
+                    variant="primary" 
+                    disabled={createMutation.isPending} 
+                    style={{
+                      height: '36px',
+                      width: '100%',
+                      padding: '0 14px',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>إضافة شريك</span>
+                  </Button>
+                </div>
+              </div>
             </form>
             <MutationFeedback isError={createMutation.isError} isSuccess={createMutation.isSuccess} error={createMutation.error} />
           </div>
 
           {/* List Section */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: '0', fontSize: '18px', color: 'var(--gray-800)' }}>الشركاء الحاليين وتوزيع النسب</h3>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <Button variant="secondary" onClick={recalculateFromCapital} title="يتم حساب النسبة تلقائياً بناءً على مبالغ رأس المال لكل شريك">
-                إعادة حساب النسب من رأس المال
-              </Button>
-              <Button variant="primary" onClick={saveChanges} disabled={updateMutation.isPending}>
-                حفظ تعديلات النسب
-              </Button>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                  الشركاء الحاليين وتوزيع النسب
+                </h4>
+                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                  {localPartners.length} شركاء مسجلين
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Button 
+                  variant="secondary" 
+                  onClick={recalculateFromCapital} 
+                  title="يتم حساب النسبة تلقائياً بناءً على مبالغ رأس المال لكل شريك"
+                  style={{ height: '32px', padding: '0 10px', fontSize: '0.76rem', fontWeight: 700, borderRadius: '6px' }}
+                >
+                  إعادة حساب النسب من رأس المال
+                </Button>
+                <Button 
+                  variant="primary" 
+                  onClick={saveChanges} 
+                  disabled={updateMutation.isPending}
+                  style={{ height: '32px', padding: '0 14px', fontSize: '0.76rem', fontWeight: 700, background: '#170e5e', color: '#ffffff', border: 'none', borderRadius: '6px' }}
+                >
+                  {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ تعديلات النسب'}
+                </Button>
+              </div>
             </div>
-          </div>
 
-          {isLoading ? <p style={{ color: 'var(--gray-500)', textAlign: 'center' }}>جاري التحميل...</p> : (
-            <div style={{ border: '1px solid var(--gray-200)', borderRadius: '12px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--white)' }}>
-                <thead>
-                  <tr style={{ background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-200)' }}>
-                    <th style={{ padding: '16px', textAlign: 'right', color: 'var(--gray-600)', fontWeight: '600' }}>اسم الشريك</th>
-                    <th style={{ padding: '16px', textAlign: 'right', color: 'var(--gray-600)', fontWeight: '600', width: '280px' }}>رأس المال (المبلغ)</th>
-                    <th style={{ padding: '16px', textAlign: 'right', color: 'var(--gray-600)', fontWeight: '600', width: '180px' }}>نسبة الأرباح (%)</th>
-                    <th style={{ padding: '16px', textAlign: 'center', color: 'var(--gray-600)', fontWeight: '600', width: '220px' }}>إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {localPartners.map(p => (
-                    <tr key={p.id} style={{ borderBottom: '1px solid var(--gray-100)', transition: 'background 0.2s' }}>
-                      <td style={{ padding: '16px', fontWeight: '600', color: 'var(--gray-800)' }}>{p.name}</td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                            {Number(p.capital_amount || 0).toLocaleString()}
-                          </span>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <Button variant="secondary" className="btn-sm" onClick={() => setTxPartner({ partner: p, type: 'DEPOSIT' })} title="إيداع رأس مال">+</Button>
-                            <Button variant="secondary" className="btn-sm" onClick={() => setTxPartner({ partner: p, type: 'WITHDRAWAL' })} title="سحب رأس مال">-</Button>
+            {isLoading ? (
+              <p style={{ color: '#64748b', textAlign: 'center', padding: '24px' }}>جاري التحميل...</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', textAlign: 'right' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
+                      <th style={{ padding: '10px 14px' }}>اسم الشريك</th>
+                      <th style={{ padding: '10px 14px', width: '240px' }}>رأس المال الحالي</th>
+                      <th style={{ padding: '10px 14px', width: '140px' }}>نسبة الأرباح (%)</th>
+                      <th style={{ padding: '10px 14px', width: '180px', textAlign: 'center' }}>إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {localPartners.map((p, idx) => (
+                      <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#ffffff' : '#fafafa' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>{p.name}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#170e5e' }}>
+                              {Number(p.capital_amount || 0).toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+                            </span>
+                            <div style={{ display: 'inline-flex', gap: '3px' }}>
+                              <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => setTxPartner({ partner: p, type: 'DEPOSIT' })} 
+                                title="إيداع رأس مال"
+                                style={{ padding: '1px 7px', fontSize: '0.72rem', fontWeight: 700, height: '22px', borderRadius: '4px' }}
+                              >
+                                + إيداع
+                              </button>
+                              <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => setTxPartner({ partner: p, type: 'WITHDRAWAL' })} 
+                                title="سحب رأس مال"
+                                style={{ padding: '1px 7px', fontSize: '0.72rem', fontWeight: 700, height: '22px', borderRadius: '4px' }}
+                              >
+                                - سحب
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px' }} dir="ltr">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                          <span style={{ color: 'var(--gray-500)', fontWeight: 'bold' }}>%</span>
-                          <input 
-                            type="number" 
-                            step="0.01"
-                            className="input" 
-                            value={p.profit_share_percentage ?? ''} 
-                            onChange={e => handlePercentageChange(p.id, e.target.value)}
-                            style={{ width: '100%', textAlign: 'center', background: 'var(--white)' }}
-                            placeholder="0"
-                          />
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                          <Button variant="secondary" className="btn-sm" onClick={() => setLedgerPartner(p)}>كشف حساب</Button>
-                          <Button variant="danger" className="btn-sm" onClick={() => handleDelete(p.id)} disabled={deleteMutation.isPending}>حذف</Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {localPartners.length === 0 && (
-                    <tr>
-                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--gray-500)' }}>
-                        لا يوجد شركاء مسجلين. قم بإضافة شريكك الأول لتبدأ.
-                      </td>
-                    </tr>
-                  )}
-                  {localPartners.length > 0 && (() => {
-                    const totalCapital = localPartners.reduce((sum, p) => sum + (Number(p.capital_amount) || 0), 0);
-                    const totalPercentage = localPartners.reduce((sum, p) => sum + (Number(p.profit_share_percentage) || 0), 0);
-                    const isPercentageValid = Math.abs(totalPercentage - 100) < 0.01;
+                        </td>
+                        <td style={{ padding: '10px 14px' }} dir="ltr">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                            <span style={{ color: '#64748b', fontWeight: 700, fontSize: '0.78rem' }}>%</span>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={p.profit_share_percentage ?? ''} 
+                              onChange={e => handlePercentageChange(p.id, e.target.value)}
+                              style={{ 
+                                width: '70px', 
+                                textAlign: 'center', 
+                                height: '28px',
+                                borderRadius: '4px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                background: '#ffffff',
+                                color: '#0f172a',
+                                outline: 'none'
+                              }}
+                              placeholder="0"
+                            />
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                            <button 
+                              type="button" 
+                              className="btn btn-secondary" 
+                              onClick={() => setLedgerPartner(p)}
+                              style={{ padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600, height: '26px', borderRadius: '4px' }}
+                            >
+                              كشف حساب
+                            </button>
+                            <button 
+                              type="button" 
+                              className="btn btn-danger" 
+                              onClick={() => handleDelete(p.id)} 
+                              disabled={deleteMutation.isPending}
+                              style={{ padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600, height: '26px', borderRadius: '4px' }}
+                            >
+                              حذف
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {localPartners.length === 0 && (
+                      <tr>
+                        <td colSpan={4} style={{ padding: '36px 16px', textAlign: 'center' }}>
+                          <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px auto', color: '#94a3b8' }}>
+                            <UsersIcon size={20} />
+                          </div>
+                          <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.84rem' }}>لا يوجد شركاء مسجلين</div>
+                          <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '3px' }}>قم بإضافة شريك جديد من النموذج أعلاه لبدء توزيع الأرباح.</div>
+                        </td>
+                      </tr>
+                    )}
+                    {localPartners.length > 0 && (() => {
+                      const totalCapital = localPartners.reduce((sum, p) => sum + (Number(p.capital_amount) || 0), 0);
+                      const totalPercentage = localPartners.reduce((sum, p) => sum + (Number(p.profit_share_percentage) || 0), 0);
+                      const isPercentageValid = Math.abs(totalPercentage - 100) < 0.01;
 
-                    return (
-                      <>
-                        <tr style={{ background: 'var(--primary-50)', fontWeight: 'bold', color: 'var(--primary-900)' }}>
-                          <td style={{ padding: '16px' }}>الإجمالي</td>
-                          <td style={{ padding: '16px' }}>
-                            {totalCapital.toLocaleString()}
-                          </td>
-                          <td style={{ padding: '16px', textAlign: 'right', color: isPercentageValid ? 'var(--primary-900)' : 'var(--red-600)' }}>
-                            {totalPercentage.toFixed(2)}%
-                          </td>
-                          <td></td>
-                        </tr>
-                        {!isPercentageValid && (
-                          <tr>
-                            <td colSpan={4} style={{ padding: '8px 16px', background: 'var(--red-50)', color: 'var(--red-700)', fontSize: '13px', textAlign: 'center' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
-                                <AlertTriangleIcon size={16} color="#b91c1c" />
-                                <span>تنبيه: إجمالي نسب الأرباح لا يساوي 100%. يرجى الضغط على زر "إعادة حساب النسب" أو تعديلها يدوياً حتى لا تفقد جزء من الأرباح.</span>
-                              </span>
+                      return (
+                        <>
+                          <tr style={{ background: '#f8fafc', fontWeight: 800, color: '#0f172a', borderTop: '2px solid #e2e8f0' }}>
+                            <td style={{ padding: '12px 14px' }}>الإجمالي الكلي</td>
+                            <td style={{ padding: '12px 14px', fontSize: '0.88rem', color: '#170e5e' }}>
+                              {totalCapital.toLocaleString()} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
                             </td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', color: isPercentageValid ? '#15803d' : '#b91c1c', fontWeight: 800 }} dir="ltr">
+                              {totalPercentage.toFixed(2)}%
+                            </td>
+                            <td></td>
                           </tr>
-                        )}
-                      </>
-                    );
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          )}
+                          {!isPercentageValid && (
+                            <tr>
+                              <td colSpan={4} style={{ padding: '8px 14px', background: '#fef2f2', color: '#991b1b', fontSize: '0.76rem', textAlign: 'center', borderTop: '1px solid #fee2e2' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                                  <AlertTriangleIcon size={15} color="#b91c1c" />
+                                  <span>تنبيه: إجمالي نسب الأرباح لا يساوي 100%. يرجى الضغط على زر "إعادة حساب النسب" أو تعديلها يدوياً.</span>
+                                </span>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
-      </DialogShell>
+      </StandardDialog>
 
       {txPartner && (
         <CapitalTransactionDialog 
@@ -248,3 +428,4 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
     </>
   );
 }
+

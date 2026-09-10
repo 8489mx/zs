@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { DialogShell } from '@/shared/components/dialog-shell';
+import { StandardDialog } from '@/shared/components/StandardDialog';
 import { Button } from '@/shared/ui/button';
-import { Field } from '@/shared/ui/field';
+import { FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { usePartnerLedgerQuery, useRecordCapitalTransactionMutation, Partner } from './api/shipments.api';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { useQuery } from '@tanstack/react-query';
@@ -25,7 +25,6 @@ export function CapitalTransactionDialog({
   
   const mutation = useRecordCapitalTransactionMutation(partner?.id || '');
 
-  // Fetch accounts for treasury dropdown (assuming generic endpoint, fallback to basic input if fails)
   const { data: accountsData } = useQuery({
     queryKey: ['accounts-list'],
     queryFn: () => http<{ accounts: any[] }>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
@@ -48,40 +47,152 @@ export function CapitalTransactionDialog({
     onClose();
   };
 
+  const isDeposit = type === 'DEPOSIT';
+
   return (
-    <DialogShell open={open} onClose={onClose} width="400px">
-      <div style={{ padding: '24px', direction: 'rtl', background: 'var(--white)' }}>
-        <h3 style={{ margin: '0 0 16px 0', color: 'var(--gray-900)' }}>
-          {type === 'DEPOSIT' ? 'إضافة رأس مال' : 'سحب رأس مال'} - {partner?.name}
-        </h3>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Field label="المبلغ">
-            <input type="number" min="0.01" step="0.01" className="input" value={amount} onChange={e => setAmount(e.target.value)} required />
-          </Field>
-          <Field label="تاريخ الحركة">
-            <input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} required />
-          </Field>
-          <Field label={type === 'DEPOSIT' ? "إيداع في خزينة/بنك" : "سحب من خزينة/بنك"}>
-            <select className="input" value={accountId} onChange={e => setAccountId(e.target.value)} required>
-              <option value="">-- اختر الخزينة أو البنك --</option>
-              {treasuryAccounts?.map((a: any) => (
-                <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="ملاحظات (اختياري)">
-            <textarea className="input" rows={2} value={note} onChange={e => setNote(e.target.value)} />
-          </Field>
-          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-            <Button type="submit" variant={type === 'DEPOSIT' ? 'primary' : 'danger'} disabled={mutation.isPending}>
-              حفظ الحركة وإيداع الخزنة
-            </Button>
-            <Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button>
-          </div>
-          <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} />
-        </form>
-      </div>
-    </DialogShell>
+    <StandardDialog 
+      open={open} 
+      onClose={onClose} 
+      title={isDeposit ? `إيداع رأس مال: ${partner?.name || ''}` : `سحب رأس مال: ${partner?.name || ''}`}
+      subtitle={isDeposit 
+        ? `تسجيل زيادة في رأس مال الشريك وتوريد المبلغ في الخزينة أو الحساب البنكي.`
+        : `تسجيل سحب أو تخفيض من رأس مال الشريك وصرف المبلغ من الخزينة أو الحساب البنكي.`}
+      width="min(520px, 95vw)"
+    >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+        <div>
+          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+            المبلغ المطلوب {isDeposit ? 'إيداعه' : 'سحبه'} <span style={{ color: '#ef4444' }}>*</span>
+          </label>
+          <input 
+            type="number" 
+            min="0.01" 
+            step="0.01" 
+            value={amount} 
+            onChange={e => setAmount(e.target.value)} 
+            required 
+            placeholder="0.00 ج.م"
+            style={{
+              width: '100%',
+              height: '38px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              padding: '0 12px',
+              fontSize: '0.85rem',
+              background: '#ffffff',
+              color: '#0f172a',
+              boxSizing: 'border-box',
+              outline: 'none',
+              fontWeight: 700,
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+            تاريخ الحركة <span style={{ color: '#ef4444' }}>*</span>
+          </label>
+          <input 
+            type="date" 
+            value={date} 
+            onChange={e => setDate(e.target.value)} 
+            required 
+            style={{
+              width: '100%',
+              height: '38px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              padding: '0 12px',
+              fontSize: '0.85rem',
+              background: '#ffffff',
+              color: '#0f172a',
+              boxSizing: 'border-box',
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+            {isDeposit ? 'الخزينة / الحساب البنكي للإيداع' : 'الخزينة / الحساب البنكي للصرف'} <span style={{ color: '#ef4444' }}>*</span>
+          </label>
+          <select 
+            value={accountId} 
+            onChange={e => setAccountId(e.target.value)} 
+            required
+            style={{
+              width: '100%',
+              height: '38px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              padding: '0 12px',
+              fontSize: '0.85rem',
+              background: '#ffffff',
+              color: '#0f172a',
+              boxSizing: 'border-box',
+              outline: 'none',
+            }}
+          >
+            <option value="">-- اختر الخزينة أو البنك --</option>
+            {treasuryAccounts?.map((a: any) => (
+              <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+            ملاحظات أو بيان الحركة (اختياري)
+          </label>
+          <textarea 
+            rows={3} 
+            value={note} 
+            onChange={e => setNote(e.target.value)} 
+            placeholder="تفاصيل إضافية عن الحركة..."
+            style={{
+              width: '100%',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              padding: '8px 12px',
+              fontSize: '0.85rem',
+              background: '#ffffff',
+              color: '#0f172a',
+              boxSizing: 'border-box',
+              outline: 'none',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={onClose}
+            style={{ height: '36px', padding: '0 16px', fontSize: '0.82rem', fontWeight: 600, borderRadius: '6px' }}
+          >
+            إلغاء
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={mutation.isPending}
+            style={{
+              height: '36px',
+              padding: '0 20px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              borderRadius: '6px',
+              background: isDeposit ? '#170e5e' : '#dc2626',
+              color: '#ffffff',
+              border: 'none',
+            }}
+          >
+            {mutation.isPending ? 'جاري الحفظ...' : (isDeposit ? 'حفظ وإيداع بالخزينة' : 'حفظ وصرف من الخزينة')}
+          </Button>
+        </div>
+        <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} />
+      </form>
+    </StandardDialog>
   );
 }
 
@@ -89,43 +200,84 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
   const { data: ledger, isLoading } = usePartnerLedgerQuery(partner?.id || '');
 
   return (
-    <DialogShell open={open} onClose={onClose} width="650px">
-      <div style={{ padding: '24px', direction: 'rtl', background: 'var(--white)' }}>
-        <h3 style={{ margin: '0 0 8px 0', color: 'var(--gray-900)' }}>كشف حساب رأس مال: {partner?.name}</h3>
-        <p style={{ color: 'var(--gray-500)', marginBottom: '24px' }}>
-          رأس المال الحالي: <strong>{Number(partner?.capital_amount || 0).toLocaleString()}</strong>
-        </p>
+    <StandardDialog 
+      open={open} 
+      onClose={onClose} 
+      title={`كشف حساب رأس مال: ${partner?.name || ''}`}
+      subtitle="سجل تفصيلي لكافة حركات الإيداع والسحب وصرف الأرباح الخاصة بالشريك."
+      width="min(760px, 95vw)"
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+        {/* Partner Header Summary */}
+        <div style={{ background: '#f8fafc', padding: '14px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>رأس المال الحالي المسجل</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#170e5e' }}>
+              {Number(partner?.capital_amount || 0).toLocaleString()} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>ج.م</span>
+            </span>
+          </div>
+          <div>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block', marginBottom: '2px' }}>نسبة الأرباح المعتمدة</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+              {partner?.profit_share_percentage ?? 0}%
+            </span>
+          </div>
+        </div>
 
-        {isLoading ? <p>جاري التحميل...</p> : (
-          <div style={{ border: '1px solid var(--gray-200)', borderRadius: '8px', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+        {isLoading ? (
+          <p style={{ color: '#64748b', textAlign: 'center', padding: '32px' }}>جاري التحميل...</p>
+        ) : (
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.825rem' }}>
               <thead>
-                <tr style={{ background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-200)' }}>
-                  <th style={{ padding: '12px' }}>التاريخ</th>
-                  <th style={{ padding: '12px' }}>نوع الحركة</th>
-                  <th style={{ padding: '12px' }}>المبلغ</th>
-                  <th style={{ padding: '12px' }}>ملاحظات</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
+                  <th style={{ padding: '10px 14px' }}>التاريخ</th>
+                  <th style={{ padding: '10px 14px' }}>نوع الحركة</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left' }}>المبلغ</th>
+                  <th style={{ padding: '10px 14px' }}>البيان والملاحظات</th>
                 </tr>
               </thead>
               <tbody>
-                {ledger?.map(entry => (
-                  <tr key={entry.id} style={{ borderBottom: '1px solid var(--gray-100)' }}>
-                    <td style={{ padding: '12px' }}>{new Date(entry.transaction_date).toLocaleDateString('ar-EG')}</td>
-                    <td style={{ padding: '12px', fontWeight: '500' }}>
-                      {entry.type === 'DEPOSIT' && <span style={{ color: 'var(--green-600)' }}>إيداع رأس مال</span>}
-                      {entry.type === 'WITHDRAWAL' && <span style={{ color: 'var(--red-600)' }}>سحب رأس مال</span>}
-                      {entry.type === 'PROFIT_PAYOUT' && <span style={{ color: 'var(--blue-600)' }}>صرف أرباح</span>}
+                {ledger?.map((entry, idx) => (
+                  <tr key={entry.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#ffffff' : '#fafafa' }}>
+                    <td style={{ padding: '10px 14px', color: '#334155', fontWeight: 600 }}>
+                      {new Date(entry.transaction_date).toLocaleDateString('ar-EG')}
                     </td>
-                    <td style={{ padding: '12px', direction: 'ltr', textAlign: 'right' }}>
-                      {entry.type !== 'DEPOSIT' ? '-' : ''}{Number(entry.amount).toLocaleString()}
+                    <td style={{ padding: '10px 14px' }}>
+                      {entry.type === 'DEPOSIT' && (
+                        <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', background: '#dcfce7', color: '#16a34a', fontSize: '0.74rem', fontWeight: 700 }}>
+                          إيداع رأس مال
+                        </span>
+                      )}
+                      {entry.type === 'WITHDRAWAL' && (
+                        <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', background: '#fee2e2', color: '#dc2626', fontSize: '0.74rem', fontWeight: 700 }}>
+                          سحب رأس مال
+                        </span>
+                      )}
+                      {entry.type === 'PROFIT_PAYOUT' && (
+                        <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: '4px', background: '#dbeafe', color: '#2563eb', fontSize: '0.74rem', fontWeight: 700 }}>
+                          صرف أرباح
+                        </span>
+                      )}
                     </td>
-                    <td style={{ padding: '12px', color: 'var(--gray-600)' }}>{entry.note}</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.85rem' }} dir="ltr">
+                      <span style={{ color: entry.type === 'DEPOSIT' ? '#16a34a' : '#dc2626' }}>
+                        {entry.type !== 'DEPOSIT' ? '-' : '+'}{Number(entry.amount).toLocaleString()} ج.م
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 14px', color: '#64748b' }}>
+                      {entry.note || '-'}
+                    </td>
                   </tr>
                 ))}
-                {ledger?.length === 0 && (
+                {(!ledger || ledger.length === 0) && (
                   <tr>
-                    <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: 'var(--gray-500)' }}>
-                      لا توجد حركات مسجلة لهذا الشريك.
+                    <td colSpan={4} style={{ padding: '36px 16px', textAlign: 'center' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px auto', color: '#94a3b8' }}>
+                        <FileTextIcon size={20} />
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.84rem' }}>لا توجد حركات مسجلة</div>
+                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '3px' }}>لم يتم تسجيل أي عمليات إيداع أو سحب لهذا الشريك حتى الآن.</div>
                     </td>
                   </tr>
                 )}
@@ -133,10 +285,18 @@ export function PartnerLedgerDialog({ partner, open, onClose }: { partner: Partn
             </table>
           </div>
         )}
-        <div style={{ marginTop: '24px', textAlign: 'left' }}>
-          <Button variant="secondary" onClick={onClose}>إغلاق</Button>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px' }}>
+          <Button 
+            variant="secondary" 
+            onClick={onClose}
+            style={{ height: '36px', padding: '0 20px', fontSize: '0.82rem', fontWeight: 600, borderRadius: '6px' }}
+          >
+            إغلاق
+          </Button>
         </div>
       </div>
-    </DialogShell>
+    </StandardDialog>
   );
 }
+
