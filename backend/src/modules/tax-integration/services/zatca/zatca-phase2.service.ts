@@ -104,200 +104,205 @@ export class ZatcaPhase2Service {
 
   /**
    * Builds complete ZATCA Phase 2 compliant invoice with dynamic cryptographic PIH chaining
+   * Atomic Transaction + Row-level lock (FOR UPDATE) guarantees zero ICV collision or gap
    */
   async buildZatcaInvoice(tenantId: string, saleId: number, egsId?: string | number): Promise<ZatcaPhase2Result> {
     const settings = await this.taxSettings.getSettings(tenantId, 'ZATCA_SAUDI');
     
-    const sale = await this.db
-      .selectFrom('sales')
-      .selectAll()
-      .where('id', '=', saleId)
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirstOrThrow();
-
-    const items = await this.db
-      .selectFrom('sale_items')
-      .selectAll()
-      .where('sale_id', '=', saleId)
-      .execute();
-
-    const customer = sale.customer_id
-      ? await this.db
-          .selectFrom('customers')
-          .selectAll()
-          .where('id', '=', Number(sale.customer_id))
-          .where('tenant_id', '=', tenantId)
-          .executeTakeFirst()
-      : null;
-
-    // 1. Fetch or initialize EGS Unit with row-level lock for sequential ICV & PIH guarantee
-    let egs = egsId
-      ? await this.db
-          .selectFrom('zatca_egs_units')
-          .selectAll()
-          .where('id', '=', String(egsId) as any)
-          .where('tenant_id', '=', tenantId)
-          .executeTakeFirst()
-      : await this.db
-          .selectFrom('zatca_egs_units')
-          .selectAll()
-          .where('tenant_id', '=', tenantId)
-          .where((eb) => eb.or([
-            eb('status', '=', 'production_active'),
-            eb('status', '=', 'compliance_passed'),
-            eb('status', '=', 'unregistered'),
-          ]))
-          .orderBy('id', 'asc')
-          .executeTakeFirst();
-
-    // Auto-create default EGS unit if none exists
-    if (!egs) {
-      const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
-        namedCurve: 'prime256v1',
-        publicKeyEncoding: { type: 'spki', format: 'pem' },
-        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-      });
-
-      const newUnit = await this.db
-        .insertInto('zatca_egs_units')
-        .values({
-          tenant_id: tenantId,
-          branch_id: sale.branch_id ? Number(sale.branch_id) : 1,
-          device_uuid: crypto.randomUUID(),
-          device_name: 'Main POS Unit 01',
-          custom_id: 'POS-01',
-          private_key_pem: privateKey,
-          public_key_pem: publicKey,
-          status: 'production_active',
-          environment: settings?.environment === 'production' ? 'production' : 'sandbox',
-          last_icv: 0,
-          last_invoice_hash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
-        } as any)
-        .returningAll()
+    return await this.db.transaction().execute(async (trx) => {
+      const sale = await trx
+        .selectFrom('sales')
+        .selectAll()
+        .where('id', '=', saleId)
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirstOrThrow();
 
-      egs = newUnit;
-    }
+      const items = await trx
+        .selectFrom('sale_items')
+        .selectAll()
+        .where('sale_id', '=', saleId)
+        .execute();
 
-    const nextIcv = Number(egs.last_icv || 0) + 1;
-    const previousInvoiceHash = egs.last_invoice_hash || 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==';
-    const invoiceUuid = crypto.randomUUID();
+      const customer = sale.customer_id
+        ? await trx
+            .selectFrom('customers')
+            .selectAll()
+            .where('id', '=', Number(sale.customer_id))
+            .where('tenant_id', '=', tenantId)
+            .executeTakeFirst()
+        : null;
 
-    const saleDate = new Date(sale.created_at || Date.now());
-    const issueDate = saleDate.toISOString().split('T')[0];
-    const issueTime = saleDate.toTimeString().split(' ')[0];
+      // 1. Fetch or initialize EGS Unit with row-level lock (.forUpdate()) for sequential ICV & PIH guarantee
+      let egs = egsId
+        ? await trx
+            .selectFrom('zatca_egs_units')
+            .selectAll()
+            .where('id', '=', String(egsId) as any)
+            .where('tenant_id', '=', tenantId)
+            .forUpdate()
+            .executeTakeFirst()
+        : await trx
+            .selectFrom('zatca_egs_units')
+            .selectAll()
+            .where('tenant_id', '=', tenantId)
+            .where((eb) => eb.or([
+              eb('status', '=', 'production_active'),
+              eb('status', '=', 'compliance_passed'),
+              eb('status', '=', 'unregistered'),
+            ]))
+            .orderBy('id', 'asc')
+            .forUpdate()
+            .executeTakeFirst();
 
-    const isB2B = Boolean(customer?.tax_number);
-    const invoiceType = isB2B ? 'standard' : 'simplified';
-    const vatRate = 15; // KSA 15% standard VAT
+      // Auto-create default EGS unit if none exists
+      if (!egs) {
+        const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
+          namedCurve: 'prime256v1',
+          publicKeyEncoding: { type: 'spki', format: 'pem' },
+          privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+        });
 
-    const lineItems = items.map((item, idx) => {
-      const qty = Math.max(1, Number(item.qty || 1));
-      const unitPrice = Number(item.unit_price || 0);
-      const subtotal = Number(item.line_total || qty * unitPrice);
-      const vatAmount = Number(((subtotal * vatRate) / 100).toFixed(2));
-      const total = Number((subtotal + vatAmount).toFixed(2));
+        const newUnit = await trx
+          .insertInto('zatca_egs_units')
+          .values({
+            tenant_id: tenantId,
+            branch_id: sale.branch_id ? Number(sale.branch_id) : 1,
+            device_uuid: crypto.randomUUID(),
+            device_name: 'Main POS Unit 01',
+            custom_id: 'POS-01',
+            private_key_pem: privateKey,
+            public_key_pem: publicKey,
+            status: 'production_active',
+            environment: settings?.environment === 'production' ? 'production' : 'sandbox',
+            last_icv: 0,
+            last_invoice_hash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
+          } as any)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+
+        egs = newUnit;
+      }
+
+      const nextIcv = Number(egs.last_icv || 0) + 1;
+      const previousInvoiceHash = egs.last_invoice_hash || 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==';
+      const invoiceUuid = crypto.randomUUID();
+
+      const saleDate = new Date(sale.created_at || Date.now());
+      const issueDate = saleDate.toISOString().split('T')[0];
+      const issueTime = saleDate.toTimeString().split(' ')[0];
+
+      const isB2B = Boolean(customer?.tax_number);
+      const invoiceType = isB2B ? 'standard' : 'simplified';
+      const vatRate = 15; // KSA 15% standard VAT
+
+      const lineItems = items.map((item, idx) => {
+        const qty = Math.max(1, Number(item.qty || 1));
+        const unitPrice = Number(item.unit_price || 0);
+        const subtotal = Number(item.line_total || qty * unitPrice);
+        const vatAmount = Number(((subtotal * vatRate) / 100).toFixed(2));
+        const total = Number((subtotal + vatAmount).toFixed(2));
+
+        return {
+          id: idx + 1,
+          name: item.product_name || `Item ${idx + 1}`,
+          quantity: qty,
+          unitPrice,
+          subtotal,
+          vatAmount,
+          vatRate,
+          total,
+        };
+      });
+
+      const calculatedSubtotal = lineItems.reduce((acc, l) => acc + l.subtotal, 0);
+      const calculatedVat = lineItems.reduce((acc, l) => acc + l.vatAmount, 0);
+      const calculatedTotal = Number((calculatedSubtotal + calculatedVat).toFixed(2));
+
+      const invoiceData: ZatcaInvoiceData = {
+        invoiceNumber: sale.doc_no || `INV-${sale.id}`,
+        uuid: invoiceUuid,
+        issueDate,
+        issueTime,
+        invoiceType,
+        sellerName: 'مؤسسة التجارة والخدمات السحابية',
+        sellerVatNumber: settings?.tax_id || '300000000000003',
+        sellerAddress: {
+          street: 'شارع الملك فهد',
+          buildingNumber: '1234',
+          city: 'الرياض',
+          postalCode: '12211',
+          district: 'العليا',
+        },
+        customerName: sale.customer_name || customer?.name || 'عميل نقدي',
+        customerVatNumber: customer?.tax_number || undefined,
+        customerAddress: {
+          street: customer?.address || 'الرياض',
+          city: 'الرياض',
+          postalCode: '12211',
+        },
+        lineItems,
+        subtotal: calculatedSubtotal,
+        vatTotal: Number(calculatedVat.toFixed(2)),
+        totalWithVat: calculatedTotal,
+        previousInvoiceHash,
+        invoiceCounterValue: nextIcv,
+      };
+
+      // 2. Generate XML, SHA-256 Hash and Signature using EGS Private Key
+      const ublXml = this.buildUblXml(invoiceData);
+      const invoiceHash = this.computeSha256(ublXml);
+      const signature = this.signWithKey(invoiceHash, egs.private_key_pem);
+      const publicKey = egs.public_key_pem;
+
+      // 3. Generate Phase 2 QR Code (TLV with 8 tags)
+      const qrCodeBase64 = this.generatePhase2TlvQr({
+        sellerName: invoiceData.sellerName,
+        vatNumber: invoiceData.sellerVatNumber,
+        timestamp: `${invoiceData.issueDate}T${invoiceData.issueTime}Z`,
+        totalWithVat: invoiceData.totalWithVat.toFixed(2),
+        vatTotal: invoiceData.vatTotal.toFixed(2),
+        invoiceHash,
+        signature,
+        publicKey,
+      });
+
+      // 4. Update EGS unit with next ICV and new hash to advance the chain
+      await trx
+        .updateTable('zatca_egs_units')
+        .set({
+          last_icv: nextIcv,
+          last_invoice_hash: invoiceHash,
+          updated_at: new Date(),
+        })
+        .where('id', '=', egs.id)
+        .execute();
+
+      // 5. Save ZATCA audit details on the sale record
+      await trx
+        .updateTable('sales')
+        .set({
+          zatca_uuid: invoiceUuid,
+          zatca_hash: invoiceHash,
+          zatca_prev_hash: previousInvoiceHash,
+          zatca_icv: nextIcv,
+          zatca_status: 'reported',
+          zatca_qr: qrCodeBase64,
+          zatca_ubl_xml: ublXml,
+        } as any)
+        .where('id', '=', sale.id)
+        .execute();
 
       return {
-        id: idx + 1,
-        name: item.product_name || `Item ${idx + 1}`,
-        quantity: qty,
-        unitPrice,
-        subtotal,
-        vatAmount,
-        vatRate,
-        total,
+        ublXml,
+        invoiceHash,
+        qrCodeBase64,
+        digitalSignature: signature,
+        publicKey,
+        uuid: invoiceUuid,
+        icv: nextIcv,
+        previousHash: previousInvoiceHash,
       };
     });
-
-    const calculatedSubtotal = lineItems.reduce((acc, l) => acc + l.subtotal, 0);
-    const calculatedVat = lineItems.reduce((acc, l) => acc + l.vatAmount, 0);
-    const calculatedTotal = Number((calculatedSubtotal + calculatedVat).toFixed(2));
-
-    const invoiceData: ZatcaInvoiceData = {
-      invoiceNumber: sale.doc_no || `INV-${sale.id}`,
-      uuid: invoiceUuid,
-      issueDate,
-      issueTime,
-      invoiceType,
-      sellerName: 'مؤسسة التجارة والخدمات السحابية',
-      sellerVatNumber: settings?.tax_id || '300000000000003',
-      sellerAddress: {
-        street: 'شارع الملك فهد',
-        buildingNumber: '1234',
-        city: 'الرياض',
-        postalCode: '12211',
-        district: 'العليا',
-      },
-      customerName: sale.customer_name || customer?.name || 'عميل نقدي',
-      customerVatNumber: customer?.tax_number || undefined,
-      customerAddress: {
-        street: customer?.address || 'الرياض',
-        city: 'الرياض',
-        postalCode: '12211',
-      },
-      lineItems,
-      subtotal: calculatedSubtotal,
-      vatTotal: Number(calculatedVat.toFixed(2)),
-      totalWithVat: calculatedTotal,
-      previousInvoiceHash,
-      invoiceCounterValue: nextIcv,
-    };
-
-    // 2. Generate XML, SHA-256 Hash and Signature using EGS Private Key
-    const ublXml = this.buildUblXml(invoiceData);
-    const invoiceHash = this.computeSha256(ublXml);
-    const signature = this.signWithKey(invoiceHash, egs.private_key_pem);
-    const publicKey = egs.public_key_pem;
-
-    // 3. Generate Phase 2 QR Code (TLV with 8 tags)
-    const qrCodeBase64 = this.generatePhase2TlvQr({
-      sellerName: invoiceData.sellerName,
-      vatNumber: invoiceData.sellerVatNumber,
-      timestamp: `${invoiceData.issueDate}T${invoiceData.issueTime}Z`,
-      totalWithVat: invoiceData.totalWithVat.toFixed(2),
-      vatTotal: invoiceData.vatTotal.toFixed(2),
-      invoiceHash,
-      signature,
-      publicKey,
-    });
-
-    // 4. Update EGS unit with next ICV and new hash to advance the chain
-    await this.db
-      .updateTable('zatca_egs_units')
-      .set({
-        last_icv: nextIcv,
-        last_invoice_hash: invoiceHash,
-        updated_at: new Date(),
-      })
-      .where('id', '=', egs.id)
-      .execute();
-
-    // 5. Save ZATCA audit details on the sale record
-    await this.db
-      .updateTable('sales')
-      .set({
-        zatca_uuid: invoiceUuid,
-        zatca_hash: invoiceHash,
-        zatca_prev_hash: previousInvoiceHash,
-        zatca_icv: nextIcv,
-        zatca_status: 'reported',
-        zatca_qr: qrCodeBase64,
-        zatca_ubl_xml: ublXml,
-      } as any)
-      .where('id', '=', sale.id)
-      .execute();
-
-    return {
-      ublXml,
-      invoiceHash,
-      qrCodeBase64,
-      digitalSignature: signature,
-      publicKey,
-      uuid: invoiceUuid,
-      icv: nextIcv,
-      previousHash: previousInvoiceHash,
-    };
   }
 
   /**
