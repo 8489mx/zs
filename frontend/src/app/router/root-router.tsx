@@ -1,5 +1,5 @@
 import { createBrowserRouter, createHashRouter, Navigate, Outlet, RouterProvider, useLocation, useNavigate } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { createLazyRoute } from '@/app/router/lazy-route';
 import { AppShell } from '@/shared/layout/app-shell';
 import { AppErrorBoundary } from '@/shared/system/app-error-boundary';
@@ -9,13 +9,14 @@ import { useAuthStore } from '@/stores/auth-store';
 import { appRoutes, navigationItems } from '@/app/router/registry';
 import { canAccessPath, findFirstAccessibleRoute } from '@/app/router/access';
 import { getPostLoginRoute } from '@/features/auth/lib/post-login-route';
-import { ActivationPage } from '@/features/activation/pages/ActivationPage';
-import { FirstRunSetupPage } from '@/features/activation/pages/FirstRunSetupPage';
-import { SaaSOnboardingPage } from '@/features/activation/pages/SaaSOnboardingPage';
-import { SupplierQuickPaymentDialog } from '@/features/accounts/components/SupplierQuickPaymentDialog';
-import { QuickCashAdvanceModal } from '@/features/hr/components/QuickCashAdvanceModal';
-import { QuickOffersModal } from '@/features/products/components/QuickOffersModal';
 import { AppCloseGuard } from '@/shared/layout/AppCloseGuard';
+
+const ActivationPage = lazy(() => import('@/features/activation/pages/ActivationPage').then(m => ({ default: m.ActivationPage })));
+const FirstRunSetupPage = lazy(() => import('@/features/activation/pages/FirstRunSetupPage').then(m => ({ default: m.FirstRunSetupPage })));
+const SaaSOnboardingPage = lazy(() => import('@/features/activation/pages/SaaSOnboardingPage').then(m => ({ default: m.SaaSOnboardingPage })));
+const SupplierQuickPaymentDialog = lazy(() => import('@/features/accounts/components/SupplierQuickPaymentDialog').then(m => ({ default: m.SupplierQuickPaymentDialog })));
+const QuickCashAdvanceModal = lazy(() => import('@/features/hr/components/QuickCashAdvanceModal').then(m => ({ default: m.QuickCashAdvanceModal })));
+const QuickOffersModal = lazy(() => import('@/features/products/components/QuickOffersModal').then(m => ({ default: m.QuickOffersModal })));
 
 const isElectron = typeof window !== 'undefined' && (
   Boolean((window as any).electronAPI) ||
@@ -96,7 +97,16 @@ function ProtectedLayout() {
     return <Navigate to={firstAccessibleRoute} replace />;
   }
 
-  return <AppShell><Outlet /><SupplierQuickPaymentDialog /><QuickCashAdvanceModal /><QuickOffersModal /></AppShell>;
+  return (
+    <AppShell>
+      <Outlet />
+      <Suspense fallback={null}>
+        <SupplierQuickPaymentDialog />
+        <QuickCashAdvanceModal />
+        <QuickOffersModal />
+      </Suspense>
+    </AppShell>
+  );
 }
 
 function LoginRoute() {
@@ -117,9 +127,9 @@ function LoginRoute() {
 }
 
 const router = createRouter([
-  { path: '/activate', element: <AppGateGuard expected="activation"><ActivationPage /></AppGateGuard> },
-  { path: '/setup', element: <AppGateGuard expected="setup"><FirstRunSetupPage /></AppGateGuard> },
-  { path: '/onboarding', element: <SaaSOnboardingPage /> },
+  { path: '/activate', element: <AppGateGuard expected="activation"><Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><ActivationPage /></Suspense></AppGateGuard> },
+  { path: '/setup', element: <AppGateGuard expected="setup"><Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><FirstRunSetupPage /></Suspense></AppGateGuard> },
+  { path: '/onboarding', element: <Suspense fallback={<div className="screen-center"><div className="loading-card">جاري التجهيز...</div></div>}><SaaSOnboardingPage /></Suspense> },
   {
     path: '/trial',
     element: createLazyRoute(() => import('@/features/public-trial/pages/TrialSignupPage').then((module) => ({ default: module.TrialSignupPage }))),

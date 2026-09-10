@@ -265,6 +265,7 @@ function PosProductsPanelComponent({
   const [touchVisibleCount, setTouchVisibleCount] = useState(touchModeVisibleStep);
   const [cardDensity, setCardDensity] = useState<'comfortable' | 'compact'>(readCardDensityPreference);
   const groupRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   
   const toggleCardDensity = () => {
     setCardDensity((prev) => {
@@ -316,9 +317,23 @@ function PosProductsPanelComponent({
   const visibleTouchGroupCount = Math.min(touchVisibleCount, visibleGroups.length);
   const displayedGroups = useMemo(
     () => (canShowScannerResults ? visibleGroups.slice(0, visibleTouchGroupCount) : []),
-    [canShowScannerResults, visibleGroups, visibleTouchGroupCount],
+    [canShowScannerResults, visibleGroups, visibleTouchGroupCount]
   );
   const hasMoreTouchGroups = visibleGroups.length > displayedGroups.length;
+
+  useEffect(() => {
+    if (!hasMoreTouchGroups || !sentinelRef.current || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setTouchVisibleCount((prev) => prev + touchModeVisibleStep);
+        }
+      },
+      { rootMargin: '250px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMoreTouchGroups]);
   const groupedProductsMap = useMemo(() => new Map(groupedProducts.map((g) => [g.key, g])), [groupedProducts]);
   const visibleRecentGroups = useMemo(
     () => recentGroupKeys
@@ -1114,7 +1129,7 @@ function PosProductsPanelComponent({
             </div>
 
             {hasMoreTouchGroups ? (
-              <div className="pos-touch-show-more-row">
+              <div className="pos-touch-show-more-row" ref={sentinelRef}>
                 <Button
                   type="button"
                   variant="secondary"

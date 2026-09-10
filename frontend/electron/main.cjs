@@ -70,6 +70,44 @@ function logRenderer(msg) {
   } catch (_) {}
 }
 
+function cleanupDesktopLogs() {
+  try {
+    const logsDir = getLogsDir();
+    if (!fs.existsSync(logsDir)) return;
+    const files = fs.readdirSync(logsDir);
+    const now = Date.now();
+    // Retention: Minimum 90 days (3 months), or if file was marked as uploaded/synced to server
+    const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+    for (const file of files) {
+      const isLog = file.endsWith('.log') || file.endsWith('.log.gz');
+      const isSyncedOrUploaded = file.includes('.synced') || file.includes('.uploaded');
+      if (isLog || isSyncedOrUploaded) {
+        const filePath = path.join(logsDir, file);
+        // Rotate active logs if larger than 25MB
+        if (file === 'backend.log' || file === 'renderer.log') {
+          try {
+            const stats = fs.statSync(filePath);
+            if (stats.size > 25 * 1024 * 1024) {
+              const rotatedName = `${file.replace('.log', '')}-${new Date().toISOString().slice(0, 10)}.log`;
+              fs.renameSync(filePath, path.join(logsDir, rotatedName));
+            }
+          } catch {}
+          continue;
+        }
+
+        const stats = fs.statSync(filePath);
+        if (isSyncedOrUploaded || (now - stats.mtimeMs > RETENTION_MS)) {
+          try {
+            fs.unlinkSync(filePath);
+          } catch {}
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[ELECTRON] Failed to clean up desktop logs:', err);
+  }
+}
+
 function getLoadingHtmlPath() {
   const isDev = process.env.NODE_ENV === 'development';
   if (isDev) {
@@ -129,7 +167,7 @@ const createLoadingWindow = () => {
   loadingWindow = new BrowserWindow({
     width,
     height,
-    backgroundColor: '#0d1322',
+    backgroundColor: '#f8fafc',
     icon: path.join(__dirname, '../public/logo_cropped.png'),
     autoHideMenuBar: true,
     webPreferences: {
@@ -366,6 +404,7 @@ function freePortIfStale(port) {
 app.whenReady().then(async () => {
   runtimeConfigInstance = new RuntimeConfig(app.getPath('userData'));
   currentConfig = runtimeConfigInstance.getConfig();
+  cleanupDesktopLogs();
 
   // Ensure port 3001 isn't locked by an orphan process from a previous crash/abrupt close
   if (currentConfig.runtimeMode !== 'lan_client') {
@@ -401,12 +440,15 @@ app.whenReady().then(async () => {
   console.log(`[ELECTRON] process.env.APP_MODE: ${process.env.APP_MODE || 'SELF_CONTAINED'}`);
   console.log('----------------------------------------');
 
-  // Clear HTTP Cache on startup to prevent bloat and improve startup time over months of use
-  try {
-    await session.defaultSession.clearCache();
-    console.log('[ELECTRON] Cleared Chromium HTTP Cache successfully.');
-  } catch (err) {
-    console.error('[ELECTRON] Failed to clear cache:', err);
+  // Only clear Chromium HTTP Cache on explicit flag/update to preserve V8 code cache across routine boots
+  const shouldClearCache = process.argv.includes('--clear-cache') || process.env.ELECTRON_FORCE_CLEAR_CACHE === 'true';
+  if (shouldClearCache) {
+    try {
+      await session.defaultSession.clearCache();
+      console.log('[ELECTRON] Cleared Chromium HTTP Cache on explicit request.');
+    } catch (err) {
+      console.error('[ELECTRON] Failed to clear cache:', err);
+    }
   }
 
   // Show loading window with progress immediately

@@ -77,6 +77,10 @@ export default defineConfig(({ mode }) => {
           if (id.includes('@tanstack/react-query')) return 'vendor-query';
           if (id.includes('react-hook-form') || id.includes('@hookform/resolvers') || id.includes('zod')) return 'vendor-forms';
           if (id.includes('zustand')) return 'vendor-state';
+          if (id.includes('@sentry')) return 'vendor-sentry';
+          if (id.includes('i18next') || id.includes('react-i18next')) return 'vendor-i18n';
+          if (id.includes('html5-qrcode')) return 'vendor-qrcode';
+          if (id.includes('browser-image-compression')) return 'vendor-image-compression';
           return undefined;
         },
         chunkFileNames: 'assets/chunks/[name]-[hash].js',

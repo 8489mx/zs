@@ -146,18 +146,44 @@ export function createLazyRoute(loader: LazyLoader): ReactNode {
   );
 }
 
+export function prefetchRoute(loader: LazyLoader) {
+  try {
+    void loader();
+  } catch {}
+}
+
 export function prefetchAllRouteModules() {
   if (typeof window === 'undefined') return;
-  const loadAll = () => {
-    registeredLoaders.forEach((loader) => {
+
+  // Staggered progressive loader that waits for initial rendering and queries to complete
+  const scheduleStaggeredLoad = () => {
+    const loaders = Array.from(registeredLoaders);
+    let index = 0;
+
+    const loadNext = () => {
+      if (index >= loaders.length) return;
       try {
-        void loader();
+        void loaders[index]();
       } catch {}
-    });
+      index++;
+
+      // Stagger subsequent loads by 1200ms using idle callback to avoid starving user interactions
+      setTimeout(() => {
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(loadNext, { timeout: 3000 });
+        } else {
+          loadNext();
+        }
+      }, 1200);
+    };
+
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(loadNext, { timeout: 6000 });
+    } else {
+      setTimeout(loadNext, 2500);
+    }
   };
-  if ('requestIdleCallback' in window) {
-    (window as any).requestIdleCallback(loadAll, { timeout: 4000 });
-  } else {
-    setTimeout(loadAll, 1200);
-  }
+
+  // Delay kickoff so critical page bootstrap, auth, and queries execute without contention
+  setTimeout(scheduleStaggeredLoad, 3000);
 }

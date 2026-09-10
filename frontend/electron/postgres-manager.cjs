@@ -38,13 +38,18 @@ class PostgresManager {
     try {
       const files = fs.readdirSync(this.postgresLogsDir);
       const now = Date.now();
-      const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+      // Retention: Minimum 90 days (3 months), or if file has been marked as uploaded/synced
+      const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
       for (const file of files) {
-        if (file.endsWith('.log')) {
+        const isLog = file.endsWith('.log') || file.endsWith('.log.gz');
+        const isSyncedOrUploaded = file.includes('.synced') || file.includes('.uploaded');
+        if (isLog || isSyncedOrUploaded) {
           const filePath = path.join(this.postgresLogsDir, file);
           const stats = fs.statSync(filePath);
-          if (now - stats.mtimeMs > SEVEN_DAYS) {
-            fs.unlinkSync(filePath);
+          if (isSyncedOrUploaded || (now - stats.mtimeMs > RETENTION_MS)) {
+            try {
+              fs.unlinkSync(filePath);
+            } catch {}
           }
         }
       }

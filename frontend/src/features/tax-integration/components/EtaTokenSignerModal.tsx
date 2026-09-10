@@ -18,6 +18,39 @@ interface CertificateInfo {
   isHardwareToken?: boolean;
 }
 
+function getCertValidity(validToString?: string) {
+  if (!validToString) return null;
+  const expiry = new Date(validToString);
+  if (isNaN(expiry.getTime())) return null;
+  const now = new Date();
+  const diffMs = expiry.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const formattedDate = expiry.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  if (diffDays <= 0) {
+    return {
+      status: 'expired' as const,
+      days: diffDays,
+      formattedDate,
+      message: `شهادة التوكن منتهية الصلاحية منذ ${Math.abs(diffDays)} يوم (${formattedDate}). يرجى تجديد الشهادة لدى مزود الخدمة (Egypt Trust / مصر للمقاصة).`,
+    };
+  }
+  if (diffDays <= 45) {
+    return {
+      status: 'warning' as const,
+      days: diffDays,
+      formattedDate,
+      message: `تنبيه: شهادة التوقيع الإلكتروني تنتهي خلال ${diffDays} يوم (بتاريخ ${formattedDate}). يرجى الاستعداد لتجديدها لتجنب توقف الفوترة.`,
+    };
+  }
+  return {
+    status: 'ok' as const,
+    days: diffDays,
+    formattedDate,
+    message: `الشهادة صالحة حتى: ${formattedDate} (متبقي ${diffDays} يوم)`,
+  };
+}
+
 export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSignerModalProps) {
   const [step, setStep] = useState<'prepare' | 'sign' | 'attach' | 'done'>('prepare');
   const [loading, setLoading] = useState(false);
@@ -29,6 +62,7 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
   // Local Signer Bridge state
   const [bridgeStatus, setBridgeStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
   const [detectedCert, setDetectedCert] = useState<CertificateInfo | null>(null);
+  const certValidity = detectedCert ? getCertValidity(detectedCert.validTo) : null;
 
   useEffect(() => {
     if (open) {
@@ -190,10 +224,19 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
           {step === 'prepare' && bridgeStatus === 'connected' && (
             <Button
               onClick={handleAutoSign}
-              disabled={loading}
-              style={{ background: '#170e5e', color: '#fff' }}
+              disabled={loading || certValidity?.status === 'expired'}
+              style={{
+                background: certValidity?.status === 'expired' ? '#94a3b8' : '#170e5e',
+                color: '#fff',
+                cursor: certValidity?.status === 'expired' ? 'not-allowed' : 'pointer',
+              }}
+              title={certValidity?.status === 'expired' ? 'شهادة التوكن منتهية الصلاحية لدى مصلحة الضرائب' : undefined}
             >
-              {loading ? 'جاري التوقيع والختم...' : 'توقيع بالتوكن تلقائياً وإرسال'}
+              {loading
+                ? 'جاري التوقيع والختم...'
+                : certValidity?.status === 'expired'
+                ? 'الشهادة منتهية الصلاحية'
+                : 'توقيع بالتوكن تلقائياً وإرسال'}
             </Button>
           )}
 
@@ -305,6 +348,43 @@ export function EtaTokenSignerModal({ open, onClose, saleId, docNo }: EtaTokenSi
             {bridgeStatus === 'checking' ? 'فحص...' : 'إعادة فحص'}
           </button>
         </div>
+
+        {certValidity && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 8,
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              marginBottom: 14,
+              border: certValidity.status === 'expired'
+                ? '1px solid #fca5a5'
+                : certValidity.status === 'warning'
+                ? '1px solid #fde68a'
+                : '1px solid #bbf7d0',
+              background: certValidity.status === 'expired'
+                ? '#fef2f2'
+                : certValidity.status === 'warning'
+                ? '#fffbeb'
+                : '#f0fdf4',
+              color: certValidity.status === 'expired'
+                ? '#b91c1c'
+                : certValidity.status === 'warning'
+                ? '#b45309'
+                : '#15803d',
+            }}
+          >
+            {certValidity.status === 'expired' || certValidity.status === 'warning' ? (
+              <AlertCircleIcon size={16} />
+            ) : (
+              <CheckCircleIcon size={16} />
+            )}
+            <span>{certValidity.message}</span>
+          </div>
+        )}
 
         {step === 'prepare' && bridgeStatus === 'connected' && (
           <div style={{ display: 'grid', gap: 14 }}>
