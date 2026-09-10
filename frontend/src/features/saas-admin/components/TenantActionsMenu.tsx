@@ -1,15 +1,13 @@
 import type { SaasTenantRow } from '@/features/saas-admin/api/saas-admin.api';
 
-export function isPlatformTenantRow(row: SaasTenantRow, platformTenantId: string, currentTenantId?: string): boolean {
+export function isPlatformTenantRow(row: SaasTenantRow, platformTenantId: string, _currentTenantId?: string): boolean {
   const rowId = String(row.id || '').trim();
   const rowSlug = String(row.slug || '').trim().toLowerCase();
+  const cleanPlatformId = String(platformTenantId || 'zs').trim();
   return (
-    rowId === 'default' ||
-    rowId === platformTenantId ||
-    (Boolean(currentTenantId) && rowId === currentTenantId) ||
-    rowSlug === 'default' ||
-    rowSlug === 'zsystems' ||
-    rowSlug === 'platform'
+    rowId === 'zs' ||
+    rowId === cleanPlatformId ||
+    rowSlug === 'zs'
   );
 }
 

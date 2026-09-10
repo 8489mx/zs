@@ -55,7 +55,7 @@ export class SaasAdminService {
   private assertNotPlatformTenantTarget(targetTenantId: string): void {
     const platformTenantId = this.getPlatformTenantId();
     const tid = String(targetTenantId || '').trim();
-    if (tid === platformTenantId || tid === 'zs' || tid === 'default' || tid === 'dev-tenant') {
+    if (tid === platformTenantId || tid === 'zs') {
       throw new ForbiddenException('لا يمكن تعديل حالة نسخة المنصة من هذه الصفحة.');
     }
   }
@@ -216,12 +216,10 @@ export class SaasAdminService {
       const owner = ownerByTenant.get(String(row.id || ''));
       const sub = subByTenant.get(String(row.id || ''));
       const isPlatform =
-        String(row.id || '') === 'default' ||
+        String(row.id || '') === 'zs' ||
         String(row.id || '') === this.getPlatformTenantId() ||
-        String(row.slug || '').toLowerCase() === 'default' ||
-        String(row.slug || '').toLowerCase() === 'zsystems' ||
-        String(row.slug || '').toLowerCase() === 'karimzakaria-demo';
-      const cleanSlug = row.slug === 'karimzakaria-demo' ? 'zsystems' : row.slug;
+        String(row.slug || '').toLowerCase() === 'zs';
+      const cleanSlug = row.slug;
       return {
         id: row.id,
         slug: cleanSlug,
@@ -296,13 +294,11 @@ export class SaasAdminService {
     }
 
     const isPlatform =
-      String(tenant.id || '') === 'default' ||
+      String(tenant.id || '') === 'zs' ||
       String(tenant.id || '') === this.getPlatformTenantId() ||
-      String(tenant.slug || '').toLowerCase() === 'default' ||
-      String(tenant.slug || '').toLowerCase() === 'zsystems' ||
-      String(tenant.slug || '').toLowerCase() === 'karimzakaria-demo';
+      String(tenant.slug || '').toLowerCase() === 'zs';
 
-    const cleanSlug = tenant.slug === 'karimzakaria-demo' ? 'zsystems' : tenant.slug;
+    const cleanSlug = tenant.slug;
 
     return {
       tenant: {
