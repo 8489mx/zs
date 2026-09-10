@@ -22,6 +22,7 @@ import { saasAdminRouteModule } from '@/features/saas-admin/routes';
 import { manufacturingRouteModule } from '@/features/manufacturing/routes';
 import { deliveryRepsRoutes } from '@/features/delivery-reps/routes';
 import { importSalesRouteModule } from '@/features/import-sales/routes';
+import { maritimeFreightRouteModule } from '@/features/maritime-freight/routes';
 import { maintenanceRouteModule } from '@/features/maintenance/routes';
 import { tradeInRouteModule } from '@/features/tradein/routes';
 import { pharmacyRouteModule } from '@/features/pharmacy/routes';
@@ -57,6 +58,7 @@ export const featureRouteModules: FeatureRouteModule[] = [
   manufacturingRouteModule,
   deliveryRepsRoutes,
   importSalesRouteModule,
+  maritimeFreightRouteModule,
 ];
 
 export const appRoutes = featureRouteModules.flatMap((module) => module.routes);

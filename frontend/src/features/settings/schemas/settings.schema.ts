@@ -51,6 +51,7 @@ export const settingsFormSchema = z.object({
   hrModuleEnabled: z.boolean().default(false),
   manufacturingModuleEnabled: z.boolean().default(false),
   importModuleEnabled: z.boolean().default(false),
+  maritimeFreightModuleEnabled: z.boolean().default(false),
   comboModuleEnabled: z.boolean().default(false),
   restaurantModuleEnabled: z.boolean().default(false),
   posShowCartMeta: z.boolean().default(false),

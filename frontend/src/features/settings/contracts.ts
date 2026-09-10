@@ -132,6 +132,9 @@ export function buildSettingsUpdatePayload(
     importModuleEnabled: values.importModuleEnabled !== undefined
       ? values.importModuleEnabled === true
       : current?.importModuleEnabled === true,
+    maritimeFreightModuleEnabled: values.maritimeFreightModuleEnabled !== undefined
+      ? values.maritimeFreightModuleEnabled === true
+      : current?.maritimeFreightModuleEnabled === true,
     comboModuleEnabled: values.comboModuleEnabled !== undefined
       ? values.comboModuleEnabled === true
       : current?.comboModuleEnabled === true,

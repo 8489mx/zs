@@ -182,6 +182,14 @@ export const SYSTEM_MODULES: ModuleDefinition[] = [
     requiredPlan: 'plan_ultimate',
   },
   {
+    key: 'maritimeFreightModuleEnabled',
+    title: 'الشحن البحري واللوجستيات والموانئ',
+    category: 'specialized',
+    categoryLabel: 'الخدمات والتخصصات التشغيلية',
+    shortDesc: 'أتمتة طلبات تسعير الخطوط الملاحية (RFQ)، مقارنة عروض الأسعار، إدارة الحاويات وفترة السماح، والتتبع المباشر.',
+    requiredPlan: 'plan_ultimate',
+  },
+  {
     key: 'hrModuleEnabled',
     title: 'الموارد البشرية والرواتب (HR)',
     category: 'specialized',

@@ -2092,3 +2092,86 @@
 ---
 *تم إعداد وتحديث هذا السجل ليكون المرجع الأول والأخير لأي مطور أو مساعد ذكاء اصطناعي عند تحليل أو تعديل كود المشروع.*
 
+---
+
+## 25. موديول الشحن البحري واللوجستيات (Maritime Freight & Logistics Module)
+* **حالة الوحدة العامة:** 🟢 مكتمل 100% (Production Ready)
+* **كود الفيتشر:** `maritime_freight`
+* **مفتاح الإعداد:** `maritimeFreightModuleEnabled`
+* **الباقات المدعومة:** `plan_ultimate`, `plan_omnichannel` (وكافة الأسماء البديلة)
+* **مسارات الكود — Backend:** `backend/src/modules/maritime-freight/`
+* **مسارات الكود — Frontend:** `frontend/src/features/maritime-freight/`
+* **الجداول في قاعدة البيانات (Migration 080):** `shipping_ports`, `shipping_lines`, `maritime_rfqs`, `maritime_rfq_bids`, `maritime_quotations`, `maritime_jobs`, `maritime_containers`, `maritime_job_milestones`
+* **المعيار المرجعي:** DCSA (Digital Container Shipping Association) — 9 مراحل تتبع موحدة
+* **بيانات أولية مدرجة:** 15 ميناء مصري ودولي (Alexandria, Port Said, Damietta, Singapore, Rotterdam, Jeddah, ...) + 10 خطوط شحن عالمية (MSC, Maersk, CMA CGM, ...)
+
+### الملفات المنشأة
+
+| النوع | الملف | الوصف |
+| :--- | :--- | :--- |
+| **Types** | `maritime-freight.types.ts` | تعريفات TypeScript، معايير DCSA، 9 مراحل تتبع |
+| **DTOs** | `dto/create-rfq.dto.ts` | بيانات إنشاء طلب التسعير |
+| **DTOs** | `dto/submit-bid.dto.ts` | بيانات تقديم عرض شركة الشحن |
+| **DTOs** | `dto/create-quotation.dto.ts` | بيانات إنشاء عرض سعر العميل |
+| **DTOs** | `dto/create-job.dto.ts` | بيانات تحويل العرض لأمر تشغيل |
+| **DTOs** | `dto/update-container.dto.ts` | بيانات تحديث حالة الحاوية |
+| **Service** | `maritime-freight.service.ts` | كامل منطق RFQs، توليد الأكواد `[RFQ-YYYY-XXXX]`، إرسال بريد بروابط سحرية، مقارنة الأسعار، تطبيق الهامش، إنشاء مركز تكلفة، إدارة الحاويات، حساب الديمراج |
+| **Controller** | `maritime-freight.controller.ts` | Endpoints محمية بـ `SessionAuthGuard` |
+| **Controller** | `maritime-public-tracking.controller.ts` | Endpoint عام لتتبع الشحنات بدون مصادقة |
+| **Module** | `maritime-freight.module.ts` | مسجل في `app.module.ts` |
+| **API** | `api/maritime-freight.api.ts` | خدمة API Frontend |
+| **Component** | `CreateRfqModal.tsx` | نافذة إنشاء طلب تسعير جديد |
+| **Component** | `ApplyMarginModal.tsx` | نافذة تطبيق الهامش على أسعار الشحن |
+| **Component** | `CarrierBidEntryModal.tsx` | نافذة إدخال عرض شركة الشحن يدوياً |
+| **Component** | `JobDetailsModal.tsx` | نافذة تفاصيل أمر التشغيل والمراحل |
+| **Component** | `ContainerReturnModal.tsx` | نافذة تسجيل إعادة الحاوية الفارغة |
+| **Tab** | `MaritimeRfqTab.tsx` | تبويب طلبات التسعير (Carrier RFQs) |
+| **Tab** | `MaritimeMatrixTab.tsx` | تبويب مصفوفة مقارنة الأسعار |
+| **Tab** | `MaritimeQuotationsTab.tsx` | تبويب عروض أسعار العملاء |
+| **Tab** | `MaritimeJobsTab.tsx` | تبويب أوامر الشحن والتشغيل |
+| **Tab** | `MaritimeContainersTab.tsx` | تبويب الحاويات وتتبع الإعادة |
+| **Tab** | `MaritimeMasterDataTab.tsx` | تبويب دليل الشركاء والموانئ |
+| **Page** | `MaritimeWorkspacePage.tsx` | الصفحة الرئيسية للموديول (URL-driven tabs بـ `?tab=`) |
+| **Page** | `PublicShipmentTrackingPage.tsx` | صفحة تتبع الشحنة العامة (بدون تسجيل دخول) |
+| **Icons** | `AppIcons.tsx` | أُضيفت `ShipIcon` و `ContainerIcon` |
+
+### التوصيل في النظام (Wiring)
+
+| الملف | ما تم |
+| :--- | :--- |
+| `routes.tsx` | تصدير `maritimeFreightRouteModule` بنمط `FeatureRouteModule` + `FeatureGate` + 6 عناصر تنقل بـ `?tab=` |
+| `registry.ts` | تسجيل `maritimeFreightRouteModule` |
+| `root-router.tsx` | مسار عام `/public/track/:token` لتتبع الشحنات |
+| `access.ts` | إضافة `maritime` + 6 مسارات فرعية في `routePermissionMap` + `routeFeatureMap` |
+| `app-shell.tsx` | أيقونة `ship` + 6 أيقونات فرعية في `iconPathMap`، مجموعة السايدبار `maritime-group`، منطق gating في `visibleNavigationItems` |
+| `settings.schema.ts` | `maritimeFreightModuleEnabled: z.boolean().default(false)` |
+| `contracts.ts` | ربط `maritimeFreightModuleEnabled` |
+| `modular-presets.ts` | تسجيل في `SYSTEM_MODULES` |
+| `session.service.ts` | إضافة `maritime_freight` في `FALLBACK_PLAN_FEATURES` |
+| `saas-admin.service.ts` | إضافة في كافة مصفوفات الباقات + `FEATURE_TO_MODULE_MAP` |
+| `DeveloperActivationPanel.tsx` | إضافة في `AVAILABLE_FEATURES` + كافة مصفوفات `STANDARD_TIER_FEATURES` |
+| `ModulesSettingsTab.tsx` | `hasMaritimeFreightFeature` hook + `isMaritimeFreightActive` + بطاقة toggle في الإعدادات |
+| **Migration 080** | تسجيل الفيتشر في جدول `features` + ربطه بـ `plan_ultimate` و `plan_omnichannel` في `plan_features` |
+
+| الميزة التفصيلية | الحالة | نسبة الإنجاز | الملفات الأساسية |
+| :--- | :---: | :---: | :--- |
+| **طلبات التسعير من شركات الشحن (Carrier RFQs)** | 🟢 | 100% | `CreateRfqModal.tsx`, `MaritimeRfqTab.tsx`, `maritime-freight.service.ts` |
+| **توليد أكواد RFQ تلقائياً** | 🟢 | 100% | `maritime-freight.service.ts` — نمط `[RFQ-2026-0001]` |
+| **إرسال بريد إلكتروني بروابط سحرية لشركات الشحن** | 🟢 | 100% | `maritime-freight.service.ts` — Magic Links للـ Carriers |
+| **إدخال عروض شركات الشحن (Bid Entry)** | 🟢 | 100% | `CarrierBidEntryModal.tsx`, `submit-bid.dto.ts` |
+| **مصفوفة مقارنة الأسعار التلقائية** | 🟢 | 100% | `MaritimeMatrixTab.tsx` — مقارنة متعددة الأبعاد |
+| **تطبيق الهامش وإصدار عرض سعر العميل** | 🟢 | 100% | `ApplyMarginModal.tsx`, `MaritimeQuotationsTab.tsx` |
+| **تحويل عرض السعر لأمر تشغيل (Job Conversion)** | 🟢 | 100% | `MaritimeJobsTab.tsx`, `create-job.dto.ts` |
+| **تتبع 9 مراحل شحن وفق معيار DCSA** | 🟢 | 100% | `JobDetailsModal.tsx`, `MaritimeJobsTab.tsx`, `maritime-freight.types.ts` |
+| **إدارة الحاويات وتتبع مواعيد الإعادة** | 🟢 | 100% | `MaritimeContainersTab.tsx`, `ContainerReturnModal.tsx` |
+| **حساب الديمراج التلقائي** | 🟢 | 100% | `maritime-freight.service.ts` |
+| **إنشاء مركز تكلفة تلقائي لكل أمر شحن** | 🟢 | 100% | `maritime-freight.service.ts` — `dimension = 'project'` |
+| **دليل الموانئ والخطوط البحرية** | 🟢 | 100% | `MaritimeMasterDataTab.tsx` + بذر 15 ميناء + 10 خطوط |
+| **صفحة تتبع عام للشحنة (Public Tracking)** | 🟢 | 100% | `PublicShipmentTrackingPage.tsx`, `maritime-public-tracking.controller.ts` |
+| **عزل المستأجرين (Multi-Tenant Isolation)** | 🟢 | 100% | جميع استعلامات DB بـ `tenant_id` |
+| **Feature Gating في السايدبار** | 🟢 | 100% | `app-shell.tsx` — `maritime-group` محمي بـ `maritimeFreightModuleEnabled` + `maritime_freight` feature |
+| **بطاقة تفعيل/تعطيل في الإعدادات** | 🟢 | 100% | `ModulesSettingsTab.tsx` |
+| **دعم كامل في لوحة المطور** | 🟢 | 100% | `DeveloperActivationPanel.tsx` |
+
+
+

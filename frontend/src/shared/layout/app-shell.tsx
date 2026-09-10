@@ -149,6 +149,13 @@ const iconPathMap: Record<string, string> = {
   'accounting-financial-summary': 'M18 20V10M12 20V4M6 20v-6M3 20h18',
   'accounting-receivables-payables': 'M6 3h12v18H6V3zM9 8h6M9 12h6M9 16h2M14 16h1',
   'accounting-inventory-value': 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8',
+  ship: 'M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6M12 2v8M12 4h4',
+  'maritime-rfqs': 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
+  'maritime-matrix': 'M3 3h18v18H3V3zm3 14h12M6 7h4v6H6V7zm8 4h4v2h-4v-2z',
+  'maritime-quotations': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6M9 16h4',
+  'maritime-jobs': 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 12h6M9 16h6',
+  'maritime-containers': 'M2 5h20v14H2V5zM6 5v14M10 5v14M14 5v14M18 5v14M2 12h20',
+  'maritime-lines': 'M1 3h15v13H1V3zm15 5h4l3 3v5h-7V8zM5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm13 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
 };
 
 function AppNavIcon({ itemKey }: { itemKey: string }) {
@@ -545,6 +552,9 @@ export function AppShell({ children }: PropsWithChildren) {
         // Accounting tree & journal gating:
         if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && item.key !== 'accounting-fixed-assets' && (settings?.enableEnterpriseFeatures !== true || !hasFeature('accounting'))) return false;
 
+        // Maritime Freight gating:
+        if (item.key?.startsWith('maritime-') && (settings?.maritimeFreightModuleEnabled !== true || !hasFeature('maritime_freight'))) return false;
+
         return true;
       })
       .map((item) => ({ ...item, label: labelOverrides[item.key] || item.label }))
@@ -553,7 +563,7 @@ export function AppShell({ children }: PropsWithChildren) {
         const bIndex = preferredOrder.indexOf(b.key);
         return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
       });
-  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled]);
+  }, [user, tenant?.features, t, isEtaActive, settings?.posModuleEnabled, settings?.importModuleEnabled, settings?.enableMobileStoreFeatures, settings?.maintenanceProfile, settings?.enablePharmacyModule, settings?.manufacturingModuleEnabled, settings?.servicesModuleEnabled, settings?.storefrontModuleEnabled, settings?.installmentsModuleEnabled, settings?.fixedAssetsModuleEnabled, settings?.taxDeclarationModuleEnabled, settings?.deliveryFleetModuleEnabled, settings?.purchasesModuleEnabled, settings?.inventoryModuleEnabled, settings?.hrModuleEnabled, settings?.enableEnterpriseFeatures, settings?.restaurantModuleEnabled, settings?.maritimeFreightModuleEnabled]);
 
   const navigationMap = useMemo(() => new Map(visibleNavigationItems.map((item) => [item.key, item])), [visibleNavigationItems]);
   const primaryNavigationKeys = useMemo(() => {
@@ -573,6 +583,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const maintenanceProfile = getMaintenanceProfile(settings?.maintenanceProfile);
     const hasAccounting = isPlatformAdminUser || Boolean(tenant?.features?.includes('accounting'));
     const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));
+    const hasMaritimeFreight = isPlatformAdminUser || Boolean(tenant?.features?.includes('maritime_freight'));
     return [
       { key: 'sales-group', label: t('sidebar.sales-group', 'المبيعات'), itemKeys: ['crm', 'sales-orders', 'price-lists', 'quotations', 'sales', 'returns', 'installments', 'customers', 'delivery-reps', 'tax-dispatcher'], iconKey: 'sales' },
       { key: 'purchases-group', label: t('sidebar.purchases-group', 'المشتريات والموردين'), itemKeys: ['purchases-orders', 'purchases-rfqs', 'purchases-reorder', 'purchases', 'purchase-returns', 'suppliers'], iconKey: 'purchases' },
@@ -588,6 +599,12 @@ export function AppShell({ children }: PropsWithChildren) {
       { key: 'pharmacy-group', label: 'قسم الصيدلية والأدوية', itemKeys: ['pharmacy-dashboard', 'pharmacy-drugs', 'pharmacy-prescriptions', 'pharmacy-shortages', 'pharmacy-batches', 'pharmacy-clinical'], iconKey: 'pharmacy' },
       { key: 'import-group', label: 'الاستيراد والشراكة', itemKeys: ['import-shipments', 'import-supplier-credit', 'import-profit-pool'], iconKey: 'import' },
       { key: 'manufacturing-group', label: t('sidebar.manufacturing-group', 'التصنيع والإنتاج'), itemKeys: ['manufacturing-components', 'manufacturing-work-orders', 'manufacturing-boms', 'manufacturing-settings'], iconKey: 'manufacturing' },
+      ...(settings?.maritimeFreightModuleEnabled && hasMaritimeFreight ? [{
+        key: 'maritime-group',
+        label: 'الشحن البحري واللوجستيات',
+        itemKeys: ['maritime-rfqs', 'maritime-matrix', 'maritime-quotations', 'maritime-jobs', 'maritime-containers', 'maritime-lines'],
+        iconKey: 'ship',
+      }] : []),
       { key: 'reports-group', label: t('sidebar.reports-group', 'التقارير والتحليلات'), itemKeys: ['reports-overview', 'reports-sales', 'reports-purchases', 'reports-inventory', 'reports-treasury', 'reports-balances', 'reports-employees'], iconKey: 'reports' },
       ...(isPlatformAdminUser ? [{
         key: 'saas-group',
@@ -597,15 +614,16 @@ export function AppShell({ children }: PropsWithChildren) {
       }] : []),
       { key: 'admin-group', label: t('sidebar.admin-group', 'الإدارة والنظام'), itemKeys: ['hr', 'hr-settlements', 'audit', 'settings'], iconKey: 'admin' },
     ];
-  }, [t, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableEnterpriseFeatures, tenant?.features, user]);
+  }, [t, settings?.maintenanceProfile, settings?.restaurantModuleEnabled, settings?.enableEnterpriseFeatures, settings?.maritimeFreightModuleEnabled, tenant?.features, user]);
 
   const visiblePrimaryNavigationItems = useMemo(() => primaryNavigationKeys.map((key) => navigationMap.get(key)).filter((item): item is NonNullable<typeof item> => Boolean(item)), [navigationMap, primaryNavigationKeys]);
   const activeSidebarGroupKey = useMemo(() => sidebarGroups.find((group) => group.itemKeys.some((itemKey) => {
     const navItem = navigationMap.get(itemKey);
     if (!navItem) return false;
     if (navItem.activePaths?.includes(location.pathname)) return true;
-    if (navItem.end) return location.pathname === navItem.to;
-    return location.pathname === navItem.to || location.pathname.startsWith(`${navItem.to}/`);
+    const navBasePath = navItem.to.split('?')[0];
+    if (navItem.end) return location.pathname === navBasePath;
+    return location.pathname === navBasePath || location.pathname.startsWith(`${navBasePath}/`);
   }))?.key ?? null, [location.pathname, navigationMap, sidebarGroups]);
 
   const normalizedSidebarQuery = useMemo(() => normalizeArabicSearchKey(sidebarSearchQuery), [sidebarSearchQuery]);
@@ -821,6 +839,12 @@ export function AppShell({ children }: PropsWithChildren) {
     const isHrParentConflict = item.key === 'hr' && location.pathname.startsWith('/hr/settlements');
     const computeActive = (isActive: boolean) => {
       if (isHrParentConflict) return false;
+      if (item.to.includes('?')) {
+        const itemBasePath = item.to.split('?')[0];
+        if (location.pathname !== itemBasePath) return false;
+        const currentFull = location.search ? `${location.pathname}${location.search}` : `${location.pathname}?tab=rfqs`;
+        return currentFull === item.to;
+      }
       return item.activePaths?.includes(location.pathname) || isActive;
     };
 

@@ -325,6 +325,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const hasInventoryFeature = useHasFeature('inventory') || isSuperAdmin;
   const hasHrFeature = useHasFeature('hr') || isSuperAdmin;
   const hasClothingFeature = useHasFeature('clothing') || isSuperAdmin;
+  const hasMaritimeFreightFeature = useHasFeature('maritime_freight') || isSuperAdmin;
   const hasServicesFeature = hasPurchasesFeature || hasInventoryFeature;
   const hasPosMetaFeature = hasRestaurantFeature;
 
@@ -351,6 +352,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
   const isFixedAssetsActive = hasFixedAssetsFeature && Boolean(form.watch('fixedAssetsModuleEnabled'));
   const isTaxDeclarationActive = hasTaxDeclarationFeature && Boolean(form.watch('taxDeclarationModuleEnabled'));
   const isDeliveryFleetActive = hasDeliveryFleetFeature && Boolean(form.watch('deliveryFleetModuleEnabled'));
+  const isMaritimeFreightActive = hasMaritimeFreightFeature && Boolean(form.watch('maritimeFreightModuleEnabled'));
 
   const currentProfileKey = form.watch('maintenanceProfile') || 'mobile';
   const currentProfile = getMaintenanceProfile(currentProfileKey);
@@ -392,6 +394,7 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
       fixedAssetsModuleEnabled: hasFixedAssetsFeature,
       taxDeclarationModuleEnabled: hasTaxDeclarationFeature,
       deliveryFleetModuleEnabled: hasDeliveryFleetFeature,
+      maritimeFreightModuleEnabled: hasMaritimeFreightFeature,
     };
 
     for (const [key, value] of Object.entries(config.selectedModules)) {
@@ -712,6 +715,39 @@ export function ModulesSettingsTab({ form, disabled, activeTab }: ModulesTabProp
               </div>
             </div>
             <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('importModuleEnabled')} checked={Boolean(isImportActive)} disabled={disabled || !hasImportFeature} />
+          </label>
+
+          {/* موديول الشحن البحري واللوجستيات */}
+          <label 
+            style={getCardStyle(Boolean(isMaritimeFreightActive), hasMaritimeFreightFeature)}
+            onClick={(e) => {
+              if (!hasMaritimeFreightFeature) {
+                e.preventDefault();
+                handleLockedCardClick(
+                  'موديول الشحن البحري واللوجستيات',
+                  'الباقة المتكاملة (Ultimate ERP)',
+                  'يتيح لك هذا الموديول إدارة طلبات التسعير البحري، مقارنة عروض شركات الشحن، إصدار عروض أسعار العملاء، أوامر الشحن، وتتبع الحاويات.'
+                );
+              }
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={getIconBadgeStyle(Boolean(isMaritimeFreightActive))}>
+                <CargoShipIcon size={20} />
+              </div>
+              <div style={premiumCardTextStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>موديول الشحن البحري واللوجستيات</strong>
+                  {!hasMaritimeFreightFeature && (
+                    <span style={{ fontSize: '0.7rem', background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                      <LockIcon size={11} /> الباقة المتكاملة
+                    </span>
+                  )}
+                </div>
+                <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>يفعّل إدارة طلبات التسعير البحري، عروض الأسعار، أوامر الشحن، وتتبع الحاويات</small>
+              </div>
+            </div>
+            <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('maritimeFreightModuleEnabled')} checked={Boolean(isMaritimeFreightActive)} disabled={disabled || !hasMaritimeFreightFeature} />
           </label>
 
           {/* موديول المطاعم والكافيهات */}

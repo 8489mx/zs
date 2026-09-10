@@ -135,6 +135,10 @@ const router = createRouter([
     element: createLazyRoute(() => import('@/features/public-trial/pages/TrialSignupPage').then((module) => ({ default: module.TrialSignupPage }))),
   },
   {
+    path: '/public/track/:token',
+    element: createLazyRoute(() => import('@/features/maritime-freight/pages/PublicShipmentTrackingPage').then((module) => ({ default: module.PublicShipmentTrackingPage }))),
+  },
+  {
     path: '/st/:slug',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },

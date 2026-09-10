@@ -190,6 +190,14 @@ export const routePermissionMap: Record<string, RoutePermissionRequirement> = {
   'inventory-issue-orders': 'inventory',
   'inventory-warehouses': 'inventory',
   'product-categories': 'products',
+  maritime: null,
+  '/maritime': null,
+  'maritime-rfqs': null,
+  'maritime-matrix': null,
+  'maritime-quotations': null,
+  'maritime-jobs': null,
+  'maritime-containers': null,
+  'maritime-lines': null,
   qz: null,
   '/qz': null,
 };
@@ -418,6 +426,16 @@ export const routeFeatureMap: Record<string, string | null> = {
   '/products/modifiers': 'restaurant',
   clothing: 'clothing',
   '/clothing': 'clothing',
+
+  // Maritime Freight
+  maritime: 'maritime_freight',
+  '/maritime': 'maritime_freight',
+  'maritime-rfqs': 'maritime_freight',
+  'maritime-matrix': 'maritime_freight',
+  'maritime-quotations': 'maritime_freight',
+  'maritime-jobs': 'maritime_freight',
+  'maritime-containers': 'maritime_freight',
+  'maritime-lines': 'maritime_freight',
 };
 
 function normalizeAccessKey(value: string) {

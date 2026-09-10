@@ -47,6 +47,7 @@ import { BostaModule } from './modules/bosta/bosta.module';
 import { GccShippingModule } from './modules/gcc-shipping/gcc-shipping.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
+import { MaritimeFreightModule } from './modules/maritime-freight/maritime-freight.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { ApprovalsModule } from './modules/approvals/approvals.module';
     BostaModule,
     GccShippingModule,
     CrmModule,
+    MaritimeFreightModule,
   ],
 
   providers: [InMemoryRateLimitService, LoginRateLimitMiddleware, AuthBurstRateLimitMiddleware],

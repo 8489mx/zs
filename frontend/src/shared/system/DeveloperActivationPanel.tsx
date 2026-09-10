@@ -35,6 +35,7 @@ const AVAILABLE_FEATURES = [
   { id: 'manufacturing', name: 'التصنيع وقوائم المواد وأوامر الإنتاج', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
   { id: 'import', name: 'الاستيراد والشراكة والحاويات', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
   { id: 'pharmacy', name: 'الصيدليات والأدوية والبدائل والنواقص', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
+  { id: 'maritime_freight', name: 'الشحن البحري واللوجستيات والموانئ', planName: 'المتكاملة', planBadgeBg: '#f5f3ff', planBadgeColor: '#6d28d9' },
 
   // 4. باقة التجارة الشاملة (Omnichannel Enterprise)
   { id: 'storefront', name: 'المتجر الإلكتروني وطلبات الأونلاين', planName: 'التجارة الشاملة', planBadgeBg: '#fef3c7', planBadgeColor: '#b45309' },
@@ -56,28 +57,28 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy',
+    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
   ],
   ultimate: [
     'sales', 'catalog', 'sessions', 'cashDrawer',
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy',
+    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
   ],
   ULTIMATE: [
     'sales', 'catalog', 'sessions', 'cashDrawer',
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy',
+    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
   ],
   '3': [
     'sales', 'catalog', 'sessions', 'cashDrawer',
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy',
+    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
   ],
 
   plan_omnichannel: [
@@ -85,7 +86,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy',
+    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
     'storefront',
   ],
   omnichannel: [
@@ -93,7 +94,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy',
+    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
     'storefront',
   ],
   OMNICHANNEL: [
@@ -101,7 +102,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy',
+    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
     'storefront',
   ],
   '4': [
@@ -109,7 +110,7 @@ export const STANDARD_TIER_FEATURES: Record<string, string[]> = {
     'purchases', 'inventory', 'reports',
     'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
     'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-    'manufacturing', 'import', 'pharmacy',
+    'manufacturing', 'import', 'pharmacy', 'maritime_freight',
     'storefront',
   ],
 };

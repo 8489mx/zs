@@ -199,6 +199,7 @@ export interface AppSettings {
   onboardingCompleted?: boolean;
   manufacturingModuleEnabled?: boolean;
   importModuleEnabled?: boolean;
+  maritimeFreightModuleEnabled?: boolean;
   comboModuleEnabled?: boolean;
   restaurantModuleEnabled?: boolean;
   posShowCartMeta?: boolean;

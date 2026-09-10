@@ -3064,6 +3064,203 @@ export interface ZatcaEgsUnitTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface ShippingPortTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  country_code: string;
+  country_name: string;
+  is_active: boolean;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ShippingLineTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name_ar: string;
+  name_en: string;
+  contact_person: string | null;
+  email: string | null;
+  rfq_email: string | null;
+  phone: string | null;
+  tracking_url_template: string | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeRfqTable {
+  id: Generated<string>;
+  tenant_id: string;
+  rfq_number: string;
+  direction: 'import' | 'export' | 'cross_trade';
+  pol_id: string | null;
+  pol_code: string;
+  pol_name: string;
+  pod_id: string | null;
+  pod_code: string;
+  pod_name: string;
+  incoterm: string;
+  cargo_mode: string;
+  container_type: string;
+  container_count: number;
+  commodity_description: string;
+  cargo_nature: string;
+  cargo_ready_date: string | null;
+  target_free_days: number;
+  payment_term: 'prepaid' | 'collect';
+  target_line_ids: any;
+  status: 'draft' | 'sent' | 'bids_received' | 'awarded' | 'cancelled';
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeRfqBidTable {
+  id: Generated<string>;
+  tenant_id: string;
+  rfq_id: string;
+  shipping_line_id: string | null;
+  shipping_line_name: string;
+  ocean_freight: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: string;
+  thc_origin: ColumnType<number, number | string | undefined, number | string | undefined>;
+  thc_destination: ColumnType<number, number | string | undefined, number | string | undefined>;
+  baf_charges: ColumnType<number, number | string | undefined, number | string | undefined>;
+  other_charges: ColumnType<number, number | string | undefined, number | string | undefined>;
+  total_freight_cost: ColumnType<number, number | string | undefined, number | string | undefined>;
+  transit_time_days: number;
+  free_days: number;
+  validity_date: string | null;
+  submission_channel: 'email_auto' | 'carrier_portal' | 'manual';
+  raw_bid_data: any;
+  is_awarded: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  awarded_at: Date | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeQuotationTable {
+  id: Generated<string>;
+  tenant_id: string;
+  quotation_number: string;
+  rfq_id: string | null;
+  bid_id: string | null;
+  customer_id: number | null;
+  customer_name: string;
+  customer_phone: string | null;
+  customer_email: string | null;
+  payment_term: 'prepaid' | 'collect';
+  base_cost: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: string;
+  margin_type: 'fixed' | 'percentage';
+  margin_value: ColumnType<number, number | string | undefined, number | string | undefined>;
+  final_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  exchange_rate: ColumnType<number, number | string | undefined, number | string | undefined>;
+  final_total_local: ColumnType<number, number | string | undefined, number | string | undefined>;
+  valid_until: string | null;
+  status: 'draft' | 'sent' | 'approved' | 'rejected' | 'converted_to_job';
+  converted_job_id: string | null;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeJobTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_number: string;
+  quotation_id: string | null;
+  rfq_id: string | null;
+  customer_id: number | null;
+  customer_name: string;
+  direction: 'import' | 'export' | 'cross_trade';
+  payment_term: 'prepaid' | 'collect';
+  shipping_line_id: string | null;
+  shipping_line_name: string;
+  booking_number: string | null;
+  vessel_name: string | null;
+  voyage_number: string | null;
+  pol_code: string;
+  pol_name: string;
+  pod_code: string;
+  pod_name: string;
+  etd: string | null;
+  eta: string | null;
+  port_cut_off: Date | null;
+  bl_type: 'original' | 'telex_release' | 'sea_waybill';
+  mbl_number: string | null;
+  hbl_number: string | null;
+  shipper_details: string | null;
+  consignee_details: string | null;
+  notify_party: string | null;
+  milestone_status: ColumnType<string, string | undefined, string | undefined>;
+  delivery_order_released: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  delivery_order_released_at: Date | null;
+  cost_center_id: string | null;
+  client_invoiced_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  carrier_cost_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  other_costs_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  net_profit: ColumnType<number, number | string | undefined, number | string | undefined>;
+  tracking_token: string | null;
+  status: ColumnType<'active' | 'completed' | 'cancelled', 'active' | 'completed' | 'cancelled' | undefined, 'active' | 'completed' | 'cancelled' | undefined>;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeContainerTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_id: string;
+  container_number: string;
+  container_type: string;
+  seal_number: string | null;
+  gross_weight_kg: ColumnType<number, number | string | undefined, number | string | undefined>;
+  cbm: ColumnType<number, number | string | undefined, number | string | undefined>;
+  gated_in_at: Date | null;
+  vessel_loaded_at: Date | null;
+  discharged_at: Date | null;
+  gated_out_at: Date | null;
+  empty_returned_at: Date | null;
+  free_days: number;
+  return_deadline: string | null;
+  is_overdue: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  overdue_days: ColumnType<number, number | undefined, number | undefined>;
+  demurrage_rate_per_day: ColumnType<number, number | string | undefined, number | string | undefined>;
+  demurrage_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  deposit_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  deposit_currency: string;
+  deposit_status: 'not_required' | 'held_by_line' | 'pending_return_proof' | 'refunded_to_treasury';
+  deposit_treasury_id: number | null;
+  empty_return_proof_url: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface MaritimeJobMilestoneTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_id: string;
+  milestone_key: string;
+  milestone_title: string;
+  occurred_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  location: string | null;
+  notes: string | null;
+  recorded_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
 export interface Database {
   tamper_audit_logs: TamperAuditLogTable;
   approval_rules: ApprovalRuleTable;
@@ -3074,6 +3271,14 @@ export interface Database {
   forex_revaluation_runs: ForexRevaluationRunTable;
   forex_revaluation_lines: ForexRevaluationLineTable;
   zatca_egs_units: ZatcaEgsUnitTable;
+  shipping_ports: ShippingPortTable;
+  shipping_lines: ShippingLineTable;
+  maritime_rfqs: MaritimeRfqTable;
+  maritime_rfq_bids: MaritimeRfqBidTable;
+  maritime_quotations: MaritimeQuotationTable;
+  maritime_jobs: MaritimeJobTable;
+  maritime_containers: MaritimeContainerTable;
+  maritime_job_milestones: MaritimeJobMilestoneTable;
 }
 
 

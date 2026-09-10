@@ -824,12 +824,39 @@ export function HomeIcon({ size = 18, color = 'currentColor', strokeWidth = 2, c
   );
 }
 
+export function ShipIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+      <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76" />
+      <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" />
+      <line x1="12" y1="2" x2="12" y2="10" />
+      <path d="M12 4h4" />
+    </svg>
+  );
+}
+
+export function ContainerIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="6" y1="5" x2="6" y2="19" />
+      <line x1="10" y1="5" x2="10" y2="19" />
+      <line x1="14" y1="5" x2="14" y2="19" />
+      <line x1="18" y1="5" x2="18" y2="19" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
+
 export const AppIcons = {
   Plus: PlusIcon,
   Trash: TrashIcon,
   Box: PackageIcon,
   Barcode: BarcodeIcon,
   Refresh: RefreshCwIcon,
+  RefreshCw: RefreshCwIcon,
+  Receipt: ReceiptIcon,
   FileText: FileTextIcon,
   Eye: EyeIcon,
   Layers: LayersIcon,
@@ -856,6 +883,8 @@ export const AppIcons = {
   ArrowLeft: ArrowLeftIcon,
   Home: HomeIcon,
   ShieldCheck: ShieldCheckIcon,
+  Ship: ShipIcon,
+  Container: ContainerIcon,
 };
 
 export default AppIcons;

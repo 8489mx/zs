@@ -51,6 +51,7 @@ const baseSettingsMutationValues = {
   currentLocationId: '',
   manufacturingModuleEnabled: false,
   importModuleEnabled: false,
+  maritimeFreightModuleEnabled: false,
   comboModuleEnabled: false,
   restaurantModuleEnabled: false,
   posModuleEnabled: true,

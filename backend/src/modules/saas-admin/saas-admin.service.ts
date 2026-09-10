@@ -1000,28 +1000,28 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
         ],
         ultimate: [
           'sales', 'catalog', 'sessions', 'cashDrawer',
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
         ],
         ULTIMATE: [
           'sales', 'catalog', 'sessions', 'cashDrawer',
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
         ],
         '3': [
           'sales', 'catalog', 'sessions', 'cashDrawer',
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
         ],
 
         plan_omnichannel: [
@@ -1029,7 +1029,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
           'storefront',
         ],
         omnichannel: [
@@ -1037,7 +1037,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
           'storefront',
         ],
         OMNICHANNEL: [
@@ -1045,7 +1045,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
           'storefront',
         ],
         '4': [
@@ -1053,7 +1053,7 @@ export class SaasAdminService {
           'purchases', 'inventory', 'reports',
           'hr', 'deliveryReps', 'loyalty', 'maintenance', 'clothing', 'restaurant',
           'accounting', 'fixed_assets', 'installments', 'taxIntegration', 'vat_declaration',
-          'manufacturing', 'import', 'pharmacy',
+          'manufacturing', 'import', 'pharmacy', 'maritime_freight',
           'storefront',
         ],
       };
@@ -1096,6 +1096,7 @@ export class SaasAdminService {
         vat_declaration: ['taxDeclarationModuleEnabled'],
         manufacturing: ['manufacturingModuleEnabled'],
         import: ['importModuleEnabled'],
+        maritime_freight: ['maritimeFreightModuleEnabled'],
         pharmacy: ['enablePharmacyModule'],
         storefront: ['storefrontModuleEnabled'],
       };
