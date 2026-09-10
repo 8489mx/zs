@@ -27,6 +27,7 @@ export function PurchasesWorkspace() {
           badge={<span className="nav-pill">{controller.totalItems} فاتورة</span>}
           actions={
             <div className="actions compact-actions">
+              <Link to="/purchases/rfqs"><Button variant="secondary">عروض أسعار الموردين (RFQ)</Button></Link>
               <Link to="/purchases/reorder"><Button variant="primary" style={{ backgroundColor: '#170e5e', borderColor: '#170e5e' }}>مقترح إعادة الطلب الذكي</Button></Link>
               <Link to="/purchases/new"><Button variant="secondary">+ فاتورة جديدة</Button></Link>
               <Button variant="secondary" onClick={controller.resetPurchasesView}>إعادة ضبط</Button>

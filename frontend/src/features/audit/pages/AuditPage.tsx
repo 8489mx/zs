@@ -23,8 +23,9 @@ import {
 } from '@/features/audit/lib/audit-activity-presenter';
 import { userDirectoryApi } from '@/shared/api/user-directory';
 import type { AuditLog } from '@/types/domain';
-import { FileTextIcon, ShieldAlertIcon } from '@/shared/components/icons/AppIcons';
+import { FileTextIcon, ShieldAlertIcon, ShieldCheckIcon } from '@/shared/components/icons/AppIcons';
 import { CashierFraudRadarSection } from '../components/CashierFraudRadarSection';
+import { TamperAuditTrailTab } from '../components/TamperAuditTrailTab';
 
 const auditFilterOptions = [
   { value: 'all', label: 'كافة السجلات' },
@@ -47,7 +48,7 @@ const auditTypeFilterOptions: Array<{ value: 'all' | Exclude<AuditActivityType, 
 ];
 
 export function AuditPage() {
-  const [activeTab, setActiveTab] = useState<'trail' | 'fraudRadar'>('trail');
+  const [activeTab, setActiveTab] = useState<'trail' | 'fraudRadar' | 'tamperTrail'>('trail');
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'today' | 'withDetails'>('all');
@@ -202,10 +203,47 @@ export function AuditPage() {
               Radar Live
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('tamperTrail')}
+            style={{
+              border: 'none',
+              padding: '8px 18px',
+              borderRadius: '8px',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              background: activeTab === 'tamperTrail' ? '#170e5e' : '#f1f5f9',
+              color: activeTab === 'tamperTrail' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: activeTab === 'tamperTrail' ? '0 1px 3px rgba(23, 14, 94, 0.2)' : 'none',
+              transition: 'background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease',
+            }}
+          >
+            <ShieldCheckIcon size={16} />
+            <span>سجل التدقيق الجنائي المشفّر (DB Triggers & Hash Chain)</span>
+            <span
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                background: activeTab === 'tamperTrail' ? '#16a34a' : '#dcfce7',
+                color: activeTab === 'tamperTrail' ? '#ffffff' : '#15803d',
+                fontWeight: 700,
+              }}
+            >
+              Zero Tamper
+            </span>
+          </button>
         </div>
 
         {activeTab === 'fraudRadar' ? (
           <CashierFraudRadarSection />
+        ) : activeTab === 'tamperTrail' ? (
+          <TamperAuditTrailTab />
         ) : (
           <section className="document-prototype-section">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>

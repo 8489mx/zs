@@ -79,6 +79,14 @@ export const accountingRouteModule: FeatureRouteModule = {
       path: 'accounting/payment-allocation',
       element: createLazyRoute(() => import('@/features/accounting/pages/PaymentAllocationPage').then((module) => ({ default: withAccountingGate(module.PaymentAllocationPage) }))),
     },
+    {
+      path: 'accounting/fiscal-years',
+      element: createLazyRoute(() => import('@/features/accounting/pages/AccountingFiscalYearsPage').then((module) => ({ default: withAccountingGate(module.AccountingFiscalYearsPage) }))),
+    },
+    {
+      path: 'accounting/forex',
+      element: createLazyRoute(() => import('@/features/accounting/pages/AccountingForexRevaluationPage').then((module) => ({ default: withAccountingGate(module.AccountingForexRevaluationPage) }))),
+    },
   ],
   navigation: [
     { key: 'accounting-accounts', label: 'شجرة الحسابات', to: '/accounting/accounts' },
@@ -87,6 +95,8 @@ export const accountingRouteModule: FeatureRouteModule = {
     { key: 'accounting-payment-allocation', label: 'تسوية وتخصيص المدفوعات', to: '/accounting/payment-allocation' },
     { key: 'accounting-cheques', label: 'حافظة الشيكات (PDC)', to: '/accounting/cheques' },
     { key: 'accounting-withholding-tax', label: 'الخصم والإضافة (نموذج 41)', to: '/accounting/withholding-tax' },
+    { key: 'accounting-fiscal-years', label: 'إقفال السنوات المالية', to: '/accounting/fiscal-years' },
+    { key: 'accounting-forex', label: 'تقييم العملات وفروق الصرف (IAS 21)', to: '/accounting/forex' },
     { key: 'accounting-balance-sheet', label: 'الميزانية العمومية', to: '/accounting/balance-sheet' },
     { key: 'accounting-cash-flow', label: 'قائمة التدفقات النقدية', to: '/accounting/cash-flow' },
     { key: 'accounting-aged-debts', label: 'أعمار الديون', to: '/accounting/aged-debts' },

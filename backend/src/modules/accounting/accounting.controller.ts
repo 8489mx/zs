@@ -29,6 +29,15 @@ import { AgedDebtsService } from './services/aged-debts.service';
 import { PdcChequesService, CreatePdcChequeDto, UpdateChequeStatusDto } from './services/pdc-cheques.service';
 import { WithholdingTaxService, CreateWhtTransactionDto, ExtractFromPurchasesDto } from './services/withholding-tax.service';
 import { PaymentAllocationService, AllocatePaymentDto } from './services/payment-allocation.service';
+import {
+  FiscalYearService,
+  CreateFiscalYearDto,
+  CloseFiscalYearDto,
+  ReopenFiscalYearDto,
+} from './services/fiscal-year.service';
+import { FixedAssetsSchedulerService } from './services/fixed-assets-scheduler.service';
+import { CostCenterAllocationsService } from './services/cost-center-allocations.service';
+import { ForexRevaluationService, ExecuteForexRevaluationDto } from './services/forex-revaluation.service';
 
 @Controller('api/accounting')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -43,6 +52,10 @@ export class AccountingController {
     private readonly pdcChequesService: PdcChequesService,
     private readonly withholdingTaxService: WithholdingTaxService,
     private readonly paymentAllocationService: PaymentAllocationService,
+    private readonly fiscalYearService: FiscalYearService,
+    private readonly fixedAssetsScheduler: FixedAssetsSchedulerService,
+    private readonly costCenterAllocations: CostCenterAllocationsService,
+    private readonly forexRevaluation: ForexRevaluationService,
   ) {}
 
   @Get('accounts')
@@ -224,6 +237,32 @@ export class AccountingController {
     return this.accountingService.getCostCenterReport(id, req.authContext!, { fromDate, toDate });
   }
 
+  // --- Cost Center Allocation Matrices (مصفوفة توزيع مراكز التكلفة بالنسب المئوية) ---
+  @Get('cost-centers/allocations')
+  listCostCenterAllocations(@Req() req: RequestWithAuth): Promise<any[]> {
+    return this.costCenterAllocations.listAllocations(req.authContext!);
+  }
+
+  @Post('cost-centers/allocations')
+  createCostCenterAllocation(@Body() body: any, @Req() req: RequestWithAuth): Promise<any> {
+    return this.costCenterAllocations.createAllocation(body, req.authContext!);
+  }
+
+  @Put('cost-centers/allocations/:id')
+  updateCostCenterAllocation(@Param('id') id: string, @Body() body: any, @Req() req: RequestWithAuth): Promise<any> {
+    return this.costCenterAllocations.updateAllocation(id, body, req.authContext!);
+  }
+
+  @Delete('cost-centers/allocations/:id')
+  deleteCostCenterAllocation(@Param('id') id: string, @Req() req: RequestWithAuth): Promise<any> {
+    return this.costCenterAllocations.deleteAllocation(id, req.authContext!);
+  }
+
+  @Post('cost-centers/allocations/:id/calculate')
+  calculateCostCenterSplit(@Param('id') id: string, @Body() body: { amount: number }, @Req() req: RequestWithAuth): Promise<any> {
+    return this.costCenterAllocations.calculateSplitAmounts(id, Number(body.amount || 0), req.authContext!);
+  }
+
   @Get('projects')
   listProjects(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.listProjects(req.authContext!);
@@ -265,6 +304,21 @@ export class AccountingController {
     return this.accountingService.listAssetDepreciationLogs(id, req.authContext!);
   }
 
+  @Get('fixed-assets/auto-depreciate/status')
+  getAutoDepreciationStatus(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.fixedAssetsScheduler.getSchedulerStatus(req.authContext?.tenantId || 'default');
+  }
+
+  @Post('fixed-assets/auto-depreciate/toggle')
+  toggleAutoDepreciation(@Body() body: { enabled: boolean }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.fixedAssetsScheduler.setAutoDepreciationEnabled(req.authContext?.tenantId || 'default', Boolean(body.enabled));
+  }
+
+  @Post('fixed-assets/auto-depreciate/trigger')
+  triggerAutoDepreciation(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
+    return this.fixedAssetsScheduler.triggerImmediateRun(req.authContext?.tenantId || 'default', req.authContext!);
+  }
+
   // --- Multi-Currency (العملات المتعددة وأسعار الصرف) ---
   @Get('currencies')
   listCurrencies(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
@@ -279,6 +333,27 @@ export class AccountingController {
   @Post('currencies/convert')
   convertCurrency(@Body() body: { amount: number; fromCurrency: string; toCurrency: string }, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.accountingService.convertCurrency(body, req.authContext!);
+  }
+
+  // --- Forex Revaluation Engine (إعادة تقييم فروق أسعار الصرف - IAS 21) ---
+  @Get('currencies/revaluations')
+  listForexRevaluations(@Req() req: RequestWithAuth): Promise<any[]> {
+    return this.forexRevaluation.listRuns(req.authContext!);
+  }
+
+  @Get('currencies/revaluations/:id')
+  getForexRevaluationDetails(@Param('id') id: string, @Req() req: RequestWithAuth): Promise<any> {
+    return this.forexRevaluation.getRunDetails(id, req.authContext!);
+  }
+
+  @Post('currencies/revaluations/preview')
+  previewForexRevaluation(@Body() body: { periodDate: string; currencyCode: string; closingRate: number }, @Req() req: RequestWithAuth): Promise<any> {
+    return this.forexRevaluation.previewRevaluation(body, req.authContext!);
+  }
+
+  @Post('currencies/revaluations/execute')
+  executeForexRevaluation(@Body() body: ExecuteForexRevaluationDto, @Req() req: RequestWithAuth): Promise<any> {
+    return this.forexRevaluation.executeRevaluation(body, req.authContext!);
   }
 
   // --- Bank Reconciliation Engine (التسويات البنكية ومطابقة كشوف الحساب) ---
@@ -458,6 +533,50 @@ export class AccountingController {
     @Req() req: RequestWithAuth,
   ) {
     return this.paymentAllocationService.getInvoiceAllocations(invoiceType, invoiceId, req.authContext!);
+  }
+
+  // --- Fiscal Year-End Closing Engine (معالج إقفال السنوات المالية وترحيل الأرباح) ---
+  @Get('fiscal-years')
+  listFiscalYears(@Req() req: RequestWithAuth) {
+    return this.fiscalYearService.listFiscalYears(req.authContext!);
+  }
+
+  @Get('fiscal-years/:id')
+  getFiscalYear(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.fiscalYearService.getFiscalYear(req.authContext!, id);
+  }
+
+  @Post('fiscal-years')
+  createFiscalYear(@Body() dto: CreateFiscalYearDto, @Req() req: RequestWithAuth) {
+    return this.fiscalYearService.createFiscalYear(req.authContext!, dto);
+  }
+
+  @Get('fiscal-years/:id/preview-close')
+  previewFiscalYearClose(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.fiscalYearService.previewFiscalYearClose(req.authContext!, id);
+  }
+
+  @Post('fiscal-years/:id/close')
+  executeFiscalYearClose(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CloseFiscalYearDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.fiscalYearService.executeFiscalYearClose(req.authContext!, id, dto);
+  }
+
+  @Post('fiscal-years/:id/reopen')
+  reopenFiscalYear(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReopenFiscalYearDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.fiscalYearService.reopenFiscalYear(req.authContext!, id, dto);
+  }
+
+  @Delete('fiscal-years/:id')
+  deleteFiscalYear(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.fiscalYearService.deleteFiscalYear(req.authContext!, id);
   }
 }
 

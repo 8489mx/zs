@@ -9,6 +9,7 @@ import { AddFixedAssetModal } from '../components/fixed-assets/AddFixedAssetModa
 import { DepreciateAssetModal, BatchDepreciateModal } from '../components/fixed-assets/DepreciateModals';
 import { FixedAssetsTable } from '../components/fixed-assets/FixedAssetsTable';
 import { FixedAssetsLogsTable } from '../components/fixed-assets/FixedAssetsLogsTable';
+import { ClockIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 
 export function AccountingFixedAssetsPage() {
   const queryClient = useQueryClient();
@@ -115,6 +116,34 @@ export function AccountingFixedAssetsPage() {
     },
   });
 
+  // Automated Scheduler Query & Mutations
+  const schedulerQuery = useQuery({
+    queryKey: ['fixed-assets-auto-scheduler'],
+    queryFn: async () => {
+      return await accountingApi.getAutoDepreciationStatus();
+    },
+  });
+
+  const toggleAutoMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      return await accountingApi.toggleAutoDepreciation(enabled);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fixed-assets-auto-scheduler'] });
+    },
+  });
+
+  const triggerAutoMutation = useMutation({
+    mutationFn: async () => {
+      return await accountingApi.triggerAutoDepreciation();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fixed-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['fixed-assets-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['fixed-assets-auto-scheduler'] });
+    },
+  });
+
   const assets = assetsQuery.data || [];
   const logs = logsQuery.data || [];
 
@@ -198,6 +227,88 @@ export function AccountingFixedAssetsPage() {
 
         {/* Summary KPI Cards */}
         <StatsGrid items={stats} />
+
+        {/* Automated Monthly Depreciation Scheduler Banner */}
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            padding: '14px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                backgroundColor: schedulerQuery.data?.enabled ? '#ecfdf5' : '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: schedulerQuery.data?.enabled ? '#059669' : '#64748b',
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <ClockIcon size={20} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: 'var(--font-section-title)', color: '#0f172a' }}>
+                  الجدولة المؤتمتة للإهلاك الشهري (Automated Monthly Depreciation)
+                </span>
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontSize: 'var(--font-badge)',
+                    fontWeight: 600,
+                    backgroundColor: schedulerQuery.data?.enabled ? '#dcfce7' : '#f1f5f9',
+                    color: schedulerQuery.data?.enabled ? '#15803d' : '#64748b',
+                  }}
+                >
+                  {schedulerQuery.data?.enabled ? 'مفعلة وتعمل تلقائياً' : 'معطلة (يدوي فقط)'}
+                </span>
+              </div>
+              <div style={{ fontSize: 'var(--font-subtitle)', color: '#64748b', marginTop: '2px' }}>
+                موعد الإهلاك الآلي القادم: <strong>{schedulerQuery.data?.nextScheduledDate || 'نهاية الشهر'}</strong>
+                {schedulerQuery.data?.lastRunMonth && (
+                  <span style={{ marginInlineStart: '12px' }}>
+                    | آخر إهلاك مجدول تم بنجاح: <strong>{schedulerQuery.data.lastRunMonth}</strong>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => triggerAutoMutation.mutate()}
+              disabled={triggerAutoMutation.isPending || summary.activeCount === 0}
+              style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}
+            >
+              <RefreshCwIcon size={14} />
+              {triggerAutoMutation.isPending ? 'جاري التنفيذ وتوليد القيود...' : 'تشغيل الإهلاك الآن'}
+            </Button>
+
+            <Button
+              type="button"
+              variant={schedulerQuery.data?.enabled ? 'danger' : 'primary'}
+              onClick={() => toggleAutoMutation.mutate(!schedulerQuery.data?.enabled)}
+              disabled={toggleAutoMutation.isPending}
+              style={{ fontSize: 'var(--font-body)', fontWeight: 600 }}
+            >
+              {schedulerQuery.data?.enabled ? 'تعطيل الجدولة الآلية' : 'تفعيل الجدولة الآلية'}
+            </Button>
+          </div>
+        </div>
 
         {activeTab === 'assets' ? (
           <FixedAssetsTable

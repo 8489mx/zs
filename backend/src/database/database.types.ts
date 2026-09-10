@@ -1740,6 +1740,7 @@ export interface Database {
   bank_statements: BankStatementTable;
   bank_statement_lines: BankStatementLineTable;
   accounting_cheques: AccountingChequeTable;
+  accounting_fiscal_years: AccountingFiscalYearTable;
   withholding_tax_transactions: WithholdingTaxTransactionTable;
   cost_centers: CostCenterTable;
   crm_deals: CrmDealTable;
@@ -2006,6 +2007,7 @@ export interface Database {
   bank_statements: BankStatementTable;
   bank_statement_lines: BankStatementLineTable;
   accounting_settings: AccountingSettingsTable;
+  accounting_fiscal_years: AccountingFiscalYearTable;
   audit_logs: AuditLogTable;
   branches: BranchTable;
   stock_locations: StockLocationTable;
@@ -2563,6 +2565,25 @@ export interface AccountingChequeTable {
   notes: string | null;
   created_by: number | null;
   created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface AccountingFiscalYearTable {
+  id: Generated<number>;
+  tenant_id: string;
+  name: string;
+  code: string | null;
+  start_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
+  end_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
+  status: ColumnType<'open' | 'closed', 'open' | 'closed' | undefined, 'open' | 'closed' | undefined>;
+  closing_entry_id: number | null;
+  net_profit_loss: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total_revenue: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  total_expense: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  retained_earnings_account_id: number | null;
+  closed_at: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
+  closed_by: number | null;
+  closing_notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
@@ -2904,4 +2925,134 @@ export interface HrEndOfServiceSettlementTable {
   created_at: ColumnType<Date, string | Date | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
+
+export interface TamperAuditLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  table_name: string;
+  record_id: string;
+  operation: string;
+  old_values: ColumnType<any, string | Record<string, any> | null | undefined, never>;
+  new_values: ColumnType<any, string | Record<string, any> | null | undefined, never>;
+  changed_fields: ColumnType<any, string | Record<string, any> | null | undefined, never>;
+  user_id: number | null;
+  user_username: string | null;
+  db_user: string | null;
+  client_ip: string | null;
+  prev_hash: string | null;
+  row_hash: string;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface ApprovalRuleTable {
+  id: Generated<string>;
+  tenant_id: string;
+  module: string;
+  min_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  max_amount: ColumnType<number | null, number | string | null | undefined, number | string | null | undefined>;
+  tier_level: ColumnType<number, number | undefined, number | undefined>;
+  required_role: ColumnType<string, string | undefined, string | undefined>;
+  approver_user_id: number | null;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ApprovalRequestTable {
+  id: Generated<string>;
+  tenant_id: string;
+  module: string;
+  record_id: ColumnType<string, string | number, string | number>;
+  record_ref: string;
+  amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  currency: ColumnType<string, string | undefined, string | undefined>;
+  current_tier: ColumnType<number, number | undefined, number | undefined>;
+  max_tier: ColumnType<number, number | undefined, number | undefined>;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  requested_by: number;
+  requested_by_name: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface ApprovalRequestLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  request_id: string;
+  tier_level: number;
+  action: string;
+  action_by: number;
+  action_by_name: string | null;
+  action_role: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface CostCenterAllocationTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  is_active: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface CostCenterAllocationSplitTable {
+  id: Generated<string>;
+  tenant_id: string;
+  allocation_id: string;
+  cost_center_id: string;
+  percentage: ColumnType<number, number | string | undefined, number | string | undefined>;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface ForexRevaluationRunTable {
+  id: Generated<string>;
+  tenant_id: string;
+  period_date: ColumnType<string, string | Date, string | Date>;
+  currency_code: string;
+  book_exchange_rate: ColumnType<number, number | string | undefined, number | string | undefined>;
+  closing_exchange_rate: ColumnType<number, number | string | undefined, number | string | undefined>;
+  foreign_balance_total: ColumnType<number, number | string | undefined, number | string | undefined>;
+  unrealized_gain_loss: ColumnType<number, number | string | undefined, number | string | undefined>;
+  journal_entry_id: number | null;
+  journal_entry_no: string | null;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  notes: string | null;
+  created_by: number | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface ForexRevaluationLineTable {
+  id: Generated<string>;
+  tenant_id: string;
+  run_id: string;
+  account_id: string;
+  account_code: string;
+  account_name: string;
+  foreign_balance: ColumnType<number, number | string | undefined, number | string | undefined>;
+  book_local_value: ColumnType<number, number | string | undefined, number | string | undefined>;
+  revalued_local_value: ColumnType<number, number | string | undefined, number | string | undefined>;
+  unrealized_difference: ColumnType<number, number | string | undefined, number | string | undefined>;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+}
+
+export interface Database {
+  tamper_audit_logs: TamperAuditLogTable;
+  approval_rules: ApprovalRuleTable;
+  approval_requests: ApprovalRequestTable;
+  approval_request_logs: ApprovalRequestLogTable;
+  cost_center_allocations: CostCenterAllocationTable;
+  cost_center_allocation_splits: CostCenterAllocationSplitTable;
+  forex_revaluation_runs: ForexRevaluationRunTable;
+  forex_revaluation_lines: ForexRevaluationLineTable;
+}
+
+
+
 

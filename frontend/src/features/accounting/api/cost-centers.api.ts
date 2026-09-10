@@ -79,4 +79,53 @@ export const costCentersApi = {
     const qs = searchParams.toString();
     return http<CostCenterReportData>(`/api/accounting/cost-centers/${id}/report${qs ? `?${qs}` : ''}`);
   },
+
+  listAllocations: () =>
+    http<CostCenterAllocation[]>('/api/accounting/cost-centers/allocations'),
+
+  createAllocation: (data: { code: string; name: string; description?: string; splits: { costCenterId: number; percentage: number; notes?: string }[] }) =>
+    http<{ ok: boolean; allocationId: string }>('/api/accounting/cost-centers/allocations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateAllocation: (id: string, data: { code: string; name: string; description?: string; splits: { costCenterId: number; percentage: number; notes?: string }[] }) =>
+    http<{ ok: boolean }>(`/api/accounting/cost-centers/allocations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteAllocation: (id: string) =>
+    http<{ ok: boolean }>(`/api/accounting/cost-centers/allocations/${id}`, {
+      method: 'DELETE',
+    }),
+
+  calculateSplit: (id: string, amount: number) =>
+    http<{ allocationName: string; totalAmount: number; splits: { costCenterId: number; costCenterName: string; costCenterCode: string; percentage: number; allocatedAmount: number }[] }>(
+      `/api/accounting/cost-centers/allocations/${id}/calculate`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+      }
+    ),
 };
+
+export interface CostCenterAllocationSplit {
+  id: string;
+  costCenterId: number;
+  costCenterName: string;
+  costCenterCode: string;
+  percentage: number;
+  notes?: string;
+}
+
+export interface CostCenterAllocation {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  splits: CostCenterAllocationSplit[];
+}
+

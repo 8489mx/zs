@@ -46,9 +46,11 @@ import { JobQueueModule } from './common/queue/job-queue.module';
 import { BostaModule } from './modules/bosta/bosta.module';
 import { GccShippingModule } from './modules/gcc-shipping/gcc-shipping.module';
 import { CrmModule } from './modules/crm/crm.module';
+import { ApprovalsModule } from './modules/approvals/approvals.module';
 
 @Module({
   imports: [
+    ApprovalsModule,
     JobQueueModule,
     AppConfigModule,
     ConfigAccessModule,

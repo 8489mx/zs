@@ -9,6 +9,7 @@ import { PlusIcon } from '@/shared/components/icons/AppIcons';
 import { CostCentersTable } from '../components/cost-centers/CostCentersTable';
 import { CostCenterFormModal } from '../components/cost-centers/CostCenterFormModal';
 import { CostCenterReportModal } from '../components/cost-centers/CostCenterReportModal';
+import { CostCenterAllocationsTab } from '../components/cost-centers/CostCenterAllocationsTab';
 
 export function AccountingCostCentersPage() {
   const queryClient = useQueryClient();
@@ -18,6 +19,7 @@ export function AccountingCostCentersPage() {
     { label: 'مراكز التكلفة' },
   ]);
 
+  const [activeTab, setActiveTab] = useState<'centers' | 'allocations'>('centers');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [dimensionFilter, setDimensionFilter] = useState<string>('all');
@@ -213,11 +215,55 @@ export function AccountingCostCentersPage() {
           />
         </div>
 
-        {/* Main Table */}
-        <CostCentersTable
-          costCenters={filteredCenters}
-          allCenters={costCenters}
-          isLoading={isLoading}
+        {/* Tab Switcher */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            borderBottom: '1px solid #e2e8f0',
+            paddingBottom: '10px',
+            marginBottom: '16px',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab('centers')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: activeTab === 'centers' ? '#170e5e' : '#f1f5f9',
+              color: activeTab === 'centers' ? '#ffffff' : '#475569',
+              fontWeight: 700,
+              fontSize: 'var(--font-body)',
+              cursor: 'pointer',
+            }}
+          >
+            دليل مراكز التكلفة الشجري ({costCenters.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('allocations')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: activeTab === 'allocations' ? '#170e5e' : '#f1f5f9',
+              color: activeTab === 'allocations' ? '#ffffff' : '#475569',
+              fontWeight: 700,
+              fontSize: 'var(--font-body)',
+              cursor: 'pointer',
+            }}
+          >
+            مصفوفات وقوالب التوزيع النسبي (Allocation Matrices)
+          </button>
+        </div>
+
+        {activeTab === 'centers' ? (
+          <CostCentersTable
+            costCenters={filteredCenters}
+            allCenters={costCenters}
+            isLoading={isLoading}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           statusFilter={statusFilter}
@@ -232,6 +278,9 @@ export function AccountingCostCentersPage() {
             }
           }}
         />
+        ) : (
+          <CostCenterAllocationsTab costCenters={costCenters} />
+        )}
       </main>
 
       {/* Form Modal */}

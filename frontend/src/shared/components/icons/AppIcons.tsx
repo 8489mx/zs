@@ -723,6 +723,15 @@ export function ShieldAlertIcon({ size = 18, color = 'currentColor', strokeWidth
   );
 }
 
+
+export function FilterIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+  );
+}
+
 export function AwardIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -846,6 +855,7 @@ export const AppIcons = {
   ArrowRight: ArrowRightIcon,
   ArrowLeft: ArrowLeftIcon,
   Home: HomeIcon,
+  ShieldCheck: ShieldCheckIcon,
 };
 
 export default AppIcons;

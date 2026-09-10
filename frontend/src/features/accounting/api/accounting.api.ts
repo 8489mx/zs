@@ -330,6 +330,20 @@ export const accountingApi = {
     const url = assetId ? `/api/accounting/fixed-assets/${assetId}/logs` : '/api/accounting/fixed-assets/logs';
     return http<{ ok: boolean; logs: AssetDepreciationLog[] }>(url);
   },
+  getAutoDepreciationStatus: () =>
+    http<{ enabled: boolean; lastRunMonth: string | null; nextScheduledDate: string; activeAssetsCount: number }>(
+      '/api/accounting/fixed-assets/auto-depreciate/status'
+    ),
+  toggleAutoDepreciation: (enabled: boolean) =>
+    http<{ ok: boolean; enabled: boolean }>('/api/accounting/fixed-assets/auto-depreciate/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    }),
+  triggerAutoDepreciation: () =>
+    http<{ ok: boolean; processedCount: number; totalDepreciation: number; results: any[] }>(
+      '/api/accounting/fixed-assets/auto-depreciate/trigger',
+      { method: 'POST' }
+    ),
 };
 
 export interface CreateFixedAssetInput {
