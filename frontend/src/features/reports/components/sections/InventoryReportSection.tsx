@@ -53,16 +53,16 @@ export function InventoryReportSection({
           : 'تبويب مستقل لمراجعة المخزون الحرج مع بحث وفلاتر وترقيم صفحات من الخادم، مع إبراز قيمة المخزون الحالية.'
       }
       actions={
-        <div className="actions compact-actions">
+        <div className="actions compact-actions" style={{ flexWrap: 'nowrap', gap: '6px' }}>
           <Button
             variant={isDeadStock ? 'primary' : 'secondary'}
             onClick={() => onInventoryFilterChange(isDeadStock ? 'attention' : 'dead')}
-            style={isDeadStock ? { background: '#170e5e', color: '#fff' } : undefined}
+            style={isDeadStock ? { background: '#170e5e', color: '#fff', fontSize: '0.8rem', padding: '5px 10px' } : { fontSize: '0.8rem', padding: '5px 10px' }}
           >
             {isDeadStock ? 'العودة للمخزون الحرج' : 'تحليل المخزون الراكد'}
           </Button>
-          <Button variant="secondary" onClick={() => void exportLowStock()} disabled={!summary?.totalItems}>
-            {isDeadStock ? 'تصدير الراكد Excel' : 'تصدير Excel'}
+          <Button variant="secondary" onClick={() => void exportLowStock()} disabled={!summary?.totalItems} style={{ fontSize: '0.8rem', padding: '5px 10px' }}>
+            تصدير Excel
           </Button>
           <ReportPrintMenu
             label="طباعة الجرد والقيمة"
@@ -71,16 +71,10 @@ export function InventoryReportSection({
             disabled={!summary?.totalItems}
           />
           <ReportPrintMenu
-            label="طباعة حركات (ملخص)"
-            onPrintA4={() => void printInventoryMovementsReport(locationId, false, 'A4')}
-            onPrintReceipt={() => void printInventoryMovementsReport(locationId, false, 'receipt')}
-          />
-          <ReportPrintMenu
-            label="طباعة حركات (تفصيلي)"
+            label="طباعة الحركات"
             onPrintA4={() => void printInventoryMovementsReport(locationId, true, 'A4')}
             onPrintReceipt={() => void printInventoryMovementsReport(locationId, true, 'receipt')}
           />
-          <span className="nav-pill">{isDeadStock ? 'المخزون الراكد' : 'المخزون'}</span>
         </div>
       }
       className="reports-focus-card"

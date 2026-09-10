@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
-import { NetworkIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
+import { NetworkIcon, PackageIcon, WarehouseIcon, EditIcon, TrashIcon, ArrowLeftIcon } from '@/shared/components/icons/AppIcons';
 import { Field } from '@/shared/ui/field';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { useInventoryActionCatalog } from '@/features/inventory/hooks/useInventoryActionCatalog';
@@ -17,10 +17,10 @@ function formatLocationType(type?: string) {
   if (!type) return 'مخزن نشط';
   const map: Record<string, string> = {
     internal_warehouse: 'مخزن داخلي',
-    branch_stock: 'رصيد فرع (متاح للبيع)',
-    store: 'محل / نقطة بيع',
+    branch_stock: 'متاح للبيع',
+    store: 'معرض بيع',
     main: 'مخزن رئيسي',
-    warehouse: 'مخزن',
+    warehouse: 'مستودع',
     transit: 'مخزن ترانزيت',
     damaged: 'مخزن تالف',
   };
@@ -192,22 +192,19 @@ export function WarehousesGridPage() {
                   <div className="warehouse-card-top-row">
                     <div className="warehouse-card-identity">
                       <div className="warehouse-card-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                          <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
-                          <path d="M2 7h20"/>
-                          <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
-                        </svg>
+                        <WarehouseIcon size={20} color="#170e5e" />
                       </div>
                       <div className="warehouse-card-titles">
-                        <div className="warehouse-card-name-row">
-                          <h3 className="warehouse-card-title">{loc.name}</h3>
-                          <span className="warehouse-type-badge">
+                        <div className="warehouse-card-title-row">
+                          <h3 className="warehouse-card-title" title={loc.name}>{loc.name}</h3>
+                        </div>
+                        <div className="warehouse-card-subtitle-row">
+                          <span className="warehouse-card-branch-name">
+                            {loc.branchName ? `الفرع: ${loc.branchName}` : loc.code ? `كود: ${loc.code}` : 'موقع رئيسي'}
+                          </span>
+                          <span className={`warehouse-type-badge ${loc.locationType === 'branch_stock' ? 'badge-branch-sale' : 'badge-internal-stock'}`}>
                             {formatLocationType(loc.locationType)}
                           </span>
-                        </div>
-                        <div className="warehouse-card-subtitle">
-                          {loc.branchName ? `الفرع: ${loc.branchName}` : loc.code ? `كود: ${loc.code}` : 'موقع رئيسي'}
                         </div>
                       </div>
                     </div>
@@ -220,7 +217,7 @@ export function WarehousesGridPage() {
                         title="تعديل المخزن"
                         className="warehouse-action-btn edit-btn"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                        <EditIcon size={14} />
                       </button>
                       <button
                         type="button"
@@ -228,24 +225,25 @@ export function WarehousesGridPage() {
                         title="حذف المخزن"
                         className="warehouse-action-btn delete-btn"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <TrashIcon size={14} />
                       </button>
                     </div>
                   </div>
 
                   <div className="warehouse-card-bottom-row">
                     <div className="warehouse-card-metrics">
-                      <span className="warehouse-count-pill">
+                      <div className="warehouse-count-pill">
                         <PackageIcon size={12} color="#64748b" />
                         <span>{productCount} أصناف</span>
-                      </span>
-                      <strong className="warehouse-value-amount">
+                      </div>
+                      <div className="warehouse-value-amount">
                         {formatCurrency(locValue)}
-                      </strong>
+                      </div>
                     </div>
-                    <span className="warehouse-details-link">
-                      عرض الأصناف <span>←</span>
-                    </span>
+                    <div className="warehouse-details-link">
+                      <span>عرض الأصناف</span>
+                      <ArrowLeftIcon size={14} />
+                    </div>
                   </div>
                 </div>
               );

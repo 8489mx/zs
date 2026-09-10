@@ -43,15 +43,16 @@ export function SmartReorderFilters({
               value={daysAnalysis}
               onChange={(e) => setDaysAnalysis(Number(e.target.value))}
               style={{
-                padding: '8px 14px',
+                padding: '8px 28px 8px 10px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 fontSize: '13px',
                 backgroundColor: '#ffffff',
+                minWidth: '130px',
               }}
             >
               <option value={14}>آخر 14 يوماً</option>
-              <option value={30}>آخر 30 يوماً (موصى به)</option>
+              <option value={30}>آخر 30 يوماً ★</option>
               <option value={60}>آخر 60 يوماً</option>
               <option value={90}>آخر 90 يوماً</option>
             </select>
@@ -63,17 +64,18 @@ export function SmartReorderFilters({
               value={targetCoverageDays}
               onChange={(e) => setTargetCoverageDays(Number(e.target.value))}
               style={{
-                padding: '8px 14px',
+                padding: '8px 28px 8px 10px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 fontSize: '13px',
                 backgroundColor: '#ffffff',
+                minWidth: '130px',
               }}
             >
-              <option value={14}>14 يوماً (أسبوعين)</option>
+              <option value={14}>14 يوماً</option>
               <option value={30}>30 يوماً (شهر كامل)</option>
               <option value={45}>45 يوماً</option>
-              <option value={60}>60 يوماً (شهرين)</option>
+              <option value={60}>60 يوماً</option>
             </select>
           </div>
 
@@ -83,17 +85,18 @@ export function SmartReorderFilters({
               value={defaultLeadTimeDays}
               onChange={(e) => setDefaultLeadTimeDays(Number(e.target.value))}
               style={{
-                padding: '8px 14px',
+                padding: '8px 28px 8px 10px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 fontSize: '13px',
                 backgroundColor: '#ffffff',
+                minWidth: '120px',
               }}
             >
               <option value={2}>2 أيام</option>
               <option value={3}>3 أيام (افتراضي)</option>
               <option value={5}>5 أيام</option>
-              <option value={7}>7 أيام (أسبوع)</option>
+              <option value={7}>7 أيام</option>
               <option value={14}>14 يوماً</option>
             </select>
           </div>
@@ -104,16 +107,17 @@ export function SmartReorderFilters({
               value={urgencyFilter}
               onChange={(e) => setUrgencyFilter(e.target.value as any)}
               style={{
-                padding: '8px 14px',
+                padding: '8px 28px 8px 10px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
                 fontSize: '13px',
                 backgroundColor: '#ffffff',
+                minWidth: '160px',
               }}
             >
-              <option value="needs_reorder">يحتاج إعادة طلب فقط (موصى به)</option>
+              <option value="needs_reorder">يحتاج إعادة طلب فقط ★</option>
               <option value="out_of_stock">نافد المخزون فقط</option>
-              <option value="critical">حرج ووشيك النفاد فقط</option>
+              <option value="critical">حرج ووشيك النفاد</option>
               <option value="warning">تحذيري فقط</option>
               <option value="all">جميع الأصناف</option>
             </select>

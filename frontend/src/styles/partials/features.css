@@ -2527,7 +2527,7 @@
 
 .warehouses-locations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
   gap: 16px;
   margin-top: 14px;
 }
@@ -2537,133 +2537,200 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 12px;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
   background-color: #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
-  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.2s ease-in-out;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
   position: relative;
+}
+
+.warehouse-compact-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  transform: translateY(-2px);
 }
 
 .warehouse-card-top-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .warehouse-card-identity {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .warehouse-card-icon {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background-color: rgba(99, 102, 241, 0.08);
+  background-color: rgba(23, 14, 94, 0.06);
+  border: 1px solid rgba(23, 14, 94, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--primary, #170c5c);
+  color: #170e5e;
+  flex-shrink: 0;
 }
 
 .warehouse-card-titles {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
 }
 
-.warehouse-card-name-row {
+.warehouse-card-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 .warehouse-card-title {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
+  font-size: var(--font-section-title, 0.98rem);
+  font-weight: 700;
   color: #0f172a;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.warehouse-card-subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.warehouse-card-branch-name {
+  font-size: var(--font-subtitle, 0.8125rem);
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .warehouse-type-badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
+  font-size: var(--font-badge, 0.72rem);
+  font-weight: 600;
+  padding: 2px 8px;
   border-radius: 6px;
+  white-space: nowrap;
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+}
+
+.warehouse-type-badge.badge-branch-sale {
   background-color: #ecfdf5;
   color: #047857;
   border: 1px solid #a7f3d0;
 }
 
-.warehouse-card-subtitle {
-  font-size: 0.82rem;
-  color: #64748b;
+.warehouse-type-badge.badge-internal-stock {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 .warehouse-card-actions {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .warehouse-action-btn {
-  border-radius: 6px;
-  padding: 5px;
+  border-radius: 7px;
+  width: 28px;
+  height: 28px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  padding: 0;
 }
 
 .warehouse-action-btn.edit-btn {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  border-color: #e2e8f0;
   color: #475569;
+}
+
+.warehouse-action-btn.edit-btn:hover {
+  background: #f1f5f9;
+  color: #170e5e;
+  border-color: #cbd5e1;
 }
 
 .warehouse-action-btn.delete-btn {
   background: #fef2f2;
-  border: 1px solid #fecaca;
+  border-color: #fee2e2;
   color: #dc2626;
+}
+
+.warehouse-action-btn.delete-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
 }
 
 .warehouse-card-bottom-row {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding-top: 10px;
+  padding-top: 12px;
   border-top: 1px solid #f1f5f9;
 }
 
 .warehouse-card-metrics {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .warehouse-count-pill {
-  font-size: 12px;
+  font-size: var(--font-micro, 0.72rem);
   color: #64748b;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  font-weight: 500;
 }
 
 .warehouse-value-amount {
   font-size: 1.05rem;
   font-weight: 800;
-  color: var(--primary, #170c5c);
+  color: #170e5e;
+  line-height: 1.25;
 }
 
 .warehouse-details-link {
-  font-size: 12px;
-  color: var(--primary, #170c5c);
+  font-size: var(--font-subtitle, 0.8125rem);
+  color: #170e5e;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  transition: gap 0.2s ease, color 0.15s ease;
+}
+
+.warehouse-compact-card:hover .warehouse-details-link {
+  color: #2563eb;
+  gap: 8px;
 }
 
 .pos-close-shift-text-short {
