@@ -62,7 +62,14 @@ export class SessionService {
 
   private async assertTenantLoginAllowed(tenantId: string): Promise<void> {
     const normalizedTenantId = toNonEmpty(tenantId);
-    if (!normalizedTenantId || normalizedTenantId === 'default') return;
+    if (!normalizedTenantId) return;
+
+    const platformTenantId = (this.configService?.get<string>('PLATFORM_TENANT_ID') || 'zs').trim();
+    const isPlatformTenant = ['zs', 'default', 'dev-tenant', platformTenantId].includes(normalizedTenantId);
+    if (isPlatformTenant) {
+      this.authCache.setTenantAllowed(normalizedTenantId, true);
+      return;
+    }
 
     // 1. Fast Cache Check: If tenant was recently verified as allowed, skip all DB queries!
     const cachedAllowed = this.authCache.isTenantAllowed(normalizedTenantId);
