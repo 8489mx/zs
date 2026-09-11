@@ -29,6 +29,11 @@ export interface MaritimeMailConfig {
   lastSyncAt?: string | null;
   lastSyncStatus?: string | null;
   lastSyncDetails?: string | null;
+
+  // Custom RFQ Email Template & Dynamic Tags
+  emailSubjectTemplate?: string;
+  emailIntroTemplate?: string;
+  emailSignatureTemplate?: string;
 }
 
 @Injectable()
@@ -40,8 +45,40 @@ export class MaritimeMailService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
   ) {}
 
+  private async getTenantCompanyProfile(tenantId: string): Promise<{
+    companyName: string;
+    companyEmail: string;
+    companyPhone: string;
+  }> {
+    const tenantRow = await this.db
+      .selectFrom('tenants')
+      .select(['business_name', 'owner_email', 'owner_phone'])
+      .where('id', '=', tenantId)
+      .executeTakeFirst();
+
+    const companySettingsRows = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where('tenant_id', '=', tenantId)
+      .where('key', 'in', ['companyName', 'storeName', 'email', 'phone'])
+      .execute();
+
+    const settingsMap = companySettingsRows.reduce<Record<string, string>>((acc, r) => {
+      try { acc[r.key] = JSON.parse(r.value); } catch { acc[r.key] = r.value; }
+      return acc;
+    }, {});
+
+    return {
+      companyName: settingsMap.companyName || settingsMap.storeName || tenantRow?.business_name || 'إدارة الشحن واللوجستيات',
+      companyEmail: settingsMap.email || tenantRow?.owner_email || '',
+      companyPhone: settingsMap.phone || tenantRow?.owner_phone || '',
+    };
+  }
+
   async getMailSettings(auth: AuthContext): Promise<MaritimeMailConfig> {
     const { tenantId } = requireTenantScope(auth);
+    const companyProfile = await this.getTenantCompanyProfile(tenantId);
+
     const row = await this.db
       .selectFrom('settings')
       .select('value')
@@ -49,19 +86,25 @@ export class MaritimeMailService {
       .where('key', '=', this.SETTINGS_KEY)
       .executeTakeFirst();
 
+    const standardTemplates = {
+      subject: '[{{rfq_number}}] Ocean Freight Rate Inquiry: {{pol_name}} to {{pod_name}} ({{container_count}}x {{container_type}})',
+      intro: 'Dear {{carrier_name}} Pricing Desk,\n\nPlease provide your most competitive ocean freight spot rate for the following containerized shipment:',
+      signature: 'Best regards,\n{{company_name}} Operations & Maritime Procurement Desk\n{{company_email}}',
+    };
+
     if (!row?.value) {
-      // Return default configuration pre-tuned for Microsoft 365 / Outlook (Industry Standard)
+      // Return default configuration dynamically pre-populated with tenant identity
       return {
-        outgoingProvider: 'outlook',
-        smtpHost: 'smtp.office365.com',
-        smtpPort: 587,
-        smtpSecure: false,
+        outgoingProvider: 'custom',
+        smtpHost: 'mail.yourcompany.com',
+        smtpPort: 465,
+        smtpSecure: true,
         smtpUser: '',
         smtpPassword: '',
-        fromName: 'إدارة الشحن واللوجستيات',
-        fromEmail: '',
-        incomingProvider: 'outlook',
-        imapHost: 'outlook.office365.com',
+        fromName: companyProfile.companyName,
+        fromEmail: companyProfile.companyEmail,
+        incomingProvider: 'custom',
+        imapHost: 'mail.yourcompany.com',
         imapPort: 993,
         imapSecure: true,
         imapUser: '',
@@ -70,6 +113,9 @@ export class MaritimeMailService {
         lastSyncAt: null,
         lastSyncStatus: null,
         lastSyncDetails: null,
+        emailSubjectTemplate: standardTemplates.subject,
+        emailIntroTemplate: standardTemplates.intro,
+        emailSignatureTemplate: standardTemplates.signature,
       };
     }
 
@@ -77,6 +123,21 @@ export class MaritimeMailService {
       const parsed: MaritimeMailConfig = JSON.parse(row.value);
       return {
         ...parsed,
+        outgoingProvider: parsed.outgoingProvider || 'custom',
+        smtpHost: parsed.smtpHost || 'mail.yourcompany.com',
+        smtpPort: parsed.smtpPort || 465,
+        smtpSecure: parsed.smtpSecure ?? true,
+        incomingProvider: parsed.incomingProvider || 'custom',
+        imapHost: parsed.imapHost || 'mail.yourcompany.com',
+        imapPort: parsed.imapPort || 993,
+        imapSecure: parsed.imapSecure ?? true,
+        smtpUser: parsed.smtpUser || '',
+        imapUser: parsed.imapUser || '',
+        fromName: parsed.fromName?.trim() || companyProfile.companyName,
+        fromEmail: parsed.fromEmail?.trim() || companyProfile.companyEmail,
+        emailSubjectTemplate: parsed.emailSubjectTemplate?.trim() || standardTemplates.subject,
+        emailIntroTemplate: parsed.emailIntroTemplate?.trim() || standardTemplates.intro,
+        emailSignatureTemplate: parsed.emailSignatureTemplate?.trim() || standardTemplates.signature,
         // Mask passwords before sending to frontend
         smtpPassword: parsed.smtpPassword ? '••••••••••••' : '',
         imapPassword: parsed.imapPassword ? '••••••••••••' : '',
@@ -88,6 +149,7 @@ export class MaritimeMailService {
 
   async saveMailSettings(auth: AuthContext, dto: Partial<MaritimeMailConfig>): Promise<MaritimeMailConfig> {
     const { tenantId } = requireTenantScope(auth);
+    const companyProfile = await this.getTenantCompanyProfile(tenantId);
 
     // Retrieve existing to retain passwords if masked
     const existingRow = await this.db
@@ -108,28 +170,40 @@ export class MaritimeMailService {
 
     const isMasked = (str?: string) => !str || str.includes('•') || str === '••••••••••••';
 
-    const mergedConfig: MaritimeMailConfig = {
-      outgoingProvider: dto.outgoingProvider || currentConfig.outgoingProvider || 'outlook',
-      smtpHost: dto.smtpHost || currentConfig.smtpHost || 'smtp.office365.com',
-      smtpPort: Number(dto.smtpPort || currentConfig.smtpPort || 587),
-      smtpSecure: Boolean(dto.smtpSecure ?? currentConfig.smtpSecure ?? false),
-      smtpUser: dto.smtpUser !== undefined ? dto.smtpUser : currentConfig.smtpUser || '',
-      smtpPassword: isMasked(dto.smtpPassword) ? currentConfig.smtpPassword || '' : dto.smtpPassword,
-      fromName: dto.fromName || currentConfig.fromName || 'إدارة الشحن واللوجستيات',
-      fromEmail: dto.fromEmail || currentConfig.fromEmail || dto.smtpUser || '',
+    const resolvedUser = dto.smtpUser !== undefined ? dto.smtpUser.trim() : (currentConfig.smtpUser || '').trim();
+    const resolvedFromEmail = (dto.fromEmail && dto.fromEmail.includes('@'))
+      ? dto.fromEmail.trim()
+      : (resolvedUser && resolvedUser.includes('@') ? resolvedUser : (currentConfig.fromEmail || resolvedUser || companyProfile.companyEmail));
 
-      incomingProvider: dto.incomingProvider || currentConfig.incomingProvider || 'outlook',
-      imapHost: dto.imapHost || currentConfig.imapHost || 'outlook.office365.com',
+    const mergedConfig: MaritimeMailConfig = {
+      outgoingProvider: dto.outgoingProvider || currentConfig.outgoingProvider || 'custom',
+      smtpHost: dto.smtpHost || currentConfig.smtpHost || 'mail.yourcompany.com',
+      smtpPort: Number(dto.smtpPort || currentConfig.smtpPort || 465),
+      smtpSecure: Boolean(dto.smtpSecure ?? currentConfig.smtpSecure ?? true),
+      smtpUser: resolvedUser,
+      smtpPassword: isMasked(dto.smtpPassword) ? currentConfig.smtpPassword || '' : dto.smtpPassword,
+      fromName: dto.fromName?.trim() || currentConfig.fromName?.trim() || companyProfile.companyName,
+      fromEmail: resolvedFromEmail,
+
+      incomingProvider: dto.incomingProvider || currentConfig.incomingProvider || 'custom',
+      imapHost: dto.imapHost || currentConfig.imapHost || 'mail.yourcompany.com',
       imapPort: Number(dto.imapPort || currentConfig.imapPort || 993),
       imapSecure: Boolean(dto.imapSecure ?? currentConfig.imapSecure ?? true),
-      imapUser: dto.imapUser !== undefined ? dto.imapUser : currentConfig.imapUser || '',
+      imapUser: dto.imapUser !== undefined ? dto.imapUser.trim() : (currentConfig.imapUser || resolvedUser || ''),
       imapPassword: isMasked(dto.imapPassword) ? currentConfig.imapPassword || '' : dto.imapPassword,
 
       autoReadInboundBids: Boolean(dto.autoReadInboundBids ?? currentConfig.autoReadInboundBids ?? true),
       lastSyncAt: currentConfig.lastSyncAt || null,
       lastSyncStatus: currentConfig.lastSyncStatus || null,
       lastSyncDetails: currentConfig.lastSyncDetails || null,
-    };
+
+      emailSubjectTemplate: dto.emailSubjectTemplate !== undefined ? dto.emailSubjectTemplate : currentConfig.emailSubjectTemplate,
+      emailIntroTemplate: dto.emailIntroTemplate !== undefined ? dto.emailIntroTemplate : currentConfig.emailIntroTemplate,
+      emailSignatureTemplate: dto.emailSignatureTemplate !== undefined ? dto.emailSignatureTemplate : currentConfig.emailSignatureTemplate,
+      companyOfficialEmail: (dto as any)?.companyOfficialEmail !== undefined
+        ? String((dto as any).companyOfficialEmail).trim()
+        : ((currentConfig as any)?.companyOfficialEmail || ''),
+    } as any;
 
     // Save to settings table
     const jsonValue = JSON.stringify(mergedConfig);
@@ -323,6 +397,8 @@ export class MaritimeMailService {
       throw new BadRequestException('إعدادات البريد الإلكتروني غير مكتملة. يرجى حفظ السيرفر وبيانات الدخول أولاً.');
     }
 
+    const senderEmail = (config.fromEmail && config.fromEmail.includes('@')) ? config.fromEmail : config.smtpUser;
+
     const transporter = nodemailer.createTransport({
       host: config.smtpHost,
       port: config.smtpPort,
@@ -336,32 +412,37 @@ export class MaritimeMailService {
       },
     });
 
-    const info = await transporter.sendMail({
-      from: `"${config.fromName || 'Z-Systems Maritime'}" <${config.fromEmail || config.smtpUser}>`,
-      to: targetEmail,
-      subject: `[Z-Systems] اختبار اتصال خادم البريد الملاحي بنجاح`,
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;" dir="rtl">
-          <div style="background: #170e5e; color: #ffffff; padding: 20px; text-align: center;">
-            <h2 style="margin: 0; font-size: 1.25rem;">منظومة الشحن البحري واللوجستيات</h2>
-            <p style="margin: 6px 0 0 0; font-size: 0.85rem; color: #cbd5e1;">Z-Systems Ocean Freight Automation</p>
-          </div>
-          <div style="padding: 24px; background: #ffffff;">
-            <p style="font-weight: bold; font-size: 1rem; color: #15803d;">تهانينا! تم اختبار إرسال البريد الإلكتروني بنجاح.</p>
-            <p style="color: #475569; font-size: 0.9rem;">
-              هذه الرسالة تؤكد أن خادم الإرسال (SMTP) الخاص بشركتكم اللوجستية يعمل بكفاءة وجاهز لإرسال طلبات التسعير (RFQs) وعروض الأسعار وإشعارات الشحن لعملائكم وخطوط الملاحة.
-            </p>
-            <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 0.82rem;">
-              <div><strong>خادم SMTP:</strong> ${config.smtpHost}:${config.smtpPort}</div>
-              <div style="margin-top: 4px;"><strong>البريد المرسل:</strong> ${config.fromEmail || config.smtpUser}</div>
-              <div style="margin-top: 4px;"><strong>وقت الفحص:</strong> ${new Date().toLocaleString('ar-EG')}</div>
+    try {
+      const info = await transporter.sendMail({
+        from: `"${config.fromName || 'Z-Systems Maritime'}" <${senderEmail}>`,
+        to: targetEmail,
+        subject: `[Z-Systems] اختبار اتصال خادم البريد الملاحي بنجاح`,
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;" dir="rtl">
+            <div style="background: #170e5e; color: #ffffff; padding: 20px; text-align: center;">
+              <h2 style="margin: 0; font-size: 1.25rem;">منظومة الشحن البحري واللوجستيات</h2>
+              <p style="margin: 6px 0 0 0; font-size: 0.85rem; color: #cbd5e1;">Z-Systems Ocean Freight Automation</p>
+            </div>
+            <div style="padding: 24px; background: #ffffff;">
+              <p style="font-weight: bold; font-size: 1rem; color: #15803d;">تهانينا! تم اختبار إرسال البريد الإلكتروني بنجاح.</p>
+              <p style="color: #475569; font-size: 0.9rem;">
+                هذه الرسالة تؤكد أن خادم الإرسال (SMTP) الخاص بشركتكم اللوجستية يعمل بكفاءة وجاهز لإرسال طلبات التسعير (RFQs) وعروض الأسعار وإشعارات الشحن لعملائكم وخطوط الملاحة.
+              </p>
+              <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 0.82rem;">
+                <div><strong>خادم SMTP:</strong> ${config.smtpHost}:${config.smtpPort}</div>
+                <div style="margin-top: 4px;"><strong>البريد المرسل:</strong> ${senderEmail}</div>
+                <div style="margin-top: 4px;"><strong>وقت الفحص:</strong> ${new Date().toLocaleString('ar-EG')}</div>
+              </div>
             </div>
           </div>
-        </div>
-      `,
-    });
+        `,
+      });
 
-    return { success: true, messageId: info.messageId, recipient: targetEmail };
+      return { success: true, messageId: info.messageId, recipient: targetEmail };
+    } catch (err: any) {
+      this.logger.error(`Failed to send test email: ${err?.message}`);
+      throw new BadRequestException(`فشل إرسال البريد التجريبي: ${err?.message || 'خطأ في خادم البريد'}`);
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -437,8 +518,8 @@ export class MaritimeMailService {
         } else if (step === 2 && buffer.includes('A02 OK')) {
           step = 3;
           buffer = '';
-          // Search recent messages referencing RFQ-
-          socket.write(`A03 SEARCH UNSEEN SUBJECT "RFQ-"\r\n`);
+          // Search all messages in inbox
+          socket.write(`A03 SEARCH ALL\r\n`);
         } else if (step === 3 && (buffer.includes('A03 OK') || buffer.includes('A03 NO'))) {
           // Parse message IDs from * SEARCH 1 2 3 ...
           const searchMatch = buffer.match(/\*\s+SEARCH\s+([\d\s]+)/i);
@@ -451,7 +532,6 @@ export class MaritimeMailService {
           }
 
           if (msgIds.length === 0) {
-            // No new unread RFQ emails
             if (!resolved) {
               resolved = true;
               clearTimeout(timeout);
@@ -460,14 +540,14 @@ export class MaritimeMailService {
               resolve({
                 scanned: 0,
                 imported: 0,
-                summary: 'تم فحص صندوق الوارد: لا توجد رسائل عروض أسعار جديدة غير مقروءة تحتوي على كود RFQ',
+                summary: 'تم فحص صندوق الوارد: لا توجد رسائل بريدية مسجلة في السيرفر',
               });
             }
             return;
           }
 
-          // Fetch the first few messages (limit to top 10 for performance)
-          const targetIds = msgIds.slice(0, 10);
+          // Fetch the latest 15 messages for performance
+          const targetIds = msgIds.slice(-15);
           step = 4;
           buffer = '';
           socket.write(`A04 FETCH ${targetIds.join(',')} (BODY[TEXT] BODY[HEADER.FIELDS (SUBJECT FROM DATE)])\r\n`);
@@ -489,7 +569,7 @@ export class MaritimeMailService {
             resolve({
               scanned: msgIds.length,
               imported: importedCount,
-              summary: `تم فحص ${msgIds.length} رسالة بريدية جديدة، وتم استخراج وقيد ${importedCount} عرض سعر آلياً في مصفوفة المقارنة بنجاح ✓`,
+              summary: `تم فحص ${msgIds.length} رسالة بريدية في صندوق الوارد، وتم استخراج وقيد ${importedCount} عرض سعر جديد آلياً بنجاح ✓`,
             });
           }
         }
@@ -511,12 +591,22 @@ export class MaritimeMailService {
     parseCarrierEmailTextFn: (text: string) => any,
   ): Promise<number> {
     let imported = 0;
-    // Find RFQ reference in buffer e.g. RFQ-2026-0001
-    const rfqRegex = /(?:\[|\b)(RFQ-\d{4}-\d{4,})(?:\]|\b)/gi;
-    const matches = buffer.match(rfqRegex) || [];
-    const uniqueRfqs = Array.from(new Set(matches.map((m) => m.replace(/[[\]]/g, '').trim())));
+    const chunks = buffer.split(/\*\s+\d+\s+FETCH/i).filter((c) => c.trim().length > 0);
 
-    for (const rfqNumber of uniqueRfqs) {
+    for (const chunk of chunks) {
+      const rfqMatch = chunk.match(/(?:\[|\b)(RFQ-\d{4}-\d{4,})(?:\]|\b)/i);
+      if (!rfqMatch) continue;
+      const rfqNumber = rfqMatch[1].trim();
+
+      // Extract sender info
+      let senderName = '';
+      let senderEmail = '';
+      const fromMatch = chunk.match(/From:\s*"?([^"<]+)?"?\s*<([^>]+)>/i) || chunk.match(/From:\s*([^\s\r\n]+)/i);
+      if (fromMatch) {
+        senderName = (fromMatch[1] || '').trim();
+        senderEmail = (fromMatch[2] || fromMatch[1] || '').trim();
+      }
+
       const rfq = await this.db
         .selectFrom('maritime_rfqs')
         .select(['id', 'status', 'rfq_number'])
@@ -526,19 +616,32 @@ export class MaritimeMailService {
 
       if (!rfq) continue;
 
-      // Parse rates from text
-      const parsed = parseCarrierEmailTextFn(buffer);
-      if (parsed.oceanFreight > 0) {
-        // Extract sender domain or name
-        let carrierName = 'وكيل ملاحي (رد بالبريد)';
-        const fromMatch = buffer.match(/From:\s*"?([^"<]+)"?\s*<([^>]+)>/i);
-        if (fromMatch && fromMatch[1]) {
-          carrierName = fromMatch[1].trim();
+      // Lookup registered carrier by email or domain
+      let carrierId: string | null = null;
+      let carrierName = senderName || 'وكيل ملاحي (رد بالبريد)';
+
+      if (senderEmail) {
+        const carrierRow = await this.db
+          .selectFrom('shipping_lines')
+          .select(['id', 'code', 'name_en', 'name_ar'])
+          .where((eb) => eb.or([
+            eb('email', 'ilike', senderEmail),
+            eb('rfq_email', 'ilike', senderEmail),
+          ]))
+          .executeTakeFirst();
+
+        if (carrierRow) {
+          carrierId = String(carrierRow.id);
+          carrierName = carrierRow.name_en || carrierRow.name_ar || carrierRow.code;
         }
+      }
 
-        const totalCost = parsed.totalEstimated || parsed.oceanFreight + parsed.thcOrigin;
+      // Parse rate parameters
+      const parsed = parseCarrierEmailTextFn(chunk);
+      if (parsed.oceanFreight > 0) {
+        const totalCost = parsed.totalEstimated || (parsed.oceanFreight + (parsed.thcOrigin || 0) + (parsed.thcDestination || 0));
 
-        // Check if identical bid already recorded to prevent duplicate
+        // Avoid exact duplicates
         const existingBid = await this.db
           .selectFrom('maritime_rfq_bids')
           .select('id')
@@ -553,6 +656,7 @@ export class MaritimeMailService {
             .values({
               tenant_id: tenantId,
               rfq_id: String(rfq.id),
+              shipping_line_id: carrierId,
               shipping_line_name: carrierName,
               ocean_freight: parsed.oceanFreight,
               currency: parsed.currency || 'USD',
@@ -562,7 +666,7 @@ export class MaritimeMailService {
               free_days: parsed.freeDays || 14,
               transit_time_days: parsed.transitTimeDays || 0,
               submission_channel: 'email_auto',
-              notes: 'عرض سعر تم قراءته وفك تشفيره آلياً من بريد الرد الوارد عبر Outlook/IMAP',
+              notes: 'عرض سعر تم قراءته وفك تشفيره آلياً من بريد الرد الوارد عبر IMAP',
             })
             .execute();
 

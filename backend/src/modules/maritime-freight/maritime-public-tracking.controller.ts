@@ -1,12 +1,33 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body } from '@nestjs/common';
 import { MaritimeFreightService } from './maritime-freight.service';
 
-@Controller(['public/freight-tracking', 'api/public/freight-tracking'])
+@Controller(['public/freight-tracking', 'api/public/freight-tracking', 'api/public/carrier-quote', 'public/carrier-quote'])
 export class MaritimePublicTrackingController {
   constructor(private readonly freightService: MaritimeFreightService) {}
 
-  @Get(':token')
+  @Get('track/:token')
   async getPublicTracking(@Param('token') token: string) {
     return this.freightService.getPublicTrackingByToken(token);
+  }
+
+  @Get(':token')
+  async getPublicTrackingDirect(@Param('token') token: string) {
+    return this.freightService.getPublicTrackingByToken(token);
+  }
+
+  @Get('rfq/:id')
+  async getPublicRfqForQuote(
+    @Param('id') id: string,
+    @Query('carrier') carrier?: string,
+  ) {
+    return this.freightService.getPublicRfqForQuote(id, carrier);
+  }
+
+  @Post('rfq/:id/bid')
+  async submitPublicCarrierBid(
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    return this.freightService.submitPublicCarrierBid(id, dto);
   }
 }

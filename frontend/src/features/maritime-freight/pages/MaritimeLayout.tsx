@@ -277,7 +277,7 @@ function MaritimeLayoutContent({ children }: { children?: React.ReactNode }) {
         </div>
 
         {/* جسم الصفحة المستقلة التابعة للمسار النشط */}
-        <div style={{ width: '100%', minHeight: '480px' }}>
+        <div style={{ width: '100%', minWidth: 0, minHeight: '480px' }}>
           {children || <Outlet />}
         </div>
 

@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { contractingApi } from '../api/contracting.api';
-import { ContractingEngineeringConstant, AutoPriceBoqResult } from '../contracting.types';
+import { ContractingEngineeringConstant, AutoPriceBoqResult, ContractingBoqItem } from '../contracting.types';
 
 interface AutoPricingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApplyPrice?: (unitPrice: number, estimatedCost: number) => void;
+  onApplyPrice?: (unitPrice: number, estimatedCost: number, targetItemId?: string) => Promise<void> | void;
   initialQuantity?: number;
   initialCode?: string;
+  currencySymbol?: string;
+  boqItems?: ContractingBoqItem[];
+  selectedBoqItemId?: string;
 }
 
 export function AutoPricingModal({
@@ -17,11 +20,16 @@ export function AutoPricingModal({
   onApplyPrice,
   initialQuantity = 100,
   initialCode = '',
+  currencySymbol = 'ج.م',
+  boqItems = [],
+  selectedBoqItemId = '',
 }: AutoPricingModalProps) {
   const [constants, setConstants] = useState<ContractingEngineeringConstant[]>([]);
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [applying, setApplying] = useState(false);
 
+  const [targetItemId, setTargetItemId] = useState<string>(selectedBoqItemId);
   const [selectedConstantCode, setSelectedConstantCode] = useState(initialCode);
   const [quantity, setQuantity] = useState(initialQuantity);
   const [wastePercent, setWastePercent] = useState<number>(5);
@@ -30,6 +38,16 @@ export function AutoPricingModal({
 
   const [result, setResult] = useState<AutoPriceBoqResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Sync initial item selection
+  useEffect(() => {
+    if (selectedBoqItemId) {
+      setTargetItemId(selectedBoqItemId);
+    } else if (boqItems.length > 0) {
+      const firstValid = boqItems.find((i) => !i.isSectionHeader);
+      if (firstValid) setTargetItemId(String(firstValid.id));
+    }
+  }, [selectedBoqItemId, boqItems]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,12 +93,21 @@ export function AutoPricingModal({
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (result && onApplyPrice) {
-      onApplyPrice(result.suggestedUnitPrice, result.unitDirectCost);
-      onClose();
+      setApplying(true);
+      try {
+        await onApplyPrice(result.suggestedUnitPrice, result.unitDirectCost, targetItemId);
+        onClose();
+      } catch (err: any) {
+        setErrorMsg(err?.message || 'تعذر اعتماد السعر على البند');
+      } finally {
+        setApplying(false);
+      }
     }
   };
+
+  const currSymbol = currencySymbol || 'ج.م';
 
   return (
     <StandardDialog
@@ -88,7 +115,7 @@ export function AutoPricingModal({
       onClose={onClose}
       title="محرك التسعير التلقائي الذكي للبند (Engineering Pricing Engine)"
       subtitle="تسعير دقيق بضغطة زر بناءً على مكونات البند وثوابت الاستهلاك الهندسية وأسعار السوق"
-      maxWidth="750px"
+      maxWidth="780px"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <button
@@ -125,22 +152,23 @@ export function AutoPricingModal({
             >
               {calculating ? 'جارٍ الحساب...' : 'إعادة الحساب الآن'}
             </button>
-            {result && onApplyPrice && (
+            {onApplyPrice && (
               <button
                 type="button"
                 onClick={handleApply}
+                disabled={!result || applying}
                 style={{
                   padding: '8px 18px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: '#170e5e',
+                  backgroundColor: result && !applying ? '#170e5e' : '#94a3b8',
                   color: '#ffffff',
                   fontSize: 'var(--font-body)',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: result && !applying ? 'pointer' : 'not-allowed',
                 }}
               >
-                اعتماد وتطبيق السعر على البند
+                {applying ? 'جارٍ الاعتماد والتحديث...' : 'اعتماد وتطبيق السعر على البند'}
               </button>
             )}
           </div>
@@ -151,6 +179,44 @@ export function AutoPricingModal({
         {errorMsg && (
           <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 'var(--font-body)' }}>
             {errorMsg}
+          </div>
+        )}
+
+        {/* اختيار البند المستهدف في المقايسة إذا وُجدت بنود */}
+        {boqItems.length > 0 && (
+          <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd' }}>
+            <label style={{ display: 'block', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
+              البند المستهدف في المقايسة للتسعير والاعتماد:
+            </label>
+            <select
+              value={targetItemId}
+              onChange={(e) => {
+                const newId = e.target.value;
+                setTargetItemId(newId);
+                const found = boqItems.find((i) => String(i.id) === newId);
+                if (found) {
+                  setQuantity(found.contractQty || 1);
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #0284c7',
+                fontSize: 'var(--font-body)',
+                fontWeight: 600,
+                backgroundColor: '#ffffff',
+                color: '#0c4a6e',
+              }}
+            >
+              {boqItems
+                .filter((i) => !i.isSectionHeader)
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    [{item.itemCode || `بند ${item.id}`}] {item.description.slice(0, 60)} ({item.contractQty} {item.unit}) - السعر الحالي: {item.unitPrice || 0} {currSymbol}
+                  </option>
+                ))}
+            </select>
           </div>
         )}
 
@@ -279,19 +345,19 @@ export function AutoPricingModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
               <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0' }}>
                 <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#64748b' }}>التكلفة المباشرة للوحدة</span>
-                <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{result.unitDirectCost.toLocaleString()} ر.س</strong>
+                <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{result.unitDirectCost.toLocaleString()} {currSymbol}</strong>
               </div>
               <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#eef2ff', border: '1px solid #c7d2fe' }}>
                 <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#4338ca' }}>سعر البيع المقترح للوحدة</span>
-                <strong style={{ fontSize: '1.1rem', color: '#170e5e' }}>{result.suggestedUnitPrice.toLocaleString()} ر.س</strong>
+                <strong style={{ fontSize: '1.1rem', color: '#170e5e' }}>{result.suggestedUnitPrice.toLocaleString()} {currSymbol}</strong>
               </div>
               <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#64748b' }}>إجمالي القيمة التعاقدية</span>
-                <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{result.totalPrice.toLocaleString()} ر.س</strong>
+                <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{result.totalPrice.toLocaleString()} {currSymbol}</strong>
               </div>
               <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0' }}>
                 <span style={{ display: 'block', fontSize: 'var(--font-micro)', color: '#065f46' }}>صافي الربح المتوقع</span>
-                <strong style={{ fontSize: '1rem', color: '#047857' }}>{result.projectedProfit.toLocaleString()} ر.س</strong>
+                <strong style={{ fontSize: '1rem', color: '#047857' }}>{result.projectedProfit.toLocaleString()} {currSymbol}</strong>
               </div>
             </div>
 
@@ -315,8 +381,8 @@ export function AutoPricingModal({
                       <tr key={idx} style={{ borderBottom: idx < result.breakdown.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                         <td style={{ padding: '8px 12px', fontSize: 'var(--font-body)', fontWeight: 500, color: '#1e293b' }}>{b.name}</td>
                         <td style={{ padding: '8px 12px', fontSize: 'var(--font-body)', color: '#475569' }}>{b.qtyPerUnit} {b.unit}</td>
-                        <td style={{ padding: '8px 12px', fontSize: 'var(--font-body)', color: '#475569' }}>{b.unitRate.toLocaleString()} ر.س</td>
-                        <td style={{ padding: '8px 12px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a' }}>{b.componentCost.toLocaleString()} ر.س</td>
+                        <td style={{ padding: '8px 12px', fontSize: 'var(--font-body)', color: '#475569' }}>{b.unitRate.toLocaleString()} {currSymbol}</td>
+                        <td style={{ padding: '8px 12px', fontSize: 'var(--font-body)', fontWeight: 600, color: '#0f172a' }}>{b.componentCost.toLocaleString()} {currSymbol}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -335,3 +401,4 @@ export function AutoPricingModal({
     </StandardDialog>
   );
 }
+

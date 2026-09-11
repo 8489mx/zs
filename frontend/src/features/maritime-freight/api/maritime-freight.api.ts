@@ -251,9 +251,10 @@ export const maritimeApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  dispatchRfqEmails: (id: string) =>
+  dispatchRfqEmails: (id: string, targetLineIds?: number[]) =>
     http<{ sentCount: number; message: string }>(`/api/maritime-freight/rfqs/${id}/dispatch-emails`, {
       method: 'POST',
+      body: JSON.stringify({ targetLineIds }),
     }),
 
   // Bids

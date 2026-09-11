@@ -139,6 +139,18 @@ const router = createRouter([
     element: createLazyRoute(() => import('@/features/maritime-freight/pages/PublicShipmentTrackingPage').then((module) => ({ default: module.PublicShipmentTrackingPage }))),
   },
   {
+    path: '/portal/carrier-quote/:rfqId',
+    element: createLazyRoute(() => import('@/features/maritime-freight/pages/PublicCarrierQuotePage').then((module) => ({ default: module.PublicCarrierQuotePage }))),
+  },
+  {
+    path: '/carrier-quote/:rfqId',
+    element: createLazyRoute(() => import('@/features/maritime-freight/pages/PublicCarrierQuotePage').then((module) => ({ default: module.PublicCarrierQuotePage }))),
+  },
+  {
+    path: '/public/carrier-quote/:rfqId',
+    element: createLazyRoute(() => import('@/features/maritime-freight/pages/PublicCarrierQuotePage').then((module) => ({ default: module.PublicCarrierQuotePage }))),
+  },
+  {
     path: '/st/:slug',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },

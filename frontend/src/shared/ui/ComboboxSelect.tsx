@@ -118,7 +118,14 @@ export function ComboboxSelect({
             if (!isOpen) setIsOpen(true);
             setHighlightedIndex(1);
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={(e) => {
+            setIsOpen(true);
+            e.target.select();
+          }}
+          onClick={(e) => {
+            if (!isOpen) setIsOpen(true);
+            (e.target as HTMLInputElement).select();
+          }}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}

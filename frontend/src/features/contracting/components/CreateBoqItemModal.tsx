@@ -5,8 +5,10 @@ export interface CreateBoqItemModalProps {
   projectId: string;
   projectName?: string;
   initialItem?: any;
+  itemToEdit?: any;
   onClose: () => void;
   onCreated?: () => void;
+  onSuccess?: () => void;
 }
 
 export function CreateBoqItemModal({
@@ -14,19 +16,23 @@ export function CreateBoqItemModal({
   projectId,
   projectName,
   initialItem,
+  itemToEdit,
   onClose,
   onCreated,
+  onSuccess,
 }: CreateBoqItemModalProps) {
+  const item = initialItem || itemToEdit;
+  const handleSuccess = onCreated || onSuccess;
   return (
     <UniversalBoqItemModal
       open={open}
       mode="project"
       projectId={projectId}
       projectName={projectName}
-      initialItem={initialItem}
+      initialItem={item}
       onClose={onClose}
-      onCreated={onCreated}
-      onSaved={onCreated}
+      onCreated={handleSuccess}
+      onSaved={handleSuccess}
     />
   );
 }

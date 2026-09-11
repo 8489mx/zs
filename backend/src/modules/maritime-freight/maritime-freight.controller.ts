@@ -91,8 +91,12 @@ export class MaritimeFreightController {
   }
 
   @Post('rfqs/:id/dispatch-emails')
-  async dispatchEmails(@Param('id') id: string, @Req() req: RequestWithAuth) {
-    return this.freightService.dispatchRfqEmails(req.authContext!, id);
+  async dispatchEmails(
+    @Param('id') id: string,
+    @Body() body: { targetLineIds?: number[] },
+    @Req() req: RequestWithAuth
+  ) {
+    return this.freightService.dispatchRfqEmails(req.authContext!, id, body?.targetLineIds);
   }
 
   // 4. Bids Management

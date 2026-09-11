@@ -860,6 +860,39 @@ export function ContractingBoqTab({
                       {/* 10. الإجراءات */}
                       <td style={{ padding: '10px 10px', textAlign: 'center', verticalAlign: 'middle' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          {!item.isSectionHeader && (
+                            <button
+                              type="button"
+                              title="تسعير آلي وحساب تفكيك التكلفة للبند"
+                              onClick={() => {
+                                setEditingItem(item);
+                                setIsAutoPricingOpen(true);
+                              }}
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '6px',
+                                background: '#eef2ff',
+                                color: '#4338ca',
+                                border: '1px solid #c7d2fe',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#170e5e';
+                                e.currentTarget.style.color = '#ffffff';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#eef2ff';
+                                e.currentTarget.style.color = '#4338ca';
+                              }}
+                            >
+                              <AppIcons.Calculator size={13} />
+                            </button>
+                          )}
                           <button
                             type="button"
                             title="تعديل بيانات البند والكميات"
@@ -891,7 +924,6 @@ export function ContractingBoqTab({
                           <button
                             type="button"
                             title="حذف البند من المقايسة"
-                            disabled={deletingId === item.id}
                             onClick={() => handleDeleteItem(item.id, itemCode, item.description)}
                             style={{
                               width: '28px',
@@ -900,23 +932,14 @@ export function ContractingBoqTab({
                               background: '#fef2f2',
                               color: '#b91c1c',
                               border: '1px solid #fecaca',
-                              cursor: deletingId === item.id ? 'not-allowed' : 'pointer',
+                              cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              opacity: deletingId === item.id ? 0.6 : 1,
                               transition: 'all 0.15s ease',
                             }}
-                            onMouseEnter={(e) => {
-                              if (deletingId !== item.id) {
-                                e.currentTarget.style.background = '#fee2e2';
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = '#fef2f2';
-                            }}
                           >
-                            <AppIcons.Trash size={13} />
+                            {deletingId === item.id ? '...' : <AppIcons.Trash size={13} />}
                           </button>
                         </div>
                       </td>
@@ -929,30 +952,28 @@ export function ContractingBoqTab({
         )}
       </div>
 
-      {/* مودال تعديل البند */}
-      {editingItem && projectId && (
+      {/* مودال إضافة/تعديل بند */}
+      {editingItem && (
         <CreateBoqItemModal
-          open={Boolean(editingItem)}
-          projectId={projectId}
-          projectName={projectName}
-          initialItem={editingItem}
+          open={!!editingItem}
+          projectId={projectId || ''}
+          itemToEdit={editingItem}
           onClose={() => setEditingItem(null)}
-          onCreated={() => {
+          onSuccess={() => {
             setEditingItem(null);
-            setNotification({ type: 'success', text: 'تم تحديث بيانات البند بنجاح' });
+            setNotification({ type: 'success', text: 'تم تحديث البند بنجاح' });
             if (onRefresh) onRefresh();
           }}
         />
       )}
 
-      {/* مودال استيراد الإكسيل */}
+      {/* مودال استيراد المقايسة من Excel */}
       {isImportModalOpen && projectId && (
         <ImportBoqModal
           open={isImportModalOpen}
           projectId={projectId}
-          projectName={projectName}
           onClose={() => setIsImportModalOpen(false)}
-          onImported={() => {
+          onSuccess={() => {
             if (onRefresh) onRefresh();
           }}
         />
@@ -975,7 +996,41 @@ export function ContractingBoqTab({
       {isAutoPricingOpen && (
         <AutoPricingModal
           isOpen={isAutoPricingOpen}
-          onClose={() => setIsAutoPricingOpen(false)}
+          onClose={() => {
+            setIsAutoPricingOpen(false);
+            setEditingItem(null);
+          }}
+          currencySymbol="ج.م"
+          boqItems={items.filter((i) => !i.isSectionHeader)}
+          selectedBoqItemId={editingItem ? String(editingItem.id) : undefined}
+          initialCode={editingItem?.itemCode || ''}
+          initialQuantity={editingItem?.contractQty || 100}
+          onApplyPrice={async (suggestedUnitPrice, estimatedCost, targetItemId) => {
+            const itemIdToUpdate = targetItemId || (editingItem ? String(editingItem.id) : undefined);
+            if (!itemIdToUpdate) {
+              setNotification({ type: 'error', text: 'يرجى تحديد البند المستهدف بالتحديث' });
+              return;
+            }
+
+            try {
+              await contractingApi.updateBoqItem(itemIdToUpdate, {
+                unitPrice: suggestedUnitPrice,
+                estimatedCost: estimatedCost,
+              });
+              setNotification({
+                type: 'success',
+                text: `تم اعتماد وتحديث سعر الفئة (${suggestedUnitPrice.toLocaleString()} ج.م) للبند بنجاح!`,
+              });
+              if (onRefresh) onRefresh();
+            } catch (err: any) {
+              console.error('Failed to update BOQ item price:', err);
+              setNotification({
+                type: 'error',
+                text: err?.message || 'تعذر تحديث سعر البند في المقايسة',
+              });
+              throw err;
+            }
+          }}
         />
       )}
 

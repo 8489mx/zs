@@ -53,7 +53,9 @@ export interface ContractingBoqItem {
   unitPrice: number;
   totalPrice: number;
   estimatedUnitCost: number;
+  estimatedCost?: number;
   executedQty: number;
+  isSectionHeader?: boolean;
   notes?: string | null;
   createdAt: string;
 }

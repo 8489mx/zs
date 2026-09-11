@@ -16,7 +16,8 @@ interface ImportBoqModalProps {
   projectId: string;
   projectName?: string;
   onClose: () => void;
-  onImported: () => void;
+  onImported?: () => void;
+  onSuccess?: () => void;
 }
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -46,6 +47,7 @@ export function ImportBoqModal({
   projectName,
   onClose,
   onImported,
+  onSuccess,
 }: ImportBoqModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string>('');
@@ -321,7 +323,7 @@ export function ImportBoqModal({
       }));
 
       await contractingApi.batchCreateBoqItems(projectId, itemsToCreate);
-      onImported();
+      (onImported || onSuccess)?.();
       onClose();
     } catch (err: any) {
       setGeneralError(err?.message || 'حدث خطأ أثناء استيراد بنود المقايسة');

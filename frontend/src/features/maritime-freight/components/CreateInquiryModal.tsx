@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
 import { maritimeApi, ShippingPort } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
@@ -189,31 +190,27 @@ export function CreateInquiryModal({ open, onClose, onCreated }: CreateInquiryMo
             </Field>
 
             <Field label="ميناء الشحن والتحميل (POL) *">
-              <select
+              <ComboboxSelect
                 value={formData.polCode}
-                onChange={(e) => handlePolChange(e.target.value)}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                {ports.map((p) => (
-                  <option key={p.code} value={p.code}>
-                    {p.name_ar} - {p.country_name} ({p.code})
-                  </option>
-                ))}
-              </select>
+                onChange={handlePolChange}
+                options={ports.map((p) => ({
+                  id: p.code,
+                  label: `${p.name_ar} - ${p.country_name} (${p.code})`,
+                }))}
+                placeholder="ابحث عن ميناء الشحن أو الكود..."
+              />
             </Field>
 
             <Field label="ميناء التفريغ والمقصد (POD) *">
-              <select
+              <ComboboxSelect
                 value={formData.podCode}
-                onChange={(e) => handlePodChange(e.target.value)}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                {ports.map((p) => (
-                  <option key={p.code} value={p.code}>
-                    {p.name_ar} - {p.country_name} ({p.code})
-                  </option>
-                ))}
-              </select>
+                onChange={handlePodChange}
+                options={ports.map((p) => ({
+                  id: p.code,
+                  label: `${p.name_ar} - ${p.country_name} (${p.code})`,
+                }))}
+                placeholder="ابحث عن ميناء التفريغ أو الكود..."
+              />
             </Field>
           </div>
         </div>

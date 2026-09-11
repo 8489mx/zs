@@ -51,6 +51,7 @@ div:focus, div:focus-visible,
 html {
   scroll-behavior: auto;
   height: 100%;
+  scrollbar-gutter: stable;
 }
 html, body, #root, .app-root, .app-layout {
   height: 100%;

@@ -316,12 +316,6 @@ export class MaritimeFreightService {
     const { tenantId } = requireTenantScope(auth);
     const inquiry = await this.getInquiryById(auth, inquiryId);
 
-    let lineIds = targetLineIds;
-    if (!lineIds || lineIds.length === 0) {
-      const activeLines = await this.getShippingLines(auth);
-      lineIds = activeLines.map((l) => Number(l.id));
-    }
-
     const rfq = await this.createRfq(auth, {
       polCode: inquiry.pol_code,
       polName: inquiry.pol_name,
@@ -337,7 +331,7 @@ export class MaritimeFreightService {
       cargoReadyDate: inquiry.cargo_ready_date || undefined,
       targetFreeDays: inquiry.target_free_days,
       paymentTerm: inquiry.payment_term as any,
-      targetLineIds: lineIds,
+      targetLineIds: targetLineIds || [],
       inquiryId: String(inquiry.id),
       customerId: inquiry.customer_id ? Number(inquiry.customer_id) : undefined,
       customerName: inquiry.customer_name,
@@ -424,11 +418,6 @@ export class MaritimeFreightService {
         .where('tenant_id', '=', tenantId)
         .where('id', '=', dto.inquiryId as any)
         .execute();
-    }
-
-    // If target lines were selected, dispatch emails
-    if (dto.targetLineIds && dto.targetLineIds.length > 0) {
-      await this.dispatchRfqEmails(auth, String(rfq.id));
     }
 
     return rfq;
@@ -529,7 +518,7 @@ export class MaritimeFreightService {
     };
   }
 
-  async dispatchRfqEmails(auth: AuthContext, rfqId: string) {
+  async dispatchRfqEmails(auth: AuthContext, rfqId: string, customLineIds?: number[]) {
     const { tenantId } = requireTenantScope(auth);
     const rfq = await this.db
       .selectFrom('maritime_rfqs')
@@ -540,9 +529,21 @@ export class MaritimeFreightService {
 
     if (!rfq) throw new NotFoundException('RFQ not found');
 
-    const lineIds: number[] = Array.isArray(rfq.target_line_ids) ? rfq.target_line_ids : [];
+    const lineIds: number[] = Array.isArray(customLineIds) && customLineIds.length > 0
+      ? customLineIds
+      : (Array.isArray(rfq.target_line_ids) ? rfq.target_line_ids : []);
+
     if (lineIds.length === 0) {
       return { sentCount: 0, message: 'No target shipping lines selected' };
+    }
+
+    if (Array.isArray(customLineIds) && customLineIds.length > 0) {
+      await this.db
+        .updateTable('maritime_rfqs')
+        .set({ target_line_ids: JSON.stringify(customLineIds) })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', rfqId as any)
+        .execute();
     }
 
     const carriers = await this.db
@@ -567,12 +568,38 @@ export class MaritimeFreightService {
       } catch {}
     }
 
+    // Query tenant and core settings for dynamic tenant branding fallbacks
+    const tenantRow = await this.db
+      .selectFrom('tenants')
+      .select(['business_name', 'owner_email', 'owner_phone'])
+      .where('id', '=', tenantId)
+      .executeTakeFirst();
+
+    const companySettingsRows = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where('tenant_id', '=', tenantId)
+      .where('key', 'in', ['companyName', 'storeName', 'email', 'phone'])
+      .execute();
+
+    const companySettings = companySettingsRows.reduce<Record<string, string>>((acc, r) => {
+      try { acc[r.key] = JSON.parse(r.value); } catch { acc[r.key] = r.value; }
+      return acc;
+    }, {});
+
+    const defaultCompanyName = companySettings.companyName || companySettings.storeName || tenantRow?.business_name || 'إدارة العمليات واللوجستيات';
+    const defaultCompanyEmail = companySettings.email || tenantRow?.owner_email || '';
+    const defaultCompanyPhone = companySettings.phone || tenantRow?.owner_phone || '';
+
     const host = String(customMailConfig?.smtpHost || process.env.SMTP_HOST || '').trim();
     const port = Number(customMailConfig?.smtpPort || process.env.SMTP_PORT || 587);
     const user = String(customMailConfig?.smtpUser || process.env.SMTP_USER || '').trim();
     const pass = String(customMailConfig?.smtpPassword || process.env.SMTP_PASSWORD || '').trim();
-    const fromEmail = String(customMailConfig?.fromEmail || process.env.SMTP_FROM || 'rfq@z-systems.io').trim();
-    const fromName = String(customMailConfig?.fromName || 'Z-Systems Global Logistics').trim();
+    const rawFromEmail = String(customMailConfig?.fromEmail || '').trim();
+    const fromEmail = (rawFromEmail && rawFromEmail.includes('@'))
+      ? rawFromEmail
+      : (user && user.includes('@') ? user : (defaultCompanyEmail || String(process.env.SMTP_FROM || '').trim()));
+    const fromName = String(customMailConfig?.fromName?.trim() || defaultCompanyName).trim();
 
     let transporter: any = null;
     if (host && user && pass) {
@@ -583,25 +610,63 @@ export class MaritimeFreightService {
           port,
           secure: port === 465,
           auth: { user, pass },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 5000,
         });
       } catch (err: any) {
         this.logger.warn(`Mailer config exists but failed to initialize: ${err?.message}`);
       }
     }
 
-    for (const carrier of carriers) {
-      const targetEmail = carrier.rfq_email || carrier.email;
-      if (!targetEmail) continue;
+    const replacePlaceholders = (templateStr: string, carrierName: string) => {
+      return templateStr
+        .replace(/{{rfq_number}}/g, rfq.rfq_number || '')
+        .replace(/{{carrier_name}}/g, carrierName || '')
+        .replace(/{{pol_code}}/g, rfq.pol_code || '')
+        .replace(/{{pod_code}}/g, rfq.pod_code || '')
+        .replace(/{{pol_name}}/g, rfq.pol_name || '')
+        .replace(/{{pod_name}}/g, rfq.pod_name || '')
+        .replace(/{{container_count}}/g, String(rfq.container_count || 1))
+        .replace(/{{container_type}}/g, rfq.container_type || '40HC')
+        .replace(/{{cargo_mode}}/g, rfq.cargo_mode || 'FCL')
+        .replace(/{{commodity}}/g, rfq.commodity_description || 'General Cargo')
+        .replace(/{{target_free_days}}/g, String(rfq.target_free_days || 14))
+        .replace(/{{incoterm}}/g, rfq.incoterm || 'FOB')
+        .replace(/{{company_name}}/g, fromName)
+        .replace(/{{company_email}}/g, fromEmail)
+        .replace(/{{company_phone}}/g, defaultCompanyPhone);
+    };
 
-      const subject = `[${rfq.rfq_number}] Freight Rate Inquiry: ${rfq.pol_code} to ${rfq.pod_code} (${rfq.container_count}x ${rfq.container_type})`;
+    const sendPromises = carriers.map(async (carrier) => {
+      const targetEmail = carrier.rfq_email || carrier.email;
+      if (!targetEmail) return;
+
+      let subject = `[${rfq.rfq_number}] Freight Rate Inquiry: ${rfq.pol_code} to ${rfq.pod_code} (${rfq.container_count}x ${rfq.container_type})`;
+      if (customMailConfig?.emailSubjectTemplate?.trim()) {
+        subject = replacePlaceholders(customMailConfig.emailSubjectTemplate, carrier.name_en || carrier.name_ar || 'Carrier');
+        if (!subject.includes(rfq.rfq_number)) {
+          subject = `[${rfq.rfq_number}] ` + subject;
+        }
+      }
+
       const magicLinkUrl = `${process.env.APP_PUBLIC_URL || 'https://app.z-systems.io'}/portal/carrier-quote/${rfq.id}?carrier=${encodeURIComponent(carrier.code)}`;
 
+      const introHtml = customMailConfig?.emailIntroTemplate?.trim()
+        ? `<p>${replacePlaceholders(customMailConfig.emailIntroTemplate, carrier.name_en || carrier.name_ar || 'Carrier').replace(/\n/g, '<br>')}</p>`
+        : `<p>Dear <strong>${carrier.name_en || carrier.name_ar || 'Carrier'}</strong> Pricing Desk,</p>
+           <p>Please provide your most competitive ocean freight spot rate for the following inquiry:</p>`;
+
+      const signatureHtml = customMailConfig?.emailSignatureTemplate?.trim()
+        ? `<div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid #e2e8f0; color: #475569; font-size: 13px;">${replacePlaceholders(customMailConfig.emailSignatureTemplate, '').replace(/\n/g, '<br>')}</div>`
+        : `<div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid #e2e8f0; color: #475569; font-size: 13px;">Best regards,<br><strong>${fromName}</strong> Operations Desk<br>${fromEmail}</div>`;
+
       const html = `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b;">
-          <h2 style="color: #170e5e;">Ocean Freight Rate Inquiry</h2>
-          <p>Dear <strong>${carrier.name_en}</strong> Pricing Desk,</p>
-          <p>Please provide your most competitive ocean freight spot rate for the following inquiry:</p>
-          <table style="border-collapse: collapse; width: 100%; max-width: 600px; margin: 16px 0; border: 1px solid #e2e8f0;">
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
+          <h2 style="color: #170e5e; margin-top: 0;">Ocean Freight Rate Inquiry</h2>
+          ${introHtml}
+          <table style="border-collapse: collapse; width: 100%; margin: 16px 0; border: 1px solid #e2e8f0; font-size: 13px;">
             <tr style="background: #f8fafc;"><td style="padding: 8px 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Reference</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${rfq.rfq_number}</td></tr>
             <tr><td style="padding: 8px 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Port of Loading (POL)</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${rfq.pol_name} (${rfq.pol_code})</td></tr>
             <tr style="background: #f8fafc;"><td style="padding: 8px 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Port of Discharge (POD)</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${rfq.pod_name} (${rfq.pod_code})</td></tr>
@@ -610,12 +675,13 @@ export class MaritimeFreightService {
             <tr><td style="padding: 8px 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Target Free Days</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${rfq.target_free_days} Days at Destination</td></tr>
             <tr style="background: #f8fafc;"><td style="padding: 8px 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Incoterm / Payment</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${rfq.incoterm} (${rfq.payment_term})</td></tr>
           </table>
-          <p style="margin-top: 20px;">
+          <p style="margin-top: 16px;">
             <a href="${magicLinkUrl}" style="background-color: #170e5e; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
               Submit Your Quote Online Here
             </a>
           </p>
-          <p style="color: #64748b; font-size: 13px;">Or simply reply to this email keeping [${rfq.rfq_number}] in the subject line.</p>
+          <p style="color: #64748b; font-size: 12px; margin-top: 12px;">Or simply reply directly to this email keeping [${rfq.rfq_number}] in the subject line.</p>
+          ${signatureHtml}
         </div>
       `;
 
@@ -635,7 +701,9 @@ export class MaritimeFreightService {
         this.logger.log(`[SIMULATION] RFQ Email dispatched to ${carrier.name_en} <${targetEmail}>: ${subject}`);
         sentCount++;
       }
-    }
+    });
+
+    await Promise.allSettled(sendPromises);
 
     await this.db
       .updateTable('maritime_rfqs')
@@ -751,46 +819,65 @@ export class MaritimeFreightService {
     let currency = 'USD';
     let freeDays = 14;
     let transitTimeDays = 0;
-    let thc = 0;
+    let thcOrigin = 0;
+    let thcDestination = 0;
 
-    // Currency match
-    if (/EUR|€/i.test(text)) currency = 'EUR';
-    else if (/SAR|ريال/i.test(text)) currency = 'SAR';
-    else if (/EGP|جنية|جنيه/i.test(text)) currency = 'EGP';
+    // Currency match with word boundaries
+    if (/\b(?:EUR|€)\b/i.test(text)) currency = 'EUR';
+    else if (/\b(?:SAR|ريال)\b/i.test(text)) currency = 'SAR';
+    else if (/\b(?:EGP|جنيه|جنية)\b/i.test(text)) currency = 'EGP';
 
-    // Ocean freight match (e.g., "$2100", "OF: 2100", "Rate: 2,100 USD", "2100$")
-    const ofMatch = text.match(/(?:ocean\s*freight|rate|of|nfreight|usd|\$)\s*[:=]?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i) ||
+    // Ocean Freight Match
+    const ofMatch = text.match(/(?:ocean\s*freight|base\s*rate|spot\s*rate|freight|rate|of|bas)(?:[^\d\n\r$]*?)[:=]?\s*\$?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i) ||
+                    text.match(/(?:usd|\$)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i) ||
                     text.match(/([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:usd|\$)/i);
     if (ofMatch && ofMatch[1]) {
       oceanFreight = parseFloat(ofMatch[1].replace(/,/g, ''));
     }
 
-    // Free days match (e.g., "14 days free", "14 free days", "detention: 14 days", "14 F/D")
-    const fdMatch = text.match(/([0-9]{1,2})\s*(?:days?\s*free|free\s*days?|f\/?d)/i);
+    // Free Days Match
+    const fdMatch = text.match(/(?:free\s*(?:days|time)|detention|demurrage)(?:[^\d\n\r]*?)[:=]?\s*([0-9]{1,2})/i) ||
+                    text.match(/([0-9]{1,2})\s*(?:days?\s*free|free\s*days?|f\/?d)/i);
     if (fdMatch && fdMatch[1]) {
       freeDays = parseInt(fdMatch[1], 10);
     }
 
-    // Transit time match (e.g., "TT: 18 days", "transit time: 22")
-    const ttMatch = text.match(/(?:transit\s*time|tt)\s*[:=]?\s*([0-9]{1,2})/i);
+    // Transit Time Match
+    const ttMatch = text.match(/(?:transit\s*time|tt|transit)(?:[^\d\n\r]*?)[:=]?\s*([0-9]{1,2})/i);
     if (ttMatch && ttMatch[1]) {
       transitTimeDays = parseInt(ttMatch[1], 10);
     }
 
-    // THC match (e.g., "THC: 150", "THC 250 USD")
-    const thcMatch = text.match(/thc\s*[:=]?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
-    if (thcMatch && thcMatch[1]) {
-      thc = parseFloat(thcMatch[1].replace(/,/g, ''));
+    // Origin THC
+    const oThcMatch = text.match(/(?:origin\s*thc|thc\s*origin|o\.?thc)(?:[^\d\n\r$]*?)[:=]?\s*\$?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
+    if (oThcMatch && oThcMatch[1]) {
+      thcOrigin = parseFloat(oThcMatch[1].replace(/,/g, ''));
     }
+
+    // Destination THC
+    const dThcMatch = text.match(/(?:dest(?:ination)?\s*thc|thc\s*dest(?:ination)?|d\.?thc)(?:[^\d\n\r$]*?)[:=]?\s*\$?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
+    if (dThcMatch && dThcMatch[1]) {
+      thcDestination = parseFloat(dThcMatch[1].replace(/,/g, ''));
+    }
+
+    // Generic THC fallback
+    if (!thcOrigin && !thcDestination) {
+      const thcMatch = text.match(/thc\s*[:=]?\s*\$?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
+      if (thcMatch && thcMatch[1]) {
+        thcOrigin = parseFloat(thcMatch[1].replace(/,/g, ''));
+      }
+    }
+
+    const totalEstimated = oceanFreight + thcOrigin + thcDestination;
 
     return {
       oceanFreight,
       currency,
       freeDays,
       transitTimeDays,
-      thcOrigin: thc,
-      thcDestination: 0,
-      totalEstimated: oceanFreight + thc,
+      thcOrigin,
+      thcDestination,
+      totalEstimated,
     };
   }
 
@@ -1583,5 +1670,128 @@ export class MaritimeFreightService {
       containers,
       dcsaMilestones: DCSA_STANDARD_MILESTONES,
     };
+  }
+
+  // --------------------------------------------------------------------------
+  // 9. Public Carrier Quote Portal (Magic Links)
+  // --------------------------------------------------------------------------
+  async getPublicRfqForQuote(rfqId: string, carrierCode?: string) {
+    const rfq = await this.db
+      .selectFrom('maritime_rfqs')
+      .selectAll()
+      .where('id', '=', rfqId as any)
+      .executeTakeFirst();
+
+    if (!rfq) {
+      throw new NotFoundException('RFQ not found or invalid link');
+    }
+
+    let carrier: any = null;
+    if (carrierCode) {
+      carrier = await this.db
+        .selectFrom('shipping_lines')
+        .selectAll()
+        .where('code', '=', carrierCode)
+        .executeTakeFirst();
+    }
+
+    // Get company/tenant branding
+    const companySettingsRows = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where('tenant_id', '=', rfq.tenant_id)
+      .where('key', 'in', ['companyName', 'storeName', 'email', 'phone'])
+      .execute();
+
+    const companySettings = companySettingsRows.reduce<Record<string, string>>((acc, r) => {
+      try { acc[r.key] = JSON.parse(r.value); } catch { acc[r.key] = r.value; }
+      return acc;
+    }, {});
+
+    return {
+      rfq: {
+        id: rfq.id,
+        rfq_number: rfq.rfq_number,
+        direction: rfq.direction,
+        pol_code: rfq.pol_code,
+        pol_name: rfq.pol_name,
+        pod_code: rfq.pod_code,
+        pod_name: rfq.pod_name,
+        cargo_mode: rfq.cargo_mode,
+        container_type: rfq.container_type,
+        container_count: rfq.container_count,
+        commodity_description: rfq.commodity_description,
+        cargo_nature: rfq.cargo_nature,
+        cargo_ready_date: rfq.cargo_ready_date,
+        target_free_days: rfq.target_free_days,
+        incoterm: rfq.incoterm,
+        payment_term: rfq.payment_term,
+        status: rfq.status,
+      },
+      carrier: carrier ? {
+        id: carrier.id,
+        code: carrier.code,
+        name_ar: carrier.name_ar,
+        name_en: carrier.name_en,
+        carrier_type: carrier.carrier_type,
+      } : null,
+      company: {
+        name: companySettings.companyName || companySettings.storeName || 'منصة Z-Systems اللوجستية',
+        email: companySettings.email || '',
+        phone: companySettings.phone || '',
+      }
+    };
+  }
+
+  async submitPublicCarrierBid(rfqId: string, dto: any) {
+    const rfq = await this.db
+      .selectFrom('maritime_rfqs')
+      .selectAll()
+      .where('id', '=', rfqId as any)
+      .executeTakeFirst();
+
+    if (!rfq) {
+      throw new NotFoundException('RFQ not found or invalid link');
+    }
+
+    const oceanFreight = Number(dto.oceanFreight || 0);
+    const thcOrigin = Number(dto.thcOrigin || 0);
+    const thcDestination = Number(dto.thcDestination || 0);
+    const bafCharges = Number(dto.bafCharges || 0);
+    const otherCharges = Number(dto.otherCharges || 0);
+    const totalFreightCost = oceanFreight + thcOrigin + thcDestination + bafCharges + otherCharges;
+
+    const [bid] = await this.db
+      .insertInto('maritime_rfq_bids')
+      .values({
+        tenant_id: rfq.tenant_id,
+        rfq_id: String(rfq.id),
+        shipping_line_id: dto.shippingLineId ? String(dto.shippingLineId) : null,
+        shipping_line_name: dto.shippingLineName || dto.lineName || 'Online Carrier Bid',
+        ocean_freight: oceanFreight,
+        currency: dto.currency || 'USD',
+        thc_origin: thcOrigin,
+        thc_destination: thcDestination,
+        baf_charges: bafCharges,
+        other_charges: otherCharges,
+        total_freight_cost: totalFreightCost,
+        transit_time_days: dto.transitTimeDays || 0,
+        free_days: dto.freeDays || rfq.target_free_days || 14,
+        validity_date: dto.validityDate || null,
+        submission_channel: 'carrier_portal',
+        raw_bid_data: JSON.stringify(dto),
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .execute();
+
+    // Update RFQ status to bids_received
+    await this.db
+      .updateTable('maritime_rfqs')
+      .set({ status: 'bids_received', updated_at: sql`NOW()` })
+      .where('id', '=', rfqId as any)
+      .execute();
+
+    return bid;
   }
 }

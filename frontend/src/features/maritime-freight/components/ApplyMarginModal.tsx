@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
 import { maritimeApi, MaritimeRfq, MaritimeRfqBid } from '../api/maritime-freight.api';
@@ -20,6 +20,15 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
   const [exchangeRate, setExchangeRate] = useState<number>(48.5);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && rfq) {
+      setCustomerName(rfq.customer_name || '');
+      setCustomerPhone(rfq.customer_phone || '');
+      setCustomerEmail(rfq.customer_email || '');
+      setErrorMsg(null);
+    }
+  }, [open, rfq]);
 
   if (!bid || !rfq) return null;
 
@@ -122,7 +131,7 @@ export function ApplyMarginModal({ open, rfq, bid, onClose, onSuccess }: ApplyMa
               {bid.shipping_line_name} — {baseCost.toLocaleString()} {bid.currency}
             </div>
             <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>
-              نولون: ${Number(bid.ocean_freight).toLocaleString()} | مصاريف موانئ THC: ${Number(bid.thc_origin + bid.thc_destination).toLocaleString()} | سماح: {bid.free_days} يوم
+              نولون: ${Number(bid.ocean_freight || 0).toLocaleString()} | مصاريف موانئ THC: ${(Number(bid.thc_origin || 0) + Number(bid.thc_destination || 0)).toLocaleString()}$ | سماح: {bid.free_days} يوم
             </div>
           </div>
           <div style={{ textAlign: 'left' }}>

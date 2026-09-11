@@ -8,6 +8,8 @@ interface MaritimeMatrixTabProps {
   onSelectRfqId: (id: string) => void;
   onApproveBid: (rfq: MaritimeRfq, bid: MaritimeRfqBid) => void;
   onOpenAddBid: (rfq: MaritimeRfq) => void;
+  onSyncEmails?: () => void;
+  syncing?: boolean;
 }
 
 export function MaritimeMatrixTab({
@@ -16,6 +18,8 @@ export function MaritimeMatrixTab({
   onSelectRfqId,
   onApproveBid,
   onOpenAddBid,
+  onSyncEmails,
+  syncing = false,
 }: MaritimeMatrixTabProps) {
   const activeRfqId = selectedRfqId || (rfqs.length > 0 ? String(rfqs[0].id) : null);
   const initialRfq = rfqs.find((r) => String(r.id) === String(activeRfqId)) || null;
@@ -55,28 +59,56 @@ export function MaritimeMatrixTab({
           </select>
         </div>
 
-        {currentRfq && (
-          <button
-            type="button"
-            onClick={() => onOpenAddBid(currentRfq)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              color: '#1e293b',
-              cursor: 'pointer',
-            }}
-          >
-            <AppIcons.Plus size={16} />
-            <span>تسجيل عرض سعر يدوي</span>
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {onSyncEmails && (
+            <button
+              type="button"
+              disabled={syncing}
+              onClick={onSyncEmails}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                color: '#1e40af',
+                cursor: syncing ? 'not-allowed' : 'pointer',
+                opacity: syncing ? 0.7 : 1,
+              }}
+              title="سحب وفحص الإيميلات الواردة من الخطوط وقراءتها آلياً"
+            >
+              <AppIcons.RefreshCw size={15} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none' }} />
+              <span>{syncing ? 'جاري فحص الإيميلات...' : 'مزامنة الردود الواردة (Sync Bids)'}</span>
+            </button>
+          )}
+
+          {currentRfq && (
+            <button
+              type="button"
+              onClick={() => onOpenAddBid(currentRfq)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                color: '#1e293b',
+                cursor: 'pointer',
+              }}
+            >
+              <AppIcons.Plus size={16} />
+              <span>تسجيل عرض سعر يدوي</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* تفاصيل مسار الطلب النشط بتصميم مؤسسي ناصع */}
@@ -151,14 +183,14 @@ export function MaritimeMatrixTab({
                     {bid.shipping_line_name}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                    طريقة الاستلام: {bid.submission_channel === 'email_auto' ? 'بريد إلكتروني تلقائي' : 'تسجيل يدوي'}
+                    طريقة الاستلام: {bid.submission_channel === 'email_auto' ? 'بريد إلكتروني تلقائي' : bid.submission_channel === 'carrier_portal' ? 'بوابة الخطوط الإلكترونية' : 'تسجيل يدوي'}
                   </div>
 
                   {/* السعر الإجمالي البارز */}
                   <div style={{ marginTop: '14px', marginBottom: '14px', textAlign: 'center', background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>إجمالي تكلفة الشحن والموانئ</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#170e5e', marginTop: '2px' }}>
-                      ${Number(bid.total_freight_cost).toLocaleString()}
+                      ${Number(bid.total_freight_cost || 0).toLocaleString()}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#475569' }}>
                       عملة التسعير: {bid.currency}
@@ -169,11 +201,11 @@ export function MaritimeMatrixTab({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78rem', color: '#334155' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>نولون بحري (OF):</span>
-                      <strong>${Number(bid.ocean_freight).toLocaleString()}</strong>
+                      <strong>${Number(bid.ocean_freight || 0).toLocaleString()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>عوائد موانئ (THC):</span>
-                      <strong>${Number(bid.thc_origin + bid.thc_destination).toLocaleString()}</strong>
+                      <strong>${(Number(bid.thc_origin || 0) + Number(bid.thc_destination || 0)).toLocaleString()}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>فترة السماح (Free Days):</span>

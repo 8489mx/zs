@@ -96,6 +96,10 @@ export interface MaritimeMailConfig {
   lastSyncAt?: string | null;
   lastSyncStatus?: string | null;
   lastSyncDetails?: string | null;
+
+  emailSubjectTemplate?: string;
+  emailIntroTemplate?: string;
+  emailSignatureTemplate?: string;
 }
 
 export interface RfqEmailDispatchPayload {

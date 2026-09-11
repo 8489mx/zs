@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { Field } from '@/shared/ui/field';
+import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
 import { maritimeApi, ShippingPort, ShippingLine } from '../api/maritime-freight.api';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 
@@ -31,6 +32,9 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     cargoReadyDate: '',
     targetFreeDays: 14,
     paymentTerm: 'prepaid' as 'prepaid' | 'collect',
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
     targetLineIds: [] as number[],
     notes: '',
   });
@@ -50,12 +54,23 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
   }, [open]);
 
   const [carrierFilter, setCarrierFilter] = useState<'all' | 'far_east' | 'europe_med' | 'shipping_line' | 'overseas_agent'>('all');
+  const [carrierSearch, setCarrierSearch] = useState('');
 
   const displayedCarriers = carriers.filter((c) => {
-    if (carrierFilter === 'shipping_line') return !c.carrier_type || c.carrier_type === 'shipping_line';
-    if (carrierFilter === 'overseas_agent') return c.carrier_type === 'overseas_agent';
-    if (carrierFilter === 'far_east') return c.trade_lanes?.includes('far_east') || c.country_code === 'CN';
-    if (carrierFilter === 'europe_med') return c.trade_lanes?.includes('europe_med') || ['TR', 'DE', 'IT', 'EG'].includes(c.country_code || '');
+    if (carrierFilter === 'shipping_line' && c.carrier_type && c.carrier_type !== 'shipping_line') return false;
+    if (carrierFilter === 'overseas_agent' && c.carrier_type !== 'overseas_agent') return false;
+    if (carrierFilter === 'far_east' && !c.trade_lanes?.includes('far_east') && c.country_code !== 'CN') return false;
+    if (carrierFilter === 'europe_med' && !c.trade_lanes?.includes('europe_med') && !['TR', 'DE', 'IT', 'EG'].includes(c.country_code || '')) return false;
+
+    if (carrierSearch.trim()) {
+      const q = carrierSearch.toLowerCase().trim();
+      const matchNameAr = c.name_ar?.toLowerCase().includes(q);
+      const matchNameEn = c.name_en?.toLowerCase().includes(q);
+      const matchCode = c.code?.toLowerCase().includes(q);
+      const matchEmail = c.email?.toLowerCase().includes(q) || c.rfq_email?.toLowerCase().includes(q);
+      const matchCountry = c.country_name?.toLowerCase().includes(q) || c.city_name?.toLowerCase().includes(q);
+      return Boolean(matchNameAr || matchNameEn || matchCode || matchEmail || matchCountry);
+    }
     return true;
   });
 
@@ -108,6 +123,8 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     });
   };
 
+  const [sendImmediately, setSendImmediately] = useState(true);
+
   const handleSubmit = async () => {
     if (!formData.polCode || !formData.podCode) {
       setErrorMsg('يرجى تحديد ميناء الشحن وميناء التفريغ');
@@ -121,7 +138,14 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
     try {
       setIsSubmitting(true);
       setErrorMsg(null);
-      await maritimeApi.createRfq(formData);
+      const res = await maritimeApi.createRfq(formData);
+      if (sendImmediately && res?.id && (formData.targetLineIds?.length || 0) > 0) {
+        try {
+          await maritimeApi.dispatchRfqEmails(res.id);
+        } catch (dispatchErr) {
+          console.warn('Dispatch failed:', dispatchErr);
+        }
+      }
       onCreated();
       onClose();
     } catch (err: any) {
@@ -154,6 +178,46 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
             {errorMsg}
           </div>
         )}
+
+        {/* بيانات العميل أو المستورد */}
+        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#170e5e', fontWeight: 700, fontSize: '0.92rem' }}>
+            <AppIcons.Users size={18} />
+            <span>بيانات العميل أو المستورد (Customer Information - اختياري)</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            <Field label="اسم العميل أو الشركة">
+              <input
+                type="text"
+                value={formData.customerName}
+                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                placeholder="مثال: شركة النور للاستيراد"
+                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+              />
+            </Field>
+
+            <Field label="رقم الهاتف أو الواتساب">
+              <input
+                type="tel"
+                value={formData.customerPhone}
+                onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                placeholder="01012345678"
+                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+              />
+            </Field>
+
+            <Field label="البريد الإلكتروني للعميل">
+              <input
+                type="email"
+                value={formData.customerEmail}
+                onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                placeholder="client@company.com"
+                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
+              />
+            </Field>
+          </div>
+        </div>
 
         {/* Section 1: المسار والاتجاه */}
         <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
@@ -191,31 +255,27 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
             </Field>
 
             <Field label="ميناء الشحن والتحميل (POL) *">
-              <select
+              <ComboboxSelect
                 value={formData.polCode}
-                onChange={(e) => handlePolChange(e.target.value)}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                {ports.map((p) => (
-                  <option key={p.code} value={p.code}>
-                    {p.name_ar} - {p.country_name} ({p.code})
-                  </option>
-                ))}
-              </select>
+                onChange={handlePolChange}
+                options={ports.map((p) => ({
+                  id: p.code,
+                  label: `${p.name_ar} - ${p.country_name} (${p.code})`,
+                }))}
+                placeholder="ابحث عن ميناء الشحن أو الكود..."
+              />
             </Field>
 
             <Field label="ميناء التفريغ والمقصد (POD) *">
-              <select
+              <ComboboxSelect
                 value={formData.podCode}
-                onChange={(e) => handlePodChange(e.target.value)}
-                style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '0.85rem' }}
-              >
-                {ports.map((p) => (
-                  <option key={p.code} value={p.code}>
-                    {p.name_ar} - {p.country_name} ({p.code})
-                  </option>
-                ))}
-              </select>
+                onChange={handlePodChange}
+                options={ports.map((p) => ({
+                  id: p.code,
+                  label: `${p.name_ar} - ${p.country_name} (${p.code})`,
+                }))}
+                placeholder="ابحث عن ميناء التفريغ أو الكود..."
+              />
             </Field>
           </div>
         </div>
@@ -337,40 +397,66 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
             </div>
           </div>
 
-          {/* فلتر سريع للممرات والشركاء */}
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            {[
-              { id: 'all', label: 'الكل' },
-              { id: 'far_east', label: 'الصين والشرق الأقصى' },
-              { id: 'europe_med', label: 'أوروبا والمتوسط' },
-              { id: 'shipping_line', label: 'خطوط الملاحة فقط' },
-              { id: 'overseas_agent', label: 'وكلاء الشحن بالخارج' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setCarrierFilter(tab.id as any)}
+          {/* بحث سريع + فلاتر الممرات */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ flex: '1 1 200px', minWidth: '180px', position: 'relative' }}>
+              <input
+                type="text"
+                value={carrierSearch}
+                onChange={(e) => setCarrierSearch(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+                placeholder="بحث باسم الخط، الوكيل، الكود، أو الإيميل..."
                 style={{
-                  height: '26px',
-                  padding: '0 10px',
+                  width: '100%',
+                  height: '28px',
                   borderRadius: '6px',
-                  border: carrierFilter === tab.id ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                  background: carrierFilter === tab.id ? '#170e5e' : '#ffffff',
-                  color: carrierFilter === tab.id ? '#ffffff' : '#475569',
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 10px 0 26px',
+                  fontSize: '0.78rem',
+                  background: '#ffffff',
+                  boxSizing: 'border-box',
                 }}
-              >
-                {tab.label}
-              </button>
-            ))}
+              />
+              <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none', display: 'flex' }}>
+                <AppIcons.Search size={13} />
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'all', label: 'الكل' },
+                { id: 'far_east', label: 'الصين والشرق الأقصى' },
+                { id: 'europe_med', label: 'أوروبا والمتوسط' },
+                { id: 'shipping_line', label: 'خطوط الملاحة فقط' },
+                { id: 'overseas_agent', label: 'وكلاء الشحن بالخارج' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setCarrierFilter(tab.id as any)}
+                  style={{
+                    height: '28px',
+                    padding: '0 10px',
+                    borderRadius: '6px',
+                    border: carrierFilter === tab.id ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                    background: carrierFilter === tab.id ? '#170e5e' : '#ffffff',
+                    color: carrierFilter === tab.id ? '#ffffff' : '#475569',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px', maxHeight: '180px', overflowY: 'auto', padding: '4px' }}>
             {displayedCarriers.length === 0 ? (
               <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', gridColumn: '1 / -1' }}>
-                لا توجد خطوط أو وكلاء مسجلون في هذا الممر الملاحي
+                لا توجد خطوط أو وكلاء مطابقة للبحث أو الفلتر المختار
               </div>
             ) : (
               displayedCarriers.map((carrier) => {
@@ -427,6 +513,18 @@ export function CreateRfqModal({ open, onClose, onCreated }: CreateRfqModalProps
                 );
               })
             )}
+          </div>
+
+          <div style={{ marginTop: '12px', padding: '10px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, color: '#166534' }}>
+              <input
+                type="checkbox"
+                checked={sendImmediately}
+                onChange={(e) => setSendImmediately(e.target.checked)}
+                style={{ accentColor: '#166534', width: 16, height: 16 }}
+              />
+              <span>إرسال بريد طلب التسعير فوراً للخطوط والوكلاء المحددين ({formData.targetLineIds.length}) عند الإنشاء</span>
+            </label>
           </div>
         </div>
       </div>

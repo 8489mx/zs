@@ -17,14 +17,29 @@ const TRADE_LANE_LABELS: Record<string, string> = {
   americas: 'الأمريكتين',
   africa: 'أفريقيا',
   indian_sub: 'الهند وجنوب آسيا',
+  middle_east: 'الشرق الأوسط',
+  black_sea: 'البحر الأسود',
 };
+
+const COUNTRY_OPTIONS = [
+  { code: 'all', name: 'كافة الدول والمناطق' },
+  { code: 'CN', name: 'الصين وشرق آسيا' },
+  { code: 'DE', name: 'ألمانيا وأوروبا' },
+  { code: 'FR', name: 'فرنسا وأوروبا' },
+  { code: 'TR', name: 'تركيا والمتوسط' },
+  { code: 'AE', name: 'الإمارات والخليج العربي' },
+  { code: 'US', name: 'الولايات المتحدة الأمريكية' },
+  { code: 'IN', name: 'الهند وشبه القارة الهندية' },
+  { code: 'JP', name: 'اليابان وآسيا' },
+  { code: 'SG', name: 'سنغافورة والآسيان' },
+];
 
 export function MaritimeMasterDataTab({
   ports,
   lines,
   onRefresh,
 }: MaritimeMasterDataTabProps) {
-  const [subTab, setSubTab] = useState<'lines' | 'agents' | 'ports'>('lines');
+  const [subTab, setSubTab] = useState<'lines' | 'agents' | 'ports'>('agents');
   
   // Search and Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +52,7 @@ export function MaritimeMasterDataTab({
   const [editingPartner, setEditingPartner] = useState<ShippingLine | null>(null);
 
   // New Port Form States
+  const [showAddPortForm, setShowAddPortForm] = useState(false);
   const [newPortCode, setNewPortCode] = useState('');
   const [newPortNameAr, setNewPortNameAr] = useState('');
   const [newPortNameEn, setNewPortNameEn] = useState('');
@@ -100,8 +116,8 @@ export function MaritimeMasterDataTab({
         !searchQuery ||
         port.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
         port.name_ar.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        port.name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        port.country_name.toLowerCase().includes(searchQuery.toLowerCase())
+        (port.name_en && port.name_en.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (port.country_name && port.country_name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     });
   }, [ports, searchQuery]);
@@ -144,6 +160,7 @@ export function MaritimeMasterDataTab({
       setNewPortCode('');
       setNewPortNameAr('');
       setNewPortNameEn('');
+      setShowAddPortForm(false);
       onRefresh();
     } catch (err: any) {
       alert(err?.message || 'فشل إضافة الميناء');
@@ -158,43 +175,179 @@ export function MaritimeMasterDataTab({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
-      {/* Navigation Sub-Tabs */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', minWidth: 0, boxSizing: 'border-box' }} dir="rtl">
+      {/* الكارت المؤسسي الموحد المتطابق مع باقي صفحات الموديول */}
       <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
           background: '#ffffff',
-          padding: '10px 14px',
-          borderRadius: '12px',
           border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-          flexWrap: 'wrap',
-          gap: '10px',
+          width: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'flex', gap: '8px' }}>
+        {/* 1. هيدر الكارت الموحد القياسي */}
+        <div
+          style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid #e2e8f0',
+            background: '#f8fafc',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
+          <div>
+            <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
+              دليل الخطوط والوكلاء والموانئ (Shipping Lines, Agents & Ports)
+            </h3>
+            <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+              إدارة شاملة لخطوط الملاحة البحرية، شبكة وكلاء الشحن المعتمدين حول العالم، ودليل الموانئ الدولية
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                background: '#ffffff',
+                color: '#475569',
+                border: '1px solid #e2e8f0',
+                padding: '4px 10px',
+                borderRadius: '12px',
+                whiteSpace: 'nowrap',
+                minWidth: '95px',
+                textAlign: 'center',
+                display: 'inline-block',
+              }}
+            >
+              {subTab === 'lines' && `${shippingLinesList.length} خط ملاحي`}
+              {subTab === 'agents' && `${overseasAgentsList.length} وكيل شحن`}
+              {subTab === 'ports' && `${ports.length} ميناء بحري`}
+            </span>
+
+            {subTab === 'lines' && (
+              <button
+                type="button"
+                onClick={() => handleOpenAdd('shipping_line')}
+                style={{
+                  height: '36px',
+                  padding: '0 14px',
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
+                }}
+              >
+                <AppIcons.Plus size={15} />
+                <span>+ إضافة خط ملاحي</span>
+              </button>
+            )}
+
+            {subTab === 'agents' && (
+              <button
+                type="button"
+                onClick={() => handleOpenAdd('overseas_agent')}
+                style={{
+                  height: '36px',
+                  padding: '0 14px',
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
+                }}
+              >
+                <AppIcons.Plus size={15} />
+                <span>+ إضافة وكيل خارجي</span>
+              </button>
+            )}
+
+            {subTab === 'ports' && (
+              <button
+                type="button"
+                onClick={() => setShowAddPortForm(!showAddPortForm)}
+                style={{
+                  height: '36px',
+                  padding: '0 14px',
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(23, 14, 94, 0.15)',
+                }}
+              >
+                <AppIcons.Plus size={15} />
+                <span>{showAddPortForm ? 'إخفاء نموذج الإضافة' : '+ إضافة ميناء جديد'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 2. شريط التبويبات المتكامل داخل الكارت */}
+        <div
+          style={{
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            padding: '8px 16px',
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+            minHeight: '52px',
+            boxSizing: 'border-box',
+          }}
+        >
           <button
             type="button"
             onClick={() => {
               setSubTab('lines');
               setSearchQuery('');
+              setSelectedLane('all');
             }}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
               height: '36px',
               padding: '0 16px',
               borderRadius: '8px',
-              border: 'none',
-              background: subTab === 'lines' ? '#170e5e' : '#f1f5f9',
-              color: subTab === 'lines' ? '#ffffff' : '#475569',
+              border: subTab === 'lines' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
+              background: subTab === 'lines' ? '#170e5e' : '#ffffff',
+              color: subTab === 'lines' ? '#ffffff' : '#334155',
               fontWeight: 700,
-              fontSize: '0.82rem',
+              fontSize: '0.8125rem',
               cursor: 'pointer',
-              transition: 'background-color 0.12s ease, color 0.12s ease',
+              transition: 'background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.Ship size={15} />
@@ -206,21 +359,24 @@ export function MaritimeMasterDataTab({
             onClick={() => {
               setSubTab('agents');
               setSearchQuery('');
+              setSelectedCountry('all');
             }}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
               height: '36px',
               padding: '0 16px',
               borderRadius: '8px',
-              border: 'none',
-              background: subTab === 'agents' ? '#170e5e' : '#f1f5f9',
-              color: subTab === 'agents' ? '#ffffff' : '#475569',
+              border: subTab === 'agents' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
+              background: subTab === 'agents' ? '#170e5e' : '#ffffff',
+              color: subTab === 'agents' ? '#ffffff' : '#334155',
               fontWeight: 700,
-              fontSize: '0.82rem',
+              fontSize: '0.8125rem',
               cursor: 'pointer',
-              transition: 'background-color 0.12s ease, color 0.12s ease',
+              transition: 'background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.Users size={15} />
@@ -236,17 +392,19 @@ export function MaritimeMasterDataTab({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
               height: '36px',
               padding: '0 16px',
               borderRadius: '8px',
-              border: 'none',
-              background: subTab === 'ports' ? '#170e5e' : '#f1f5f9',
-              color: subTab === 'ports' ? '#ffffff' : '#475569',
+              border: subTab === 'ports' ? '1.5px solid #170e5e' : '1.5px solid #cbd5e1',
+              background: subTab === 'ports' ? '#170e5e' : '#ffffff',
+              color: subTab === 'ports' ? '#ffffff' : '#334155',
               fontWeight: 700,
-              fontSize: '0.82rem',
+              fontSize: '0.8125rem',
               cursor: 'pointer',
-              transition: 'background-color 0.12s ease, color 0.12s ease',
+              transition: 'background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease',
+              whiteSpace: 'nowrap',
             }}
           >
             <AppIcons.Globe size={15} />
@@ -254,101 +412,45 @@ export function MaritimeMasterDataTab({
           </button>
         </div>
 
-        <div>
-          {subTab === 'lines' && (
-            <button
-              type="button"
-              onClick={() => handleOpenAdd('shipping_line')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                height: '36px',
-                padding: '0 16px',
-                background: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-              }}
-            >
-              <AppIcons.Plus size={15} />
-              <span>إضافة خط ملاحي / توكيل</span>
-            </button>
-          )}
-
-          {subTab === 'agents' && (
-            <button
-              type="button"
-              onClick={() => handleOpenAdd('overseas_agent')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                height: '36px',
-                padding: '0 16px',
-                background: '#170e5e',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-              }}
-            >
-              <AppIcons.Plus size={15} />
-              <span>إضافة وكيل شحن خارجي</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* 1. SHIPPING LINES SUBTAB                                       */}
-      {/* ------------------------------------------------------------- */}
-      {subTab === 'lines' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Controls Bar: Search + Trade Lane Filter */}
+        {/* 3. شريط البحث والتصفية المتجاوب بدون تمدد خارجي */}
+        {subTab === 'lines' && (
           <div
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: '#ffffff',
               padding: '12px 16px',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              flexWrap: 'wrap',
-              gap: '12px',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              minHeight: '58px',
+              boxSizing: 'border-box',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px' }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="بحث بكود الخط، الاسم، التوكيل، أو الإيميل..."
-                  style={{
-                    width: '100%',
-                    height: '36px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    padding: '0 32px 0 10px',
-                    fontSize: '0.82rem',
-                  }}
-                />
-                <div style={{ position: 'absolute', right: '10px', top: '9px', color: '#94a3b8' }}>
-                  <AppIcons.Search size={16} />
-                </div>
+            <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث في الخطوط الملاحية والتوكيلات..."
+                style={{
+                  width: '100%',
+                  height: '34px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 32px 0 10px',
+                  fontSize: '0.8125rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ position: 'absolute', right: '10px', top: '8px', color: '#94a3b8' }}>
+                <AppIcons.Search size={15} />
               </div>
             </div>
 
-            {/* Trade Lane Pills Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>الممر الملاحي:</span>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>المسار:</span>
               {[
                 { id: 'all', label: 'الكل' },
                 { id: 'far_east', label: 'الصين والشرق الأقصى' },
@@ -370,6 +472,7 @@ export function MaritimeMasterDataTab({
                     fontSize: '0.74rem',
                     fontWeight: 600,
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {lane.label}
@@ -377,270 +480,430 @@ export function MaritimeMasterDataTab({
               ))}
             </div>
           </div>
+        )}
 
-          {/* Shipping Lines Table */}
-          <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.82rem' }}>
+        {subTab === 'agents' && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              minHeight: '58px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث باسم الوكيل، الدولة، أو الإيميل..."
+                style={{
+                  width: '100%',
+                  height: '34px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 32px 0 10px',
+                  fontSize: '0.8125rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ position: 'absolute', right: '10px', top: '8px', color: '#94a3b8' }}>
+                <AppIcons.Search size={15} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>دولة ومقر الوكيل:</span>
+              <select
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                style={{
+                  height: '34px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  color: '#1e293b',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  minWidth: '200px',
+                }}
+              >
+                {COUNTRY_OPTIONS.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {subTab === 'ports' && (
+          <>
+            {showAddPortForm && (
+              <div
+                style={{
+                  padding: '16px 20px',
+                  background: '#f8fafc',
+                  borderBottom: '1px solid #e2e8f0',
+                }}
+              >
+                <h4 style={{ margin: '0 0 12px', fontSize: '0.88rem', fontWeight: 700, color: '#170e5e' }}>
+                  بيانات الميناء الجديد (UN/LOCODE Seaport)
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', alignItems: 'flex-end' }}>
+                  <Field label="كود الميناء (UN/LOCODE) *">
+                    <input
+                      type="text"
+                      value={newPortCode}
+                      onChange={(e) => setNewPortCode(e.target.value.toUpperCase())}
+                      placeholder="مثال: EGALY, CNSHA"
+                      style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
+                    />
+                  </Field>
+                  <Field label="اسم الميناء بالعربية *">
+                    <input
+                      type="text"
+                      value={newPortNameAr}
+                      onChange={(e) => setNewPortNameAr(e.target.value)}
+                      placeholder="ميناء الإسكندرية"
+                      style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
+                    />
+                  </Field>
+                  <Field label="اسم الميناء بالإنجليزية">
+                    <input
+                      type="text"
+                      value={newPortNameEn}
+                      onChange={(e) => setNewPortNameEn(e.target.value)}
+                      placeholder="Alexandria Port"
+                      style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
+                    />
+                  </Field>
+                  <Field label="الدولة">
+                    <input
+                      type="text"
+                      value={newPortCountryName}
+                      onChange={(e) => setNewPortCountryName(e.target.value)}
+                      placeholder="مصر، الصين..."
+                      style={{ width: '100%', height: '34px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.8125rem' }}
+                    />
+                  </Field>
+                  <button
+                    type="button"
+                    onClick={handleAddPort}
+                    disabled={isAddingPort}
+                    style={{
+                      height: '34px',
+                      padding: '0 16px',
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      fontSize: '0.8125rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    حفظ الميناء
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#ffffff', minHeight: '58px', boxSizing: 'border-box', display: 'flex', alignItems: 'center' }}>
+              <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="بحث في الموانئ بالكود أو الاسم..."
+                  style={{
+                    width: '100%',
+                    height: '34px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 32px 0 10px',
+                    fontSize: '0.8125rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ position: 'absolute', right: '10px', top: '8px', color: '#94a3b8' }}>
+                  <AppIcons.Search size={15} />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 4. جداول البيانات المتطابقة بنسبة 100% مع معيار جداول رادار الحاويات والـ RFQ */}
+
+        {/* أ. جدول الخطوط الملاحية */}
+        {subTab === 'lines' && (
+          <div style={{ width: '100%', overflowX: 'auto', minHeight: '480px' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.8125rem' }}>
+              <colgroup>
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '25%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '23%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '10%' }} />
+              </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 14px' }}>كود SCAC</th>
-                  <th style={{ padding: '10px 14px' }}>الخط الملاحي والتوكيل</th>
-                  <th style={{ padding: '10px 14px' }}>الممرات الملاحية (Trade Lanes)</th>
-                  <th style={{ padding: '10px 14px' }}>إيميل طلبات التسعير (RFQ Email)</th>
-                  <th style={{ padding: '10px 14px' }}>إيميل الحجوزات (Booking)</th>
-                  <th style={{ padding: '10px 14px' }}>الهاتف والتواصل</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>كود الخط</th>
+                  <th style={{ padding: '12px 14px' }}>اسم الخط الملاحي</th>
+                  <th style={{ padding: '12px 14px' }}>مسارات الإبحار</th>
+                  <th style={{ padding: '12px 14px' }}>إيميل التسعير والحجز</th>
+                  <th style={{ padding: '12px 14px' }}>الهاتف والتواصل</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredLines.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                       لا توجد خطوط ملاحية مطابقة لمعايير البحث
                     </td>
                   </tr>
                 ) : (
-                  filteredLines.map((line) => {
-                    const lanes = line.trade_lanes ? line.trade_lanes.split(',') : [];
-                    return (
-                      <tr key={line.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 800, color: '#170e5e' }}>
-                          <span style={{ background: '#eef2ff', padding: '3px 8px', borderRadius: '4px' }}>
-                            {line.code}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{line.name_ar}</div>
-                          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{line.name_en}</div>
-                          {line.contact_person && (
-                            <div style={{ fontSize: '0.72rem', color: '#0369a1', marginTop: '2px' }}>
-                              مسؤول الاتصال: {line.contact_person}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                            {lanes.length === 0 ? (
-                              <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>ممر عام</span>
-                            ) : (
-                              lanes.map((l) => (
-                                <span
-                                  key={l}
-                                  style={{
-                                    background: '#f1f5f9',
-                                    color: '#334155',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {TRADE_LANE_LABELS[l.trim()] || l}
-                                </span>
-                              ))
-                            )}
+                  filteredLines.map((line) => (
+                    <tr key={line.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 14px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
+                        <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '3px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>
+                          {line.code}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={line.name_ar}>
+                          {line.name_ar}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={line.name_en || ''}>
+                          {line.name_en}
+                        </div>
+                        {(line.notes || line.services_offered) && (
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }} title={line.notes || line.services_offered || undefined}>
+                            {line.notes || line.services_offered}
                           </div>
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          {line.rfq_email ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontWeight: 600, color: '#1d4ed8' }}>{line.rfq_email}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyEmail(line.rfq_email!)}
-                                title="نسخ الإيميل"
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
-                              >
-                                <AppIcons.Copy size={13} />
-                              </button>
-                            </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {!line.trade_lanes ? (
+                            <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>عالمي</span>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>غير مسجل</span>
+                            line.trade_lanes.split(',').slice(0, 3).map((l) => (
+                              <span
+                                key={l}
+                                style={{
+                                  background: '#f1f5f9',
+                                  color: '#334155',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {TRADE_LANE_LABELS[l.trim()] || l}
+                              </span>
+                            ))
                           )}
-                        </td>
-                        <td style={{ padding: '10px 14px', color: '#475569' }}>
-                          {line.booking_email || '-'}
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <div style={{ fontSize: '0.76rem', color: '#334155' }}>{line.phone || '-'}</div>
-                          {line.whatsapp && (
-                            <div style={{ fontSize: '0.72rem', color: '#16a34a' }}>واتساب: {line.whatsapp}</div>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                          <div style={{ display: 'inline-flex', gap: '6px' }}>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                        {line.rfq_email ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                color: '#1d4ed8',
+                                fontSize: '0.8rem',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                direction: 'ltr',
+                                textAlign: 'left',
+                              }}
+                              title={line.rfq_email}
+                            >
+                              {line.rfq_email}
+                            </span>
                             <button
                               type="button"
-                              onClick={() => handleOpenEdit(line)}
-                              style={{
-                                padding: '4px 8px',
-                                background: '#f1f5f9',
-                                color: '#170e5e',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '6px',
-                                fontWeight: 600,
-                                fontSize: '0.74rem',
-                                cursor: 'pointer',
-                              }}
+                              onClick={() => handleCopyEmail(line.rfq_email!)}
+                              title="نسخ الإيميل"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', flexShrink: 0 }}
                             >
-                              تعديل
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeletePartner(line)}
-                              style={{
-                                padding: '4px 8px',
-                                background: '#fff1f2',
-                                color: '#be123c',
-                                border: '1px solid #fecdd3',
-                                borderRadius: '6px',
-                                fontWeight: 600,
-                                fontSize: '0.74rem',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              حذف
+                              <AppIcons.Copy size={13} />
                             </button>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>غير مسجل</span>
+                        )}
+                        {line.booking_email && (
+                          <div
+                            style={{
+                              fontSize: '0.72rem',
+                              color: '#64748b',
+                              direction: 'ltr',
+                              textAlign: 'left',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              marginTop: '2px',
+                            }}
+                            title={`حجز: ${line.booking_email}`}
+                          >
+                            حجز: {line.booking_email}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                        <div style={{ fontSize: '0.76rem', color: '#334155', direction: 'ltr', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {line.phone || '-'}
+                        </div>
+                        {line.contact_person && (
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {line.contact_person}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(line)}
+                          style={{
+                            padding: '4px 10px',
+                            background: '#f1f5f9',
+                            color: '#170e5e',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.74rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          تعديل
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ------------------------------------------------------------- */}
-      {/* 2. OVERSEAS FORWARDING AGENTS SUBTAB                           */}
-      {/* ------------------------------------------------------------- */}
-      {subTab === 'agents' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Controls Bar: Search + Country Filter */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: '#ffffff',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              flexWrap: 'wrap',
-              gap: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px' }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="بحث باسم الوكيل، الدولة، المدينة، أو الإيميل..."
-                  style={{
-                    width: '100%',
-                    height: '36px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    padding: '0 32px 0 10px',
-                    fontSize: '0.82rem',
-                  }}
-                />
-                <div style={{ position: 'absolute', right: '10px', top: '9px', color: '#94a3b8' }}>
-                  <AppIcons.Search size={16} />
-                </div>
-              </div>
-            </div>
-
-            {/* Country Pills Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>دولة الوكيل:</span>
-              {[
-                { code: 'all', name: 'الكل' },
-                { code: 'CN', name: 'الصين' },
-                { code: 'TR', name: 'تركيا' },
-                { code: 'DE', name: 'ألمانيا' },
-                { code: 'IT', name: 'إيطاليا' },
-                { code: 'IN', name: 'الهند' },
-                { code: 'AE', name: 'الإمارات' },
-                { code: 'US', name: 'أمريكا' },
-              ].map((c) => (
-                <button
-                  key={c.code}
-                  type="button"
-                  onClick={() => setSelectedCountry(c.code)}
-                  style={{
-                    height: '28px',
-                    padding: '0 10px',
-                    borderRadius: '6px',
-                    border: selectedCountry === c.code ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                    background: selectedCountry === c.code ? '#170e5e' : '#f8fafc',
-                    color: selectedCountry === c.code ? '#ffffff' : '#475569',
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Overseas Agents Table */}
-          <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.82rem' }}>
+        {/* ب. جدول وكلاء الشحن الدوليين بالخارج */}
+        {subTab === 'agents' && (
+          <div style={{ width: '100%', overflowX: 'auto', minHeight: '480px' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.8125rem' }}>
+              <colgroup>
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '25%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '12%' }} />
+              </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 14px' }}>كود الوكيل</th>
-                  <th style={{ padding: '10px 14px' }}>اسم الشركة الوكيلة</th>
-                  <th style={{ padding: '10px 14px' }}>الدولة والمدينة</th>
-                  <th style={{ padding: '10px 14px' }}>مسؤول التسعير (Contact)</th>
-                  <th style={{ padding: '10px 14px' }}>البريد الإلكتروني (RFQ Email)</th>
-                  <th style={{ padding: '10px 14px' }}>واتساب / WeChat</th>
-                  <th style={{ padding: '10px 14px' }}>الخدمات اللوجستية</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>الإجراءات</th>
+                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>كود الوكيل</th>
+                  <th style={{ padding: '12px 14px' }}>اسم الشركة الوكيلة</th>
+                  <th style={{ padding: '12px 14px' }}>الدولة والمدينة</th>
+                  <th style={{ padding: '12px 14px' }}>مسؤول التسعير والتواصل</th>
+                  <th style={{ padding: '12px 14px' }}>البريد الإلكتروني (RFQ)</th>
+                  <th style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAgents.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                       لا يوجد وكلاء شحن مسجلون في هذه الدولة حالياً
                     </td>
                   </tr>
                 ) : (
                   filteredAgents.map((agent) => (
                     <tr key={agent.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 800, color: '#170e5e' }}>
-                        <span style={{ background: '#f0fdf4', color: '#166534', padding: '3px 8px', borderRadius: '4px' }}>
+                      <td style={{ padding: '12px 14px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
+                        <span style={{ background: '#f0fdf4', color: '#166534', padding: '3px 8px', borderRadius: '4px', fontSize: '0.78rem' }}>
                           {agent.code}
                         </span>
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{agent.name_ar}</div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{agent.name_en}</div>
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <span style={{ fontWeight: 700, color: '#1e293b' }}>{agent.country_name || 'غير محدد'}</span>
-                        {agent.city_name && (
-                          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>مدينة: {agent.city_name}</div>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={agent.name_ar}>
+                          {agent.name_ar}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={agent.name_en || ''}>
+                          {agent.name_en}
+                        </div>
+                        {agent.services_offered && (
+                          <div style={{ fontSize: '0.68rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }} title={agent.services_offered}>
+                            {agent.services_offered}
+                          </div>
                         )}
                       </td>
-                      <td style={{ padding: '10px 14px', color: '#0369a1', fontWeight: 600 }}>
-                        {agent.contact_person || '-'}
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {agent.country_name || 'غير محدد'}
+                        </div>
+                        {agent.city_name && (
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            مدينة: {agent.city_name}
+                          </div>
+                        )}
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
+                        <div style={{ color: '#0369a1', fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={agent.contact_person || ''}>
+                          {agent.contact_person || '-'}
+                        </div>
+                        {agent.whatsapp && (
+                          <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'ltr', textAlign: 'right' }}>
+                            WA: {agent.whatsapp}
+                          </div>
+                        )}
+                        {agent.wechat && !agent.whatsapp && (
+                          <div style={{ fontSize: '0.72rem', color: '#0284c7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            WeChat: {agent.wechat}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', overflow: 'hidden' }}>
                         {agent.rfq_email ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontWeight: 600, color: '#1d4ed8' }}>{agent.rfq_email}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                color: '#1d4ed8',
+                                fontSize: '0.8rem',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                direction: 'ltr',
+                                textAlign: 'left',
+                              }}
+                              title={agent.rfq_email}
+                            >
+                              {agent.rfq_email}
+                            </span>
                             <button
                               type="button"
                               onClick={() => handleCopyEmail(agent.rfq_email!)}
                               title="نسخ الإيميل"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px', flexShrink: 0 }}
                             >
                               <AppIcons.Copy size={13} />
                             </button>
@@ -649,24 +912,8 @@ export function MaritimeMasterDataTab({
                           <span style={{ color: '#94a3b8' }}>-</span>
                         )}
                       </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        {agent.whatsapp && (
-                          <div style={{ fontSize: '0.74rem', color: '#16a34a', fontWeight: 600 }}>
-                            واتساب: {agent.whatsapp}
-                          </div>
-                        )}
-                        {agent.wechat && (
-                          <div style={{ fontSize: '0.72rem', color: '#0284c7' }}>
-                            WeChat: {agent.wechat}
-                          </div>
-                        )}
-                        {!agent.whatsapp && !agent.wechat && <span style={{ color: '#94a3b8' }}>-</span>}
-                      </td>
-                      <td style={{ padding: '10px 14px', fontSize: '0.74rem', color: '#475569' }}>
-                        {agent.services_offered || 'FCL, FOB, EXW'}
-                      </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                      <td style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '4px', justifyContent: 'center' }}>
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(agent)}
@@ -707,133 +954,61 @@ export function MaritimeMasterDataTab({
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ------------------------------------------------------------- */}
-      {/* 3. PORTS SUBTAB                                               */}
-      {/* ------------------------------------------------------------- */}
-      {subTab === 'ports' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* إضافة ميناء جديد */}
-          <div
-            style={{
-              background: '#ffffff',
-              padding: '16px 20px',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            }}
-          >
-            <h3 style={{ margin: '0 0 12px', fontSize: '0.92rem', fontWeight: 800, color: '#170e5e' }}>
-              إضافة ميناء بحري جديد (UN/LOCODE Seaport)
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', alignItems: 'flex-end' }}>
-              <Field label="كود الميناء (UN/LOCODE) *">
-                <input
-                  type="text"
-                  value={newPortCode}
-                  onChange={(e) => setNewPortCode(e.target.value.toUpperCase())}
-                  placeholder="مثال: EGALY, CNSHA"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem' }}
-                />
-              </Field>
-              <Field label="اسم الميناء بالعربية *">
-                <input
-                  type="text"
-                  value={newPortNameAr}
-                  onChange={(e) => setNewPortNameAr(e.target.value)}
-                  placeholder="ميناء الإسكندرية / ميناء شنغهاي"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem' }}
-                />
-              </Field>
-              <Field label="اسم الميناء بالإنجليزية">
-                <input
-                  type="text"
-                  value={newPortNameEn}
-                  onChange={(e) => setNewPortNameEn(e.target.value)}
-                  placeholder="Alexandria Port / Shanghai Port"
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem' }}
-                />
-              </Field>
-              <Field label="الدولة">
-                <input
-                  type="text"
-                  value={newPortCountryName}
-                  onChange={(e) => setNewPortCountryName(e.target.value)}
-                  placeholder="مصر، الصين، تركيا..."
-                  style={{ width: '100%', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 8px', fontSize: '0.82rem' }}
-                />
-              </Field>
-              <button
-                type="button"
-                onClick={handleAddPort}
-                disabled={isAddingPort}
-                style={{
-                  height: '36px',
-                  padding: '0 16px',
-                  background: '#170e5e',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: 700,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                }}
-              >
-                + إضافة الميناء
-              </button>
-            </div>
-          </div>
-
-          {/* Search bar for ports */}
-          <div style={{ maxWidth: '380px' }}>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث في الموانئ بالكود أو الاسم..."
-              style={{
-                width: '100%',
-                height: '36px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                padding: '0 12px',
-                fontSize: '0.82rem',
-                background: '#ffffff',
-              }}
-            />
-          </div>
-
-          {/* جدول الموانئ */}
-          <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.82rem' }}>
+        {/* ج. جدول الموانئ البحرية */}
+        {subTab === 'ports' && (
+          <div style={{ width: '100%', overflowX: 'auto', minHeight: '480px' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.8125rem' }}>
+              <colgroup>
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '35%' }} />
+                <col style={{ width: '30%' }} />
+                <col style={{ width: '20%' }} />
+              </colgroup>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 14px' }}>كود UN/LOCODE</th>
-                  <th style={{ padding: '10px 14px' }}>الاسم بالعربية</th>
-                  <th style={{ padding: '10px 14px' }}>الاسم بالإنجليزية</th>
-                  <th style={{ padding: '10px 14px' }}>الدولة</th>
+                  <th style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>كود UN/LOCODE</th>
+                  <th style={{ padding: '12px 14px' }}>الاسم بالعربية</th>
+                  <th style={{ padding: '12px 14px' }}>الاسم بالإنجليزية</th>
+                  <th style={{ padding: '12px 14px' }}>الدولة والرمز</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredPorts.map((p) => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 800, color: '#170e5e' }}>{p.code}</td>
-                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>{p.name_ar}</td>
-                    <td style={{ padding: '10px 14px', color: '#475569' }}>{p.name_en}</td>
-                    <td style={{ padding: '10px 14px' }}>
-                      {p.country_name} ({p.country_code})
+                {filteredPorts.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                      لا توجد موانئ مطابقة لبحثك
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredPorts.map((p) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 14px', fontWeight: 800, color: '#170e5e', whiteSpace: 'nowrap' }}>
+                        <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '4px' }}>
+                          {p.code}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 14px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.name_ar}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.name_en}
+                      </td>
+                      <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{p.country_name}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.74rem', marginInlineStart: '6px' }}>({p.country_code})</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Unified Partner Add/Edit Modal */}
+      {/* النافذة المنبثقة الموحدة لإضافة وتعديل الشركاء */}
       <PartnerFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}

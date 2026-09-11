@@ -6,7 +6,7 @@ interface MaritimeRfqTabProps {
   onOpenCreate?: () => void;
   onSelectRfqForMatrix: (rfq: MaritimeRfq) => void;
   onOpenAddBid: (rfq: MaritimeRfq) => void;
-  onDispatchEmails: (rfqId: string) => void;
+  onDispatchEmails: (rfq: MaritimeRfq) => void;
 }
 
 export function MaritimeRfqTab({
@@ -171,25 +171,23 @@ export function MaritimeRfqTab({
                       >
                         + عرض سعر
                       </button>
-                      {rfq.status === 'draft' && (
-                        <button
-                          type="button"
-                          onClick={() => onDispatchEmails(rfq.id)}
-                          title="إرسال الإيميلات للخطوط"
-                          style={{
-                            padding: '5px 8px',
-                            background: '#170e5e',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '0.74rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          إرسال
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => onDispatchEmails(rfq)}
+                        title="تحديد الخطوط وإرسال الإيميلات"
+                        style={{
+                          padding: '5px 8px',
+                          background: rfq.status === 'draft' ? '#170e5e' : '#eff6ff',
+                          color: rfq.status === 'draft' ? '#ffffff' : '#1e40af',
+                          border: rfq.status === 'draft' ? 'none' : '1px solid #bfdbfe',
+                          borderRadius: '6px',
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {rfq.status === 'draft' ? 'إرسال' : 'إرسال للخطوط'}
+                      </button>
                     </div>
                   </td>
                 </tr>

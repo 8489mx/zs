@@ -56,6 +56,24 @@ export function MaritimeMatrixPage() {
     setIsAddBidOpen(true);
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncEmails = async () => {
+    try {
+      setSyncing(true);
+      const res = await maritimeApi.syncInboundBids();
+      await loadRfqs();
+      await refreshCounts();
+      if (res.summary) {
+        alert(res.summary);
+      }
+    } catch (err: any) {
+      alert(err?.message || 'فشل مزامنة البريد الوارد');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <>
       <MaritimeMatrixTab
@@ -64,6 +82,8 @@ export function MaritimeMatrixPage() {
         onSelectRfqId={handleSelectRfqId}
         onApproveBid={handleApproveBid}
         onOpenAddBid={handleOpenAddBid}
+        onSyncEmails={handleSyncEmails}
+        syncing={syncing}
       />
 
       <ApplyMarginModal

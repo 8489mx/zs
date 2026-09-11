@@ -4,6 +4,7 @@ import { maritimeApi, MaritimeRfq } from '../api/maritime-freight.api';
 import { useMaritime } from '../context/MaritimeContext';
 import { MaritimeRfqTab } from '../components/MaritimeRfqTab';
 import { CarrierBidEntryModal } from '../components/CarrierBidEntryModal';
+import { DispatchRfqModal } from '../components/DispatchRfqModal';
 
 export function MaritimeRfqsPage() {
   const navigate = useNavigate();
@@ -13,6 +14,9 @@ export function MaritimeRfqsPage() {
 
   const [isAddBidOpen, setIsAddBidOpen] = useState(false);
   const [selectedRfqForBid, setSelectedRfqForBid] = useState<MaritimeRfq | null>(null);
+
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [selectedRfqForDispatch, setSelectedRfqForDispatch] = useState<MaritimeRfq | null>(null);
 
   const loadRfqs = useCallback(async () => {
     try {
@@ -39,15 +43,9 @@ export function MaritimeRfqsPage() {
     setIsAddBidOpen(true);
   };
 
-  const handleDispatchEmails = async (rfqId: string) => {
-    try {
-      const res = await maritimeApi.dispatchRfqEmails(rfqId);
-      alert(res.message);
-      await loadRfqs();
-      await refreshCounts();
-    } catch (err: any) {
-      alert(err?.message || 'فشل إرسال الإيميلات');
-    }
+  const handleOpenDispatchModal = (rfq: MaritimeRfq) => {
+    setSelectedRfqForDispatch(rfq);
+    setIsDispatchModalOpen(true);
   };
 
   return (
@@ -58,7 +56,7 @@ export function MaritimeRfqsPage() {
         onOpenCreate={() => setIsCreateRfqOpen(true)}
         onSelectRfqForMatrix={handleSelectRfqForMatrix}
         onOpenAddBid={handleOpenAddBid}
-        onDispatchEmails={handleDispatchEmails}
+        onDispatchEmails={handleOpenDispatchModal}
       />
 
       <CarrierBidEntryModal
@@ -69,6 +67,19 @@ export function MaritimeRfqsPage() {
           setSelectedRfqForBid(null);
         }}
         onSaved={async () => {
+          await loadRfqs();
+          await refreshCounts();
+        }}
+      />
+
+      <DispatchRfqModal
+        open={isDispatchModalOpen}
+        rfq={selectedRfqForDispatch}
+        onClose={() => {
+          setIsDispatchModalOpen(false);
+          setSelectedRfqForDispatch(null);
+        }}
+        onDispatched={async () => {
           await loadRfqs();
           await refreshCounts();
         }}
