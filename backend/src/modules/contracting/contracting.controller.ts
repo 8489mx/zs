@@ -79,6 +79,15 @@ export class ContractingController {
     return this.contractingService.createBoqItem(req.authContext!, projectId, dto);
   }
 
+  @Post('projects/:projectId/boq/batch')
+  async batchCreateBoqItems(
+    @Param('projectId') projectId: string,
+    @Body() body: { items: CreateBoqItemDto[] },
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.contractingService.batchCreateBoqItems(req.authContext!, projectId, body.items || []);
+  }
+
   @Put('boq/:id')
   async updateBoqItem(
     @Param('id') id: string,
@@ -150,6 +159,11 @@ export class ContractingController {
   @Post('invoices/:id/approve')
   async approveInvoice(@Param('id') id: string, @Req() req: RequestWithAuth) {
     return this.contractingService.approveInvoice(req.authContext!, id);
+  }
+
+  @Post('invoices/:id/post-journal')
+  async postInvoiceJournal(@Param('id') id: string, @Req() req: RequestWithAuth) {
+    return this.contractingService.postInvoiceJournalEntry(req.authContext!, id);
   }
 
   // --------------------------------------------------------------------------

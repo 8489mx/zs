@@ -101,6 +101,11 @@ export function PrintIpcCertificateModal({ open, invoice, onClose }: PrintIpcCer
                   {invoice.status === 'approved' ? 'معتمد رسمياً' : 'مسودة قيد المراجعة'}
                 </strong>
               </div>
+              {invoice.journalEntryId && (
+                <div style={{ marginTop: '2px', fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
+                  القيد الدفتري المرحل: #{invoice.journalEntryId}
+                </div>
+              )}
             </div>
           </div>
 

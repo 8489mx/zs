@@ -858,10 +858,14 @@ export function AppShell({ children }: PropsWithChildren) {
     const computeActive = (isActive: boolean) => {
       if (isHrParentConflict) return false;
       if (item.to.includes('?')) {
-        const itemBasePath = item.to.split('?')[0];
+        const [itemBasePath, itemQuery] = item.to.split('?');
         if (location.pathname !== itemBasePath) return false;
-        const currentFull = location.search ? `${location.pathname}${location.search}` : `${location.pathname}?tab=rfqs`;
-        return currentFull === item.to;
+        const itemParams = new URLSearchParams(itemQuery);
+        const currentParams = new URLSearchParams(location.search);
+        const targetTab = itemParams.get('tab');
+        const defaultTab = location.pathname.includes('contracting') ? 'projects' : 'rfqs';
+        const currentTab = currentParams.get('tab') || defaultTab;
+        return currentTab === targetTab;
       }
       return item.activePaths?.includes(location.pathname) || isActive;
     };

@@ -289,6 +289,77 @@ export class ContractingService {
     return item;
   }
 
+  async batchCreateBoqItems(auth: AuthContext, projectId: string, items: CreateBoqItemDto[]) {
+    const { tenantId } = requireTenantScope(auth);
+    if (!items || items.length === 0) {
+      return { success: true, count: 0, items: [] };
+    }
+
+    const project = await this.db
+      .selectFrom('contracting_projects')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', projectId as any)
+      .executeTakeFirst();
+
+    if (!project) {
+      throw new NotFoundException(`المشروع برقم ${projectId} غير موجود`);
+    }
+
+    // Get existing item codes to avoid collisions
+    const existing = await this.db
+      .selectFrom('contracting_boq_items')
+      .select('item_code')
+      .where('tenant_id', '=', tenantId)
+      .where('project_id', '=', projectId as any)
+      .execute();
+    const existingCodes = new Set(existing.map((e) => e.item_code.toUpperCase()));
+
+    const insertedItems: any[] = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const dto = items[i];
+      let itemCode = (dto.itemCode || `ITEM-${String(i + 1).padStart(3, '0')}`).trim().toUpperCase();
+      if (existingCodes.has(itemCode)) {
+        itemCode = `${itemCode}-${i + 1}`;
+      }
+      existingCodes.add(itemCode);
+
+      const contractQty = Number(dto.contractQty || 0);
+      const unitPrice = Number(dto.unitPrice || 0);
+      const totalPrice = contractQty * unitPrice;
+      const estimatedUnitCost = Number(dto.estimatedUnitCost || 0);
+
+      const [item] = await this.db
+        .insertInto('contracting_boq_items')
+        .values({
+          tenant_id: tenantId,
+          project_id: projectId as any,
+          item_code: itemCode,
+          description: (dto.description || `بند عمل ${itemCode}`).trim(),
+          category: dto.category || 'general',
+          unit: dto.unit || 'm3',
+          contract_qty: contractQty,
+          revised_qty: contractQty,
+          unit_price: unitPrice,
+          total_price: totalPrice,
+          estimated_unit_cost: estimatedUnitCost,
+          executed_qty: 0,
+          notes: dto.notes || null,
+        })
+        .returningAll()
+        .execute();
+
+      if (item) insertedItems.push(item);
+    }
+
+    return {
+      success: true,
+      count: insertedItems.length,
+      items: insertedItems,
+    };
+  }
+
   async updateBoqItem(auth: AuthContext, id: string, dto: UpdateBoqItemDto) {
     const { tenantId } = requireTenantScope(auth);
     const existing = await this.db
@@ -702,6 +773,258 @@ export class ContractingService {
     }
 
     return this.getInvoiceById(auth, id);
+  }
+
+  async postInvoiceJournalEntry(auth: AuthContext, invoiceId: string) {
+    const { tenantId, accountId } = requireTenantScope(auth);
+    const invoice = await this.db
+      .selectFrom('contracting_invoices')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', invoiceId as any)
+      .executeTakeFirst();
+
+    if (!invoice) {
+      throw new NotFoundException(`المستخلص برقم ${invoiceId} غير موجود`);
+    }
+
+    if (invoice.journal_entry_id) {
+      const existingJe = await (this.db as any)
+        .selectFrom('journal_entries')
+        .select(['id', 'entry_no'])
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', invoice.journal_entry_id)
+        .executeTakeFirst();
+      if (existingJe) {
+        return {
+          success: true,
+          journalEntryId: Number(existingJe.id),
+          entryNo: existingJe.entry_no,
+          message: 'تم ترحيل هذا المستخلص مسبقاً',
+        };
+      }
+    }
+
+    const project = await this.db
+      .selectFrom('contracting_projects')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('id', '=', invoice.project_id)
+      .executeTakeFirst();
+
+    if (!project) {
+      throw new NotFoundException('المشروع التابع له المستخلص غير موجود');
+    }
+
+    // Amounts
+    const currentWorkAndStored = Number(invoice.current_amount || 0) + Number(invoice.stored_materials_amount || 0);
+    const advanceRecovery = Number(invoice.advance_recovery_amount || 0);
+    const retentionHeld = Number(invoice.retention_held_amount || 0);
+    const otherDeductions = Number(invoice.other_deductions || 0);
+    const netPayable = Number(invoice.net_payable || 0);
+
+    if (currentWorkAndStored <= 0 && netPayable <= 0) {
+      throw new BadRequestException('لا يمكن إنشاء قيد محاسبي لمستخلص بقيمة صفرية');
+    }
+
+    // Resolve accounts
+    // 1. Accounts Receivable (Clients)
+    let arAccount = await (this.db as any)
+      .selectFrom('accounting_accounts')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('code', '=', '1130')
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+    if (!arAccount) {
+      arAccount = await (this.db as any)
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('account_type', '=', 'asset')
+        .where('is_receivable', '=', true)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+    }
+
+    // 2. Contracting Revenue
+    let revAccount = await (this.db as any)
+      .selectFrom('accounting_accounts')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('code', 'in', ['4200', '4100', '4000'])
+      .where('is_active', '=', true)
+      .orderBy('code', 'asc')
+      .executeTakeFirst();
+
+    // 3. Advances from customers
+    let advanceAccount = await (this.db as any)
+      .selectFrom('accounting_accounts')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('code', '=', '2150')
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+    if (!advanceAccount) {
+      advanceAccount = await (this.db as any)
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('code', '=', '2100')
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+    }
+
+    // 4. Retentions Receivable
+    let retentionAccount = await (this.db as any)
+      .selectFrom('accounting_accounts')
+      .select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('code', 'in', ['1135', '1180', '1160'])
+      .where('is_active', '=', true)
+      .executeTakeFirst();
+    if (!retentionAccount) {
+      retentionAccount = arAccount; // fallback to main receivable
+    }
+
+    const arAccountId = arAccount?.id ? Number(arAccount.id) : null;
+    const revAccountId = revAccount?.id ? Number(revAccount.id) : null;
+    const advAccountId = advanceAccount?.id ? Number(advanceAccount.id) : arAccountId;
+    const retAccountId = retentionAccount?.id ? Number(retentionAccount.id) : arAccountId;
+
+    if (!arAccountId || !revAccountId) {
+      throw new BadRequestException('تعذر تحديد الحسابات المحاسبية الأساسية (العملاء أو الإيرادات) في شجرة الحسابات');
+    }
+
+    // Sequence & entry number
+    const seqRow = await (this.db as any)
+      .selectFrom('journal_entries')
+      .select(sql<number>`count(*)::int`.as('count'))
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    const sequence = Number(seqRow?.count || 0) + 1;
+    const entryNo = `JE-IPC-${String(sequence).padStart(5, '0')}`;
+
+    const inserted = await this.db.transaction().execute(async (trx: any) => {
+      // 1. Create header
+      const [entry] = await trx
+        .insertInto('journal_entries')
+        .values({
+          entry_no: entryNo,
+          tenant_id: tenantId,
+          account_id: accountId,
+          entry_date: invoice.period_end || new Date(),
+          description: `إثبات استحقاق مستخلص أعمال رقم ${invoice.ipc_number} - مشروع ${project.name}`,
+          source_type: 'contracting_ipc',
+          source_id: Number(invoice.id),
+          status: 'posted',
+          created_by: auth.userId,
+        })
+        .returning(['id', 'entry_no'])
+        .execute();
+
+      const lines: any[] = [];
+
+      // Line 1: Credit Contracting Revenue
+      lines.push({
+        journal_entry_id: Number(entry.id),
+        tenant_id: tenantId,
+        account_id: revAccountId,
+        cost_center_id: project.cost_center_id || null,
+        description: `إيرادات أعمال وتشوينات مستخلص ${invoice.ipc_number}`,
+        debit: 0,
+        credit: currentWorkAndStored,
+        partner_type: 'customer',
+        partner_id: project.client_id || null,
+      });
+
+      // Line 2: Debit Customer Advances (Recovery)
+      if (advanceRecovery > 0) {
+        lines.push({
+          journal_entry_id: Number(entry.id),
+          tenant_id: tenantId,
+          account_id: advAccountId,
+          cost_center_id: project.cost_center_id || null,
+          description: `استرداد دفعة مقدمة مستخلص ${invoice.ipc_number}`,
+          debit: advanceRecovery,
+          credit: 0,
+          partner_type: 'customer',
+          partner_id: project.client_id || null,
+        });
+      }
+
+      // Line 3: Debit Retentions Held (Asset)
+      if (retentionHeld > 0) {
+        lines.push({
+          journal_entry_id: Number(entry.id),
+          tenant_id: tenantId,
+          account_id: retAccountId,
+          cost_center_id: project.cost_center_id || null,
+          description: `تأمين أعمال محتجز (حسن تنفيذ) مستخلص ${invoice.ipc_number}`,
+          debit: retentionHeld,
+          credit: 0,
+          partner_type: 'customer',
+          partner_id: project.client_id || null,
+        });
+      }
+
+      // Line 4: Debit Other Deductions
+      if (otherDeductions > 0) {
+        lines.push({
+          journal_entry_id: Number(entry.id),
+          tenant_id: tenantId,
+          account_id: arAccountId,
+          cost_center_id: project.cost_center_id || null,
+          description: `استقطاعات وجزاءات مستخلص ${invoice.ipc_number}`,
+          debit: otherDeductions,
+          credit: 0,
+          partner_type: 'customer',
+          partner_id: project.client_id || null,
+        });
+      }
+
+      // Line 5: Debit Accounts Receivable (Net Payable)
+      if (netPayable > 0) {
+        lines.push({
+          journal_entry_id: Number(entry.id),
+          tenant_id: tenantId,
+          account_id: arAccountId,
+          cost_center_id: project.cost_center_id || null,
+          description: `صافي المستحق على العميل مستخلص ${invoice.ipc_number}`,
+          debit: netPayable,
+          credit: 0,
+          partner_type: 'customer',
+          partner_id: project.client_id || null,
+        });
+      }
+
+      if (lines.length > 0) {
+        await trx.insertInto('journal_entry_lines').values(lines).execute();
+      }
+
+      // Update invoice with journal_entry_id and ensure status is approved
+      await trx
+        .updateTable('contracting_invoices')
+        .set({
+          journal_entry_id: Number(entry.id),
+          status: 'approved',
+          approved_by: invoice.approved_by || auth.username || 'المعتمد',
+          approved_at: invoice.approved_at || new Date(),
+          updated_at: new Date(),
+        })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', invoice.id)
+        .execute();
+
+      return entry;
+    });
+
+    return {
+      success: true,
+      journalEntryId: Number(inserted.id),
+      entryNo: inserted.entry_no,
+      message: 'تم ترحيل القيد المحاسبي بنجاح',
+    };
   }
 
   // ==========================================================================

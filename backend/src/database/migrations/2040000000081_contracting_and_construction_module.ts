@@ -277,7 +277,7 @@ export const migration = {
         project_id BIGINT NOT NULL REFERENCES contracting_projects(id) ON DELETE CASCADE,
         requisition_number TEXT NOT NULL,
         boq_item_id BIGINT NULL REFERENCES contracting_boq_items(id) ON DELETE SET NULL,
-        warehouse_id BIGINT NULL REFERENCES warehouses(id) ON DELETE SET NULL,
+        warehouse_id BIGINT NULL REFERENCES stock_locations(id) ON DELETE SET NULL,
         product_id BIGINT NULL REFERENCES products(id) ON DELETE SET NULL,
         item_name TEXT NOT NULL,
         unit TEXT NOT NULL DEFAULT 'unit',

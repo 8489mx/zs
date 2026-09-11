@@ -544,8 +544,12 @@ export function ContractingWorkspacePage() {
           <ContractingBoqTab
             items={boqItems}
             loading={loading}
+            projectId={selectedProjectId || undefined}
             projectName={activeProject?.name}
             onNewItem={() => setIsCreateBoqItemOpen(true)}
+            onRefresh={() => {
+              if (selectedProjectId) loadProjectData(selectedProjectId);
+            }}
           />
         )}
 

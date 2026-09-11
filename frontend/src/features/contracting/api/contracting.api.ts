@@ -58,6 +58,15 @@ export const contractingApi = {
       body: JSON.stringify(data),
     }),
 
+  batchCreateBoqItems: (projectId: string, items: Array<Partial<ContractingBoqItem>>) =>
+    http<{ success: boolean; count: number; items: ContractingBoqItem[] }>(
+      `/api/contracting/projects/${projectId}/boq/batch`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      }
+    ),
+
   updateBoqItem: (id: string, data: Partial<ContractingBoqItem>) =>
     http<ContractingBoqItem>(`/api/contracting/boq/${id}`, {
       method: 'PUT',
@@ -102,6 +111,14 @@ export const contractingApi = {
     http<ContractingInvoice>(`/api/contracting/invoices/${id}/approve`, {
       method: 'POST',
     }),
+
+  postInvoiceJournal: (id: string) =>
+    http<{ success: boolean; journalEntryId: number; entryNo: string; message?: string }>(
+      `/api/contracting/invoices/${id}/post-journal`,
+      {
+        method: 'POST',
+      }
+    ),
 
   // Subcontracts
   getSubcontracts: (projectId: string) =>

@@ -2209,16 +2209,17 @@
 | **Tab** | `ContractingRfiTab.tsx` | تبويب الاستفسارات الفنية (RFIs) واعتمادات المهندس الاستشاري |
 | **Modal** | `CreateProjectModal.tsx` | نافذة تأسيس مشروع وعقد وتوليد مركز التكلفة التحليلي |
 | **Modal** | `CreateBoqItemModal.tsx` | نافذة إضافة بند مقايسة وتقدير التكلفة والربحية |
+| **Modal** | `ImportBoqModal.tsx` | نافذة استيراد جدول الكميات والمقايسة من Excel أو CSV مع تنزيل النموذج الاسترشادي والمعاينة الفورية |
 | **Modal** | `CreateChangeOrderModal.tsx` | نافذة إصدار أمر تغييري وتحديد الأثر المالي والزمني |
 | **Modal** | `CreateIpcInvoiceModal.tsx` | نافذة إعداد مستخلص جاري واحتساب التشوينات والاستقطاعات |
-| **Modal** | `PrintIpcCertificateModal.tsx` | نافذة طباعة شهادة المستخلص الرسمية المعتمدة (نموذج AIA G702/G703 القياسي A4) |
+| **Modal** | `PrintIpcCertificateModal.tsx` | نافذة طباعة شهادة المستخلص الرسمية المعتمدة (نموذج AIA G702/G703 القياسي A4 مع رقم القيد الدفتري) |
 | **Modal** | `CreateSubcontractModal.tsx` | نافذة إسناد وتوثيق عقد مقاولة باطن وربطه بدليل الموردين |
 | **Modal** | `CreateDailyLogModal.tsx` | نافذة توثيق اليومية الميدانية للعمالة والمعدات |
 | **Modal** | `CreateRfiModal.tsx` | نافذة إرسال طلب استفسار فني رسمي للاستشاري |
 | **Modal** | `AnswerRfiModal.tsx` | نافذة تسجيل رد واعتماد الاستشاري وإغلاق الاستفسار |
 | **Modal** | `CreateScheduleTaskModal.tsx` | نافذة جدولة مهمة جديدة في مخطط جانت وتحديد المسار الحرج وتاريخ البداية والنهاية |
 | **Modal** | `CreateMaterialRequisitionModal.tsx` | نافذة إصدار إذن صرف خامات مباشر وتخصيصها على بند مقايسة معتمد |
-| **Icons** | `AppIcons.tsx` | أيقونات مؤسسية معتمدة (`Building`, `FileCheck`) متوافقة مع Clean Enterprise |
+| **Icons** | `AppIcons.tsx` | أيقونات مؤسسية معتمدة (`Building`, `FileCheck`, `FileSpreadsheet`, `Download`) متوافقة مع Clean Enterprise |
 
 ### التوصيل في النظام (System Wiring)
 
@@ -2241,9 +2242,11 @@
 | :--- | :---: | :---: | :--- |
 | **تأسيس المشاريع ومراكز التكلفة التحليلية التلقائية** | 🟢 | 100% | `CreateProjectModal.tsx`, `contracting.service.ts` — `dimension: 'project'` |
 | **جدول الكميات والمقايسة التثمينية (SOV / BOQ)** | 🟢 | 100% | `ContractingBoqTab.tsx`, `CreateBoqItemModal.tsx` |
+| **استيراد وتصدير المقايسة من وإلى Excel دفعة واحدة (BOQ Batch Ingestion & Export)** | 🟢 | 100% | `ImportBoqModal.tsx`, `ContractingBoqTab.tsx`, `contracting.service.ts` (`batchCreateBoqItems`) |
 | **مخطط جانت وجدولة الأنشطة والمسار الحرج (Gantt CPM WBS)** | 🟢 | 100% | `ContractingGanttTab.tsx`, `CreateScheduleTaskModal.tsx` |
 | **إدارة الأوامر التغييرية والمطالبات (Change Orders)** | 🟢 | 100% | `ContractingChangeOrdersTab.tsx`, `CreateChangeOrderModal.tsx` |
 | **مستخلصات الدفع المعتمدة (AIA G702 / G703)** | 🟢 | 100% | `ContractingInvoicesTab.tsx`, `CreateIpcInvoiceModal.tsx` |
+| **الترحيل المحاسبي الآلي لدفتر الأستاذ العام (Automated GL Journal Posting)** | 🟢 | 100% | `ContractingInvoicesTab.tsx`, `PrintIpcCertificateModal.tsx`, `contracting.service.ts` (`postInvoiceJournalEntry`) |
 | **احتساب تشوينات المواد بالموقع (Stored Materials)** | 🟢 | 100% | `CreateIpcInvoiceModal.tsx`, `contracting.service.ts` |
 | **الاستقطاع الآلي للدفعة المقدمة وحسن التنفيذ (Retentions)** | 🟢 | 100% | `contracting.service.ts`, `CreateIpcInvoiceModal.tsx` |
 | **أذون صرف وتخصيص الخامات المباشرة على بنود المقايسة** | 🟢 | 100% | `ContractingMaterialsTab.tsx`, `CreateMaterialRequisitionModal.tsx` |
@@ -2251,7 +2254,6 @@
 | **إسناد عقود مقاولي الباطن والالتزامات** | 🟢 | 100% | `ContractingSubcontractsTab.tsx`, `CreateSubcontractModal.tsx` |
 | **سجل اليوميات واليومية الميدانية (Site Logs)** | 🟢 | 100% | `ContractingDailyLogsTab.tsx`, `CreateDailyLogModal.tsx` |
 | **إدارة الاستفسارات والاعتمادات الفنية (RFI Engine)** | 🟢 | 100% | `ContractingRfiTab.tsx`, `CreateRfiModal.tsx`, `AnswerRfiModal.tsx` |
-| **الربط المحاسبي وقيود الاستحقاق التلقائية** | 🟢 | 100% | `contracting.service.ts` |
 | **عزل المستأجرين التام (Multi-Tenant Isolation)** | 🟢 | 100% | جميع الجداول والخدمات بـ `tenant_id` إلزامي |
 | **Feature Gating في السايدبار والإعدادات** | 🟢 | 100% | `app-shell.tsx`, `ModulesSettingsTab.tsx` |
 | **الامتثال لدستور النظام البصري (0 Emojis & Clean SaaS)** | 🟢 | 100% | خلو تام من الإيموجيز واستخدام `StandardDialog` و `AppIcons` |

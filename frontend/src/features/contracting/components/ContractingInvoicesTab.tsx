@@ -25,9 +25,10 @@ export function ContractingInvoicesTab({
   onFilterChange,
 }: ContractingInvoicesTabProps) {
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [postingJournalId, setPostingJournalId] = useState<string | null>(null);
 
   const handleApprove = async (id: string) => {
-    if (!confirm('هل أنت متأكد من رغبتك في اعتماد هذا المستخلص رسمياً وترحيل أثره المالي؟')) return;
+    if (!confirm('هل أنت متأكد من رغبتك في اعتماد هذا المستخلص رسمياً؟')) return;
     setApprovingId(id);
     try {
       await contractingApi.approveInvoice(id);
@@ -39,12 +40,53 @@ export function ContractingInvoicesTab({
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const handlePostJournal = async (id: string) => {
+    setPostingJournalId(id);
+    try {
+      const res = await contractingApi.postInvoiceJournal(id);
+      alert(res.message || 'تم ترحيل القيد المحاسبي لدفتر الأستاذ العام بنجاح');
+      onRefresh();
+    } catch (err: any) {
+      alert(err?.message || 'فشل ترحيل القيد المحاسبي');
+    } finally {
+      setPostingJournalId(null);
+    }
+  };
+
+  const getStatusBadge = (status: string, journalEntryId?: number | null) => {
     switch (status) {
       case 'approved':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>معتمد ومرحل</span>;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', width: 'fit-content' }}>
+              معتمد
+            </span>
+            {journalEntryId ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#047857' }}>
+                <AppIcons.FileCheck size={11} />
+                قيد #{journalEntryId}
+              </span>
+            ) : (
+              <span style={{ fontSize: 'var(--font-micro)', color: '#d97706', fontWeight: 600 }}>
+                غير مرحل دفترياً
+              </span>
+            )}
+          </div>
+        );
       case 'paid':
-        return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe' }}>تم الصرف والتحصيل</span>;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', width: 'fit-content' }}>
+              تم الصرف والتحصيل
+            </span>
+            {journalEntryId && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-micro)', fontWeight: 700, color: '#4338ca' }}>
+                <AppIcons.FileCheck size={11} />
+                قيد #{journalEntryId}
+              </span>
+            )}
+          </div>
+        );
       case 'submitted':
         return <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: 'var(--font-badge)', fontWeight: 600, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>مقدم للاستشاري</span>;
       default:
@@ -247,10 +289,10 @@ export function ContractingInvoicesTab({
                       {Number(inv.netPayable || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
-                      {getStatusBadge(inv.status)}
+                      {getStatusBadge(inv.status, inv.journalEntryId)}
                     </td>
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                         {inv.status !== 'approved' && inv.status !== 'paid' && (
                           <button
                             type="button"
@@ -269,6 +311,31 @@ export function ContractingInvoicesTab({
                             }}
                           >
                             اعتماد
+                          </button>
+                        )}
+                        {inv.status === 'approved' && !inv.journalEntryId && (
+                          <button
+                            type="button"
+                            disabled={postingJournalId === inv.id}
+                            onClick={() => handlePostJournal(inv.id)}
+                            style={{
+                              height: '28px',
+                              padding: '0 10px',
+                              borderRadius: '6px',
+                              fontSize: 'var(--font-badge)',
+                              fontWeight: 600,
+                              background: '#170e5e',
+                              color: '#ffffff',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                            title="ترحيل القيد لدفتر الأستاذ العام"
+                          >
+                            <AppIcons.FileCheck size={12} />
+                            <span>{postingJournalId === inv.id ? 'جاري...' : 'ترحيل القيد'}</span>
                           </button>
                         )}
                         <button
